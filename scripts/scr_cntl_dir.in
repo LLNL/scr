@@ -1,0 +1,99 @@
+#!/usr/bin/perl -w
+use strict;
+use lib '@X_DATADIR@/scr';
+use scr_param;
+use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+
+# This script returns the SCR control directory for the current
+# user and jobid, it returns "INVALID" if something
+# is not set.
+
+# Better to have this directory construction in one place
+# rather than having it duplicated over a number of different
+# scripts
+
+# TODO: read cache directory from config file
+my $prog = "scr_cntl_dir";
+
+my $bindir = "@X_BINDIR@";
+
+my $cntl_base  = "@SCR_CNTL_BASE@";
+my $cache_base = "@SCR_CACHE_BASE@";
+my $param = new scr_param();
+
+sub print_usage
+{
+  print "\n";
+  print "  Usage:  $prog [--base] [--cache] [--user <username>] [--jobid <id>]\n";
+  print "\n";
+  exit 1;
+}
+
+# read in command line arguments
+my %conf = ();
+$conf{base}  = undef;
+$conf{cache} = undef;
+$conf{user}  = undef;
+$conf{jobid} = undef;
+my $rc = GetOptions (
+   "base|b"    => \$conf{base},
+   "cache|c"   => \$conf{cache},
+   "user|u=s"  => \$conf{user},
+   "jobid|j=i" => \$conf{jobid},
+);
+if (not $rc) { print_usage(); }
+
+# get the base directory
+my $base = undef;
+if (defined $conf{cache}) {
+  # lookup cache base
+  $base = $param->get_param("SCR_CACHE_BASE");
+} else {
+  # lookup cntl base
+  $base = $param->get_param("SCR_CNTL_BASE");
+}
+if (not defined $base) {
+  print "INVALID\n";
+  exit 1;
+}
+
+# get the user/job directory
+my $suffix = undef;
+if (not defined $conf{base}) {
+  # if not specified, read username from environment
+  if (not defined $conf{user}) {
+    my $username = `$bindir/scr_env --user`;
+    if ($? == 0) {
+      chomp $username;
+      $conf{user} = $username;
+    }
+  }
+
+  # if not specified, read jobid from environment
+  if (not defined $conf{jobid}) {
+    my $jobid = `$bindir/scr_env --jobid`;
+    if ($? == 0) {
+      chomp $jobid;
+      $conf{jobid} = $jobid;
+    }
+  }
+
+  # check that the required environment variables are set
+  if (not defined $conf{user} or
+      not defined $conf{jobid})
+  {
+    # something is missnig, print invalid dir and exit with error
+    print "INVALID\n";
+    exit 1;
+  }
+
+  $suffix = "$conf{user}/scr.$conf{jobid}";
+}
+
+# ok, all values are here, print out the directory name and exit with success
+if (defined $suffix) {
+  print "$base/$suffix\n";
+} else {
+  print "$base\n";
+}
+exit 0;

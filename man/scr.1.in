@@ -1,0 +1,24 @@
+.TH scr 1 "@META_DATE@" "@META_ALIAS@" "@META_NAME@"
+
+.SH DESCRIPTION
+The Scalable Checkpoint / Restart (SCR) library provides an interface that
+codes may use to write out and read in application-level checkpoints in a
+scalable fashion.  In the current implementation, checkpoint files are
+cached in local storage (hard disk or RAM disk) on the compute nodes.
+This technique provides scalable aggregate bandwidth and uses storage
+resources that are fully dedicated to the job.  This approach addresses
+the two common drawbacks of checkpointing a large-scale application to
+a shared parallel file system, namely, limited bandwidth and file system
+contention.  In fact, on current platforms, SCR scales linearly with the
+number of compute nodes.  It has been benchmarked as high as 720GB/s
+on 1094 nodes of Atlas, which is nearly two orders of magnitude faster
+than the parallel file system.
+
+.SH SEE ALSO
+\fISCR User Manual\fR
+.LP
+\fBscr_srun\fR(1), \fBscr_halt\fR(1), \fBscr_prerun\fR(1),
+\fBscr_postrun\fR(1), \fBscr_check_complete\fR(1)
+
+.SH AUTHOR
+Adam Moody <moody20@llnl.gov>.

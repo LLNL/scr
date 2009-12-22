@@ -1,0 +1,97 @@
+CREATE DATABASE IF NOT EXISTS `scr`;
+
+# Do NOT record passwords in this file, since doing so would leave
+# the passwords in the revision control system
+GRANT ALL
+  ON scr.* TO `scr`
+  IDENTIFIED BY '';
+GRANT INSERT,SELECT
+  ON scr.* TO `scr_insert`
+  IDENTIFIED BY '';
+
+USE `scr`;
+
+DROP TABLE IF EXISTS `transfers`;
+DROP TABLE IF EXISTS `events`;
+DROP TABLE IF EXISTS `usernames`;
+DROP TABLE IF EXISTS `jobnames`;
+DROP TABLE IF EXISTS `jobs`;
+
+# job steps run within an allocation
+# allocations run as part of a job chain
+
+CREATE TABLE IF NOT EXISTS `transfers` (
+        `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        `jobid`         INT          NOT NULL, # job step id
+        `type`          VARCHAR(32)  NOT NULL, # fetch, flush, or drain?
+        `checkpoint_id` INT UNSIGNED NOT NULL, # SCR checkpoint iteration number
+        `start`         DATETIME     NOT NULL, # start time of operation
+        `end`           DATETIME     NOT NULL, # end time of operation
+        `time`          FLOAT        NOT NULL, # total time of operation
+        `bytes`         FLOAT        NOT NULL, # total bytes moved
+        `bw`            FLOAT        NOT NULL, # bandwidth of operation
+        `from`          BLOB         NOT NULL, # source directory
+        `to`            BLOB         NOT NULL, # target directory
+        INDEX `jobid` (`jobid`)
+) TYPE=MyISAM;
+
+CREATE TABLE IF NOT EXISTS `events` (
+        `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        `jobid`         INT          NOT NULL, # job step id
+        `type`          VARCHAR(32)  NOT NULL, # fetch, flush, or drain?
+        `checkpoint_id` INT UNSIGNED     NULL, # SCR checkpoint iteration number
+        `start`         DATETIME         NULL, # start time of operation
+        `time`          FLOAT            NULL, # total time of operation
+        `note`          BLOB             NULL, # source directory
+        INDEX `jobid` (`jobid`)
+) TYPE=MyISAM;
+
+CREATE TABLE IF NOT EXISTS `usernames` (
+        `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(512) NOT NULL,
+        UNIQUE INDEX `name` (`name`(512))
+) TYPE=MyISAM;
+
+CREATE TABLE IF NOT EXISTS `jobnames` (
+        `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(512) NOT NULL,
+        UNIQUE INDEX `name` (`name`(512))
+) TYPE=MyISAM;
+
+#CREATE TABLE IF NOT EXISTS `allocationnames` (
+#        `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+#        `name` VARCHAR(512) NOT NULL,
+#        UNIQUE INDEX `name` (`name`(512))
+#) TYPE=MyISAM;
+
+CREATE TABLE IF NOT EXISTS `jobs` (
+        `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        `username_id` INT UNSIGNED NOT NULL, # username of owner of job chain
+        `jobname_id`  INT UNSIGNED NOT NULL, # jobname used for job chain
+        `start`       DATETIME     NOT NULL, # time that job chain started
+        UNIQUE INDEX `name` (`username_id`,`jobname_id`)
+) TYPE=MyISAM;
+
+#CREATE TABLE IF NOT EXISTS `allocations` (
+#        `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+#        `jobchain_id` INT UNSIGNED NOT NULL, # id of job chain
+#        `username_id` INT UNSIGNED NOT NULL, # username of owner of job chain
+#        `jobname_id`  INT UNSIGNED NOT NULL, # jobname used for job chain
+#        `start`       DATETIME     NOT NULL, # start time of run
+##        `jobid`      INT UNSIGNED NOT NULL, # number of nodes
+##        `nnodes`     INT UNSIGNED NOT NULL, # number of nodes
+##        `nodeset`    BLOB         NOT NULL, # nodeset of run
+#        UNIQUE INDEX `chainname` (`username_id`,`jobname_id`)
+#) TYPE=MyISAM;
+
+#CREATE TABLE IF NOT EXISTS `runs` (
+#        `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+#        `jobchain_id` INT UNSIGNED NOT NULL, # id of job chain
+#        `username_id` INT UNSIGNED NOT NULL, # username of owner of job chain
+#        `jobname_id`  INT UNSIGNED NOT NULL, # jobname used for job chain
+#        `start`       DATETIME     NOT NULL, # start time of run
+##        `jobid`      INT UNSIGNED NOT NULL, # number of nodes
+##        `nnodes`     INT UNSIGNED NOT NULL, # number of nodes
+##        `nodeset`    BLOB         NOT NULL, # nodeset of run
+#        UNIQUE INDEX `chainname` (`username_id`,`jobname_id`)
+#) TYPE=MyISAM;

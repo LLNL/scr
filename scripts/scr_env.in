@@ -1,0 +1,80 @@
+#!/usr/bin/perl -w
+use strict;
+use Hostlist;
+use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+
+my $prog = "scr_env";
+
+sub print_usage
+{
+  print "\n";
+  print "  Usage:  $prog [options]\n";
+  print "\n";
+  print "  Options:\n";
+  print "    -u, --user    List the username of current job.\n";
+  print "    -j, --jobid   List the job id of the current job.\n";
+  print "    -n, --nodes   List the nodeset the current job is using.\n";
+  print "    -d, --down    List any nodes of the job's nodeset that\n";
+  print "                    the resource managers knows to be down.\n";
+  print "\n";
+  exit 1;
+}
+
+# read in the command line options
+my %conf = ();
+$conf{user}  = undef;
+$conf{jobid} = undef;
+$conf{nodes} = undef;
+$conf{down}  = undef;
+$conf{help}  = undef;
+my $rc = GetOptions (
+  "user|u"         => \$conf{user},
+  "jobid|j"        => \$conf{jobid},
+  "nodes|n"        => \$conf{nodes},
+  "down|d"         => \$conf{down},
+  "help|h"         => \$conf{help},
+);
+if ($conf{help} or not $rc) { print_usage(); }
+
+if (defined $conf{user}) {
+  # print the username of the current job
+  if (defined $ENV{USER}) {
+    print "$ENV{USER}\n";
+  } else {
+    exit 1;
+  }
+} elsif (defined $conf{jobid}) {
+  # print the jobid of the current job
+  if (defined $ENV{SLURM_JOBID}) {
+    print "$ENV{SLURM_JOBID}\n";
+  } else {
+    exit 1;
+  }
+} elsif (defined $conf{nodes}) {
+  # print the nodeset of the current job in 'atlas[30-33,35,45-53]' form
+  if (defined $ENV{SLURM_NODELIST}) {
+    print "$ENV{SLURM_NODELIST}\n";
+    # or, with jobid: squeue -j <jobid> -ho %N
+  } else {
+    exit 1;
+  }
+} elsif (defined $conf{down}) {
+  # if the resource manager knows any nodes to be down out of the job's
+  # nodeset, print this list in 'atlas[30-33,35,45-53]' form
+  # if there are none, print nothing, not even a newline
+  if (defined $ENV{SLURM_NODELIST}) {
+    my $nodeset = $ENV{SLURM_NODELIST};
+    my $down = `sinfo -ho \%N -t down -n $nodeset`;
+    if ($? == 0) {
+      chomp $down;
+      if ($down ne "") { print "$down\n"; }
+    }
+  } else {
+    exit 1;
+  }
+} else {
+  # did not specify and option, print the usage
+  print_usage();
+}
+
+exit 0;

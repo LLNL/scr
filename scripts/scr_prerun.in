@@ -1,0 +1,91 @@
+#!/bin/bash
+
+# requires: pdsh
+
+# if SCR is disabled, immediately exit
+if [ "$SCR_ENABLE" == "0" ] ; then
+  exit 0
+fi
+
+# turn on verbosity
+if [ -n "$SCR_DEBUG" ]; then
+  if [ $SCR_DEBUG -gt 0 ] ; then
+    set -x
+  fi
+fi
+
+# Run this script before the job runs to check cache size
+# and clear checkpoint cache in case a previous run
+# left something
+
+# record the start time of the script
+start_time=`date`
+start_secs=`date +%s`
+
+bindir="@X_BINDIR@"
+
+pdsh="@PDSH_EXE@"
+rm="/bin/rm"
+
+prog="scr_prerun"
+
+die() { echo "$prog: $@"; exit 1; }
+
+print_usage() { die "Usage: $prog [-p prefix_dir]"; }
+
+# pass prefixes via command line
+PARDIR=${SCR_PREFIX:-`pwd`}
+OPTIND=1
+while getopts "f:t:p:c:" flag ; do
+  case $flag in
+    p) PARDIR=$OPTARG;;
+    *) print_usage;;
+  esac
+done
+
+# check that we have the parallel file system and cache directories at least
+if [ "$PARDIR" == "" ] ; then print_usage; fi
+
+# all parameters checked out, start normal output
+echo "$prog: Started: $start_time"
+
+# get our nodeset for this job
+if [ -z "$SCR_NODELIST" ] ; then
+  nodelist_env=`$bindir/scr_env --nodes`
+  if [ $? -eq 0 ] ; then SCR_NODELIST=$nodelist_env ; fi
+fi
+if [ -z "$SCR_NODELIST" ] ; then
+  echo "$prog: ERROR: Could not identify nodeset"
+  exit 1
+fi
+export SCR_NODELIST
+
+# identify nodes in our allocation and the set that are still up
+UPNODES=$SCR_NODELIST
+# want to clean all nodes in allocation, including those that are up but with broken drives
+#DOWNNODES=`$bindir/scr_list_down_nodes $SCR_NODELIST`
+#if [ "$DOWNNODES" ]; then
+#  UPNODES=`$bindir/scr_glob_hosts -m $SCR_NODELIST:$DOWNNODES`
+#fi
+
+# fire off a command on the remaining nodes
+ret=0
+if [ $UPNODES != "" ]; then
+  # clean control and cache directories
+  cntldir=`$bindir/scr_cntl_dir`
+  cachedir=`$bindir/scr_cntl_dir --cache`
+  echo "$prog: Clearing SCR directories: $cntldir, $cachedir"
+  $pdsh -w "$UPNODES" "$rm -rf $cntldir; $rm -rf $cachedir"
+  # TODO: want to process return code here to return an error?
+fi
+
+# report timing info
+end_time=`date`
+end_secs=`date +%s`
+run_secs=$(($end_secs - $start_secs))
+echo "$prog: Ended: $end_time"
+echo "$prog: secs: $run_secs"
+
+# report exit code and exit
+echo "$prog: exit code: $ret"
+exit $ret

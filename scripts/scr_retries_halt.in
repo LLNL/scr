@@ -1,0 +1,116 @@
+#!/usr/bin/perl -w
+use strict;
+use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+
+my $bindir = "@X_BINDIR@";
+
+my $prog = "scr_retries_halt";
+
+my %conf = ();
+
+$conf{usage} = <<EOF
+
+  $prog -- check whether halt condition is valid
+
+EOF
+;
+
+# get the checkpoint cache directory
+my $cntl_dir = `$bindir/scr_cntl_dir`;
+if ($? != 0) {
+  # cache directory not defined, let's assume we need to stop
+  print "$prog: HALT RUN: Reason: Invalid control directory $cntl_dir.\n";
+  exit 0;
+}
+chomp $cntl_dir;
+
+# define the full path to the halt file
+my $halt_file = "$cntl_dir/halt.scrinfo";
+
+# print usage and exit
+sub print_usage { print STDOUT $conf{usage};  exit 1; }
+
+# check for existance of halt file
+if (-e $halt_file) {
+  my $now = time();
+
+  # read halt file contents
+  if (open(IN, $halt_file)) {
+    my @lines = <IN>;
+    close(IN);
+
+    # read conditions from file
+    my %conditions = ();
+    foreach my $line (@lines) {
+      foreach my $item (split ",", $line) {
+        if ($item =~ /ExitReason: (.*)/)          { $conditions{exit_reason}  = $1; }
+        if ($item =~ /CheckpointsLeft: \-?(\d+)/) { $conditions{checkpoints_left} = $1; }
+        if ($item =~ /ExitBefore: (\d+)/)         { $conditions{exit_before}  = $1; }
+        if ($item =~ /ExitAfter: (\d+)/)          { $conditions{exit_after}   = $1; }
+        if ($item =~ /HaltSeconds: (\d+)/)        { $conditions{halt_seconds} = $1; }
+      }
+    }
+
+    # set halt seconds to 0 by default
+    my $halt_seconds = 0;
+    if (defined $ENV{SCR_HALT_SECONDS}) {
+      # if halt seconds are set in environment, change default to that value
+      $halt_seconds = $ENV{SCR_HALT_SECONDS};
+    }
+    if (defined $conditions{halt_seconds}) {
+      # if set in file, use the value there (user may have changed setting during run via scr_halt)
+      $halt_seconds = $conditions{halt_seconds};
+    }
+
+    # stop if:
+    #   ExitReason exists
+    #   CheckpointsLeft <= 0
+    #   Now >= ExitBefore - HaltSeconds
+    #   Now >= ExitAfter
+    #   TODO: or no conditions are specified?
+
+    my $halt_return = 1; # assume that we won't halt
+    if (defined $conditions{exit_reason}) {
+      print "$prog: HALT RUN: Reason: $conditions{exit_reason}.\n";
+      $halt_return = 0;
+    }
+    if (defined $conditions{checkpoints_left} and $conditions{checkpoints_left} <= 0) {
+      print "$prog: HALT RUN: No checkpoints remaining.\n";
+      $halt_return = 0;
+    }
+    if (defined $conditions{exit_before} and $now >= ($conditions{exit_before} - $halt_seconds)) {
+      my $now_str  = localtime($now);
+      my $exit_str = localtime($conditions{exit_before} - $halt_seconds);
+      print "$prog: HALT RUN: Current time ($now_str) is after ExitBefore-HaltSeconds time ($exit_str).\n";
+      $halt_return = 0;
+    }
+    if (defined $conditions{exit_after} and $now >= $conditions{exit_after}) {
+      my $now_str  = localtime($now);
+      my $exit_str = localtime($conditions{exit_after});
+      print "$prog: HALT RUN: Current time ($now_str) is after ExitAfter time ($exit_str).\n";
+      $halt_return = 0;
+    }
+# TODO: want this check to enable someone to just 'touch' a file?
+# if so, need to update scr source to not create empty files
+#    if (scalar(keys %conditions) == 0) {
+#      print "$prog: HALT RUN: Empty halt file found.\n";
+#      $halt_return = 0;
+#    }
+
+    # if we didn't find a reason to halt, notify user
+    if ($halt_return == 1) {
+      print "$prog: CONTINUE RUN: No halt condition detected.\n";
+    }
+
+    # exit with appropriate code
+    exit $halt_return;
+  } else {
+    # file exists, but we failed to open it -- to be on the safe side, assume we need to halt
+    print "$prog: HALT RUN: Failed to open halt file.\n";
+    exit 0;
+  }
+}
+
+# found no halt file -- we're ok to continue
+print "$prog: CONTINUE RUN: No halt file found.\n";
+exit 1;

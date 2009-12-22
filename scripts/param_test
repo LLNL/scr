@@ -1,0 +1,16 @@
+#!/usr/bin/perl -w
+use strict;
+use scr_param;
+
+my $param = new scr_param();
+my $value = undef;
+
+$value = $param->get_param('SCR_FLUSH');
+print "SCR_FLUSH = $value\n";
+
+$value = $param->get_param('HOMEY');
+print "HOMEY = $value\n";
+
+$value = $param->get_subparam('CACHEDIR', '/tmp', 'BYTES');
+print "CACHEDIR /tmp BYTES = $value\n";
+

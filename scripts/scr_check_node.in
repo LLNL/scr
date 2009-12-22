@@ -1,0 +1,99 @@
+#!/usr/bin/perl -w
+use strict;
+use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+use Hostlist qw(expand compress);
+$Hostlist::quadrics_ranges = 1;
+
+# check health of current node
+#   control directory is available and of proper size
+#   cache directory is available and of proper size
+# print PASS if good, and FAIL if not
+
+my $prog = "scr_check_node";
+
+# define our usage
+sub print_usage
+{
+  print "\n";
+  print "  scr_check_node -- checks that the current node is healthy\n";
+  print "\n";
+  print "  Usage:  scr_check_node [--cntl <dir>] [--cache <dir>]\n";
+  print "\n";
+  print "  Options:\n";
+  print "    --free             Check that free capacity of drive meets limit,\n";
+  print "                         checks total capactiy of drive otherwise.\n";
+  print "    --cntl <dir>       Specify the SCR control directory.\n";
+  print "    --cache <dir>      Specify the SCR cache directory.\n";
+  print "\n";
+  exit 1;
+}
+
+# read in options specified by user
+my %conf = ();
+$conf{free}       = undef;
+$conf{cntl}{dir}  = undef;
+$conf{cache}{dir} = undef;
+$conf{help}  = 0;
+my $rc = GetOptions (
+  "free"    => \$conf{free},
+  "cntl=s"  => \$conf{cntl}{dir},
+  "cache=s" => \$conf{cache}{dir},
+  "help|h"  => sub { $conf{help} = 1; },
+);
+if ($conf{help} or not $rc) { print_usage(); }
+
+# open config file to get expected size of directories
+$conf{cntl}{bytes}  = undef;
+$conf{cache}{bytes} = undef;
+if (defined $conf{cntl}{dir} and $conf{cntl}{dir} =~ /(.*):(\d+)/) {
+  $conf{cntl}{dir}   = $1;
+  $conf{cntl}{bytes} = $2;
+}
+if (defined $conf{cache}{dir} and $conf{cache}{dir} =~ /(.*):(\d+)/) {
+  $conf{cache}{dir}   = $1;
+  $conf{cache}{bytes} = $2;
+}
+
+# check that we can access the directory
+foreach my $type ("cntl", "cache") {
+  # check that we can access the directory (try to run ls on it)
+  my $dir = undef;
+  if (defined $conf{$type}{dir}) {
+    $dir = $conf{$type}{dir};
+    `ls -lt $dir 2>/dev/null`;
+    if ($? != 0) {
+      print "FAIL: Could not access directory: $dir\n";
+      exit 1;
+    }
+  }
+
+  # TODO: attempt to write to directory?
+
+  # if a size is defined, check that the total size is enough
+  if (defined $dir and defined $conf{$type}{bytes}) {
+    # TODO: need to know which unit df is using
+    # convert expected size from bytes to kilobytes
+    my $kb = int($conf{$type}{bytes} / 1024);
+
+    # check total drive capacity, unless --free was given, then check free space on drive
+    my $df_arg_pos = 2;
+    if (defined $conf{free}) { $df_arg_pos = 4; }
+
+    # ok, now get drive capacity
+    my $df_kb = `df -a $dir | tail -1 | awk '{print \$$df_arg_pos}' 2>/dev/null`;
+    chomp $df_kb;
+    if ($? != 0) {
+      print "FAIL: Could not access directory: $dir\n";
+      exit 1;
+    }
+
+    # finally, check that capacity meets expected limit from config file
+    if ($df_kb < $kb) {
+      print "FAIL: Insufficient space in directory: $dir, expected $kb KB, found $df_kb KB\n";
+      exit 1;
+    }
+  }
+}
+
+print "PASS\n";
+exit 0;

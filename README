@@ -1,0 +1,123 @@
+========================================================================
+Scalable Checkpoint / Restart (SCR) Library
+========================================================================
+
+The Scalable Checkpoint / Restart (SCR) Library provides a portable
+interface that may be used to write out and read in checkpoint files
+in a scalable fashion.  The library typically stores these files on
+local disk (hard disk or RAM disk) on the compute nodes.  This technique
+provides far more file I/O bandwidth than writing to a global parallel
+file system.  In fact, SCR scales linearly with the number of compute
+nodes, and it has been benchmarked at 720 GB/sec on 1094 nodes of Atlas.
+
+Detailed usage is provided in the User Manual (doc/scr.pdf).
+
+Author:
+  Adam Moody <moody20@llnl.gov>
+
+-----------------------------
+Dependencies
+-----------------------------
+
+SCR depends on a number of other free software packages.
+
+Required:
+
+  pdsh -- parallel remote shell command (pdsh, dshbak)
+    http://sourceforge.net/projects/pdsh/
+
+  Hostlist.pm -- Perl module for working with nodelists in range syntax
+    http://sourceforge.net/projects/genders/
+
+  Date::Manip -- Perl module for date/time interpretation
+    http://search.cpan.org/~sbeck/Date-Manip-5.54/lib/Date/Manip.pod
+
+  SLURM -- resource manager
+    http://sourceforge.net/projects/slurm/
+
+Optional:
+
+  libyogrt -- your one get remaining time library
+    Enables a running job to determine how much time it has left
+    in its resource allocation.
+    Not currently available outside of LLNL.
+
+  MySQL -- for logging events
+
+SCR is designed to be ported to other resource managers, so with some
+work, one may replace SLURM with something else.  Also libyogrt is
+optional and similarly can be replaced with something else.
+
+-----------------------------
+Configuration
+-----------------------------
+
+Most of the default settings in the SCR library can be adjusted
+via configure options and / or compile-time define variables.
+In particular, the following parameters may need to be adjusted
+for other platforms:
+
+scr.conf:
+  A number of options can and must be specified for an SCR
+  installation, and SCR looks for a configuration file for most of
+  these options.  See the config file in scr.conf, which is commented.
+  The full path and file name of the config file must be hard-coded
+  into SCR at build time via the --with-scr-config-file configure
+  option, e.g.,
+    --with-scr-config-file=/etc/scr.conf
+
+libyogrt support:
+  If libyogrt is not installed, specify --without-yogrt during the
+  configure.
+
+  The function of libyogrt is to enable a job to determine how much
+  time it has left in its current allocaiton.  While libyogrt is not
+  available outside of LLNL, other computer centers often have some
+  library which provides similar functionality.  It should be straigt-
+  forward to replace calls to libyogrt with something else.
+  One must just modify the scr_seconds_remaining() implementation
+  in src/scr.c to return the number of seconds left in the job
+  allocation.
+
+MySQL DB Logging:
+  SCR can log events to a MySQL database.  However, this feature
+  is still in development.  Please disable this for now via
+  --without-mysql.
+
+See the top of src/scr.c for the full set of compile-time define
+variables available.
+
+-----------------------------
+RAM Disk
+-----------------------------
+
+On systems where compute nodes are diskless, often RAM disk is
+the only option for a checkpoint cache.  When using RAM disk,
+one should configure the hard limit to be around two-thirds of
+the amount of memory on a node.  This is a high limit, however
+Linux only allocates space as needed, so it is safe to use a
+high setting.  Jobs which do not use RAM disk will not be negatively
+affected by using a high setting.  This setting must be set by the
+system administrators.
+
+-----------------------------
+Build and install
+-----------------------------
+
+Use the standard, configure/make/make install to configure, build,
+and install the library, e.g.:
+
+  ./configure \
+      --prefix=/usr/local/tools/scr-1.1 \
+      --with-scr-config-file=/etc/scr.conf \
+      --without-yogrt \
+      --without-mysql
+  make
+  make install
+
+To uninstall the installation:
+
+  make uninstall
+
+SCR is layered on top of MPI, so it must be built for the MPI library
+installed on the system.  It uses the standard mpicc compiler wrapper.

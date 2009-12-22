@@ -1,0 +1,524 @@
+2009-12-21 Adam Moody <moody20@llnl.gov>
+
+	* : retag scr-1.1-5
+
+	* : Prepared and uploaded tarball for distribution on sourceforge.
+
+2009-12-04 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.1-5
+
+	* : Converted to use autoconf tools.
+
+	* src/scr_param.h,
+	  src/scr_param.c : Added support for configuration file.
+
+	* src/scr_log.h,
+	  src/scr_log.c,
+	  src/scr_log_event.c,
+	  src/scr_log_transfer.c : Added support for logging events and file
+	  transfers.
+
+2009-10-01 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.1-4
+
+	* src/scr.c : Added some logic to SCR_Need_checkpoint based on settings
+	  user sets via SCR_CHECKPOINT_{OVERHEAD,SECONDS,FREQUENCY} variables.
+
+	* bin.in/scr_check_limits,
+	  bin.in/scr_cache_dir : Call scr_cache_dir to get cache directory
+	  for checking limits.  Override /tmp via SCR_CACHE_BASE.
+
+	* bin.in/scr_srun : Added logic to track and record run time of each step
+	  and node failures in syslog.
+
+2009-09-09 Adam Moody <moody20@llnl.gov>
+
+	* : Removed more references to slurm and /tmp where found.
+
+	* src/scr_io.c : Return SCR_SUCCESS if scr_mkdir() succeeds,
+	  and SCR_FAILURE otherwise.
+
+	* src/scr.c : Check return code on mkdir of cache and cntl directories.
+
+2009-09-04 Adam Moody <moody20@llnl.gov>
+
+	* : Separated cache into control (job state files) and cache (checkpoint
+	  file cache) so that user can target different directories (i.e., devices)
+	  to use as the cache.  Keep the control in a well-known location so SCR
+	  utility scripts know where to look for files.
+
+	* test/test_common.h,
+	  test/test_common.c : Consolidated code common to test_correctness.c
+	  and test_correctness_1.1.c.
+
+	* bin.in/scr_check_limits: Renamed scr_report_tmp_limits to remove reference
+	  to /tmp.
+
+	* : Now set SCR_PREFIX to current working directory if not specified.
+
+2009-08-20 Adam Moody <moody20@llnl.gov>
+
+	* : Added logic to makefile to support AIX.  Moved bin/in to bin.in and
+	  man/man1/in to man.in/man1 to that "make clean" can simply remove bin
+	  and man directories.
+
+	* src/scr.c : Fixed a bug that led to calling MPI_Comm_split with negative
+	  color values during SCR_Init().  Fixed another bug when calling MPI_Bcast
+	  using receive buffers with an upper bound rather than the precise byte
+	  counts.  Fixed a bug with calling dirname/basename recursively without
+	  a strdup of the result.  Modified flock() calls to adhere to stricter AIX
+	  requirements.
+
+	* src/scr_meta.h,
+	  src/scr_meta.c : Extracted meta data functions from scr_io.c into their
+	  own file for consistency.
+
+	* src/scr_crc32.c : Impelement crc32 command functionality to remove
+	  dependency.
+
+	* bin.in/scr_glob_hosts : Uses Hostlist.pm to implement functionality
+	  needed from glob-hosts to remove dependency.
+
+	* bin.in/scr_env : Abstracts most uses of SLURM commands to a single
+	  interface, which should reduce the effort in supporting other resource
+	  managers.  Still heavy use in scr_halt.
+
+2009-07-21 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.1-3
+
+	* bin/in/scr_retries_halt : Another bug -- forgot to chomp the cache_dir
+	  output to strip the trailing newline.
+
+2009-07-17 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.1-2
+
+	* src/scr.c,
+	  src/scr_halt.c
+	  src/scr_halt_cntl.c,
+	  include/scr_halt.h : Protect access to halt file with flock.  Added
+	  command to be invoked on node 0 from scr_halt to access and modify halt
+	  file.  This lets user change halt settings without worrying about state
+	  of application as both the script and the app coordinate via flock().
+
+	* src/scr_hash.c : Fixed heap courruption bug.
+
+	* bin/in/scr_retries_halt : Fixed script typo.
+
+2009-07-07 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.1-1
+
+	* doc/manual/scr.tex : Updated user manual with more detail on the interpose
+	  library and the steps needed to integrate the API into an application.
+
+2009-07-01 Adam Moody <moody20@llnl.gov>
+
+	* : retag scr-1.1-0
+
+	* bin/in/scr_cache_dir: Added script to return checkpoint cache directory name.
+	    Changed default cache location from /tmp/scr to /tmp/username/scr.jobid.
+	    Added code to scr_prerun to delete the cache in a new job (in case user
+	    had a previous run with the same id on a system that does not clear /tmp).
+
+2009-06-29 Adam Moody <moody20@llnl.gov>
+
+	* bin/in/scr_flush_file: Added to run queries against new flush file format.
+	    Modified scr_postrun, scr_flush, and scr_copy to call on scr_flush_file.
+
+2009-06-05 Adam Moody <moody20@llnl.gov>
+
+	* : Changed the API and updated the implementation.  Lots of big changes:
+	  - Removed SCR_Start/Route/Complete.
+	  - Added SCR_Need_checkpoint/Start_checkpoint/Route_file/Complete_checkpoint.
+	  - Added data structures and logic to track multiple files per process per checkpoint.
+	    Now each process may write 0 or more files per checkpoint.
+	  - Can now store a rolling window of checkpoints in the cache, set SCR_CACHE_SIZE.
+	  - Can now run (and restart) with a different number of processes per node.
+	  - Removed first XOR algorithm altogether, changed XOR2 to XOR.
+	  - Updated scr_interpose to use new API and handle multiple files per process.
+	  - Updated text_correctness.c to use new API and created test_correctness_1.1.c.
+	  - Updated scr.pdf to discuss new API and features.
+
+2009-05-04 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0-19
+
+	* src/scr_xor2_rebuild.c : Fixed bug in printf statements
+	  where file descriptor was being printed instead of file
+	  name.  Led to core dumps on rebuild attempts.
+
+	* package.conf : Set OPT to -g -O3 before make to ensure
+	  optimization is enabled for production build.
+
+	* src/scr.c : Changed MPI_CHAR to MPI_BYTE.
+
+2009-04-20 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0-18
+
+	* src/scr.c : Added XOR2 copy and rebuild logic.
+	  Moved old XOR to XOR1 and set copy_xor2 as new XOR.
+	  Set SCR_XOR_SIZE=8 and SCR_COPY_TYPE=XOR as new defaults.
+	  Fixed SCR_PARTNER_DISTANCE to select different
+	  nodes for xor sets, e.g., every other node, etc.
+
+	* src/scr_io.c,
+	  src/scr_err_serial.c,
+	  src/scr_copy_xor2.c,
+	  include/scr_io.h,
+	  include/scr_err.h,
+	  include/scr_copy_xor2.h : Moved shared code to separate files.
+
+	* bin/in/scr_check_complete,
+	  src/scr_xor_rebuild.c,
+	  src/scr_xor2_rebuild.c : Added code to rebuild missing files
+	  via XOR2 redundancy scheme.  Fixed a bug to rescan .scr files
+	  before writing scr_summary.txt file after a rebuild.
+
+2009-02-23 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0-17
+
+	* src/scr.c : Fixed bug in SCR_Route to echo passed in filename when
+	  SCR is disabled.  Also have SCR_Init create the directory in this case.
+	  Added crc32 capability to flush/fetch opertaions, and now try
+	  /old if fetch of /current fails.
+
+	* src/scr_interpose.c,
+	  bin/in/srun-scr : Updated to match latest API and scr.h.
+
+	* bin/in/scr_srun : Merged srun-scr into scr_srun, sets LD_PRELOAD if
+	  SCR_CHECKPOINT_PATTERN is set.
+
+	* bin/scr_list_down_nodes,
+	  bin/in/scr_srun : Added logic to continue to exclude nodes if they
+	  are ever marked down, even if they come back healthy to avoid deleting
+	  a checkpoint set during distribute on a restart.
+
+	* bin/in/scr_check_complete,
+	  etc/scr_meta.pm,
+	  bin/in/scr_copy : Added crc32 option to scr_copy to compute crc32 value
+	  of files and update meta data files before copying files to the parallel file system.
+	  Updated scr_check_complete to match new scr_summary.txt format.  Added scr_meta.pm
+	  to abstract reading and writing of meta data files.
+
+2009-01-15 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0-16
+
+	* src/scr.c : Added SCR_FLUSH_ON_RESTART to force a flush on restart.
+	  Fixed bug where a flush could be missed when restarting.
+
+	* bin/in/scr_srun : Added SCR_EXCLUDE_NODES to manually avoid known
+	  problem nodes in scr_srun.
+
+	* bin/scr_srun,
+	  bin/scr_prerun,
+	  bin/scr_postrun : Added logic to process SCR_ENABLE.
+
+	* bin/scr_srun : Changed SCR_RETRIES to SCR_RUNS which is less confusing.
+
+	* man/* : Added man pages for user interface commands.
+
+	* package.conf : Copy scripts to /usr/local/bin and man pages to /usr/local/man.
+
+	* bin/in : Dropped .in extension from scripts.
+
+2008-12-05 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_15
+	
+	* src/scr.c : Typo in debug output in fetch and flush.
+
+2008-12-05 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_14
+	
+	* src/scr.c : Forgot to print debug output in scr_copy_files.
+
+2008-12-05 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_13
+
+	* src/scr.c : Fixed some bugs for the flush with XOR.  Changed scr_fetch
+	  to be non-fatal per Bert's request and updated SCR_FLUSH to go by global
+	  checkpoint id (also now read in global checkpoint id during scr_fetch).
+
+2008-12-01 Adam Moody <moody20@llnl.gov>
+
+	* src/scr.c : Added SCR_Route() to build full path to checkpoint file.
+	  Added support for SCR_FETCH to read files in from Lustre into /tmp
+	  during SCR_Init.  Added support for SCR_FLUSH to flush files out to
+	  Lustre with some frequency in SCR_Complete.
+
+	* : changed "drain" to "flush" to better match cache terminology.
+
+	* bin/in/scr_flush.in : Added case in failed pdsh where scr_flush
+	  was missing retrying after a failed node.
+
+2008-11-04 Adam Moody <moody20@llnl.gov>
+
+	* : retag scr-1.0_11
+
+	* package.conf,
+	  makefile,
+	  docs/manual/makefile : Add scr.pdf as binary file rather than
+	  try to build pdf via latex source during package build.
+
+2008-11-03 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_11
+
+	* docs/*,
+	  makefile,
+	  README : Added scr.pdf documentation built from latex via pdflatex.
+	  Point readers of README file to scr.pdf file.
+
+	* bin/in/scr_halt.in,
+	  bin/in/scr_retries_halt.in,
+	  setdir : Added tmp prefix to scr_halt.
+	  Added a number of new options to scr_halt, -c, -b, -a, -r.
+	  Created scr_retries_halt to check whether retries should be halted
+	  based on info in halt file.
+
+	* test/test_correctness.c : Added sleep option to sleep between checkpoints.
+	  Added usage if given incorrect number of options.
+
+2008-10-27 Adam Moody <moody20@llnl.gov>
+
+	* src/scr.c : Now unlink xor segments as they are gathered and appended
+	  one-by-one to the XOR file during the gather.  (Need to conserve memory.)
+	  Changed 'SCR aborting' to 'Job exiting' which is less alarming.  Rewrote
+	  XOR algorithm to keep data in memory longer during reduce-scatter.  Added
+	  checkpoint id to drain.scrinfo file.
+
+	* bin/in/scr_check_complete.in,
+	  setdir : Added logic to rebuild missing checkpoint files
+	  from XOR segments if possible.  Moved file to /in directory
+	  since it now calls scr_xor_rebuild.
+
+	* src/scr_xor_rebuild.c,
+	  makefile : The C program to actually rebuild missing checkpoint
+	  files from XOR segments.
+
+	* bin/scr_report_tmp_limits,
+	  bin/scr_prerun : Added "scr_" prefix to report_tmp_limits to be consistent.
+
+	* bin/scr_prerun,
+	  bin/scr_postrun : Changed -f (from) and -t (to) options to be -p (prefix)
+	  and -t (tmp), which is less confusing.  Dropped old -p (pattern) and -c (ppn)
+	  options since they weren't used anyway.
+
+	* bin/scr_halt : Renamed scr_kill to scr_halt.  Have script mkdir /tmp/scr in
+	  case it tries to touch halt file before the directory has been created.
+
+	* bin/in/scr_drain.in,
+	  bin/scr_copy : When given an --id <id> argument, only copy files from node
+	  if there is a drain file and its id matches the one requested.
+
+	* bin/scr_list_down_nodes,
+	  bin/in/scr_srun.in,
+	  bin/in/scr_drain.in : Print list of down (according to SLURM down state)
+	  or unresponsive nodes (according to ping test) to stdout.  Used to exclude
+	  nodes in scr_drain and scr_srun.
+
+2008-06-29 Adam Moody <moody20@llnl.gov>
+
+	* src/scr.c : Added SCR_Read() and SCR_Write() calls as simple wrappers.
+
+	* src/scr.c,
+	  test/test_copy.c,
+	  test/test_correctness.c,
+	  test/test_demo.c,
+	  test/test_interpose.c,
+	  test/test_openclose.c,
+	  test/test_signal.c,
+	  test/time_all.c : Declared internal variables and functions as static to
+	  not export symbols externally.
+
+2008-04-23 Adam Moody <moody20@llnl.gov>
+
+	* : retag scr-1.0_10
+
+	* pacakge.conf : Had to reorder make / setdir commands since
+	  make includes a clean, which now cleans up the scripts in /bin.
+
+2008-04-23 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_10
+
+	* test/test_demo.c : Added simulated application
+	  which repeatedly computes and writes new checkpoints
+	  at each timestep.
+
+	* src/scr.c,
+	  bin/scr_copy : Added scr_need_drain() and scr_halt()
+	  functions which write out drain.scrinfo and halt.scrinfo
+	  files respectively in /tmp/scr to pass info to postrun scripts.
+
+	* bin/scr_kill : Kill jobs by touching halt.scrinfo file in /tmp/scr
+	  via pdsh command to entire nodeset of job.
+
+	* bin/in/scr_srun.in,
+	  setdir : Wrapper of scr_prerun/srun/retries/scr_postrun.
+
+	* bin/in/scr_postrun.in : Set SCR_MARK_COMPLETE to be on be default.
+
+	* makefile : Created 'scripts' target, clean scripts in make clean,
+	  and added test_demo.c
+
+2008-04-22 Adam Moody <moody20@llnl.gov>
+
+	* : retag scr-1.0_9
+
+	* src/scr. : Forgot to guard filemap with scr_distribute flag.
+	  Set scr_copy to ignore *.filemap files (since these don't have
+	  unique names yet).
+
+2008-04-22 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_9
+
+	* src/scr. : Implemented distribution logic for XOR files.
+	  Moved Async to type=3, now Local=0, which has no copy.
+
+2008-04-10 Adam Moody <moody20@llnl.gov>
+
+	* src/scr. : Most funtions now return SCR_SUCCESS or something
+	  other than SCR_SUCCESS upon failure.  Fixed a bug in
+	  scr_split_path.
+
+	* makefile : Added OPT variable to makefile to quickly change
+	  optimization flags.  Building with -O3 vs -O0 has a big impact
+	  on the XOR performance.
+
+2008-03-26 Adam Moody <moody20@llnl.gov>
+
+	* src/scr.c : Added scr_distributefiles() and related functions
+	  which shuffle files around during MPI_Init() with the goal
+	  of priming up spare nodes to take over for failed nodes.
+
+	  Also added scr_xorcopy() and related functions which computes
+	  an xor file for a group of checkpoint files and distributes
+	  the blocks of the xor files over the nodes.
+
+2008-03-17 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_8
+
+	* src/scr.c,
+	  include/scr.h : Added SCR_Open and SCR_Close calls.
+	  Added scr_err and scr_dbg calls to print messages.
+	  Added code to create xor file fragments from checkpoint
+	  files, reduces memory footprint.
+
+	* test/test_openclose.c : Added test for SCR_Open/Close.
+
+2008-03-06 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_7
+
+	* makefile : Copy .so files to lib instead of lib/shared.
+
+	* package.conf : Cleaned up copy of files during install
+	  using $bindir, $libdir, etc from dpkg-mkdeb.
+
+2008-03-05 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_6
+
+	* scr.lcc : Renamed scr.lcc.in.
+
+2008-03-05 Adam Moody <moody20@llnl.gov>
+
+	* package.conf,
+	  scr.lcc.in : Simplifying LCC plugin so others can use
+	  this as a template to create their own plugins.
+
+2008-02-13 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_5
+
+	* package.conf : Changed to use $lccdir and $pkgname which
+	  are macros defined by the dpkg-mkdeb script.
+
+2008-02-11 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_4
+
+	* package.conf,
+	  setdir : Write to /usr/local/etc/lcc instead of
+	  /usr/local/etc/lcc-plugins.  Set @PREFIX@ to $prefix
+	  since we'll source scr .macros file.  Use PKG_DEFAULT=scr.
+
+	* scr.plugin.in,
+	  scr.lcc.in : Renamed plugin file.
+
+2008-02-06 Adam Moody <moody20@llnl.gov>
+
+	* package.conf : Set short desc to match format of MPI libraries.
+
+2007-12-17 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_3
+
+	* bin/scr_flush,
+	  bin/in/presrun,
+	  bin/in/postsrun,
+	  setdir : Cleanup of bin directory: removed scr_flush,
+	  renamed presrun to scr_prerun and postsrun to scr_postrun.
+
+	* EXAMPLES,
+	  IMPLEMENTATIONS : Removed during cleanup.
+
+	* README : Added note about SCR_USE_SIGNAL, SCR_ABORT_SIGNAL,
+	  and SCR_IMMABORT_SIGNAL.  Changed presrun / postsrun references.
+
+	* src/scr.c : Added support for SCR_IMMABORT_SIGNAL, which
+	  is a second registered signal that aborts the job immediately.
+
+	* src/src_utility.c : Added code to handle EINTR and EAGAIN errors
+	  on read and write.
+
+	* bin/scr_kill : A script to safely kill an scr job via sending signals.
+
+2007-12-14 Adam Moody <moody20@llnl.gov>
+
+	* src/scr.c : Added scr_use_signal_immediate as placeholder.
+	  Want to enable user have choice between
+	    1) exit immediately (unless in middle of checkpoint)
+	    2) abort at end of next checkpoint, whenever that may be
+	  Currently only supports option 2, we could catch a second
+	  signal or read variable setting to also enable mode 1.
+
+	* makefile,
+	  test/test_signal.c : Link statically.  Removed Awake printf.
+
+	* src/scr_old.c : Moved to dev since signal code added in main
+	  scr.c file now.
+
+2007-12-14 Adam Moody <moody20@llnl.gov>
+
+	* src/scr.c : Added signal handler to safely abort job, i.e.,
+	  don't want to kill it during the middle of a checkpoint.
+
+	* src/scr.c : Removed SCR_Flush() code, which was commented out anyway.
+
+	* makefile,
+	  test/test_signal.c : Added test program to check signal support.
+
+2007-12-10 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.0_2
+
+2007-12-03 Adam Moody <moody20@llnl.gov>
+
+	* package.conf : Updated to VERSION 2.
+
+	* package.conf : Remove src/dev subdirectory during install.
+
+	* package.conf : Removed PKG_DEPENDS=lcc (only build-time dependency).

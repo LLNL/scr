@@ -1,0 +1,1 @@
+gcc -g -O0 -o scr_mysql_test ./src/libscr_la-scr_io.o ./src/scr_halt_cntl-scr_err_serial.o ./src/scr_mysql.c -rdynamic -L/usr/lib64/mysql -lmysqlclient -lz -lcrypt -lnsl -lm -L/usr/lib64 -lssl -lcrypto -I./src

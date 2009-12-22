@@ -1,0 +1,181 @@
+#!/bin/bash
+
+# Run this script after the final run in a job allocation
+# to flush files from cache to parallel file system.
+
+# if SCR is disabled, immediately exit
+if [ "$SCR_ENABLE" == "0" ] ; then
+  exit 0
+fi
+
+# if SCR_DEBUG is set > 0, turn on verbosity
+if [ -n "$SCR_DEBUG" ]; then
+  if [ $SCR_DEBUG -gt 0 ] ; then
+    set -x
+  fi
+fi
+
+# record the start time for timing purposes
+start_time=`date`
+start_secs=`date +%s`
+
+bindir="@X_BINDIR@"
+
+prog="scr_postrun"
+hostname=`hostname`
+
+die () { echo "$prog: $@"; exit 1; }
+
+print_usage() { die "Usage: $prog [-j jobid] [-p prefix_dir]"; }
+
+# pass prefixes via command line
+jobid=""
+pardir=${SCR_PREFIX:-`pwd`}
+OPTIND=1
+while getopts "j:t:p:v" flag ; do
+  case $flag in
+    j) jobid=$OPTARG;;
+    p) pardir=$OPTARG;;  # parallel file system prefix
+    *) print_usage;;
+  esac
+done
+
+# check that we have the parallel file system prefix
+if [ "$pardir" == "" ] ; then print_usage; fi
+
+# check that we have a valid jobid and bail if not
+if [ -z "$SCR_JOBID" ] ; then
+  if [ "$jobid" != "" ] ; then
+    # user specified a jobid on the command line
+    SCR_JOBID=$jobid
+    echo "$prog: ERROR: The -j option is not yet supported external to a job allocation"
+    exit 1
+  else
+    # try to pick up the jobid from the environment
+    jobid_env=`$bindir/scr_env --jobid`
+    if [ $? -eq 0 ] ; then SCR_JOBID=$jobid_env ; fi
+  fi
+fi
+if [ -z "$SCR_JOBID" ] ; then
+  echo "$prog: ERROR: Must specify -j <jobid> or jobid must be set in environment"
+  exit 1
+fi
+export SCR_JOBID
+
+# check that we have a username
+username=`$bindir/scr_env --user`
+if [ $? != 0 ] ; then
+  echo "$prog: ERROR: Could not identify username"
+  exit 1
+fi
+
+# get the SCR control directory
+CNTLDIR=`$bindir/scr_cntl_dir --user $username --jobid $SCR_JOBID`;
+
+# all parameters checked out, start normal output
+echo "$prog: Started: $start_time"
+
+# get our nodeset for this job
+if [ -z "$SCR_NODELIST" ] ; then
+  nodelist_env=`$bindir/scr_env --nodes`
+  if [ $? -eq 0 ] ; then SCR_NODELIST=$nodelist_env ; fi
+fi
+if [ -z "$SCR_NODELIST" ] ; then
+  echo "$prog: ERROR: Could not identify nodeset"
+  exit 1
+fi
+export SCR_NODELIST
+
+# identify what nodes are still up
+UPNODES=$SCR_NODELIST
+DOWNNODES=`$bindir/scr_list_down_nodes $SCR_NODELIST`
+if [ "$DOWNNODES" ]; then
+  UPNODES=`$bindir/scr_glob_hosts -m $SCR_NODELIST:$DOWNNODES`
+fi
+echo "$prog: UPNODES:   $UPNODES"
+
+# if there is at least one remaining up node, attempt to flush
+ret=1
+if [ $UPNODES != "" ]; then
+  old="$pardir/scr.old"
+  current="$pardir/scr.current"
+
+  # TODO: if running external to job, we won't see a flush file so force the flush
+  # to latest in this case, could rsh the scr_flush command from the first node?
+
+  # check whether we have a checkpoint set to flush
+  echo "$prog: Looking for latest checkpoint set id"
+  $bindir/scr_flush_file --dir $CNTLDIR --latest
+  if [ $? -eq 0 ] ; then
+    # we have a  checkpoint, check whether it still needs to be flushed?
+    checkpointid=`$bindir/scr_flush_file --dir $CNTLDIR --latest`
+    $bindir/scr_flush_file --dir $CNTLDIR --needflush $checkpointid
+    if [ $? -eq 0 ] ; then
+      # make a new directory to store the files for this checkpoint
+      timestamp=`date +%F_%H:%M:%S`
+      scrdir="scr.${timestamp}.${SCR_JOBID}.${checkpointid}"
+      checkpoint=$pardir/$scrdir
+      mkdir -p $checkpoint
+
+      # crc is on by default, turn it off if user doesn't want it
+      crc="--crc"
+      if [ "$SCR_CRC_ON_FLUSH" == "0" ] ; then crc="" ; fi
+
+      # TODO: if given -j <jobid> we should rsh this command to the first node of the job
+      #       where it can see a flush file if one exists
+
+      # Gather files from cache to parallel file system
+      echo "$prog: Flushing files from cache to $checkpoint"
+      echo $prog: $bindir/scr_flush --verbose $crc --id $checkpointid --from $CNTLDIR --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
+      $bindir/scr_flush --verbose $crc --id $checkpointid --from $CNTLDIR --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
+      ret=$?
+      echo "$prog: Done flushing files from cache to $checkpoint"
+
+      # check that gathered set is complete, if not, don't update current / old links
+      update_current=1
+      echo "$prog: Checking that new checkpoint set is complete"
+      echo "$bindir/scr_check_complete $checkpoint"
+      $bindir/scr_check_complete $checkpoint
+      if [ $? -ne 0 ] ; then
+        ret=1
+        update_current=0 # incomplete checkpoint set, don't update current / old links
+      fi
+
+      # if the set is complete, update the current and old symlinks
+      if [ "$update_current" == "1" ] ; then
+        echo "$prog: Updating old & current symlinks"
+
+        # if there is an old, remove it
+        if [ -e $old ] ; then rm -f $old ; fi
+
+        # if there is a current, move it to old
+        if [ -e $current ] ; then
+          current_save=`readlink $current`
+          rm -f $current
+          echo "$prog:   $old     --> $current_save"
+          ln -s $current_save $old
+        fi
+
+        # make the new current
+        echo "$prog:   $current --> $scrdir"
+        ln -s $scrdir $current
+      fi
+    else
+      echo "$prog: Latest checkpoint set has already been flushed from $hostname"
+      ret=0
+    fi
+  else
+    echo "$prog: Found no checkpoint set to flush on $hostname"
+  fi
+fi
+
+# print the timing info
+end_time=`date`
+end_secs=`date +%s`
+run_secs=$(($end_secs - $start_secs))
+echo "$prog: Ended: $end_time"
+echo "$prog: secs: $run_secs"
+
+# print the exit code and exit
+echo "$prog: exit code: $ret"
+exit $ret
