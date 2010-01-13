@@ -127,7 +127,6 @@ while [ 1 ] ; do
     # if this is the first run, we hit down nodes right off the bat, make a record of them
     if [ $attempts -eq 0 ] ; then
       start_secs=`date +%s`
-#      logger -p user.err "SCR: Failed node detected: JOBID=$SCR_JOBID ATTEMPT=$attempts TIME=$start_secs NNODES=-1 RUNTIME=0 FAILED=$down_nodes"
       echo "SCR: Failed node detected: JOBID=$SCR_JOBID ATTEMPT=$attempts TIME=$start_secs NNODES=-1 RUNTIME=0 FAILED=$down_nodes"
     fi
 
@@ -138,7 +137,7 @@ while [ 1 ] ; do
     if [ -n "$SCR_MIN_NODES" ]  ; then
       num_needed=$SCR_MIN_NODES
     elif [ -r "$cntldir/nodes.scrinfo" ] ; then
-      num_needed=`cat $cntldir/nodes.scrinfo`
+      num_needed=`$bindir/scr_env --cntldir $cntldir --runnodes`
     else
       num_needed=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
     fi
@@ -175,17 +174,10 @@ while [ 1 ] ; do
   end_secs=`date +%s`
   run_secs=$(($end_secs - $start_secs))
 
-  # get the number of nodes that were used in the run
-  nnodes=-1
-  if [ -r "$cntldir/nodes.scrinfo" ] ; then
-    nnodes=`cat $cntldir/nodes.scrinfo`
-  fi
-
   # check for and log any down nodes
   $bindir/scr_list_down_nodes $keep_down --secs $run_secs
 
   # log stats on the latest run attempt
-#  logger -p user.err "SCR: Run ended: JOBID=$SCR_JOBID ATTEMPT=$attempts TIME=$start_secs NNODES=$nnodes RUNTIME=$run_secs"
   $bindir/scr_log_event -T "RUN ENDED" -N "Attempt $attempts" -S $end_secs -D $run_secs
 
   # any retry attempts left?

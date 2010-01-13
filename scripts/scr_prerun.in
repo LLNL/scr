@@ -44,7 +44,9 @@ while getopts "f:t:p:c:" flag ; do
 done
 
 # check that we have the parallel file system and cache directories at least
-if [ "$PARDIR" == "" ] ; then print_usage; fi
+if [ "$PARDIR" == "" ] ; then
+  print_usage
+fi
 
 # all parameters checked out, start normal output
 echo "$prog: Started: $start_time"
@@ -52,7 +54,9 @@ echo "$prog: Started: $start_time"
 # get our nodeset for this job
 if [ -z "$SCR_NODELIST" ] ; then
   nodelist_env=`$bindir/scr_env --nodes`
-  if [ $? -eq 0 ] ; then SCR_NODELIST=$nodelist_env ; fi
+  if [ $? -eq 0 ] ; then
+    SCR_NODELIST=$nodelist_env
+  fi
 fi
 if [ -z "$SCR_NODELIST" ] ; then
   echo "$prog: ERROR: Could not identify nodeset"
@@ -62,11 +66,6 @@ export SCR_NODELIST
 
 # identify nodes in our allocation and the set that are still up
 UPNODES=$SCR_NODELIST
-# want to clean all nodes in allocation, including those that are up but with broken drives
-#DOWNNODES=`$bindir/scr_list_down_nodes $SCR_NODELIST`
-#if [ "$DOWNNODES" ]; then
-#  UPNODES=`$bindir/scr_glob_hosts -m $SCR_NODELIST:$DOWNNODES`
-#fi
 
 # fire off a command on the remaining nodes
 ret=0

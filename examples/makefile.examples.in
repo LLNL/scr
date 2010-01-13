@@ -1,8 +1,8 @@
-MPICC=mpicc
-OPT=-g -O3
-LIBDIR=@X_LIBDIR@
-INCLUDES=-I@X_INCLUDEDIR@ -I.
-YOGRTLIBS=-lyogrt
+MPICC     ?= mpicc
+OPT       ?= -g -O3
+LIBDIR     = @X_LIBDIR@
+INCLUDES   = -I@X_INCLUDEDIR@ -I.
+YOGRTLIBS  = -lyogrt
 
 all: test_api test_api_multiple test_interpose test_interpose_multiple
 

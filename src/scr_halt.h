@@ -13,6 +13,7 @@
 #define SCR_HALT_H
 
 #include <stdio.h>
+#include "scr_hash.h"
 
 /*
 =========================================
@@ -20,33 +21,17 @@ This file defines the data structure for a halt file.
 =========================================
 */
 
-/* data structure for halt file */
-struct scr_haltdata
-{
-  char exit_reason[SCR_MAX_FILENAME];
-  int  checkpoints_left;
-  int  exit_before;
-  int  exit_after;
-  int  halt_seconds;
-};
-
-/* blank out a halt data structure */
-int scr_halt_init(struct scr_haltdata* data);
-
-/* given an opened file descriptor, read the fields for a halt file and fill in data */
-int scr_halt_read_fd(int fd, struct scr_haltdata* data);
-
-/* given an opened file descriptor, write halt fields to it, sync, and truncate */
-int scr_halt_write_fd(int fd, struct scr_haltdata* data);
-
-/* returns SCR_SUCCESS if halt file exists */
-int scr_halt_exists(const char* file);
+#define SCR_HALT_KEY_EXIT_REASON ("ExitReason")
+#define SCR_HALT_KEY_SECONDS     ("HaltSeconds")
+#define SCR_HALT_KEY_EXIT_BEFORE ("ExitBefore")
+#define SCR_HALT_KEY_EXIT_AFTER  ("ExitAfter")
+#define SCR_HALT_KEY_CHECKPOINTS ("CheckpointsLeft")
 
 /* given the name of a halt file, read it and fill in data */
-int scr_halt_read(const char* file, struct scr_haltdata* data);
+int scr_halt_read(const char* file, struct scr_hash* hash);
 
 /* read in halt file (which user may have changed via scr_halt), update internal data structure,
  * optionally decrement the checkpoints_left field, and write out halt file all while locked */
-int scr_halt_sync_and_decrement(const char* file, struct scr_haltdata* data, int dec_count);
+int scr_halt_sync_and_decrement(const char* file, struct scr_hash* hash, int dec_count);
 
 #endif

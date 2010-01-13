@@ -183,13 +183,13 @@ int main(int argc, char* argv[])
   xor_headers[0].my_rank = xor_headers[1].partner_rank;
   scr_copy_xor_header_alloc_my_files(&xor_headers[0], xor_headers[1].partner_rank, xor_headers[1].partner_nfiles);
   for (i=0; i < xor_headers[1].partner_nfiles; i++) {
-    scr_copy_meta(&(xor_headers[0].my_files[i]), &(xor_headers[1].partner_files[i]));
+    scr_meta_copy(&(xor_headers[0].my_files[i]), &(xor_headers[1].partner_files[i]));
   }
 
   xor_headers[0].partner_rank = xor_headers[xor_set_size-1].my_rank;
   scr_copy_xor_header_alloc_partner_files(&xor_headers[0], xor_headers[xor_set_size-1].my_rank, xor_headers[xor_set_size-1].my_nfiles);
   for (i=0; i < xor_headers[xor_set_size-1].my_nfiles; i++) {
-    scr_copy_meta(&(xor_headers[0].partner_files[i]), &(xor_headers[xor_set_size-1].my_files[i]));
+    scr_meta_copy(&(xor_headers[0].partner_files[i]), &(xor_headers[xor_set_size-1].my_files[i]));
   }
 
   scr_copy_xor_header_write(xor_fds[0], &xor_headers[0]);
@@ -253,15 +253,15 @@ int main(int argc, char* argv[])
 
   /* write .scr file for full file and add the file to the filemap */
   for (j=0; j < num_files[0]; j++) {
-    scr_write_meta(full_files[j], &(xor_headers[0].my_files[j]));
+    scr_meta_write(full_files[j], &(xor_headers[0].my_files[j]));
     scr_filemap_add_file(map, checkpoint_id, missing_rank, full_files[j]);
   }
 
   /* write .scr file for xor file and add it to the filemap */
   int missing_complete = 1;
   struct scr_meta meta;
-  scr_set_meta(&meta, xor_files[0], missing_rank, nranks, checkpoint_id, SCR_FILE_XOR, missing_complete);
-  scr_write_meta(xor_files[0], &meta);
+  scr_meta_set(&meta, xor_files[0], missing_rank, nranks, checkpoint_id, SCR_FILE_XOR, missing_complete);
+  scr_meta_write(xor_files[0], &meta);
   scr_filemap_add_file(map, checkpoint_id, missing_rank, xor_files[0]);
 
   /* set expected number of files for this rank, write filemap for this rank, and delete the map */

@@ -54,32 +54,32 @@ WRITE:
 #include "scr_hash.h"
 #include "scr_filemap.h"
 
-#define SCR_FILEMAP_HASH_RANK   ("RANK")
-#define SCR_FILEMAP_HASH_CKPT   ("CKPT")
-#define SCR_FILEMAP_HASH_FILE   ("FILE")
-#define SCR_FILEMAP_HASH_EXPECT ("EXPECT")
+#define SCR_FILEMAP_KEY_RANK   ("RANK")
+#define SCR_FILEMAP_KEY_CKPT   ("CKPT")
+#define SCR_FILEMAP_KEY_FILE   ("FILE")
+#define SCR_FILEMAP_KEY_EXPECT ("EXPECT")
 
 struct scr_hash* scr_filemap_rh(struct scr_hash* h)
 {
-  struct scr_hash* rh = scr_hash_get(h, SCR_FILEMAP_HASH_RANK);
+  struct scr_hash* rh = scr_hash_get(h, SCR_FILEMAP_KEY_RANK);
   return rh;
 }
 
 struct scr_hash* scr_filemap_ch(struct scr_hash* h)
 {
-  struct scr_hash* ch = scr_hash_get(h, SCR_FILEMAP_HASH_CKPT);
+  struct scr_hash* ch = scr_hash_get(h, SCR_FILEMAP_KEY_CKPT);
   return ch;
 }
 
 struct scr_hash* scr_filemap_r(struct scr_hash* h, int rank)
 {
-  struct scr_hash* r = scr_hash_get_kv_int(h, SCR_FILEMAP_HASH_RANK, rank);
+  struct scr_hash* r = scr_hash_get_kv_int(h, SCR_FILEMAP_KEY_RANK, rank);
   return r;
 }
 
 struct scr_hash* scr_filemap_c(struct scr_hash* h, int ckpt)
 {
-  struct scr_hash* c = scr_hash_get_kv_int(h, SCR_FILEMAP_HASH_CKPT, ckpt);
+  struct scr_hash* c = scr_hash_get_kv_int(h, SCR_FILEMAP_KEY_CKPT, ckpt);
   return c;
 }
 
@@ -100,21 +100,21 @@ struct scr_hash* scr_filemap_cr(struct scr_hash* h, int ckpt, int rank)
 struct scr_hash* scr_filemap_fh(struct scr_hash* hash, int ckpt, int rank)
 {
   struct scr_hash* rc = scr_filemap_rc(hash, ckpt, rank);
-  struct scr_hash* fh = scr_hash_get(rc, SCR_FILEMAP_HASH_FILE);
+  struct scr_hash* fh = scr_hash_get(rc, SCR_FILEMAP_KEY_FILE);
   return fh;
 }
 
 struct scr_hash* scr_filemap_rcf(struct scr_hash* hash, int ckpt, int rank, const char* file)
 {
   struct scr_hash* rc  = scr_filemap_rc(hash, ckpt, rank);
-  struct scr_hash* rcf = scr_hash_get_kv(rc, SCR_FILEMAP_HASH_FILE, file);
+  struct scr_hash* rcf = scr_hash_get_kv(rc, SCR_FILEMAP_KEY_FILE, file);
   return rcf;
 }
 
 struct scr_hash* scr_filemap_crf(struct scr_hash* hash, int ckpt, int rank, const char* file)
 {
   struct scr_hash* cr  = scr_filemap_cr(hash, ckpt, rank);
-  struct scr_hash* crf = scr_hash_get_kv(cr, SCR_FILEMAP_HASH_FILE, file);
+  struct scr_hash* crf = scr_hash_get_kv(cr, SCR_FILEMAP_KEY_FILE, file);
   return crf;
 }
 
@@ -122,14 +122,14 @@ struct scr_hash* scr_filemap_crf(struct scr_hash* hash, int ckpt, int rank, cons
 int scr_filemap_add_file(struct scr_filemap* map, int ckpt, int rank, const char* file)
 {
   /* add file to Rank/CheckpointID/File hash */
-  struct scr_hash* r  = scr_hash_set_kv_int(map->hash, SCR_FILEMAP_HASH_RANK, rank);
-  struct scr_hash* rc = scr_hash_set_kv_int(r,         SCR_FILEMAP_HASH_CKPT, ckpt);
-  scr_hash_set_kv(rc, SCR_FILEMAP_HASH_FILE, file);
+  struct scr_hash* r  = scr_hash_set_kv_int(map->hash, SCR_FILEMAP_KEY_RANK, rank);
+  struct scr_hash* rc = scr_hash_set_kv_int(r,         SCR_FILEMAP_KEY_CKPT, ckpt);
+  scr_hash_set_kv(rc, SCR_FILEMAP_KEY_FILE, file);
 
   /* add file to CheckpointID/Rank/File hash */
-  struct scr_hash* c  = scr_hash_set_kv_int(map->hash, SCR_FILEMAP_HASH_CKPT, ckpt);
-  struct scr_hash* cr = scr_hash_set_kv_int(c,         SCR_FILEMAP_HASH_RANK, rank);
-  scr_hash_set_kv(cr, SCR_FILEMAP_HASH_FILE, file);
+  struct scr_hash* c  = scr_hash_set_kv_int(map->hash, SCR_FILEMAP_KEY_CKPT, ckpt);
+  struct scr_hash* cr = scr_hash_set_kv_int(c,         SCR_FILEMAP_KEY_RANK, rank);
+  scr_hash_set_kv(cr, SCR_FILEMAP_KEY_FILE, file);
 
   return SCR_SUCCESS;
 }
@@ -140,16 +140,24 @@ int scr_filemap_remove_file(struct scr_filemap* map, int ckpt, int rank, const c
   /* remove file from Rank/CheckpointID/File hash */
   struct scr_hash* r   = scr_filemap_r(map->hash, rank);
   struct scr_hash* rc  = scr_filemap_c(r, ckpt);
-  scr_hash_unset_kv(rc, SCR_FILEMAP_HASH_FILE, file);
-  if (scr_hash_size(rc) == 0) { scr_hash_unset_kv_int(r, SCR_FILEMAP_HASH_CKPT, ckpt); }
-  if (scr_hash_size(r)  == 0) { scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_HASH_RANK, rank); }
+  scr_hash_unset_kv(rc, SCR_FILEMAP_KEY_FILE, file);
+  if (scr_hash_size(rc) == 0) {
+    scr_hash_unset_kv_int(r, SCR_FILEMAP_KEY_CKPT, ckpt);
+  }
+  if (scr_hash_size(r) == 0) {
+    scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_KEY_RANK, rank);
+  }
   
   /* remove file from CheckpointID/Rank/File hash */
   struct scr_hash* c  = scr_filemap_c(map->hash, ckpt);
   struct scr_hash* cr = scr_filemap_r(c, rank);
-  scr_hash_unset_kv(cr, SCR_FILEMAP_HASH_FILE, file);
-  if (scr_hash_size(cr) == 0) { scr_hash_unset_kv_int(c, SCR_FILEMAP_HASH_RANK, rank); }
-  if (scr_hash_size(c)  == 0) { scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_HASH_CKPT, ckpt); }
+  scr_hash_unset_kv(cr, SCR_FILEMAP_KEY_FILE, file);
+  if (scr_hash_size(cr) == 0) {
+    scr_hash_unset_kv_int(c, SCR_FILEMAP_KEY_RANK, rank);
+  }
+  if (scr_hash_size(c) == 0) {
+    scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_KEY_CKPT, ckpt);
+  }
 
   return SCR_SUCCESS;
 }
@@ -158,14 +166,16 @@ int scr_filemap_remove_file(struct scr_filemap* map, int ckpt, int rank, const c
 int scr_filemap_set_expected_files(struct scr_filemap* map, int ckpt, int rank, int expect)
 {
   /* add file to Rank/CheckpointID/File hash */
-  struct scr_hash* r  = scr_hash_set_kv_int(map->hash, SCR_FILEMAP_HASH_RANK, rank);
-  struct scr_hash* rc = scr_hash_set_kv_int(r,         SCR_FILEMAP_HASH_CKPT, ckpt);
-  scr_hash_set_kv_int(rc, SCR_FILEMAP_HASH_EXPECT, expect);
+  struct scr_hash* r  = scr_hash_set_kv_int(map->hash, SCR_FILEMAP_KEY_RANK, rank);
+  struct scr_hash* rc = scr_hash_set_kv_int(r,         SCR_FILEMAP_KEY_CKPT, ckpt);
+  scr_hash_unset(rc, SCR_FILEMAP_KEY_EXPECT);
+  scr_hash_set_kv_int(rc, SCR_FILEMAP_KEY_EXPECT, expect);
 
   /* add file to CheckpointID/Rank/File hash */
-  struct scr_hash* c  = scr_hash_set_kv_int(map->hash, SCR_FILEMAP_HASH_CKPT, ckpt);
-  struct scr_hash* cr = scr_hash_set_kv_int(c,         SCR_FILEMAP_HASH_RANK, rank);
-  scr_hash_set_kv_int(cr, SCR_FILEMAP_HASH_EXPECT, expect);
+  struct scr_hash* c  = scr_hash_set_kv_int(map->hash, SCR_FILEMAP_KEY_CKPT, ckpt);
+  struct scr_hash* cr = scr_hash_set_kv_int(c,         SCR_FILEMAP_KEY_RANK, rank);
+  scr_hash_unset(cr, SCR_FILEMAP_KEY_EXPECT);
+  scr_hash_set_kv_int(cr, SCR_FILEMAP_KEY_EXPECT, expect);
 
   return SCR_SUCCESS;
 }
@@ -174,18 +184,26 @@ int scr_filemap_set_expected_files(struct scr_filemap* map, int ckpt, int rank, 
 int scr_filemap_unset_expected_files(struct scr_filemap* map, int ckpt, int rank)
 {
   /* add file to Rank/CheckpointID/File hash */
-  struct scr_hash* r  = scr_hash_get_kv_int(map->hash, SCR_FILEMAP_HASH_RANK, rank);
-  struct scr_hash* rc = scr_hash_get_kv_int(r,         SCR_FILEMAP_HASH_CKPT, ckpt);
-  scr_hash_unset(rc, SCR_FILEMAP_HASH_EXPECT);
-  if (scr_hash_size(rc) == 0) { scr_hash_unset_kv_int(r, SCR_FILEMAP_HASH_CKPT, ckpt); }
-  if (scr_hash_size(r)  == 0) { scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_HASH_RANK, rank); }
+  struct scr_hash* r  = scr_hash_get_kv_int(map->hash, SCR_FILEMAP_KEY_RANK, rank);
+  struct scr_hash* rc = scr_hash_get_kv_int(r,         SCR_FILEMAP_KEY_CKPT, ckpt);
+  scr_hash_unset(rc, SCR_FILEMAP_KEY_EXPECT);
+  if (scr_hash_size(rc) == 0) {
+    scr_hash_unset_kv_int(r, SCR_FILEMAP_KEY_CKPT, ckpt);
+  }
+  if (scr_hash_size(r) == 0) {
+    scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_KEY_RANK, rank);
+  }
 
   /* add file to CheckpointID/Rank/File hash */
-  struct scr_hash* c  = scr_hash_get_kv_int(map->hash, SCR_FILEMAP_HASH_CKPT, ckpt);
-  struct scr_hash* cr = scr_hash_get_kv_int(c,         SCR_FILEMAP_HASH_RANK, rank);
-  scr_hash_unset(cr, SCR_FILEMAP_HASH_EXPECT);
-  if (scr_hash_size(cr) == 0) { scr_hash_unset_kv_int(c, SCR_FILEMAP_HASH_RANK, rank); }
-  if (scr_hash_size(c)  == 0) { scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_HASH_CKPT, ckpt); }
+  struct scr_hash* c  = scr_hash_get_kv_int(map->hash, SCR_FILEMAP_KEY_CKPT, ckpt);
+  struct scr_hash* cr = scr_hash_get_kv_int(c,         SCR_FILEMAP_KEY_RANK, rank);
+  scr_hash_unset(cr, SCR_FILEMAP_KEY_EXPECT);
+  if (scr_hash_size(cr) == 0) {
+    scr_hash_unset_kv_int(c, SCR_FILEMAP_KEY_RANK, rank);
+  }
+  if (scr_hash_size(c) == 0) {
+    scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_KEY_CKPT, ckpt);
+  }
 
   return SCR_SUCCESS;
 }
@@ -195,10 +213,12 @@ int scr_filemap_set_tag(struct scr_filemap* map, int ckpt, int rank, const char*
 {
   /* define tag in Rank/CheckpointID/File hash */
   struct scr_hash* rcf = scr_filemap_rcf(map->hash, ckpt, rank, file);
+  scr_hash_unset(rcf, tag);
   scr_hash_set_kv(rcf, tag, value);
 
   /* define tag in CheckpointID/Rank/File hash */
   struct scr_hash* crf = scr_filemap_crf(map->hash, ckpt, rank, file);
+  scr_hash_unset(crf, tag);
   scr_hash_set_kv(crf, tag, value);
 
   return SCR_SUCCESS;
@@ -243,13 +263,17 @@ int scr_filemap_copy_file(struct scr_filemap* map, struct scr_filemap* src_map, 
 int scr_filemap_remove_rank_by_checkpoint(struct scr_filemap* map, int ckpt, int rank)
 {
   /* remove files and expected field on Rank/CheckpointID hash */
-  struct scr_hash* r  = scr_hash_get_kv_int(map->hash, SCR_FILEMAP_HASH_RANK, rank);
-  scr_hash_unset_kv_int(r, SCR_FILEMAP_HASH_CKPT, ckpt);
-  if (scr_hash_size(r) == 0) { scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_HASH_RANK, rank); }
+  struct scr_hash* r  = scr_hash_get_kv_int(map->hash, SCR_FILEMAP_KEY_RANK, rank);
+  scr_hash_unset_kv_int(r, SCR_FILEMAP_KEY_CKPT, ckpt);
+  if (scr_hash_size(r) == 0) {
+    scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_KEY_RANK, rank);
+  }
 
-  struct scr_hash* c  = scr_hash_get_kv_int(map->hash, SCR_FILEMAP_HASH_CKPT, ckpt);
-  scr_hash_unset_kv_int(c, SCR_FILEMAP_HASH_RANK, rank);
-  if (scr_hash_size(c) == 0) { scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_HASH_CKPT, ckpt); }
+  struct scr_hash* c  = scr_hash_get_kv_int(map->hash, SCR_FILEMAP_KEY_CKPT, ckpt);
+  scr_hash_unset_kv_int(c, SCR_FILEMAP_KEY_RANK, rank);
+  if (scr_hash_size(c) == 0) {
+    scr_hash_unset_kv_int(map->hash, SCR_FILEMAP_KEY_CKPT, ckpt);
+  }
 
   return SCR_SUCCESS;
 }
@@ -301,19 +325,24 @@ int scr_filemap_remove_checkpoint(struct scr_filemap* map, int ckpt)
 /* returns true if have a hash for specified rank */
 int scr_filemap_have_rank(struct scr_filemap* map, int rank)
 {
-  return (scr_filemap_r(map->hash, rank) != NULL);
+  struct scr_hash* hash = scr_filemap_r(map->hash, rank);
+  return (hash != NULL);
 }
 
 /* returns true if have a hash for specified rank */
 int scr_filemap_have_rank_by_checkpoint(struct scr_filemap* map, int ckpt, int rank)
 {
-  return (scr_filemap_rc(map->hash, ckpt, rank) != NULL);
+  struct scr_hash* hash = scr_filemap_rc(map->hash, ckpt, rank);
+  return (hash != NULL);
 }
 
 /* returns the latest checkpoint id (largest int) in given map */
 int scr_filemap_latest_checkpoint(struct scr_filemap* map)
 {
+  /* initialize with a value indicating that we have no checkpoints */
   int ckpt = -1;
+
+  /* now scan through each checkpoint and find the largest id */
   struct scr_hash* hash = scr_filemap_ch(map->hash);
   if (hash != NULL) {
     struct scr_hash_elem* elem;
@@ -322,16 +351,21 @@ int scr_filemap_latest_checkpoint(struct scr_filemap* map)
          elem = scr_hash_elem_next(elem))
     {
       int c = scr_hash_elem_key_int(elem);
-      if (c > ckpt) { ckpt = c; }
+      if (c > ckpt) {
+        ckpt = c;
+      }
     }
   }
   return ckpt;
 }
 
 /* returns the oldest checkpoint id (smallest int) in given map */
-int scr_filemap_oldest_checkpoint(struct scr_filemap* map)
+int scr_filemap_oldest_checkpoint(struct scr_filemap* map, int younger_than)
 {
+  /* initialize our oldest checkpoint id to be the same as the latest checkpoint id */
   int ckpt = scr_filemap_latest_checkpoint(map);
+
+  /* now scan through each checkpoint and find the smallest id that is larger than younger_than */
   struct scr_hash* hash = scr_filemap_ch(map->hash);
   if (hash != NULL) {
     struct scr_hash_elem* elem;
@@ -340,7 +374,9 @@ int scr_filemap_oldest_checkpoint(struct scr_filemap* map)
          elem = scr_hash_elem_next(elem))
     {
       int c = scr_hash_elem_key_int(elem);
-      if (c < ckpt) { ckpt = c; }
+      if (c > younger_than && c < ckpt) {
+        ckpt = c;
+      }
     }
   }
   return ckpt;
@@ -528,9 +564,11 @@ int scr_filemap_num_files(struct scr_filemap* map, int ckpt, int rank)
 int scr_filemap_num_expected_files(struct scr_filemap* map, int ckpt, int rank)
 {
   int num = -1;
-  struct scr_hash* hash = scr_hash_get(scr_filemap_rc(map->hash, ckpt, rank), SCR_FILEMAP_HASH_EXPECT);
+  struct scr_hash* hash = scr_hash_get(scr_filemap_rc(map->hash, ckpt, rank), SCR_FILEMAP_KEY_EXPECT);
   struct scr_hash_elem* elem = scr_hash_elem_first(hash);
-  if (elem != NULL) { num = scr_hash_elem_key_int(elem); }
+  if (elem != NULL) {
+    num = scr_hash_elem_key_int(elem);
+  }
   return num;
 }
 
@@ -553,8 +591,12 @@ struct scr_filemap* scr_filemap_new()
 int scr_filemap_delete(struct scr_filemap* map)
 {
   if (map != NULL) {
-    if (map->hash != NULL) { scr_hash_delete(map->hash); map->hash = NULL; }
-    free(map); map = NULL;
+    if (map->hash != NULL) {
+      scr_hash_delete(map->hash);
+      map->hash = NULL;
+    }
+    free(map);
+    map = NULL;
   }
   return SCR_SUCCESS;
 }
@@ -634,71 +676,27 @@ struct scr_filemap* scr_filemap_extract_rank(struct scr_filemap* map, int rank)
 }
 
 /* reads specified file and fills in filemap structure */
-int scr_filemap_read(const char* map_file, struct scr_filemap* map)
+int scr_filemap_read(const char* file, struct scr_filemap* map)
 {
   /* check that we have a map pointer and a hash within the map */
-  if (map == NULL || map->hash == NULL) { return SCR_FAILURE; }
+  if (map == NULL || map->hash == NULL) {
+    return SCR_FAILURE;
+  }
 
   /* can't read file, return error (special case so as not to print error message below) */
-  if (access(map_file, R_OK) < 0) { return SCR_FAILURE; }
-
-  FILE* fs = fopen(map_file, "r");
-  if (fs == NULL) {
-    scr_err("Opening filemap for read: fopen(%s, \"r\") errno=%d %m @ %s:%d",
-            map_file, errno, __FILE__, __LINE__
-    );
+  if (access(file, R_OK) < 0) {
     return SCR_FAILURE;
   }
 
-  char field[SCR_MAX_FILENAME];
-  char value[SCR_MAX_FILENAME];
-  int n;
-  int rank, ckpt, exp_files;
-  char filename[SCR_MAX_FILENAME];
-  int found_end = 0;
-  do {
-    n = fscanf(fs, "%s %s\n", field, value);
-    if (n != EOF) {
-      if (strcmp(field, "Rank:") == 0) {
-        rank = atoi(value);
-      } else if (strcmp(field, "CheckpointID:") == 0) {
-        ckpt = atoi(value);
-      } else if (strcmp(field, "Expect:") == 0) {
-        exp_files = atoi(value);
-        scr_filemap_set_expected_files(map, ckpt, rank, exp_files);
-      } else if (strcmp(field, "File:") == 0) {
-        if (strlen(value) + 1 >= sizeof(filename)) {
-          scr_err("Filename of %d bytes is too long for fixed buffer of %d bytes @ %s:%d",
-                  strlen(value) + 1, sizeof(filename), __FILE__, __LINE__
-          );
-          return SCR_FAILURE;
-        }
-        strcpy(filename, value);
-        scr_filemap_add_file(map, ckpt, rank, filename);
-      } else if (strcmp(field, "Tag:") == 0) {
-        char* field2 = value;
-        char* value2 = strchr(value, (int) ':');
-        *value2 = '\0'; value2++;
-        scr_filemap_set_tag(map, ckpt, rank, filename, field2, value2);
-      } else if (strcmp(field, "End:") == 0) {
-        found_end = 1;
-      }
-    }
-  } while (n != EOF);
-
-  fclose(fs);
+  /* ok, now try to read the file */
+  if (scr_hash_read(file, map->hash) != SCR_SUCCESS) {
+    scr_err("Reading filemap %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
 
   /* TODO: check that file count for each rank matches expected count */
-
-  /* if we didn't find the End flag, consider the whole file to be missing */
-  if (!found_end) {
-    scr_hash_delete(map->hash);
-    map->hash = scr_hash_new();
-    scr_err("Missing End tag in filemap %s @ %s:%d",
-            map_file, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
 
   return SCR_SUCCESS;
 }
@@ -706,63 +704,18 @@ int scr_filemap_read(const char* map_file, struct scr_filemap* map)
 /* writes given filemap to specified file */
 int scr_filemap_write(const char* file, struct scr_filemap* map)
 {
-  /* write out the meta data */
-  char buf[SCR_MAX_FILENAME];
-
-  int fd = scr_open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-  if (fd < 0) {
-    scr_err("Opening filemap for write: scr_open(%s) errno=%d %m @ %s:%d",
-            file, errno, __FILE__, __LINE__
-    );
+  /* check that we have a map pointer */
+  if (map == NULL || map->hash == NULL) {
     return SCR_FAILURE;
   }
 
-  struct scr_hash_elem* rank_elem;
-  for (rank_elem = scr_filemap_first_rank(map);
-       rank_elem != NULL;
-       rank_elem = scr_hash_elem_next(rank_elem))
-  {
-    int r = scr_hash_elem_key_int(rank_elem);
-    sprintf(buf, "Rank: %d\n", r);
-    scr_write(fd, buf, strlen(buf));
-    struct scr_hash_elem* ckpt_elem;
-    for (ckpt_elem = scr_filemap_first_checkpoint_by_rank(map, r);
-         ckpt_elem != NULL;
-         ckpt_elem = scr_hash_elem_next(ckpt_elem))
-    {
-      int c = scr_hash_elem_key_int(ckpt_elem);
-      sprintf(buf, "CheckpointID: %d\n", c);
-      scr_write(fd, buf, strlen(buf));
-      sprintf(buf, "Expect: %d\n", scr_filemap_num_expected_files(map, c, r));
-      scr_write(fd, buf, strlen(buf));
-      struct scr_hash_elem* file_elem;
-      for (file_elem = scr_filemap_first_file(map, c, r);
-           file_elem != NULL;
-           file_elem = scr_hash_elem_next(file_elem))
-      {
-        char* file = scr_hash_elem_key(file_elem);
-        sprintf(buf, "File: %s\n", file);
-        scr_write(fd, buf, strlen(buf));
-        struct scr_hash_elem* tag_elem;
-        for (tag_elem = scr_hash_elem_first(scr_hash_elem_hash(file_elem));
-             tag_elem != NULL;
-             tag_elem = scr_hash_elem_next(tag_elem))
-        {
-          char* tag   = scr_hash_elem_key(tag_elem);
-          char* value = scr_hash_elem_key(scr_hash_elem_first(scr_hash_elem_hash(tag_elem)));
-          sprintf(buf, "Tag: %s:%s\n", tag, value);
-          scr_write(fd, buf, strlen(buf));
-        }
-      }
-    }
+  /* write out the hash */
+  if (scr_hash_write(file, map->hash) != SCR_SUCCESS) {
+    scr_err("Writing filemap %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
   }
-
-  /* write End flag to file (assume incomplete if End is not found) */
-  sprintf(buf, "End: 0\n");
-  scr_write(fd, buf, strlen(buf));
-
-  /* flush and close the file */
-  scr_close(fd);
 
   return SCR_SUCCESS;
 }

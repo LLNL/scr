@@ -41,7 +41,9 @@ while getopts "j:t:p:v" flag ; do
 done
 
 # check that we have the parallel file system prefix
-if [ "$pardir" == "" ] ; then print_usage; fi
+if [ "$pardir" == "" ] ; then
+  print_usage
+fi
 
 # check that we have a valid jobid and bail if not
 if [ -z "$SCR_JOBID" ] ; then
@@ -53,7 +55,9 @@ if [ -z "$SCR_JOBID" ] ; then
   else
     # try to pick up the jobid from the environment
     jobid_env=`$bindir/scr_env --jobid`
-    if [ $? -eq 0 ] ; then SCR_JOBID=$jobid_env ; fi
+    if [ $? -eq 0 ] ; then
+      SCR_JOBID=$jobid_env
+    fi
   fi
 fi
 if [ -z "$SCR_JOBID" ] ; then
@@ -78,7 +82,9 @@ echo "$prog: Started: $start_time"
 # get our nodeset for this job
 if [ -z "$SCR_NODELIST" ] ; then
   nodelist_env=`$bindir/scr_env --nodes`
-  if [ $? -eq 0 ] ; then SCR_NODELIST=$nodelist_env ; fi
+  if [ $? -eq 0 ] ; then
+    SCR_NODELIST=$nodelist_env
+  fi
 fi
 if [ -z "$SCR_NODELIST" ] ; then
   echo "$prog: ERROR: Could not identify nodeset"
@@ -97,9 +103,6 @@ echo "$prog: UPNODES:   $UPNODES"
 # if there is at least one remaining up node, attempt to flush
 ret=1
 if [ $UPNODES != "" ]; then
-  old="$pardir/scr.old"
-  current="$pardir/scr.current"
-
   # TODO: if running external to job, we won't see a flush file so force the flush
   # to latest in this case, could rsh the scr_flush command from the first node?
 
@@ -119,7 +122,9 @@ if [ $UPNODES != "" ]; then
 
       # crc is on by default, turn it off if user doesn't want it
       crc="--crc"
-      if [ "$SCR_CRC_ON_FLUSH" == "0" ] ; then crc="" ; fi
+      if [ "$SCR_CRC_ON_FLUSH" == "0" ] ; then
+        crc=""
+      fi
 
       # TODO: if given -j <jobid> we should rsh this command to the first node of the job
       #       where it can see a flush file if one exists
@@ -144,9 +149,13 @@ if [ $UPNODES != "" ]; then
       # if the set is complete, update the current and old symlinks
       if [ "$update_current" == "1" ] ; then
         echo "$prog: Updating old & current symlinks"
+        old="$pardir/scr.old"
+        current="$pardir/scr.current"
 
         # if there is an old, remove it
-        if [ -e $old ] ; then rm -f $old ; fi
+        if [ -e $old ] ; then
+          rm -f $old
+        fi
 
         # if there is a current, move it to old
         if [ -e $current ] ; then

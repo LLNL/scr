@@ -50,8 +50,8 @@ chomp $hostname;
 
 # read in the hash file
 my $h = new scr_hash("$prog: $hostname");
-my $flush = $h->read_hash_file("$conf{dir}/flush.scrinfo");
-if (not defined $flush) {
+my $flush = {};
+if (not $h->read_file("$conf{dir}/flush.scrinfo", $flush)) {
   exit 1;
 }
 

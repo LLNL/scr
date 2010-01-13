@@ -55,15 +55,15 @@ struct scr_meta
 int scr_meta_name(char* metaname, const char* file);
 
 /* initialize meta structure to represent file, filetype, and complete */
-void scr_set_meta(struct scr_meta* meta, const char* file, int rank, int ranks, int checkpoint_id, int filetype, int complete);
+void scr_meta_set(struct scr_meta* meta, const char* file, int rank, int ranks, int checkpoint_id, int filetype, int complete);
 
 /* initialize meta structure to represent file, filetype, and complete */
-void scr_copy_meta(struct scr_meta* m1, const struct scr_meta* m2);
+void scr_meta_copy(struct scr_meta* m1, const struct scr_meta* m2);
 
 /* read meta for file_orig and fill in meta structure */
-int scr_read_meta(const char* file_orig, struct scr_meta* meta);
+int scr_meta_read(const char* file_orig, struct scr_meta* meta);
 
 /* creates corresponding .scr meta file for file to record completion info */
-int scr_write_meta(const char* file, const struct scr_meta* meta);
+int scr_meta_write(const char* file, const struct scr_meta* meta);
 
 #endif

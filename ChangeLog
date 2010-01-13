@@ -1,3 +1,9 @@
+2010-01-12 Adam Moody <moody20@llnl.gov>
+
+	* : Converted filemap, nodes, and halt files to use hash file format.
+	    Added initial code for asynchronous flush support.
+	    Fixed efficiency bug which caused each file to be flushed twice under XOR.
+
 2009-12-21 Adam Moody <moody20@llnl.gov>
 
 	* : retag scr-1.1-5

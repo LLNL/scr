@@ -178,11 +178,8 @@ int processArgs(int argc, char **argv, struct arglist* args)
 
 /* read in halt file (which program may have changed), update internal data structure,
  * set & unset any fields, and write out halt file all while locked */
-int scr_halt_sync_and_set(const char* file, struct arglist* args, struct scr_haltdata* data)
+int scr_halt_sync_and_set(const char* file, struct arglist* args, struct scr_hash* data)
 {
-  /* blank out the data structure */
-  scr_halt_init(data);
-
   /* set the mode on the file to be readable/writable by all
    * (enables a sysadmin to halt a user's job via scr_halt --all) */
   mode_t old_mode = umask(0000);
@@ -210,42 +207,54 @@ int scr_halt_sync_and_set(const char* file, struct arglist* args, struct scr_hal
   }
 
   /* read in the current data from the file */
-  scr_halt_read_fd(fd, data);
+  scr_hash_read_fd(file, fd, data);
 
   /* set / unset values in file */
   if (args->set_reason) {
-    strcpy(data->exit_reason, args->value_reason);
+    scr_hash_unset(data, SCR_HALT_KEY_EXIT_REASON);
+    scr_hash_set_kv(data, SCR_HALT_KEY_EXIT_REASON, args->value_reason);
   } else if (args->unset_reason) {
-    strcpy(data->exit_reason, "");
+    scr_hash_unset(data, SCR_HALT_KEY_EXIT_REASON);
   }
 
   if (args->set_checkpoints) {
-    data->checkpoints_left = args->value_checkpoints;
+    scr_hash_unset(data, SCR_HALT_KEY_CHECKPOINTS);
+    scr_hash_setf(data, NULL, "%s %lu", SCR_HALT_KEY_CHECKPOINTS, args->value_checkpoints);
   } else if (args->unset_checkpoints) {
-    data->checkpoints_left = -1;
+    scr_hash_unset(data, SCR_HALT_KEY_CHECKPOINTS);
   }
 
   if (args->set_before) {
-    data->exit_before = args->value_before;
+    scr_hash_unset(data, SCR_HALT_KEY_EXIT_BEFORE);
+    scr_hash_setf(data, NULL, "%s %lu", SCR_HALT_KEY_EXIT_BEFORE, args->value_before);
   } else if (args->unset_before) {
-    data->exit_before = -1;
+    scr_hash_unset(data, SCR_HALT_KEY_EXIT_BEFORE);
   }
 
   if (args->set_after) {
-    data->exit_after = args->value_after;
+    scr_hash_unset(data, SCR_HALT_KEY_EXIT_AFTER);
+    scr_hash_setf(data, NULL, "%s %lu", SCR_HALT_KEY_EXIT_AFTER, args->value_after);
   } else if (args->unset_after) {
-    data->exit_after = -1;
+    scr_hash_unset(data, SCR_HALT_KEY_EXIT_AFTER);
   }
 
   if (args->set_seconds) {
-    data->halt_seconds = args->value_seconds;
+    scr_hash_unset(data, SCR_HALT_KEY_SECONDS);
+    scr_hash_setf(data, NULL, "%s %lu", SCR_HALT_KEY_SECONDS, args->value_seconds);
   } else if (args->unset_seconds) {
-    data->halt_seconds = -1;
+    scr_hash_unset(data, SCR_HALT_KEY_SECONDS);
   }
 
-  /* seek back to the start of the file and write our updated data */
+  /* wind file pointer back to the start of the file */
   lseek(fd, 0, SEEK_SET);
-  scr_halt_write_fd(fd, data);
+
+  /* write our updated data */
+  ssize_t bytes_written = scr_hash_write_fd(file, fd, data);
+
+  /* truncate the file to the correct size (may be smaller than it was before) */
+  if (bytes_written >= 0) {
+    ftruncate(fd, (off_t) bytes_written);
+  }
 
   /* release the file lock */
   if (flock(fd, LOCK_UN) != 0) {
@@ -258,7 +267,7 @@ int scr_halt_sync_and_set(const char* file, struct arglist* args, struct scr_hal
   }
 
   /* close file */
-  scr_close(fd);
+  scr_close(file, fd);
 
   /* restore the normal file mask */
   umask(old_mode);
@@ -275,12 +284,12 @@ int main (int argc, char *argv[])
     return 1;
   }
 
-  /* build the name of the halt file */
-  struct scr_haltdata data;
+  /* create a new hash to hold the file data */
+  struct scr_hash* data = scr_hash_new();
 
   if (args.list) {
     /* if the user wants to list the values, just read the file, print the values, and exit */
-    scr_halt_read(args.file, &data);
+    scr_halt_read(args.file, data);
   } else {
     /* otherwise, we must be setting something */
     if (args.set_checkpoints) {
@@ -315,43 +324,65 @@ int main (int argc, char *argv[])
 
     printf("\n");
 
-    scr_halt_sync_and_set(args.file, &args, &data);
+    scr_halt_sync_and_set(args.file, &args, data);
   }
 
   /* print the current settings */
   time_t secs;
+  struct scr_hash* key = NULL;
+  char* value = NULL;
   printf("Halt file settings for %s:\n", args.file);
   int have_one = 0;
-  if (strcmp(data.exit_reason, "") != 0) {
-    printf("  ExitReason:      %s\n", data.exit_reason);
+  int exit_before = -1;
+  int halt_seconds = -1;
+
+  value = scr_hash_elem_get_first_val(data, SCR_HALT_KEY_EXIT_REASON);
+  if (value != NULL ) {
+    printf("  ExitReason:      %s\n", value);
     have_one = 1;
   }
-  if (data.checkpoints_left != -1) {
-    printf("  CheckpointsLeft: %d\n", data.checkpoints_left);
+
+  value = scr_hash_elem_get_first_val(data, SCR_HALT_KEY_CHECKPOINTS);
+  if (value != NULL) {
+    int checkpoints_left = atoi(value);
+    printf("  CheckpointsLeft: %d\n", checkpoints_left);
     have_one = 1;
   }
-  if (data.exit_after != -1) {
-    secs = (time_t) data.exit_after;
+
+  value = scr_hash_elem_get_first_val(data, SCR_HALT_KEY_EXIT_AFTER);
+  if (value != NULL) {
+    secs = (time_t) atoi(value);
     printf("  ExitAfter:       %s", asctime(localtime(&secs)));
     have_one = 1;
   }
-  if (data.exit_before != -1) {
-    secs = (time_t) data.exit_before;
+
+  value = scr_hash_elem_get_first_val(data, SCR_HALT_KEY_EXIT_BEFORE);
+  if (value != NULL) {
+    exit_before = atoi(value);
+    secs = (time_t) exit_before;
     printf("  ExitBefore:      %s", asctime(localtime(&secs)));
     have_one = 1;
   }
-  if (data.halt_seconds != -1) {
-    printf("  HaltSeconds:     %d\n", data.halt_seconds);
+
+  value = scr_hash_elem_get_first_val(data, SCR_HALT_KEY_SECONDS);
+  if (value != NULL) {
+    halt_seconds = atoi(value);
+    printf("  HaltSeconds:     %d\n", halt_seconds);
     have_one = 1;
   }
-  if (data.halt_seconds != -1 && data.exit_before != -1) {
-    secs = (time_t) data.exit_before - data.halt_seconds;
+
+  if (halt_seconds != -1 && exit_before != -1) {
+    secs = (time_t) exit_before - halt_seconds;
     printf("  ExitBefore - HaltSeconds: %s", asctime(localtime(&secs)));
     have_one = 1;
   }
+
   if (!have_one) {
     printf("  None\n");
   }
+
+  /* delete the hash holding the file data */
+  scr_hash_delete(data);
 
   return 0;
 }

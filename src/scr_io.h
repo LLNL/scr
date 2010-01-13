@@ -12,7 +12,12 @@
 #ifndef SCR_IO_H
 #define SCR_IO_H
 
+#include <stdarg.h>
 #include <sys/types.h>
+
+#ifndef SCR_MAX_LINE
+#define SCR_MAX_LINE (1024)
+#endif
 
 /*
 =========================================
@@ -24,13 +29,25 @@ Basic File I/O
 int scr_open(const char* file, int flags, ...);
 
 /* close file with an fsync */
-int scr_close(int fd);
+int scr_close(const char* file, int fd);
+
+/* opens specified file and waits on for an exclusive lock before returning the file descriptor */
+int scr_open_with_lock(const char* file, int flags, mode_t mode);
+
+/* unlocks the specified file descriptor and then closes the file */
+int scr_close_with_unlock(const char* file, int fd);
 
 /* reliable read from file descriptor (retries, if necessary, until hard error) */
-int scr_read(int fd, void* buf, size_t size);
+ssize_t scr_read(int fd, void* buf, size_t size);
 
 /* reliable write to file descriptor (retries, if necessary, until hard error) */
-int scr_write(int fd, const void* buf, size_t size);
+ssize_t scr_write(int fd, const void* buf, size_t size);
+
+/* read line from file into buf with given size */
+ssize_t scr_read_line(const char* file, int fd, char* buf, size_t size);
+
+/* write a formatted string to specified file descriptor */
+ssize_t scr_writef(const char* file, int fd, const char* format, ...);
 
 /* read count bytes from fd into buf starting from offset, pad with zero if missing data */
 int scr_read_pad(int fd, char* buf, unsigned long count, unsigned long offset, unsigned long filesize);
@@ -44,6 +61,9 @@ int scr_write_pad_n(int n, int* fds, char* buf, unsigned long count, unsigned lo
 /* given a filename, return number of bytes in file */
 unsigned long scr_filesize(const char* file);
 
+/* tests whether the file exists */
+int scr_file_exists(const char* file);
+
 /* split path and filename from fullpath on the rightmost '/'
    assumes all filename if no '/' is found */
 int scr_split_path (const char* file, char* path, char* filename);
@@ -53,5 +73,8 @@ int scr_build_path (char* file, const char* path, const char* filename);
 
 /* recursively create directory and subdirectories */
 int scr_mkdir(const char* dir, mode_t mode);
+
+/* returns the current linux timestamp (secs + usecs since epoch) as a double */
+double scr_seconds();
 
 #endif

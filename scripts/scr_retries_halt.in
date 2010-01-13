@@ -1,6 +1,8 @@
 #!/usr/bin/perl -w
 use strict;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+use lib '@X_DATADIR@/scr';
+use scr_hash;
 
 my $bindir = "@X_BINDIR@";
 
@@ -35,21 +37,16 @@ if (-e $halt_file) {
   my $now = time();
 
   # read halt file contents
-  if (open(IN, $halt_file)) {
-    my @lines = <IN>;
-    close(IN);
-
-    # read conditions from file
+  my $halt = {};
+  my $scr_hash = new scr_hash($prog);
+  if ($scr_hash->read_file($halt_file, $halt)) {
+    # read conditions from hash
     my %conditions = ();
-    foreach my $line (@lines) {
-      foreach my $item (split ",", $line) {
-        if ($item =~ /ExitReason: (.*)/)          { $conditions{exit_reason}  = $1; }
-        if ($item =~ /CheckpointsLeft: \-?(\d+)/) { $conditions{checkpoints_left} = $1; }
-        if ($item =~ /ExitBefore: (\d+)/)         { $conditions{exit_before}  = $1; }
-        if ($item =~ /ExitAfter: (\d+)/)          { $conditions{exit_after}   = $1; }
-        if ($item =~ /HaltSeconds: (\d+)/)        { $conditions{halt_seconds} = $1; }
-      }
-    }
+    if (defined $$halt{"ExitReason"})      { $conditions{exit_reason}  = (keys %{$$halt{"ExitReason"}})[0];      }
+    if (defined $$halt{"ExitBefore"})      { $conditions{exit_before}  = (keys %{$$halt{"ExitBefore"}})[0];      }
+    if (defined $$halt{"ExitAfter"})       { $conditions{exit_after}   = (keys %{$$halt{"ExitAfter"}})[0];       }
+    if (defined $$halt{"HaltSeconds"})     { $conditions{halt_seconds} = (keys %{$$halt{"HaltSeconds"}})[0];     }
+    if (defined $$halt{"CheckpointsLeft"}) { $conditions{checkpoints}  = (keys %{$$halt{"CheckpointsLeft"}})[0]; }
 
     # set halt seconds to 0 by default
     my $halt_seconds = 0;
@@ -69,33 +66,32 @@ if (-e $halt_file) {
     #   Now >= ExitAfter
     #   TODO: or no conditions are specified?
 
-    my $halt_return = 1; # assume that we won't halt
+    # assume that we won't halt
+    my $halt_return = 1;
+
     if (defined $conditions{exit_reason}) {
       print "$prog: HALT RUN: Reason: $conditions{exit_reason}.\n";
       $halt_return = 0;
     }
-    if (defined $conditions{checkpoints_left} and $conditions{checkpoints_left} <= 0) {
+
+    if (defined $conditions{checkpoints} and $conditions{checkpoints} <= 0) {
       print "$prog: HALT RUN: No checkpoints remaining.\n";
       $halt_return = 0;
     }
+
     if (defined $conditions{exit_before} and $now >= ($conditions{exit_before} - $halt_seconds)) {
       my $now_str  = localtime($now);
       my $exit_str = localtime($conditions{exit_before} - $halt_seconds);
       print "$prog: HALT RUN: Current time ($now_str) is after ExitBefore-HaltSeconds time ($exit_str).\n";
       $halt_return = 0;
     }
+
     if (defined $conditions{exit_after} and $now >= $conditions{exit_after}) {
       my $now_str  = localtime($now);
       my $exit_str = localtime($conditions{exit_after});
       print "$prog: HALT RUN: Current time ($now_str) is after ExitAfter time ($exit_str).\n";
       $halt_return = 0;
     }
-# TODO: want this check to enable someone to just 'touch' a file?
-# if so, need to update scr source to not create empty files
-#    if (scalar(keys %conditions) == 0) {
-#      print "$prog: HALT RUN: Empty halt file found.\n";
-#      $halt_return = 0;
-#    }
 
     # if we didn't find a reason to halt, notify user
     if ($halt_return == 1) {

@@ -4,6 +4,7 @@ use File::Basename;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 use lib '@X_DATADIR@/scr';
 use scr_meta;
+use scr_hash;
 
 my $prog = "scr_check_complete";
 
@@ -386,9 +387,10 @@ sub scan_files
   }
 
   # now that we know the max ranks, read in the filemap for each rank to check that we have each file
+  my $scr_hash = new scr_hash($prog);
   for (my $i = 0; $i < $maxranks; $i++) {
     my $filemap = "$from/$i.scrfilemap";
-    my $tmp_rc = read_filemap($filemap, \%global_map);
+    my $tmp_rc = $scr_hash->read_file($filemap, \%global_map);
   }
 }
 
@@ -417,7 +419,7 @@ sub check_all_files
   for(my $i=0; $i<$maxranks; $i++)
   {
     # if the process does not have a filemap, we must assume it's incomplete
-    if (not defined $global_map{checkpoints}{$maxiter}{ranks}{$i}) {
+    if (not defined $global_map{CKPT}{$maxiter}{RANK}{$i}) {
       $missing_ranks{$i} = 1;
       # nothing else to do, go on to next rank
       next;
@@ -425,7 +427,7 @@ sub check_all_files
 
     # check whether we have this rank's full file
     my $num_have = 0;
-    my $num_expect = $global_map{checkpoints}{$maxiter}{ranks}{$i}{expect};
+    my $num_expect = (keys %{$global_map{CKPT}{$maxiter}{RANK}{$i}{EXPECT}})[0];
     $num_files += $num_expect;
 
     # check whether we have this rank's full files
@@ -459,49 +461,4 @@ sub check_all_files
   }
 
   return ($num_files, $using_xor, (sort {$a <=> $b} keys %missing_ranks));
-}
-
-sub read_filemap
-{
-  my $map = shift @_;
-  my $f   = shift @_;
-
-  if (not open(IN, $map)) { return 0; }
-#print "FILEMAP: $map\n";
-
-  my $found_end = 0;
-  my $ckpt = undef;
-  my $rank = undef;
-  my $file = undef;
-  while (my $line = <IN>) {
-    chomp $line;
-    if ($line =~ /CheckpointID: (\d+)/) {
-      $ckpt = $1;
-#print "CKPT $ckpt\n";
-    } elsif ($line =~ /Rank: (\d+)/) {
-      $rank = $1;
-#print "RANK $rank\n";
-    } elsif ($line =~ /Expect: (\d+)/) {
-      $$f{checkpoints}{$ckpt}{ranks}{$rank}{expect} = $1;
-#print "EXPECT $1\n";
-    } elsif ($line =~ /File: (.*)/) {
-      $file = $1;
-#print "FILE $file\n";
-      $$f{checkpoints}{$ckpt}{ranks}{$rank}{files}{$file}{name} = 1;
-    } elsif ($line =~ /Tag: (.*)/) {
-      my ($tag, $value) = ($1 =~ /(.*):(.*)/);
-#print "TAG $tag, VALUE $value\n";
-      $$f{checkpoints}{$ckpt}{ranks}{$rank}{files}{$file}{tags}{$tag} = $value;
-    } elsif ($line =~ /End: (\d+)/) {
-      $found_end = 1;
-    }
-  }
-
-  close(IN);
-
-  # TODO: check that for each checkpoint/rank we have the expected number of files
-
-  if (!$found_end) { return 1; }
-
-  return 0;
 }

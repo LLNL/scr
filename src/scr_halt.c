@@ -26,113 +26,11 @@
 #include <errno.h>
 #include <unistd.h>
 
-/* blank out a halt data structure */
-int scr_halt_init(struct scr_haltdata* data)
+/* given the name of a halt file, read it and fill in hash */
+int scr_halt_read(const char* file, struct scr_hash* hash)
 {
-  strcpy(data->exit_reason, "");
-  data->checkpoints_left = -1;
-  data->exit_before      = -1;
-  data->exit_after       = -1;
-  data->halt_seconds     = -1;
-  return SCR_SUCCESS;
-}
-
-/* given an opened file descriptor, read the fields for a halt file and fill in data */
-int scr_halt_read_fd(int fd, struct scr_haltdata* data)
-{
-  /* read field / value pairs from file */
-  char line[SCR_MAX_FILENAME];
-  char field[SCR_MAX_FILENAME];
-  char value[SCR_MAX_FILENAME];
-  int n;
-  do {
-    /* read in a line and break on: eof, newline, or comma */
-    char* c = line;
-    while (1) {
-      n = scr_read(fd, c, 1); 
-      if (n == 0 || *c == '\n' || *c == ',') {
-        break;
-      }
-      c++;
-    }
-
-    /* terminate the line with a NULL */
-    *c = '\0';
-
-    /* if we got a line, check for a setting */
-    if (strlen(line) > 0) {
-      sscanf(line, "%s %s\n", field, value);
-      if (strcmp(field, "ExitReason:") == 0)      { strcpy(data->exit_reason, value); }
-      if (strcmp(field, "CheckpointsLeft:") == 0) { data->checkpoints_left = atoi(value); }
-      if (strcmp(field, "ExitBefore:")  == 0)     { data->exit_before  = atoi(value); }
-      if (strcmp(field, "ExitAfter:")   == 0)     { data->exit_after   = atoi(value); }
-      if (strcmp(field, "HaltSeconds:") == 0)     { data->halt_seconds = atoi(value); }
-    }
-  } while (n != 0);
-
-  return SCR_SUCCESS;
-}
-
-/* given an opened file descriptor, write halt fields to it, sync, and truncate */
-int scr_halt_write_fd(int fd, struct scr_haltdata* data)
-{
-  unsigned int size = 0;
-  char buf[SCR_MAX_FILENAME];
-
-  /* write field / value pairs to file if set */
-  if (strcmp(data->exit_reason, "") != 0) {
-    sprintf(buf, "ExitReason: %s\n", data->exit_reason);
-    scr_write(fd, buf, strlen(buf));
-    size += strlen(buf);
-  }
-  if (data->checkpoints_left != -1) {
-    sprintf(buf, "CheckpointsLeft: %d\n", data->checkpoints_left);
-    scr_write(fd, buf, strlen(buf));
-    size += strlen(buf);
-  }
-  if (data->exit_before != -1) {
-    sprintf(buf, "ExitBefore: %d\n", data->exit_before);
-    scr_write(fd, buf, strlen(buf));
-    size += strlen(buf);
-  }
-  if (data->exit_after  != -1) {
-    sprintf(buf, "ExitAfter: %d\n", data->exit_after);
-    scr_write(fd, buf, strlen(buf));
-    size += strlen(buf);
-  }
-  if (data->halt_seconds != -1) {
-    sprintf(buf, "HaltSeconds: %d\n", data->halt_seconds);
-    scr_write(fd, buf, strlen(buf));
-    size += strlen(buf);
-  }
-
-  /* now truncate the file (the size may be smaller than it was before) */
-  ftruncate(fd, size);
-
-  /* force our changes to disc */
-  fsync(fd);
-
-  return SCR_SUCCESS;
-}
-
-/* returns SCR_SUCCESS if halt file exists */
-int scr_halt_exists(const char* file)
-{
-  /* check whether halt file exists */
-  if (access(file, R_OK) < 0) {
-    return SCR_FAILURE;
-  }
-  return SCR_SUCCESS;
-}
-
-/* given the name of a halt file, read it and fill in data */
-int scr_halt_read(const char* file, struct scr_haltdata* data)
-{
-  /* blank out the data structure */
-  scr_halt_init(data);
-
   /* check whether halt file even exists */
-  if (scr_halt_exists(file) != SCR_SUCCESS) {
+  if (scr_file_exists(file) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -156,8 +54,8 @@ int scr_halt_read(const char* file, struct scr_haltdata* data)
     return SCR_FAILURE;
   }
 
-  /* read in the data */
-  scr_halt_read_fd(fd, data);
+  /* read in the hash */
+  scr_hash_read_fd(file, fd, hash);
 
   /* release the file lock */
   if (flock(fd, LOCK_UN) != 0) {
@@ -168,25 +66,21 @@ int scr_halt_read(const char* file, struct scr_haltdata* data)
   }
 
   /* close file */
-  scr_close(fd);
+  scr_close(file, fd);
 
   return SCR_SUCCESS;
 }
 
 /* read in halt file (which user may have changed via scr_halt), update internal data structure,
  * optionally decrement the checkpoints_left field, and write out halt file all while locked */
-int scr_halt_sync_and_decrement(const char* file, struct scr_haltdata* data, int dec_count)
+int scr_halt_sync_and_decrement(const char* file, struct scr_hash* hash, int dec_count)
 {
-  /* blank out the data structure */
-  struct scr_haltdata data_file;
-  scr_halt_init(&data_file);
-
   /* set the mode on the file to be readable/writable by all
    * (enables a sysadmin to halt a user's job via scr_halt --all) */
   mode_t old_mode = umask(0000);
 
   /* record whether file already exists before we open it */
-  int exists = (scr_halt_exists(file) == SCR_SUCCESS);
+  int exists = (scr_file_exists(file) == SCR_SUCCESS);
 
   /* TODO: sleep and try the open several times if the first fails */
   /* open the halt file for reading */
@@ -210,30 +104,62 @@ int scr_halt_sync_and_decrement(const char* file, struct scr_haltdata* data, int
     return SCR_FAILURE;
   }
 
+  /* get a new blank hash to read in file */
+  struct scr_hash* file_hash = scr_hash_new();
+
   /* read in the file data */
-  scr_halt_read_fd(fd, &data_file);
+  scr_hash_read_fd(file, fd, file_hash);
 
   /* if the file already existed before we opened it, override our current settings with its values */
   if (exists) {
-    /* for the exit reason, only override if we don't have a setting but the file does,
+    /* for the exit reason, only override our current value if the file has a setting but we don't,
      * otherwise the running program could never set this value */
-    if (strcmp(data->exit_reason, "") == 0 && strcmp(data_file.exit_reason, "") != 0) {
-      strcpy(data->exit_reason, data_file.exit_reason);
+    /* if we have an exit reason set, but the file doesn't, make a copy before we unset out hash */
+    char* save_reason = NULL;
+    char* reason      = scr_hash_elem_get_first_val(hash,      SCR_HALT_KEY_EXIT_REASON);
+    char* file_reason = scr_hash_elem_get_first_val(file_hash, SCR_HALT_KEY_EXIT_REASON);
+    if (reason != NULL && file_reason == NULL) {
+      save_reason = strdup(reason);
     }
-    data->checkpoints_left = data_file.checkpoints_left;
-    data->exit_before      = data_file.exit_before;
-    data->exit_after       = data_file.exit_after;
-    data->halt_seconds     = data_file.halt_seconds;
+
+    /* set our hash to match the file */
+    scr_hash_unset_all(hash);
+    scr_hash_merge(hash, file_hash);
+
+    /* restore our exit reason */
+    if (save_reason != NULL) {
+      scr_hash_unset(hash, SCR_HALT_KEY_EXIT_REASON);
+      scr_hash_set_kv(hash, SCR_HALT_KEY_EXIT_REASON, save_reason);
+      free(save_reason);
+      save_reason = NULL;
+    }
   }
 
-  /* decrement the remaining checkpoint count */
-  if (data->checkpoints_left > 0) {
-    data->checkpoints_left -= dec_count;
+  /* free the file_hash */
+  scr_hash_delete(file_hash);
+
+  /* decrement the number of remaining checkpoints */
+  char* ckpts_str = scr_hash_elem_get_first_val(hash, SCR_HALT_KEY_CHECKPOINTS);
+  if (ckpts_str != NULL) {
+    /* get number of checkpoints and decrement by dec_count */
+    int ckpts = atoi(ckpts_str);
+    ckpts -= dec_count;
+
+    /* write this new value back to the hash */
+    scr_hash_unset(hash, SCR_HALT_KEY_CHECKPOINTS);
+    scr_hash_setf(hash, NULL, "%s %d", SCR_HALT_KEY_CHECKPOINTS, ckpts);
   }
 
-  /* seek back to the start of the file and write our updated data */
+  /* wind file pointer back to the start of the file */
   lseek(fd, 0, SEEK_SET);
-  scr_halt_write_fd(fd, data);
+
+  /* write our updated hash */
+  ssize_t bytes_written = scr_hash_write_fd(file, fd, hash);
+
+  /* truncate the file to the correct size (may be smaller than it was before) */
+  if (bytes_written >= 0) {
+    ftruncate(fd, (off_t) bytes_written);
+  }
 
   /* release the file lock */
   if (flock(fd, LOCK_UN) != 0) {
@@ -246,7 +172,7 @@ int scr_halt_sync_and_decrement(const char* file, struct scr_haltdata* data, int
   }
 
   /* close file */
-  scr_close(fd);
+  scr_close(file, fd);
 
   /* restore the normal file mask */
   umask(old_mode);

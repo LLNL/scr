@@ -17,6 +17,7 @@
 #include "scr_io.h"
 
 #include <stdlib.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -88,17 +89,69 @@ int scr_open(const char* file, int flags, ...)
   return fd;
 }
 
-/* close file with an fsync */
-int scr_close(int fd)
+/* fsync and close file */
+int scr_close(const char* file, int fd)
 {
+  /* fsync first */
   fsync(fd);
-  return close(fd);
+
+  /* now close the file */
+  if (close(fd) != 0) {
+    /* hit an error, print message */
+    scr_err("Closing file descriptor %d for file %s: errno=%d %m @ %s:%d",
+            fd, file, errno, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* opens specified file and waits on a lock before returning the file descriptor */
+int scr_open_with_lock(const char* file, int flags, mode_t mode)
+{
+  /* open the file */
+  int fd = scr_open(file, flags, mode);
+  if (fd < 0) {
+    scr_err("Opening file for write: scr_open(%s) errno=%d %m @ %s:%d",
+            file, errno, __FILE__, __LINE__
+    );
+    return fd;
+  }
+
+  /* acquire an exclusive file lock */
+  if (flock(fd, LOCK_EX) != 0) {
+    scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %m @ %s:%d",
+            file, fd, LOCK_EX, errno, __FILE__, __LINE__
+    );
+    /* we opened the file ok, but the lock failed, close the file and return -1 */
+    close(fd);
+    return -1;
+  }
+
+  /* return the opened file descriptor */
+  return fd;
+}
+
+/* unlocks the specified file descriptor and then closes the file */
+int scr_close_with_unlock(const char* file, int fd)
+{
+  /* release the file lock */
+  if (flock(fd, LOCK_UN) != 0) {
+    scr_err("Failed to release file lock on %s: flock(%d, %d) errno=%d %m @ %s:%d",
+            file, fd, LOCK_UN, errno, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* close the file */
+  return scr_close(file, fd);
 }
 
 /* reliable read from file descriptor (retries, if necessary, until hard error) */
-int scr_read(int fd, void* buf, size_t size)
+ssize_t scr_read(int fd, void* buf, size_t size)
 {
-  size_t n = 0;
+  ssize_t n = 0;
   int retries = 10;
   while (n < size)
   {
@@ -110,7 +163,9 @@ int scr_read(int fd, void* buf, size_t size)
       return n;
     } else { /* (rc < 0) */
       /* got an error, check whether it was serious */
-      if(errno == EINTR || errno == EAGAIN) continue;
+      if (errno == EINTR || errno == EAGAIN) {
+        continue;
+      }
 
       /* something worth printing an error about */
       retries--;
@@ -128,46 +183,121 @@ int scr_read(int fd, void* buf, size_t size)
       }
     }
   }
-  return size;
+  return n;
 }
 
 /* reliable write to file descriptor (retries, if necessary, until hard error) */
-int scr_write(int fd, const void* buf, size_t size)
+ssize_t scr_write(int fd, const void* buf, size_t size)
 {
-  size_t n = 0;
+  ssize_t n = 0;
   int retries = 10;
   while (n < size)
   {
-    int rc = write(fd, (char*) buf + n, size - n);
+    ssize_t rc = write(fd, (char*) buf + n, size - n);
     if (rc > 0) {
       n += rc;
     } else if (rc == 0) {
       /* something bad happened, print an error and abort */
       scr_err("Error writing: write(%d, %x, %ld) returned 0 @ %s:%d",
 	      fd, (char*) buf + n, size - n, __FILE__, __LINE__
-             );
+      );
       exit(1);
     } else { /* (rc < 0) */
       /* got an error, check whether it was serious */
-      if(errno == EINTR || errno == EAGAIN) continue;
+      if (errno == EINTR || errno == EAGAIN) {
+        continue;
+      }
 
       /* something worth printing an error about */
       retries--;
       if (retries) {
         /* print an error and try again */
         scr_err("Error writing: write(%d, %x, %ld) errno=%d %m @ %s:%d",
-	        fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
-               );
+                fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
+        );
       } else {
         /* too many failed retries, give up */
         scr_err("Giving up write: write(%d, %x, %ld) errno=%d %m @ %s:%d",
-	        fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
-               );
+                fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
+        );
         exit(1);
       }
     }
   }
-  return size;
+  return n;
+}
+
+/* read line from file into buf with given size */
+ssize_t scr_read_line(const char* file, int fd, char* buf, size_t size)
+{
+  /* read up to size-1 bytes from fd into buf until we find a newline or EOF */
+  ssize_t n = 0;
+  int found_end = 0;
+  while (n < size-1 && !found_end) {
+    /* read a character from the file */
+    char c;
+    ssize_t nread = scr_read(fd, &c, sizeof(c));
+
+    if (nread > 0) {
+      /* we read a character, copy it over to the buffer */
+      buf[n] = c;
+      n++;
+
+      /* check whether we hit the end of the line */
+      if (c == '\n') {
+        found_end = 1;
+      }
+    } else if (nread == 0) {
+      /* we hit the end of the file */
+      found_end = 1;
+    } else { /* nread < 0 */
+      /* we hit an error */
+      scr_err("Error reading from file %s @ %s:%d",
+              file, __FILE__, __LINE__
+      );
+      return -1;
+    }
+  }
+
+  /* tack on the NULL character */
+  buf[n] = '\0';
+
+  /* if we exit the while loop but didn't find the end of the line, the buffer was too small */
+  if (!found_end) {
+    scr_err("Buffer too small to read line from file %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    return -1;
+  }
+
+  /* NOTE: we don't want to count the NULL which we added, but there is no need to adjust n here */
+  return n;
+}
+
+/* write a formatted string to specified file descriptor */
+ssize_t scr_writef(const char* file, int fd, const char* format, ...)
+{
+  /* write the formatted string to a buffer */
+  char buf[SCR_MAX_LINE];
+  va_list argp;
+  va_start(argp, format);
+  int n = vsnprintf(buf, sizeof(buf), format, argp);
+  va_end(argp);
+
+  /* check that our buffer was large enough */
+  if (sizeof(buf) <= n) {
+    /* TODO: instead of throwing a fatal error, we could allocate a bigger buffer and try again */
+
+    scr_err("Buffer too small to hold formatted string for file %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    exit(1);
+  }
+
+  /* write the string out to the file descriptor */
+  ssize_t rc = scr_write(fd, buf, n);
+
+  return rc;
 }
 
 /* read count bytes from fd into buf starting from offset, pad with zero if file is too short */
@@ -307,6 +437,16 @@ unsigned long scr_filesize(const char* file)
   return bytes;
 }
 
+/* tests whether the file exists */
+int scr_file_exists(const char* file)
+{
+  /* to test, check whether the file can be read */
+  if (access(file, R_OK) < 0) {
+    return SCR_FAILURE;
+  }
+  return SCR_SUCCESS;
+}
+
 /*
 =========================================
 Directory functions
@@ -403,4 +543,19 @@ int scr_mkdir(const char* dir, mode_t mode)
   free(dircopy);
   free(path);
   return rc;
+}
+
+/*
+=========================================
+Timing
+=========================================
+*/
+
+/* returns the current linux timestamp (secs + usecs since epoch) as a double */
+double scr_seconds()
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double secs = (double) tv.tv_sec + (double) tv.tv_usec / (double) 1000000.0;
+  return secs;
 }

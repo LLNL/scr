@@ -48,7 +48,7 @@ int scr_meta_name(char* metaname, const char* file)
 }
 
 /* initialize meta structure to represent file, filetype, and complete */
-void scr_set_meta(struct scr_meta* meta, const char* file, int rank, int ranks, int checkpoint_id, int filetype, int complete)
+void scr_meta_set(struct scr_meta* meta, const char* file, int rank, int ranks, int checkpoint_id, int filetype, int complete)
 {
     /* split file into path and name components */
     char path[SCR_MAX_FILENAME];
@@ -75,13 +75,13 @@ void scr_set_meta(struct scr_meta* meta, const char* file, int rank, int ranks, 
 }
 
 /* initialize meta structure to represent file, filetype, and complete */
-void scr_copy_meta(struct scr_meta* m1, const struct scr_meta* m2)
+void scr_meta_copy(struct scr_meta* m1, const struct scr_meta* m2)
 {
     memcpy(m1, m2, sizeof(struct scr_meta));
 }
 
 /* read meta for file_orig and fill in meta structure */
-int scr_read_meta(const char* file_orig, struct scr_meta* meta)
+int scr_meta_read(const char* file_orig, struct scr_meta* meta)
 {
   /* build meta filename */
   char file[SCR_MAX_FILENAME];
@@ -132,7 +132,7 @@ int scr_read_meta(const char* file_orig, struct scr_meta* meta)
 }
 
 /* creates corresponding .scr meta file for file to record completion info */
-int scr_write_meta(const char* file, const struct scr_meta* meta)
+int scr_meta_write(const char* file, const struct scr_meta* meta)
 {
   /* create the .scr extension */
   char file_scr[SCR_MAX_FILENAME];
@@ -205,7 +205,7 @@ int scr_write_meta(const char* file, const struct scr_meta* meta)
   scr_write(fd, buf, strlen(buf));
 
   /* flush and close the file */
-  scr_close(fd);
+  scr_close(file_scr, fd);
 
   return SCR_SUCCESS;
 }

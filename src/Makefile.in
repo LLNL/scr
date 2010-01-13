@@ -40,8 +40,9 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 bin_PROGRAMS = scr_rebuild_xor$(EXEEXT) scr_halt_cntl$(EXEEXT) \
-	scr_crc32$(EXEEXT) scr_log_event$(EXEEXT) \
-	scr_log_transfer$(EXEEXT)
+	scr_crc32$(EXEEXT) scr_print_hash_file$(EXEEXT) \
+	scr_log_event$(EXEEXT) scr_log_transfer$(EXEEXT) \
+	scr_transfer$(EXEEXT)
 subdir = src
 DIST_COMMON = $(include_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
@@ -97,6 +98,7 @@ scr_crc32_OBJECTS = $(am_scr_crc32_OBJECTS)
 scr_crc32_DEPENDENCIES =
 am_scr_halt_cntl_OBJECTS = scr_halt_cntl-scr_err_serial.$(OBJEXT) \
 	scr_halt_cntl-scr_io.$(OBJEXT) \
+	scr_halt_cntl-scr_hash.$(OBJEXT) \
 	scr_halt_cntl-scr_halt.$(OBJEXT) \
 	scr_halt_cntl-scr_halt_cntl.$(OBJEXT)
 scr_halt_cntl_OBJECTS = $(am_scr_halt_cntl_OBJECTS)
@@ -119,6 +121,13 @@ am_scr_log_transfer_OBJECTS =  \
 scr_log_transfer_OBJECTS = $(am_scr_log_transfer_OBJECTS)
 scr_log_transfer_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
+am_scr_print_hash_file_OBJECTS =  \
+	scr_print_hash_file-scr_err_serial.$(OBJEXT) \
+	scr_print_hash_file-scr_io.$(OBJEXT) \
+	scr_print_hash_file-scr_hash.$(OBJEXT) \
+	scr_print_hash_file-scr_print_hash_file.$(OBJEXT)
+scr_print_hash_file_OBJECTS = $(am_scr_print_hash_file_OBJECTS)
+scr_print_hash_file_DEPENDENCIES =
 am_scr_rebuild_xor_OBJECTS = scr_rebuild_xor-scr_err_serial.$(OBJEXT) \
 	scr_rebuild_xor-scr_io.$(OBJEXT) \
 	scr_rebuild_xor-scr_meta.$(OBJEXT) \
@@ -128,6 +137,11 @@ am_scr_rebuild_xor_OBJECTS = scr_rebuild_xor-scr_err_serial.$(OBJEXT) \
 	scr_rebuild_xor-scr_rebuild_xor.$(OBJEXT)
 scr_rebuild_xor_OBJECTS = $(am_scr_rebuild_xor_OBJECTS)
 scr_rebuild_xor_DEPENDENCIES =
+am_scr_transfer_OBJECTS = scr_transfer-scr_err_serial.$(OBJEXT) \
+	scr_transfer-scr_hash.$(OBJEXT) scr_transfer-scr_io.$(OBJEXT) \
+	scr_transfer-scr_transfer.$(OBJEXT)
+scr_transfer_OBJECTS = $(am_scr_transfer_OBJECTS)
+scr_transfer_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/config
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
@@ -142,11 +156,13 @@ LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 SOURCES = $(libscr_la_SOURCES) $(libscr_interpose_la_SOURCES) \
 	$(scr_crc32_SOURCES) $(scr_halt_cntl_SOURCES) \
 	$(scr_log_event_SOURCES) $(scr_log_transfer_SOURCES) \
-	$(scr_rebuild_xor_SOURCES)
+	$(scr_print_hash_file_SOURCES) $(scr_rebuild_xor_SOURCES) \
+	$(scr_transfer_SOURCES)
 DIST_SOURCES = $(libscr_la_SOURCES) $(libscr_interpose_la_SOURCES) \
 	$(scr_crc32_SOURCES) $(scr_halt_cntl_SOURCES) \
 	$(scr_log_event_SOURCES) $(scr_log_transfer_SOURCES) \
-	$(scr_rebuild_xor_SOURCES)
+	$(scr_print_hash_file_SOURCES) $(scr_rebuild_xor_SOURCES) \
+	$(scr_transfer_SOURCES)
 includeHEADERS_INSTALL = $(INSTALL_HEADER)
 HEADERS = $(include_HEADERS)
 ETAGS = etags
@@ -341,6 +357,7 @@ scr_halt_cntl_SOURCES = \
 	scr.h \
 	scr_err_serial.c scr_err.h \
 	scr_io.c         scr_io.h \
+	scr_hash.c       scr_hash.h \
 	scr_halt.c       scr_halt.h \
 	scr_halt_cntl.c
 
@@ -354,6 +371,15 @@ scr_crc32_SOURCES = \
 
 scr_crc32_LDADD = -lz
 scr_crc32_CFLAGS = $(AM_CFLAGS)
+scr_print_hash_file_SOURCES = \
+	scr.h \
+	scr_err_serial.c scr_err.h \
+	scr_io.c         scr_io.h \
+	scr_hash.c       scr_hash.h \
+	scr_print_hash_file.c
+
+scr_print_hash_file_LDADD = -lz
+scr_print_hash_file_CFLAGS = $(AM_CFLAGS)
 scr_log_event_SOURCES = \
 	scr.h \
 	scr_err_serial.c scr_err.h \
@@ -376,6 +402,15 @@ scr_log_transfer_SOURCES = \
 
 scr_log_transfer_LDADD = -lz $(MYSQL_LDFLAGS) $(MYSQL_LIBS)
 scr_log_transfer_CFLAGS = $(AM_CFLAGS)
+scr_transfer_SOURCES = \
+	scr.h \
+	scr_err_serial.c scr_err.h \
+	scr_hash.c       scr_hash.h \
+	scr_io.c         scr_io.h \
+	scr_transfer.c
+
+scr_transfer_LDADD = -lz
+scr_transfer_CFLAGS = $(AM_CFLAGS)
 EXTRA_DIST = queue.h
 all: all-am
 
@@ -481,9 +516,15 @@ scr_log_event$(EXEEXT): $(scr_log_event_OBJECTS) $(scr_log_event_DEPENDENCIES)
 scr_log_transfer$(EXEEXT): $(scr_log_transfer_OBJECTS) $(scr_log_transfer_DEPENDENCIES) 
 	@rm -f scr_log_transfer$(EXEEXT)
 	$(LINK) $(scr_log_transfer_LDFLAGS) $(scr_log_transfer_OBJECTS) $(scr_log_transfer_LDADD) $(LIBS)
+scr_print_hash_file$(EXEEXT): $(scr_print_hash_file_OBJECTS) $(scr_print_hash_file_DEPENDENCIES) 
+	@rm -f scr_print_hash_file$(EXEEXT)
+	$(LINK) $(scr_print_hash_file_LDFLAGS) $(scr_print_hash_file_OBJECTS) $(scr_print_hash_file_LDADD) $(LIBS)
 scr_rebuild_xor$(EXEEXT): $(scr_rebuild_xor_OBJECTS) $(scr_rebuild_xor_DEPENDENCIES) 
 	@rm -f scr_rebuild_xor$(EXEEXT)
 	$(LINK) $(scr_rebuild_xor_LDFLAGS) $(scr_rebuild_xor_OBJECTS) $(scr_rebuild_xor_LDADD) $(LIBS)
+scr_transfer$(EXEEXT): $(scr_transfer_OBJECTS) $(scr_transfer_DEPENDENCIES) 
+	@rm -f scr_transfer$(EXEEXT)
+	$(LINK) $(scr_transfer_LDFLAGS) $(scr_transfer_OBJECTS) $(scr_transfer_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -516,6 +557,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_halt_cntl-scr_err_serial.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_halt_cntl-scr_halt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_halt_cntl-scr_halt_cntl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_halt_cntl-scr_hash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_halt_cntl-scr_io.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_log_event-scr_err_serial.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_log_event-scr_hash.Po@am__quote@
@@ -529,6 +571,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_log_transfer-scr_log.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_log_transfer-scr_log_transfer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_log_transfer-scr_param.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_print_hash_file-scr_err_serial.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_print_hash_file-scr_hash.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_print_hash_file-scr_io.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_print_hash_file-scr_print_hash_file.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_rebuild_xor-scr_copy_xor.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_rebuild_xor-scr_err_serial.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_rebuild_xor-scr_filemap.Po@am__quote@
@@ -536,6 +582,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_rebuild_xor-scr_io.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_rebuild_xor-scr_meta.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_rebuild_xor-scr_rebuild_xor.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_transfer-scr_err_serial.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_transfer-scr_hash.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_transfer-scr_io.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_transfer-scr_transfer.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -761,6 +811,20 @@ scr_halt_cntl-scr_io.obj: scr_io.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_halt_cntl_CFLAGS) $(CFLAGS) -c -o scr_halt_cntl-scr_io.obj `if test -f 'scr_io.c'; then $(CYGPATH_W) 'scr_io.c'; else $(CYGPATH_W) '$(srcdir)/scr_io.c'; fi`
 
+scr_halt_cntl-scr_hash.o: scr_hash.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_halt_cntl_CFLAGS) $(CFLAGS) -MT scr_halt_cntl-scr_hash.o -MD -MP -MF "$(DEPDIR)/scr_halt_cntl-scr_hash.Tpo" -c -o scr_halt_cntl-scr_hash.o `test -f 'scr_hash.c' || echo '$(srcdir)/'`scr_hash.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_halt_cntl-scr_hash.Tpo" "$(DEPDIR)/scr_halt_cntl-scr_hash.Po"; else rm -f "$(DEPDIR)/scr_halt_cntl-scr_hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_hash.c' object='scr_halt_cntl-scr_hash.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_halt_cntl_CFLAGS) $(CFLAGS) -c -o scr_halt_cntl-scr_hash.o `test -f 'scr_hash.c' || echo '$(srcdir)/'`scr_hash.c
+
+scr_halt_cntl-scr_hash.obj: scr_hash.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_halt_cntl_CFLAGS) $(CFLAGS) -MT scr_halt_cntl-scr_hash.obj -MD -MP -MF "$(DEPDIR)/scr_halt_cntl-scr_hash.Tpo" -c -o scr_halt_cntl-scr_hash.obj `if test -f 'scr_hash.c'; then $(CYGPATH_W) 'scr_hash.c'; else $(CYGPATH_W) '$(srcdir)/scr_hash.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_halt_cntl-scr_hash.Tpo" "$(DEPDIR)/scr_halt_cntl-scr_hash.Po"; else rm -f "$(DEPDIR)/scr_halt_cntl-scr_hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_hash.c' object='scr_halt_cntl-scr_hash.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_halt_cntl_CFLAGS) $(CFLAGS) -c -o scr_halt_cntl-scr_hash.obj `if test -f 'scr_hash.c'; then $(CYGPATH_W) 'scr_hash.c'; else $(CYGPATH_W) '$(srcdir)/scr_hash.c'; fi`
+
 scr_halt_cntl-scr_halt.o: scr_halt.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_halt_cntl_CFLAGS) $(CFLAGS) -MT scr_halt_cntl-scr_halt.o -MD -MP -MF "$(DEPDIR)/scr_halt_cntl-scr_halt.Tpo" -c -o scr_halt_cntl-scr_halt.o `test -f 'scr_halt.c' || echo '$(srcdir)/'`scr_halt.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_halt_cntl-scr_halt.Tpo" "$(DEPDIR)/scr_halt_cntl-scr_halt.Po"; else rm -f "$(DEPDIR)/scr_halt_cntl-scr_halt.Tpo"; exit 1; fi
@@ -957,6 +1021,62 @@ scr_log_transfer-scr_log_transfer.obj: scr_log_transfer.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_log_transfer_CFLAGS) $(CFLAGS) -c -o scr_log_transfer-scr_log_transfer.obj `if test -f 'scr_log_transfer.c'; then $(CYGPATH_W) 'scr_log_transfer.c'; else $(CYGPATH_W) '$(srcdir)/scr_log_transfer.c'; fi`
 
+scr_print_hash_file-scr_err_serial.o: scr_err_serial.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -MT scr_print_hash_file-scr_err_serial.o -MD -MP -MF "$(DEPDIR)/scr_print_hash_file-scr_err_serial.Tpo" -c -o scr_print_hash_file-scr_err_serial.o `test -f 'scr_err_serial.c' || echo '$(srcdir)/'`scr_err_serial.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_print_hash_file-scr_err_serial.Tpo" "$(DEPDIR)/scr_print_hash_file-scr_err_serial.Po"; else rm -f "$(DEPDIR)/scr_print_hash_file-scr_err_serial.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_err_serial.c' object='scr_print_hash_file-scr_err_serial.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -c -o scr_print_hash_file-scr_err_serial.o `test -f 'scr_err_serial.c' || echo '$(srcdir)/'`scr_err_serial.c
+
+scr_print_hash_file-scr_err_serial.obj: scr_err_serial.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -MT scr_print_hash_file-scr_err_serial.obj -MD -MP -MF "$(DEPDIR)/scr_print_hash_file-scr_err_serial.Tpo" -c -o scr_print_hash_file-scr_err_serial.obj `if test -f 'scr_err_serial.c'; then $(CYGPATH_W) 'scr_err_serial.c'; else $(CYGPATH_W) '$(srcdir)/scr_err_serial.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_print_hash_file-scr_err_serial.Tpo" "$(DEPDIR)/scr_print_hash_file-scr_err_serial.Po"; else rm -f "$(DEPDIR)/scr_print_hash_file-scr_err_serial.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_err_serial.c' object='scr_print_hash_file-scr_err_serial.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -c -o scr_print_hash_file-scr_err_serial.obj `if test -f 'scr_err_serial.c'; then $(CYGPATH_W) 'scr_err_serial.c'; else $(CYGPATH_W) '$(srcdir)/scr_err_serial.c'; fi`
+
+scr_print_hash_file-scr_io.o: scr_io.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -MT scr_print_hash_file-scr_io.o -MD -MP -MF "$(DEPDIR)/scr_print_hash_file-scr_io.Tpo" -c -o scr_print_hash_file-scr_io.o `test -f 'scr_io.c' || echo '$(srcdir)/'`scr_io.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_print_hash_file-scr_io.Tpo" "$(DEPDIR)/scr_print_hash_file-scr_io.Po"; else rm -f "$(DEPDIR)/scr_print_hash_file-scr_io.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_io.c' object='scr_print_hash_file-scr_io.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -c -o scr_print_hash_file-scr_io.o `test -f 'scr_io.c' || echo '$(srcdir)/'`scr_io.c
+
+scr_print_hash_file-scr_io.obj: scr_io.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -MT scr_print_hash_file-scr_io.obj -MD -MP -MF "$(DEPDIR)/scr_print_hash_file-scr_io.Tpo" -c -o scr_print_hash_file-scr_io.obj `if test -f 'scr_io.c'; then $(CYGPATH_W) 'scr_io.c'; else $(CYGPATH_W) '$(srcdir)/scr_io.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_print_hash_file-scr_io.Tpo" "$(DEPDIR)/scr_print_hash_file-scr_io.Po"; else rm -f "$(DEPDIR)/scr_print_hash_file-scr_io.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_io.c' object='scr_print_hash_file-scr_io.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -c -o scr_print_hash_file-scr_io.obj `if test -f 'scr_io.c'; then $(CYGPATH_W) 'scr_io.c'; else $(CYGPATH_W) '$(srcdir)/scr_io.c'; fi`
+
+scr_print_hash_file-scr_hash.o: scr_hash.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -MT scr_print_hash_file-scr_hash.o -MD -MP -MF "$(DEPDIR)/scr_print_hash_file-scr_hash.Tpo" -c -o scr_print_hash_file-scr_hash.o `test -f 'scr_hash.c' || echo '$(srcdir)/'`scr_hash.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_print_hash_file-scr_hash.Tpo" "$(DEPDIR)/scr_print_hash_file-scr_hash.Po"; else rm -f "$(DEPDIR)/scr_print_hash_file-scr_hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_hash.c' object='scr_print_hash_file-scr_hash.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -c -o scr_print_hash_file-scr_hash.o `test -f 'scr_hash.c' || echo '$(srcdir)/'`scr_hash.c
+
+scr_print_hash_file-scr_hash.obj: scr_hash.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -MT scr_print_hash_file-scr_hash.obj -MD -MP -MF "$(DEPDIR)/scr_print_hash_file-scr_hash.Tpo" -c -o scr_print_hash_file-scr_hash.obj `if test -f 'scr_hash.c'; then $(CYGPATH_W) 'scr_hash.c'; else $(CYGPATH_W) '$(srcdir)/scr_hash.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_print_hash_file-scr_hash.Tpo" "$(DEPDIR)/scr_print_hash_file-scr_hash.Po"; else rm -f "$(DEPDIR)/scr_print_hash_file-scr_hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_hash.c' object='scr_print_hash_file-scr_hash.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -c -o scr_print_hash_file-scr_hash.obj `if test -f 'scr_hash.c'; then $(CYGPATH_W) 'scr_hash.c'; else $(CYGPATH_W) '$(srcdir)/scr_hash.c'; fi`
+
+scr_print_hash_file-scr_print_hash_file.o: scr_print_hash_file.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -MT scr_print_hash_file-scr_print_hash_file.o -MD -MP -MF "$(DEPDIR)/scr_print_hash_file-scr_print_hash_file.Tpo" -c -o scr_print_hash_file-scr_print_hash_file.o `test -f 'scr_print_hash_file.c' || echo '$(srcdir)/'`scr_print_hash_file.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_print_hash_file-scr_print_hash_file.Tpo" "$(DEPDIR)/scr_print_hash_file-scr_print_hash_file.Po"; else rm -f "$(DEPDIR)/scr_print_hash_file-scr_print_hash_file.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_print_hash_file.c' object='scr_print_hash_file-scr_print_hash_file.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -c -o scr_print_hash_file-scr_print_hash_file.o `test -f 'scr_print_hash_file.c' || echo '$(srcdir)/'`scr_print_hash_file.c
+
+scr_print_hash_file-scr_print_hash_file.obj: scr_print_hash_file.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -MT scr_print_hash_file-scr_print_hash_file.obj -MD -MP -MF "$(DEPDIR)/scr_print_hash_file-scr_print_hash_file.Tpo" -c -o scr_print_hash_file-scr_print_hash_file.obj `if test -f 'scr_print_hash_file.c'; then $(CYGPATH_W) 'scr_print_hash_file.c'; else $(CYGPATH_W) '$(srcdir)/scr_print_hash_file.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_print_hash_file-scr_print_hash_file.Tpo" "$(DEPDIR)/scr_print_hash_file-scr_print_hash_file.Po"; else rm -f "$(DEPDIR)/scr_print_hash_file-scr_print_hash_file.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_print_hash_file.c' object='scr_print_hash_file-scr_print_hash_file.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_print_hash_file_CFLAGS) $(CFLAGS) -c -o scr_print_hash_file-scr_print_hash_file.obj `if test -f 'scr_print_hash_file.c'; then $(CYGPATH_W) 'scr_print_hash_file.c'; else $(CYGPATH_W) '$(srcdir)/scr_print_hash_file.c'; fi`
+
 scr_rebuild_xor-scr_err_serial.o: scr_err_serial.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_rebuild_xor_CFLAGS) $(CFLAGS) -MT scr_rebuild_xor-scr_err_serial.o -MD -MP -MF "$(DEPDIR)/scr_rebuild_xor-scr_err_serial.Tpo" -c -o scr_rebuild_xor-scr_err_serial.o `test -f 'scr_err_serial.c' || echo '$(srcdir)/'`scr_err_serial.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_rebuild_xor-scr_err_serial.Tpo" "$(DEPDIR)/scr_rebuild_xor-scr_err_serial.Po"; else rm -f "$(DEPDIR)/scr_rebuild_xor-scr_err_serial.Tpo"; exit 1; fi
@@ -1054,6 +1174,62 @@ scr_rebuild_xor-scr_rebuild_xor.obj: scr_rebuild_xor.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_rebuild_xor.c' object='scr_rebuild_xor-scr_rebuild_xor.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_rebuild_xor_CFLAGS) $(CFLAGS) -c -o scr_rebuild_xor-scr_rebuild_xor.obj `if test -f 'scr_rebuild_xor.c'; then $(CYGPATH_W) 'scr_rebuild_xor.c'; else $(CYGPATH_W) '$(srcdir)/scr_rebuild_xor.c'; fi`
+
+scr_transfer-scr_err_serial.o: scr_err_serial.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -MT scr_transfer-scr_err_serial.o -MD -MP -MF "$(DEPDIR)/scr_transfer-scr_err_serial.Tpo" -c -o scr_transfer-scr_err_serial.o `test -f 'scr_err_serial.c' || echo '$(srcdir)/'`scr_err_serial.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_transfer-scr_err_serial.Tpo" "$(DEPDIR)/scr_transfer-scr_err_serial.Po"; else rm -f "$(DEPDIR)/scr_transfer-scr_err_serial.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_err_serial.c' object='scr_transfer-scr_err_serial.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -c -o scr_transfer-scr_err_serial.o `test -f 'scr_err_serial.c' || echo '$(srcdir)/'`scr_err_serial.c
+
+scr_transfer-scr_err_serial.obj: scr_err_serial.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -MT scr_transfer-scr_err_serial.obj -MD -MP -MF "$(DEPDIR)/scr_transfer-scr_err_serial.Tpo" -c -o scr_transfer-scr_err_serial.obj `if test -f 'scr_err_serial.c'; then $(CYGPATH_W) 'scr_err_serial.c'; else $(CYGPATH_W) '$(srcdir)/scr_err_serial.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_transfer-scr_err_serial.Tpo" "$(DEPDIR)/scr_transfer-scr_err_serial.Po"; else rm -f "$(DEPDIR)/scr_transfer-scr_err_serial.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_err_serial.c' object='scr_transfer-scr_err_serial.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -c -o scr_transfer-scr_err_serial.obj `if test -f 'scr_err_serial.c'; then $(CYGPATH_W) 'scr_err_serial.c'; else $(CYGPATH_W) '$(srcdir)/scr_err_serial.c'; fi`
+
+scr_transfer-scr_hash.o: scr_hash.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -MT scr_transfer-scr_hash.o -MD -MP -MF "$(DEPDIR)/scr_transfer-scr_hash.Tpo" -c -o scr_transfer-scr_hash.o `test -f 'scr_hash.c' || echo '$(srcdir)/'`scr_hash.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_transfer-scr_hash.Tpo" "$(DEPDIR)/scr_transfer-scr_hash.Po"; else rm -f "$(DEPDIR)/scr_transfer-scr_hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_hash.c' object='scr_transfer-scr_hash.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -c -o scr_transfer-scr_hash.o `test -f 'scr_hash.c' || echo '$(srcdir)/'`scr_hash.c
+
+scr_transfer-scr_hash.obj: scr_hash.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -MT scr_transfer-scr_hash.obj -MD -MP -MF "$(DEPDIR)/scr_transfer-scr_hash.Tpo" -c -o scr_transfer-scr_hash.obj `if test -f 'scr_hash.c'; then $(CYGPATH_W) 'scr_hash.c'; else $(CYGPATH_W) '$(srcdir)/scr_hash.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_transfer-scr_hash.Tpo" "$(DEPDIR)/scr_transfer-scr_hash.Po"; else rm -f "$(DEPDIR)/scr_transfer-scr_hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_hash.c' object='scr_transfer-scr_hash.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -c -o scr_transfer-scr_hash.obj `if test -f 'scr_hash.c'; then $(CYGPATH_W) 'scr_hash.c'; else $(CYGPATH_W) '$(srcdir)/scr_hash.c'; fi`
+
+scr_transfer-scr_io.o: scr_io.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -MT scr_transfer-scr_io.o -MD -MP -MF "$(DEPDIR)/scr_transfer-scr_io.Tpo" -c -o scr_transfer-scr_io.o `test -f 'scr_io.c' || echo '$(srcdir)/'`scr_io.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_transfer-scr_io.Tpo" "$(DEPDIR)/scr_transfer-scr_io.Po"; else rm -f "$(DEPDIR)/scr_transfer-scr_io.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_io.c' object='scr_transfer-scr_io.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -c -o scr_transfer-scr_io.o `test -f 'scr_io.c' || echo '$(srcdir)/'`scr_io.c
+
+scr_transfer-scr_io.obj: scr_io.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -MT scr_transfer-scr_io.obj -MD -MP -MF "$(DEPDIR)/scr_transfer-scr_io.Tpo" -c -o scr_transfer-scr_io.obj `if test -f 'scr_io.c'; then $(CYGPATH_W) 'scr_io.c'; else $(CYGPATH_W) '$(srcdir)/scr_io.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_transfer-scr_io.Tpo" "$(DEPDIR)/scr_transfer-scr_io.Po"; else rm -f "$(DEPDIR)/scr_transfer-scr_io.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_io.c' object='scr_transfer-scr_io.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -c -o scr_transfer-scr_io.obj `if test -f 'scr_io.c'; then $(CYGPATH_W) 'scr_io.c'; else $(CYGPATH_W) '$(srcdir)/scr_io.c'; fi`
+
+scr_transfer-scr_transfer.o: scr_transfer.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -MT scr_transfer-scr_transfer.o -MD -MP -MF "$(DEPDIR)/scr_transfer-scr_transfer.Tpo" -c -o scr_transfer-scr_transfer.o `test -f 'scr_transfer.c' || echo '$(srcdir)/'`scr_transfer.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_transfer-scr_transfer.Tpo" "$(DEPDIR)/scr_transfer-scr_transfer.Po"; else rm -f "$(DEPDIR)/scr_transfer-scr_transfer.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_transfer.c' object='scr_transfer-scr_transfer.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -c -o scr_transfer-scr_transfer.o `test -f 'scr_transfer.c' || echo '$(srcdir)/'`scr_transfer.c
+
+scr_transfer-scr_transfer.obj: scr_transfer.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -MT scr_transfer-scr_transfer.obj -MD -MP -MF "$(DEPDIR)/scr_transfer-scr_transfer.Tpo" -c -o scr_transfer-scr_transfer.obj `if test -f 'scr_transfer.c'; then $(CYGPATH_W) 'scr_transfer.c'; else $(CYGPATH_W) '$(srcdir)/scr_transfer.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scr_transfer-scr_transfer.Tpo" "$(DEPDIR)/scr_transfer-scr_transfer.Po"; else rm -f "$(DEPDIR)/scr_transfer-scr_transfer.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_transfer.c' object='scr_transfer-scr_transfer.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(scr_transfer_CFLAGS) $(CFLAGS) -c -o scr_transfer-scr_transfer.obj `if test -f 'scr_transfer.c'; then $(CYGPATH_W) 'scr_transfer.c'; else $(CYGPATH_W) '$(srcdir)/scr_transfer.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

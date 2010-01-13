@@ -105,19 +105,22 @@ if (not defined $flush_id) {
   exit(1);
 }
 
-# read in the master filemap and then all filemaps on this node
-my $f = {};
+# create an object to read in hash files
 my $scr_hash = new scr_hash("$prog: $hostname");
-my $h = $scr_hash->read_hash_file("$srcdir/filemap_node.scrinfo");
-if (not defined $h) {
+
+# read in the master filemap
+my $h = {};
+if (not $scr_hash->read_file("$srcdir/filemap_node.scrinfo", $h)) {
   print "$prog: $hostname: Could not find master filemap: $srcdir/filemap_node.scrinfo\n";
   print "$prog: $hostname: Return code: 1\n";
   exit(1);
 }
+
+# now read in each filemap listed in the master filemap
+my $f = {};
 my @filemaps = (keys %{$$h{'Filemap'}});
 foreach my $filemap (@filemaps) {
-  my $tmp_rc = read_filemap($filemap, $f);
-  if ($tmp_rc != 0) {
+  if (not $scr_hash->read_file($filemap, $f)) {
     print "$prog: $hostname: Invalid filemap detected: $filemap\n";
     print "$prog: $hostname: Return code: 1\n";
     exit(1);
@@ -239,21 +242,21 @@ sub offload_files
 
   my $rc = 1;
 
-  if (defined $f and defined $$f{checkpoints} and defined $$f{checkpoints}{$ckpt}) {
+  if (defined $f and defined $$f{CKPT} and defined $$f{CKPT}{$ckpt}) {
     $rc = 0;
     my $num_written = 0;
-    my $ranks = \%{$$f{checkpoints}{$ckpt}{ranks}};
+    my $ranks = \%{$$f{CKPT}{$ckpt}{RANK}};
     foreach my $rank (keys %$ranks) {
       # TODO: need to tag this level as partner (not individiual files, since partner may not have any)
       my $write_this_rank = 1;
-      my $expect = $$ranks{$rank}{expect};
-      my $files = \%{$$ranks{$rank}{files}};
+      my $expect = (keys %{$$ranks{$rank}{EXPECT}})[0];
+      my $files = \%{$$ranks{$rank}{FILE}};
       my @file_list = (keys %$files);
       my @copy_list = ();
       my @map_list  = ();
       foreach my $file (@file_list) {
-        if (defined $$files{$file}{tags}{'Partner'}) {
-          if (defined $node and $$files{$file}{tags}{'Partner'} eq $node) {
+        if (defined $$files{$file}{PARTNER}) {
+          if (defined $node and $$files{$file}{PARTNER} eq $node) {
             push @map_list, $file;
             push @copy_list, $file, $file . ".scr";
           } else {
@@ -283,17 +286,17 @@ sub offload_files
           }
 
           # write out rank.scrfilemap file for this rank for scr_check_complete
-          if (open(OUT, ">$dstdir/$rank.scrfilemap")) {
-            print OUT "Rank: $rank\n";
-            print OUT "CheckpointID: $ckpt\n";
-            print OUT "Expect: $expect\n";
-            foreach my $file (@map_list) {
-              my $name = basename($file);
-              print OUT "File: $name\n";
-            }
-            print OUT "End: 0\n";
-            close(OUT);
-          } else {
+          my %hash = ();
+          $hash{RANK}{$rank}{CKPT}{$ckpt}{EXPECT}{$expect} = 1;
+          $hash{CKPT}{$ckpt}{RANK}{$rank}{EXPECT}{$expect} = 1;
+          %{$hash{RANK}{$rank}{CKPT}{$ckpt}{FILE}} = ();
+          %{$hash{CKPT}{$ckpt}{RANK}{$rank}{FILE}} = ();
+          foreach my $file (@map_list) {
+            my $name = basename($file);
+            $hash{RANK}{$rank}{CKPT}{$ckpt}{FILE}{$name} = 1;
+            $hash{CKPT}{$ckpt}{RANK}{$rank}{FILE}{$name} = 1;
+          }
+          if (not $scr_hash->write_file("$dstdir/$rank.scrfilemap", \%hash)) {
             print "$prog: $hostname: Could not open $dstdir/$rank.scrfilemap for writing\n";
             $rc = 1;
           }
@@ -319,62 +322,17 @@ sub list_partners
   my $ckpt = shift @_;
 
   my %partners = ();
-  if (defined $f and defined $$f{checkpoints} and defined $$f{checkpoints}{$ckpt}) {
-    my $ranks = \%{$$f{checkpoints}{$ckpt}{ranks}};
+  if (defined $f and defined $$f{CKPT} and defined $$f{CKPT}{$ckpt}) {
+    my $ranks = \%{$$f{CKPT}{$ckpt}{RANK}};
     foreach my $rank (keys %$ranks) {
-      my $files = \%{$$ranks{$rank}{files}};
+      my $files = \%{$$ranks{$rank}{FILE}};
       foreach my $file (keys %$files) {
-        if (defined $$files{$file}{tags}{'Partner'}) {
-          $partners{$$files{$file}{tags}{'Partner'}} = 1;
+        if (defined $$files{$file}{PARTNER}) {
+          $partners{$$files{$file}{PARTNER}} = 1;
         }
       }
     }
   }
 
   return (keys %partners);
-}
-
-sub read_filemap
-{
-  my $map = shift @_;
-  my $f   = shift @_;
-
-  if (not open(IN, $map)) { return 0; }
-#print "FILEMAP: $map\n";
-
-  my $found_end = 0;
-  my $ckpt = undef;
-  my $rank = undef;
-  my $file = undef;
-  while (my $line = <IN>) {
-    chomp $line;
-    if ($line =~ /CheckpointID: (\d+)/) {
-      $ckpt = $1;
-#print "CKPT $ckpt\n";
-    } elsif ($line =~ /Rank: (\d+)/) {
-      $rank = $1;
-#print "RANK $rank\n";
-    } elsif ($line =~ /Expect: (\d+)/) {
-      $$f{checkpoints}{$ckpt}{ranks}{$rank}{expect} = $1;
-#print "EXPECT $1\n";
-    } elsif ($line =~ /File: (.*)/) {
-      $file = $1;
-#print "FILE $file\n";
-      $$f{checkpoints}{$ckpt}{ranks}{$rank}{files}{$file}{name} = 1;
-    } elsif ($line =~ /Tag: (.*)/) {
-      my ($tag, $value) = ($1 =~ /(.*):(.*)/);
-#print "TAG $tag, VALUE $value\n";
-      $$f{checkpoints}{$ckpt}{ranks}{$rank}{files}{$file}{tags}{$tag} = $value;
-    } elsif ($line =~ /End: (\d+)/) {
-      $found_end = 1;
-    }
-  }
-
-  close(IN);
-
-  # TODO: check that for each checkpoint/rank we have the expected number of files
-
-  if (!$found_end) { return 1; }
-
-  return 0;
 }

@@ -120,7 +120,7 @@ int scr_filemap_have_rank_by_checkpoint(struct scr_filemap* map, int checkpointi
 int scr_filemap_latest_checkpoint(struct scr_filemap* map);
 
 /* returns the oldest checkpoint id (smallest int) in given map */
-int scr_filemap_oldest_checkpoint(struct scr_filemap* map);
+int scr_filemap_lowest_checkpoint(struct scr_filemap* map, int higher_than);
 
 /* return the number of ranks in the hash */
 int scr_filemap_num_ranks(struct scr_filemap* map);

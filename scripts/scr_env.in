@@ -2,6 +2,8 @@
 use strict;
 use Hostlist;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+use lib '@X_DATADIR@/scr';
+use scr_hash;
 
 my $prog = "scr_env";
 
@@ -11,11 +13,13 @@ sub print_usage
   print "  Usage:  $prog [options]\n";
   print "\n";
   print "  Options:\n";
-  print "    -u, --user    List the username of current job.\n";
-  print "    -j, --jobid   List the job id of the current job.\n";
-  print "    -n, --nodes   List the nodeset the current job is using.\n";
-  print "    -d, --down    List any nodes of the job's nodeset that\n";
-  print "                    the resource managers knows to be down.\n";
+  print "    -u, --user     List the username of current job.\n";
+  print "    -j, --jobid    List the job id of the current job.\n";
+  print "    -n, --nodes    List the nodeset the current job is using.\n";
+  print "    -d, --down     List any nodes of the job's nodeset that\n";
+  print "                     the resource managers knows to be down.\n";
+  print "    -c, --cntldir  Specify the control directory.\n";
+  print "    -r, --runnodes List the number of nodes used in the last run.\n";
   print "\n";
   exit 1;
 }
@@ -26,12 +30,16 @@ $conf{user}  = undef;
 $conf{jobid} = undef;
 $conf{nodes} = undef;
 $conf{down}  = undef;
+$conf{cntldir}  = undef;
+$conf{runnodes} = undef;
 $conf{help}  = undef;
 my $rc = GetOptions (
   "user|u"         => \$conf{user},
   "jobid|j"        => \$conf{jobid},
   "nodes|n"        => \$conf{nodes},
   "down|d"         => \$conf{down},
+  "cntldir|c=s"    => \$conf{cntldir},
+  "runnodes|r"     => \$conf{runnodes},
   "help|h"         => \$conf{help},
 );
 if ($conf{help} or not $rc) { print_usage(); }
@@ -70,6 +78,25 @@ if (defined $conf{user}) {
       if ($down ne "") { print "$down\n"; }
     }
   } else {
+    exit 1;
+  }
+} elsif (defined $conf{runnodes} and defined $conf{cntldir}) {
+  # get an object to read a hash file
+  # and read the nodes.scrinfo file
+  my $h = {};
+  my $scr_hash = new scr_hash($prog);
+  if ($scr_hash->read_file("$conf{cntldir}/nodes.scrinfo", $h)) {
+    # look for the NODES key in the file hash
+    if (defined $$h{NODES}) {
+      # found the NODES key, get and return its value
+      my $nnodes = (keys %{$$h{NODES}})[0];
+      print "$nnodes\n";
+    } else {
+      # could not find the NODES key
+      exit 1;
+    }
+  } else {
+    # had a problem reading the file
     exit 1;
   }
 } else {
