@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Run this script before the job runs to clear
+# the checkpoint cache in case a previous run
+# left something.
+
 # requires: pdsh
 
 # if SCR is disabled, immediately exit
@@ -14,10 +18,6 @@ if [ -n "$SCR_DEBUG" ]; then
   fi
 fi
 
-# Run this script before the job runs to check cache size
-# and clear checkpoint cache in case a previous run
-# left something
-
 # record the start time of the script
 start_time=`date`
 start_secs=`date +%s`
@@ -26,14 +26,13 @@ bindir="@X_BINDIR@"
 
 pdsh="@PDSH_EXE@"
 rm="/bin/rm"
+mkdir="/bin/mkdir"
 
 prog="scr_prerun"
 
-die() { echo "$prog: $@"; exit 1; }
+print_usage() { echo "Usage: $prog [-p prefix_dir]"; exit 1; }
 
-print_usage() { die "Usage: $prog [-p prefix_dir]"; }
-
-# pass prefixes via command line
+# process command line options
 PARDIR=${SCR_PREFIX:-`pwd`}
 OPTIND=1
 while getopts "f:t:p:c:" flag ; do
@@ -43,7 +42,7 @@ while getopts "f:t:p:c:" flag ; do
   esac
 done
 
-# check that we have the parallel file system and cache directories at least
+# check that we have the parallel file system prefix directory
 if [ "$PARDIR" == "" ] ; then
   print_usage
 fi
@@ -76,6 +75,8 @@ if [ $UPNODES != "" ]; then
   echo "$prog: Clearing SCR directories: $cntldir, $cachedir"
   $pdsh -w "$UPNODES" "$rm -rf $cntldir; $rm -rf $cachedir"
   # TODO: want to process return code here to return an error?
+
+  $pdsh -w "$UPNODES" "$mkdir -p $cntldir; $mkdir -p $cachedir"
 fi
 
 # report timing info

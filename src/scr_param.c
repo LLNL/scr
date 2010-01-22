@@ -48,6 +48,73 @@ static char scr_config_file[SCR_MAX_FILENAME] = SCR_CONFIG_FILE;
 /* this data structure will hold values read from the system config file */
 static struct scr_hash* scr_config_hash = NULL;
 
+/* TODO: support processing of byte values */
+/*
+
+#define KILO (1024)
+#define MEGA (1024*KILO)
+#define GIGA (1024*MEGA)
+#define TERA (1024*GIGA)
+
+// converts string like 10mb to long long integer value of 10*1024*1024
+size_t scr_param_abtoll(char* str)
+{
+  char* next;
+  size_t units = 1;
+
+  double num = strtod(str, &next);
+  if (num == 0.0 && next == str) {
+    return 0;
+  }
+
+  if (*next != '\0') {
+    // process units for kilo, mega, or gigabytes
+    switch(*next) {
+    case 'k':
+    case 'K':
+      units = (size_t) KILO;
+      break;
+    case 'm':
+    case 'M':
+      units = (size_t) MEGA;
+      break;
+    case 'g':
+    case 'G':
+      units = (size_t) GIGA;
+      break;
+    case 't':
+    case 'T':
+      units = (size_t) TERA;
+      break;
+    default:
+      printf("ERROR:  unexpected byte string %s\n", str);
+      exit(1);
+    }
+
+    next++;
+
+    // handle optional b or B character, e.g. in 10KB
+    if (*next == 'b' || *next == 'B') {
+      next++;
+    }
+
+    if (*next != 0) {
+      printf("ERROR:  unexpected byte string: %s\n", str);
+      exit(1);
+    }
+  }
+
+  if (num < 0) {
+    printf("ERROR:  byte string must be positive: %s\n", str);
+    exit(1);
+  }
+
+  size_t val = (size_t) (num * (double) units);
+  return val;
+}
+*/
+
+
 /* read in whitespace until we hit a non-whitespace character */
 static int scr_param_read_config_whitespace(FILE* fs, char* file, int linenum, int* n_external, char* c_external)
 {
@@ -108,7 +175,8 @@ static int scr_param_read_config_token(FILE* fs, char* file, int linenum, int* n
 }
 
 /* found a key value pair, read in the values and insert it into the hash */
-static int scr_param_read_config_kv(FILE* fs, char* file, int linenum, int* n_external, char* c_external, struct scr_hash* hash)
+static int scr_param_read_config_kv(FILE* fs, char* file, int linenum,
+                                    int* n_external, char* c_external, struct scr_hash* hash, struct scr_hash** hash2)
 {
   int  n = *n_external;
   char c = *c_external;
@@ -145,10 +213,12 @@ static int scr_param_read_config_kv(FILE* fs, char* file, int linenum, int* n_ex
   }
 
   /* insert key/value into hash */
-  scr_hash_set_kv(hash, key, value);
+  struct scr_hash* tmp_hash = scr_hash_set_kv(hash, key, value);
 
   *n_external = n;
   *c_external = c;
+  *hash2 = tmp_hash;
+
   return SCR_SUCCESS;
 }
 
@@ -173,6 +243,8 @@ static int scr_param_read_config_line(FILE* fs, char* file, int linenum, int* n_
   int  n = *n_external;
   char c = *c_external;
 
+  struct scr_hash* target_hash = hash;
+  int set_root = 0;
   while (n != EOF && c != '\n') {
     /* remove whitespace (spaces and tabs) until we hit a character */
     scr_param_read_config_whitespace(fs, file, linenum, &n, &c);
@@ -182,7 +254,12 @@ static int scr_param_read_config_line(FILE* fs, char* file, int linenum, int* n_
         scr_param_read_config_comment(fs, file, linenum, &n, &c);
       } else {
         /* must have a key value chain, so read them in */
-        scr_param_read_config_kv(fs, file, linenum, &n, &c, hash);
+        struct scr_hash* tmp_hash = NULL;
+        scr_param_read_config_kv(fs, file, linenum, &n, &c, target_hash, &tmp_hash);
+        if (set_root == 0) {
+          target_hash = tmp_hash;
+          set_root = 1;
+        }
       }
     }
   }

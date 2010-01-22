@@ -90,14 +90,6 @@ sub print_usage {
   exit 1;
 }
 
-# read_env(name) -- returns "" if name is not set
-sub read_env
-{
-  my $name = shift @_;
-  if (defined $ENV{$name}) { return $ENV{$name}; }
-  return "";
-}
-
 # read in environment variables and command line options
 $conf{all}         = 0;
 $conf{user}        = "";
@@ -135,7 +127,9 @@ my $rc = GetOptions (
   "verbose|v"   => \$conf{verbose},
   "help|h"      => \$conf{help},
 );
-if ($conf{help} or not $rc) { print_usage(); }
+if ($conf{help} or not $rc) {
+  print_usage();
+}
 
 # get the jobids
 my @jobids = ();
@@ -143,7 +137,9 @@ my @found_jobs = ();
 my @missing_jobs = ();
 if ($conf{all} or $conf{user}) {
   my $user_query = "";
-  if ($conf{user}) { $user_query = "--user=$conf{user}"; }
+  if ($conf{user}) {
+    $user_query = "--user=$conf{user}";
+  }
   my $jobs = `squeue $user_query --format=\%i -h`;
   chomp $jobs;
   @jobids = split("\n", $jobs);
@@ -173,10 +169,16 @@ if ($conf{all} or $conf{user}) {
       my $found = 0;
       foreach my $line (split "\n", $output) {
         my ($user, $id) = split /\s+/, $line;
-        if ($id == $jobid) { $found = 1; last; }
+        if ($id == $jobid) {
+          $found = 1;
+          last;
+        }
       }
-      if ($found) { push @found_jobs,   $jobid; }
-      else        { push @missing_jobs, $jobid; }
+      if ($found) {
+        push @found_jobs, $jobid;
+      } else {
+        push @missing_jobs, $jobid;
+      }
     }
   }
 }
@@ -259,7 +261,9 @@ if (not @halt_conditions or $conf{immediate}) {
 }
 
 # the -r option overrides everything else
-if ($conf{remove}) { @halt_conditions = (); }
+if ($conf{remove}) {
+  @halt_conditions = ();
+}
 
 # create a halt file on each node
 foreach my $jobid (@found_jobs) {

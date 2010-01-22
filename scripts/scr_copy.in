@@ -60,7 +60,9 @@ if ($conf{help} or not $rc) { print_usage(); }
 my @failed = @ARGV;
 
 # check that we have source and destination directories
-if ($conf{src} eq "" or $conf{dst} eq "") { print_usage(); }
+if ($conf{src} eq "" or $conf{dst} eq "") {
+  print_usage();
+}
 
 my $srcdir = $conf{src};
 my $dstdir = $conf{dst};
@@ -110,8 +112,8 @@ my $scr_hash = new scr_hash("$prog: $hostname");
 
 # read in the master filemap
 my $h = {};
-if (not $scr_hash->read_file("$srcdir/filemap_node.scrinfo", $h)) {
-  print "$prog: $hostname: Could not find master filemap: $srcdir/filemap_node.scrinfo\n";
+if (not $scr_hash->read_file("$srcdir/filemap.scrinfo", $h)) {
+  print "$prog: $hostname: Could not find master filemap: $srcdir/filemap.scrinfo\n";
   print "$prog: $hostname: Return code: 1\n";
   exit(1);
 }
@@ -256,7 +258,8 @@ sub offload_files
       my @map_list  = ();
       foreach my $file (@file_list) {
         if (defined $$files{$file}{PARTNER}) {
-          if (defined $node and $$files{$file}{PARTNER} eq $node) {
+          my $partner = (keys %{$$files{$file}{PARTNER}})[0];
+          if (defined $node and defined $partner and $partner eq $node) {
             push @map_list, $file;
             push @copy_list, $file, $file . ".scr";
           } else {
@@ -328,7 +331,10 @@ sub list_partners
       my $files = \%{$$ranks{$rank}{FILE}};
       foreach my $file (keys %$files) {
         if (defined $$files{$file}{PARTNER}) {
-          $partners{$$files{$file}{PARTNER}} = 1;
+          my $partner = (keys %{$$files{$file}{PARTNER}})[0];
+          if (defined $partner) {
+            $partners{$partner} = 1;
+          }
         }
       }
     }

@@ -36,7 +36,9 @@ my $rc = GetOptions (
   "down|d=s"  => \$conf{nodeset_down},
   "secs|s=i"  => \$conf{runtime_secs}
 );
-if ($conf{help} or not $rc) { print_usage(); }
+if ($conf{help} or not $rc) {
+  print_usage();
+}
 
 # read the nodeset from command line or environment
 my $nodeset = undef;

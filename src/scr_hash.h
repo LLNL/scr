@@ -29,6 +29,30 @@ and a pointer to another hash.
 
 /*
 =========================================
+Define common hash key strings
+========================================
+*/
+
+/* transfer file keys */
+#define SCR_FLUSH_KEY_FILES   ("FILES")
+#define SCR_FLUSH_KEY_BW      ("BW")
+#define SCR_FLUSH_KEY_PERCENT ("PERCENT")
+
+#define SCR_FLUSH_KEY_COMMAND ("COMMAND")
+#define SCR_FLUSH_KEY_COMMAND_RUN  ("RUN")
+#define SCR_FLUSH_KEY_COMMAND_STOP ("STOP")
+#define SCR_FLUSH_KEY_COMMAND_EXIT ("EXIT")
+
+#define SCR_FLUSH_KEY_STATE ("STATE")
+#define SCR_FLUSH_KEY_STATE_RUN  ("RUNNING")
+#define SCR_FLUSH_KEY_STATE_STOP ("STOPPED")
+#define SCR_FLUSH_KEY_STATE_EXIT ("EXITING")
+
+#define SCR_FLUSH_KEY_FLAG ("FLAG")
+#define SCR_FLUSH_KEY_FLAG_DONE ("DONE")
+
+/*
+=========================================
 Define hash and element structures
 =========================================
 */
@@ -63,10 +87,10 @@ size, get, set, unset, and merge functions
 */
 
 /* return size of hash (number of keys) */
-int scr_hash_size(struct scr_hash* hash);
+int scr_hash_size(const struct scr_hash* hash);
 
 /* given a hash and a key, return the hash associated with key, returns NULL if not found */
-struct scr_hash* scr_hash_get(struct scr_hash* hash, const char* key);
+struct scr_hash* scr_hash_get(const struct scr_hash* hash, const char* key);
 
 /* given a hash, a key, and a hash value, set (or reset) the key's hash */
 struct scr_hash* scr_hash_set(struct scr_hash* hash, const char* key, struct scr_hash* hash_value);
@@ -78,7 +102,7 @@ int scr_hash_unset(struct scr_hash* hash, const char* key);
 int scr_hash_unset_all(struct scr_hash* hash);
 
 /* merges (copies) elements from hash2 into hash1 */
-int scr_hash_merge(struct scr_hash* hash1, struct scr_hash* hash2);
+int scr_hash_merge(struct scr_hash* hash1, const struct scr_hash* hash2);
 
 /* traverse the given hash using a printf-like format string setting an arbitrary list of keys
  * to set (or reset) the hash associated with the last key */
@@ -97,10 +121,10 @@ struct scr_hash* scr_hash_set_kv(struct scr_hash* hash, const char* key, const c
 struct scr_hash* scr_hash_set_kv_int(struct scr_hash* hash, const char* key, int val);
 
 /* shortcut to get hash assocated with the subkey of a key in a hash with one call */
-struct scr_hash* scr_hash_get_kv(struct scr_hash* hash, const char* key, const char* val);
+struct scr_hash* scr_hash_get_kv(const struct scr_hash* hash, const char* key, const char* val);
 
 /* same as scr_hash_get_kv, but with the subkey specified as an int */
-struct scr_hash* scr_hash_get_kv_int(struct scr_hash* hash, const char* key, int val);
+struct scr_hash* scr_hash_get_kv_int(const struct scr_hash* hash, const char* key, int val);
 
 /* unset subkey under key, and if that removes the only element for key, unset key as well */
 int scr_hash_unset_kv(struct scr_hash* hash, const char* key, const char* val);
@@ -115,28 +139,28 @@ Hash element functions
 */
 
 /* returns the first element for a given hash */
-struct scr_hash_elem* scr_hash_elem_first(struct scr_hash* hash);
+struct scr_hash_elem* scr_hash_elem_first(const struct scr_hash* hash);
 
 /* given a hash element, returns the next element */
-struct scr_hash_elem* scr_hash_elem_next(struct scr_hash_elem* elem);
+struct scr_hash_elem* scr_hash_elem_next(const struct scr_hash_elem* elem);
 
 /* returns a pointer to the key of the specified element */
-char* scr_hash_elem_key(struct scr_hash_elem* elem);
+char* scr_hash_elem_key(const struct scr_hash_elem* elem);
 
 /* same as scr_hash_elem_key, but converts the key as an int (returns 0 if key is not defined) */
-int scr_hash_elem_key_int(struct scr_hash_elem* elem);
+int scr_hash_elem_key_int(const struct scr_hash_elem* elem);
 
 /* returns a pointer to the hash of the specified element */
-struct scr_hash* scr_hash_elem_hash(struct scr_hash_elem* elem);
+struct scr_hash* scr_hash_elem_hash(const struct scr_hash_elem* elem);
 
 /* given an element, set its key and hash fields (NOTE: not complement of get as written) */
 struct scr_hash_elem* scr_hash_elem_set(struct scr_hash_elem* elem, const char* key, struct scr_hash* hash);
 
 /* given a hash and a key, find first matching element and return its address, returns NULL if not found */
-struct scr_hash_elem* scr_hash_elem_get(struct scr_hash* hash, const char* key);
+struct scr_hash_elem* scr_hash_elem_get(const struct scr_hash* hash, const char* key);
 
 /* given a hash and a key, return a pointer to the key of the first element of that key's hash */
-char* scr_hash_elem_get_first_val(struct scr_hash* hash, const char* key);
+char* scr_hash_elem_get_first_val(const struct scr_hash* hash, const char* key);
 
 /* given a hash and a key, find first matching element, remove it from the hash, and return it */
 struct scr_hash_elem* scr_hash_elem_extract(struct scr_hash* hash, const char* key);
@@ -151,13 +175,13 @@ Pack and unpack hash and elements into a char buffer
 */
 
 /* computes the number of bytes needed to pack the given hash */
-size_t scr_hash_get_pack_size(struct scr_hash* hash);
+size_t scr_hash_get_pack_size(const struct scr_hash* hash);
 
 /* packs the given hash into specified buf and returns the number of bytes written */
-size_t scr_hash_pack(struct scr_hash* hash, char* buf);
+size_t scr_hash_pack(const struct scr_hash* hash, char* buf);
 
 /* unpacks hash from specified buffer and returns the number of bytes read and a pointer to a newly allocated hash */
-size_t scr_hash_unpack(char* buf, struct scr_hash* hash);
+size_t scr_hash_unpack(const char* buf, struct scr_hash* hash);
 
 /*
 =========================================
@@ -166,16 +190,25 @@ Read and write hash to a file
 */
 
 /* executes logic of scr_has_write with opened file descriptor */
-ssize_t scr_hash_write_fd(const char* file, int fd, struct scr_hash* hash);
+ssize_t scr_hash_write_fd(const char* file, int fd, const struct scr_hash* hash);
 
 /* executes logic of scr_hash_read using an opened file descriptor */
 ssize_t scr_hash_read_fd(const char* file, int fd, struct scr_hash* hash);
 
 /* write the given hash to specified file */
-int scr_hash_write(const char* file, struct scr_hash* hash);
+int scr_hash_write(const char* file, const struct scr_hash* hash);
 
 /* opens specified file and reads in a hash filling a pointer with a newly allocated hash */
 int scr_hash_read(const char* file, struct scr_hash* hash);
+
+/* given a filename and hash, lock/open/read/close/unlock the file storing its contents in the hash */
+int scr_hash_read_with_lock(const char* file, struct scr_hash* hash);
+
+/* given a filename and hash, lock the file, open it, and read it into hash, set fd to the opened file descriptor */
+int scr_hash_lock_open_read(const char* file, int* fd, struct scr_hash* hash);
+
+/* given a filename, an opened file descriptor, and a hash, overwrite file with hash, close, and unlock file */
+int scr_hash_write_close_unlock(const char* file, int* fd, const struct scr_hash* hash);
 
 /*
 =========================================
@@ -184,6 +217,6 @@ Print hash and elements to stdout for debugging
 */
 
 /* prints specified hash to stdout for debugging */
-int scr_hash_print(struct scr_hash* hash, int indent);
+int scr_hash_print(const struct scr_hash* hash, int indent);
 
 #endif

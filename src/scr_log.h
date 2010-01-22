@@ -33,18 +33,19 @@ int scr_log_init();
 int scr_log_finalize();
 
 /* given a username, a jobname, and a start time, lookup (or create) the id for this job */
-int scr_log_job(char* username, char* jobname, time_t start);
+int scr_log_job(const char* username, const char* jobname, time_t start);
 
 /* log start time of current run */
 int scr_log_run(time_t start);
 
 /* log reason and time for halting current run */
-int scr_log_halt(char* reason, int* ckpt);
+int scr_log_halt(const char* reason, const int* ckpt);
 
 /* log an event */
-int scr_log_event(char* type, char* note, int* ckpt, time_t* start, double* secs);
+int scr_log_event(const char* type, const char* note, const int* ckpt, const time_t* start, const double* secs);
 
 /* log a transfer: copy / checkpoint / fetch / flush */
-int scr_log_transfer(char* type, char* from, char* to, int* ckpt_id, time_t* start, double* secs, double* bytes);
+int scr_log_transfer(const char* type, const char* from, const char* to,
+                     const int* ckpt_id, const time_t* start, const double* secs, const double* bytes);
 
 #endif

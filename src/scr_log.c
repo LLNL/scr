@@ -87,7 +87,7 @@ int scr_mysql_disconnect()
   return SCR_SUCCESS;
 }
 
-char* scr_mysql_quote_string(char* value)
+char* scr_mysql_quote_string(const char* value)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   if (value != NULL) {
@@ -115,7 +115,7 @@ char* scr_mysql_quote_string(char* value)
 }
 
 /* given a number of seconds since the epoch, fill in a string for mysql datetime */
-char* scr_mysql_quote_seconds(time_t* value)
+char* scr_mysql_quote_seconds(const time_t* value)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   if (value != NULL) {
@@ -130,7 +130,7 @@ char* scr_mysql_quote_seconds(time_t* value)
 #endif
 }
 
-char* scr_mysql_quote_int(int* value)
+char* scr_mysql_quote_int(const int* value)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   if (value != NULL) {
@@ -154,7 +154,7 @@ char* scr_mysql_quote_int(int* value)
 #endif
 }
 
-char* scr_mysql_quote_double(double* value)
+char* scr_mysql_quote_double(const double* value)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   if (value != NULL) {
@@ -179,7 +179,7 @@ char* scr_mysql_quote_double(double* value)
 }
 
 /* records an SCR event in the SCR log database */
-int scr_mysql_log_event(char* type, char* note, int* ckpt, time_t* start, double* secs)
+int scr_mysql_log_event(const char* type, const char* note, const int* ckpt, const time_t* start, const double* secs)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   char* qtype  = scr_mysql_quote_string(type);
@@ -244,7 +244,7 @@ int scr_mysql_log_event(char* type, char* note, int* ckpt, time_t* start, double
 }
 
 /* records an SCR file transfer (checkpoint/fetch/flush/drain) in the SCR log database */
-int scr_mysql_log_transfer(char* type, char* from, char* to, int* ckpt, time_t* start, double* secs, double* bytes)
+int scr_mysql_log_transfer(const char* type, const char* from, const char* to, const int* ckpt, const time_t* start, const double* secs, const double* bytes)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* compute end epoch, using trucation here */
@@ -337,7 +337,7 @@ int scr_mysql_log_transfer(char* type, char* from, char* to, int* ckpt, time_t* 
   return SCR_SUCCESS;
 }
 
-int scr_mysql_read_id(char* table, char* name, unsigned long* id)
+int scr_mysql_read_id(const char* table, const char* name, unsigned long* id)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* escape parameter */
@@ -414,7 +414,7 @@ int scr_mysql_read_id(char* table, char* name, unsigned long* id)
   return SCR_SUCCESS;
 }
 
-int scr_mysql_read_write_id(char* table, char* name, unsigned long* id)
+int scr_mysql_read_write_id(const char* table, const char* name, unsigned long* id)
 {
   int rc = SCR_SUCCESS;
 
@@ -539,7 +539,7 @@ int scr_mysql_read_job(unsigned long username_id, unsigned long jobname_id, unsi
   return SCR_SUCCESS;
 }
 
-int scr_mysql_register_job(char* username, char* jobname, unsigned long start, unsigned long* jobid)
+int scr_mysql_register_job(const char* username, const char* jobname, unsigned long start, unsigned long* jobid)
 {
   int rc = SCR_SUCCESS;
 
@@ -708,7 +708,7 @@ int scr_log_finalize()
 }
 
 /* given a username, a jobname, and a start time, lookup (or create) the id for this job */
-int scr_log_job(char* username, char* jobname, time_t start)
+int scr_log_job(const char* username, const char* jobname, time_t start)
 {
   int rc = SCR_SUCCESS;
 
@@ -745,7 +745,7 @@ int scr_log_run(time_t start)
 }
 
 /* log reason and time for halting current run */
-int scr_log_halt(char* reason, int* ckpt)
+int scr_log_halt(const char* reason, const int* ckpt)
 {
   int rc = SCR_SUCCESS;
   if (scr_db_enable) {
@@ -756,7 +756,7 @@ int scr_log_halt(char* reason, int* ckpt)
 }
 
 /* log an event */
-int scr_log_event(char* type, char* note, int* ckpt, time_t* start, double* secs)
+int scr_log_event(const char* type, const char* note, const int* ckpt, const time_t* start, const double* secs)
 {
   int rc = SCR_SUCCESS;
   if (scr_db_enable) {
@@ -766,7 +766,7 @@ int scr_log_event(char* type, char* note, int* ckpt, time_t* start, double* secs
 }
 
 /* log a transfer: copy / checkpoint / fetch / flush */
-int scr_log_transfer(char* type, char* from, char* to, int* ckpt_id, time_t* start, double* secs, double* bytes)
+int scr_log_transfer(const char* type, const char* from, const char* to, const int* ckpt_id, const time_t* start, const double* secs, const double* bytes)
 {
   int rc = SCR_SUCCESS;
   if (scr_db_enable) {

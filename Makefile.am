@@ -1,6 +1,6 @@
 SUBDIRS = man scripts src doc examples
 
-EXTRA_DIST = DISCLAIMER META README LICENSE.TXT scr.conf scr.mysql
+EXTRA_DIST = DISCLAIMER META README LICENSE.TXT scr.conf scr.mysql deps.txt
 
 install-data-local:
 	-$(top_srcdir)/config/install-sh -m 755 -d \

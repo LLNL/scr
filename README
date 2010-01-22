@@ -12,6 +12,8 @@ nodes, and it has been benchmarked at 720 GB/sec on 1094 nodes of Atlas.
 
 Detailed usage is provided in the User Manual (doc/scr.pdf).
 
+Implementation and dependency details are listed in deps.txt.
+
 Author:
   Adam Moody <moody20@llnl.gov>
 

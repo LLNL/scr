@@ -40,7 +40,9 @@ my $rc = GetOptions (
   "cache=s" => \$conf{cache}{dir},
   "help|h"  => sub { $conf{help} = 1; },
 );
-if ($conf{help} or not $rc) { print_usage(); }
+if ($conf{help} or not $rc) {
+  print_usage();
+}
 
 # open config file to get expected size of directories
 $conf{cntl}{bytes}  = undef;
@@ -77,7 +79,9 @@ foreach my $type ("cntl", "cache") {
 
     # check total drive capacity, unless --free was given, then check free space on drive
     my $df_arg_pos = 2;
-    if (defined $conf{free}) { $df_arg_pos = 4; }
+    if (defined $conf{free}) {
+      $df_arg_pos = 4;
+    }
 
     # ok, now get drive capacity
     my $df_kb = `df -a $dir | tail -1 | awk '{print \$$df_arg_pos}' 2>/dev/null`;

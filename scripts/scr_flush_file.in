@@ -31,7 +31,9 @@ my $rc = GetOptions (
    "latest|l"      => sub { $conf{latest}  = 1; },
    "verbose|v"     => sub { $conf{verbose} = 1; },
 );
-if (not $rc) { print_usage(); }
+if (not $rc) {
+  print_usage();
+}
 
 # check that we got one of: haveid, needflush, or latest
 if (not defined $conf{haveid} and
@@ -42,7 +44,9 @@ if (not defined $conf{haveid} and
 }
 
 # make sure we know where to look for the flush file
-if (not defined $conf{dir}) { print_usage(); }
+if (not defined $conf{dir}) {
+  print_usage();
+}
 
 # get my hostname for printing to the screen
 my $hostname = `hostname`;
@@ -59,9 +63,8 @@ if (not $h->read_file("$conf{dir}/flush.scrinfo", $flush)) {
 if (defined $conf{haveid}) {
   if (defined $$flush{$conf{haveid}}) {
     exit 0;
-  } else {
-    exit 1;
   }
+  exit 1;
 }
 
 # check that we have the id, and check that it's not already been flushed,
@@ -82,25 +85,10 @@ if (defined $conf{latest}) {
     my $latest = $ids[0];
     print "$latest\n";
     exit 0;
-  } else {
-    # TODO: want to print anything here?
-#    print "No checkpoint found.\n";
-    exit 1;
   }
+  # TODO: want to print anything here?
+  exit 1;
 }
-
-#foreach my $id (sort {$b <=> $a} keys %$flush) {
-##  print "CheckpointID: $id\n";
-#  my @locs = ();
-#  foreach my $loc (keys %{$$flush{$id}}) {
-##    print "$loc\n";
-#    push @locs, $loc;
-#    foreach my $key (keys %{$$flush{$id}{$loc}}) {
-##      print "$key --> $$flush{$id}{$loc}{$key}\n";
-#    }
-#  }
-#  print "$id:" . join(",", @locs) . "\n";
-#}
 
 # shouldn't fall all the way through to here, so return an error
 exit 1;

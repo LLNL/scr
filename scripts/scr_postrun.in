@@ -24,17 +24,13 @@ bindir="@X_BINDIR@"
 prog="scr_postrun"
 hostname=`hostname`
 
-die () { echo "$prog: $@"; exit 1; }
-
-print_usage() { die "Usage: $prog [-j jobid] [-p prefix_dir]"; }
+print_usage() { echo "Usage: $prog [-p prefix_dir]"; exit 1; }
 
 # pass prefixes via command line
-jobid=""
 pardir=${SCR_PREFIX:-`pwd`}
 OPTIND=1
 while getopts "j:t:p:v" flag ; do
   case $flag in
-    j) jobid=$OPTARG;;
     p) pardir=$OPTARG;;  # parallel file system prefix
     *) print_usage;;
   esac
@@ -44,37 +40,6 @@ done
 if [ "$pardir" == "" ] ; then
   print_usage
 fi
-
-# check that we have a valid jobid and bail if not
-if [ -z "$SCR_JOBID" ] ; then
-  if [ "$jobid" != "" ] ; then
-    # user specified a jobid on the command line
-    SCR_JOBID=$jobid
-    echo "$prog: ERROR: The -j option is not yet supported external to a job allocation"
-    exit 1
-  else
-    # try to pick up the jobid from the environment
-    jobid_env=`$bindir/scr_env --jobid`
-    if [ $? -eq 0 ] ; then
-      SCR_JOBID=$jobid_env
-    fi
-  fi
-fi
-if [ -z "$SCR_JOBID" ] ; then
-  echo "$prog: ERROR: Must specify -j <jobid> or jobid must be set in environment"
-  exit 1
-fi
-export SCR_JOBID
-
-# check that we have a username
-username=`$bindir/scr_env --user`
-if [ $? != 0 ] ; then
-  echo "$prog: ERROR: Could not identify username"
-  exit 1
-fi
-
-# get the SCR control directory
-CNTLDIR=`$bindir/scr_cntl_dir --user $username --jobid $SCR_JOBID`;
 
 # all parameters checked out, start normal output
 echo "$prog: Started: $start_time"
@@ -103,20 +68,27 @@ echo "$prog: UPNODES:   $UPNODES"
 # if there is at least one remaining up node, attempt to flush
 ret=1
 if [ $UPNODES != "" ]; then
-  # TODO: if running external to job, we won't see a flush file so force the flush
-  # to latest in this case, could rsh the scr_flush command from the first node?
+  # get the SCR control directory
+  cntldir=`$bindir/scr_cntl_dir`;
+
+  # TODO: check that we have a control directory
 
   # check whether we have a checkpoint set to flush
   echo "$prog: Looking for latest checkpoint set id"
-  $bindir/scr_flush_file --dir $CNTLDIR --latest
+  $bindir/scr_flush_file --dir $cntldir --latest
   if [ $? -eq 0 ] ; then
     # we have a  checkpoint, check whether it still needs to be flushed?
-    checkpointid=`$bindir/scr_flush_file --dir $CNTLDIR --latest`
-    $bindir/scr_flush_file --dir $CNTLDIR --needflush $checkpointid
+    checkpointid=`$bindir/scr_flush_file --dir $cntldir --latest`
+    $bindir/scr_flush_file --dir $cntldir --needflush $checkpointid
     if [ $? -eq 0 ] ; then
+      # get the jobid
+      jobid=`$bindir/scr_env --jobid`
+
+      # TODO: check that we got the jobid
+
       # make a new directory to store the files for this checkpoint
       timestamp=`date +%F_%H:%M:%S`
-      scrdir="scr.${timestamp}.${SCR_JOBID}.${checkpointid}"
+      scrdir="scr.${timestamp}.${jobid}.${checkpointid}"
       checkpoint=$pardir/$scrdir
       mkdir -p $checkpoint
 
@@ -126,13 +98,10 @@ if [ $UPNODES != "" ]; then
         crc=""
       fi
 
-      # TODO: if given -j <jobid> we should rsh this command to the first node of the job
-      #       where it can see a flush file if one exists
-
       # Gather files from cache to parallel file system
       echo "$prog: Flushing files from cache to $checkpoint"
-      echo $prog: $bindir/scr_flush --verbose $crc --id $checkpointid --from $CNTLDIR --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
-      $bindir/scr_flush --verbose $crc --id $checkpointid --from $CNTLDIR --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
+      echo $prog: $bindir/scr_flush --verbose $crc --id $checkpointid --from $cntldir --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
+      $bindir/scr_flush --verbose $crc --id $checkpointid --from $cntldir --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
       ret=$?
       echo "$prog: Done flushing files from cache to $checkpoint"
 

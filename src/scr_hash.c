@@ -97,7 +97,7 @@ size, get, set, unset, and merge functions
 */
 
 /* return size of hash (number of keys) */
-int scr_hash_size(struct scr_hash* hash)
+int scr_hash_size(const struct scr_hash* hash)
 {
   int count = 0;
   if (hash != NULL) {
@@ -110,7 +110,7 @@ int scr_hash_size(struct scr_hash* hash)
 }
 
 /* given a hash and a key, return the hash associated with key, returns NULL if not found */
-struct scr_hash* scr_hash_get(struct scr_hash* hash, const char* key)
+struct scr_hash* scr_hash_get(const struct scr_hash* hash, const char* key)
 {
   struct scr_hash_elem* elem = scr_hash_elem_get(hash, key);
   if (elem != NULL) {
@@ -179,7 +179,7 @@ int scr_hash_unset_all(struct scr_hash* hash)
 }
 
 /* merges (copies) elements from hash2 into hash1 */
-int scr_hash_merge(struct scr_hash* hash1, struct scr_hash* hash2)
+int scr_hash_merge(struct scr_hash* hash1, const struct scr_hash* hash2)
 {
   /* need hash1 to be valid to insert anything into it */
   if (hash1 == NULL) {
@@ -280,6 +280,10 @@ struct scr_hash* scr_hash_setf(struct scr_hash* hash, struct scr_hash* hash_valu
       size = snprintf(key, sizeof(key), token, va_arg(args, int));
     } else if (strcmp(token, "%lu") == 0) {
       size = snprintf(key, sizeof(key), token, va_arg(args, unsigned long));
+    } else if (strcmp(token, "%llu") == 0) {
+      size = snprintf(key, sizeof(key), token, va_arg(args, unsigned long long));
+    } else if (strcmp(token, "%f") == 0) {
+      size = snprintf(key, sizeof(key), token, va_arg(args, double));
     } else {
       scr_err("Unsupported hash key format '%s' @ %s:%d",
               token, __FILE__, __LINE__
@@ -364,7 +368,7 @@ struct scr_hash* scr_hash_set_kv_int(struct scr_hash* hash, const char* key, int
 }
 
 /* shortcut to get hash assocated with the subkey of a key in a hash with one call */
-struct scr_hash* scr_hash_get_kv(struct scr_hash* hash, const char* key, const char* val)
+struct scr_hash* scr_hash_get_kv(const struct scr_hash* hash, const char* key, const char* val)
 {
   if (hash == NULL) {
     return NULL;
@@ -384,7 +388,7 @@ struct scr_hash* scr_hash_get_kv(struct scr_hash* hash, const char* key, const c
 }
 
 /* same as scr_hash_get_kv, but with the subkey specified as an int */
-struct scr_hash* scr_hash_get_kv_int(struct scr_hash* hash, const char* key, int val)
+struct scr_hash* scr_hash_get_kv_int(const struct scr_hash* hash, const char* key, int val)
 {
   /* TODO: this feels kludgy, but I guess as long as the ASCII string is longer
    * than a max int (or minimum int with leading minus sign) which is 11 chars, we're ok
@@ -428,7 +432,7 @@ Hash element functions
 */
 
 /* returns the first element for a given hash */
-struct scr_hash_elem* scr_hash_elem_first(struct scr_hash* hash)
+struct scr_hash_elem* scr_hash_elem_first(const struct scr_hash* hash)
 {
   if (hash == NULL) {
     return NULL;
@@ -438,7 +442,7 @@ struct scr_hash_elem* scr_hash_elem_first(struct scr_hash* hash)
 }
 
 /* given a hash element, returns the next element */
-struct scr_hash_elem* scr_hash_elem_next(struct scr_hash_elem* elem)
+struct scr_hash_elem* scr_hash_elem_next(const struct scr_hash_elem* elem)
 {
   if (elem == NULL) {
     return NULL;
@@ -448,7 +452,7 @@ struct scr_hash_elem* scr_hash_elem_next(struct scr_hash_elem* elem)
 }
 
 /* returns a pointer to the key of the specified element */
-char* scr_hash_elem_key(struct scr_hash_elem* elem)
+char* scr_hash_elem_key(const struct scr_hash_elem* elem)
 {
   if (elem == NULL) {
     return NULL;
@@ -458,7 +462,7 @@ char* scr_hash_elem_key(struct scr_hash_elem* elem)
 }
 
 /* same as scr_hash_elem_key, but converts the key as an int (returns 0 if key is not defined) */
-int scr_hash_elem_key_int(struct scr_hash_elem* elem)
+int scr_hash_elem_key_int(const struct scr_hash_elem* elem)
 {
   if (elem == NULL) {
     return 0;
@@ -468,7 +472,7 @@ int scr_hash_elem_key_int(struct scr_hash_elem* elem)
 }
 
 /* returns a pointer to the hash of the specified element */
-struct scr_hash* scr_hash_elem_hash(struct scr_hash_elem* elem)
+struct scr_hash* scr_hash_elem_hash(const struct scr_hash_elem* elem)
 {
   if (elem == NULL) {
     return NULL;
@@ -492,7 +496,7 @@ struct scr_hash_elem* scr_hash_elem_set(struct scr_hash_elem* elem, const char* 
 }
 
 /* given a hash and a key, find first matching element and return its address, returns NULL if not found */
-struct scr_hash_elem* scr_hash_elem_get(struct scr_hash* hash, const char* key)
+struct scr_hash_elem* scr_hash_elem_get(const struct scr_hash* hash, const char* key)
 {
   if (hash == NULL) {
     return NULL;
@@ -508,7 +512,7 @@ struct scr_hash_elem* scr_hash_elem_get(struct scr_hash* hash, const char* key)
 }
 
 /* given a hash and a key, return a pointer to the key of the first element of that key's hash */
-char* scr_hash_elem_get_first_val(struct scr_hash* hash, const char* key)
+char* scr_hash_elem_get_first_val(const struct scr_hash* hash, const char* key)
 {
   /* lookup the hash, then return a pointer to the key of the first element */
   char* v = NULL;
@@ -547,7 +551,7 @@ Pack and unpack hash and elements into a char buffer
 */
 
 /* computes the number of bytes needed to pack the given hash element */
-static size_t scr_hash_get_pack_size_elem(struct scr_hash_elem* elem)
+static size_t scr_hash_get_pack_size_elem(const struct scr_hash_elem* elem)
 {
   size_t size = 0;
   if (elem != NULL) {
@@ -565,7 +569,7 @@ static size_t scr_hash_get_pack_size_elem(struct scr_hash_elem* elem)
 }
 
 /* packs a hash element into specified buf and returns the number of bytes written */
-static size_t scr_hash_pack_elem(struct scr_hash_elem* elem, char* buf)
+static size_t scr_hash_pack_elem(const struct scr_hash_elem* elem, char* buf)
 {
   size_t size = 0;
   if (elem != NULL) {
@@ -586,7 +590,7 @@ static size_t scr_hash_pack_elem(struct scr_hash_elem* elem, char* buf)
 }
 
 /* unpacks hash element from specified buffer and returns the number of bytes read and a pointer to a newly allocated hash */
-static size_t scr_hash_unpack_elem(char* buf, struct scr_hash_elem* elem)
+static size_t scr_hash_unpack_elem(const char* buf, struct scr_hash_elem* elem)
 {
   /* check that we got an elem object to unpack data into */
   if (elem == NULL) {
@@ -612,7 +616,7 @@ static size_t scr_hash_unpack_elem(char* buf, struct scr_hash_elem* elem)
 }
 
 /* computes the number of bytes needed to pack the given hash */
-size_t scr_hash_get_pack_size(struct scr_hash* hash)
+size_t scr_hash_get_pack_size(const struct scr_hash* hash)
 {
   size_t size = 0;
   if (hash != NULL) {
@@ -640,7 +644,7 @@ size_t scr_hash_get_pack_size(struct scr_hash* hash)
 }
 
 /* packs the given hash into specified buf and returns the number of bytes written */
-size_t scr_hash_pack(struct scr_hash* hash, char* buf)
+size_t scr_hash_pack(const struct scr_hash* hash, char* buf)
 {
   size_t size = 0;
   if (hash != NULL) {
@@ -672,7 +676,7 @@ size_t scr_hash_pack(struct scr_hash* hash, char* buf)
 }
 
 /* unpacks hash from specified buffer and returns the number of bytes read and a pointer to a newly allocated hash */
-size_t scr_hash_unpack(char* buf, struct scr_hash* hash)
+size_t scr_hash_unpack(const char* buf, struct scr_hash* hash)
 {
   /* check that we got a hash object to unpack data into */
   if (hash == NULL) {
@@ -707,11 +711,11 @@ Read and write hash to a file
 */
 
 /* the following two functions call each other, so define the prototype here */
-static ssize_t scr_hash_write_hash(const char* file, int fd, struct scr_hash* hash);
-static ssize_t scr_hash_write_elem(const char* file, int fd, struct scr_hash_elem* elem);
+static ssize_t scr_hash_write_hash(const char* file, int fd, const struct scr_hash* hash);
+static ssize_t scr_hash_write_elem(const char* file, int fd, const struct scr_hash_elem* elem);
 
 /* write the given hash to the given open file stream */
-static ssize_t scr_hash_write_hash(const char* file, int fd, struct scr_hash* hash)
+static ssize_t scr_hash_write_hash(const char* file, int fd, const struct scr_hash* hash)
 {
   ssize_t nwrite = 0;
 
@@ -740,7 +744,7 @@ static ssize_t scr_hash_write_hash(const char* file, int fd, struct scr_hash* ha
 }
 
 /* write the given hash element to the given open file stream */
-static ssize_t scr_hash_write_elem(const char* file, int fd, struct scr_hash_elem* elem)
+static ssize_t scr_hash_write_elem(const char* file, int fd, const struct scr_hash_elem* elem)
 {
   ssize_t nwrite = 0;
 
@@ -760,7 +764,7 @@ static ssize_t scr_hash_write_elem(const char* file, int fd, struct scr_hash_ele
 }
 
 /* executes logic of scr_has_write with opened file descriptor */
-ssize_t scr_hash_write_fd(const char* file, int fd, struct scr_hash* hash)
+ssize_t scr_hash_write_fd(const char* file, int fd, const struct scr_hash* hash)
 {
   ssize_t nwrite = 0;
 
@@ -782,7 +786,7 @@ ssize_t scr_hash_write_fd(const char* file, int fd, struct scr_hash* hash)
 }
 
 /* write the given hash to specified file */
-int scr_hash_write(const char* file, struct scr_hash* hash)
+int scr_hash_write(const char* file, const struct scr_hash* hash)
 {
   int rc = SCR_SUCCESS;
 
@@ -1003,6 +1007,142 @@ int scr_hash_read(const char* file, struct scr_hash* hash)
   return rc;
 }
 
+/* given a filename and hash, lock/open/read/close/unlock the file */
+int scr_hash_read_with_lock(const char* file, struct scr_hash* hash)
+{
+  /* check that we got a filename */
+  if (file == NULL) {
+    scr_err("No filename specified @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that we got a hash to read data into */
+  if (hash == NULL) {
+    scr_err("No hash provided to read data into @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* open file with lock for read / write access */
+  int fd = scr_open_with_lock(file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+  if (fd >= 0) {
+    /* read the file into the hash */
+    scr_hash_read_fd(file, fd, hash);
+
+    /* close the file and release the lock */
+    scr_close_with_unlock(file, fd);
+
+    return SCR_SUCCESS;
+  } else {
+    scr_err("Failed to open file with lock %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+  }
+
+  return SCR_FAILURE;
+}
+
+/* given a filename and hash, lock the file, open it, and read it into hash, set fd to the opened file descriptor */
+int scr_hash_lock_open_read(const char* file, int* fd, struct scr_hash* hash)
+{
+  /* check that we got a pointer to a file descriptor */
+  if (fd == NULL) {
+    scr_err("Must provide a pointer to an int to return opened file descriptor @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* we at least got a pointer to a file descriptor, initialize it to -1 */
+  *fd = -1;
+
+  /* check that we got a filename */
+  if (file == NULL) {
+    scr_err("No filename specified @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that we got a hash to read data into */
+  if (hash == NULL) {
+    scr_err("No hash provided to read data into @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* open file with lock for read / write access */
+  *fd = scr_open_with_lock(file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+  if (*fd >= 0) {
+    /* read the file into the hash */
+    scr_hash_read_fd(file, *fd, hash);
+    return SCR_SUCCESS;
+  }
+
+  return SCR_FAILURE;
+}
+
+/* given a filename, an opened file descriptor, and a hash, overwrite file with hash, close, and unlock file */
+int scr_hash_write_close_unlock(const char* file, int* fd, const struct scr_hash* hash)
+{
+  /* check that we got a pointer to a file descriptor */
+  if (fd == NULL) {
+    scr_err("Must provide a pointer to an opened file descriptor @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that the file descriptor is open */
+  if (*fd < 0) {
+    scr_err("File descriptor does not point to a valid file @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that we got a filename */
+  if (file == NULL) {
+    scr_err("No filename specified @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that we got a hash to read data into */
+  if (hash == NULL) {
+    scr_err("No hash provided to write data from @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  if (*fd >= 0) {
+    /* wind the file pointer back to the start of the file */
+    lseek(*fd, 0, SEEK_SET);
+
+    /* write the updated hash back to the file */
+    ssize_t nwrite = scr_hash_write_fd(file, *fd, hash);
+
+    /* truncate file to new size */
+    if (nwrite >= 0) {
+      ftruncate(*fd, (off_t) nwrite);
+    }
+
+    /* close the file and release the lock */
+    scr_close_with_unlock(file, *fd);
+
+    /* mark the file descriptor as closed */
+    *fd = -1;
+  }
+
+  return SCR_SUCCESS;
+}
+
 /*
 =========================================
 Print hash and elements to stdout for debugging
@@ -1010,7 +1150,7 @@ Print hash and elements to stdout for debugging
 */
 
 /* prints specified hash element to stdout for debugging */
-static int scr_hash_print_elem(struct scr_hash_elem* elem, int indent)
+static int scr_hash_print_elem(const struct scr_hash_elem* elem, int indent)
 {
   char tmp[SCR_MAX_FILENAME];
   int i;
@@ -1033,7 +1173,7 @@ static int scr_hash_print_elem(struct scr_hash_elem* elem, int indent)
 }
 
 /* prints specified hash to stdout for debugging */
-int scr_hash_print(struct scr_hash* hash, int indent)
+int scr_hash_print(const struct scr_hash* hash, int indent)
 {
   char tmp[SCR_MAX_FILENAME];
   int i;
@@ -1051,4 +1191,66 @@ int scr_hash_print(struct scr_hash* hash, int indent)
     printf("%sNULL LIST\n", tmp);
   }
   return SCR_SUCCESS;
+}
+
+/*
+=========================================
+Pretty print for TotalView debug window
+=========================================
+*/
+
+/* This enables a nicer display when diving on a hash variable
+ * under the TotalView debugger.  It requires TV 8.8 or later. */
+
+#include "tv_data_display.h"
+
+static int TV_display_type(const struct scr_hash* hash)
+{
+  if (hash == NULL) {
+    /* empty hash, nothing to display here */
+    return TV_format_OK;
+  }
+
+  struct scr_hash_elem* elem = NULL;
+  for (elem = scr_hash_elem_first(hash);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* get the key name */
+    char* key = scr_hash_elem_key(elem);
+
+    /* get a pointer to the hash for this key */
+    struct scr_hash* h = scr_hash_elem_hash(elem);
+
+    /* add a row to the TV debug window */
+    if (h != NULL) {
+      /* compute the size of the hash for this key */
+      int size = scr_hash_size(h);
+
+      if (size == 0) {
+        /* if the hash is empty, stop at the key */
+        TV_add_row("value", TV_ascii_string_type, key);
+      } else if (size == 1) {
+        /* my hash has one value, this may be a key/value pair */
+        char* value = scr_hash_elem_get_first_val(hash, key);
+        struct scr_hash* h2 = scr_hash_get(h, value);
+        if (h2 == NULL || scr_hash_size(h2) == 0) {
+          /* my hash has one value, and the hash for that one value is empty,
+           * so print this as a key/value pair */
+          TV_add_row(key, TV_ascii_string_type, value);
+        } else {
+          /* recurse into hash */
+          TV_add_row(key, "struct scr_hash", h);
+        }
+      } else {
+        /* recurse into hash */
+        TV_add_row(key, "struct scr_hash", h);
+      }
+    } else {
+      /* this key has a NULL hash, so stop at the key */
+      TV_add_row("value", TV_ascii_string_type, key);
+    }
+  }
+
+  return TV_format_OK;
 }

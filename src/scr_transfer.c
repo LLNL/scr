@@ -21,6 +21,7 @@
 #include "scr_io.h"
 #include "scr_err.h"
 #include "scr_hash.h"
+#include "scr_param.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,13 +40,79 @@
 
 #ifndef SCR_FILE_BUF_SIZE
 #define SCR_FILE_BUF_SIZE (1024*1024)
-//#define SCR_FILE_BUF_SIZE (1)
+#endif
+#ifndef SCR_TRANSFER_SECS
+#define SCR_TRANSFER_SECS (60.0)
 #endif
 
-char scr_transfer_file[] = "transfer.scrinfo";
-double bytes_per_second = 1.11;
+/* TODO: use direct I/O for improved performance */
+/* TODO: compute crc32 during transfer */
 
-int need_transfer(struct scr_hash* files, char* src, char** dst, off_t* position)
+#define STOPPED (1)
+#define RUNNING (2)
+
+char* scr_transfer_file = NULL;
+int keep_running = 1;
+int state = STOPPED;
+double bytes_per_second = 0.0;
+double percent_runtime = 0.0;
+
+static size_t scr_file_buf_size = SCR_FILE_BUF_SIZE;
+static double scr_transfer_secs = SCR_TRANSFER_SECS;
+
+int close_files(char* src, int* fd_src, char* dst, int* fd_dst)
+{
+  /* close the source file, if it's open */
+  if (*fd_src >= 0) {
+    scr_close(src, *fd_src);
+    *fd_src = -1;
+  }
+
+  /* close the destination file, if it's open */
+  if (*fd_dst >= 0) {
+    scr_close(dst, *fd_dst);
+    *fd_dst = -1;
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* free strings pointed to by src and dst (if any) and set them to NULL, set position to 0 */
+int clear_parameters(char** src, char** dst, off_t* position)
+{
+  /* free the string src points to (if any) and set the pointer to NULL */
+  if (src != NULL) {
+    /* free the string */
+    if (*src != NULL) {
+      free(*src);
+    }
+
+    /* set string to NULL to indicate there is no file */
+    *src = NULL;
+  }
+
+  /* free the string dst points to (if any) and set the pointer to NULL */
+  if (dst != NULL) {
+    /* free the string */
+    if (*dst != NULL) {
+      free(*dst);
+    }
+
+    /* set string to NULL to indicate there is no file */
+    *dst = NULL;
+  }
+
+  /* set position to 0 */
+  if (position != NULL) {
+    *position = 0;
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* given a hash of files and a file name, check whether the named file needs data transfered,
+ * if so, strdup its destination name and set its position and filesize */
+int need_transfer(struct scr_hash* files, char* src, char** dst, off_t* position, off_t* filesize)
 {
   /* check that we got a hash of files and a file name */
   if (files == NULL || src == NULL) {
@@ -72,7 +139,9 @@ int need_transfer(struct scr_hash* files, char* src, char** dst, off_t* position
     if (written_count < size_count) {
       /* got our file, fill in output parameters */
       *dst = strdup(dest);
+      /* TODO: check for error */
       *position = written_count;
+      *filesize = size_count;
       return SCR_SUCCESS;
     }
   }
@@ -80,130 +149,215 @@ int need_transfer(struct scr_hash* files, char* src, char** dst, off_t* position
   return SCR_FAILURE;
 }
 
-int get_transfer_file(char** src, char** dst, off_t* position)
+/* given a hash of transfer file data, look for a file which needs to be transfered.
+ * if src file is set, try to continue with that file,
+ * otherwise, pick the first available file */
+int find_file(struct scr_hash* hash, char** src, char** dst, off_t* position, off_t* filesize)
 {
   int found_a_file = 0;
 
-  /* create a hash to store data from file */
-  struct scr_hash* hash = scr_hash_new();
+  struct scr_hash* files = scr_hash_get(hash, SCR_FLUSH_KEY_FILES);
+  if (files != NULL) {
+    /* if we're given a file name, try to continue with that file */
+    if (!found_a_file && src != NULL && *src != NULL) {
+      /* src was set, so assume dst is also set, create a dummy dst variable
+       * to hold the string which may be strdup'd in need_transfer call */
+      char* tmp_dst = NULL;
+      if (need_transfer(files, *src, &tmp_dst, position, filesize) == SCR_SUCCESS) {
+        /* can continue with the same file (position may have been updated though) */
+        found_a_file = 1;
 
-  /* open transfer file with lock */
-  int fd = scr_open_with_lock(scr_transfer_file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-  if (fd >= 0) {
-    /* read, close, and release the lock on the file */
-    scr_hash_read_fd(scr_transfer_file, fd, hash);
-    scr_close_with_unlock(scr_transfer_file, fd);
-
-    /* search for a file to trasnfer */
-    struct scr_hash* files = scr_hash_get(hash, "FILES");
-    if (files != NULL) {
-      /* if we're given a file name, try to continue with that file */
-      if (!found_a_file && src != NULL && *src != NULL) {
-        if (need_transfer(files, *src, dst, position) == SCR_SUCCESS) {
-          /* can continue with the same file (position may have been updated though) */
-          found_a_file = 1;
-        } else {
-          /* user's file no longer needs transfered, free the string and set it to NULL */
-          free(*src);
-          *src = NULL;
-        }
+        /* free the dummy */
+        /* TODO: note that if destination has been updated, we're ignoring that change */
+        free(tmp_dst);
+      } else {
+        /* otherwise, this file no longer needs transfered, so free the strings */
+        clear_parameters(src, dst, position);
       }
+    }
 
-      /* otherwise, scan for a file and use the first file we find */
-      if (!found_a_file) {
-        struct scr_hash_elem* elem;
-        for (elem = scr_hash_elem_first(files);
-             elem != NULL;
-             elem = scr_hash_elem_next(elem))
+    /* if we still don't have a file, scan the hash and use the first file we find */
+    if (!found_a_file) {
+      struct scr_hash_elem* elem;
+      for (elem = scr_hash_elem_first(files);
+           elem != NULL;
+           elem = scr_hash_elem_next(elem))
+      {
+        /* get the filename */
+        char* name = scr_hash_elem_key(elem);
+
+        /* check whether this file needs transfered */
+        if (name != NULL &&
+            need_transfer(files, name, dst, position, filesize) == SCR_SUCCESS)
         {
-          char* name = scr_hash_elem_key(elem);
-          if (name != NULL &&
-              need_transfer(files, name, dst, position) == SCR_SUCCESS)
-          {
-            /* found a file, copy its name (the destination and postion are set in need_transfer) */
-            *src = strdup(name);
-            found_a_file = 1;
-            break;
-          }
+          /* found a file, copy its name (the destination and postion are set in need_transfer) */
+          *src = strdup(name);
+          found_a_file = 1;
+          break;
         }
       }
     }
   }
 
-  /* free the hash */
-  scr_hash_delete(hash);
-
-  /* if we don't find a file, set src and dst to NULL and set position to 0 */
+  /* if we didn't find a file, set src and dst to NULL and set position to 0 */
   if (!found_a_file) {
-    if (src != NULL) {
-      /* if the user named a file in the call, free the string */
-      if (*src != NULL) {
-        free(*src);
-      }
-
-      /* set string to NULL to indicate there is no file */
-      *src = NULL;
-    }
-
-    if (dst != NULL) {
-      /* set string to NULL to indicate there is no file */
-      *dst = NULL;
-    }
-
-    if (position != NULL) {
-      *position = 0;
-    }
-
+    clear_parameters(src, dst, position);
     return SCR_FAILURE;
   }
-
-  printf("%s WRITTEN %lu DESTINATION %s\n", *src, *position, *dst);
 
   return SCR_SUCCESS;
 }
 
+/* read the transfer file and set our global variables to match */
+struct scr_hash* read_transfer_file()
+{
+  char* value = NULL;
+
+  /* get a new hash to store the file data */
+  struct scr_hash* hash = scr_hash_new();
+
+  /* open transfer file with lock */
+  scr_hash_read_with_lock(scr_transfer_file, hash);
+
+  /* read in our allowed bandwidth value */
+  value = scr_hash_elem_get_first_val(hash, SCR_FLUSH_KEY_BW);
+  if (value != NULL) {
+    /* convert value from ascii to double */
+    errno = 0;
+    double bw = strtod(value, NULL);
+    if (errno == 0) {
+      /* got a new bandwidth value, set our global variable */
+      bytes_per_second = bw;
+    } else {
+      /* could not interpret bandwidth value */
+      scr_err("scr_transfer: Ignoring invalid BW value in %s @ %s:%d",
+              scr_transfer_file, __FILE__, __LINE__
+      );
+    }
+  } else {
+    /* couldn't find a BW field, so disable this limit */
+    bytes_per_second = 0.0;
+  }
+
+  /* read in our allowed percentage of runtime value */
+  value = scr_hash_elem_get_first_val(hash, SCR_FLUSH_KEY_PERCENT);
+  if (value != NULL) {
+    /* convert value from ascii to double */
+    errno = 0;
+    double percent = strtod(value, NULL);
+    if (errno == 0) {
+      /* got a new bandwidth value, set our global variable */
+      percent_runtime = percent / 100.0;
+    } else {
+      /* could not interpret bandwidth value */
+      scr_err("scr_transfer: Ignoring invalid PERCENT value in %s @ %s:%d",
+              scr_transfer_file, __FILE__, __LINE__
+      );
+    }
+  } else {
+    /* couldn't find a PERCENT field, so disable this limit */
+    percent_runtime = 0.0;
+  }
+
+  /* check for DONE flag */
+  int done = 0;
+  struct scr_hash* done_hash = scr_hash_get_kv(hash, SCR_FLUSH_KEY_FLAG, SCR_FLUSH_KEY_FLAG_DONE);
+  if (done_hash != NULL) {
+    done = 1;
+  }
+
+  /* check for latest command */
+  state = STOPPED;
+  value = scr_hash_elem_get_first_val(hash, SCR_FLUSH_KEY_COMMAND);
+  if (value != NULL) {
+    if (strcmp(value, SCR_FLUSH_KEY_COMMAND_EXIT) == 0) {
+      /* close files and exit */
+      keep_running = 0;
+    } else if (strcmp(value, SCR_FLUSH_KEY_COMMAND_STOP) == 0) {
+      /* just stop, nothing else to do here */
+    } else if (strcmp(value, SCR_FLUSH_KEY_COMMAND_RUN) == 0) {
+      /* found the RUN command, if the DONE flag is not set,
+       * set our state to running and update the transfer file */
+      if (!done) {
+        state = RUNNING;
+        set_transfer_file_state(SCR_FLUSH_KEY_STATE_RUN, 0);
+      }
+    } else {
+      scr_err("scr_transfer: Unknown command %s in %s @ %s:%d",
+              value, scr_transfer_file, __FILE__, __LINE__
+      );
+    }
+  }
+
+  /* ensure that our current state is always recorded in the file (the file
+   * may have been deleted since we last wrote our state to it) */
+  value = scr_hash_elem_get_first_val(hash, SCR_FLUSH_KEY_STATE);
+  if (value == NULL) {
+    if (state == STOPPED) {
+      set_transfer_file_state(SCR_FLUSH_KEY_STATE_STOP, 0);
+    } else if (state == RUNNING) {
+      set_transfer_file_state(SCR_FLUSH_KEY_STATE_RUN, 0);
+    } else {
+      scr_err("scr_transfer: Unknown state %d @ %s:%d",
+              state, __FILE__, __LINE__
+      );
+    }
+  }
+
+  return hash;
+}
+
+/* writes the specified command to the transfer file */
+int set_transfer_file_state(char* s, int done)
+{
+  /* get a hash to store file data */
+  struct scr_hash* hash = scr_hash_new();
+
+  /* read the file */
+  int fd = -1;
+  scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
+
+  /* set the state */
+  scr_hash_unset(hash, SCR_FLUSH_KEY_STATE);
+  scr_hash_set_kv(hash, SCR_FLUSH_KEY_STATE, s);
+
+  if (done) {
+    /* set the flag */
+    scr_hash_set_kv(hash, SCR_FLUSH_KEY_FLAG, SCR_FLUSH_KEY_FLAG_DONE);
+  }
+
+  /* write the hash back */
+  scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+
+  /* delete the hash */
+  scr_hash_delete(hash);
+
+  return SCR_SUCCESS;
+}
+
+/* given src and dst, find the matching entry in the transfer file and update the WRITTEN field
+ * to the given position in that file */
 int update_transfer_file(char* src, char* dst, off_t position)
 {
   /* create a hash to store data from file */
   struct scr_hash* hash = scr_hash_new();
 
   /* open transfer file with lock */
-  int fd = scr_open_with_lock(scr_transfer_file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-  if (fd >= 0) {
-    /* read the file */
-    scr_hash_read_fd(scr_transfer_file, fd, hash);
+  int fd = -1;
+  scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
 
-    /* search for the source file, and update the bytes written if found */
-    int found = 0;
-    if (src != NULL) {
-      struct scr_hash* myfile = scr_hash_get_kv(hash, "FILES", src);
-      if (myfile != NULL) {
-        /* found the file */
-        found = 1;
-
-        /* update the bytes written field */
-        scr_hash_unset(myfile, "WRITTEN");
-        scr_hash_setf(myfile, NULL, "%s %lu", "WRITTEN", position);
-      }
+  /* search for the source file, and update the bytes written if found */
+  if (src != NULL) {
+    struct scr_hash* file_hash = scr_hash_get_kv(hash, SCR_FLUSH_KEY_FILES, src);
+    if (file_hash != NULL) {
+      /* update the bytes written field */
+      scr_hash_unset(file_hash, "WRITTEN");
+      scr_hash_setf(file_hash, NULL, "%s %lu", "WRITTEN", position);
     }
-
-    /* write transfer file back out with updated bytes written */
-    if (found) {
-      /* wind the file pointer back to the start of the file */
-      lseek(fd, 0, SEEK_SET);
-
-      /* write the updated hash back to the file */
-      ssize_t bytes_written = scr_hash_write_fd(scr_transfer_file, fd, hash);
-
-      /* truncate file to correct size (may be smaller than it was before) */
-      if (bytes_written >= 0) {
-        ftruncate(fd, (off_t) bytes_written);
-      }
-    }
-
-    /* close the transfer file and release the lock */
-    scr_close_with_unlock(scr_transfer_file, fd);
   }
+
+  /* close the transfer file and release the lock */
+  scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
 
   /* free the hash */
   scr_hash_delete(hash);
@@ -211,189 +365,330 @@ int update_transfer_file(char* src, char* dst, off_t position)
   return SCR_SUCCESS;
 }
 
-/* this code caches the opened file descriptors to avoid extra opens, seeks, and closes */
+/* returns 1 if file1 and file2 are different (NULL pointers are allowed) */
+int bool_diff_files(char* file1, char* file2)
+{
+  /* if file2 is set but file1 is not, they're different */
+  if (file1 != NULL && file2 == NULL) {
+    return 1;
+  }
+
+  /* if file1 is set but file2 is not, they're different */
+  if (file1 == NULL && file2 != NULL) {
+    return 1;
+  }
+
+  /* if file1 and file2 and both set, check whether the strings are the same */
+  if (file1 != NULL && file2 != NULL && strcmp(file1, file2) != 0) {
+    return 1;
+  }
+
+  /* otherwise, consider file1 to be the same as file2 */
+  return 0;
+}
+
+int read_params()
+{
+  /* read our parameters */
+  char* value = NULL;
+  scr_param_init();
+
+  /* set file copy buffer size (file chunk size) */
+  if ((value = scr_param_get("SCR_FILE_BUF_SIZE")) != NULL) {
+    scr_file_buf_size = atoi(value);
+  }
+
+  /* set number of secs to sleep between reading file */
+  if ((value = scr_param_get("SCR_TRANSFER_SECS")) != NULL) {
+    float secs = 0.0;
+    sscanf(value, "%f", &secs);
+    scr_transfer_secs = (double) secs;
+  }
+
+  scr_param_finalize();
+
+  return SCR_SUCCESS;
+}
+
 int main (int argc, char *argv[])
 {
-  /*
-     initialize our internal state
-     while(1)
-       read transfer file, and sync our internal state
-       if no file is open, but we need to write one
-          open file, seek to pos
-       if writing and within bw limit
-         read, write, flush
-       if done writing file
-         close file and flush
-       record updated state in transfer file (current bytes written, transfer status)
-       sleep
-  */
-  
+  /* check that we were given at least one argument (the transfer file name) */
+  if (argc != 2) {
+    printf("Usage: scr_transfer <transferfile>\n");
+    return 1;
+  }
+
+  /* record the name of the transfer file */
+  scr_transfer_file = strdup(argv[1]);
+  if (scr_transfer_file == NULL) {
+    scr_err("Copying transfer file name @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return 1;
+  }
+
   /* initialize our tracking variables */
+  read_params();
+
+  /* we cache the opened file descriptors to avoid extra opens, seeks, and closes */
   int fd_src = -1;
   int fd_dst = -1;
 
-  char* file_src     = NULL;
+  char* new_file_src = NULL;
   char* old_file_src = NULL;
-  char* file_dst     = NULL;
+  char* new_file_dst = NULL;
   char* old_file_dst = NULL;
 
-  off_t position     = 0;
+  off_t new_position = 0;
   off_t old_position = 0;
 
-  while (1) {
-    /* start timer */
-    double start = scr_seconds();
+  /* start in the stopped state */
+  state = STOPPED;
+  set_transfer_file_state(SCR_FLUSH_KEY_STATE_STOP, 0);
 
-    /* free off destination file name if we have one, this will get filled in by get_transfer_file */
-    /* NOTE: we don't free file_src, since that's our way to tell get_transfer_file to continue
-     * with the same file if possible */
-    if (file_dst != NULL) {
-      free(file_dst);
-      file_dst = NULL;
-    }
+  /* TODO: enable this value to be set from config file */
+  /* TODO: page-align this buffer for faster performance */
+  /* allocate our file copy buffer */
+  size_t bufsize = scr_file_buf_size;
+  char* buf = malloc(bufsize);
+  if (buf == NULL) {
+    scr_err("Failed to allocate %llu bytes for file copy buffer @ %s:%d",
+            (unsigned long long) bufsize, __FILE__, __LINE__
+    );
+    return 1;
+  }
 
-    /* find a file to copy data for */
-    get_transfer_file(&file_src, &file_dst, &position);
+  int nread = 0;
+  double secs_run   = 0.0;
+  double secs_slept = 0.0;
+  double secs_run_start  = scr_seconds();
+  double secs_run_end    = secs_run_start;
+  double secs_last_write = secs_run_start;
+  struct scr_hash* hash = scr_hash_new();
+  while (keep_running) {
+    /* loop here sleeping and checking transfer file periodically until state changes and / or some time elapses */
+    /* reset our timer for our last write */
+    double secs_remain = scr_transfer_secs;
+    while (keep_running && (state == STOPPED || secs_remain > 0.0)) {
+      /* remember our current state before reading transfer file */
+      int old_state = state;
 
-    /* if we got a new file, close the old one (if open), open the new file */
-    if ((file_src != NULL && old_file_src == NULL) ||
-        (file_src == NULL && old_file_src != NULL) ||
-        (file_src != NULL && old_file_src != NULL && strcmp(file_src, old_file_src) != 0))
-    {
-      /* close the old descriptor if its still open */
-      if (fd_src >= 0) {
-        scr_close(old_file_src, fd_src);
-        fd_src = -1;
-      }
+      /* read the transfer file, which fills in our hash and also updates state and bytes_per_second */
+      scr_hash_delete(hash);
+      hash = read_transfer_file();
 
-      /* delete the old file name if we have one */
-      if (old_file_src != NULL) {
-        free(old_file_src);
-        old_file_src = NULL;
-      }
+      /* compute time we should sleep before writing more data based on bandwidth and percent of runtime limits */
+      if (state == RUNNING) {
+        /* get the current time */
+        double secs_now = scr_seconds();
 
-      /* reset our position counter */
-      old_position = 0;
-
-      /* open the file and remember the filename if we have one */
-      if (file_src != NULL) {
-        fd_src = scr_open(file_src, O_RDONLY);
-        old_file_src = strdup(file_src);
-      }
-    }
-
-    /* if we got a new file, close the old one (if open), open the new file */
-    if ((file_dst != NULL && old_file_dst == NULL) ||
-        (file_dst == NULL && old_file_dst != NULL) ||
-        (file_dst != NULL && old_file_dst != NULL && strcmp(file_dst, old_file_dst) != 0))
-    {
-      /* close the old descriptor if its still open */
-      if (fd_dst >= 0) {
-        scr_close(old_file_dst, fd_dst);
-        fd_dst = -1;
-      }
-
-      /* delete the old file name if we have one */
-      if (old_file_dst != NULL) {
-        free(old_file_dst);
-        old_file_dst = NULL;
-      }
-
-      /* reset our position counter */
-      old_position = 0;
-
-      /* open the file and remember the filename if we have one */
-      if (file_dst != NULL) {
-        fd_dst = scr_open(file_dst, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-        old_file_dst = strdup(file_dst);
-      }
-    }
-
-    /* we may have the same file, but perhaps the position changed (may need to seek) */
-    if (position != old_position) {
-      if (fd_src >= 0) {
-        /* TODO: check for errors here */
-        lseek(fd_src, position, SEEK_SET);
-      }
-
-      if (fd_dst >= 0) {
-        /* TODO: check for errors here */
-        lseek(fd_dst, position, SEEK_SET);
-      }
-
-      /* remember the new position */
-      old_position = position;
-    }
-
-    /* if we have two open files, copy a chunk from source file to destination file */
-    int nread = 0;
-    if (fd_src >= 0 && fd_dst >= 0) {
-      /* read a chunk */
-      char buf[SCR_FILE_BUF_SIZE];
-      nread = scr_read(fd_src, buf, sizeof(buf));
-
-      if (nread > 0) {
-        /* write the chunk out with an fsync to know for sure it was written */
-        scr_write(fd_dst, buf, nread);
-        fsync(fd_dst);
-
-        /* update our position */
-        position += nread;
-
-        /* write the new position in this file to the transfer file */
-        update_transfer_file(file_src, file_dst, position);
-        old_position = position;
-      }
-
-      /* if we hit the end of the source file, close the files and reinit our variables */
-      if (nread < sizeof(buf)) {
-        scr_close(file_src, fd_src);
-        fd_src = -1;
-
-        scr_close(file_dst, fd_dst);
-        fd_dst = -1;
-
-        if (file_src != NULL) {
-          free(file_src);
-          file_src     = NULL;
+        /* based on the amount we last wrote and our allocated bandwidth,
+         * compute time we need to sleep before attempting our next write */
+        double secs_remain_bw = 0.0;
+        if (nread > 0 && bytes_per_second > 0.0) {
+          double secs_to_wait_bw = (double) nread / bytes_per_second;
+          double secs_waited_bw = secs_now - secs_last_write;
+          secs_remain_bw = secs_to_wait_bw - secs_waited_bw;
         }
+
+        /* based on the percentage of time we are allowed to be running,
+         * compute time we need to sleep before attempting our next write */
+        double secs_remain_runtime = 0.0;
+        if (percent_runtime > 0.0) {
+          /* stop the run clock, add to the run time, and restart the run clock */
+          secs_run_end = secs_now;
+          secs_run += secs_run_end - secs_run_start;
+          secs_run_start = secs_run_end;
+
+          /* compute our total time, and the time we need to sleep */
+          double secs_total = secs_run + secs_slept;
+          secs_remain_runtime = secs_run / percent_runtime - secs_total;
+        }
+
+        /* take the maximum of these two values */
+        secs_remain = secs_remain_bw;
+        if (secs_remain_runtime > secs_remain) {
+          secs_remain = secs_remain_runtime;
+        }
+      }
+
+      /* check for a state transition */
+      if (state != old_state) {
+        if (state == RUNNING) {
+          /* if we switched to RUNNING, kick out without sleeping and reset the total run and sleep times */
+          secs_remain = 0.0;
+          secs_run    = 0.0;
+          secs_slept  = 0.0;
+        } else if (state == STOPPED) {
+          /* if we switched to STOPPED, close our files if open */
+          close_files(new_file_src, &fd_src, new_file_dst, &fd_dst);
+          clear_parameters(&new_file_src, &new_file_dst, &new_position);
+          clear_parameters(&old_file_src, &old_file_dst, &old_position);
+
+          /* after closing our files, update our state in the transfer file */
+          set_transfer_file_state(SCR_FLUSH_KEY_STATE_STOP, 0);
+        }
+      }
+
+      /* assume we can sleep for the full remainder of the time */
+      double secs = secs_remain;
+
+      /* if we're not running, always sleep for the full time */
+      if (state != RUNNING) {
+        secs = scr_transfer_secs;
+      }
+
+      /* set a maximum time to sleep before we read the hash file again (ensures some responsiveness) */
+      if (secs > scr_transfer_secs) {
+        secs = scr_transfer_secs;
+      }
+
+      /* sleep if we need to */
+      if (secs > 0.0) {
+        /* stop the run clock and add to the total run time */
+        secs_run_end = scr_seconds();
+        secs_run += secs_run_end - secs_run_start;
+
+        /* sleep */
+        usleep((unsigned long) (secs * 1000000.0));
+        secs_slept += secs;
+        secs_remain -= secs;
+
+        /* restart the run clock */
+        secs_run_start = scr_seconds();
+      }
+    }
+
+    /* write data out */
+    if (state == RUNNING) {
+      /* look for a new file to transfer */
+      off_t filesize = 0;
+      find_file(hash, &new_file_src, &new_file_dst, &new_position, &filesize);
+
+      /* if we got a new file, close the old one (if open), open the new file */
+      if (bool_diff_files(new_file_src, old_file_src)) {
+        /* close the old descriptor if it's open */
+        if (fd_src >= 0) {
+          scr_close(old_file_src, fd_src);
+          fd_src = -1;
+        }
+
+        /* delete the old file name if we have one */
         if (old_file_src != NULL) {
           free(old_file_src);
           old_file_src = NULL;
         }
-        if (file_dst != NULL) {
-          free(file_dst);
-          file_dst     = NULL;
+
+        /* reset our position counter */
+        old_position = 0;
+
+        /* open the file and remember the filename if we have one */
+        if (new_file_src != NULL) {
+          fd_src = scr_open(new_file_src, O_RDONLY);
+          /* TODO: check for errors here */
+          old_file_src = strdup(new_file_src);
+          /* TODO: check for errors here */
         }
+      }
+
+      /* if we got a new file, close the old one (if open), open the new file */
+      if (bool_diff_files(new_file_dst, old_file_dst)) {
+        /* close the old descriptor if it's open */
+        if (fd_dst >= 0) {
+          scr_close(old_file_dst, fd_dst);
+          fd_dst = -1;
+        }
+
+        /* delete the old file name if we have one */
         if (old_file_dst != NULL) {
           free(old_file_dst);
           old_file_dst = NULL;
         }
 
-        position     = 0;
+        /* reset our position counter */
         old_position = 0;
+
+        /* open the file and remember the filename if we have one */
+        if (new_file_dst != NULL) {
+          fd_dst = scr_open(new_file_dst, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+          /* TODO: check for errors here */
+          old_file_dst = strdup(new_file_dst);
+          /* TODO: check for errors here */
+        }
+      }
+
+      /* we may have the same file, but perhaps the position changed (may need to seek) */
+      if (new_position != old_position) {
+        if (fd_src >= 0) {
+          lseek(fd_src, new_position, SEEK_SET);
+          /* TODO: check for errors here */
+        }
+
+        if (fd_dst >= 0) {
+          lseek(fd_dst, new_position, SEEK_SET);
+          /* TODO: check for errors here */
+        }
+
+        /* remember the new position */
+        old_position = new_position;
+      }
+
+      /* if we have two open files, copy a chunk from source file to destination file */
+      nread = 0;
+      if (fd_src >= 0 && fd_dst >= 0) {
+        /* compute number of bytes to read from file */
+        size_t count = (size_t) (filesize - new_position);
+        if (count > bufsize) {
+          count = bufsize;
+        }
+
+        /* read a chunk */
+        nread = scr_read(fd_src, buf, count);
+
+        /* if we read data, write it out */
+        if (nread > 0) {
+          /* record the time of our write */
+          secs_last_write = scr_seconds();
+
+          /* write the chunk and force it out with an fsync */
+          scr_write(fd_dst, buf, nread);
+          fsync(fd_dst);
+
+          /* update our position */
+          new_position += (off_t) nread;
+          old_position = new_position;
+
+          /* record the updated position in the transfer file */
+          update_transfer_file(new_file_src, new_file_dst, new_position);
+        }
+
+        /* if we've written all of the bytes, close the files */
+        if (new_position == filesize) {
+          close_files(new_file_src, &fd_src, new_file_dst, &fd_dst);
+          clear_parameters(&new_file_src, &new_file_dst, &new_position);
+          clear_parameters(&old_file_src, &old_file_dst, &old_position);
+        }
+      } else {
+        /* TODO: we may have an error (failed to open the source or dest file) */
+        /* if we found no file to transfer, move to a STOPPED state */
+        if (new_file_src == NULL) {
+          state = STOPPED;
+          set_transfer_file_state(SCR_FLUSH_KEY_STATE_STOP, 1);
+        }
       }
     }
+  }
 
-    int usecs = 60*1000*1000; /* wait for a minute if we have nothing to do */
+  /* free our file copy buffer */
+  if (buf != NULL) {
+    free(buf);
+    buf = NULL;
+  }
 
-    /* stop timer and compute time to sleep before attempting next write */
-    double end = scr_seconds();
-    double time = end - start;
-    printf("Bytes written %d, Time taken %f\n", nread, time);
-    if (nread > 0 && time > 0) {
-      usecs = (int) (((double) nread / (double) bytes_per_second) - time) * 1000000;
-      if (usecs < 0) {
-        usecs = 0;
-      }
-    }
-usecs = 1000*1000;
-
-    /* sleep before writing more data */
-    if (usecs > 0) {
-      printf("Sleeping for %lu usecs\n", (unsigned long) usecs);
-      usleep((unsigned long) usecs);
-    }
+  /* free the strdup'd tranfer file name */
+  if (scr_transfer_file != NULL) {
+    free(scr_transfer_file);
+    scr_transfer_file = NULL;
   }
 
   return 0;

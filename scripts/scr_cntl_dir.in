@@ -4,8 +4,8 @@ use lib '@X_DATADIR@/scr';
 use scr_param;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 
-# This script returns the SCR control directory for the current
-# user and jobid, it returns "INVALID" if something
+# This script returns info on the SCR control and cache directories
+# for the current user and jobid, it returns "INVALID" if something
 # is not set.
 
 # Better to have this directory construction in one place
@@ -41,7 +41,9 @@ my $rc = GetOptions (
    "user|u=s"  => \$conf{user},
    "jobid|j=i" => \$conf{jobid},
 );
-if (not $rc) { print_usage(); }
+if (not $rc) {
+  print_usage();
+}
 
 # get the base directory
 my $base = undef;

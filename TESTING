@@ -1,11 +1,11 @@
-setenv CFLAGS "-g -O0"
-setenv scrversion scr-1.1-6
-
 #Uploading a new release to sourceforge
 First, create directory via web, then run a command like the following:
 scp ${scrversion}.tar.gz <username>,scalablecr@frs.sourceforge.net:/home/frs/project/s/sc/scalablecr/releases/<new_directory>/.
 
 # build the dist tarball
+cd ~/packages/scr
+setenv CFLAGS "-g -O0"
+setenv scrversion scr-1.1-6
 make distclean
 ./autogen.sh
 ./configure --prefix=/usr/local/tools/scr-1.1 --with-scr-config-file=/etc/scr.conf
@@ -36,15 +36,18 @@ mxterm 4 32 120
 # set up initial enviroment for testing
 setenv jobid 341
 setenv downnode coastal1147
-setenv LD_LIBRARY_PATH ../lib
-srun -n4 -N4 /bin/rm -rf /tmp/moody20/scr.$jobid
-srun -n4 -N4 /bin/rm -rf /ssd/moody20/scr.$jobid
+
+setenv LD_LIBRARY_PATH /g/g0/moody20/packages/scr-dist/testing/lib
+setenv TV /usr/global/tools/totalview/v/totalview.8X.8.0-4/bin/totalview
 setenv SCR_PREFIX `pwd`
 setenv SCR_FETCH 0
 setenv SCR_FLUSH 0
 setenv SCR_DEBUG 1
-setenv SCR_JOB_NAME testing_job
 setenv SCR_LOG_ENABLE 0
+setenv SCR_JOB_NAME testing_job
+
+srun -n4 -N4 /bin/rm -rf /tmp/moody20/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /ssd/moody20/scr.$jobid
 
 # check that a run works
 srun -n4 -N4 ./test_api

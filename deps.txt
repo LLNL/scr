@@ -1,0 +1,307 @@
+====================
+Implementation details
+====================
+There are three directories where SCR manages files.
+
+(1) Cache directory
+SCR instructs the application to write its checkpoint
+files to the cache directory, and SCR computes and stores redundancy
+info here.  For scalability, it's best if this directory is local to
+each compute node, however, it does not have to be.  In fact, one could
+place the cache directory in the parallel file system, however, the
+scalability would be lost in this case.  The cache directory must be
+fairly large, as it must store the application checkpoint data and
+redundancy data.  It must be large enough to store one full checkpoint,
+and it's better if you can store at least two checkpoints.  When using
+storage local to the compute node, the cache must be roughly 0.5x-3x
+the size of the node's memory to be effective.  We currently use RAM
+disk for this, and we are now exploring SSDs.
+
+(2) Control directory
+SCR stores files to track its internal state in the control directory.
+It also uses this directory to read commands from the user.  Currently,
+this directory must be local to the compute node.  These files are very
+small and they are read and written to frequently, so RAM disk works
+best for this.  There are a variety of files kept in the control
+directory.  For some of these files, all processes maintain their own
+file, and for others, only rank 0 accesses the file.
+
+(3) Parallel file system prefix directory
+This is the directory where SCR will fetch and flush checkpoint sets
+to the parallel file system.
+
+Now, there are two parts required to make SCR work.
+
+(1) Library
+First, there's the library the application calls.  This library is
+written in C and it makes calls to basic MPI and POSIX I/O functions to
+manage the cached checkpoint files on the cluster.  The library informs
+the application where it should write checkpoint files, and then the
+library applies the redundancy scheme to those checkpoint files after
+the application has written them.  It also supports a rebuild of lost
+files upon a restart, and it supports flushes and fetches between the
+cache directory and the parallel file system prefix directory.
+
+(2) Recovery scripts
+Second, there's a set of scripts which run before and after the job.
+After a resource allocation has been granted but before a run is
+launched, scripts run to check that the cache and control directories
+are available and healthy on each node.  Nodes can be excluded or the
+job can exit if this is not the case.  If multiple runs are attempted
+within the same resource allocation (e.g., start run / node fails /
+start second run in what's left of the allocation), it's best to do
+this check of the cache and control directories before each run is
+started to check that a node that used to be healthy hasn't suddenly
+gone bad.  At the very end of a job, a set of scripts run to drain the
+latest checkpoint from the cache directory to the parallel file system.
+This is necessary since the library may not have flushed its latest
+checkpoint before the latest run was killed.
+
+The scripts are just as vital as the library in order for SCR to
+function.  In particular, after a node failure, the scripts must be
+able to access the cache and control directories of the nodes which
+are still healty.  Thus, the resource manager must enable these
+scripts to run on the remaining nodes of an allocation, which may
+have sustained one or more failed nodes. 
+
+
+====================
+Nodeset format
+====================
+  Several of the scripts process the nodeset allocated to the job.  The
+  node names are expected to be of the form
+    clustername#
+  where clustername is a string of letters common for all nodes,
+  and # is the node number, like atlas35 and atlas173.
+
+  The Hostlist perl module will compress lists of such nodenames into a
+  form like so:
+    atlas[31-43,45,48-51]
+
+
+====================
+IPv4
+====================
+  Currently, SCR expects to run on a system whose nodes have IPv4
+  addresses, and each node should have a unique IPv4 address.  The
+  library uses this address to determine which processes are running
+  on the same compute node.
+
+
+====================
+SLURM dependencies
+====================
+  The current implementation assumes it is running on a system using
+  SLURM as the resource manager.  However, it should be straight-
+  forward to extend SCR to work with other resource managers.  Here
+  are the locations where SCR currently depends on SLURM.
+
+  scripts/scr_env.in
+    --nodes option
+      reads SLURM_NODELIST to get the nodeset allocated to a job
+    --jobid
+      reads SLURM_JOBID to get jobid
+    --down
+      reads SLURM_NODELIST and invokes "sinfo" to identify known down
+      nodes
+
+  scripts/scr_halt.in
+    --all and --user options
+      invokes "squeue" to determine jobids
+    --immediate option
+      calls "scontrol" and "scancel" to determine SLURM jobstep and to
+      stop job
+    all options
+      call "squeue" to verify jobid is really running
+      call "squeue" to get nodeset for jobid to run pdsh
+
+  scripts/scr_srun.in
+    calls "srun" to run the job
+    attempts to avoid running on bad nodes via "srun -x"
+    attempts to ensure rank 0 runs on the same node via "srun -w"
+
+  scr/scr.c
+    reads SLURM_JOBID to get jobid string
+
+
+====================
+pdsh dependencies
+====================
+  The current implementation uses pdsh in order to run scripts and
+  programs on the nodes allocated to the job.  One could replace pdsh
+  with some work.  Here are the locations where pdsh is used.
+
+  scripts/scr_prerun.in
+    invokes pdsh to remove cache and control directories on each node
+    before the run starts
+
+  scripts/scr_list_down_nodes.in
+    invokes pdsh to run "scr_check_node" on each node
+
+  scripts/scr_flush.in
+    invokes pdsh to run "scr_copy" on each node
+
+  scripts/scr_halt.in
+    invokes pdsh to run "scr_halt_cntl" on each node to update halt
+    file
+
+
+====================
+Dependency on files in common directory
+====================
+  Some scripts expect to be able to read / write files also accessed by
+  the library.
+
+  scripts/scr_env.in
+    --runnodes option
+      reads "nodes.scrinfo" from control directory to report the number
+      of nodes used in the last run
+
+  scripts/scr_flush_file.in
+    reads the "flush.scrinfo" file from the control directory to
+    identify whether and checkpoints exist and need to be flushed from
+    cache
+
+  scripts/scr_copy.in
+    reads "filemap_*.scrinfo" files to locate files in cache
+
+  src/scr_halt_cntl.c
+    reads and writes "halt.scrinfo"
+
+  scripts/scr_retries_halt.in
+    reads "halt.scrinfo" file to determine whether the current run
+    should halt
+
+  scripts/scr_srun.in
+    checks for existance of "nodes.scrinfo" and "flush.scrinfo" files
+    in control directories
+
+  src/scr_transfer.c
+    reads and writes "transfer.scrinfo" to get list of files for
+    asynchronous flush
+
+  Here is how the control directory files are currently accessed.
+
+  File                 Library                   Scripts
+  ---------------------------------------------------------------------
+  halt.scrinfo         rank 0                    scr_halt_cntl,
+                                                 scr_retries_halt
+  nodes.scrinfo        master rank on each node  scr_srun, scr_env
+  flush.scrinfo        master rank on each node  scr_srun,
+                                                 scr_flush_file
+  filemap.scrinfo      master rank on each node  scr_copy
+  filemap_#.scrinfo    every rank                scr_copy
+  transfer.scrinfo     master rank on each node  scr_transfer
+
+  The control directory must be accessible to the following scripts:
+    scr_check_node
+
+  The cache directory must be accessible to the following scripts:
+    scr_check_node
+    scr_copy
+    scr_transfer
+
+====================
+Run location and program language
+====================
+  Different scripts may run in different places.
+
+  Compute node only:
+    scripts/scr_check_node.in (perl)
+    scripts/scr_copy.in       (perl)
+    src/scr_halt_cntl.c       (C)
+    src/scr_transfer.c        (C)
+
+  Batch script only:
+    scripts/scr_prerun.in     (bash shell)
+    scripts/scr_list_down_nodes.in (perl)
+    scripts/scr_srun.in       (bash shell)
+    scripts/scr_postrun.in    (bash shell)
+    scripts/scr_flush.in      (perl)
+    scripts/scr_retries_halt.in (perl)
+    scripts/scr_cntl_dir.in   (perl)
+    scripts/scr_env.in        (perl)
+    src/scr_log_event.c       (C)
+    src/scr_log_transfer.c    (C)
+
+  Compute node and batch script:
+    scripts/scr_flush_file.in (perl)
+
+  Within or external to batch script:
+    scripts/scr_halt.in       (perl)
+    scripts/scr_check_complete.in (perl)
+    scripts/scr_glob_hosts.in (perl)
+    src/scr_rebuild_xor.c     (C)
+    src/scr_crc32.c           (C)
+    src/scr_print_hash_file.c (C)
+
+====================
+Program flow
+====================
+scripts/scr_param.pm
+  returns parameter value searching in the following order:
+    environment variable value, if set
+    configuration file value, if set
+
+scripts/scr_cntl_dir.in
+  uses scr_param.pm to read SCR_CACHE_BASE or SCR_CNTL_BASE parameters
+  for full directories:
+    invokes "scr_env --user" to get the username if not specified on command line
+    invokes "scr_env --jobid" to get the jobid if not specified on command line
+
+scripts/scr_list_down_nodes.in
+  invokes "scr_env --nodes" to get the current nodeset
+  invokes "scr_env --down" to ask resource manager whether any nodes are known to be down
+  invokes "ping" in a loop over each node presumed to be up
+  invokes "scr_cntl_dir" to get cache and control directories
+  invokes "pdsh" to run "scr_check_node" on each up node
+
+scripts/scr_flush_file.in
+  reads "flush.scrinfo" to answer queries
+
+scripts/scr_copy.in
+  invokes "scr_flush_file --dir --haveid" to check whether the node has any files for given checkpoint
+  invokes "scr_flush_file --dir --needflush" to check whether that checkpoint needs flushed
+  invokes "scr_crc32" to compute checksums of files before flush
+  invokes "cp" to copy each file from the node to the parallel file system
+
+scripts/scr_flush.in
+  invokes "scr_env --jobid" to get jobid
+  invokes "scr_env --nodes" to get the current nodeset
+  invokes "scr_flush_file --dir --latest" to get the latest checkpoint
+  invokes "scr_flush_file --dir --needflush" to determine whether this checkpoint needs flushed
+  invokes "pdsh" to run "scr_copy" on each node
+
+scripts/scr_prerun.in
+  invokes "scr_env --nodes" to get current nodeset
+  invokes "scr_cntl_dir" to get control directory
+  invokes "scr_cntl_dir --cache" to get cache directory
+  invokes "pdsh" to remove control and cache directories on each node
+
+scripts/scr_postrun.in
+  invokes "scr_cntl_dir" to get the control directory
+  invokes "scr_env --nodes" to get the current nodeset
+  invokes "scr_list_down_nodes" to identify down nodes in the allocation
+  invokes "scr_glob_hosts" to subtract down nodes from nodeset to get up nodes
+  invokes "scr_flush_file --dir --latest" to get the id of the latest checkpoint in cache
+  invokes "scr_flush_file --dir --needflush" to determine whether that checkpoint needs to be flushed
+  creates directory to flush to on parallel file system
+  invokes "scr_flush" to initiate the flush
+  invokes "scr_check_complete" to determine whether the flushed set is complete and rebuild files
+  updates scr.current and scr.old symlinks
+
+scripts/scr_retries_halt.in
+  invokes "scr_cntl_dir" to get the control directory
+  reads "halt.scrinfo" file and checks conditions
+
+scripts/scr_srun.in
+  invokes "scr_env --nodes" to get current nodeset
+  invokes "scr_glob_hosts" to check that script is running on a node in the nodeset
+  invokes "scr_cntl_dir" to get control directory
+  invokes "scr_prerun" to clear the control and cache directories on each node
+  invokes "scr_list_down_nodes" to get a list of nodes identified to be down
+  invokes "scr_env --runnodes" to get number of nodes used in last run
+  invokes "scr_glob_hosts" to count total number of nodes in allocation
+  invokes "srun" to run job
+  invokes "scr_retries_halt" to check whether the job should be halted
+  invokes "scr_postrun" to flush latest cached checkpoint to parallel file system

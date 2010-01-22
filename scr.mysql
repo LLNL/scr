@@ -1,7 +1,26 @@
+# This file defines the MySQL database tables used for MySQL logging.
+# If this logging is enabled, one must execute this file on a resource
+# running MySQL, e.g.,
+#   mysql -u root -p < scr.mysql
+#
+# Then, one must also specify the hostname, username, password, and
+# database name in the scr.conf file.
+#
+# The SCR library and the scripts both will attempt to read and
+# write records to this database.
+
+# !!!! WARNING !!!!
+# Currently all users will have full read and write access to the
+# SCR logging database, so clever users can see data on jobs from
+# other users.
+# !!!! WARNING !!!!
+
 CREATE DATABASE IF NOT EXISTS `scr`;
 
+# !!!! WARNING !!!!
 # Do NOT record passwords in this file, since doing so would leave
 # the passwords in the revision control system
+# !!!! WARNING !!!!
 GRANT ALL
   ON scr.* TO `scr`
   IDENTIFIED BY '';
@@ -17,12 +36,35 @@ DROP TABLE IF EXISTS `usernames`;
 DROP TABLE IF EXISTS `jobnames`;
 DROP TABLE IF EXISTS `jobs`;
 
-# job steps run within an allocation
-# allocations run as part of a job chain
+# maps a username string to an id
+CREATE TABLE IF NOT EXISTS `usernames` (
+        `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(512) NOT NULL,
+        UNIQUE INDEX `name` (`name`(512))
+) TYPE=MyISAM;
 
+# maps a jobname string to an id
+CREATE TABLE IF NOT EXISTS `jobnames` (
+        `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(512) NOT NULL,
+        UNIQUE INDEX `name` (`name`(512))
+) TYPE=MyISAM;
+
+# records username, jobname, and starttime of a job
+# the same username and jobname maps to the same "job"
+# which enables one to track data across a series of runs
+CREATE TABLE IF NOT EXISTS `jobs` (
+        `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        `username_id` INT UNSIGNED NOT NULL, # id of user running the job
+        `jobname_id`  INT UNSIGNED NOT NULL, # id of the name of the job
+        `start`       DATETIME     NOT NULL, # time that job started
+        UNIQUE INDEX `name` (`username_id`,`jobname_id`)
+) TYPE=MyISAM;
+
+# records checkpoint, fetch, and flush operation times and directories
 CREATE TABLE IF NOT EXISTS `transfers` (
         `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        `jobid`         INT          NOT NULL, # job step id
+        `jobid`         INT          NOT NULL, # id to jobs table
         `type`          VARCHAR(32)  NOT NULL, # fetch, flush, or drain?
         `checkpoint_id` INT UNSIGNED NOT NULL, # SCR checkpoint iteration number
         `start`         DATETIME     NOT NULL, # start time of operation
@@ -35,9 +77,10 @@ CREATE TABLE IF NOT EXISTS `transfers` (
         INDEX `jobid` (`jobid`)
 ) TYPE=MyISAM;
 
+# records various events, including failed nodes
 CREATE TABLE IF NOT EXISTS `events` (
         `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        `jobid`         INT          NOT NULL, # job step id
+        `jobid`         INT          NOT NULL, # id to jobs table
         `type`          VARCHAR(32)  NOT NULL, # fetch, flush, or drain?
         `checkpoint_id` INT UNSIGNED     NULL, # SCR checkpoint iteration number
         `start`         DATETIME         NULL, # start time of operation
@@ -45,53 +88,3 @@ CREATE TABLE IF NOT EXISTS `events` (
         `note`          BLOB             NULL, # source directory
         INDEX `jobid` (`jobid`)
 ) TYPE=MyISAM;
-
-CREATE TABLE IF NOT EXISTS `usernames` (
-        `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        `name` VARCHAR(512) NOT NULL,
-        UNIQUE INDEX `name` (`name`(512))
-) TYPE=MyISAM;
-
-CREATE TABLE IF NOT EXISTS `jobnames` (
-        `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        `name` VARCHAR(512) NOT NULL,
-        UNIQUE INDEX `name` (`name`(512))
-) TYPE=MyISAM;
-
-#CREATE TABLE IF NOT EXISTS `allocationnames` (
-#        `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-#        `name` VARCHAR(512) NOT NULL,
-#        UNIQUE INDEX `name` (`name`(512))
-#) TYPE=MyISAM;
-
-CREATE TABLE IF NOT EXISTS `jobs` (
-        `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        `username_id` INT UNSIGNED NOT NULL, # username of owner of job chain
-        `jobname_id`  INT UNSIGNED NOT NULL, # jobname used for job chain
-        `start`       DATETIME     NOT NULL, # time that job chain started
-        UNIQUE INDEX `name` (`username_id`,`jobname_id`)
-) TYPE=MyISAM;
-
-#CREATE TABLE IF NOT EXISTS `allocations` (
-#        `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-#        `jobchain_id` INT UNSIGNED NOT NULL, # id of job chain
-#        `username_id` INT UNSIGNED NOT NULL, # username of owner of job chain
-#        `jobname_id`  INT UNSIGNED NOT NULL, # jobname used for job chain
-#        `start`       DATETIME     NOT NULL, # start time of run
-##        `jobid`      INT UNSIGNED NOT NULL, # number of nodes
-##        `nnodes`     INT UNSIGNED NOT NULL, # number of nodes
-##        `nodeset`    BLOB         NOT NULL, # nodeset of run
-#        UNIQUE INDEX `chainname` (`username_id`,`jobname_id`)
-#) TYPE=MyISAM;
-
-#CREATE TABLE IF NOT EXISTS `runs` (
-#        `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-#        `jobchain_id` INT UNSIGNED NOT NULL, # id of job chain
-#        `username_id` INT UNSIGNED NOT NULL, # username of owner of job chain
-#        `jobname_id`  INT UNSIGNED NOT NULL, # jobname used for job chain
-#        `start`       DATETIME     NOT NULL, # start time of run
-##        `jobid`      INT UNSIGNED NOT NULL, # number of nodes
-##        `nnodes`     INT UNSIGNED NOT NULL, # number of nodes
-##        `nodeset`    BLOB         NOT NULL, # nodeset of run
-#        UNIQUE INDEX `chainname` (`username_id`,`jobname_id`)
-#) TYPE=MyISAM;

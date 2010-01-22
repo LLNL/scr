@@ -221,7 +221,7 @@ target_cpu = @target_cpu@
 target_os = @target_os@
 target_vendor = @target_vendor@
 SUBDIRS = man scripts src doc examples
-EXTRA_DIST = DISCLAIMER META README LICENSE.TXT scr.conf
+EXTRA_DIST = DISCLAIMER META README LICENSE.TXT scr.conf scr.mysql deps.txt
 all: all-recursive
 
 .SUFFIXES:

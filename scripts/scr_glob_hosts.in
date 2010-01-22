@@ -34,7 +34,9 @@ my $rc = GetOptions (
   "minus|m=s"        => \$conf{minus},
   "intersection|i=s" => \$conf{intersection},
 );
-if ($conf{help} or not $rc) { print_usage(); }
+if ($conf{help} or not $rc) {
+  print_usage();
+}
 
 # read the nodeset from command line
 my $valid = undef;

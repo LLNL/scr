@@ -24,19 +24,11 @@ bindir="@X_BINDIR@"
 timestamp=`date`
 echo "$prog: Started: $timestamp"
 
-# if not in job allocation, bail out
-# check that we have a valid jobid and bail if not
-if [ -z "$SCR_JOBID" ] ; then
-  jobid=`$bindir/scr_env --jobid`
-  if [ $? -eq 0 ] ; then
-    SCR_JOBID=$jobid
-  fi
-fi
-if [ -z "$SCR_JOBID" ] ; then
-  echo "$prog: ERROR: Could not determine jobid"
-  exit 1
-fi
-export SCR_JOBID
+# TODO: if not in job allocation, bail out
+
+jobid=`$bindir/scr_env --jobid`
+
+# TODO: check that we have a valid jobid and bail if not
 
 # get the nodeset of this job
 if [ -z "$SCR_NODELIST" ] ; then
@@ -50,13 +42,6 @@ if [ -z "$SCR_NODELIST" ] ; then
   exit 1
 fi
 export SCR_NODELIST
-
-# get username, bail out if not set
-username=`$bindir/scr_env --user`
-if [ $? != 0 ] ; then
-  echo "$prog: ERROR: Could not identify username"
-  exit 1
-fi
 
 # if SCR_PREFIX is not set, use the current working directory
 if [ -z "$SCR_PREFIX" ] ; then
@@ -78,7 +63,7 @@ if [ -z "$intersection" ] ; then
 fi
 
 # get the control directory
-cntldir=`$bindir/scr_cntl_dir --user $username --jobid $SCR_JOBID`
+cntldir=`$bindir/scr_cntl_dir`
 if [ $? -ne 0 ] ; then
   echo "$prog: ERROR: Invalid control directory $cntldir."
   exit 1
@@ -93,6 +78,12 @@ $bindir/scr_prerun -p $prefix
 if [ $? -ne 0 ] ; then
   echo "$prog: ERROR: Command failed: scr_prerun -p $prefix"
   exit 1
+fi
+
+# start background scr_transfer processes (1 per node) if async flush is enabled
+if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
+  nnodes=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
+  srun -W 0 -n${nnodes} -N${nnodes} $bindir/scr_transfer $cntldir/transfer.scrinfo &
 fi
 
 # enter the run loop
@@ -127,7 +118,7 @@ while [ 1 ] ; do
     # if this is the first run, we hit down nodes right off the bat, make a record of them
     if [ $attempts -eq 0 ] ; then
       start_secs=`date +%s`
-      echo "SCR: Failed node detected: JOBID=$SCR_JOBID ATTEMPT=$attempts TIME=$start_secs NNODES=-1 RUNTIME=0 FAILED=$down_nodes"
+      echo "SCR: Failed node detected: JOBID=$jobid ATTEMPT=$attempts TIME=$start_secs NNODES=-1 RUNTIME=0 FAILED=$down_nodes"
     fi
 
     # determine how many nodes are needed:
@@ -142,7 +133,7 @@ while [ 1 ] ; do
       num_needed=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
     fi
 
-    # check that we enough nodes left to run the job after excluding the down nodes
+    # check that we have enough nodes left to run the job after excluding all down nodes
     num_left=`$bindir/scr_glob_hosts -c -m $SCR_NODELIST:$down_nodes`
     if [ $num_left -lt $num_needed ] ; then
       echo "$prog: (Nodes remaining=$num_left) < (Nodes needed=$num_needed), ending run."
@@ -210,6 +201,11 @@ done
 
 # only bother to flush if we find a flush file
 if [ -r "$cntldir/flush.scrinfo" ] ; then
+  # stop scr_transfer processes before we attempt a drain
+  if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
+    $bindir/scr_halt --immediate
+  fi
+
   # make a record of time postsrun is started
   timestamp=`date`
   echo "$prog: postrun: $timestamp"
