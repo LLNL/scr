@@ -249,7 +249,7 @@ int main(int argc, char* argv[])
   // TODO: copy header read/write logic to functions
 
   /* create a filemap for this rank */
-  struct scr_filemap* map = scr_filemap_new();
+  scr_filemap* map = scr_filemap_new();
 
   /* write .scr file for full file and add the file to the filemap */
   for (j=0; j < num_files[0]; j++) {

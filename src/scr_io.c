@@ -33,6 +33,9 @@
 #include <unistd.h>
 #include <libgen.h>
 
+/* compute crc32 */
+#include <zlib.h>
+
 #define SCR_OPEN_TRIES  (5)
 #define SCR_OPEN_USLEEP (100)
 
@@ -543,6 +546,96 @@ int scr_mkdir(const char* dir, mode_t mode)
   free(dircopy);
   free(path);
   return rc;
+}
+
+/*
+=========================================
+File Copy Functions
+=========================================
+*/
+
+/* TODO: could perhaps use O_DIRECT here as an optimization */
+/* TODO: could apply compression/decompression here */
+/* copy src_file (full path) to dest_path and return new full path in dest_file */
+int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, char* dst, uLong* crc)
+{
+  /* split src_file into path and filename */
+  char path[SCR_MAX_FILENAME];
+  char name[SCR_MAX_FILENAME];
+  scr_split_path(src, path, name);
+
+  /* create dest_file using dest_path and filename */
+  scr_build_path(dst, dst_dir, name);
+
+  /* open src_file for reading */
+  int fd_src = scr_open(src, O_RDONLY);
+  if (fd_src < 0) {
+    scr_err("Opening file to copy: scr_open(%s) errno=%d %m @ %s:%d",
+            src, errno, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* open dest_file for writing */
+  int fd_dst = scr_open(dst, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+  if (fd_dst < 0) {
+    scr_err("Opening file for writing: scr_open(%s) errno=%d %m @ %s:%d",
+            dst, errno, __FILE__, __LINE__
+    );
+    scr_close(src, fd_src);
+    return SCR_FAILURE;
+  }
+
+  /* TODO:
+  posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL)
+  that tells the kernel that you don't ever need the pages
+  from the file again, and it won't bother keeping them in the page cache.
+  */
+  posix_fadvise(fd_src, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
+  posix_fadvise(fd_dst, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
+
+  /* allocate buffer to read in file chunks */
+  char* buf = (char*) malloc(buf_size);
+  if (buf == NULL) {
+    scr_err("Allocating memory: malloc(%llu) errno=%d %m @ %s:%d",
+            buf_size, errno, __FILE__, __LINE__
+    );
+    scr_close(dst, fd_dst);
+    scr_close(src, fd_src);
+    return SCR_FAILURE;
+  }
+
+  /* initialize crc values */
+  if (crc != NULL) {
+    *crc = crc32(0L, Z_NULL, 0);
+  }
+
+  /* write chunks */
+  int copying = 1;
+  while (copying) {
+    int nread = scr_read(fd_src, buf, buf_size);
+    if (nread > 0) {
+      if (crc != NULL) {
+        *crc = crc32(*crc, (const Bytef*) buf, (uInt) nread);
+      }
+      scr_write(fd_dst, buf, nread);
+    }
+    if (nread < buf_size) {
+      copying = 0;
+    }
+  }
+
+  /* free buffer */
+  if (buf != NULL) {
+    free(buf);
+    buf = NULL;
+  }
+
+  /* close source and destination files */
+  scr_close(dst, fd_dst);
+  scr_close(src, fd_src);
+
+  return SCR_SUCCESS;
 }
 
 /*

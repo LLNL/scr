@@ -2,8 +2,8 @@ bin_SCRIPTS = \
 	scr_cntl_dir \
 	scr_check_complete \
 	scr_check_node \
-	scr_copy \
 	scr_env \
+	scr_inspect \
 	scr_flush \
 	scr_flush_file \
 	scr_glob_hosts \
@@ -18,8 +18,8 @@ EXTRA_DIST = \
 	scr_cntl_dir \
 	scr_check_complete \
 	scr_check_node \
-	scr_copy \
 	scr_env \
+	scr_inspect \
 	scr_flush \
 	scr_flush_file \
 	scr_glob_hosts \

@@ -9,9 +9,11 @@ if [ "$SCR_ENABLE" == "0" ] ; then
 fi
 
 # if SCR_DEBUG is set > 0, turn on verbosity
+verbose=""
 if [ -n "$SCR_DEBUG" ]; then
   if [ $SCR_DEBUG -gt 0 ] ; then
     set -x
+    verbose="--verbose"
   fi
 fi
 
@@ -67,76 +69,88 @@ echo "$prog: UPNODES:   $UPNODES"
 
 # if there is at least one remaining up node, attempt to flush
 ret=1
-if [ $UPNODES != "" ]; then
+if [ "$UPNODES" != "" ] ; then
   # get the SCR control directory
   cntldir=`$bindir/scr_cntl_dir`;
-
   # TODO: check that we have a control directory
 
   # check whether we have a checkpoint set to flush
   echo "$prog: Looking for latest checkpoint set id"
-  $bindir/scr_flush_file --dir $cntldir --latest
+  latestid=`$bindir/scr_flush_file --dir $cntldir --latest`
   if [ $? -eq 0 ] ; then
     # we have a  checkpoint, check whether it still needs to be flushed?
-    checkpointid=`$bindir/scr_flush_file --dir $cntldir --latest`
-    $bindir/scr_flush_file --dir $cntldir --needflush $checkpointid
+    $bindir/scr_flush_file --dir $cntldir --needflush $latestid
     if [ $? -eq 0 ] ; then
       # get the jobid
       jobid=`$bindir/scr_env --jobid`
-
       # TODO: check that we got the jobid
 
-      # make a new directory to store the files for this checkpoint
-      timestamp=`date +%F_%H:%M:%S`
-      scrdir="scr.${timestamp}.${jobid}.${checkpointid}"
-      checkpoint=$pardir/$scrdir
-      mkdir -p $checkpoint
+      # get list of possible checkpoints
+      checkpoint_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
+      if [ $? -eq 0 ] ; then
+        for c in $checkpoint_list ; do
+          # determine whether this checkpoint needs flushed
+          $bindir/scr_flush_file --dir $cntldir --needflush $c
+          if [ $? -eq 0 ] ; then
+            echo "$prog: Attempting flush of checkpoint $c"
 
-      # crc is on by default, turn it off if user doesn't want it
-      crc="--crc"
-      if [ "$SCR_CRC_ON_FLUSH" == "0" ] ; then
-        crc=""
-      fi
+            # make a new directory to store the files for this checkpoint
+            timestamp=`date +%F_%H:%M:%S`
+            scrdir="scr.${timestamp}.${jobid}.${c}"
+            checkpoint=$pardir/$scrdir
+            mkdir -p $checkpoint
 
-      # Gather files from cache to parallel file system
-      echo "$prog: Flushing files from cache to $checkpoint"
-      echo $prog: $bindir/scr_flush --verbose $crc --id $checkpointid --from $cntldir --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
-      $bindir/scr_flush --verbose $crc --id $checkpointid --from $cntldir --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
-      ret=$?
-      echo "$prog: Done flushing files from cache to $checkpoint"
+            # Gather files from cache to parallel file system
+            echo "$prog: Flushing files from cache to $checkpoint"
+            echo $prog: $bindir/scr_flush $verbose --id $c --from $cntldir --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
+            $bindir/scr_flush $verbose --id $c --from $cntldir --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
+            echo "$prog: Done flushing files from cache to $checkpoint"
 
-      # check that gathered set is complete, if not, don't update current / old links
-      update_current=1
-      echo "$prog: Checking that new checkpoint set is complete"
-      echo "$bindir/scr_check_complete $checkpoint"
-      $bindir/scr_check_complete $checkpoint
-      if [ $? -ne 0 ] ; then
-        ret=1
-        update_current=0 # incomplete checkpoint set, don't update current / old links
-      fi
+            # check that gathered set is complete, if not, don't update current / old links
+            update_current=1
+            echo "$prog: Checking that new checkpoint set is complete"
+            echo "$bindir/scr_check_complete $checkpoint"
+            $bindir/scr_check_complete $checkpoint
+            if [ $? -ne 0 ] ; then
+              update_current=0 # incomplete checkpoint set, don't update current / old links
+            fi
 
-      # if the set is complete, update the current and old symlinks
-      if [ "$update_current" == "1" ] ; then
-        echo "$prog: Updating old & current symlinks"
-        old="$pardir/scr.old"
-        current="$pardir/scr.current"
+            # if the set is complete, update the current and old symlinks
+            if [ "$update_current" == "1" ] ; then
+              echo "$prog: Updating old & current symlinks"
+              old="$pardir/scr.old"
+              current="$pardir/scr.current"
 
-        # if there is an old, remove it
-        if [ -e $old ] ; then
-          rm -f $old
-        fi
+              # if there is an old, remove it
+              if [ -e $old ] ; then
+                rm -f $old
+              fi
 
-        # if there is a current, move it to old
-        if [ -e $current ] ; then
-          current_save=`readlink $current`
-          rm -f $current
-          echo "$prog:   $old     --> $current_save"
-          ln -s $current_save $old
-        fi
+              # if there is a current, move it to old
+              if [ -e $current ] ; then
+                current_save=`readlink $current`
+                rm -f $current
+                echo "$prog:   $old     --> $current_save"
+                ln -s $current_save $old
+              fi
 
-        # make the new current
-        echo "$prog:   $current --> $scrdir"
-        ln -s $scrdir $current
+              # make the new current
+              echo "$prog:   $current --> $scrdir"
+              ln -s $scrdir $current
+
+              # just completed flushing this checkpoint, so quit
+              ret=0
+              break;
+            fi
+          else
+            # found a checkpoint which has already been flushed, we can quit
+            echo "$prog: Checkpoint $c has already been flushed"
+            ret=0
+            break;
+          fi
+        done
+      else
+        echo "$prog: Failed to inspect cache or cannot recover any checkpoints"
       fi
     else
       echo "$prog: Latest checkpoint set has already been flushed from $hostname"

@@ -41,25 +41,20 @@ sub print_usage
   exit 1;
 }
 
-# read_env(name) -- returns "" if variable is not defined
-sub read_env
-{
-  my $name = shift @_;
-  my $val  = $ENV{$name};
-  if (defined $val) { return $val; }
-  return "";
-}
-
 # read in environment variables and command line options
 my %conf = ();
 $conf{dst}     = "";
 my $rc = GetOptions (
 #  "pattern|p=s"    => \$conf{pattern},
 );
-if (not $rc) { print_usage(); }
+if (not $rc) {
+  print_usage();
+}
 
 # should have one argument remaining which is the checkpoint directory
-if (@ARGV != 1) { print_usage(); }
+if (@ARGV != 1) {
+  print_usage();
+}
 $conf{dst} = shift @ARGV;
 
 # check that source and destination directories are defined
@@ -73,8 +68,6 @@ my $from = $conf{dst};
 # read each file and record details
 my %ranks = ();
 my %global_map = ();
-my %xor2ranks = ();
-my %ranks2xor = ();
 my $maxiter  = -1;
 my $maxranks = -1;
 
@@ -85,7 +78,9 @@ scan_files($from);
 my ($num_files, $using_xor, @ranks_missing_files) = check_all_files();
 
 my %missing_full = ();
-foreach my $rank (@ranks_missing_files) { $missing_full{$rank} = 1; }
+foreach my $rank (@ranks_missing_files) {
+  $missing_full{$rank} = 1;
+}
 
 my @unrecoverable_ranks = ();
 my %recoverable = ();
@@ -93,10 +88,9 @@ my %recoverable = ();
 # TODO: integrate this into the main logic
 # if we have any missing files, see if we can make a stab at rebuilding them
 if ($using_xor and scalar(keys %missing_full) > 0) {
-  foreach my $local (keys %xorsets) {
-  foreach my $level (keys %{$xorsets{$local}}) {
+  foreach my $gid (keys %xorsets) {
     # got an xor set, now get its size
-    my $s = \%{$xorsets{$local}{$level}};
+    my $s = \%{$xorsets{$gid}};
     my $size = $$s{size};
 
     # check whether we have the files for each member of the set
@@ -122,7 +116,7 @@ if ($using_xor and scalar(keys %missing_full) > 0) {
 
     # if we don't have a complete set, but we have enough files to attempt to build it, create the command
     if (defined $missing_index) {
-      my $xor_set_name = $local . "x" . $level;
+      my $xor_set_name = $gid;
       if (@xor_filenames >= $size-1) {
         my $xor_file_list  = join(" ", @xor_filenames);
         my $missing_xor_file = ($missing_index + 1) . "_of_$size" . "_in_$xor_set_name.xor";
@@ -133,7 +127,6 @@ if ($using_xor and scalar(keys %missing_full) > 0) {
         push @unrecoverable_ranks, $xor_set_name;
       }
     }
-  }
   }
 }
 
@@ -205,8 +198,7 @@ if (@ranks_missing_files == 0) {
   print OUT "Rows: $num_files\n";
   print OUT "Rank\tSCR\tRanks\tID\tComp\tExpSize\tExists\tSize\tFilename\tCRC32Computed\tCRC32\n";
 
-  for(my $i=0; $i<$maxranks; $i++)
-  {
+  for(my $i=0; $i<$maxranks; $i++) {
     my @full_files = (keys %{$ranks{$i}{type}{$SCR_FILE_FULL}});
     foreach my $file (@full_files) {
       my $h = $ranks{$i}{type}{$SCR_FILE_FULL}{$file};
@@ -285,7 +277,7 @@ sub read_info
     elsif ($name eq "Filename:")     { $$h{filename}     = basename($val); }
     elsif ($name eq "Filesize:")     { $$h{filesize}     = int($val); }
     elsif ($name eq "Complete:")     { $$h{complete}     = int($val); }
-    elsif ($name eq "CRC32Computed:")    { $$h{crc32computed} = int($val); }
+    elsif ($name eq "CRC32Computed:"){ $$h{crc32computed} = int($val); }
     elsif ($name eq "CRC32:")        { $$h{crc32}        = $val; }
     elsif ($name eq "SRCFilename:")  { $$h{src_filename} = basename($val); }
     elsif ($name eq "SRCFilesize:")  { $$h{src_filesize} = int($val); }
@@ -296,9 +288,8 @@ sub read_info
   close(IN);
 
   # TODO: these should be fields in the file (not in the title)
-  if ($file =~ /(\d+)_of_(\d+)_in_(\d+)x(\d+).xor/) {
-    $$h{xor_local} = $4;
-    $$h{xor_level} = $3;
+  if ($file =~ /(\d+)_of_(\d+)_in_(\d+).xor/) {
+    $$h{xor_gid}   = $3;
     $$h{xor_size}  = $2;
     $$h{xor_index} = $1 - 1;
   }
@@ -324,8 +315,7 @@ sub scan_files
     exit 1;
   }
 
-  foreach my $file (@files)
-  {
+  foreach my $file (@files) {
     # read the .scr file
     my $filepath = "$from/$file";
     my %info = ();
@@ -348,27 +338,24 @@ sub scan_files
       $$h{meta}{crc32}         = $info{crc32};
     }
     if ($info{filetype} == $SCR_FILE_XOR) {
-      $$h{meta}{xor_local} = $info{xor_local};
-      $$h{meta}{xor_level} = $info{xor_level};
+      $$h{meta}{xor_gid}   = $info{xor_gid};
       $$h{meta}{xor_size}  = $info{xor_size};
       $$h{meta}{xor_index} = $info{xor_index};
 
       # TODO: ensure that all xor files belonging to the same xor set believe the xor set size is the same
-      $xor2ranks{$info{xor_local}}{$info{xor_level}}{size} = $info{xor_size};
-
-      # map rank to xor set, and add rank to xor set
-      $xor2ranks{$info{xor_local}}{$info{xor_level}}{ranks}{$rank} = $info{xor_index};
-      $ranks2xor{$rank} = "$info{xor_local},$info{xor_level}";
-
       # TODO: if size is already set for this xor set, and our size value is different, throw an error
-      $xorsets{$info{xor_local}}{$info{xor_level}}{size} = $info{xor_size};
-      $xorsets{$info{xor_local}}{$info{xor_level}}{indicies}{$info{xor_index}}{rank}  = $rank;
-      $xorsets{$info{xor_local}}{$info{xor_level}}{indicies}{$info{xor_index}}{'xor'} = $info{filename};
+      $xorsets{$info{xor_gid}}{size} = $info{xor_size};
+      $xorsets{$info{xor_gid}}{indicies}{$info{xor_index}}{rank}  = $rank;
+      $xorsets{$info{xor_gid}}{indicies}{$info{xor_index}}{'xor'} = $info{filename};
     }
 
     # need to ensure that all files agree on number of ranks and the checkpoint id
-    if ($maxranks < $info{ranks}) { $maxranks = $info{ranks}; }
-    if ($maxiter  < $info{count}) { $maxiter  = $info{count}; }
+    if ($maxranks < $info{ranks}) {
+      $maxranks = $info{ranks};
+    }
+    if ($maxiter < $info{count}) {
+      $maxiter  = $info{count};
+    }
 
     # TODO: need to check filename listed in .scr file with name of real file
     # check that real file (same name w/o .scr extension) exists and record its size
@@ -406,7 +393,9 @@ sub check_file
       $$h{meta}{ranks} == $maxranks and   # file belongs to the expected number of ranks
       $$h{meta}{size}  == $$h{real}{size} # file is the correct size
      )
-  { return 1; }
+  {
+    return 1;
+  }
   return 0;
 }
 
@@ -419,7 +408,7 @@ sub check_all_files
   for(my $i=0; $i<$maxranks; $i++)
   {
     # if the process does not have a filemap, we must assume it's incomplete
-    if (not defined $global_map{CKPT}{$maxiter}{RANK}{$i}) {
+    if (not defined $global_map{RANK}{$i}{CKPT}{$maxiter}) {
       $missing_ranks{$i} = 1;
       # nothing else to do, go on to next rank
       next;
@@ -427,7 +416,7 @@ sub check_all_files
 
     # check whether we have this rank's full file
     my $num_have = 0;
-    my $num_expect = (keys %{$global_map{CKPT}{$maxiter}{RANK}{$i}{EXPECT}})[0];
+    my $num_expect = (keys %{$global_map{RANK}{$i}{CKPT}{$maxiter}{EXPECT}})[0];
     $num_files += $num_expect;
 
     # check whether we have this rank's full files

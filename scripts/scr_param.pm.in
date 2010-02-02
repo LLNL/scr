@@ -4,19 +4,47 @@ use strict;
 # reads in an SCR hash file and translates it
 # into a perl hash object
 
-my $config_file = "@SCR_CONFIG_FILE@";
+my $sysconf = "@SCR_CONFIG_FILE@";
 
 sub new
 {
   my $type = shift;
+  my $usrfile = undef;
+  if (@_ > 0) {
+    $usrfile = shift;
+  }
 
   my $self = {};
 
   $self->{prog} = 'scr_param';
-  $self->{file} = undef;
-  $self->{config} = undef;
+  $self->{usrconf} = undef;
+  $self->{sysconf} = undef;
+  $self->{compile} = undef;
 
-  read_config_file($self, $config_file);
+  # read in the user configuration file, if specified
+  if (defined $usrfile) {
+    $self->{usrconf} = read_config_file($self, $usrfile);
+  }
+
+  # read in the system configuration file
+  $self->{sysconf} = read_config_file($self, $sysconf);
+
+  # set our compile time constants
+  $self->{compile} = {};
+  $self->{compile}{"SCR_CNTL_BASE"}{"@SCR_CNTL_BASE@"}   = {};
+  $self->{compile}{"SCR_CACHE_BASE"}{"@SCR_CACHE_BASE@"} = {};
+
+  # if CACHE_BASE and CACHE_SIZE are set and the user didn't set CACHEDESC,
+  # create a single CACHEDESC in the user hash
+  my $cache_base = get($self, "SCR_CACHE_BASE");
+  my $cache_size = get($self, "SCR_CACHE_SIZE");
+  if (not defined $self->{usrconf}{"CACHEDESC"} and
+      defined $cache_base and
+      defined $cache_size)
+  {
+    $self->{usrconf}{"CACHEDESC"}{"0"}{"BASE"}{$cache_base} = {};
+    $self->{usrconf}{"CACHEDESC"}{"0"}{"SIZE"}{$cache_size} = {};
+  }
 
   return bless $self, $type;
 }
@@ -26,8 +54,7 @@ sub read_config_file
   my $self = shift @_;
   my $file = shift @_;
 
-  $self->{file} = $file;
-  $self->{config} = {};
+  my $h = {};
 
   if (-r $file) {
     if (open(IN, $file)) {
@@ -56,11 +83,11 @@ sub read_config_file
 
             # record the key value pair in the hash
             if (defined $master_key) {
-              push @{$self->{config}{$master_key}{subkey}{$master_value}{$key}{value}}, $value;
+              $$h{$master_key}{$master_value}{$key}{$value} = {};
             } else {
               $master_key   = $key;
               $master_value = $value;
-              push @{$self->{config}{$master_key}{value}}, $value;
+              $$h{$master_key}{$master_value} = {};
             }
           }
         }
@@ -70,48 +97,72 @@ sub read_config_file
     # done reading, close the file
     close(IN);
   } else {
-    print "$self->{prog}: ERROR: Could not open file: $self->{file}\n";
+    print "$self->{prog}: ERROR: Could not open file: $file\n";
   }
 
-  return;
+  return $h;
 }
 
-sub get_param
+sub get
 {
   my $self = shift;
   my $name = shift;
-  my $subname = undef;
-  if (@_ > 0) { $subname = shift; }
 
   # if param is set in environment, return that value
   if (defined $ENV{$name}) {
     return $ENV{$name};
   }
 
-  # otherwise, check whether we have it defined in our config file
-  if (defined $self->{config}{$name}) {
-    my $first = (@{$self->{config}{$name}{value}})[0];
+  # otherwise, check whether we have it defined in our user config file
+  if (defined $self->{usrconf}{$name}) {
+    my $first = (keys %{$self->{usrconf}{$name}})[0];
+    return $first;
+  }
+
+  # otherwise, check whether we have it defined in our system config file
+  if (defined $self->{sysconf}{$name}) {
+    my $first = (keys %{$self->{sysconf}{$name}})[0];
+    return $first;
+  }
+
+  # otherwise, check whether its a compile time constant
+  if (defined $self->{compile}{$name}) {
+    my $first = (keys %{$self->{compile}{$name}})[0];
     return $first;
   }
 
   return undef;
 }
 
-sub get_subparam
+sub get_hash
 {
-  my $self    = shift;
-  my $name    = shift;
-  my $value   = shift;
-  my $subname = shift;
+  my $self = shift;
+  my $name = shift;
 
-  # otherwise, check whether we have it defined in our config file
-  if (defined $self->{config}{$name} and
-      defined $self->{config}{$name}{subkey} and
-      defined $self->{config}{$name}{subkey}{$value} and
-      defined $self->{config}{$name}{subkey}{$value}{$subname})
-  {
-    my $first = (@{$self->{config}{$name}{subkey}{$value}{$subname}{value}})[0];
-    return $first;
+  # if param is set in environment, return that value
+  if (defined $ENV{$name}) {
+    return $ENV{$name};
+  }
+
+  # otherwise, check whether we have it defined in our user config file
+  if (defined $self->{usrconf}{$name}) {
+    my %h = ();
+    %h = %{$self->{usrconf}{$name}};
+    return %h;
+  }
+
+  # otherwise, check whether we have it defined in our system config file
+  if (defined $self->{sysconf}{$name}) {
+    my %h = ();
+    %h = %{$self->{sysconf}{$name}};
+    return %h;
+  }
+
+  # otherwise, check whether its a compile time constant
+  if (defined $self->{compile}{$name}) {
+    my %h = ();
+    %h = %{$self->{compile}{$name}};
+    return %h;
   }
 
   return undef;

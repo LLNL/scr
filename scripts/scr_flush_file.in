@@ -61,7 +61,7 @@ if (not $h->read_file("$conf{dir}/flush.scrinfo", $flush)) {
 
 # check whether the specified id is defined in the flush file
 if (defined $conf{haveid}) {
-  if (defined $$flush{$conf{haveid}}) {
+  if (defined $$flush{CKPT} and defined $$flush{CKPT}{$conf{haveid}}) {
     exit 0;
   }
   exit 1;
@@ -70,8 +70,9 @@ if (defined $conf{haveid}) {
 # check that we have the id, and check that it's not already been flushed,
 # i.e., that it's not already in the parallel file system (PFS)
 if (defined $conf{needflush}) {
-  if (defined $$flush{$conf{needflush}} and
-      not defined $$flush{$conf{needflush}}{"PFS"})
+  my $id = $conf{needflush};
+  if ((defined $$flush{CKPT} and defined $$flush{CKPT}{$id}) and
+      (not defined $$flush{CKPT}{$id}{LOCATION} or not defined $$flush{CKPT}{$id}{LOCATION}{"PFS"}))
   {
     exit 0;
   }
@@ -80,7 +81,10 @@ if (defined $conf{needflush}) {
 
 # return the id of the latest checkpoint
 if (defined $conf{latest}) {
-  my @ids = (sort {$b <=> $a} keys %$flush);
+  my @ids = ();
+  if (defined $$flush{CKPT}) {
+    @ids = (sort {$b <=> $a} keys %{$$flush{CKPT}})
+  }
   if (@ids > 0) {
     my $latest = $ids[0];
     print "$latest\n";

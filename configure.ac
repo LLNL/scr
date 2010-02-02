@@ -60,8 +60,8 @@ AC_CONFIG_FILES( \
   scripts/scr_cntl_dir \
   scripts/scr_check_complete \
   scripts/scr_check_node \
-  scripts/scr_copy \
   scripts/scr_env \
+  scripts/scr_inspect \
   scripts/scr_flush \
   scripts/scr_flush_file \
   scripts/scr_glob_hosts \

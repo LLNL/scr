@@ -17,9 +17,12 @@ my $prog = "scr_cntl_dir";
 
 my $bindir = "@X_BINDIR@";
 
-my $cntl_base  = "@SCR_CNTL_BASE@";
-my $cache_base = "@SCR_CACHE_BASE@";
-my $param = new scr_param();
+my $param = undef;
+if (defined $ENV{SCR_CONF_FILE}) {
+  $param = new scr_param($ENV{SCR_CONF_FILE});
+} else {
+  $param = new scr_param();
+}
 
 sub print_usage
 {
@@ -46,15 +49,20 @@ if (not $rc) {
 }
 
 # get the base directory
-my $base = undef;
+my @bases = ();
 if (defined $conf{cache}) {
   # lookup cache base
-  $base = $param->get_param("SCR_CACHE_BASE");
+  my %cachedesc = $param->get_hash("CACHEDESC");
+  foreach my $index (keys %cachedesc) {
+    if (defined $cachedesc{$index}{"BASE"}) {
+      push @bases, (keys %{$cachedesc{$index}{"BASE"}})[0];
+    }
+  }
 } else {
   # lookup cntl base
-  $base = $param->get_param("SCR_CNTL_BASE");
+  push @bases, $param->get("SCR_CNTL_BASE");
 }
-if (not defined $base) {
+if (@bases == 0) {
   print "INVALID\n";
   exit 1;
 }
@@ -93,9 +101,15 @@ if (not defined $conf{base}) {
 }
 
 # ok, all values are here, print out the directory name and exit with success
-if (defined $suffix) {
-  print "$base/$suffix\n";
-} else {
-  print "$base\n";
+my @dirs = ();
+foreach my $base (@bases) {
+  if (defined $suffix) {
+    push @dirs, "$base/$suffix";
+  } else {
+    push @dirs, "$base";
+  }
+}
+if (@dirs > 0) {
+  print join(" ", @dirs), "\n";
 }
 exit 0;

@@ -15,6 +15,9 @@
 #include <stdarg.h>
 #include <sys/types.h>
 
+/* compute crc32 */
+#include <zlib.h>
+
 #ifndef SCR_MAX_LINE
 #define SCR_MAX_LINE (1024)
 #endif
@@ -73,6 +76,20 @@ int scr_build_path (char* file, const char* path, const char* filename);
 
 /* recursively create directory and subdirectories */
 int scr_mkdir(const char* dir, mode_t mode);
+
+/*
+=========================================
+File Copy Functions
+=========================================
+*/
+
+int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, char* dst, uLong* crc);
+
+/*
+=========================================
+Timing
+=========================================
+*/
 
 /* returns the current linux timestamp (secs + usecs since epoch) as a double */
 double scr_seconds();

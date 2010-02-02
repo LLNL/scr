@@ -33,23 +33,49 @@ Define common hash key strings
 ========================================
 */
 
+/* generic hash keys */
+#define SCR_FLUSH_KEY_CKPT ("CKPT")
+
+#define SCR_FLUSH_KEY_LOCATION ("LOCATION")
+#define SCR_FLUSH_KEY_LOCATION_CACHE    ("CACHE")
+#define SCR_FLUSH_KEY_LOCATION_PFS      ("PFS")
+#define SCR_FLUSH_KEY_LOCATION_FLUSHING ("FLUSHING")
+
+#define SCR_FILEMAP_KEY_PARTNER ("PARTNER")
+
 /* transfer file keys */
-#define SCR_FLUSH_KEY_FILES   ("FILES")
-#define SCR_FLUSH_KEY_BW      ("BW")
-#define SCR_FLUSH_KEY_PERCENT ("PERCENT")
+#define SCR_TRANSFER_KEY_FILES   ("FILES")
+#define SCR_TRANSFER_KEY_BW      ("BW")
+#define SCR_TRANSFER_KEY_PERCENT ("PERCENT")
 
-#define SCR_FLUSH_KEY_COMMAND ("COMMAND")
-#define SCR_FLUSH_KEY_COMMAND_RUN  ("RUN")
-#define SCR_FLUSH_KEY_COMMAND_STOP ("STOP")
-#define SCR_FLUSH_KEY_COMMAND_EXIT ("EXIT")
+#define SCR_TRANSFER_KEY_COMMAND ("COMMAND")
+#define SCR_TRANSFER_KEY_COMMAND_RUN  ("RUN")
+#define SCR_TRANSFER_KEY_COMMAND_STOP ("STOP")
+#define SCR_TRANSFER_KEY_COMMAND_EXIT ("EXIT")
 
-#define SCR_FLUSH_KEY_STATE ("STATE")
-#define SCR_FLUSH_KEY_STATE_RUN  ("RUNNING")
-#define SCR_FLUSH_KEY_STATE_STOP ("STOPPED")
-#define SCR_FLUSH_KEY_STATE_EXIT ("EXITING")
+#define SCR_TRANSFER_KEY_STATE ("STATE")
+#define SCR_TRANSFER_KEY_STATE_RUN  ("RUNNING")
+#define SCR_TRANSFER_KEY_STATE_STOP ("STOPPED")
+#define SCR_TRANSFER_KEY_STATE_EXIT ("EXITING")
 
-#define SCR_FLUSH_KEY_FLAG ("FLAG")
-#define SCR_FLUSH_KEY_FLAG_DONE ("DONE")
+#define SCR_TRANSFER_KEY_FLAG ("FLAG")
+#define SCR_TRANSFER_KEY_FLAG_DONE ("DONE")
+
+/* ckpt config file keys */
+#define SCR_CONFIG_KEY_CACHEDESC  ("CACHEDESC")
+#define SCR_CONFIG_KEY_CKPTDESC   ("CKPTDESC")
+#define SCR_CONFIG_KEY_ENABLED    ("ENABLED")
+#define SCR_CONFIG_KEY_INDEX      ("INDEX")
+#define SCR_CONFIG_KEY_FREQUENCY  ("FREQUENCY")
+#define SCR_CONFIG_KEY_BASE       ("BASE")
+#define SCR_CONFIG_KEY_DIRECTORY  ("DIRECTORY")
+#define SCR_CONFIG_KEY_TYPE       ("TYPE")
+#define SCR_CONFIG_KEY_DISTANCE   ("DISTANCE")
+#define SCR_CONFIG_KEY_SIZE       ("SIZE")
+#define SCR_CONFIG_KEY_GROUPS     ("GROUPS")
+#define SCR_CONFIG_KEY_GROUP_ID   ("GROUP_ID")
+#define SCR_CONFIG_KEY_GROUP_SIZE ("GROUP_SIZE")
+#define SCR_CONFIG_KEY_GROUP_RANK ("GROUP_RANK")
 
 /*
 =========================================
@@ -178,7 +204,7 @@ Pack and unpack hash and elements into a char buffer
 size_t scr_hash_get_pack_size(const struct scr_hash* hash);
 
 /* packs the given hash into specified buf and returns the number of bytes written */
-size_t scr_hash_pack(const struct scr_hash* hash, char* buf);
+size_t scr_hash_pack(char* buf, const struct scr_hash* hash);
 
 /* unpacks hash from specified buffer and returns the number of bytes read and a pointer to a newly allocated hash */
 size_t scr_hash_unpack(const char* buf, struct scr_hash* hash);

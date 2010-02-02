@@ -1,21 +1,22 @@
 ====================
 Implementation details
 ====================
-There are three directories where SCR manages files.
+There are three types of directories where SCR manages files.
 
 (1) Cache directory
 SCR instructs the application to write its checkpoint
-files to the cache directory, and SCR computes and stores redundancy
-info here.  For scalability, it's best if this directory is local to
-each compute node, however, it does not have to be.  In fact, one could
-place the cache directory in the parallel file system, however, the
-scalability would be lost in this case.  The cache directory must be
-fairly large, as it must store the application checkpoint data and
-redundancy data.  It must be large enough to store one full checkpoint,
-and it's better if you can store at least two checkpoints.  When using
-storage local to the compute node, the cache must be roughly 0.5x-3x
-the size of the node's memory to be effective.  We currently use RAM
-disk for this, and we are now exploring SSDs.
+files to a cache directory, and SCR computes and stores redundancy
+data here.  SCR can be configured to use more than one cache directory,
+even within a single job.  For scalability, the cache directory should
+be local to the compute node, however, it does not have to be.  In
+fact, one could locate the cache directory in the parallel file
+system, however, the scalability would be lost in this case.  The
+cache directory must be fairly large, as it must store the application
+checkpoint data and redundancy data.  It must be large enough to store
+one full checkpoint, and it's better if you can store at least two
+checkpoints.  When using storage local to the compute node, the cache
+must be roughly 0.5x-3x the size of the node's memory to be effective.
+LLNL currently uses RAM disk for this, and we are now exploring SSDs.
 
 (2) Control directory
 SCR stores files to track its internal state in the control directory.
@@ -159,11 +160,15 @@ Dependency on files in common directory
 
   scripts/scr_flush_file.in
     reads the "flush.scrinfo" file from the control directory to
-    identify whether and checkpoints exist and need to be flushed from
-    cache
+    identify whether any checkpoints need to be flushed from cache
 
-  scripts/scr_copy.in
-    reads "filemap_*.scrinfo" files to locate files in cache
+  src/scr_inspect_cache.c
+    reads "filemap.scrinfo" and "filemap_#.scrinfo" files to locate
+    files in cache
+
+  src/scr_copy.c
+    reads "filemap.scrinfo" and "filemap_#.scrinfo" files to locate
+    files in cache
 
   src/scr_halt_cntl.c
     reads and writes "halt.scrinfo"
@@ -171,10 +176,6 @@ Dependency on files in common directory
   scripts/scr_retries_halt.in
     reads "halt.scrinfo" file to determine whether the current run
     should halt
-
-  scripts/scr_srun.in
-    checks for existance of "nodes.scrinfo" and "flush.scrinfo" files
-    in control directories
 
   src/scr_transfer.c
     reads and writes "transfer.scrinfo" to get list of files for
@@ -186,11 +187,12 @@ Dependency on files in common directory
   ---------------------------------------------------------------------
   halt.scrinfo         rank 0                    scr_halt_cntl,
                                                  scr_retries_halt
-  nodes.scrinfo        master rank on each node  scr_srun, scr_env
-  flush.scrinfo        master rank on each node  scr_srun,
-                                                 scr_flush_file
-  filemap.scrinfo      master rank on each node  scr_copy
-  filemap_#.scrinfo    every rank                scr_copy
+  nodes.scrinfo        master rank on each node  scr_env
+  flush.scrinfo        master rank on each node  scr_flush_file
+  filemap.scrinfo      master rank on each node  scr_inspect_cache,
+                                                 scr_copy
+  filemap_#.scrinfo    every rank                scr_inspect_cache,
+                                                 scr_copy
   transfer.scrinfo     master rank on each node  scr_transfer
 
   The control directory must be accessible to the following scripts:
@@ -208,7 +210,8 @@ Run location and program language
 
   Compute node only:
     scripts/scr_check_node.in (perl)
-    scripts/scr_copy.in       (perl)
+    src/scr_inspect_cache.in  (C)
+    src/scr_copy.in           (C)
     src/scr_halt_cntl.c       (C)
     src/scr_transfer.c        (C)
 

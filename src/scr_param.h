@@ -12,14 +12,29 @@
 #ifndef SCR_PARAM_H
 #define SCR_PARAM_H
 
+#include "scr_hash.h"
+
+/* This will search a series of locations to find a given parameter name:
+ *   environment variable
+ *   user config file
+ *   system config file
+ *
+ * It uses reference counting such that multiple callers may init and
+ * finalize the parameters independently of one another.
+*/
+
+/* read config files and store contents */
 int scr_param_init();
 
+/* free contents from config files */
 int scr_param_finalize();
 
-/* given a parameter name like SCR_FLUSH, return its value checking the following order:
- *   environment variable
- *   system config file
-*/
+/* searchs for name and returns a character pointer to its value if set,
+ * returns NULL if not found */
 char* scr_param_get(char* name);
+
+/* searchs for name and returns a newly allocated hash of its value if set,
+ * returns NULL if not found */
+struct scr_hash* scr_param_get_hash(char* name);
 
 #endif

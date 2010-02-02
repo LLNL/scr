@@ -127,10 +127,13 @@ while [ 1 ] ; do
     #   otherwise, assume we need all nodes in the allocation
     if [ -n "$SCR_MIN_NODES" ]  ; then
       num_needed=$SCR_MIN_NODES
-    elif [ -r "$cntldir/nodes.scrinfo" ] ; then
-      num_needed=`$bindir/scr_env --cntldir $cntldir --runnodes`
     else
-      num_needed=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
+      # try to lookup the number of nodes used in the last run
+      num_needed=`$bindir/scr_env --cntldir $cntldir --runnodes`
+      if [ $num_needed -le 0 ] ; then
+        # just go with the number of nodes in the allocation
+        num_needed=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
+      fi
     fi
 
     # check that we have enough nodes left to run the job after excluding all down nodes
@@ -199,24 +202,19 @@ while [ 1 ] ; do
   fi
 done
 
-# only bother to flush if we find a flush file
-if [ -r "$cntldir/flush.scrinfo" ] ; then
-  # stop scr_transfer processes before we attempt a drain
-  if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-    $bindir/scr_halt --immediate
-  fi
+# stop scr_transfer processes before we attempt a drain
+if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
+  $bindir/scr_halt --immediate
+fi
 
-  # make a record of time postsrun is started
-  timestamp=`date`
-  echo "$prog: postrun: $timestamp"
+# make a record of time postsrun is started
+timestamp=`date`
+echo "$prog: postrun: $timestamp"
 
-  # flush files from cache to parallel file system
-  $bindir/scr_postrun -p $prefix
-  if [ $? -ne 0 ] ; then
-    echo "$prog: ERROR: Command failed: scr_postrun -p $prefix"
-  fi
-else
-  echo "$prog: No checkpoint set needs flushed."
+# flush files from cache to parallel file system
+$bindir/scr_postrun -p $prefix
+if [ $? -ne 0 ] ; then
+  echo "$prog: ERROR: Command failed: scr_postrun -p $prefix"
 fi
 
 # make a record of end time

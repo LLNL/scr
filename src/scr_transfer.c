@@ -20,6 +20,7 @@
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
+#include "scr_util.h"
 #include "scr_hash.h"
 #include "scr_param.h"
 
@@ -51,11 +52,11 @@
 #define STOPPED (1)
 #define RUNNING (2)
 
-char* scr_transfer_file = NULL;
-int keep_running = 1;
-int state = STOPPED;
-double bytes_per_second = 0.0;
-double percent_runtime = 0.0;
+static char*  scr_transfer_file = NULL;
+static int    keep_running      = 1;
+static int    state             = STOPPED;
+static double bytes_per_second  = 0.0;
+static double percent_runtime   = 0.0;
 
 static size_t scr_file_buf_size = SCR_FILE_BUF_SIZE;
 static double scr_transfer_secs = SCR_TRANSFER_SECS;
@@ -156,7 +157,7 @@ int find_file(struct scr_hash* hash, char** src, char** dst, off_t* position, of
 {
   int found_a_file = 0;
 
-  struct scr_hash* files = scr_hash_get(hash, SCR_FLUSH_KEY_FILES);
+  struct scr_hash* files = scr_hash_get(hash, SCR_TRANSFER_KEY_FILES);
   if (files != NULL) {
     /* if we're given a file name, try to continue with that file */
     if (!found_a_file && src != NULL && *src != NULL) {
@@ -220,12 +221,10 @@ struct scr_hash* read_transfer_file()
   scr_hash_read_with_lock(scr_transfer_file, hash);
 
   /* read in our allowed bandwidth value */
-  value = scr_hash_elem_get_first_val(hash, SCR_FLUSH_KEY_BW);
+  value = scr_hash_elem_get_first_val(hash, SCR_TRANSFER_KEY_BW);
   if (value != NULL) {
-    /* convert value from ascii to double */
-    errno = 0;
-    double bw = strtod(value, NULL);
-    if (errno == 0) {
+    double bw;
+    if (scr_atod(value, &bw) == SCR_SUCCESS) {
       /* got a new bandwidth value, set our global variable */
       bytes_per_second = bw;
     } else {
@@ -240,12 +239,10 @@ struct scr_hash* read_transfer_file()
   }
 
   /* read in our allowed percentage of runtime value */
-  value = scr_hash_elem_get_first_val(hash, SCR_FLUSH_KEY_PERCENT);
+  value = scr_hash_elem_get_first_val(hash, SCR_TRANSFER_KEY_PERCENT);
   if (value != NULL) {
-    /* convert value from ascii to double */
-    errno = 0;
-    double percent = strtod(value, NULL);
-    if (errno == 0) {
+    double percent;
+    if (scr_atod(value, &percent) == SCR_SUCCESS) {
       /* got a new bandwidth value, set our global variable */
       percent_runtime = percent / 100.0;
     } else {
@@ -261,26 +258,26 @@ struct scr_hash* read_transfer_file()
 
   /* check for DONE flag */
   int done = 0;
-  struct scr_hash* done_hash = scr_hash_get_kv(hash, SCR_FLUSH_KEY_FLAG, SCR_FLUSH_KEY_FLAG_DONE);
+  struct scr_hash* done_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
   if (done_hash != NULL) {
     done = 1;
   }
 
   /* check for latest command */
   state = STOPPED;
-  value = scr_hash_elem_get_first_val(hash, SCR_FLUSH_KEY_COMMAND);
+  value = scr_hash_elem_get_first_val(hash, SCR_TRANSFER_KEY_COMMAND);
   if (value != NULL) {
-    if (strcmp(value, SCR_FLUSH_KEY_COMMAND_EXIT) == 0) {
+    if (strcmp(value, SCR_TRANSFER_KEY_COMMAND_EXIT) == 0) {
       /* close files and exit */
       keep_running = 0;
-    } else if (strcmp(value, SCR_FLUSH_KEY_COMMAND_STOP) == 0) {
+    } else if (strcmp(value, SCR_TRANSFER_KEY_COMMAND_STOP) == 0) {
       /* just stop, nothing else to do here */
-    } else if (strcmp(value, SCR_FLUSH_KEY_COMMAND_RUN) == 0) {
+    } else if (strcmp(value, SCR_TRANSFER_KEY_COMMAND_RUN) == 0) {
       /* found the RUN command, if the DONE flag is not set,
        * set our state to running and update the transfer file */
       if (!done) {
         state = RUNNING;
-        set_transfer_file_state(SCR_FLUSH_KEY_STATE_RUN, 0);
+        set_transfer_file_state(SCR_TRANSFER_KEY_STATE_RUN, 0);
       }
     } else {
       scr_err("scr_transfer: Unknown command %s in %s @ %s:%d",
@@ -291,12 +288,12 @@ struct scr_hash* read_transfer_file()
 
   /* ensure that our current state is always recorded in the file (the file
    * may have been deleted since we last wrote our state to it) */
-  value = scr_hash_elem_get_first_val(hash, SCR_FLUSH_KEY_STATE);
+  value = scr_hash_elem_get_first_val(hash, SCR_TRANSFER_KEY_STATE);
   if (value == NULL) {
     if (state == STOPPED) {
-      set_transfer_file_state(SCR_FLUSH_KEY_STATE_STOP, 0);
+      set_transfer_file_state(SCR_TRANSFER_KEY_STATE_STOP, 0);
     } else if (state == RUNNING) {
-      set_transfer_file_state(SCR_FLUSH_KEY_STATE_RUN, 0);
+      set_transfer_file_state(SCR_TRANSFER_KEY_STATE_RUN, 0);
     } else {
       scr_err("scr_transfer: Unknown state %d @ %s:%d",
               state, __FILE__, __LINE__
@@ -318,12 +315,12 @@ int set_transfer_file_state(char* s, int done)
   scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
 
   /* set the state */
-  scr_hash_unset(hash, SCR_FLUSH_KEY_STATE);
-  scr_hash_set_kv(hash, SCR_FLUSH_KEY_STATE, s);
+  scr_hash_unset(hash, SCR_TRANSFER_KEY_STATE);
+  scr_hash_set_kv(hash, SCR_TRANSFER_KEY_STATE, s);
 
   if (done) {
     /* set the flag */
-    scr_hash_set_kv(hash, SCR_FLUSH_KEY_FLAG, SCR_FLUSH_KEY_FLAG_DONE);
+    scr_hash_set_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
   }
 
   /* write the hash back */
@@ -348,7 +345,7 @@ int update_transfer_file(char* src, char* dst, off_t position)
 
   /* search for the source file, and update the bytes written if found */
   if (src != NULL) {
-    struct scr_hash* file_hash = scr_hash_get_kv(hash, SCR_FLUSH_KEY_FILES, src);
+    struct scr_hash* file_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_FILES, src);
     if (file_hash != NULL) {
       /* update the bytes written field */
       scr_hash_unset(file_hash, "WRITTEN");
@@ -444,7 +441,7 @@ int main (int argc, char *argv[])
 
   /* start in the stopped state */
   state = STOPPED;
-  set_transfer_file_state(SCR_FLUSH_KEY_STATE_STOP, 0);
+  set_transfer_file_state(SCR_TRANSFER_KEY_STATE_STOP, 0);
 
   /* TODO: enable this value to be set from config file */
   /* TODO: page-align this buffer for faster performance */
@@ -526,7 +523,7 @@ int main (int argc, char *argv[])
           clear_parameters(&old_file_src, &old_file_dst, &old_position);
 
           /* after closing our files, update our state in the transfer file */
-          set_transfer_file_state(SCR_FLUSH_KEY_STATE_STOP, 0);
+          set_transfer_file_state(SCR_TRANSFER_KEY_STATE_STOP, 0);
         }
       }
 
@@ -673,7 +670,7 @@ int main (int argc, char *argv[])
         /* if we found no file to transfer, move to a STOPPED state */
         if (new_file_src == NULL) {
           state = STOPPED;
-          set_transfer_file_state(SCR_FLUSH_KEY_STATE_STOP, 1);
+          set_transfer_file_state(SCR_TRANSFER_KEY_STATE_STOP, 1);
         }
       }
     }

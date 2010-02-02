@@ -14,7 +14,12 @@ my $dshbak = "@DSHBAK_EXE@";
 
 my $start_time = time();
 
-my $param = new scr_param();
+my $param = undef;
+if (defined $ENV{SCR_CONF_FILE}) {
+  $param = new scr_param($ENV{SCR_CONF_FILE});
+} else {
+  $param = new scr_param();
+}
 
 sub print_usage
 {
@@ -129,29 +134,49 @@ if (defined $conf{free}) {
 
 # check that control and cache directories on each node work and are of proper size
 # get the control directory the job will use
-my $cntldir_flag = "";
-my $cntldir  = `$bindir/scr_cntl_dir --base`;
+my @cntldir_vals = ();
+my $cntldir_string = `$bindir/scr_cntl_dir --base`;
 if ($? == 0) {
-  chomp $cntldir;
-  my $size = $param->get_subparam("CNTLDIR", $cntldir, "BYTES");
-  if (defined $size) {
-    $cntldir_flag = "--cntl $cntldir:$size";
-  } else {
-    $cntldir_flag = "--cntl $cntldir";
+  chomp $cntldir_string;
+  my @dirs = split(" ", $cntldir_string);
+  my %cntldirs = $param->get_hash("CNTLDIR");
+  foreach my $base (@dirs) {
+    my $val = "$base";
+    if (defined $cntldirs{$base} and defined $cntldirs{$base}{"BYTES"}) {
+      my $size = (keys %{$cntldirs{$base}{"BYTES"}})[0];
+      if (defined $size) {
+        $val = "$base:$size";
+      }
+    }
+    push @cntldir_vals, $val;
   }
+}
+my $cntldir_flag = "";
+if (@cntldir_vals > 0) {
+  $cntldir_flag = "--cntl " . join(",", @cntldir_vals);
 }
 
 # get the cache directory the job will use
-my $cachedir_flag = "";
-my $cachedir = `$bindir/scr_cntl_dir --cache --base`;
+my @cachedir_vals = ();
+my $cachedir_string = `$bindir/scr_cntl_dir --cache --base`;
 if ($? == 0) {
-  chomp $cachedir;
-  my $size = $param->get_subparam("CACHEDIR", $cachedir, "BYTES");
-  if (defined $size) {
-    $cachedir_flag = "--cache $cachedir:$size";
-  } else {
-    $cachedir_flag = "--cache $cachedir";
+  chomp $cachedir_string;
+  my @dirs = split(" ", $cachedir_string);
+  my %cachedirs = $param->get_hash("CACHEDIR");
+  foreach my $base (@dirs) {
+    my $val = "$base";
+    if (defined $cachedirs{$base} and defined $cachedirs{$base}{"BYTES"}) {
+      my $size = (keys %{$cachedirs{$base}{"BYTES"}})[0];
+      if (defined $size) {
+        $val = "$base:$size";
+      }
+    }
+    push @cachedir_vals, $val;
   }
+}
+my $cachedir_flag = "";
+if (@cachedir_vals > 0) {
+  $cachedir_flag = "--cache " . join(",", @cachedir_vals);
 }
 
 # only run this against set of nodes known to be responding

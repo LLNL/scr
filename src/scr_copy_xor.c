@@ -71,13 +71,22 @@ int scr_copy_xor_header_alloc_partner_files(struct scr_copy_xor_header* h, int r
 int scr_copy_xor_header_free(struct scr_copy_xor_header* h)
 {
   h->xor_nranks = 0;
-  if (h->xor_ranks != NULL) { free(h->xor_ranks); h->xor_ranks = NULL; }
+  if (h->xor_ranks != NULL) {
+    free(h->xor_ranks);
+    h->xor_ranks = NULL;
+  }
 
   h->my_nfiles  = 0;
-  if (h->my_files  != NULL) { free(h->my_files);  h->my_files  = NULL; }
+  if (h->my_files != NULL) {
+    free(h->my_files);
+    h->my_files  = NULL;
+  }
 
   h->partner_nfiles = 0;
-  if (h->partner_files != NULL) { free(h->partner_files); h->partner_files = NULL; }
+  if (h->partner_files != NULL) {
+    free(h->partner_files);
+    h->partner_files = NULL;
+  }
 
   return SCR_SUCCESS;
 }

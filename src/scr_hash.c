@@ -569,7 +569,7 @@ static size_t scr_hash_get_pack_size_elem(const struct scr_hash_elem* elem)
 }
 
 /* packs a hash element into specified buf and returns the number of bytes written */
-static size_t scr_hash_pack_elem(const struct scr_hash_elem* elem, char* buf)
+static size_t scr_hash_pack_elem(char* buf, const struct scr_hash_elem* elem)
 {
   size_t size = 0;
   if (elem != NULL) {
@@ -580,11 +580,11 @@ static size_t scr_hash_pack_elem(const struct scr_hash_elem* elem, char* buf)
       buf[size] = '\0';
       size += 1;
     }
-    size += scr_hash_pack(elem->hash, buf + size);
+    size += scr_hash_pack(buf + size, elem->hash);
   } else {
     buf[size] = '\0';
     size += 1;
-    size += scr_hash_pack(NULL, buf + size);
+    size += scr_hash_pack(buf + size, NULL);
   }
   return size;
 }
@@ -644,7 +644,7 @@ size_t scr_hash_get_pack_size(const struct scr_hash* hash)
 }
 
 /* packs the given hash into specified buf and returns the number of bytes written */
-size_t scr_hash_pack(const struct scr_hash* hash, char* buf)
+size_t scr_hash_pack(char* buf, const struct scr_hash* hash)
 {
   size_t size = 0;
   if (hash != NULL) {
@@ -664,7 +664,7 @@ size_t scr_hash_pack(const struct scr_hash* hash, char* buf)
 
     /* and finally pack each element */
     LIST_FOREACH(elem, hash, pointers) {
-      size += scr_hash_pack_elem(elem, buf + size);
+      size += scr_hash_pack_elem(buf + size, elem);
     }
   } else {
     /* now pack the count value of 0 */

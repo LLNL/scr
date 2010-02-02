@@ -97,10 +97,12 @@ if (defined $conf{user}) {
       print "$nnodes\n";
     } else {
       # could not find the NODES key
+      print "0\n";
       exit 1;
     }
   } else {
     # had a problem reading the file
+    print "0\n";
     exit 1;
   }
 } else {

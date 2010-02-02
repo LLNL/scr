@@ -16,6 +16,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 /* variable length args */
 #include <stdarg.h>
@@ -30,8 +31,14 @@ Error and Debug Messages
 /* print message to stderr */
 void scr_err(const char *fmt, ...)
 {
+  /* get my hostname */
+  char hostname[256];
+  if (gethostname(hostname, sizeof(hostname)) != 0) {
+    /* TODO: error! */
+  }
+
   va_list argp;
-  fprintf(stderr, "SCR ERROR: ");
+  fprintf(stderr, "SCR ERROR: %s:", hostname);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -41,11 +48,17 @@ void scr_err(const char *fmt, ...)
 /* print message to stdout if scr_debug is set and it is >= level */
 void scr_dbg(int level, const char *fmt, ...)
 {
+  /* get my hostname */
+  char hostname[256];
+  if (gethostname(hostname, sizeof(hostname)) != 0) {
+    /* TODO: error! */
+  }
+
   va_list argp;
   /*
   if (level == 0 || (scr_debug > 0 && scr_debug >= level)) {
   */
-    fprintf(stdout, "SCR: ");
+    fprintf(stdout, "SCR: %s:", hostname);
     va_start(argp, fmt);
     vfprintf(stdout, fmt, argp);
     va_end(argp);
@@ -58,8 +71,14 @@ void scr_dbg(int level, const char *fmt, ...)
 /* print abort message and kill run */
 void scr_abort(int rc, const char *fmt, ...)
 {
+  /* get my hostname */
+  char hostname[256];
+  if (gethostname(hostname, sizeof(hostname)) != 0) {
+    /* TODO: error! */
+  }
+
   va_list argp;
-  fprintf(stderr, "SCR ABORT: ");
+  fprintf(stderr, "SCR ABORT: %s:", hostname);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);

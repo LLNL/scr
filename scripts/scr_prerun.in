@@ -72,11 +72,10 @@ if [ $UPNODES != "" ]; then
   # clean control and cache directories
   cntldir=`$bindir/scr_cntl_dir`
   cachedir=`$bindir/scr_cntl_dir --cache`
+  dir_list="$cntldir $cachedir"
   echo "$prog: Clearing SCR directories: $cntldir, $cachedir"
-  $pdsh -w "$UPNODES" "$rm -rf $cntldir; $rm -rf $cachedir"
+  $pdsh -w "$UPNODES" "$rm -rf $dir_list; $mkdir -p $dir_list"
   # TODO: want to process return code here to return an error?
-
-  $pdsh -w "$UPNODES" "$mkdir -p $cntldir; $mkdir -p $cachedir"
 fi
 
 # report timing info

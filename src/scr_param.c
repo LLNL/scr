@@ -15,6 +15,7 @@
 #include "scr_err.h"
 #include "scr_io.h"
 #include "scr_hash.h"
+#include "scr_config.h"
 #include "scr_param.h"
 
 #include <stdlib.h>
@@ -45,303 +46,121 @@ static int scr_param_ref_count = 0;
 /* name of system configuration file we should read */
 static char scr_config_file[SCR_MAX_FILENAME] = SCR_CONFIG_FILE;
 
+/* this data structure holds variables names which we can't not lookup in environment */
+static struct scr_hash* scr_no_user_hash = NULL;
+
+/* this data structure will hold values read from the user config file */
+static struct scr_hash* scr_user_hash = NULL;
+
 /* this data structure will hold values read from the system config file */
-static struct scr_hash* scr_config_hash = NULL;
+static struct scr_hash* scr_system_hash = NULL;
 
-/* TODO: support processing of byte values */
-/*
-
-#define KILO (1024)
-#define MEGA (1024*KILO)
-#define GIGA (1024*MEGA)
-#define TERA (1024*GIGA)
-
-// converts string like 10mb to long long integer value of 10*1024*1024
-size_t scr_param_abtoll(char* str)
-{
-  char* next;
-  size_t units = 1;
-
-  double num = strtod(str, &next);
-  if (num == 0.0 && next == str) {
-    return 0;
-  }
-
-  if (*next != '\0') {
-    // process units for kilo, mega, or gigabytes
-    switch(*next) {
-    case 'k':
-    case 'K':
-      units = (size_t) KILO;
-      break;
-    case 'm':
-    case 'M':
-      units = (size_t) MEGA;
-      break;
-    case 'g':
-    case 'G':
-      units = (size_t) GIGA;
-      break;
-    case 't':
-    case 'T':
-      units = (size_t) TERA;
-      break;
-    default:
-      printf("ERROR:  unexpected byte string %s\n", str);
-      exit(1);
-    }
-
-    next++;
-
-    // handle optional b or B character, e.g. in 10KB
-    if (*next == 'b' || *next == 'B') {
-      next++;
-    }
-
-    if (*next != 0) {
-      printf("ERROR:  unexpected byte string: %s\n", str);
-      exit(1);
-    }
-  }
-
-  if (num < 0) {
-    printf("ERROR:  byte string must be positive: %s\n", str);
-    exit(1);
-  }
-
-  size_t val = (size_t) (num * (double) units);
-  return val;
-}
-*/
-
-
-/* read in whitespace until we hit a non-whitespace character */
-static int scr_param_read_config_whitespace(FILE* fs, char* file, int linenum, int* n_external, char* c_external)
-{
-  /* remove whitespace (spaces and tabs) until we hit a character */
-  int  n = *n_external;
-  char c = *c_external;
-  while (n != EOF && (c == ' ' || c == '\t')) {
-    n = fgetc(fs);
-    c = (char) n;
-  }
-  *n_external = n;
-  *c_external = c;
-  return SCR_SUCCESS;
-}
-
-/* read in a token */
-static int scr_param_read_config_token(FILE* fs, char* file, int linenum, int* n_external, char* c_external, char* token, int size)
-{
-  /* remove whitespace (spaces and tabs) until we hit a character */
-  int  n = *n_external;
-  char c = *c_external;
-
-  /* read bytes of token into buffer */
-  int i = 0;
-  while (n != EOF && c != ' ' && c != '\t' && c != '\n' && c != '=') {
-    if (i >= size) {
-      scr_err("Internal buffer too short (%d bytes) while reading token in configuration file @ %s:%d",
-              size, file, linenum
-      );
-      return SCR_FAILURE;
-    }
-    token[i++] = c;
-
-    n = fgetc(fs);
-    c = (char) n;
-  }
-
-  /* check that our token is at least one character long */
-  if (i == 0) {
-    scr_err("Missing token in configuration file @ %s:%d",
-            file, linenum
-    );
-    return SCR_FAILURE;
-  }
-
-  /* terminate our token with a null character */
-  if (i >= size) {
-    scr_err("Internal buffer too short (%d bytes) while reading token in configuration file @ %s:%d",
-            size, file, linenum
-    );
-    return SCR_FAILURE;
-  }
-  token[i++] = '\0';
-
-  *n_external = n;
-  *c_external = c;
-  return SCR_SUCCESS;
-}
-
-/* found a key value pair, read in the values and insert it into the hash */
-static int scr_param_read_config_kv(FILE* fs, char* file, int linenum,
-                                    int* n_external, char* c_external, struct scr_hash* hash, struct scr_hash** hash2)
-{
-  int  n = *n_external;
-  char c = *c_external;
-
-  char key[SCR_MAX_FILENAME];
-  char value[SCR_MAX_FILENAME];
-
-  /* read in the key token */
-  scr_param_read_config_token(fs, file, linenum, &n, &c, key, sizeof(key));
-
-  /* optional white space between key and '=' sign */
-  scr_param_read_config_whitespace(fs, file, linenum, &n, &c);
-
-  /* should be sitting on the '=' that splits the key and value at this point */
-  if (c != '=') {
-    scr_err("Ill-formed key value pair detected in configuration file @ %s:%d",
-            file, linenum
-    );
-    return SCR_FAILURE;
-  }
-  n = fgetc(fs);
-  c = (char) n;
-
-  /* optional white space between '=' sign and value */
-  scr_param_read_config_whitespace(fs, file, linenum, &n, &c);
-
-  /* read in the value token */
-  scr_param_read_config_token(fs, file, linenum, &n, &c, value, sizeof(value));
-
-  /* convert key to upper case */
-  int i = 0;
-  for (i=0; i < strlen(key); i++) {
-    key[i] = (char) toupper(key[i]);
-  }
-
-  /* insert key/value into hash */
-  struct scr_hash* tmp_hash = scr_hash_set_kv(hash, key, value);
-
-  *n_external = n;
-  *c_external = c;
-  *hash2 = tmp_hash;
-
-  return SCR_SUCCESS;
-}
-
-/* found a comment, strip it out */
-static int scr_param_read_config_comment(FILE* fs, char* file, int linenum, int* n_external, char* c_external)
-{
-  /* inside a comment, remove the rest of the line */
-  int  n = *n_external;
-  char c = *c_external;
-  while (n != EOF && c != '\n') {
-    n = fgetc(fs);
-    c = (char) n;
-  }
-  *n_external = n;
-  *c_external = c;
-  return SCR_SUCCESS;
-}
-
-/* process all items found on the current line from the config file */
-static int scr_param_read_config_line(FILE* fs, char* file, int linenum, int* n_external, char* c_external, struct scr_hash* hash)
-{
-  int  n = *n_external;
-  char c = *c_external;
-
-  struct scr_hash* target_hash = hash;
-  int set_root = 0;
-  while (n != EOF && c != '\n') {
-    /* remove whitespace (spaces and tabs) until we hit a character */
-    scr_param_read_config_whitespace(fs, file, linenum, &n, &c);
-
-    if (n != EOF && c != '\n') {
-      if (c == '#') {
-        scr_param_read_config_comment(fs, file, linenum, &n, &c);
-      } else {
-        /* must have a key value chain, so read them in */
-        struct scr_hash* tmp_hash = NULL;
-        scr_param_read_config_kv(fs, file, linenum, &n, &c, target_hash, &tmp_hash);
-        if (set_root == 0) {
-          target_hash = tmp_hash;
-          set_root = 1;
-        }
-      }
-    }
-  }
-
-  *n_external = n;
-  *c_external = c;
-  return SCR_SUCCESS;
-}
-
-/* read parameters from system config file and fill in hash */
-static int scr_param_read_config(char* file, struct scr_hash* hash)
-{
-  /* check whether we can read the config file */
-  if (access(file, R_OK) < 0) {
-    return SCR_FAILURE;
-  }
-
-  /* open the config file */
-  FILE* fs = fopen(file, "r");
-  if (fs == NULL) {
-    scr_err("Opening configuration file for read: fopen(%s, \"r\") errno=%d %m @ %s:%d",
-            file, errno, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* read the config file */
-  int n;
-  char c;
-  int linenum = 0;
-  do {
-    linenum++;
-    /* read in the first character of the line */
-    n = fgetc(fs);
-    c = (char) n;
-    scr_param_read_config_line(fs, file, linenum, &n, &c, hash);
-  } while (n != EOF);
-
-  /* close the file */
-  fclose(fs);
-
-  return SCR_SUCCESS;
-}
-
-/* given a parameter name like SCR_FLUSH, return its value checking the following order:
- *   environment variable
- *   system config file
-*/
+/* searchs for name and returns a character pointer to its value if set,
+ * returns NULL if not found */
 char* scr_param_get(char* name)
 {
-  /* TODO: certain values may be environment only, others may be config file only */
+  char* value = NULL;
+
+  /* see if this parameter is one which is restricted from user */
+  struct scr_hash* no_user = scr_hash_get(scr_no_user_hash, name);
 
   /* if parameter is set in environment, return that value */
-  if (getenv(name) != NULL) {
+  if (no_user == NULL && getenv(name) != NULL) {
     /* TODO: need to strdup here to be safe? */
     return getenv(name);
   }
 
-  /* otherwise, if parameter is set in configuration file, return that value */
-  struct scr_hash* key_hash = scr_hash_get(scr_config_hash, name);
-  if (key_hash != NULL) {
-    /* TODO: need to handle hash values with multiple entries here? */
-    /* get the value hash */
-    struct scr_hash_elem* value_elem = scr_hash_elem_first(key_hash);
-    if (value_elem != NULL) {
-      /* finally, return the value string */
-      return scr_hash_elem_key(value_elem);
-    }
+  /* otherwise, if parameter is set in user configuration file, return that value */
+  value = scr_hash_elem_get_first_val(scr_user_hash, name);
+  if (no_user == NULL && value != NULL) {
+    return value;
   }
 
+  /* otherwise, if parameter is set in system configuration file, return that value */
+  value = scr_hash_elem_get_first_val(scr_system_hash, name);
+  if (value != NULL) {
+    return value;
+  }
+
+  /* parameter not found, return NULL */
   return NULL;
 }
 
+/* searchs for name and returns a newly allocated hash of its value if set,
+ * returns NULL if not found */
+struct scr_hash* scr_param_get_hash(char* name)
+{
+  struct scr_hash* hash = NULL;
+  struct scr_hash* value_hash = NULL;
+
+  /* see if this parameter is one which is restricted from user */
+  struct scr_hash* no_user = scr_hash_get(scr_no_user_hash, name);
+
+  /* if parameter is set in environment, return that value */
+  if (no_user == NULL && getenv(name) != NULL) {
+    /* TODO: need to strdup here to be safe? */
+    hash = scr_hash_new();
+    scr_hash_set(hash, getenv(name), scr_hash_new());
+    return hash;
+  }
+
+  /* otherwise, if parameter is set in user configuration file, return that value */
+  value_hash = scr_hash_get(scr_user_hash, name);
+  if (no_user == NULL && value_hash != NULL) {
+    hash = scr_hash_new();
+    scr_hash_merge(hash, value_hash);
+    return hash;
+  }
+
+  /* otherwise, if parameter is set in system configuration file, return that value */
+  value_hash = scr_hash_get(scr_system_hash, name);
+  if (value_hash != NULL) {
+    hash = scr_hash_new();
+    scr_hash_merge(hash, value_hash);
+    return hash;
+  }
+
+  /* parameter not found, return NULL */
+  return NULL;
+}
+
+/* read config files and store contents */
 int scr_param_init()
 {
+  /* allocate storage and read in config files if we haven't already */
   if (scr_param_ref_count == 0) {
-    /* allocate hash objects to hold values from configuration files */
-    scr_config_hash = scr_hash_new();
+    /* allocate hash object to hold names we cannot read from the environment */
+    scr_no_user_hash = scr_hash_new();
+    scr_hash_set(scr_no_user_hash, "SCR_CNTL_BASE", scr_hash_new());
 
-    /* read parameters from configuration file */
-    scr_param_read_config(scr_config_file, scr_config_hash);
+    /* allocate hash object to store values from user config file, if specified */
+    char* user_file = getenv("SCR_CONF_FILE");
+    if (user_file != NULL) {
+      scr_user_hash = scr_hash_new();
+      scr_config_read(user_file, scr_user_hash);
+    }
 
+    /* allocate hash object to store values from system config file */
+    scr_system_hash = scr_hash_new();
+    scr_config_read(scr_config_file, scr_system_hash);
+
+    /* warn user if he set any parameters in his environment or user config file which aren't permitted */
+    struct scr_hash_elem* elem;
+    for (elem = scr_hash_elem_first(scr_no_user_hash);
+         elem != NULL;
+         elem = scr_hash_elem_next(elem))
+    {
+      /* get the parameter name */
+      char* key = scr_hash_elem_key(elem);
+
+      char* env_val = getenv(key);
+      struct scr_hash* env_hash = scr_hash_get(scr_user_hash, key);
+
+      /* check whether this is set in the environment */
+      if (env_val != NULL || env_hash != NULL) {
+        scr_err("%s cannot be set in the environment or user configuration file, ignoring setting", key);
+      }
+    }
   }
 
   /* increment our reference count */
@@ -350,6 +169,7 @@ int scr_param_init()
   return SCR_SUCCESS;
 }
 
+/* free contents from config files */
 int scr_param_finalize()
 {
   /* decrement our reference count */
@@ -358,7 +178,13 @@ int scr_param_finalize()
   /* if the reference count is zero, free the data structures */
   if (scr_param_ref_count == 0) {
     /* free our parameter hash */
-    scr_hash_delete(scr_config_hash);
+    scr_hash_delete(scr_user_hash);
+
+    /* free our parameter hash */
+    scr_hash_delete(scr_system_hash);
+
+    /* free the hash listing parameters user cannot set */
+    scr_hash_delete(scr_no_user_hash);
   }
 
   return SCR_SUCCESS;
