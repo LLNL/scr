@@ -20,6 +20,7 @@ sub new
   $self->{usrconf} = undef;
   $self->{sysconf} = undef;
   $self->{compile} = undef;
+  $self->{no_user} = undef;
 
   # read in the user configuration file, if specified
   if (defined $usrfile) {
@@ -33,6 +34,17 @@ sub new
   $self->{compile} = {};
   $self->{compile}{"SCR_CNTL_BASE"}{"@SCR_CNTL_BASE@"}   = {};
   $self->{compile}{"SCR_CACHE_BASE"}{"@SCR_CACHE_BASE@"} = {};
+  $self->{compile}{"SCR_CACHE_SIZE"}{"2"} = {};
+
+  # set our restricted parameters
+  $self->{no_user} = {};
+  $self->{no_user}{"SCR_CNTL_BASE"} = {};
+
+  # TODO: At this point we could scan the environment and user config file
+  # for restricted parameters to print a warning.  However, in this case
+  # printing the extra messages from a perl script whose output is used by
+  # other scripts as input may do more harm than good.  Printing the
+  # warning in the library should be sufficient.
 
   # if CACHE_BASE and CACHE_SIZE are set and the user didn't set CACHEDESC,
   # create a single CACHEDESC in the user hash
@@ -109,12 +121,12 @@ sub get
   my $name = shift;
 
   # if param is set in environment, return that value
-  if (defined $ENV{$name}) {
+  if (not defined $self->{no_user}{$name} and defined $ENV{$name}) {
     return $ENV{$name};
   }
 
   # otherwise, check whether we have it defined in our user config file
-  if (defined $self->{usrconf}{$name}) {
+  if (not defined $self->{no_user}{$name} and defined $self->{usrconf}{$name}) {
     my $first = (keys %{$self->{usrconf}{$name}})[0];
     return $first;
   }
@@ -140,12 +152,12 @@ sub get_hash
   my $name = shift;
 
   # if param is set in environment, return that value
-  if (defined $ENV{$name}) {
+  if (not defined $self->{no_user}{$name} and defined $ENV{$name}) {
     return $ENV{$name};
   }
 
   # otherwise, check whether we have it defined in our user config file
-  if (defined $self->{usrconf}{$name}) {
+  if (not defined $self->{no_user}{$name} and defined $self->{usrconf}{$name}) {
     my %h = ();
     %h = %{$self->{usrconf}{$name}};
     return %h;

@@ -18,4 +18,10 @@ int scr_atod(char* str, double* val);
 /* converts string like 10mb to unsigned long long integer value of 10*1024*1024 */
 int scr_abtoull(char* str, unsigned long long* val);
 
+/* allocates a block of memory and aligns it to specified alignment */
+void* scr_align_malloc(size_t size, size_t align);
+
+/* frees a blocked allocated with a call to scr_align_malloc */
+void scr_align_free(void* buf);
+
 #endif

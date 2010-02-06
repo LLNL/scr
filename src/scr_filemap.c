@@ -163,8 +163,7 @@ static int scr_filemap_unset_if_empty(scr_filemap* map, int ckpt, int rank)
 int scr_filemap_remove_file(scr_filemap* map, int ckpt, int rank, const char* file)
 {
   /* remove file from RANK/CKPT/FILE hash */
-  struct scr_hash* r  = scr_filemap_r(map, rank);
-  struct scr_hash* rc = scr_filemap_c(r,   ckpt);
+  struct scr_hash* rc = scr_filemap_rc(map, ckpt, rank);
   scr_hash_unset_kv(rc, SCR_FILEMAP_KEY_FILE, file);
 
   /* unset RANK/CKPT and CKPT/RANK indicies if the hash is empty */
@@ -196,10 +195,8 @@ int scr_filemap_set_desc(scr_filemap* map, int ckpt, int rank, struct scr_hash* 
 /* copies the checkpoint descriptor hash for the given rank and checkpoint id into hash */
 int scr_filemap_get_desc(scr_filemap* map, int ckpt, int rank, struct scr_hash* hash)
 {
-  /* set the RANK/CKPT index and get hash references */
-  struct scr_hash* r  = scr_hash_set_kv_int(map, SCR_FILEMAP_KEY_RANK, rank);
-  struct scr_hash* rc = scr_hash_set_kv_int(r,   SCR_FILEMAP_KEY_CKPT, ckpt);
-
+  /* get RANK/CKPT hash */
+  struct scr_hash* rc = scr_filemap_rc(map, ckpt, rank);
   struct scr_hash* desc = scr_hash_get(rc, SCR_FILEMAP_KEY_DESC);
   if (desc != NULL) {
     scr_hash_merge(hash, desc);
@@ -212,10 +209,8 @@ int scr_filemap_get_desc(scr_filemap* map, int ckpt, int rank, struct scr_hash* 
 /* unset the checkpoint descriptor hash for the given rank and checkpoint id */
 int scr_filemap_unset_desc(scr_filemap* map, int ckpt, int rank)
 {
-  /* get hash references for this rank and checkpoint pair */
-  /* unset EXPECT value */
-  struct scr_hash* r  = scr_filemap_r(map, rank);
-  struct scr_hash* rc = scr_filemap_c(r,   ckpt);
+  /* unset CKPTDESC value */
+  struct scr_hash* rc = scr_filemap_rc(map, ckpt, rank);
   scr_hash_unset(rc, SCR_FILEMAP_KEY_DESC);
 
   /* unset RANK/CKPT and CKPT/RANK indicies if the hash is empty */
@@ -246,8 +241,7 @@ int scr_filemap_set_expected_files(scr_filemap* map, int ckpt, int rank, int exp
 int scr_filemap_unset_expected_files(scr_filemap* map, int ckpt, int rank)
 {
   /* unset EXPECT value */
-  struct scr_hash* r  = scr_filemap_r(map, rank);
-  struct scr_hash* rc = scr_filemap_c(r,   ckpt);
+  struct scr_hash* rc = scr_filemap_rc(map, ckpt, rank);
   scr_hash_unset(rc, SCR_FILEMAP_KEY_EXPECT);
 
   /* unset RANK/CKPT and CKPT/RANK indicies if the hash is empty */
@@ -282,6 +276,9 @@ int scr_filemap_unset_tag(scr_filemap* map, int ckpt, int rank, const char* tag)
   /* define tag in Rank/CheckpointID/File hash */
   struct scr_hash* rc = scr_filemap_rc(map, ckpt, rank);
   scr_hash_unset(rc, tag);
+
+  /* unset RANK/CKPT and CKPT/RANK indicies if the hash is empty */
+  scr_filemap_unset_if_empty(map, ckpt, rank);
 
   return SCR_SUCCESS;
 }
@@ -349,6 +346,12 @@ int scr_filemap_remove_checkpoint(scr_filemap* map, int ckpt)
     scr_filemap_remove_rank_by_checkpoint(map, ckpt, rank);
   }
   return SCR_SUCCESS;
+}
+
+/* clear the filemap completely */
+int scr_filemap_clear(scr_filemap* map)
+{
+  return scr_hash_unset_all(map);
 }
 
 /* returns true if we have a hash for specified rank */

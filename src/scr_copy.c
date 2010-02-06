@@ -101,6 +101,42 @@ static int scr_bool_have_file(const char* file, int ckpt, int rank)
   return 1;
 }
 
+static int scr_bool_have_files(scr_filemap* map, int ckpt, int rank)
+{
+  /* check that the expected number of files matches the real number of files */
+  int exp_files = scr_filemap_num_expected_files(map, ckpt, rank);
+  int num_files = scr_filemap_num_files(map, ckpt, rank);
+  if (exp_files != num_files) {
+    return 0;
+  }
+
+  int have_files = 1;
+
+  /* now check that we have each file */
+  struct scr_hash_elem* rank_elem;
+  for (rank_elem = scr_filemap_first_rank_by_checkpoint(map, ckpt);
+       rank_elem != NULL;
+       rank_elem = scr_hash_elem_next(rank_elem))
+  {
+    int rank = scr_hash_elem_key_int(rank_elem);
+
+    struct scr_hash_elem* file_elem = NULL;
+    for (file_elem = scr_filemap_first_file(map, ckpt, rank);
+         file_elem != NULL;
+         file_elem = scr_hash_elem_next(file_elem))
+    {
+      /* get filename and check that we can read it */
+      char* file = scr_hash_elem_key(file_elem);
+
+      if (! scr_bool_have_file(file, ckpt, rank)) {
+        have_files = 0;
+      }
+    }
+  }
+
+  return have_files;
+}
+
 int main (int argc, char *argv[])
 {
   /* get my hostname */
@@ -251,6 +287,11 @@ int main (int argc, char *argv[])
       if (!my_partner_failed) {
         continue;
       }
+    }
+
+    /* only copy data if we actually have the files */
+    if (! scr_bool_have_files(map, ckpt, rank)) {
+      continue;
     }
 
     /* allocate a rank filemap object and set the expected number of files */

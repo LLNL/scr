@@ -38,7 +38,7 @@ void scr_err(const char *fmt, ...)
   }
 
   va_list argp;
-  fprintf(stderr, "SCR ERROR: %s:", hostname);
+  fprintf(stderr, "SCR ERROR: %s: ", hostname);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -58,7 +58,7 @@ void scr_dbg(int level, const char *fmt, ...)
   /*
   if (level == 0 || (scr_debug > 0 && scr_debug >= level)) {
   */
-    fprintf(stdout, "SCR: %s:", hostname);
+    fprintf(stdout, "SCR: %s: ", hostname);
     va_start(argp, fmt);
     vfprintf(stdout, fmt, argp);
     va_end(argp);
@@ -78,7 +78,7 @@ void scr_abort(int rc, const char *fmt, ...)
   }
 
   va_list argp;
-  fprintf(stderr, "SCR ABORT: %s:", hostname);
+  fprintf(stderr, "SCR ABORT: %s: ", hostname);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);

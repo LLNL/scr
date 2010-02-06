@@ -66,6 +66,15 @@ int scr_filemap_remove_rank(scr_filemap* map, int rank);
 /* remove all associations for a given checkpoint */
 int scr_filemap_remove_checkpoint(scr_filemap* map, int ckpt);
 
+/* clear the filemap completely */
+int scr_filemap_clear(scr_filemap* map);
+
+/* adds all files from map2 to map1 and updates num_expected_files to total file count */
+int scr_filemap_merge(scr_filemap* map1, scr_filemap* map2);
+
+/* extract specified rank from given filemap and return as a new filemap */
+scr_filemap* scr_filemap_extract_rank(scr_filemap* map, int rank);
+
 /*
 =========================================
 Filemap list functions
@@ -151,12 +160,6 @@ int scr_filemap_num_expected_files(scr_filemap* map, int ckpt, int rank);
 Filemap read/write/free functions
 =========================================
 */
-
-/* adds all files from map2 to map1 and updates num_expected_files to total file count */
-int scr_filemap_merge(scr_filemap* map1, scr_filemap* map2);
-
-/* extract specified rank from given filemap and return as a new filemap */
-scr_filemap* scr_filemap_extract_rank(scr_filemap* map, int rank);
 
 /* reads specified file and fills in filemap structure */
 int scr_filemap_read(const char* file, scr_filemap* map);

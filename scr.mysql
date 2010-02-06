@@ -1,26 +1,38 @@
-# This file defines the MySQL database tables used for MySQL logging.
-# If this logging is enabled, one must execute this file on a resource
-# running MySQL, e.g.,
+# This file defines the database tables used for MySQL logging.
+# To set up the database, first set two passwords for the "scr"
+# and "scr_insert" users in the respective "IDENTIFIED BY" fields,
+# e.g.,
+#   GRANT ALL
+#     ON scr.* TO `scr`
+#     IDENTIFIED BY 'MySecretPassword1'
+# Then provide this file as input to a mysql command on the host
+# running the MySQL server, e.g.,.
 #   mysql -u root -p < scr.mysql
 #
-# Then, one must also specify the hostname, username, password, and
-# database name in the scr.conf file.
+# After creating the database, one must then specify the hostname,
+# username, password, and database name in the system scr.conf file.
 #
-# The SCR library and the scripts both will attempt to read and
-# write records to this database.
+# The SCR library and the scripts both read and write records to
+# this database.
 
 # !!!! WARNING !!!!
-# Currently all users will have full read and write access to the
+# Currently all users have full read and write access to the
 # SCR logging database, so clever users can see data on jobs from
 # other users.
 # !!!! WARNING !!!!
 
 CREATE DATABASE IF NOT EXISTS `scr`;
 
+# !!!! TODO !!!!
+# Define passwords in the IDENTIFIED BY fields before creating the
+# database.
+# !!!! TODO !!!!
+
 # !!!! WARNING !!!!
-# Do NOT record passwords in this file, since doing so would leave
-# the passwords in the revision control system
+# Be sure no passwords are recorded in this file when checking it
+# into a revision control system.
 # !!!! WARNING !!!!
+
 GRANT ALL
   ON scr.* TO `scr`
   IDENTIFIED BY '';
@@ -30,11 +42,11 @@ GRANT INSERT,SELECT
 
 USE `scr`;
 
-DROP TABLE IF EXISTS `transfers`;
-DROP TABLE IF EXISTS `events`;
 DROP TABLE IF EXISTS `usernames`;
 DROP TABLE IF EXISTS `jobnames`;
 DROP TABLE IF EXISTS `jobs`;
+DROP TABLE IF EXISTS `transfers`;
+DROP TABLE IF EXISTS `events`;
 
 # maps a username string to an id
 CREATE TABLE IF NOT EXISTS `usernames` (

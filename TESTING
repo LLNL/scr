@@ -34,8 +34,10 @@ make
 mxterm 4 32 120
 
 # set up initial enviroment for testing
-setenv jobid 341
-setenv downnode coastal1147
+setenv jobid `../bin/scr_env --jobid`
+echo $jobid
+setenv downnode `../bin/scr_glob_hosts -n 1 -h "$SLURM_NODELIST"`
+echo $downnode
 
 setenv SCR_PREFIX `pwd`
 
@@ -67,7 +69,8 @@ rm -rf /ssd/moody20/scr.$jobid
 ../bin/scr_halt -r
 srun -n4 -N4 ./test_api
 
-# delete latest checkpoint directory from two nodes, remove halt file, run again, check that rebuild works for older checkpoint
+# delete latest checkpoint directory from two nodes, remove halt file, run again,
+# check that rebuild works for older checkpoint
 srun -n2 -N2 /bin/rm -rf /ssd/moody20/scr.$jobid/index.2/checkpoint.18
 srun -n2 -N2 /bin/rm -rf /tmp/moody20/scr.$jobid/index.2/checkpoint.18
 ../bin/scr_halt -r

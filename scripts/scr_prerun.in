@@ -73,7 +73,7 @@ if [ $UPNODES != "" ]; then
   cntldir=`$bindir/scr_cntl_dir`
   cachedir=`$bindir/scr_cntl_dir --cache`
   dir_list="$cntldir $cachedir"
-  echo "$prog: Clearing SCR directories: $cntldir, $cachedir"
+  echo "$prog: Clearing SCR directories: $cntldir $cachedir"
   $pdsh -w "$UPNODES" "$rm -rf $dir_list; $mkdir -p $dir_list"
   # TODO: want to process return code here to return an error?
 fi

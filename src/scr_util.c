@@ -148,3 +148,58 @@ int scr_abtoull(char* str, unsigned long long* val)
 
   return SCR_SUCCESS;
 }
+
+/* allocates a block of memory and aligns it to specified alignment */
+void* scr_align_malloc(size_t size, size_t align)
+{
+  void* buf = NULL;
+  if (posix_memalign(&buf, align, size) != 0) {
+    return NULL;
+  }
+  return buf;
+
+#if 0
+  /* allocate size + one block + room to store our starting address */
+  size_t bytes = size + align + sizeof(void*);
+
+  /* allocate memory */
+  void* start = malloc(bytes);
+  if (start == NULL) {
+    return NULL;
+  }
+
+  /* make room to store our starting address */
+  void* buf = start + sizeof(void*);
+
+  /* TODO: Compilers don't like modulo division on pointers */
+  /* now align the buffer address to a block boundary */
+  unsigned long long mask = (unsigned long long) (align - 1);
+  unsigned long long addr = (unsigned long long) buf;
+  unsigned long long offset = addr & mask;
+  if (offset != 0) {
+    buf = buf + (align - offset);
+  }
+
+  /* store the starting address in the bytes immediately before the buffer */
+  void** tmp = buf - sizeof(void*);
+  *tmp = start;
+
+  /* finally, return the buffer address to the user */
+  return buf;
+#endif
+}
+
+/* frees a blocked allocated with a call to scr_align_malloc */
+void scr_align_free(void* buf)
+{
+  free(buf);
+
+#if 0
+  /* first lookup the starting address from the bytes immediately before the buffer */
+  void** tmp = buf - sizeof(void*);
+  void* start = *tmp;
+
+  /* now free the memory */
+  free(start);
+#endif
+}
