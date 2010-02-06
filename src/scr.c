@@ -6725,13 +6725,13 @@ int SCR_Need_checkpoint(int* flag)
   /* assume we don't need to checkpoint */
   *flag = 0;
 
+  /* check whether a halt condition is active (don't halt, just be sure to return 1 in this case) */
+  if (!*flag && scr_bool_check_halt_and_decrement(SCR_TEST_BUT_DONT_HALT, 0)) {
+    *flag = 1;
+  }
+
   /* have rank 0 make the decision and broadcast the result */
   if (scr_my_rank_world == 0) {
-    /* check whether a halt condition is active (don't halt, just be sure to return 1 in this case) */
-    if (!*flag && scr_bool_check_halt_and_decrement(SCR_TEST_BUT_DONT_HALT, 0)) {
-      *flag = 1;
-    }
-
     /* TODO: account for MTBF, time to flush, etc. */
     /* if we don't need to halt, check whether we can afford to checkpoint */
 

@@ -48,6 +48,7 @@ setenv SCR_FLUSH 0
 setenv SCR_DEBUG 1
 setenv SCR_LOG_ENABLE 0
 setenv SCR_JOB_NAME testing_job
+
 setenv SCR_CONF_FILE ~/myscr.conf
 
 srun -n4 -N4 /bin/rm -rf /tmp/moody20/scr.$jobid 
