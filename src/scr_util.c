@@ -203,3 +203,8 @@ void scr_align_free(void* buf)
   free(start);
 #endif
 }
+
+/*sprintfs a formatted string into an newly allocated string */
+char* scr_strdupf()
+{
+}

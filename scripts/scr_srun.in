@@ -125,14 +125,19 @@ while [ 1 ] ; do
     #   if SCR_MIN_NODES is set, use that
     #   otherwise, use value in nodes file if one exists
     #   otherwise, assume we need all nodes in the allocation
+    # to start, assume we need all nodes in the allocation
+    num_needed=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
     if [ -n "$SCR_MIN_NODES" ]  ; then
+      # if SCR_MIN_NODES is set, use that
       num_needed=$SCR_MIN_NODES
     else
       # try to lookup the number of nodes used in the last run
-      num_needed=`$bindir/scr_env --cntldir $cntldir --runnodes`
-      if [ $num_needed -le 0 ] ; then
-        # just go with the number of nodes in the allocation
-        num_needed=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
+      num_needed_env=`$bindir/scr_env --cntldir $cntldir --runnodes`
+      if [ $? -eq 0 ] ; then
+        if [ $num_needed_env -gt 0 ] ; then
+          # if the command worked, and the number is something larger than 0, go with that
+          num_needed=$num_needed_env
+        fi
       fi
     fi
 
@@ -161,7 +166,7 @@ while [ 1 ] ; do
 
   # launch the job, make sure we include the script node and exclude down nodes
   start_secs=`date +%s`
-  $bindir/scr_log_event -T "RUN STARTED" -N "Attempt $attempts" -S $start_secs
+  $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
   if [ -n "$SCR_CHECKPOINT_PATTERN" ] ; then export LD_PRELOAD="$libdir/libscr_interpose.so" ; fi
   srun --nodelist $script_node $exclude "$@"
   if [ -n "$SCR_CHECKPOINT_PATTERN" ] ; then unset LD_PRELOAD ; fi
@@ -172,7 +177,7 @@ while [ 1 ] ; do
   $bindir/scr_list_down_nodes $keep_down --secs $run_secs
 
   # log stats on the latest run attempt
-  $bindir/scr_log_event -T "RUN ENDED" -N "Attempt $attempts" -S $end_secs -D $run_secs
+  $bindir/scr_log_event -T "RUN ENDED" -N "Job=$jobid, Run=$attempts" -S $end_secs -D $run_secs
 
   # any retry attempts left?
   if [ $runs -gt -1 ] ; then

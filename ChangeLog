@@ -1,3 +1,35 @@
+2010-02-19 Adam Moody <moody20@llnl.gov>
+
+	* doc/scr.pdf : Updated scr.pdf to better match current version.
+
+2010-02-09 Adam Moody <moody20@llnl.gov>
+
+	* scripts/scr_prerun.in : Don't rm cache and control directories.  Didn't seem
+	  to be necessary in practice, and avoid risk that user or admin mistypes the
+	  cache or control base such that an rm -rf is done at the wrong level.
+
+	* scripts/scr_srun.in : Fixed bug to handle case when calling scr_env --runnodes
+	  when no node file exists.
+
+	* src/scr.c : Fixed bug when writing exit reason to halt file.  Fixed minor bugs
+	  when reporting checkpoint number on rebuild.
+
+	* : Changed build system to use MPICC on scr library but CC on everything else.
+	  Basic serial utilities programs had MPI library dependency otherwise.
+
+2010-02-05 Adam Moody <moody20@llnl.gov>
+
+	* src/scr.c : Fixed bug in Need_checkpoint where only rank 0 was calling broadcast
+	  when checkpoint whether it was time to halt.
+
+2010-02-01 Adam Moody <moody20@llnl.gov>
+
+	* : Added support for a user configuration file in addition to compile-time constants
+	  and the system configuration file.
+
+	* : Added code to enable multiple checkpoint configurations using multiple caches
+	  within a single run.  Reads configuration from user config file.
+
 2010-01-12 Adam Moody <moody20@llnl.gov>
 
 	* : Converted filemap, nodes, and halt files to use hash file format.

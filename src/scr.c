@@ -2411,7 +2411,7 @@ int scr_copy_files(scr_filemap* map, const struct scr_ckptdesc* c, int checkpoin
     if (scr_log_enable) {
       char ckpt_path[SCR_MAX_FILENAME];
       scr_checkpoint_dir(c, checkpoint_id, ckpt_path);
-      scr_log_transfer("COPY", ckpt_path, ckpt_path, &scr_checkpoint_id, &timestamp_start, &time_diff, bytes);
+      scr_log_transfer("COPY", c->base, ckpt_path, &checkpoint_id, &timestamp_start, &time_diff, bytes);
     }
   }
 
@@ -2797,14 +2797,15 @@ static int scr_fetch_files(scr_filemap* map, const char* dir)
   int read_summary = SCR_FAILURE;
   int total_files = 0;
   struct scr_meta* data = NULL;
-  char fetch_dir[SCR_MAX_FILENAME];
-  char fetch_dir_target[SCR_MAX_FILENAME];
+  char fetch_dir[SCR_MAX_FILENAME] = "";
+  char fetch_dir_target[SCR_MAX_FILENAME] = "";
   if (scr_my_rank_world == 0) {
     /* this may take a while, so tell user what we're doing */
     scr_dbg(1, "scr_fetch_files: Initiating fetch");
 
     /* build the fetch directory path */
     strcpy(fetch_dir, dir);
+    strcpy(fetch_dir_target, dir);
     if (access(fetch_dir, R_OK) == 0) {
       /* tell user where the fetch is coming from */
       char fetch_target[SCR_MAX_FILENAME];
@@ -2871,8 +2872,10 @@ static int scr_fetch_files(scr_filemap* map, const char* dir)
       if (data != NULL) { free(data); data = NULL; }
       scr_dbg(1, "scr_fetch_files: Failed to read summary file @ %s:%d", __FILE__, __LINE__);
       if (scr_log_enable) {
+        double time_end = MPI_Wtime();
+        double time_diff = time_end - time_start;
         time_t now = scr_log_seconds();
-        scr_log_event("FETCH FAILED", fetch_dir_target, NULL, &now, NULL);
+        scr_log_event("FETCH FAILED", fetch_dir_target, NULL, &now, &time_diff);
       }
     }
     return SCR_FAILURE;
@@ -3088,8 +3091,10 @@ static int scr_fetch_files(scr_filemap* map, const char* dir)
               __FILE__, __LINE__
       );
       if (scr_log_enable) {
+        double time_end = MPI_Wtime();
+        double time_diff = time_end - time_start;
         time_t now = scr_log_seconds();
-        scr_log_event("FETCH FAILED", fetch_dir_target, &checkpoint_id, &now, NULL);
+        scr_log_event("FETCH FAILED", fetch_dir_target, &checkpoint_id, &now, &time_diff);
       }
     }
     return SCR_FAILURE;
@@ -3485,6 +3490,11 @@ static int scr_flush_async_start(scr_filemap* map, int checkpoint_id)
   if (scr_my_rank_world == 0) {
     scr_flush_async_timestamp_start = scr_log_seconds();
     scr_flush_async_time_start = MPI_Wtime();
+
+    /* log the start of the flush */
+    if (scr_log_enable) {
+      scr_log_event("ASYNC FLUSH STARTED", NULL, &checkpoint_id, &scr_flush_async_timestamp_start, NULL);
+    }
   }
 
   /* mark that we've started a flush */
@@ -3509,12 +3519,15 @@ static int scr_flush_async_start(scr_filemap* map, int checkpoint_id)
               __FILE__, __LINE__
       );
       if (scr_log_enable) {
+        double time_end = MPI_Wtime();
+        double time_diff = time_end - scr_flush_async_time_start;
         time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH STARTED", NULL, &checkpoint_id, &now, NULL);
-        scr_log_event("ASYNC FLUSH FAILED", "Missing files in cache", &checkpoint_id, &now, NULL);
+        scr_log_event("ASYNC FLUSH FAILED", "Missing files in cache", &checkpoint_id, &now, &time_diff);
       }
     }
+
     /* TODO: could lead to a memory leak in scr_flush_async_hash */
+
     return SCR_FAILURE;
   }
 
@@ -3525,12 +3538,15 @@ static int scr_flush_async_start(scr_filemap* map, int checkpoint_id)
               __FILE__, __LINE__
       );
       if (scr_log_enable) {
+        double time_end = MPI_Wtime();
+        double time_diff = time_end - scr_flush_async_time_start;
         time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH STARTED", NULL, &checkpoint_id, &now, NULL);
-        scr_log_event("ASYNC FLUSH FAILED", NULL, &checkpoint_id, &now, NULL);
+        scr_log_event("ASYNC FLUSH FAILED", "Failed to create directory", &checkpoint_id, &now, &time_diff);
       }
     }
+
     /* TODO: could lead to a memory leak in scr_flush_async_hash */
+
     return SCR_FAILURE;
   }
   if (scr_my_rank_world == 0) {
@@ -3777,8 +3793,10 @@ static int scr_flush_async_test(scr_filemap* map, int checkpoint_id, double* byt
               __FILE__, __LINE__
       );
       if (scr_log_enable) {
+        double time_end = MPI_Wtime();
+        double time_diff = time_end - scr_flush_async_time_start;
         time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH TEST FAILED", "Missing files in cache", &checkpoint_id, &now, NULL);
+        scr_log_event("ASYNC FLUSH TEST FAILED", "Missing files in cache", &checkpoint_id, &now, &time_diff);
       }
     }
     return SCR_FAILURE;
@@ -3841,8 +3859,10 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
               __FILE__, __LINE__
       );
       if (scr_log_enable) {
+        double time_end = MPI_Wtime();
+        double time_diff = time_end - scr_flush_async_time_start;
         time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH COMPLETE FAILED", "Missing files in cache", &checkpoint_id, &now, NULL);
+        scr_log_event("ASYNC FLUSH COMPLETE FAILED", "Missing files in cache", &checkpoint_id, &now, &time_diff);
       }
     }
     return SCR_FAILURE;
@@ -4186,6 +4206,14 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
     time_start = MPI_Wtime();
   }
 
+  /* log the flush start */
+  if (scr_my_rank_world == 0) {
+    if (scr_log_enable) {
+      time_t now = scr_log_seconds();
+      scr_log_event("FLUSH STARTED", NULL, &checkpoint_id, &now, NULL);
+    }
+  }
+
   /* check that we have all of our files */
   int have_files = 1;
   if (have_files && (scr_check_files(map, checkpoint_id) != SCR_SUCCESS)) {
@@ -4196,9 +4224,10 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
     if (scr_my_rank_world == 0) {
       scr_err("scr_flush_files: One or more processes are missing their files @ %s:%d", __FILE__, __LINE__);
       if (scr_log_enable) {
+        double time_end = MPI_Wtime();
+        double time_diff = time_end - time_start;
         time_t now = scr_log_seconds();
-        scr_log_event("FLUSH STARTED", NULL, &checkpoint_id, &now, NULL);
-        scr_log_event("FLUSH FAILED", "Missing files in cache", &checkpoint_id, &now, NULL);
+        scr_log_event("FLUSH FAILED", "Missing files in cache", &checkpoint_id, &now, &time_diff);
       }
     }
     return SCR_FAILURE;
@@ -4220,9 +4249,10 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
     if (scr_my_rank_world == 0) {
       scr_err("scr_flush_files: Failed to create checkpoint directory @ %s:%d", __FILE__, __LINE__);
       if (scr_log_enable) {
+        double time_end = MPI_Wtime();
+        double time_diff = time_end - time_start;
         time_t now = scr_log_seconds();
-        scr_log_event("FLUSH STARTED", NULL, &checkpoint_id, &now, NULL);
-        scr_log_event("FLUSH FAILED", NULL, &checkpoint_id, &now, NULL);
+        scr_log_event("FLUSH FAILED", "Failed to create directory", &checkpoint_id, &now, &time_diff);
       }
     }
     return SCR_FAILURE;
@@ -4622,9 +4652,16 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     value = scr_hash_elem_get_first_val(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON);
     if (value != NULL) {
       if (strcmp(value, "") != 0) {
-        if (halt_cond == SCR_TEST_AND_HALT) {
-          scr_dbg(0, "Job exiting: Reason: %s.", value);
-          scr_halt(value);
+        /* since value points at the EXIT_REASON string in the halt hash, and since
+         * scr_halt() resets this value, we need to copy the current reason */
+        char* tmp_value = strdup(value);
+        if (halt_cond == SCR_TEST_AND_HALT && tmp_value != NULL) {
+          scr_dbg(0, "Job exiting: Reason: %s.", tmp_value);
+          scr_halt(tmp_value);
+        }
+        if (tmp_value != NULL) {
+          free(tmp_value);
+          tmp_value = NULL;
         }
         need_to_halt = 1;
       }
@@ -6396,15 +6433,16 @@ int SCR_Init()
     int distribute_attempted = 0;
 
     /* start timer */
-    time_t now;
+    time_t time_t_start;
     if (scr_my_rank_world == 0) {
-      now = scr_log_seconds();
+      time_t_start = scr_log_seconds();
       time_start = MPI_Wtime();
     }
 
     /* TODO: also attempt to recover checkpoints which we were in the middle of flushing */
     /* start from most recent checkpoint and work backwards */
     int max_id;
+    time_t now;
     do {
       /* clean incomplete files from our cache */
       scr_clean_files(scr_map);
@@ -6414,8 +6452,18 @@ int SCR_Init()
       MPI_Allreduce(&checkpoint_id, &max_id, 1, MPI_INT, MPI_MAX, scr_comm_world);
 
       if (max_id != -1) {
+        /* remember that we tried to distribute and rebuild at least one checkpoint */
         distribute_attempted = 1;
         
+        /* log the attempt */
+        if (scr_my_rank_world == 0) {
+          scr_dbg(1, "Attempting to distribute and rebuild checkpoint %d", max_id);
+          if (scr_log_enable) {
+            time_t now = scr_log_seconds();
+            scr_log_event("REBUILD STARTED", NULL, &max_id, &now, NULL);
+          }
+        }
+
         /* read descriptor for this checkpoint from flush file */
         int rebuild_succeeded = 0;
         struct scr_ckptdesc ckptdesc;
@@ -6450,15 +6498,26 @@ int SCR_Init()
 
         /* if the distribute or rebuild failed, delete the checkpoint */
         if (!rebuild_succeeded) {
+          /* log that we failed */
           if (scr_my_rank_world == 0) {
-            scr_dbg(1, "Could not distribute / rebuild checkpoint %d", max_id);
+            scr_dbg(1, "Failed to distribute and rebuild checkpoint %d", max_id);
             if (scr_log_enable) {
-              scr_log_event("DISTRIBUTE FAILED", NULL, &max_id, &now, NULL);
+              time_t now = scr_log_seconds();
+              scr_log_event("REBUILD FAILED", NULL, &max_id, &now, NULL);
             }
           }
 
           /* rebuild failed, delete this checkpoint */
           scr_checkpoint_delete(scr_map, max_id);
+        } else {
+          /* rebuid worked, log success */
+          if (scr_my_rank_world == 0) {
+            scr_dbg(1, "Rebuilt checkpoint %d", scr_checkpoint_id);
+            if (scr_log_enable) {
+              time_t now = scr_log_seconds();
+              scr_log_event("REBUILD SUCCEEDED", NULL, &scr_checkpoint_id, &now, NULL);
+            }
+          }
         }
       }
     } while (max_id != -1);
@@ -6468,7 +6527,7 @@ int SCR_Init()
     /* delete all checkpoints up to most recent */
     if (scr_checkpoint_id != 0) {
       if (scr_my_rank_world == 0) {
-        scr_dbg(1, "Rebuilt checkpoint %d, deleting excess checkpoints", scr_checkpoint_id);
+        scr_dbg(1, "Deleting excess checkpoints");
       }
 
       /* find the maximum number of checkpoints across all ranks */
@@ -6509,12 +6568,14 @@ int SCR_Init()
                   scr_checkpoint_id, time_diff
           );
           if (scr_log_enable) {
-            scr_log_event("RESTART SUCCEEDED", NULL, &scr_checkpoint_id, &now, &time_diff);
+            time_t now = scr_log_seconds();
+            scr_log_event("RESTART SUCCEEDED", NULL, &scr_checkpoint_id, &time_t_start, &time_diff);
           }
         } else {
           scr_dbg(1, "Scalable restart failed, took %f secs", time_diff);
           if (scr_log_enable) {
-            scr_log_event("RESTART FAILED", NULL, NULL, &now, &time_diff);
+            time_t now = scr_log_seconds();
+            scr_log_event("RESTART FAILED", NULL, NULL, &time_t_start, &time_diff);
           }
         }
       }
@@ -6616,6 +6677,12 @@ int SCR_Init()
     /* start the clocks for measuring the compute time */
     scr_timestamp_compute_start = scr_log_seconds();
     scr_time_compute_start = MPI_Wtime();
+
+    /* log the start time of this compute phase */
+    if (scr_log_enable) {
+      int compute_id = scr_checkpoint_id + 1;
+      scr_log_event("COMPUTE STARTED", NULL, &compute_id, &scr_timestamp_compute_start, NULL);
+    }
   }
 
   /* all done, ready to go */
@@ -6814,14 +6881,18 @@ int SCR_Start_checkpoint()
   /* make sure everyone is ready to start before we delete any existing checkpoints */
   MPI_Barrier(scr_comm_world);
 
-  /* set timers */
+  /* stop clock recording compute time */
   if (scr_my_rank_world == 0) {
     /* stop the clock for measuring the compute time */
     scr_time_compute_end = MPI_Wtime();
 
-    /* start the clock to record how long it takes to checkpoint */
-    scr_timestamp_checkpoint_start = scr_log_seconds();
-    scr_time_checkpoint_start = MPI_Wtime();
+    /* log the end of this compute phase */
+    if (scr_log_enable) {
+      int compute_id = scr_checkpoint_id + 1;
+      double time_diff = scr_time_compute_end - scr_time_compute_start;
+      time_t now = scr_log_seconds();
+      scr_log_event("COMPUTE COMPLETED", NULL, &compute_id, &now, &time_diff);
+    }
   }
 
   /* increment our checkpoint counter */
@@ -6829,6 +6900,17 @@ int SCR_Start_checkpoint()
 
   /* get the checkpoint descriptor for this checkpoint id */
   struct scr_ckptdesc* c = scr_ckptdesc_get(scr_checkpoint_id, scr_nckptdescs, scr_ckptdescs);
+
+  /* start the clock to record how long it takes to checkpoint */
+  if (scr_my_rank_world == 0) {
+    scr_timestamp_checkpoint_start = scr_log_seconds();
+    scr_time_checkpoint_start = MPI_Wtime();
+
+    /* log the start of this checkpoint phase */
+    if (scr_log_enable) {
+      scr_log_event("CHECKPOINT STARTED", c->base, &scr_checkpoint_id, &scr_timestamp_checkpoint_start, NULL);
+    }
+  }
 
   /* get an ordered list of the checkpoints currently in cache */
   int nckpts;
@@ -6999,9 +7081,15 @@ int SCR_Complete_checkpoint(int valid)
 
     /* log data on the checkpoint in the database */
     if (scr_log_enable) {
+      /* log the end of this checkpoint phase */
+      double time_diff = scr_time_checkpoint_end - scr_time_checkpoint_start;
+      time_t now = scr_log_seconds();
+      scr_log_event("CHECKPOINT COMPLETED", c->base, &scr_checkpoint_id, &now, &time_diff);
+
+      /* log the transfer details */
       char ckpt_path[SCR_MAX_FILENAME];
       scr_checkpoint_dir(c, scr_checkpoint_id, ckpt_path);
-      scr_log_transfer("CHECKPOINT", ckpt_path, ckpt_path, &scr_checkpoint_id,
+      scr_log_transfer("CHECKPOINT", c->base, ckpt_path, &scr_checkpoint_id,
                        &scr_timestamp_checkpoint_start, &cost, &bytes_copied
       );
     }
@@ -7048,6 +7136,12 @@ int SCR_Complete_checkpoint(int valid)
   if (scr_my_rank_world == 0) {
     scr_timestamp_compute_start = scr_log_seconds();
     scr_time_compute_start = MPI_Wtime();
+
+    /* log the start time of this compute phase */
+    if (scr_log_enable) {
+      int compute_id = scr_checkpoint_id + 1;
+      scr_log_event("COMPUTE STARTED", NULL, &compute_id, &scr_timestamp_compute_start, NULL);
+    }
   }
 
   return rc;

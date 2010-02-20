@@ -84,7 +84,8 @@ libyogrt support:
 MySQL DB Logging:
   SCR can log events to a MySQL database.  However, this feature
   is still in development.  Please disable this for now via
-  --without-mysql.
+  --without-mysql.  If you would like to give it a try, see the
+  scr.mysql file for further instructions.
 
 See the top of src/scr.c for the full set of compile-time define
 variables available.
@@ -123,3 +124,5 @@ To uninstall the installation:
 
 SCR is layered on top of MPI, so it must be built for the MPI library
 installed on the system.  It uses the standard mpicc compiler wrapper.
+If there are multiple MPI libraries, a separate SCR library must be
+built for each MPI library.

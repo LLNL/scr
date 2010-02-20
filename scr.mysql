@@ -1,19 +1,52 @@
 # This file defines the database tables used for MySQL logging.
-# To set up the database, first set two passwords for the "scr"
-# and "scr_insert" users in the respective "IDENTIFIED BY" fields,
-# e.g.,
+# This feature is considered to be at beta-level support.  The
+# following instructions should work, however, they have not
+# been well tested.  If you find any problems, please notify
+# the SCR developers.  To disable this feature, configure SCR
+# with the --without-mysql flag, or set SCR_DB_ENABLE=0 at
+# runtime or in the scr.conf file.
+#
+# To use this feature, one must run a MySQL server on a host
+# accessible to the compute nodes as well as the nodes that run
+# the batch job scripts.  One must also have the libmysqlclient
+# library installed, and SCR should be configured with the
+# --with-mysql flag.
+#
+# To set up the database, first set passwords in this file for
+# the "scr" and "scr_insert" users in the "IDENTIFIED BY" fields
+# in the lines below, e.g.,
+#
 #   GRANT ALL
 #     ON scr.* TO `scr`
 #     IDENTIFIED BY 'MySecretPassword1'
+#   GRANT ALL
+#     ON scr.* TO `scr_insert`
+#     IDENTIFIED BY 'MySecretPassword2'
+#
 # Then provide this file as input to a mysql command on the host
 # running the MySQL server, e.g.,.
+#
 #   mysql -u root -p < scr.mysql
 #
-# After creating the database, one must then specify the hostname,
-# username, password, and database name in the system scr.conf file.
-#
 # The SCR library and the scripts both read and write records to
-# this database.
+# this database.  Thus, the database must be accessible to both
+# the compute nodes and the nodes where the batch scripts run.
+#
+#   (There may be a step necessary here to adjust the "users" table
+#   in the "mysql" database to enable remote access to the scr and
+#   scr_insert users from the compute nodes and the nodes that run
+#   the batch job script.)
+#
+# After creating the database, one must then specify the hostname,
+# database name, username, and password in the system scr.conf file.
+# For the time being, only the scr_insert user is used, e.g.,
+#
+#   >>: cat /etc/scr.conf
+#   SCR_DB_ENABLE=1
+#   SCR_DB_HOST=host.running.mysql.server
+#   SCR_DB_NAME=scr
+#   SCR_DB_USER=scr_insert
+#   SCR_DB_PASS=MySecretPassword2
 
 # !!!! WARNING !!!!
 # Currently all users have full read and write access to the
@@ -86,7 +119,7 @@ CREATE TABLE IF NOT EXISTS `transfers` (
         `bw`            FLOAT        NOT NULL, # bandwidth of operation
         `from`          BLOB         NOT NULL, # source directory
         `to`            BLOB         NOT NULL, # target directory
-        INDEX `jobid` (`jobid`)
+        INDEX `jobid_start` (`jobid`,`start`)
 ) TYPE=MyISAM;
 
 # records various events, including failed nodes
@@ -98,5 +131,5 @@ CREATE TABLE IF NOT EXISTS `events` (
         `start`         DATETIME         NULL, # start time of operation
         `time`          FLOAT            NULL, # total time of operation
         `note`          BLOB             NULL, # source directory
-        INDEX `jobid` (`jobid`)
+        INDEX `jobid_start` (`jobid`,`start`)
 ) TYPE=MyISAM;

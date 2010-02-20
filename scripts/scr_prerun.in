@@ -50,33 +50,12 @@ fi
 # all parameters checked out, start normal output
 echo "$prog: Started: $start_time"
 
-# get our nodeset for this job
-if [ -z "$SCR_NODELIST" ] ; then
-  nodelist_env=`$bindir/scr_env --nodes`
-  if [ $? -eq 0 ] ; then
-    SCR_NODELIST=$nodelist_env
-  fi
-fi
-if [ -z "$SCR_NODELIST" ] ; then
-  echo "$prog: ERROR: Could not identify nodeset"
-  exit 1
-fi
-export SCR_NODELIST
-
-# identify nodes in our allocation and the set that are still up
-UPNODES=$SCR_NODELIST
-
-# fire off a command on the remaining nodes
-ret=0
-if [ $UPNODES != "" ]; then
-  # clean control and cache directories
-  cntldir=`$bindir/scr_cntl_dir`
-  cachedir=`$bindir/scr_cntl_dir --cache`
-  dir_list="$cntldir $cachedir"
-  echo "$prog: Clearing SCR directories: $cntldir $cachedir"
-  $pdsh -w "$UPNODES" "$rm -rf $dir_list; $mkdir -p $dir_list"
-  # TODO: want to process return code here to return an error?
-fi
+# TODO: It would be nice to clear the cache and control directories
+# here in preparation for the run.  However, a simple rm -rf is too
+# dangerous, since it's too easy to accidentally specify the wrong
+# base directory.
+#
+# For now, we just keep this script around as a place holder.
 
 # report timing info
 end_time=`date`

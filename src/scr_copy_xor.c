@@ -9,7 +9,6 @@
  * Please also read this file: LICENSE.TXT.
 */
 
-#include "mpi.h"
 #include "scr.h"
 #include "scr_copy_xor.h"
 #include "scr_io.h"

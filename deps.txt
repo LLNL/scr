@@ -4,38 +4,38 @@ Implementation details
 There are three types of directories where SCR manages files.
 
 (1) Cache directory
-SCR instructs the application to write its checkpoint
-files to a cache directory, and SCR computes and stores redundancy
-data here.  SCR can be configured to use more than one cache directory,
-even within a single job.  For scalability, the cache directory should
-be local to the compute node, however, it does not have to be.  In
-fact, one could locate the cache directory in the parallel file
-system, however, the scalability would be lost in this case.  The
-cache directory must be fairly large, as it must store the application
-checkpoint data and redundancy data.  It must be large enough to store
-one full checkpoint, and it's better if you can store at least two
-checkpoints.  When using storage local to the compute node, the cache
-must be roughly 0.5x-3x the size of the node's memory to be effective.
-LLNL currently uses RAM disk for this, and we are now exploring SSDs.
+SCR instructs the application to write its checkpoint files to a cache
+directory, and SCR computes and stores redundancy data here.  SCR can
+be configured to use more than one cache directory in a single run.
+The cache directory must be local to the compute node.
+
+The cache directory must be large enough to hold at least one full
+application checkpoint.  However, it is significantly better if the
+cache is large enough to store at least two checkpoints.  When using
+storage local to the compute node, the cache must be roughly 0.5x-3x
+the size of the node's memory to be effective.
+
+LLNL currently uses RAM disk for the cache directory, and we are now
+exploring SSDs.
 
 (2) Control directory
 SCR stores files to track its internal state in the control directory.
 It also uses this directory to read commands from the user.  Currently,
-this directory must be local to the compute node.  These files are very
-small and they are read and written to frequently, so RAM disk works
-best for this.  There are a variety of files kept in the control
-directory.  For some of these files, all processes maintain their own
-file, and for others, only rank 0 accesses the file.
+this directory must be local to the compute node.  Files written to the
+control directory are small and they are read and written to frequently,
+so RAM disk works well for this.  There are a variety of files kept in
+the control directory.  For some of these files, all processes maintain
+their own file, and for others, only rank 0 accesses the file.
 
 (3) Parallel file system prefix directory
 This is the directory where SCR will fetch and flush checkpoint sets
 to the parallel file system.
 
-Now, there are two parts required to make SCR work.
+There are two primary components that make up SCR.
 
 (1) Library
 First, there's the library the application calls.  This library is
-written in C and it makes calls to basic MPI and POSIX I/O functions to
+written in C and it makes calls to MPI and POSIX I/O functions to
 manage the cached checkpoint files on the cluster.  The library informs
 the application where it should write checkpoint files, and then the
 library applies the redundancy scheme to those checkpoint files after
@@ -52,18 +52,18 @@ job can exit if this is not the case.  If multiple runs are attempted
 within the same resource allocation (e.g., start run / node fails /
 start second run in what's left of the allocation), it's best to do
 this check of the cache and control directories before each run is
-started to check that a node that used to be healthy hasn't suddenly
-gone bad.  At the very end of a job, a set of scripts run to drain the
-latest checkpoint from the cache directory to the parallel file system.
+started to check that a node that used to be healthy hasn't gone bad.
+At the end of a job, a set of scripts run to drain the latest
+checkpoint from the cache directory to the parallel file system.
 This is necessary since the library may not have flushed its latest
-checkpoint before the latest run was killed.
+checkpoint before the last run was killed.
 
 The scripts are just as vital as the library in order for SCR to
 function.  In particular, after a node failure, the scripts must be
 able to access the cache and control directories of the nodes which
-are still healty.  Thus, the resource manager must enable these
-scripts to run on the remaining nodes of an allocation, which may
-have sustained one or more failed nodes. 
+are still healty.  Thus, the resource manager must be configured to
+enable these scripts to run on the remaining nodes of an allocation,
+which may have sustained one or more failed nodes. 
 
 
 ====================
@@ -131,10 +131,6 @@ pdsh dependencies
   The current implementation uses pdsh in order to run scripts and
   programs on the nodes allocated to the job.  One could replace pdsh
   with some work.  Here are the locations where pdsh is used.
-
-  scripts/scr_prerun.in
-    invokes pdsh to remove cache and control directories on each node
-    before the run starts
 
   scripts/scr_list_down_nodes.in
     invokes pdsh to run "scr_check_node" on each node
@@ -276,10 +272,7 @@ scripts/scr_flush.in
   invokes "pdsh" to run "scr_copy" on each node
 
 scripts/scr_prerun.in
-  invokes "scr_env --nodes" to get current nodeset
-  invokes "scr_cntl_dir" to get control directory
-  invokes "scr_cntl_dir --cache" to get cache directory
-  invokes "pdsh" to remove control and cache directories on each node
+  Currently does nothing
 
 scripts/scr_postrun.in
   invokes "scr_cntl_dir" to get the control directory
