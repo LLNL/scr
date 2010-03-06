@@ -11,6 +11,7 @@
 
 /* Reads parameters from environment and configuration files */
 
+#include "scr_conf.h"
 #include "scr.h"
 #include "scr_err.h"
 #include "scr_io.h"
@@ -29,14 +30,6 @@
 /* variable length args */
 #include <stdarg.h>
 #include <errno.h>
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#ifndef SCR_CONFIG_FILE
-#define SCR_CONFIG_FILE "/etc/scr.conf"
-#endif
 
 /* since multiple objects may require parameters, and thus init and finalize,
  * we keep a reference so we don't clear the data structures until all modules

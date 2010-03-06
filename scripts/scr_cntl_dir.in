@@ -52,10 +52,12 @@ if (not $rc) {
 my @bases = ();
 if (defined $conf{cache}) {
   # lookup cache base
-  my %cachedesc = $param->get_hash("CACHEDESC");
-  foreach my $index (keys %cachedesc) {
-    if (defined $cachedesc{$index}{"BASE"}) {
-      push @bases, (keys %{$cachedesc{$index}{"BASE"}})[0];
+  my $cachedesc = $param->get_hash("CACHEDESC");
+  if (defined $cachedesc) {
+    foreach my $index (keys %$cachedesc) {
+      if (defined $$cachedesc{$index}{"BASE"}) {
+        push @bases, (keys %{$$cachedesc{$index}{"BASE"}})[0];
+      }
     }
   }
 } else {

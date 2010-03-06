@@ -43,12 +43,6 @@ struct scr_meta
   int complete;
   int crc32_computed;
   uLong crc32;
-
-  char src_filename[SCR_MAX_FILENAME];
-  unsigned long src_filesize;
-  int src_complete;
-  int src_crc32_computed;
-  uLong src_crc32;
 };
 
 /* build meta data filename for input file */

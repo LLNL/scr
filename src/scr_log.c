@@ -11,11 +11,13 @@
 
 /* Implements a logging interface for SCR events and file transfer operations */
 
+#include "scr_conf.h"
 #include "scr.h"
 #include "scr_err.h"
 #include "scr_io.h"
 #include "scr_param.h"
 #include "scr_log.h"
+#include "scr_hash.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,10 +31,6 @@
 
 /* localtime, asctime */
 #include <time.h>
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #ifdef HAVE_LIBMYSQLCLIENT
 #include <mysql/mysql.h>
@@ -55,13 +53,23 @@ MySQL functions
 static MYSQL scr_mysql;
 #endif
 
-static unsigned long scr_db_jobid = 0;
+static unsigned long scr_db_jobid = 0;       /* caches the jobid for the current job */
+static struct scr_hash* scr_db_types = NULL; /* caches type string to type id lookups */
 
 /* connects to the SCR log database */
 int scr_mysql_connect()
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* TODO: read in connection parameters using scr_get_param calls */
+
+  /* create our type string to id cache */
+  scr_db_types = scr_hash_new();
+  if (scr_db_types == NULL) {
+    scr_err("Failed to create a hash to cache type string to id lookups @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
 
   /* initialize our database structure */
   mysql_init(&scr_mysql);
@@ -82,6 +90,9 @@ int scr_mysql_connect()
 int scr_mysql_disconnect()
 {
 #ifdef HAVE_LIBMYSQLCLIENT
+  /* free our type string to id cache */
+  scr_hash_delete(scr_db_types);
+
   mysql_close(&scr_mysql);
 #endif
   return SCR_SUCCESS;
@@ -178,165 +189,7 @@ char* scr_mysql_quote_double(const double* value)
 #endif
 }
 
-/* records an SCR event in the SCR log database */
-int scr_mysql_log_event(const char* type, const char* note, const int* ckpt, const time_t* start, const double* secs)
-{
-#ifdef HAVE_LIBMYSQLCLIENT
-  char* qtype  = scr_mysql_quote_string(type);
-  char* qnote  = scr_mysql_quote_string(note);
-  char* qckpt  = scr_mysql_quote_int(ckpt);
-  char* qstart = scr_mysql_quote_seconds(start);
-  char* qsecs  = scr_mysql_quote_double(secs);
-
-  /* check that we got valid strings for each of our parameters */
-  if (qtype  == NULL ||
-      qnote  == NULL ||
-      qckpt  == NULL ||
-      qstart == NULL ||
-      qsecs  == NULL)
-  {
-    scr_err("Failed to escape and quote one or more arguments @ %s:%d",
-            __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* construct the query */
-  char query[4096];
-  int n = snprintf(query, sizeof(query),
-    "INSERT"
-    " INTO `events`"
-    " (`id`,`jobid`,`type`,`checkpoint_id`,`start`,`time`,`note`)"
-    " VALUES"
-    " (NULL, %d, %s, %s, %s, %s, %s)"
-    " ;",
-    scr_db_jobid, qtype, qckpt, qstart, qsecs, qnote
-  );
-
-  /* free the strings as they are now encoded into the query */
-  if (qtype)  { free(qtype);  qtype  = NULL; }
-  if (qnote)  { free(qnote);  qnote  = NULL; }
-  if (qckpt)  { free(qckpt);  qckpt  = NULL; }
-  if (qstart) { free(qstart); qstart = NULL; }
-  if (qsecs)  { free(qsecs);  qsecs  = NULL; }
-
-  /* check that we were able to construct the query ok */
-  if (n >= sizeof(query)) {
-    scr_err("Insufficient buffer space (%lu bytes) to build query (%lu bytes) @ %s:%d",
-            sizeof(query), n, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* execute the query */
-  if (scr_db_debug >= 1) {
-    scr_dbg(0, "%s", query);
-  }
-  if (mysql_real_query(&scr_mysql, query, (unsigned int) strlen(query))) {
-    scr_err("Insert failed, query = (%s), error = (%s) @ %s:%d",
-            query, mysql_error(&scr_mysql), __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-#endif
-  return SCR_SUCCESS;
-}
-
-/* records an SCR file transfer (checkpoint/fetch/flush/drain) in the SCR log database */
-int scr_mysql_log_transfer(const char* type, const char* from, const char* to, const int* ckpt, const time_t* start, const double* secs, const double* bytes)
-{
-#ifdef HAVE_LIBMYSQLCLIENT
-  /* compute end epoch, using trucation here */
-  time_t* end = NULL;
-  time_t end_val;
-  if (start != NULL && secs != NULL) {
-    end_val = *start + (time_t) *secs;
-    end = &end_val;
-  }
-
-  /* compute the number of seconds and the bandwidth of the operation */
-  double* bw = NULL;
-  double bw_val;
-  if (bytes != NULL && secs != NULL && *secs > 0.0) {
-    bw_val = *bytes / *secs;
-    bw = &bw_val;
-  }
-  
-  /* convert seconds since epoch to mysql datetime strings */
-  char* qtype  = scr_mysql_quote_string(type);
-  char* qfrom  = scr_mysql_quote_string(from);
-  char* qto    = scr_mysql_quote_string(to);
-  char* qckpt  = scr_mysql_quote_int(ckpt);
-  char* qstart = scr_mysql_quote_seconds(start);
-  char* qend   = scr_mysql_quote_seconds(end);
-  char* qsecs  = scr_mysql_quote_double(secs);
-  char* qbytes = scr_mysql_quote_double(bytes);
-  char* qbw    = scr_mysql_quote_double(bw);
-
-  /* check that we got valid strings for each of our parameters */
-  if (qtype  == NULL ||
-      qfrom  == NULL ||
-      qto    == NULL ||
-      qckpt  == NULL ||
-      qstart == NULL ||
-      qend   == NULL ||
-      qsecs  == NULL ||
-      qbytes == NULL ||
-      qbw    == NULL)
-  {
-    scr_err("Failed to escape and quote one or more arguments @ %s:%d",
-            __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* construct the query */
-  char query[4096];
-  int n = snprintf(query, sizeof(query),
-    "INSERT"
-    " INTO `transfers`"
-    " (`id`,`jobid`,`type`,`checkpoint_id`,`start`,`end`,`time`,`bytes`,`bw`,`from`,`to`)"
-    " VALUES"
-    " (NULL, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-    " ;",
-    scr_db_jobid, qtype, qckpt, qstart, qend, qsecs, qbytes, qbw, qfrom, qto
-  );
-
-  /* free the strings as they are now encoded into the query */
-  if (qtype)  { free(qtype);  qtype  = NULL; }
-  if (qfrom)  { free(qfrom);  qfrom  = NULL; }
-  if (qto)    { free(qto);    qto    = NULL; }
-  if (qckpt)  { free(qckpt);  qckpt  = NULL; }
-  if (qstart) { free(qstart); qstart = NULL; }
-  if (qend)   { free(qend);   qend   = NULL; }
-  if (qsecs)  { free(qsecs);  qsecs  = NULL; }
-  if (qbytes) { free(qbytes); qbytes = NULL; }
-  if (qbw)    { free(qbw);    qbw    = NULL; }
-
-  /* check that we were able to construct the query ok */
-  if (n >= sizeof(query)) {
-    scr_err("Insufficient buffer space (%lu bytes) to build query (%lu bytes) @ %s:%d",
-            sizeof(query), n, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* execute the query */
-  if (scr_db_debug >= 1) {
-    scr_dbg(0, "%s", query);
-  }
-  if (mysql_real_query(&scr_mysql, query, (unsigned int) strlen(query))) {
-    scr_err("Insert failed, query = (%s), error = (%s) @ %s:%d",
-            query, mysql_error(&scr_mysql), __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-#endif
-  return SCR_SUCCESS;
-}
-
+/* lookup name in table and return id if found */
 int scr_mysql_read_id(const char* table, const char* name, unsigned long* id)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
@@ -414,6 +267,7 @@ int scr_mysql_read_id(const char* table, const char* name, unsigned long* id)
   return SCR_SUCCESS;
 }
 
+/* lookup name in table, insert if it doesn't exist, and return id */
 int scr_mysql_read_write_id(const char* table, const char* name, unsigned long* id)
 {
   int rc = SCR_SUCCESS;
@@ -473,6 +327,219 @@ int scr_mysql_read_write_id(const char* table, const char* name, unsigned long* 
 
 #endif
   return rc;
+}
+
+/* lookups a type string and returns its id, 
+ * inserts string into types table if not found,
+ * caches lookups to avoid database reading more than once */
+int scr_mysql_type_id(const char* type, int* id)
+{
+#ifdef HAVE_LIBMYSQLCLIENT
+  unsigned long tmp_id;
+
+  /* check that we don't have a NULL string */
+  if (type == NULL) {
+    scr_err("Type string is NULL @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* first check the hash in case we can avoid reading from the database */
+  char* id_str = scr_hash_elem_get_first_val(scr_db_types, type);
+  if (id_str != NULL) {
+    /* found our id from the hash, convert to an unsigned long, then to an int */
+    tmp_id = strtoul(id_str, NULL, 0);
+    *id = (int) tmp_id;
+    return SCR_SUCCESS;
+  }
+
+  /* lookup the id for our jobname */
+  if (scr_mysql_read_write_id("types", type, &tmp_id) != SCR_SUCCESS) {
+    scr_err("Failed to find type_id for %s @ %s:%d",
+            type, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* got our id, now cache the lookup */
+  scr_hash_setf(scr_db_types, NULL, "%s %lu", type, tmp_id);
+
+  /* cast the id down to an int */
+  *id = (int) tmp_id;
+#endif
+  return SCR_SUCCESS;
+}
+
+/* records an SCR event in the SCR log database */
+int scr_mysql_log_event(const char* type, const char* note, const int* ckpt, const time_t* start, const double* secs)
+{
+#ifdef HAVE_LIBMYSQLCLIENT
+  /* lookup the id for the type string */
+  int type_id = -1;
+  if (scr_mysql_type_id(type, &type_id) == SCR_FAILURE) {
+    scr_err("Failed to lookup id for type string %s @ %s:%d",
+            type, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  char* qnote  = scr_mysql_quote_string(note);
+  char* qckpt  = scr_mysql_quote_int(ckpt);
+  char* qstart = scr_mysql_quote_seconds(start);
+  char* qsecs  = scr_mysql_quote_double(secs);
+
+  /* check that we got valid strings for each of our parameters */
+  if (qnote  == NULL ||
+      qckpt  == NULL ||
+      qstart == NULL ||
+      qsecs  == NULL)
+  {
+    scr_err("Failed to escape and quote one or more arguments @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* construct the query */
+  char query[4096];
+  int n = snprintf(query, sizeof(query),
+    "INSERT"
+    " INTO `events`"
+    " (`id`,`job_id`,`type_id`,`checkpoint_id`,`start`,`time`,`note`)"
+    " VALUES"
+    " (NULL, %d, %d, %s, %s, %s, %s)"
+    " ;",
+    scr_db_jobid, type_id, qckpt, qstart, qsecs, qnote
+  );
+
+  /* free the strings as they are now encoded into the query */
+  if (qnote)    { free(qnote);    qnote    = NULL; }
+  if (qckpt)    { free(qckpt);    qckpt    = NULL; }
+  if (qstart)   { free(qstart);   qstart   = NULL; }
+  if (qsecs)    { free(qsecs);    qsecs    = NULL; }
+
+  /* check that we were able to construct the query ok */
+  if (n >= sizeof(query)) {
+    scr_err("Insufficient buffer space (%lu bytes) to build query (%lu bytes) @ %s:%d",
+            sizeof(query), n, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* execute the query */
+  if (scr_db_debug >= 1) {
+    scr_dbg(0, "%s", query);
+  }
+  if (mysql_real_query(&scr_mysql, query, (unsigned int) strlen(query))) {
+    scr_err("Insert failed, query = (%s), error = (%s) @ %s:%d",
+            query, mysql_error(&scr_mysql), __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+#endif
+  return SCR_SUCCESS;
+}
+
+/* records an SCR file transfer (checkpoint/fetch/flush/drain) in the SCR log database */
+int scr_mysql_log_transfer(const char* type, const char* from, const char* to, const int* ckpt, const time_t* start, const double* secs, const double* bytes)
+{
+#ifdef HAVE_LIBMYSQLCLIENT
+  /* lookup the id for the type string */
+  int type_id = -1;
+  if (scr_mysql_type_id(type, &type_id) == SCR_FAILURE) {
+    scr_err("Failed to lookup id for type string %s @ %s:%d",
+            type, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* compute end epoch, using trucation here */
+  time_t* end = NULL;
+  time_t end_val;
+  if (start != NULL && secs != NULL) {
+    end_val = *start + (time_t) *secs;
+    end = &end_val;
+  }
+
+  /* compute the number of seconds and the bandwidth of the operation */
+  double* bw = NULL;
+  double bw_val;
+  if (bytes != NULL && secs != NULL && *secs > 0.0) {
+    bw_val = *bytes / *secs;
+    bw = &bw_val;
+  }
+  
+  /* convert seconds since epoch to mysql datetime strings */
+  char* qfrom  = scr_mysql_quote_string(from);
+  char* qto    = scr_mysql_quote_string(to);
+  char* qckpt  = scr_mysql_quote_int(ckpt);
+  char* qstart = scr_mysql_quote_seconds(start);
+  char* qend   = scr_mysql_quote_seconds(end);
+  char* qsecs  = scr_mysql_quote_double(secs);
+  char* qbytes = scr_mysql_quote_double(bytes);
+  char* qbw    = scr_mysql_quote_double(bw);
+
+  /* check that we got valid strings for each of our parameters */
+  if (qfrom  == NULL ||
+      qto    == NULL ||
+      qckpt  == NULL ||
+      qstart == NULL ||
+      qend   == NULL ||
+      qsecs  == NULL ||
+      qbytes == NULL ||
+      qbw    == NULL)
+  {
+    scr_err("Failed to escape and quote one or more arguments @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* construct the query */
+  char query[4096];
+  int n = snprintf(query, sizeof(query),
+    "INSERT"
+    " INTO `transfers`"
+    " (`id`,`job_id`,`type_id`,`checkpoint_id`,`start`,`end`,`time`,`bytes`,`bw`,`from`,`to`)"
+    " VALUES"
+    " (NULL, %d, %d, %s, %s, %s, %s, %s, %s, %s, %s)"
+    " ;",
+    scr_db_jobid, type_id, qckpt, qstart, qend, qsecs, qbytes, qbw, qfrom, qto
+  );
+
+  /* free the strings as they are now encoded into the query */
+  if (qfrom)  { free(qfrom);  qfrom  = NULL; }
+  if (qto)    { free(qto);    qto    = NULL; }
+  if (qckpt)  { free(qckpt);  qckpt  = NULL; }
+  if (qstart) { free(qstart); qstart = NULL; }
+  if (qend)   { free(qend);   qend   = NULL; }
+  if (qsecs)  { free(qsecs);  qsecs  = NULL; }
+  if (qbytes) { free(qbytes); qbytes = NULL; }
+  if (qbw)    { free(qbw);    qbw    = NULL; }
+
+  /* check that we were able to construct the query ok */
+  if (n >= sizeof(query)) {
+    scr_err("Insufficient buffer space (%lu bytes) to build query (%lu bytes) @ %s:%d",
+            sizeof(query), n, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* execute the query */
+  if (scr_db_debug >= 1) {
+    scr_dbg(0, "%s", query);
+  }
+  if (mysql_real_query(&scr_mysql, query, (unsigned int) strlen(query))) {
+    scr_err("Insert failed, query = (%s), error = (%s) @ %s:%d",
+            query, mysql_error(&scr_mysql), __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+#endif
+  return SCR_SUCCESS;
 }
 
 int scr_mysql_read_job(unsigned long username_id, unsigned long jobname_id, unsigned long* id)

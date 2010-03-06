@@ -65,13 +65,6 @@ void scr_meta_set(struct scr_meta* meta, const char* file, int rank, int ranks, 
     meta->complete       = complete;
     meta->crc32_computed = 0;
     meta->crc32          = crc32(0L, Z_NULL, 0);
-
-    /* just duplicate the info as the source for now */
-    strcpy(meta->src_filename, meta->filename);
-    meta->src_filesize       = meta->filesize;
-    meta->src_complete       = meta->complete;
-    meta->src_crc32_computed = 0;
-    meta->src_crc32          = crc32(0L, Z_NULL, 0);
 }
 
 /* initialize meta structure to represent file, filetype, and complete */
@@ -116,13 +109,6 @@ int scr_meta_read(const char* file_orig, struct scr_meta* meta)
       if (strcmp(field, "Complete:") == 0)     { meta->complete = atoi(value); }
       if (strcmp(field, "CRC32Computed:") == 0){ meta->crc32_computed = atoi(value); }
       if (strcmp(field, "CRC32:") == 0)        { meta->crc32 = strtoul(value, NULL, 0); }
-
-      /* we take the basename of filename for backwards compatibility */
-      if (strcmp(field, "SRCFilename:") == 0)  { strcpy(meta->src_filename, basename(value)); }
-      if (strcmp(field, "SRCFilesize:") == 0)  { meta->src_filesize = strtoul(value, NULL, 0); }
-      if (strcmp(field, "SRCComplete:") == 0)  { meta->src_complete = atoi(value); }
-      if (strcmp(field, "SRCCRC32Computed:") == 0){ meta->src_crc32_computed = atoi(value); }
-      if (strcmp(field, "SRCCRC32:") == 0)        { meta->src_crc32 = strtoul(value, NULL, 0); }
     }
   } while (n != EOF);
 
@@ -182,26 +168,6 @@ int scr_meta_write(const char* file, const struct scr_meta* meta)
 
   /* crc32 value for this file */
   sprintf(buf, "CRC32: 0x%lx\n", meta->crc32);
-  scr_write(fd, buf, strlen(buf));
-
-  /* filename of the source file */
-  sprintf(buf, "SRCFilename: %s\n", meta->src_filename);
-  scr_write(fd, buf, strlen(buf));
-
-  /* filesize of the source file */
-  sprintf(buf, "SRCFilesize: %lu\n", meta->src_filesize);
-  scr_write(fd, buf, strlen(buf));
-
-  /* whether source file is complete */
-  sprintf(buf, "SRCComplete: %d\n", meta->src_complete);
-  scr_write(fd, buf, strlen(buf));
-
-  /* whether a crc32 was computed for the source file */
-  sprintf(buf, "SRCCRC32Computed: %d\n", meta->src_crc32_computed);
-  scr_write(fd, buf, strlen(buf));
-
-  /* crc32 value for the soruce file */
-  sprintf(buf, "SRCCRC32: 0x%lx\n", meta->src_crc32);
   scr_write(fd, buf, strlen(buf));
 
   /* flush and close the file */

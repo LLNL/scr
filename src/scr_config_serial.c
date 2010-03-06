@@ -11,6 +11,7 @@
 
 /* Reads configuration file into hash */
 
+#include "scr_conf.h"
 #include "scr.h"
 #include "scr_err.h"
 #include "scr_io.h"
@@ -28,10 +29,6 @@
 /* variable length args */
 #include <stdarg.h>
 #include <errno.h>
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 /* read parameters from config file and fill in hash */
 int scr_config_read(const char* file, struct scr_hash* hash)

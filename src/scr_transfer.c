@@ -17,6 +17,7 @@
  * One will typically call some other script, which in turn identifies
  * the rank 0 node and issues a remote shell command to run this utility. */
 
+#include "scr_conf.h"
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
@@ -34,17 +35,6 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#ifndef SCR_FILE_BUF_SIZE
-#define SCR_FILE_BUF_SIZE (1024*1024)
-#endif
-#ifndef SCR_TRANSFER_SECS
-#define SCR_TRANSFER_SECS (60.0)
-#endif
 
 /* TODO: use direct I/O for improved performance */
 /* TODO: compute crc32 during transfer */

@@ -67,6 +67,9 @@ unsigned long scr_filesize(const char* file);
 /* tests whether the file exists */
 int scr_file_exists(const char* file);
 
+/* opens, reads, and computes the crc32 value for the given filename */
+int scr_crc32(const char* filename, uLong* crc);
+
 /* split path and filename from fullpath on the rightmost '/'
    assumes all filename if no '/' is found */
 int scr_split_path (const char* file, char* path, char* filename);

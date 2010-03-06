@@ -38,33 +38,16 @@ int main(int argc, char* argv[])
   char* filename = strdup(argv[1]);
 
   /* open the file for reading */
-  int fd = scr_open(filename, O_RDONLY);
-  if (fd < 0) {
-    scr_err("Failed to open file: scr_open(%s) errno=%d %m @ file %s:%d",
-            filename, errno, __FILE__, __LINE__
+  uLong crc = crc32(0L, Z_NULL, 0);
+  if (scr_crc32(filename, &crc) != SCR_SUCCESS) {
+    scr_err("Failed to compute CRC32 for file %s @ file %s:%d",
+            filename, __FILE__, __LINE__
     );
     return 1;
   }
 
-  /* read the file data in and compute its crc32 */
-  int nread = 0;
-  char buf[buffer_size];
-  uLong crc = crc32(0L, Z_NULL, 0);
-  do {
-    nread = scr_read(fd, buf, buffer_size);
-    if (nread > 0) {
-      crc = crc32(crc, (const Bytef*) buf, (uInt) nread);
-    }
-  } while (nread == buffer_size);
-
-  /* if we got an error, don't print anything and bailout */
-  if (nread < 0) {
-    return 1;
-  }
-
-  /* close the file and print out its crc32 value */
+  /* print out the crc32 value */
   printf("%lx\n", (unsigned long) crc);
-  close(fd);
 
   /* free off the string we strdup'ed at the start */
   free(filename);

@@ -20,6 +20,7 @@ bin_PROGRAMS = \
 #	libscr_interpose.la
 
 scr_headers = \
+	scr_conf.h \
 	scr.h \
 	scr_err.h \
 	scr_io.h \
@@ -184,6 +185,7 @@ uninstall-local:
 #libscr_interpose_la_CFLAGS = $(AM_CFLAGS) $(YOGRT_CPPFLAGS)
 
 scr_copy_SOURCES = \
+	scr_conf.h \
 	scr.h \
 	scr_err_serial.c  scr_err.h \
 	scr_io.c          scr_io.h \
@@ -196,6 +198,7 @@ scr_copy_LDADD = -lz
 scr_copy_CFLAGS = $(AM_CFLAGS)
 
 scr_inspect_cache_SOURCES = \
+	scr_conf.h \
 	scr.h \
 	scr_err_serial.c  scr_err.h \
 	scr_io.c          scr_io.h \
@@ -208,6 +211,7 @@ scr_inspect_cache_LDADD = -lz
 scr_inspect_cache_CFLAGS = $(AM_CFLAGS)
 
 scr_rebuild_xor_SOURCES = \
+	scr_conf.h \
 	scr.h \
 	scr_err_serial.c  scr_err.h \
 	scr_io.c          scr_io.h \
@@ -221,6 +225,7 @@ scr_rebuild_xor_LDADD = -lz
 scr_rebuild_xor_CFLAGS = $(AM_CFLAGS)
 
 scr_halt_cntl_SOURCES = \
+	scr_conf.h \
 	scr.h \
 	scr_err_serial.c  scr_err.h \
 	scr_io.c          scr_io.h \
@@ -232,6 +237,7 @@ scr_halt_cntl_LDADD = -lz
 scr_halt_cntl_CFLAGS = $(AM_CFLAGS)
 
 scr_crc32_SOURCES = \
+	scr_conf.h \
 	scr.h \
 	scr_err_serial.c  scr_err.h \
 	scr_io.c          scr_io.h \
@@ -240,6 +246,7 @@ scr_crc32_LDADD = -lz
 scr_crc32_CFLAGS = $(AM_CFLAGS)
 
 scr_print_hash_file_SOURCES = \
+	scr_conf.h \
 	scr.h \
 	scr_err_serial.c  scr_err.h \
 	scr_io.c          scr_io.h \
@@ -250,6 +257,7 @@ scr_print_hash_file_LDADD = -lz
 scr_print_hash_file_CFLAGS = $(AM_CFLAGS)
 
 scr_log_event_SOURCES = \
+	scr_conf.h \
 	scr.h \
 	scr_err_serial.c  scr_err.h \
 	scr_io.c          scr_io.h \
@@ -263,6 +271,7 @@ scr_log_event_LDADD = -lz $(MYSQL_LDFLAGS) $(MYSQL_LIBS)
 scr_log_event_CFLAGS = $(AM_CFLAGS)
 
 scr_log_transfer_SOURCES = \
+	scr_conf.h \
 	scr.h \
 	scr_err_serial.c  scr_err.h \
 	scr_io.c          scr_io.h \
@@ -276,6 +285,7 @@ scr_log_transfer_LDADD = -lz $(MYSQL_LDFLAGS) $(MYSQL_LIBS)
 scr_log_transfer_CFLAGS = $(AM_CFLAGS)
 
 scr_transfer_SOURCES = \
+	scr_conf.h \
 	scr.h \
 	scr_err_serial.c  scr_err.h \
 	scr_io.c          scr_io.h \

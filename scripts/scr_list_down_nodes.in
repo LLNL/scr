@@ -101,8 +101,9 @@ foreach my $node (@nodes) {
 }
 
 # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
-if (defined $ENV{SCR_EXCLUDE_NODES}) {
-  my @exclude_nodes = Hostlist::expand($ENV{SCR_EXCLUDE_NODES});
+my $exclude = $param->get("SCR_EXCLUDE_NODES");
+if (defined $exclude) {
+  my @exclude_nodes = Hostlist::expand($exclude);
   foreach my $node (@exclude_nodes) {
     if (defined $allocation{$node}) {
       delete $available{$node};
@@ -139,11 +140,11 @@ my $cntldir_string = `$bindir/scr_cntl_dir --base`;
 if ($? == 0) {
   chomp $cntldir_string;
   my @dirs = split(" ", $cntldir_string);
-  my %cntldirs = $param->get_hash("CNTLDIR");
+  my $cntldirs = $param->get_hash("CNTLDIR");
   foreach my $base (@dirs) {
     my $val = "$base";
-    if (defined $cntldirs{$base} and defined $cntldirs{$base}{"BYTES"}) {
-      my $size = (keys %{$cntldirs{$base}{"BYTES"}})[0];
+    if (defined $cntldirs and defined $$cntldirs{$base} and defined $$cntldirs{$base}{"BYTES"}) {
+      my $size = (keys %{$$cntldirs{$base}{"BYTES"}})[0];
       if (defined $size) {
         $val = "$base:$size";
       }
@@ -162,11 +163,11 @@ my $cachedir_string = `$bindir/scr_cntl_dir --cache --base`;
 if ($? == 0) {
   chomp $cachedir_string;
   my @dirs = split(" ", $cachedir_string);
-  my %cachedirs = $param->get_hash("CACHEDIR");
+  my $cachedirs = $param->get_hash("CACHEDIR");
   foreach my $base (@dirs) {
     my $val = "$base";
-    if (defined $cachedirs{$base} and defined $cachedirs{$base}{"BYTES"}) {
-      my $size = (keys %{$cachedirs{$base}{"BYTES"}})[0];
+    if (defined $cachedirs and defined $$cachedirs{$base} and defined $$cachedirs{$base}{"BYTES"}) {
+      my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
       if (defined $size) {
         $val = "$base:$size";
       }

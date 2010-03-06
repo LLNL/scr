@@ -45,6 +45,7 @@
 
 #include "mpi.h"
 
+#include "scr_conf.h"
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_util.h"
@@ -55,10 +56,6 @@
 #include "scr_hash.h"
 #include "scr_filemap.h"
 #include "scr_param.h"
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #ifdef HAVE_LIBYOGRT
 #include "yogrt.h"
@@ -76,97 +73,9 @@ Globals
 #define SCR_TEST_AND_HALT (1)
 #define SCR_TEST_BUT_DONT_HALT (2)
 
-/* redundancy shemes: enum as powers of two for binary and/or operations */
-#define SCR_COPY_NULL    (0)
-#define SCR_COPY_LOCAL   (1)
-#define SCR_COPY_PARTNER (2)
-#define SCR_COPY_XOR     (4)
-#define SCR_COPY_FILE    (8)
-
 /* copy file operation flags: copy file vs. move file */
 #define COPY_FILES 0
 #define MOVE_FILES 1
-
-#ifndef SCR_ENABLE
-#define SCR_ENABLE (1)
-#endif
-#ifndef SCR_DEBUG
-#define SCR_DEBUG (0)
-#endif
-#ifndef SCR_LOG_ENABLE
-#define SCR_LOG_ENABLE (1)
-#endif
-#ifndef SCR_CACHE_SIZE
-#define SCR_CACHE_SIZE (2)
-#endif
-#ifndef SCR_COPY_TYPE
-#define SCR_COPY_TYPE (SCR_COPY_XOR)
-#endif
-#ifndef SCR_SET_SIZE
-#define SCR_SET_SIZE (8)
-#endif
-#ifndef SCR_HOP_DISTANCE
-#define SCR_HOP_DISTANCE (1)
-#endif
-#ifndef SCR_MPI_BUF_SIZE
-/* #define SCR_MPI_BUF_SIZE (1*1024*1024) */
-#define SCR_MPI_BUF_SIZE (128*1024)  /* very strange that this lower number beats the upper one, but whatever ... */
-#endif
-#ifndef SCR_HALT_SECONDS
-#define SCR_HALT_SECONDS (0)
-#endif
-#ifndef SCR_FETCH
-#define SCR_FETCH (1)
-#endif
-#ifndef SCR_FETCH_WIDTH
-#define SCR_FETCH_WIDTH (256)
-#endif
-#ifndef SCR_DISTRIBUTE
-#define SCR_DISTRIBUTE (1)
-#endif
-#ifndef SCR_FLUSH
-#define SCR_FLUSH (10)
-#endif
-#ifndef SCR_FLUSH_WIDTH
-#define SCR_FLUSH_WIDTH (SCR_FETCH_WIDTH)
-#endif
-#ifndef SCR_FLUSH_ON_RESTART
-#define SCR_FLUSH_ON_RESTART (0)
-#endif
-#ifndef SCR_FLUSH_ASYNC
-#define SCR_FLUSH_ASYNC (0)
-#endif
-#ifndef SCR_FLUSH_ASYNC_BW
-#define SCR_FLUSH_ASYNC_BW (200*1024*1024)
-#endif
-#ifndef SCR_FLUSH_ASYNC_PERCENT
-#define SCR_FLUSH_ASYNC_PERCENT (0.0) /* TODO: the fsync complicates this throttling, disable it for now */
-#endif
-#ifndef SCR_FILE_BUF_SIZE
-#define SCR_FILE_BUF_SIZE (1024*1024)
-#endif
-#ifndef SCR_CRC_ON_COPY
-#define SCR_CRC_ON_COPY (0)
-#endif
-#ifndef SCR_CRC_ON_FLUSH
-#define SCR_CRC_ON_FLUSH (1)
-#endif
-#ifndef SCR_CHECKPOINT_INTERVAL
-#define SCR_CHECKPOINT_INTERVAL (0)
-#endif
-#ifndef SCR_CHECKPOINT_SECONDS
-#define SCR_CHECKPOINT_SECONDS (0)
-#endif
-#ifndef SCR_CHECKPOINT_OVERHEAD
-#define SCR_CHECKPOINT_OVERHEAD (0)
-#endif
-
-#ifndef SCR_CNTL_BASE
-#define SCR_CNTL_BASE "/tmp"
-#endif
-#ifndef SCR_CACHE_BASE
-#define SCR_CACHE_BASE "/tmp"
-#endif
 
 /* There are three prefix directories where SCR manages files: control, cache, and pfs.
  * 
@@ -204,6 +113,7 @@ static char* scr_username    = NULL;       /* username of owner for running job 
 static char* scr_jobid       = NULL;       /* unique job id string of current job */
 static char* scr_jobname     = NULL;       /* jobname string, used to tie different runs together */
 static int scr_checkpoint_id = 0;          /* keeps track of the checkpoint id */
+static int scr_in_checkpoint = 0;          /* flag tracks whether we are between start and complete checkpoint calls */
 static int scr_initialized   = 0;          /* indicates whether the library has been initialized */
 static int scr_enabled       = SCR_ENABLE; /* indicates whether the librarys is enabled */
 static int scr_debug         = SCR_DEBUG;  /* set debug verbosity */
@@ -230,8 +140,9 @@ static double scr_flush_async_bw = SCR_FLUSH_ASYNC_BW;  /* bandwidth limit impos
 static double scr_flush_async_percent = SCR_FLUSH_ASYNC_PERCENT;  /* runtime limit imposed during async flush */
 static size_t scr_file_buf_size = SCR_FILE_BUF_SIZE;    /* set buffer size to chunk file copies to/from parallel file system */
 
-static int scr_crc_on_copy  = SCR_CRC_ON_COPY;  /* whether to enable crc32 checks during scr_swap_files() */
-static int scr_crc_on_flush = SCR_CRC_ON_FLUSH; /* whether to enable crc32 checks during flush and fetch */
+static int scr_crc_on_copy   = SCR_CRC_ON_COPY;   /* whether to enable crc32 checks during scr_swap_files() */
+static int scr_crc_on_flush  = SCR_CRC_ON_FLUSH;  /* whether to enable crc32 checks during flush and fetch */
+static int scr_crc_on_delete = SCR_CRC_ON_DELETE; /* whether to enable crc32 checks when deleting checkpoints */
 
 static int    scr_checkpoint_interval = SCR_CHECKPOINT_INTERVAL; /* times to call Need_checkpoint between checkpoints */
 static int    scr_checkpoint_seconds   = SCR_CHECKPOINT_SECONDS;   /* min number of seconds between checkpoints */
@@ -1122,6 +1033,53 @@ static int scr_complete(const char* file, const struct scr_meta* meta)
   return rc;
 }
 
+/* TODO: may want to add this as part of a check_files call */
+/* compute crc32 for file and check value against meta data file, set it if not already set */
+//int scr_compute_crc(const char* file, int* read_error, int* crc_mismatch)
+int scr_compute_crc(const char* file)
+{
+  /* check that we got a filename */
+  if (file == NULL || strcmp(file, "") == 0) {
+    return SCR_FAILURE;
+  }
+
+  /* read in the meta data for this file */
+  struct scr_meta meta;
+  if (scr_meta_read(file, &meta) != SCR_SUCCESS) {
+    scr_err("Failed to read meta data file for file to compute CRC32: %s", file);
+    return SCR_FAILURE;
+  }
+
+  /* compute the CRC32 value for this file */
+  uLong crc = crc32(0L, Z_NULL, 0);
+  if (scr_crc32(file, &crc) != SCR_SUCCESS) {
+    scr_err("Computing CRC32 for file %s @ %s:%d",
+              file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* now check the CRC32 value if it was set in the meta file, and set it if not */
+  if (meta.crc32_computed) {
+    /* the crc is already set in the meta file, let's check that we match */
+    if (meta.crc32 != crc) {
+      scr_err("CRC32 mismatch detected for file %s @ %s:%d",
+              file, __FILE__, __LINE__
+      );
+      return SCR_FAILURE;
+    }
+  } else {
+    /* the crc was not set in the meta file, so let's set it now */
+    meta.crc32_computed     = 1;
+    meta.crc32              = crc;
+
+    /* and update the meta file on disk */
+    scr_meta_write(file, &meta);
+  }
+
+  return SCR_SUCCESS;
+}
+
 /*
 =========================================
 Checkpoint functions
@@ -1281,6 +1239,16 @@ static int scr_checkpoint_delete(scr_filemap* map, int checkpoint_id)
     {
       /* get the filename */
       char* file = scr_hash_elem_key(file_elem); 
+
+      /* check file's crc value (monitor that cache hardware isn't corrupting files on us) */
+      if (scr_crc_on_delete) {
+        /* TODO: if corruption, need to log */
+        if (scr_compute_crc(file) != SCR_SUCCESS) {
+          scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
+                  file, __FILE__, __LINE__
+          );
+        }
+      }
 
       /* delete the file */
       unlink(file);
@@ -2320,6 +2288,12 @@ static int scr_copy_xor(scr_filemap* map, const struct scr_ckptdesc* c, int chec
   scr_meta_set(&meta, my_chunk_file, scr_my_rank_world, scr_ranks_world, checkpoint_id, SCR_FILE_XOR, 1);
   scr_complete(my_chunk_file, &meta);
 
+  /* if crc_on_copy is set, compute and store CRC32 value for chunk file */
+  if (scr_crc_on_copy) {
+    scr_compute_crc(my_chunk_file);
+    /* TODO: would be nice to save this CRC in our partner's XOR file so we can check correctness on a rebuild */
+  }
+
   return rc;
 }
 
@@ -2348,6 +2322,11 @@ int scr_copy_files(scr_filemap* map, const struct scr_ckptdesc* c, int checkpoin
 
     /* add up the number of bytes on our way through */
     my_bytes += (double) scr_filesize(file);
+
+    /* if crc_on_copy is set, compute crc and update meta file (PARTNER does this during the copy) */
+    if (scr_crc_on_copy && c->copy_type != SCR_COPY_PARTNER) {
+      scr_compute_crc(file);
+    }
   }
 
   /* determine whether everyone's files are good */
@@ -2390,7 +2369,7 @@ int scr_copy_files(scr_filemap* map, const struct scr_ckptdesc* c, int checkpoin
   /* determine whether everyone succeeded in their copy */
   int valid_copy = (rc == SCR_SUCCESS);
   if (!valid_copy) {
-    scr_err("src_copy_files failed with return code %d @ %s:%d", rc, __FILE__, __LINE__);
+    scr_err("scr_copy_files failed with return code %d @ %s:%d", rc, __FILE__, __LINE__);
   }
   int all_valid_copy = scr_alltrue(valid_copy);
   rc = all_valid_copy ? SCR_SUCCESS : SCR_FAILURE;
@@ -2569,12 +2548,6 @@ static int scr_read_summary(const char* dir, int* num_files, struct scr_meta** v
     data[i].complete       = complete;
     data[i].crc32_computed = crc_computed;
     data[i].crc32          = crc;
-
-    strcpy(data[i].src_filename, base);
-    data[i].src_filesize       = exp_filesize;
-    data[i].src_complete       = complete;
-    data[i].src_crc32_computed = 0;
-    data[i].src_crc32          = crc32(0L, Z_NULL, 0);
   }
 
   /* close the file */
@@ -3220,16 +3193,8 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, struct sc
   scr_split_path(file, path, name);
 
   /* fill in meta with source file info */
-  if (scr_meta_read(file, meta) == SCR_SUCCESS) {
-    /* if XOR file, read meta for source file */
-    if (meta->filetype == SCR_FILE_XOR) {
-      scr_build_path(file, path, meta->src_filename);
-      if (scr_meta_read(file, meta) != SCR_SUCCESS) {
-        /* TODO: print error */
-      }
-    }
-  } else {
-        /* TODO: print error */
+  if (scr_meta_read(file, meta) != SCR_SUCCESS) {
+    /* TODO: print error */
   }
 
   /* get meta data file name for file */
@@ -3304,7 +3269,6 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, struct sc
   /* fill out meta data, set complete field based on flush success */
   /* (we don't update the meta file here, since perhaps the file in cache is ok and only the flush failed) */
   meta->complete     = (flushed == SCR_SUCCESS);
-  meta->src_complete = (flushed == SCR_SUCCESS);
 
   return flushed;
 }
@@ -5032,15 +4996,32 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
       /* TODO: need to check for errors, check that file is really valid */
 
       /* fill out meta info for our file and complete it */
-      struct scr_meta meta;
-      scr_meta_set(&meta, full_file, scr_my_rank_world, scr_ranks_world, h.checkpoint_id, SCR_FILE_FULL, 1);
-      scr_complete(full_file, &meta);
+      scr_complete(full_file, &(h.my_files[i]));
+
+      /* if crc_on_copy is set, compute and store CRC32 value for each file */
+      if (scr_crc_on_copy) {
+        /* check for mismatches here, in case we failed to rebuild the file correctly */
+        if (scr_compute_crc(full_file) != SCR_SUCCESS) {
+          scr_err("Failed to verify CRC32 after rebuild on file %s @ %s:%d",
+                  full_file, __FILE__, __LINE__
+          );
+
+          /* make sure we fail this rebuild */
+          rc = SCR_FAILURE;
+        }
+      }
     }
 
-    /* replace main meta info with chunk info and mark chunk as complete */
+    /* create meta data for chunk and complete it */
     struct scr_meta meta_chunk;
     scr_meta_set(&meta_chunk, full_chunk_filename, scr_my_rank_world, scr_ranks_world, h.checkpoint_id, SCR_FILE_XOR, 1);
     scr_complete(full_chunk_filename, &meta_chunk);
+
+    /* if crc_on_copy is set, compute and store CRC32 value for chunk file */
+    if (scr_crc_on_copy) {
+      /* TODO: would be nice to check for mismatches here, but we did not save this value in the partner XOR file */
+      scr_compute_crc(full_chunk_filename);
+    }
   }
 
   /* free the buffers */
@@ -5062,8 +5043,6 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
 /* given a checkpoint id, check whether files can be rebuilt via xor and execute the rebuild if needed */
 static int scr_attempt_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int checkpoint_id)
 {
-  int rc = SCR_SUCCESS;
-
   /* check whether we have our files */
   int have_my_files = scr_bool_have_files(map, checkpoint_id, scr_my_rank_world);
 
@@ -5095,6 +5074,7 @@ static int scr_attempt_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* 
   }
 
   /* it's possible to rebuild; rebuild if we need to */
+  int rc = SCR_SUCCESS;
   if (total_rebuild > 0) {
     /* someone in my set needs to rebuild, determine who */
     int tmp_rank = need_rebuild ? c->my_rank : -1;
@@ -5108,7 +5088,15 @@ static int scr_attempt_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* 
     rc = scr_rebuild_xor(map, c, checkpoint_id, rebuild_rank);
   }
 
-  return rc;
+  /* check whether all sets rebuilt ok */
+  if (!scr_alltrue(rc == SCR_SUCCESS)) {
+    if (scr_my_rank_world == 0) {
+      scr_dbg(1, "One or more processes failed to rebuild its files @ %s:%d", __FILE__, __LINE__);
+    }
+    return SCR_FAILURE;
+  }
+
+  return SCR_SUCCESS;
 }
 
 /* given a filemap, a checkpoint_id, and a rank, unlink those files and remove them from the map */
@@ -5845,6 +5833,16 @@ int scr_rebuild_files(scr_filemap* map, const struct scr_ckptdesc* c, int checkp
     rc = scr_attempt_rebuild_xor(map, c, checkpoint_id);
   }
 
+  /* check that rebuild worked */
+  if (rc != SCR_SUCCESS) {
+    if (scr_my_rank_world == 0) {
+      scr_dbg(1, "Missing checkpoints files @ %s:%d",
+              __FILE__, __LINE__
+      );
+    }
+    return SCR_FAILURE;
+  }
+
   /* at this point, we should have all of our files, check that they're all here */
 
   /* check whether everyone has their files */
@@ -5870,6 +5868,11 @@ int scr_rebuild_files(scr_filemap* map, const struct scr_ckptdesc* c, int checkp
 /* given a filename, return the full path to the file which the user should write to */
 static int scr_route_file(int checkpoint_id, const char* file, char* newfile, int n)
 {
+  /* check that we got a file and newfile to write to */
+  if (file == NULL || strcmp(file, "") == 0 || newfile == NULL) {
+    return SCR_FAILURE;
+  }
+
   /* check that user's filename is not too long */
   if (strlen(file) >= SCR_MAX_FILENAME) {
     scr_abort(-1, "file name (%s) is longer than SCR_MAX_FILENAME (%d) @ %s:%d",
@@ -6128,6 +6131,11 @@ static int scr_get_params()
   /* specify whether to compute CRC on fetch and flush */
   if ((value = scr_param_get("SCR_CRC_ON_FLUSH")) != NULL) {
     scr_crc_on_flush = atoi(value);
+  }
+
+  /* specify whether to compute and check CRC when deleting a file */
+  if ((value = scr_param_get("SCR_CRC_ON_DELETE")) != NULL) {
+    scr_crc_on_delete = atoi(value);
   }
 
   /* override default checkpoint interval (number of times to call Need_checkpoint between checkpoints) */
@@ -6881,6 +6889,9 @@ int SCR_Start_checkpoint()
   /* make sure everyone is ready to start before we delete any existing checkpoints */
   MPI_Barrier(scr_comm_world);
 
+  /* set the checkpoint flag to indicate we have entered a new checkpoint */
+  scr_in_checkpoint = 1;
+
   /* stop clock recording compute time */
   if (scr_my_rank_world == 0) {
     /* stop the clock for measuring the compute time */
@@ -7001,7 +7012,9 @@ int SCR_Route_file(const char* file, char* newfile)
   /* TODO: should we have SCR do anything at all in this case? */
   /* if not enabled, make straight copy of file into newfile and bail out */
   if (! scr_enabled) {
-    strncpy(newfile, file, n);
+    if (file != NULL && newfile != NULL) {
+      strncpy(newfile, file, n);
+    }
     return SCR_SUCCESS;
   }
   
@@ -7018,10 +7031,16 @@ int SCR_Route_file(const char* file, char* newfile)
 
   /* TODO: to avoid duplicates, check that the file is not already in the filemap,
    * at the moment duplicates just overwrite each other, so there's no harm */
-  /* record this file in our filemap */
-  if (scr_checkpoint_id > 0) {
+  /* if we are in a new checkpoint, record this file in our filemap,
+   * otherwise, we are likely in a restart, so check whether the file exists */
+  if (scr_in_checkpoint) {
     scr_filemap_add_file(scr_map, scr_checkpoint_id, scr_my_rank_world, newfile);
     scr_filemap_write(scr_map_file, scr_map);
+  } else {
+    /* if we can't read the file, return an error */
+    if (access(newfile, R_OK) < 0) {
+      return SCR_FAILURE;
+    }
   }
 
   return SCR_SUCCESS;
@@ -7131,6 +7150,9 @@ int SCR_Complete_checkpoint(int valid)
 
   /* make sure everyone is ready before we exit */
   MPI_Barrier(scr_comm_world);
+
+  /* unset the checkpoint flag to indicate we have exited the current checkpoint */
+  scr_in_checkpoint = 0;
 
   /* start the clock for measuring the compute time */
   if (scr_my_rank_world == 0) {

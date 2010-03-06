@@ -279,11 +279,6 @@ sub read_info
     elsif ($name eq "Complete:")     { $$h{complete}     = int($val); }
     elsif ($name eq "CRC32Computed:"){ $$h{crc32computed} = int($val); }
     elsif ($name eq "CRC32:")        { $$h{crc32}        = $val; }
-    elsif ($name eq "SRCFilename:")  { $$h{src_filename} = basename($val); }
-    elsif ($name eq "SRCFilesize:")  { $$h{src_filesize} = int($val); }
-    elsif ($name eq "SRCComplete:")  { $$h{src_complete} = int($val); }
-    elsif ($name eq "SRCCRC32Computed:") { $$h{src_crc32computed} = int($val); }
-    elsif ($name eq "SRCCRC32:")     { $$h{src_crc32}     = $val; }
   } 
   close(IN);
 

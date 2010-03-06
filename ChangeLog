@@ -1,3 +1,39 @@
+2010-03-05 Adam Moody <moody20@llnl.gov>
+
+	* scripts/scr_param.pm.in,
+	  scripts/scr_list_down_nodes.in,
+	  scripts/scr_cntl_dir.in : Added support to run without system config file.  Need
+	  to be sure any compile-time settings in here also match those in scr_conf.h.
+	  And param->get_hash(), now returns a reference to hash, instead of a hash.
+
+	* src/scr.c : Added scr_in_checkpoint flag which gets set to 1 in Start_checkpoint
+	  and back to zero in Complete_checkpoint.  Route_file checks this flag to determine
+	  whether it is being called in between Start/Complete or not.  If not, Route_file
+	  now returns an error if the routed filename cannot be accessed.
+
+	* src/scr_meta.h,
+	  src/scr_meta.c,
+	  src/scr_copy_xor.c,
+	  src/scr.c,
+	  scripts/scr_check_complete.in : Dropped src_ fields from meta data structure
+	  and file, which have not been needed for some time.
+
+	* scr.mysql,
+	  src/scr_log.c : Added a types table to enable type string to id lookups,
+	  and added some more indicies to events and transfers table to speed expected
+	  queries.
+
+	* src/scr_io.c,
+	  src/scr_io.h,
+	  src/scr_crc32.c,
+	  src/scr.c : Added scr_crc32 and scr_compute_crc functions to compute a crc32
+	  given a filename.  Added scr_crc_on_copy for LOCAL and XOR (done in copy files)
+	  set crc32 value at Complete checkpoint.  Added scr_crc_on_delete to check crc32
+	  on file before deleting from the cache (to monitor for bad drives in cache).
+
+	* src/scr_conf.h : Consolidated compile-time defaults to a single file which
+	  all other files include.
+
 2010-02-19 Adam Moody <moody20@llnl.gov>
 
 	* doc/scr.pdf : Updated scr.pdf to better match current version.

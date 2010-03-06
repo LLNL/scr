@@ -2,11 +2,19 @@
 use strict;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 use lib '@X_DATADIR@/scr';
+use scr_param;
 use scr_hash;
 
 my $bindir = "@X_BINDIR@";
 
 my $prog = "scr_retries_halt";
+
+my $param = undef;
+if (defined $ENV{SCR_CONF_FILE}) {
+  $param = new scr_param($ENV{SCR_CONF_FILE});
+} else {
+  $param = new scr_param();
+}
 
 my %conf = ();
 
@@ -50,9 +58,10 @@ if (-e $halt_file) {
 
     # set halt seconds to 0 by default
     my $halt_seconds = 0;
-    if (defined $ENV{SCR_HALT_SECONDS}) {
-      # if halt seconds are set in environment, change default to that value
-      $halt_seconds = $ENV{SCR_HALT_SECONDS};
+    my $halt_param = $param->get("SCR_HALT_SECONDS");
+    if (defined $halt_param) {
+      # if halt seconds are set in parameters, change default to that value
+      $halt_seconds = $halt_param;
     }
     if (defined $conditions{halt_seconds}) {
       # if set in file, use the value there (user may have changed setting during run via scr_halt)

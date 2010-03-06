@@ -93,7 +93,6 @@ int scr_copy_xor_header_free(struct scr_copy_xor_header* h)
 int scr_copy_xor_meta_read(int fd, struct scr_meta* m)
 {
   int filename_length = 0;
-  int src_filename_length = 0;
 
   scr_read(fd, &m->rank,           sizeof(m->rank));
   scr_read(fd, &m->ranks,          sizeof(m->ranks));
@@ -107,20 +106,12 @@ int scr_copy_xor_meta_read(int fd, struct scr_meta* m)
   scr_read(fd, &m->crc32_computed, sizeof(m->crc32_computed));
   scr_read(fd, &m->crc32,          sizeof(m->crc32));
 
-  scr_read(fd, &src_filename_length,   sizeof(src_filename_length));
-  scr_read(fd, m->src_filename,        src_filename_length);
-  scr_read(fd, &m->src_filesize,       sizeof(m->src_filesize));
-  scr_read(fd, &m->src_complete,       sizeof(m->src_complete));
-  scr_read(fd, &m->src_crc32_computed, sizeof(m->src_crc32_computed));
-  scr_read(fd, &m->src_crc32,          sizeof(m->src_crc32));
-
   return SCR_SUCCESS;
 }
 
 int scr_copy_xor_meta_write(int fd, struct scr_meta* m)
 {
   int filename_length = strlen(m->filename) + 1;
-  int src_filename_length = strlen(m->src_filename) + 1;
 
   scr_write(fd, &m->rank,           sizeof(m->rank));
   scr_write(fd, &m->ranks,          sizeof(m->ranks));
@@ -133,13 +124,6 @@ int scr_copy_xor_meta_write(int fd, struct scr_meta* m)
   scr_write(fd, &m->complete,       sizeof(m->complete));
   scr_write(fd, &m->crc32_computed, sizeof(m->crc32_computed));
   scr_write(fd, &m->crc32,          sizeof(m->crc32));
-
-  scr_write(fd, &src_filename_length,   sizeof(src_filename_length));
-  scr_write(fd, m->src_filename,        src_filename_length);
-  scr_write(fd, &m->src_filesize,       sizeof(m->src_filesize));
-  scr_write(fd, &m->src_complete,       sizeof(m->src_complete));
-  scr_write(fd, &m->src_crc32_computed, sizeof(m->src_crc32_computed));
-  scr_write(fd, &m->src_crc32,          sizeof(m->src_crc32));
 
   return SCR_SUCCESS;
 }

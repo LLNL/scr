@@ -11,6 +11,7 @@
 
 /* Reads configuration file into hash */
 
+#include "scr_conf.h"
 #include "scr.h"
 #include "scr_err.h"
 #include "scr_io.h"
@@ -28,10 +29,6 @@
 /* variable length args */
 #include <stdarg.h>
 #include <errno.h>
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 /* read in whitespace until we hit a non-whitespace character */
 static int scr_config_read_whitespace(FILE* fs, const char* file, int linenum, int* n_external, char* c_external)

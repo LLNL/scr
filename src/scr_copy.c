@@ -17,6 +17,7 @@
  * One will typically call some other script, which in turn identifies
  * the rank 0 node and issues a remote shell command to run this utility. */
 
+#include "scr_conf.h"
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
@@ -35,10 +36,6 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 static char hostname[256] = "UNKNOWN_HOST";
 

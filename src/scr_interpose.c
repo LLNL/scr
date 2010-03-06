@@ -103,9 +103,6 @@ Checkpoint tracking functions and data structures
 #ifndef MAX_CHECKPOINT_FILES
 #define MAX_CHECKPOINT_FILES (8)
 #endif
-#ifndef SCR_COPY_BUF_SIZE
-#define SCR_COPY_BUF_SIZE (128*1024)
-#endif
 
 #define SCRI_FNULL   (0)
 #define SCRI_FD      (1)

@@ -69,6 +69,10 @@ if [ $? -ne 0 ] ; then
   exit 1
 fi
 
+# NOP srun to force every node to run prolog to delete files from cache
+# TODO: remove this if admins find a better place to clear cache
+srun /bin/hostname > /dev/null
+
 # make a record of time prerun is started
 timestamp=`date`
 echo "$prog: prerun: $timestamp"

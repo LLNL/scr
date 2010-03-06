@@ -12,6 +12,7 @@
 /* Implements a reliable open/read/write/close interface via open and close.
  * Implements directory manipulation functions. */
 
+#include "scr_conf.h"
 #include "scr.h"
 #include "scr_err.h"
 #include "scr_io.h"
@@ -35,9 +36,6 @@
 
 /* compute crc32 */
 #include <zlib.h>
-
-#define SCR_OPEN_TRIES  (5)
-#define SCR_OPEN_USLEEP (100)
 
 /*
 =========================================
@@ -447,6 +445,52 @@ int scr_file_exists(const char* file)
   if (access(file, R_OK) < 0) {
     return SCR_FAILURE;
   }
+  return SCR_SUCCESS;
+}
+
+/* opens, reads, and computes the crc32 value for the given filename */
+int scr_crc32(const char* filename, uLong* crc)
+{
+  /* check that we got a variable to write our answer to */
+  if (crc == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* initialize our crc value */
+  *crc = crc32(0L, Z_NULL, 0);
+
+  /* open the file for reading */
+  int fd = scr_open(filename, O_RDONLY);
+  if (fd < 0) {
+    scr_dbg(1, "Failed to open file to compute crc: %s @ file %s:%d",
+            filename, errno, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* read the file data in and compute its crc32 */
+  int nread = 0;
+  unsigned long buffer_size = 1024*1024;
+  char buf[buffer_size];
+  do {
+    nread = scr_read(fd, buf, buffer_size);
+    if (nread > 0) {
+      *crc = crc32(*crc, (const Bytef*) buf, (uInt) nread);
+    }
+  } while (nread == buffer_size);
+
+  /* if we got an error, don't print anything and bailout */
+  if (nread < 0) {
+    scr_dbg(1, "Error while reading file to compute crc: %s @ file %s:%d",
+            filename, __FILE__, __LINE__
+    );
+    close(fd);
+    return SCR_FAILURE;
+  }
+
+  /* close the file */
+  scr_close(filename, fd);
+
   return SCR_SUCCESS;
 }
 

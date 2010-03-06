@@ -75,11 +75,19 @@ GRANT INSERT,SELECT
 
 USE `scr`;
 
+DROP TABLE IF EXISTS `types`;
 DROP TABLE IF EXISTS `usernames`;
 DROP TABLE IF EXISTS `jobnames`;
 DROP TABLE IF EXISTS `jobs`;
 DROP TABLE IF EXISTS `transfers`;
 DROP TABLE IF EXISTS `events`;
+
+# maps a type string to an id
+CREATE TABLE IF NOT EXISTS `types` (
+        `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(512) NOT NULL,
+        UNIQUE INDEX `name` (`name`(512))
+) TYPE=MyISAM;
 
 # maps a username string to an id
 CREATE TABLE IF NOT EXISTS `usernames` (
@@ -109,8 +117,8 @@ CREATE TABLE IF NOT EXISTS `jobs` (
 # records checkpoint, fetch, and flush operation times and directories
 CREATE TABLE IF NOT EXISTS `transfers` (
         `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        `jobid`         INT          NOT NULL, # id to jobs table
-        `type`          VARCHAR(32)  NOT NULL, # fetch, flush, or drain?
+        `job_id`        INT          NOT NULL, # id to jobs table
+        `type_id`       INT UNSIGNED NOT NULL, # fetch, flush, or drain?
         `checkpoint_id` INT UNSIGNED NOT NULL, # SCR checkpoint iteration number
         `start`         DATETIME     NOT NULL, # start time of operation
         `end`           DATETIME     NOT NULL, # end time of operation
@@ -119,17 +127,21 @@ CREATE TABLE IF NOT EXISTS `transfers` (
         `bw`            FLOAT        NOT NULL, # bandwidth of operation
         `from`          BLOB         NOT NULL, # source directory
         `to`            BLOB         NOT NULL, # target directory
-        INDEX `jobid_start` (`jobid`,`start`)
+        INDEX `jobid_start` (`job_id`,`start`),
+        INDEX `jobid_typeid_start` (`job_id`,`type_id`,`start`),
+        INDEX `typeid_start` (`type_id`,`start`)
 ) TYPE=MyISAM;
 
 # records various events, including failed nodes
 CREATE TABLE IF NOT EXISTS `events` (
         `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        `jobid`         INT          NOT NULL, # id to jobs table
-        `type`          VARCHAR(32)  NOT NULL, # fetch, flush, or drain?
+        `job_id`        INT          NOT NULL, # id to jobs table
+        `type_id`       INT UNSIGNED NOT NULL, # fetch, flush, or drain?
         `checkpoint_id` INT UNSIGNED     NULL, # SCR checkpoint iteration number
         `start`         DATETIME         NULL, # start time of operation
         `time`          FLOAT            NULL, # total time of operation
         `note`          BLOB             NULL, # source directory
-        INDEX `jobid_start` (`jobid`,`start`)
+        INDEX `jobid_start` (`job_id`,`start`),
+        INDEX `jobid_typeid_start` (`job_id`,`type_id`,`start`),
+        INDEX `typeid_start` (`type_id`,`start`)
 ) TYPE=MyISAM;

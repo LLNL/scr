@@ -23,16 +23,20 @@ sub new
   $self->{no_user} = undef;
 
   # read in the user configuration file, if specified
-  if (defined $usrfile) {
+  if (defined $usrfile and -r $usrfile) {
     $self->{usrconf} = read_config_file($self, $usrfile);
   }
 
   # read in the system configuration file
-  $self->{sysconf} = read_config_file($self, $sysconf);
+  if (defined $sysconf and -r $sysconf) {
+    $self->{sysconf} = read_config_file($self, $sysconf);
+  }
 
   # set our compile time constants
   $self->{compile} = {};
-  $self->{compile}{"SCR_CNTL_BASE"}{"@SCR_CNTL_BASE@"}   = {};
+  $self->{compile}{"CNTLDIR"}{"@SCR_CNTL_BASE@"} = {};
+  $self->{compile}{"CACHEDIR"}{"@SCR_CACHE_BASE@"} = {};
+  $self->{compile}{"SCR_CNTL_BASE"}{"@SCR_CNTL_BASE@"} = {};
   $self->{compile}{"SCR_CACHE_BASE"}{"@SCR_CACHE_BASE@"} = {};
   $self->{compile}{"SCR_CACHE_SIZE"}{"2"} = {};
 
@@ -153,28 +157,31 @@ sub get_hash
 
   # if param is set in environment, return that value
   if (not defined $self->{no_user}{$name} and defined $ENV{$name}) {
-    return $ENV{$name};
+    my $h = {};
+    %$h = $ENV{$name};
+    return $h;
+    #return $ENV{$name};
   }
 
   # otherwise, check whether we have it defined in our user config file
   if (not defined $self->{no_user}{$name} and defined $self->{usrconf}{$name}) {
-    my %h = ();
-    %h = %{$self->{usrconf}{$name}};
-    return %h;
+    my $h = {};
+    %$h = %{$self->{usrconf}{$name}};
+    return $h;
   }
 
   # otherwise, check whether we have it defined in our system config file
   if (defined $self->{sysconf}{$name}) {
-    my %h = ();
-    %h = %{$self->{sysconf}{$name}};
-    return %h;
+    my $h = {};
+    %$h = %{$self->{sysconf}{$name}};
+    return $h;
   }
 
   # otherwise, check whether its a compile time constant
   if (defined $self->{compile}{$name}) {
-    my %h = ();
-    %h = %{$self->{compile}{$name}};
-    return %h;
+    my $h = {};
+    %$h = %{$self->{compile}{$name}};
+    return $h;
   }
 
   return undef;
