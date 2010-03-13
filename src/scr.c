@@ -338,10 +338,9 @@ static int scr_hash_send(struct scr_hash* hash, int rank, MPI_Comm comm)
       free(buf);
       buf = NULL;
     } else {
-      scr_err("scr_hash_send: Failed to malloc buffer to pack hash @ %s:%d",
+      scr_abort(-1, "scr_hash_send: Failed to malloc buffer to pack hash @ %s:%d",
               __FILE__, __LINE__
       );
-      exit(1);
     }
   }
 
@@ -370,10 +369,9 @@ static struct scr_hash* scr_hash_recv(int rank, MPI_Comm comm)
       free(buf);
       buf = NULL;
     } else {
-      scr_err("scr_hash_recv: Failed to malloc buffer to receive hash @ %s:%d",
+      scr_abort(-1, "scr_hash_recv: Failed to malloc buffer to receive hash @ %s:%d",
               __FILE__, __LINE__
       );
-      exit(1);
     }
   }
 
@@ -401,10 +399,9 @@ static int scr_hash_bcast(struct scr_hash* hash, int root, MPI_Comm comm)
         free(buf);
         buf = NULL;
       } else {
-        scr_err("scr_hash_bcast: Failed to malloc buffer to pack hash @ %s:%d",
+        scr_abort(-1, "scr_hash_bcast: Failed to malloc buffer to pack hash @ %s:%d",
                 __FILE__, __LINE__
         );
-        exit(1);
       }
     }
   } else {
@@ -426,10 +423,9 @@ static int scr_hash_bcast(struct scr_hash* hash, int root, MPI_Comm comm)
         free(buf);
         buf = NULL;
       } else {
-        scr_err("scr_hash_bcast: Failed to malloc buffer to receive hash @ %s:%d",
+        scr_abort(-1, "scr_hash_bcast: Failed to malloc buffer to receive hash @ %s:%d",
                 __FILE__, __LINE__
         );
-        exit(1);
       }
     }
   }
@@ -777,10 +773,12 @@ static int scr_ckptdesc_create_from_hash(struct scr_ckptdesc* c, int index, cons
     } else if (strcasecmp(value, "XOR") == 0) {
       c->copy_type = SCR_COPY_XOR;
     } else {
-      scr_err("Unknown copy type %s in checkpoint descriptor %d, disabling checkpoint @ %s:%d",
-              value, c->index, __FILE__, __LINE__
-      );
       c->enabled = 0;
+      if (scr_my_rank_world == 0) {
+        scr_err("Unknown copy type %s in checkpoint descriptor %d, disabling checkpoint @ %s:%d",
+                value, c->index, __FILE__, __LINE__
+        );
+      }
     }
 
     /* build the checkpoint communicator */
@@ -847,6 +845,9 @@ static int scr_ckptdesc_create_from_hash(struct scr_ckptdesc* c, int index, cons
           strcmp(c->rhs_hostname, scr_my_hostname) == 0)
       {
         c->enabled = 0;
+        scr_err("Failed to find partner processes for checkpoint descriptor %d, disabling checkpoint, too few nodes? @ %s:%d",
+                c->index, __FILE__, __LINE__
+        );
       } else {
         scr_dbg(2, "LHS partner: %s (%d)  -->  My name: %s (%d)  -->  RHS partner: %s (%d)",
                 c->lhs_hostname, c->lhs_rank_world, scr_my_hostname, scr_my_rank_world, c->rhs_hostname, c->rhs_rank_world
@@ -854,12 +855,9 @@ static int scr_ckptdesc_create_from_hash(struct scr_ckptdesc* c, int index, cons
       }
     }
 
-    /* check that all tasks have valid partners, disable checkpoint if there is a problem */
+    /* if anyone has disabled this checkpoint, everyone needs to */
     if (!scr_alltrue(c->enabled)) {
       c->enabled = 0;
-      if (scr_my_rank_world == 0) {
-        scr_err("One or more processes has disabled checkpoint, disabling checkpoint.");
-      }
     }
   }
 
@@ -1033,53 +1031,6 @@ static int scr_complete(const char* file, const struct scr_meta* meta)
   return rc;
 }
 
-/* TODO: may want to add this as part of a check_files call */
-/* compute crc32 for file and check value against meta data file, set it if not already set */
-//int scr_compute_crc(const char* file, int* read_error, int* crc_mismatch)
-int scr_compute_crc(const char* file)
-{
-  /* check that we got a filename */
-  if (file == NULL || strcmp(file, "") == 0) {
-    return SCR_FAILURE;
-  }
-
-  /* read in the meta data for this file */
-  struct scr_meta meta;
-  if (scr_meta_read(file, &meta) != SCR_SUCCESS) {
-    scr_err("Failed to read meta data file for file to compute CRC32: %s", file);
-    return SCR_FAILURE;
-  }
-
-  /* compute the CRC32 value for this file */
-  uLong crc = crc32(0L, Z_NULL, 0);
-  if (scr_crc32(file, &crc) != SCR_SUCCESS) {
-    scr_err("Computing CRC32 for file %s @ %s:%d",
-              file, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* now check the CRC32 value if it was set in the meta file, and set it if not */
-  if (meta.crc32_computed) {
-    /* the crc is already set in the meta file, let's check that we match */
-    if (meta.crc32 != crc) {
-      scr_err("CRC32 mismatch detected for file %s @ %s:%d",
-              file, __FILE__, __LINE__
-      );
-      return SCR_FAILURE;
-    }
-  } else {
-    /* the crc was not set in the meta file, so let's set it now */
-    meta.crc32_computed     = 1;
-    meta.crc32              = crc;
-
-    /* and update the meta file on disk */
-    scr_meta_write(file, &meta);
-  }
-
-  return SCR_SUCCESS;
-}
-
 /*
 =========================================
 Checkpoint functions
@@ -1147,10 +1098,9 @@ static int scr_checkpoint_dir(const struct scr_ckptdesc* c, int checkpoint_id, c
 {
   /* fatal error if c or c->directory is not set */
   if (c == NULL || c->directory == NULL) {
-    scr_err("NULL checkpoint descriptor or NULL checkpoint directory @ %s:%d",
+    scr_abort(-1, "NULL checkpoint descriptor or NULL checkpoint directory @ %s:%d",
             __FILE__, __LINE__
     );
-    exit(1);
   }
 
   /* now build the checkpoint directory name */
@@ -1162,13 +1112,24 @@ static int scr_checkpoint_dir(const struct scr_ckptdesc* c, int checkpoint_id, c
  * waits for all tasks on the same node before returning */
 static int scr_checkpoint_dir_create(const struct scr_ckptdesc* c, int checkpoint_id)
 {
+  int rc = SCR_SUCCESS;
+
   /* have the master rank on each node create the directory */
   if (scr_my_rank_local == 0) {
     /* get the name of the checkpoint directory for the given id */
     char dir[SCR_MAX_FILENAME];
     scr_checkpoint_dir(c, checkpoint_id, dir);
+
+    /* create the directory */
     scr_dbg(2, "Creating checkpoint directory: %s", dir);
-    scr_mkdir(dir, S_IRWXU);
+    rc = scr_mkdir(dir, S_IRWXU);
+
+    /* check that we created the directory successfully, fatal error if not */
+    if (rc != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to create checkpoint directory, aborting @ %s:%d",
+                __FILE__, __LINE__
+      );
+    }
   }
 
   /* force all tasks on the same node to wait to ensure the directory is ready before returning */
@@ -2938,7 +2899,6 @@ static int scr_fetch_files(scr_filemap* map, const char* dir)
     MPI_Request* req_send = (MPI_Request*) malloc(w * sizeof(MPI_Request));
     MPI_Status status;
     if (done == NULL || req_recv == NULL || req_send == NULL) {
-      scr_err("scr_fetch_files: Failed to allocate memory for flow control @ %s:%d", __FILE__, __LINE__);
       if (done != NULL) {
         free(done);
         done = NULL;
@@ -2951,8 +2911,9 @@ static int scr_fetch_files(scr_filemap* map, const char* dir)
         free(req_send);
         req_send = NULL;
       }
-      MPI_Abort(1, scr_comm_world);
-      exit(1);
+      scr_abort(-1, "scr_fetch_files: Failed to allocate memory for flow control @ %s:%d",
+                __FILE__, __LINE__
+      );
     }
 
     int outstanding = 0;
@@ -3001,11 +2962,9 @@ static int scr_fetch_files(scr_filemap* map, const char* dir)
     /* allocate memory to store the meta data for our files */
     data = (struct scr_meta*) malloc(my_num_files * sizeof(struct scr_meta));
     if (data == NULL) {
-      scr_err("scr_fetch_files: Failed to allocate memory to receive file meta @ %s:%d",
+      scr_abort(-1, "scr_fetch_files: Failed to allocate memory to receive file meta @ %s:%d",
               __FILE__, __LINE__
       );
-      MPI_Abort(1, scr_comm_world);
-      exit(1);
     }
 
     /* receive meta data info for my file from rank 0 */
@@ -3226,6 +3185,7 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, struct sc
         /* detected a crc mismatch during the copy */
 
         /* TODO: unlink the copied file */
+        /* unlink(my_flushed_file); */
 
         /* mark the file as invalid */
         meta->complete = 0;
@@ -3264,11 +3224,9 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, struct sc
 
   /* TODO: check that written filesize matches expected filesize */
 
-  /* TODO: for xor schemes, also flush the xor segments */
-
   /* fill out meta data, set complete field based on flush success */
   /* (we don't update the meta file here, since perhaps the file in cache is ok and only the flush failed) */
-  meta->complete     = (flushed == SCR_SUCCESS);
+  meta->complete = (flushed == SCR_SUCCESS);
 
   return flushed;
 }
@@ -6040,10 +5998,9 @@ static int scr_get_params()
     if (tmp != NULL) {
       scr_hash_set(scr_ckptdesc_hash, SCR_CONFIG_KEY_CKPTDESC, tmp);
     } else {
-      scr_err("Failed to define checkpoints @ %s:%d",
+      scr_abort(-1, "Failed to define checkpoints @ %s:%d",
               __FILE__, __LINE__
       );
-      exit(1);
     }
   }
 
@@ -6297,6 +6254,22 @@ int SCR_Init()
     }
   }
 
+  /* check that we have an enabled checkpoint descriptor with interval of one */
+  int found_one = 0;
+  for (i=0; i < scr_nckptdescs; i++) {
+    /* check that we have at least one descriptor enabled with an interval of one */
+    if (scr_ckptdescs[i].enabled && scr_ckptdescs[i].interval == 1) {
+      found_one = 1;
+    }
+  }
+  if (!found_one) {
+    if (scr_my_rank_world == 0) {
+      scr_abort(-1, "Failed to find an enabled checkpoint descriptor with interval 1 @ %s:%d",
+              __FILE__, __LINE__
+      );
+    }
+  }
+
   /* register this job in the logging database */
   if (scr_my_rank_world == 0 && scr_log_enable) {
     if (scr_username != NULL && scr_jobname != NULL) {
@@ -6422,11 +6395,12 @@ int SCR_Init()
   /* if scr_fetch or scr_flush is enabled, check that scr_par_prefix is set */
   if ((scr_fetch != 0 || scr_flush > 0) && strcmp(scr_par_prefix, "") == 0) {
     if (scr_my_rank_world == 0) {
-      scr_err("SCR_PREFIX must be set to use SCR_FETCH or SCR_FLUSH");
       scr_halt("SCR_INIT_FAILED");
+      scr_abort(-1, "SCR_PREFIX must be set to use SCR_FETCH or SCR_FLUSH @ %s:%d"
+                __FILE__, __LINE__
+      );
     }
     MPI_Barrier(scr_comm_world);
-    exit(0);
   }
 
   /* allocate a new global filemap object */

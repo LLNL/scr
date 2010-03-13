@@ -175,3 +175,73 @@ int scr_meta_write(const char* file, const struct scr_meta* meta)
 
   return SCR_SUCCESS;
 }
+
+/* TODO: this file isn't the most obvious location to place this function, but it uses crc and meta data */
+/* compute crc32 for file and check value against meta data file, set it if not already set */
+int scr_compute_crc(const char* file)
+{
+  /* check that we got a filename */
+  if (file == NULL || strcmp(file, "") == 0) {
+    return SCR_FAILURE;
+  }
+
+  /* read in the meta data for this file */
+  struct scr_meta meta;
+  if (scr_meta_read(file, &meta) != SCR_SUCCESS) {
+    scr_err("Failed to read meta data file for file to compute CRC32: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that the file is complete */
+  if (!meta.complete) {
+    scr_err("File is marked as incomplete: %s",
+            file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that the filesize matches the value in the meta file */
+  unsigned long size = scr_filesize(file);
+  if (meta.filesize != size) {
+    scr_err("File size does not match size recorded in meta file: %s",
+            file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* compute the CRC32 value for this file */
+  uLong crc = crc32(0L, Z_NULL, 0);
+  if (scr_crc32(file, &crc) != SCR_SUCCESS) {
+    scr_err("Computing CRC32 for file %s @ %s:%d",
+              file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* now check the CRC32 value if it was set in the meta file, and set it if not */
+  if (meta.crc32_computed) {
+    /* the crc is already set in the meta file, let's check that we match */
+    if (meta.crc32 != crc) {
+      scr_err("CRC32 mismatch detected for file %s @ %s:%d",
+              file, __FILE__, __LINE__
+      );
+
+      /* crc check failed, mark file as invalid */
+      meta.complete = 0;
+      scr_meta_write(file, &meta);
+
+      return SCR_FAILURE;
+    }
+  } else {
+    /* the crc was not set in the meta file, so let's set it now */
+    meta.crc32_computed     = 1;
+    meta.crc32              = crc;
+
+    /* and update the meta file on disk */
+    scr_meta_write(file, &meta);
+  }
+
+  return SCR_SUCCESS;
+}

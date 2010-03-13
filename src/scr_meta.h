@@ -60,4 +60,7 @@ int scr_meta_read(const char* file_orig, struct scr_meta* meta);
 /* creates corresponding .scr meta file for file to record completion info */
 int scr_meta_write(const char* file, const struct scr_meta* meta);
 
+/* compute crc32 for file and check value against meta data file, set it if not already set */
+int scr_compute_crc(const char* file);
+
 #endif

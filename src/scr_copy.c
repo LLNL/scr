@@ -333,6 +333,7 @@ int main (int argc, char *argv[])
               /* detected a crc mismatch during the copy */
 
               /* TODO: unlink the copied file */
+              /* unlink(dst); */
 
               /* mark the file as invalid */
               meta.complete = 0;

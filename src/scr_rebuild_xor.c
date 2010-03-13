@@ -69,9 +69,13 @@ int main(int argc, char* argv[])
 
   /* read in the xor filenames (expected to be in order of XOR segment number) */
   for (i=0; i < xor_set_size; i++) {
-    if (i == root) { continue; }
+    if (i == root) {
+      continue;
+    }
     j = i - root;
-    if (j < 0) { j+= xor_set_size; }
+    if (j < 0) {
+      j+= xor_set_size;
+    }
     xor_files[j] = strdup(argv[index++]);
   }
 
@@ -197,7 +201,9 @@ int main(int argc, char* argv[])
 
   /* Pipelined XOR Reduce to root */
   unsigned long* offset = malloc(xor_set_size * sizeof(unsigned long));
-  for (i=0; i < xor_set_size; i++) { offset[i] = 0; }
+  for (i=0; i < xor_set_size; i++) {
+    offset[i] = 0;
+  }
 
   unsigned long write_pos = 0;
   int chunk_id;
@@ -205,7 +211,9 @@ int main(int argc, char* argv[])
     size_t nread = 0;
     while (nread < chunk_size) {
       size_t count = chunk_size - nread;
-      if (count > buffer_size) { count = buffer_size; }
+      if (count > buffer_size) {
+        count = buffer_size;
+      }
 
       memset(buffer_A, 0, count);
 
@@ -220,7 +228,9 @@ int main(int argc, char* argv[])
 
         /* TODO: XORing with unsigned long would be faster here (if chunk size is multiple of this size) */
         /* merge the blocks via xor operation */
-        for (j = 0; j < count; j++) { buffer_A[j] ^= buffer_B[j]; }
+        for (j = 0; j < count; j++) {
+          buffer_A[j] ^= buffer_B[j];
+        }
       }
 
       if (chunk_id != root) {
@@ -272,6 +282,34 @@ int main(int argc, char* argv[])
   );
   scr_filemap_write(map_file, map);
   scr_filemap_delete(map);
+
+  /* compute, check, and store crc values with files */
+  int invalid_crc = 0;
+  for (j=0; j < num_files[0]; j++) {
+    if (scr_compute_crc(full_files[j]) != SCR_SUCCESS) {
+      /* the crc check failed, so delete the file */
+      unlink(full_files[j]);
+
+      /* also record that the file is incomplete in the meta file */
+      xor_headers[0].my_files[j].complete = 0;
+      scr_meta_write(full_files[j], &(xor_headers[0].my_files[j]));
+
+      invalid_crc = 1;
+    }
+  }
+  if (scr_compute_crc(xor_files[0]) != SCR_SUCCESS) {
+    /* the crc check failed, so delete the file */
+    unlink(xor_files[0]);
+
+    /* also record that the file is incomplete in the meta file */
+    meta.complete = 0;
+    scr_meta_write(xor_files[0], &meta);
+
+    invalid_crc = 1;
+  }
+  if (invalid_crc) {
+    return 1;
+  }
 
   free(full_fds);
   free(full_files);

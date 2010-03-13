@@ -174,12 +174,12 @@ ssize_t scr_read(int fd, void* buf, size_t size)
         /* print an error and try again */
         scr_err("Error reading: read(%d, %x, %ld) errno=%d %m @ %s:%d",
                 fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
-               );
+        );
       } else {
         /* too many failed retries, give up */
         scr_err("Giving up read: read(%d, %x, %ld) errno=%d %m @ %s:%d",
 	        fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
-               );
+        );
         exit(1);
       }
     }
@@ -522,7 +522,7 @@ int scr_build_path (char* file, const char* path, const char* filename)
   /* first build in temp, then copy to file, which lets caller use same variable in input and output parameters */
   char temp[SCR_MAX_FILENAME];
 
-  if ((path == NULL || strcmp(path, "")) && (filename == NULL || strcmp(filename, "") == 0)) {
+  if ((path == NULL || strcmp(path, "") == 0) && (filename == NULL || strcmp(filename, "") == 0)) {
     /* empty path and filename, just write an empty string to file */
     strcpy(temp, "");
   } else if (path == NULL || strcmp(path, "") == 0) {

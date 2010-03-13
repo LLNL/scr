@@ -1,3 +1,11 @@
+2010-03-12 Adam Moody <moody20@llnl.gov>
+
+	* src/scr_meta.c,
+	  src/scr_meta.h,
+	  src/scr_rebuild_xor.c,
+	  src/scr.c : Moved scr_compute_crc from scr to scr_meta so it could be called by
+	  scr_rebuild_xor.  Now compute CRC after an XOR rebuild at drain time.
+
 2010-03-05 Adam Moody <moody20@llnl.gov>
 
 	* scripts/scr_param.pm.in,
