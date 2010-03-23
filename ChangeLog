@@ -1,3 +1,7 @@
+2010-03-22 Adam Moody <moody20@llnl.gov>
+
+	* doc/scr.pdf : Updated user manual to match new implementation.
+
 2010-03-12 Adam Moody <moody20@llnl.gov>
 
 	* src/scr_meta.c,
