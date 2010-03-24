@@ -19,7 +19,7 @@
 #   GRANT ALL
 #     ON scr.* TO `scr`
 #     IDENTIFIED BY 'MySecretPassword1'
-#   GRANT ALL
+#   GRANT INSERT,SELECT
 #     ON scr.* TO `scr_insert`
 #     IDENTIFIED BY 'MySecretPassword2'
 #
