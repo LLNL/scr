@@ -2,17 +2,36 @@
 Scalable Checkpoint / Restart (SCR) Library
 ========================================================================
 
-The Scalable Checkpoint / Restart (SCR) Library provides a portable
-interface that may be used to write out and read in checkpoint files
-in a scalable fashion.  The library typically stores these files on
-local disk (hard disk or RAM disk) on the compute nodes.  This technique
-provides far more file I/O bandwidth than writing to a global parallel
-file system.  In fact, SCR scales linearly with the number of compute
-nodes, and it has been benchmarked at 720 GB/sec on 1094 nodes of Atlas.
+The Scalable Checkpoint / Restart (SCR) library enables MPI applications
+to utilize distributed storage on Linux clusters to attain high file I/O
+bandwidth for checkpointing and restarting large-scale jobs. With SCR,
+jobs run more efficiently, lose less work upon a failure, and reduce
+load on critical shared resources such as the parallel file system and
+the network infrastructure.
 
-Detailed usage is provided in the User Manual (doc/scr.pdf).
+In the current SCR implementation, application checkpoint files are
+cached in storage local to the compute nodes, and a redundancy scheme is
+applied such that the cached files can be recovered even after a failure
+disables part of the system. SCR supports the use of spare nodes such
+that it is possible to restart a job directly from its cached
+checkpoint, provided the redundancy scheme holds and provided there are
+sufficient spares.
 
-Implementation and dependency details are listed in deps.txt.
+On current platforms, SCR scales linearly with the number of compute
+nodes. It has been benchmarked at 1216GB/s on 992 nodes of Coastal at
+Lawrence Livermore National Laboratory (LLNL). At this scale, it is two
+orders of magnitude faster than the parallel file system.
+
+The SCR library is written in C, and it currently only provides a C
+interface. It has been used in production at LLNL since late 2007 using
+RAM disk on Linux / x86-64 / Infiniband clusters. Production runs are
+now underway using solid-state drives on the same cluster architecture.
+The implementation assumes SLURM is used as the resource manager. The
+library is designed and intended to be ported to other platforms and
+resource managers. SCR is an open source project under a BSD license
+hosted at: http://scalablecr.sourceforge.net.
+
+Detailed usage is provided in the user manual (doc/scr.pdf).
 
 Author:
   Adam Moody <moody20@llnl.gov>
@@ -21,21 +40,21 @@ Author:
 Dependencies
 -----------------------------
 
-SCR depends on a number of other free software packages.
+SCR depends on a number of other software packages.
 
 Required:
 
   pdsh -- parallel remote shell command (pdsh, dshbak)
-    http://sourceforge.net/projects/pdsh/
+    http://sourceforge.net/projects/pdsh
 
   Hostlist.pm -- Perl module for working with nodelists in range syntax
-    http://sourceforge.net/projects/genders/
+    http://sourceforge.net/projects/genders
 
   Date::Manip -- Perl module for date/time interpretation
     http://search.cpan.org/~sbeck/Date-Manip-5.54/lib/Date/Manip.pod
 
   SLURM -- resource manager
-    http://sourceforge.net/projects/slurm/
+    http://sourceforge.net/projects/slurm
 
 Optional:
 
@@ -45,6 +64,7 @@ Optional:
     Not currently available outside of LLNL.
 
   MySQL -- for logging events
+    http://www.mysql.com
 
 SCR is designed to be ported to other resource managers, so with some
 work, one may replace SLURM with something else.  Also libyogrt is
@@ -54,19 +74,29 @@ optional and similarly can be replaced with something else.
 Configuration
 -----------------------------
 
-Most of the default settings in the SCR library can be adjusted
-via configure options and / or compile-time define variables.
-In particular, the following parameters may need to be adjusted
-for other platforms:
+Most of the default settings in the SCR library can be adjusted.  One
+may customize default settings via configure options, compile-time
+defines, or a system configuration file.
+
+In particular, the following parameters likely need to be adjusted for
+other platforms:
+
+Cache and control directories:
+  It is critical to configure SCR with directory paths it should use
+  for cache and control directories.  Each of these directories should
+  correspond to a path leading to a storage device that is local to the
+  compute node.  For more information, see the SCR directories section
+  below.
 
 scr.conf:
-  A number of options can and must be specified for an SCR
-  installation, and SCR looks for a configuration file for most of
-  these options.  See the config file in scr.conf, which is commented.
-  The full path and file name of the config file must be hard-coded
-  into SCR at build time via the --with-scr-config-file configure
-  option, e.g.,
-    --with-scr-config-file=/etc/scr.conf
+  A number of options can and must be specified for an SCR installation.
+  A convenient method to set these parameters is to create a system
+  configuration file.  To help you get started, an example config file
+  is provided in scr.conf.  Copy this file, customize it with your
+  desired settings, and configure your SCR build to know where to look
+  for it using the --with-scr-config-file configure option, e.g.,
+
+  configure --with-scr-config-file=/etc/scr.conf ...
 
 libyogrt support:
   If libyogrt is not installed, specify --without-yogrt during the
@@ -75,40 +105,28 @@ libyogrt support:
   The function of libyogrt is to enable a job to determine how much
   time it has left in its current allocaiton.  While libyogrt is not
   available outside of LLNL, other computer centers often have some
-  library which provides similar functionality.  It should be straigt-
-  forward to replace calls to libyogrt with something else.
-  One must just modify the scr_seconds_remaining() implementation
-  in src/scr.c to return the number of seconds left in the job
-  allocation.
+  mechanism that provides similar functionality.  It should be straigt-
+  forward to replace calls to libyogrt with something else.  One must
+  simply modify the scr_seconds_remaining() implementation in src/scr.c
+  to return the number of seconds left in the job allocation.
 
 MySQL DB Logging:
-  SCR can log events to a MySQL database.  However, this feature
-  is still in development.  Please disable this for now via
+  SCR can log events to a MySQL database.  However, this feature is
+  still in development, so please disable it for now via
   --without-mysql.  If you would like to give it a try, see the
   scr.mysql file for further instructions.
 
-See the top of src/scr.c for the full set of compile-time define
-variables available.
-
------------------------------
-RAM Disk
------------------------------
-
-On systems where compute nodes are diskless, often RAM disk is
-the only option for a checkpoint cache.  When using RAM disk,
-one should configure the hard limit to be around two-thirds of
-the amount of memory on a node.  This is a high limit, however
-Linux only allocates space as needed, so it is safe to use a
-high setting.  Jobs which do not use RAM disk will not be negatively
-affected by using a high setting.  This setting must be set by the
-system administrators.
+The compile-time define variables are specified in src/scr_conf.h.  One
+may modify the settings in this file before building to set different
+defaults.  In many cases, one may be able to avoid having to create a
+system configuration using this method.
 
 -----------------------------
 Build and install
 -----------------------------
 
-Use the standard, configure/make/make install to configure, build,
-and install the library, e.g.:
+Use the standard, configure/make/make install to configure, build, and
+install the library, e.g.:
 
   ./configure \
       --prefix=/usr/local/tools/scr-1.1 \
@@ -126,3 +144,348 @@ SCR is layered on top of MPI, so it must be built for the MPI library
 installed on the system.  It uses the standard mpicc compiler wrapper.
 If there are multiple MPI libraries, a separate SCR library must be
 built for each MPI library.
+
+-----------------------------
+SCR directories
+-----------------------------
+
+There are three types of directories where SCR manages files.
+
+(1) Cache directory
+SCR instructs the application to write its checkpoint files to a cache
+directory, and SCR computes and stores redundancy data here.  SCR can
+be configured to use more than one cache directory in a single run.
+The cache directory must be local to the compute node.
+
+The cache directory must be large enough to hold at least one full
+application checkpoint.  However, it is better if the cache is large
+enough to store at least two checkpoints.  When using storage local
+to the compute node, the cache must be roughly 0.5x-3x the size of
+the node's memory to be effective.
+
+LLNL currently uses RAM disk for the cache directory, and LLNL is now
+exploring SSDs.
+
+The library is hard-coded to use /tmp as the cache directory.  To
+change this location, do any of the following:
+  * change the SCR_CACHE_BASE value in src/scr_conf.h,
+  * specify the new path during configure using the
+     --with-scr-cache-base=PATH option,
+  * or set the value in a system configuration file.
+To enable multiple cache directories, one must use a system
+configuration file.
+
+(2) Control directory
+SCR stores files to track its internal state in the control directory.
+It also uses this directory to read commands from the user.  Currently,
+this directory must be local to the compute node.  Files written to the
+control directory are small and they are read and written to frequently,
+so RAM disk works well for this.  There are a variety of files kept in
+the control directory.  For some of these files, all processes maintain
+their own file, and for others, only rank 0 accesses the file.
+
+The library is hard-coded to use /tmp as the cache directory.  To
+change this location, do any of the following:
+  * change the SCR_CACHE_BASE value in src/scr_conf.h,
+  * specify the new path during configure using the
+     --with-scr-cache-base=PATH option,
+  * or set the value in a system configuration file.
+To enable multiple cache directories, one must use a system
+configuration file.
+
+(3) Parallel file system prefix directory
+This is the directory where SCR will fetch and flush checkpoint sets
+to the parallel file system.
+
+The prefix directory defaults to the current working directory of the
+application.  To override this, the user can set the SCR_PREFIX
+parameter at run time.
+
+-----------------------------
+RAM disk
+-----------------------------
+
+On systems where compute nodes are diskless, often RAM disk is the only
+option for a checkpoint cache.  When using RAM disk, one should
+configure the hard limit to be around two-thirds of the amount of memory
+on a node.  This is a high limit, however Linux only allocates space as
+needed, so it is safe to use a high setting.  Jobs which do not use RAM
+disk will not be negatively affected by using a high setting.  This
+setting must be set by the system administrators.
+
+-----------------------------
+SCR library and commands
+-----------------------------
+
+There are two primary components that make up SCR.
+
+(1) Library
+First, there's the library the application calls.  This library is
+written in C and it makes calls to MPI and POSIX I/O functions to
+manage the cached checkpoint files on the cluster.  The library informs
+the application where it should write checkpoint files, and then the
+library applies the redundancy scheme to those checkpoint files after
+the application has written them.  It also supports a rebuild of lost
+files upon a restart, and it supports flushes and fetches between the
+cache and the prefix directory on the parallel file system.
+
+(2) Commands
+Second, there are commands that must be run before and after the job.
+After a resource allocation has been granted but before a run is
+launched, these commands check that the cache and control directories
+are available and healthy on each node.  Nodes can be excluded or the
+job can exit if this is not the case.  If multiple runs are attempted
+within the same resource allocation (e.g., start run / node fails /
+start second run in what's left of the allocation), it's best to do
+this check of the cache and control directories before each run is
+started to check that a node that used to be healthy hasn't gone bad.
+At the end of a job, commands must be run to drain the latest
+checkpoint from the cache directory to the parallel file system.
+This is necessary since the library may not have flushed its latest
+checkpoint before the last run was killed.
+
+The commands are just as vital as the library in order for SCR to
+function.  In particular, after a node failure, the commands must be
+able to access the cache and control directories of the nodes which
+are still healty.  Thus, the resource manager must be configured to
+enable these commands to run on the remaining nodes of an allocation,
+which may have sustained one or more failed nodes. 
+
+-----------------------------
+Nodeset format
+-----------------------------
+
+Several of the commands process the nodeset allocated to the job.  The
+node names are expected to be of the form
+  clustername#
+where clustername is a string of letters common for all nodes,
+and # is the node number, like atlas35 and atlas173.
+
+The Hostlist perl module will compress lists of such nodenames into a
+form like so:
+  atlas[31-43,45,48-51]
+
+-----------------------------
+IPv4
+-----------------------------
+
+Currently, SCR expects to run on a system whose nodes have IPv4
+addresses, and each node should have a unique IPv4 address.  The
+library uses this address to determine which processes are running
+on the same compute node.
+
+-----------------------------
+SLURM dependencies
+-----------------------------
+
+The current implementation assumes it is running on a system using
+SLURM as the resource manager.  However, it should be straight-
+forward to extend SCR to work with other resource managers.  Here
+are the locations where SCR currently depends on SLURM.
+
+  scripts/scr_env.in
+    --nodes option
+      reads SLURM_NODELIST to get the nodeset allocated to a job
+    --jobid
+      reads SLURM_JOBID to get jobid
+    --down
+      reads SLURM_NODELIST and invokes "sinfo" to identify known down
+      nodes
+
+  scripts/scr_halt.in
+    --all and --user options
+      invokes "squeue" to determine jobids
+    --immediate option
+      calls "scontrol" and "scancel" to determine SLURM jobstep and to
+      stop job
+    all options
+      call "squeue" to verify jobid is really running
+      call "squeue" to get nodeset for jobid to run pdsh
+
+  scripts/scr_srun.in
+    calls "srun" to run the job
+    attempts to avoid running on bad nodes via "srun -x"
+    attempts to ensure rank 0 runs on the same node via "srun -w"
+
+  scr/scr.c
+    reads SLURM_JOBID to get jobid string
+
+Additionally, the current implementation depends on SLURM for the
+following features:
+  * To clean the cache and control directories between allocations,
+    via an rm command executed in the SLURM prolog or epilog.
+  * To kill a job which has suffered a failure.
+  * To enable the batch script to continue to run in an allocation
+    which has lost one or more nodes.
+
+-----------------------------
+pdsh dependencies
+-----------------------------
+
+The current implementation uses pdsh in order to run commands
+on the nodes allocated to the job.  One could replace pdsh
+with some work.  Here are the locations where pdsh is used.
+
+  scripts/scr_list_down_nodes.in
+    invokes pdsh to run "scr_check_node" on each node
+
+  scripts/scr_flush.in
+    invokes pdsh to run "scr_copy" on each node
+
+  scripts/scr_halt.in
+    invokes pdsh to run "scr_halt_cntl" on each node to update halt
+    file
+
+-----------------------------
+Dependency on files in common directory
+-----------------------------
+
+Some commands must be able to read / write files also accessed by
+the library.
+
+  scripts/scr_env.in
+    --runnodes option
+      reads "nodes.scrinfo" from control directory to report the number
+      of nodes used in the last run
+
+  scripts/scr_flush_file.in
+    reads the "flush.scrinfo" file from the control directory to
+    identify whether any checkpoints need to be flushed from cache
+
+  src/scr_inspect_cache.c
+    reads "filemap.scrinfo" and "filemap_#.scrinfo" files to locate
+    files in cache
+
+  src/scr_copy.c
+    reads "filemap.scrinfo" and "filemap_#.scrinfo" files to locate
+    files in cache
+
+  src/scr_halt_cntl.c
+    reads and writes "halt.scrinfo"
+
+  scripts/scr_retries_halt.in
+    reads "halt.scrinfo" file to determine whether the current run
+    should halt
+
+  src/scr_transfer.c
+    reads and writes "transfer.scrinfo" to get list of files for
+    asynchronous flush
+
+Here is how the control directory files are currently accessed.
+
+  File                 Library                   Commands
+  ---------------------------------------------------------------------
+  halt.scrinfo         rank 0                    scr_halt_cntl,
+                                                 scr_retries_halt
+  nodes.scrinfo        master rank on each node  scr_env
+  flush.scrinfo        master rank on each node  scr_flush_file
+  filemap.scrinfo      master rank on each node  scr_inspect_cache,
+                                                 scr_copy
+  filemap_#.scrinfo    every rank                scr_inspect_cache,
+                                                 scr_copy
+  transfer.scrinfo     master rank on each node  scr_transfer
+
+-----------------------------
+Run location and program language
+-----------------------------
+
+Different commands may run in different places.
+
+Compute node only:
+  scripts/scr_check_node.in      perl
+  src/scr_inspect_cache.in       C
+  src/scr_copy.in                C
+  src/scr_halt_cntl.c            C
+  src/scr_transfer.c             C
+
+Batch script only:
+  scripts/scr_prerun.in          bash shell
+  scripts/scr_list_down_nodes.in perl
+  scripts/scr_srun.in            bash shell
+  scripts/scr_postrun.in         bash shell
+  scripts/scr_flush.in           perl
+  scripts/scr_retries_halt.in    perl
+  scripts/scr_cntl_dir.in        perl
+  scripts/scr_env.in             perl
+  src/scr_log_event.c            C
+  src/scr_log_transfer.c         C
+
+Compute node and batch script:
+  scripts/scr_flush_file.in      perl
+
+Within or external to batch script:
+  scripts/scr_halt.in            perl
+  scripts/scr_check_complete.in  perl
+  scripts/scr_glob_hosts.in      perl
+  src/scr_rebuild_xor.c          C
+  src/scr_crc32.c                C
+  src/scr_print_hash_file.c      C
+
+-----------------------------
+Program flow
+-----------------------------
+
+scripts/scr_param.pm
+  returns parameter value searching in the following order:
+    environment variable value, if set
+    configuration file value, if set
+
+scripts/scr_cntl_dir.in
+  uses scr_param.pm to read SCR_CACHE_BASE or SCR_CNTL_BASE parameters
+  for full directories:
+    invokes "scr_env --user" to get the username if not specified on command line
+    invokes "scr_env --jobid" to get the jobid if not specified on command line
+
+scripts/scr_list_down_nodes.in
+  invokes "scr_env --nodes" to get the current nodeset
+  invokes "scr_env --down" to ask resource manager whether any nodes are known to be down
+  invokes "ping" in a loop over each node presumed to be up
+  invokes "scr_cntl_dir" to get cache and control directories
+  invokes "pdsh" to run "scr_check_node" on each up node
+
+scripts/scr_flush_file.in
+  reads "flush.scrinfo" to answer queries
+
+scripts/scr_copy.in
+  invokes "scr_flush_file --dir --haveid" to check whether the node has any files for given checkpoint
+  invokes "scr_flush_file --dir --needflush" to check whether that checkpoint needs flushed
+  invokes "scr_crc32" to compute checksums of files before flush
+  invokes "cp" to copy each file from the node to the parallel file system
+
+scripts/scr_flush.in
+  invokes "scr_env --jobid" to get jobid
+  invokes "scr_env --nodes" to get the current nodeset
+  invokes "scr_flush_file --dir --latest" to get the latest checkpoint
+  invokes "scr_flush_file --dir --needflush" to determine whether this checkpoint needs flushed
+  invokes "pdsh" to run "scr_copy" on each node
+
+scripts/scr_prerun.in
+  Currently does nothing
+
+scripts/scr_postrun.in
+  invokes "scr_cntl_dir" to get the control directory
+  invokes "scr_env --nodes" to get the current nodeset
+  invokes "scr_list_down_nodes" to identify down nodes in the allocation
+  invokes "scr_glob_hosts" to subtract down nodes from nodeset to get up nodes
+  invokes "scr_flush_file --dir --latest" to get the id of the latest checkpoint in cache
+  invokes "scr_flush_file --dir --needflush" to determine whether that checkpoint needs to be flushed
+  creates directory to flush to on parallel file system
+  invokes "scr_flush" to initiate the flush
+  invokes "scr_check_complete" to determine whether the flushed set is complete and rebuild files
+  updates scr.current and scr.old symlinks
+
+scripts/scr_retries_halt.in
+  invokes "scr_cntl_dir" to get the control directory
+  reads "halt.scrinfo" file and checks conditions
+
+scripts/scr_srun.in
+  invokes "scr_env --nodes" to get current nodeset
+  invokes "scr_glob_hosts" to check that script is running on a node in the nodeset
+  invokes "scr_cntl_dir" to get control directory
+  invokes "scr_prerun" to clear the control and cache directories on each node
+  invokes "scr_list_down_nodes" to get a list of nodes identified to be down
+  invokes "scr_env --runnodes" to get number of nodes used in last run
+  invokes "scr_glob_hosts" to count total number of nodes in allocation
+  invokes "srun" to run job
+  invokes "scr_retries_halt" to check whether the job should be halted
+  invokes "scr_postrun" to flush latest cached checkpoint to parallel file system

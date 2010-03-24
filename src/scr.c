@@ -5874,9 +5874,9 @@ static int scr_get_params()
     scr_enabled = atoi(value);
   }
 
-  /* bail out if not enabled -- nothing to do */
+  /* if not enabled, bail with an error */
   if (! scr_enabled) {
-    return SCR_SUCCESS;
+    return SCR_FAILURE;
   }
 
   /* read username from environment */
@@ -6187,9 +6187,13 @@ int SCR_Init()
   /* read our configuration: environment variables, config file, etc. */
   scr_get_params();
 
-  /* bail out if not enabled -- nothing to do */
+  /* if not enabled, bail with an error */
   if (! scr_enabled) {
-    return SCR_SUCCESS;
+    /* we dup'd comm_world to broadcast parameters in scr_get_params,
+     * need to free it here */
+    MPI_Comm_free(&scr_comm_world);
+
+    return SCR_FAILURE;
   }
 
   /* create a scr_comm_local communicator to hold all tasks on the same node */
@@ -6674,9 +6678,9 @@ int SCR_Init()
 /* Close down and clean up */
 int SCR_Finalize()
 { 
-  /* bail out if not enabled -- nothing to do */
+  /* if not enabled, bail with an error */
   if (! scr_enabled) {
-    return SCR_SUCCESS;
+    return SCR_FAILURE;
   }
 
   /* bail out if not initialized -- will get bad results */
@@ -6755,10 +6759,9 @@ int SCR_Finalize()
 /* sets flag to 1 if a checkpoint should be taken, flag is set to 0 otherwise */
 int SCR_Need_checkpoint(int* flag)
 {
-  /* always say yes if not enabled (maybe no is better?) */
+  /* if not enabled, bail with an error */
   if (! scr_enabled) {
-    *flag = 1;
-    return SCR_SUCCESS;
+    return SCR_FAILURE;
   }
 
   /* say no if not initialized */
@@ -6837,21 +6840,9 @@ int SCR_Need_checkpoint(int* flag)
 /* informs SCR that a fresh checkpoint set is about to start */
 int SCR_Start_checkpoint()
 {
-  /* TODO: need to have SCR still make the directory in this case */
-  /* if not enabled, we still need rank 0 to create the directory, but we can't use any SCR variables */
+  /* if not enabled, bail with an error */
   if (! scr_enabled) {
-/*
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if (rank == 0) {
-      char path[SCR_MAX_FILENAME];
-      char name[SCR_MAX_FILENAME];
-      scr_split_path(file, path, name);
-      scr_mkdir(path, S_IRWXU);
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-*/
-    return SCR_SUCCESS;
+    return SCR_FAILURE;
   }
   
   /* bail out if not initialized -- will get bad results */
@@ -6981,15 +6972,9 @@ int SCR_Start_checkpoint()
 /* given a filename, return the full path to the file which the user should write to */
 int SCR_Route_file(const char* file, char* newfile)
 {
-  int n = SCR_MAX_FILENAME;
-
-  /* TODO: should we have SCR do anything at all in this case? */
-  /* if not enabled, make straight copy of file into newfile and bail out */
+  /* if not enabled, bail with an error */
   if (! scr_enabled) {
-    if (file != NULL && newfile != NULL) {
-      strncpy(newfile, file, n);
-    }
-    return SCR_SUCCESS;
+    return SCR_FAILURE;
   }
   
   /* bail out if not initialized -- will get bad results */
@@ -6999,6 +6984,7 @@ int SCR_Route_file(const char* file, char* newfile)
   }
 
   /* route the file */
+  int n = SCR_MAX_FILENAME;
   if (scr_route_file(scr_checkpoint_id, file, newfile, n) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
@@ -7023,9 +7009,9 @@ int SCR_Route_file(const char* file, char* newfile)
 /* completes the checkpoint set and marks it as valid or not */
 int SCR_Complete_checkpoint(int valid)
 {
-  /* bail out if not enabled -- nothing to do */
+  /* if not enabled, bail with an error */
   if (! scr_enabled) {
-    return SCR_SUCCESS;
+    return SCR_FAILURE;
   }
 
   /* bail out if not initialized -- will get bad results */
