@@ -4,8 +4,6 @@
 # the checkpoint cache in case a previous run
 # left something.
 
-# requires: pdsh
-
 # if SCR is disabled, immediately exit
 if [ "$SCR_ENABLE" == "0" ] ; then
   exit 0
@@ -21,12 +19,6 @@ fi
 # record the start time of the script
 start_time=`date`
 start_secs=`date +%s`
-
-bindir="@X_BINDIR@"
-
-pdsh="@PDSH_EXE@"
-rm="/bin/rm"
-mkdir="/bin/mkdir"
 
 prog="scr_prerun"
 

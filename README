@@ -184,14 +184,12 @@ so RAM disk works well for this.  There are a variety of files kept in
 the control directory.  For some of these files, all processes maintain
 their own file, and for others, only rank 0 accesses the file.
 
-The library is hard-coded to use /tmp as the cache directory.  To
+The library is hard-coded to use /tmp as the control directory.  To
 change this location, do any of the following:
-  * change the SCR_CACHE_BASE value in src/scr_conf.h,
+  * change the SCR_CNTL_BASE value in src/scr_conf.h,
   * specify the new path during configure using the
-     --with-scr-cache-base=PATH option,
+     --with-scr-cntl-base=PATH option,
   * or set the value in a system configuration file.
-To enable multiple cache directories, one must use a system
-configuration file.
 
 (3) Parallel file system prefix directory
 This is the directory where SCR will fetch and flush checkpoint sets
@@ -326,15 +324,20 @@ The current implementation uses pdsh in order to run commands
 on the nodes allocated to the job.  One could replace pdsh
 with some work.  Here are the locations where pdsh is used.
 
-  scripts/scr_list_down_nodes.in
-    invokes pdsh to run "scr_check_node" on each node
-
   scripts/scr_flush.in
-    invokes pdsh to run "scr_copy" on each node
+    invokes pdsh to run "scr_copy" on each node to copy files from
+    cache to the parallel file system
 
   scripts/scr_halt.in
     invokes pdsh to run "scr_halt_cntl" on each node to update halt
     file
+
+  scripts/scr_inspect.in
+    invokes pdsh to run "scr_inspect_cache" on each node to identify
+    which checkpoints need to be flushed, if any
+
+  scripts/scr_list_down_nodes.in
+    invokes pdsh to run "scr_check_node" on each node
 
 -----------------------------
 Dependency on files in common directory

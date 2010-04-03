@@ -46,6 +46,12 @@ ssize_t scr_read(int fd, void* buf, size_t size);
 /* reliable write to file descriptor (retries, if necessary, until hard error) */
 ssize_t scr_write(int fd, const void* buf, size_t size);
 
+/* make a good attempt to read from file (retries, if necessary, return error if fail) */
+ssize_t scr_read_attempt(const char* file, int fd, void* buf, size_t size);
+
+/* make a good attempt to write to file (retries, if necessary, return error if fail) */
+ssize_t scr_write_attempt(const char* file, int fd, const void* buf, size_t size);
+
 /* read line from file into buf with given size */
 ssize_t scr_read_line(const char* file, int fd, char* buf, size_t size);
 
@@ -56,10 +62,12 @@ ssize_t scr_writef(const char* file, int fd, const char* format, ...);
 int scr_read_pad(int fd, char* buf, unsigned long count, unsigned long offset, unsigned long filesize);
 
 /* like scr_read_pad, but this takes an array of open files and treats them as one single large file */
-int scr_read_pad_n(int n, int* fds, char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes);
+int scr_read_pad_n(int n, char** files, int* fds,
+                   char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes);
 
 /* write to an array of open files with known filesizes and treat them as one single large file */
-int scr_write_pad_n(int n, int* fds, char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes);
+int scr_write_pad_n(int n, char** files, int* fds,
+                    char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes);
 
 /* given a filename, return number of bytes in file */
 unsigned long scr_filesize(const char* file);

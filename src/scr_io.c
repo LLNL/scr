@@ -228,6 +228,85 @@ ssize_t scr_write(int fd, const void* buf, size_t size)
   return n;
 }
 
+/* make a good attempt to read from file (retries, if necessary, return error if fail) */
+ssize_t scr_read_attempt(const char* file, int fd, void* buf, size_t size)
+{
+  ssize_t n = 0;
+  int retries = 10;
+  while (n < size)
+  {
+    int rc = read(fd, (char*) buf + n, size - n);
+    if (rc  > 0) {
+      n += rc;
+    } else if (rc == 0) {
+      /* EOF */
+      return n;
+    } else { /* (rc < 0) */
+      /* got an error, check whether it was serious */
+      if (errno == EINTR || errno == EAGAIN) {
+        continue;
+      }
+
+      /* something worth printing an error about */
+      retries--;
+      if (retries) {
+        /* print an error and try again */
+        scr_err("Error reading file %s errno=%d %m @ %s:%d",
+                file, errno, __FILE__, __LINE__
+        );
+      } else {
+        /* too many failed retries, give up */
+        scr_err("Giving up read on file %s errno=%d %m @ %s:%d",
+	        file, errno, __FILE__, __LINE__
+        );
+        return -1;
+      }
+    }
+  }
+  return n;
+}
+
+/* make a good attempt to write to file (retries, if necessary, return error if fail) */
+ssize_t scr_write_attempt(const char* file, int fd, const void* buf, size_t size)
+{
+  ssize_t n = 0;
+  int retries = 10;
+  while (n < size)
+  {
+    ssize_t rc = write(fd, (char*) buf + n, size - n);
+    if (rc > 0) {
+      n += rc;
+    } else if (rc == 0) {
+      /* something bad happened, print an error and abort */
+      scr_err("Error writing file %s write returned 0 @ %s:%d",
+	      file, __FILE__, __LINE__
+      );
+      return -1;
+    } else { /* (rc < 0) */
+      /* got an error, check whether it was serious */
+      if (errno == EINTR || errno == EAGAIN) {
+        continue;
+      }
+
+      /* something worth printing an error about */
+      retries--;
+      if (retries) {
+        /* print an error and try again */
+        scr_err("Error writing file %s errno=%d %m @ %s:%d",
+                file, errno, __FILE__, __LINE__
+        );
+      } else {
+        /* too many failed retries, give up */
+        scr_err("Giving up write of file %s errno=%d %m @ %s:%d",
+                file, errno, __FILE__, __LINE__
+        );
+        return -1;
+      }
+    }
+  }
+  return n;
+}
+
 /* read line from file into buf with given size */
 ssize_t scr_read_line(const char* file, int fd, char* buf, size_t size)
 {
@@ -327,7 +406,8 @@ int scr_read_pad(int fd, char* buf, unsigned long count, unsigned long offset, u
 }
 
 /* like scr_read_pad, but this takes an array of open files and treats them as one single large file */
-int scr_read_pad_n(int n, int* fds, char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes)
+int scr_read_pad_n(int n, char** files, int* fds,
+                   char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes)
 {
   int i = 0;
   size_t pos = 0;
@@ -344,7 +424,13 @@ int scr_read_pad_n(int n, int* fds, char* buf, unsigned long count, unsigned lon
   if (i < n) {
       pos = offset - nseek;
       nseek += pos;
-      lseek(fds[i], pos, SEEK_SET);
+      if (lseek(fds[i], pos, SEEK_SET) == (off_t)-1) {
+        /* our seek failed, return an error */
+        scr_err("Failed to seek to byte %lu in %s @ %s:%d",
+                pos, files[i], __FILE__, __LINE__
+        );
+        return SCR_FAILURE;
+      }
   }
 
   /* read data from files */
@@ -353,28 +439,42 @@ int scr_read_pad_n(int n, int* fds, char* buf, unsigned long count, unsigned lon
     size_t num_to_read = filesizes[i] - pos;
 
     /* if we don't need to read the whole remainder of the file, adjust to the smaller amount */
-    if (num_to_read > count - nread) { num_to_read = count - nread; }
+    if (num_to_read > count - nread) {
+      num_to_read = count - nread;
+    }
 
     /* read data from file and add to the total read count */
-    scr_read(fds[i], buf + nread, num_to_read);
+    if (scr_read_attempt(files[i], fds[i], buf + nread, num_to_read) != num_to_read) {
+      /* our read failed, return an error */
+      return SCR_FAILURE;
+    }
     nread += num_to_read;
 
     /* advance to next file and seek to byte 0 */
     i++;
     if (i < n) {
       pos = 0;
-      lseek(fds[i], pos, SEEK_SET);
+      if (lseek(fds[i], pos, SEEK_SET) == (off_t)-1) {
+        /* our seek failed, return an error */
+        scr_err("Failed to seek to byte %lu in %s @ %s:%d",
+                pos, files[i], __FILE__, __LINE__
+        );
+        return SCR_FAILURE;
+      }
     }
   }
 
   /* if count is bigger than all of our file data, pad with zeros on the end */
-  if (nread < count) { memset(buf + nread, 0, count - nread); }
+  if (nread < count) {
+    memset(buf + nread, 0, count - nread);
+  }
 
   return SCR_SUCCESS;
 }
 
 /* write to an array of open files with known filesizes treating them as one single large file */
-int scr_write_pad_n(int n, int* fds, char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes)
+int scr_write_pad_n(int n, char** files, int* fds,
+                    char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes)
 {
   int i = 0;
   size_t pos = 0;
@@ -391,7 +491,13 @@ int scr_write_pad_n(int n, int* fds, char* buf, unsigned long count, unsigned lo
   if (i < n) {
       pos = offset - nseek;
       nseek += pos;
-      lseek(fds[i], pos, SEEK_SET);
+      if (lseek(fds[i], pos, SEEK_SET) == (off_t)-1) {
+        /* our seek failed, return an error */
+        scr_err("Failed to seek to byte %lu in %s @ %s:%d",
+                pos, files[i], __FILE__, __LINE__
+        );
+        return SCR_FAILURE;
+      }
   }
 
   /* write data to files */
@@ -400,17 +506,28 @@ int scr_write_pad_n(int n, int* fds, char* buf, unsigned long count, unsigned lo
     size_t num_to_write = filesizes[i] - pos;
 
     /* if we don't need to write the whole remainder of the file, adjust to the smaller amount */
-    if (num_to_write > count - nwrite) { num_to_write = count - nwrite; }
+    if (num_to_write > count - nwrite) {
+      num_to_write = count - nwrite;
+    }
 
     /* write data to file and add to the total write count */
-    scr_write(fds[i], buf + nwrite, num_to_write);
+    if (scr_write_attempt(files[i], fds[i], buf + nwrite, num_to_write) != num_to_write) {
+      /* our write failed, return an error */
+      return SCR_FAILURE;
+    }
     nwrite += num_to_write;
 
     /* advance to next file and seek to byte 0 */
     i++;
     if (i < n) {
       pos = 0;
-      lseek(fds[i], pos, SEEK_SET);
+      if (lseek(fds[i], pos, SEEK_SET) == (off_t)-1) {
+        /* our seek failed, return an error */
+        scr_err("Failed to seek to byte %lu in %s @ %s:%d",
+                pos, files[i], __FILE__, __LINE__
+        );
+        return SCR_FAILURE;
+      }
     }
   }
 
@@ -603,6 +720,30 @@ File Copy Functions
 /* copy src_file (full path) to dest_path and return new full path in dest_file */
 int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, char* dst, uLong* crc)
 {
+  /* check that we got something for a source file */
+  if (src == NULL || strcmp(src, "") == 0) {
+    scr_err("Invalid source file @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that we got something for a destination directory */
+  if (dst_dir == NULL || strcmp(dst_dir, "") == 0) {
+    scr_err("Invalid destination directory @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that we got a pointer to a destination buffer */
+  if (dst == NULL) {
+    scr_err("Invalid buffer for destination file name @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
   /* split src_file into path and filename */
   char path[SCR_MAX_FILENAME];
   char name[SCR_MAX_FILENAME];
@@ -654,18 +795,42 @@ int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, ch
     *crc = crc32(0L, Z_NULL, 0);
   }
 
+  int rc = SCR_SUCCESS;
+
   /* write chunks */
   int copying = 1;
   while (copying) {
-    int nread = scr_read(fd_src, buf, buf_size);
+    /* attempt to read buf_size bytes from file */
+    int nread = scr_read_attempt(src, fd_src, buf, buf_size);
+
+    /* if we read some bytes, write them out */
     if (nread > 0) {
+      /* optionally compute crc value as we go */
       if (crc != NULL) {
         *crc = crc32(*crc, (const Bytef*) buf, (uInt) nread);
       }
-      scr_write(fd_dst, buf, nread);
+
+      /* write our nread bytes out */
+      int nwrite = scr_write_attempt(dst, fd_dst, buf, nread);
+
+      /* check for a write error or a short write */
+      if (nwrite != nread) {
+        /* write had a problem, stop copying and return an error */
+        copying = 0;
+        rc = SCR_FAILURE;
+      }
     }
+
+    /* assume a short read means we hit the end of the file */
     if (nread < buf_size) {
       copying = 0;
+    }
+
+    /* check for a read error, stop copying and return an error */
+    if (nread < 0) {
+      /* read had a problem, stop copying and return an error */
+      copying = 0;
+      rc = SCR_FAILURE;
     }
   }
 
@@ -676,10 +841,19 @@ int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, ch
   }
 
   /* close source and destination files */
-  scr_close(dst, fd_dst);
-  scr_close(src, fd_src);
+  if (scr_close(dst, fd_dst) != SCR_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+  if (scr_close(src, fd_src) != SCR_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
 
-  return SCR_SUCCESS;
+  /* unlink the file if the copy failed */
+  if (rc != SCR_SUCCESS) {
+    unlink(dst);
+  }
+
+  return rc;
 }
 
 /*

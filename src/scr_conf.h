@@ -138,6 +138,11 @@
 #define SCR_FLUSH_ON_RESTART (0)
 #endif
 
+/* when set, SCR will flush on restart and disable fetch for codes that must restart from the PFS */
+#ifndef SCR_GLOBAL_RESTART
+#define SCR_GLOBAL_RESTART (0)
+#endif
+
 /* whether to switch from synchronous to asynchronous flushes */
 #ifndef SCR_FLUSH_ASYNC
 #define SCR_FLUSH_ASYNC (0)

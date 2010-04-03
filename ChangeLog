@@ -1,3 +1,24 @@
+2010-04-01 Adam Moody <moody20@llnl.gov>
+
+	* src/scr.c : Added logic to support SCR_GLOBAL_RESTART.  When enabled, SCR will
+	  distribute files on a restart, flush, and then clear the cache of all checkpoints.
+	  Useful for codes which must restart from the parallel file system.  Also fixed
+	  a bug where flush file was not being restored to a consistent state on a rebuild.
+
+	* src/scr_io.c,
+	  src/scr_rebuild_xor.c,
+	  src/scr.c : Modified scr_read_pad_n and scr_write_pad_n to return an error
+	  rather than exit upon an I/O failure.  Modified XOR rebuild to handle such
+	  errors, with the intent to better detect failures when the parallel file system
+	  is full.
+
+2010-03-30 Adam Moody <moody20@llnl.gov>
+
+	* src/scr_io.c,
+	  src/scr_io.h : Added scr_read_attempt and scr_write_attempt to return
+	  error if read or write fails.  Have scr_copy_to return error if there
+	  is a failure and also unlink destination file.
+
 2010-03-24 Adam Moody <moody20@llnl.gov>
 
 	* : tag scr-1.1-6

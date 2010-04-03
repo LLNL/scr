@@ -5,7 +5,7 @@ scp ${scrversion}.tar.gz <username>,scalablecr@frs.sourceforge.net:/home/frs/pro
 # build the dist tarball
 cd ~/packages/scr
 setenv CFLAGS "-g -O0"
-setenv scrversion scr-1.1-6
+setenv scrversion scr-1.1-7
 make distclean
 ./autogen.sh
 ./configure --prefix=/usr/local/tools/scr-1.1 --with-scr-config-file=/etc/scr.conf
