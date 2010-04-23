@@ -71,6 +71,9 @@ AC_CONFIG_FILES( \
   scripts/scr_prerun \
   scripts/scr_retries_halt \
   scripts/scr_srun \
+  scripts/scr_test_hostlist \
+  scripts/scr_test_datemanip \
+  scripts/scr_test_runtime \
   scripts/scr_param.pm \
   examples/Makefile \
   examples/makefile.examples \

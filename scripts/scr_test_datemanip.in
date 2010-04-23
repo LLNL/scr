@@ -1,0 +1,12 @@
+#!/usr/bin/perl -w
+use strict;
+use Date::Manip;
+
+# Initialize Date::Manip
+Date_Init();
+
+# check that we can call a few functions from Date::Manip
+my $date = ParseDate("2010-01-01 13:30:00");
+my $secs = UnixDate($date,"%s");
+
+exit 0;

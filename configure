@@ -464,7 +464,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os META_NAME META_VERSION META_RELEASE META_ALIAS META_DATE META_AUTHOR META_LT_CURRENT META_LT_REVISION META_LT_AGE X_PREFIX X_EXEC_PREFIX X_BINDIR X_SBINDIR X_LIBEXECDIR X_DATADIR X_SYSCONFDIR X_SHAREDSTATEDIR X_LOCALSTATEDIR X_LIBDIR X_INCLUDEDIR X_OLDINCLUDEDIR X_INFODIR X_MANDIR INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT MPICC MPICXX CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE YOGRT_CPPFLAGS YOGRT_LDFLAGS YOGRT_LIBS MYSQL_CPPFLAGS MYSQL_LDFLAGS MYSQL_LIBS PDSH_EXE DSHBAK_EXE PERL SED EGREP LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CPP CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL SCR_CACHE_BASE SCR_CNTL_BASE SCR_CONFIG_FILE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os META_NAME META_VERSION META_RELEASE META_ALIAS META_DATE META_AUTHOR META_LT_CURRENT META_LT_REVISION META_LT_AGE X_PREFIX X_EXEC_PREFIX X_BINDIR X_SBINDIR X_LIBEXECDIR X_DATADIR X_SYSCONFDIR X_SHAREDSTATEDIR X_LOCALSTATEDIR X_LIBDIR X_INCLUDEDIR X_OLDINCLUDEDIR X_INFODIR X_MANDIR INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT MPICC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE YOGRT_CPPFLAGS YOGRT_LDFLAGS YOGRT_LIBS MYSQL_CPPFLAGS MYSQL_LDFLAGS MYSQL_LIBS PDSH_EXE DSHBAK_EXE PERL SED EGREP LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CPP CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL SCR_CACHE_BASE SCR_CNTL_BASE SCR_CONFIG_FILE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -909,10 +909,6 @@ ac_env_MPICC_set=${MPICC+set}
 ac_env_MPICC_value=$MPICC
 ac_cv_env_MPICC_set=${MPICC+set}
 ac_cv_env_MPICC_value=$MPICC
-ac_env_MPICXX_set=${MPICXX+set}
-ac_env_MPICXX_value=$MPICXX
-ac_cv_env_MPICXX_set=${MPICXX+set}
-ac_cv_env_MPICXX_value=$MPICXX
 ac_env_CC_set=${CC+set}
 ac_env_CC_value=$CC
 ac_cv_env_CC_set=${CC+set}
@@ -1050,6 +1046,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-yogrt=PATH       Specify path to libyogrt installation
   --with-mysql            Link to mysql client library
+  --with-pdsh=PATH        Path to pdsh and dshbak commands
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-pic              try to use only PIC/non-PIC objects [default=use
                           both]
@@ -1064,7 +1061,6 @@ Optional Packages:
 
 Some influential environment variables:
   MPICC       MPI C compiler wrapper
-  MPICXX      MPI C++ compiler wrapper
   CC          C compiler command
   CFLAGS      C compiler flags
   LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
@@ -2377,8 +2373,7 @@ fi
 ##
 
 
-
-  for ac_prog in mpigcc mpicc mpiicc mpxlc
+  for ac_prog in mpicc mpigcc mpiicc mpxlc
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -2417,49 +2412,7 @@ fi
 
   test -n "$MPICC" && break
 done
-test -n "$MPICC" || MPICC="$CC"
-
-  for ac_prog in mpig++ mpiicpc mpxlC
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_prog_MPICXX+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  if test -n "$MPICXX"; then
-  ac_cv_prog_MPICXX="$MPICXX" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_MPICXX="$ac_prog"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-fi
-fi
-MPICXX=$ac_cv_prog_MPICXX
-if test -n "$MPICXX"; then
-  echo "$as_me:$LINENO: result: $MPICXX" >&5
-echo "${ECHO_T}$MPICXX" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$MPICXX" && break
-done
-test -n "$MPICXX" || MPICXX="$CXX"
-
+test -n "$MPICC" || MPICC="mpicc"
 
 
 
@@ -3945,44 +3898,55 @@ echo "${ECHO_T}$ac_cv_sys_interpreter" >&6
 interpval=$ac_cv_sys_interpreter
 
   if test "x$interpval" = xno; then
-    { { echo "$as_me:$LINENO: error: SCR scripts dynamically select the interpreter to run a script." >&5
-echo "$as_me: error: SCR scripts dynamically select the interpreter to run a script." >&2;}
-   { (exit 1); exit 1; }; }
+    { echo "$as_me:$LINENO: WARNING: SCR scripts dynamically select the interpreter to run a script." >&5
+echo "$as_me: WARNING: SCR scripts dynamically select the interpreter to run a script." >&2;}
   fi
 
+  # enable user to specify path that contains pdsh and dshbak commands
+
+# Check whether --with-pdsh or --without-pdsh was given.
+if test "${with_pdsh+set}" = set; then
+  withval="$with_pdsh"
+   case "$withval" in
+        no)  ac_pdsh_path= ;;
+        yes) ac_pdsh_path= ;;
+        *)   ac_pdsh_path=$withval ;;
+      esac
+
+
+fi;
+
   # check for pdsh command
-  # Extract the first word of "pdsh", so it can be a program name with args.
+  if test "x$ac_pdsh_path" = "x"; then
+    # user did not specify, so search the standard PATH
+    # Extract the first word of "pdsh", so it can be a program name with args.
 set dummy pdsh; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_PDSH_EXE+set}" = set; then
+if test "${ac_cv_prog_PDSH_EXE+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  case $PDSH_EXE in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PDSH_EXE="$PDSH_EXE" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+  if test -n "$PDSH_EXE"; then
+  ac_cv_prog_PDSH_EXE="$PDSH_EXE" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
 for as_dir in $PATH
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
   for ac_exec_ext in '' $ac_executable_extensions; do
   if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_PDSH_EXE="$as_dir/$ac_word$ac_exec_ext"
+    ac_cv_prog_PDSH_EXE="pdsh"
     echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
 done
 done
 
-  test -z "$ac_cv_path_PDSH_EXE" && ac_cv_path_PDSH_EXE="no"
-  ;;
-esac
+  test -z "$ac_cv_prog_PDSH_EXE" && ac_cv_prog_PDSH_EXE="no"
 fi
-PDSH_EXE=$ac_cv_path_PDSH_EXE
-
+fi
+PDSH_EXE=$ac_cv_prog_PDSH_EXE
 if test -n "$PDSH_EXE"; then
   echo "$as_me:$LINENO: result: $PDSH_EXE" >&5
 echo "${ECHO_T}$PDSH_EXE" >&6
@@ -3991,46 +3955,48 @@ else
 echo "${ECHO_T}no" >&6
 fi
 
-  if test "x$PDSH_EXE" = xno; then
-    { { echo "$as_me:$LINENO: error: unable to locate pdsh command, see README" >&5
-echo "$as_me: error: unable to locate pdsh command, see README" >&2;}
-   { (exit 1); exit 1; }; }
+    if test "x$PDSH_EXE" = xno; then
+      # could not find pdsh, print a warning, and hardcode to pdsh
+      { echo "$as_me:$LINENO: WARNING: Unable to locate pdsh command, see README" >&5
+echo "$as_me: WARNING: Unable to locate pdsh command, see README" >&2;}
+      PDSH_EXE=pdsh
+    fi
+  else
+    PDSH_EXE=${ac_pdsh_path}/pdsh
   fi
 
 
   # check for dshbak command
-  # Extract the first word of "dshbak", so it can be a program name with args.
+  if test "x$ac_pdsh_path" = "x"; then
+    # user did not specify, so search the standard PATH
+    # Extract the first word of "dshbak", so it can be a program name with args.
 set dummy dshbak; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_DSHBAK_EXE+set}" = set; then
+if test "${ac_cv_prog_DSHBAK_EXE+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  case $DSHBAK_EXE in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_DSHBAK_EXE="$DSHBAK_EXE" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+  if test -n "$DSHBAK_EXE"; then
+  ac_cv_prog_DSHBAK_EXE="$DSHBAK_EXE" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
 for as_dir in $PATH
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
   for ac_exec_ext in '' $ac_executable_extensions; do
   if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_DSHBAK_EXE="$as_dir/$ac_word$ac_exec_ext"
+    ac_cv_prog_DSHBAK_EXE="dshbak"
     echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
 done
 done
 
-  test -z "$ac_cv_path_DSHBAK_EXE" && ac_cv_path_DSHBAK_EXE="no"
-  ;;
-esac
+  test -z "$ac_cv_prog_DSHBAK_EXE" && ac_cv_prog_DSHBAK_EXE="no"
 fi
-DSHBAK_EXE=$ac_cv_path_DSHBAK_EXE
-
+fi
+DSHBAK_EXE=$ac_cv_prog_DSHBAK_EXE
 if test -n "$DSHBAK_EXE"; then
   echo "$as_me:$LINENO: result: $DSHBAK_EXE" >&5
 echo "${ECHO_T}$DSHBAK_EXE" >&6
@@ -4039,10 +4005,14 @@ else
 echo "${ECHO_T}no" >&6
 fi
 
-  if test "x$DSHBAK_EXE" = xno; then
-    { { echo "$as_me:$LINENO: error: unable to locate dshbak command, see README" >&5
-echo "$as_me: error: unable to locate dshbak command, see README" >&2;}
-   { (exit 1); exit 1; }; }
+    if test "x$DSHBAK_EXE" = xno; then
+      # could not find dshbak, print a warning, and hardcode to dshbak
+      { echo "$as_me:$LINENO: WARNING: Unable to locate dshbak command, see README" >&5
+echo "$as_me: WARNING: Unable to locate dshbak command, see README" >&2;}
+      DSHBAK_EXE=dshbak
+    fi
+  else
+    DSHBAK_EXE=${ac_pdsh_path}/dshbak
   fi
 
 
@@ -4114,9 +4084,8 @@ echo "${ECHO_T}ok" >&6;
 
   else
     :
-    { { echo "$as_me:$LINENO: error: Could not find Hostlist perl module, see README" >&5
-echo "$as_me: error: Could not find Hostlist perl module, see README" >&2;}
-   { (exit 1); exit 1; }; }
+    { echo "$as_me:$LINENO: WARNING: Could not find Hostlist perl module, see README" >&5
+echo "$as_me: WARNING: Could not find Hostlist perl module, see README" >&2;}
   fi
 else
   { echo "$as_me:$LINENO: WARNING: could not find perl" >&5
@@ -4187,9 +4156,8 @@ echo "${ECHO_T}ok" >&6;
 
   else
     :
-    { { echo "$as_me:$LINENO: error: Could not find Date::Manip perl module" >&5
-echo "$as_me: error: Could not find Date::Manip perl module" >&2;}
-   { (exit 1); exit 1; }; }
+    { echo "$as_me:$LINENO: WARNING: Could not find Date::Manip perl module, see README" >&5
+echo "$as_me: WARNING: Could not find Date::Manip perl module, see README" >&2;}
   fi
 else
   { echo "$as_me:$LINENO: WARNING: could not find perl" >&5
@@ -4764,7 +4732,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 4767 "configure"' > conftest.$ac_ext
+  echo '#line 4735 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -6363,7 +6331,7 @@ fi
 
 
 # Provide some information about the compiler.
-echo "$as_me:6366:" \
+echo "$as_me:6334:" \
      "checking for Fortran 77 compiler version" >&5
 ac_compiler=`set X $ac_compile; echo $2`
 { (eval echo "$as_me:$LINENO: \"$ac_compiler --version </dev/null >&5\"") >&5
@@ -7426,11 +7394,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7429: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7397: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7433: \$? = $ac_status" >&5
+   echo "$as_me:7401: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7694,11 +7662,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7697: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7665: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7701: \$? = $ac_status" >&5
+   echo "$as_me:7669: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7798,11 +7766,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7801: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7769: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:7805: \$? = $ac_status" >&5
+   echo "$as_me:7773: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -9267,7 +9235,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 9270 "configure"' > conftest.$ac_ext
+    echo '#line 9238 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -10164,7 +10132,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10167 "configure"
+#line 10135 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10264,7 +10232,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10267 "configure"
+#line 10235 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12607,11 +12575,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:12610: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:12578: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:12614: \$? = $ac_status" >&5
+   echo "$as_me:12582: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -12711,11 +12679,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:12714: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:12682: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:12718: \$? = $ac_status" >&5
+   echo "$as_me:12686: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -13247,7 +13215,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 13250 "configure"' > conftest.$ac_ext
+    echo '#line 13218 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -14305,11 +14273,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14308: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14276: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14312: \$? = $ac_status" >&5
+   echo "$as_me:14280: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14409,11 +14377,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14412: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14380: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14416: \$? = $ac_status" >&5
+   echo "$as_me:14384: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15858,7 +15826,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 15861 "configure"' > conftest.$ac_ext
+    echo '#line 15829 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -16636,11 +16604,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16639: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16607: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16643: \$? = $ac_status" >&5
+   echo "$as_me:16611: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -16904,11 +16872,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16907: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16875: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16911: \$? = $ac_status" >&5
+   echo "$as_me:16879: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17008,11 +16976,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17011: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16979: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17015: \$? = $ac_status" >&5
+   echo "$as_me:16983: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -18477,7 +18445,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 18480 "configure"' > conftest.$ac_ext
+    echo '#line 18448 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -20169,7 +20137,7 @@ _ACEOF
 ##
 # Epilogue.
 ##
-                                                                                                                                                                                                                                                                                        ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile man/scr.1 man/scr_check_complete.1 man/scr_halt.1 man/scr_postrun.1 man/scr_prerun.1 man/scr_srun.1 scripts/Makefile scripts/scr_cntl_dir scripts/scr_check_complete scripts/scr_check_node scripts/scr_env scripts/scr_inspect scripts/scr_flush scripts/scr_flush_file scripts/scr_glob_hosts scripts/scr_halt scripts/scr_list_down_nodes scripts/scr_postrun scripts/scr_prerun scripts/scr_retries_halt scripts/scr_srun scripts/scr_param.pm examples/Makefile examples/makefile.examples doc/Makefile"
+                                                                                                                                                                                                                                                                                                                      ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile man/scr.1 man/scr_check_complete.1 man/scr_halt.1 man/scr_postrun.1 man/scr_prerun.1 man/scr_srun.1 scripts/Makefile scripts/scr_cntl_dir scripts/scr_check_complete scripts/scr_check_node scripts/scr_env scripts/scr_inspect scripts/scr_flush scripts/scr_flush_file scripts/scr_glob_hosts scripts/scr_halt scripts/scr_list_down_nodes scripts/scr_postrun scripts/scr_prerun scripts/scr_retries_halt scripts/scr_srun scripts/scr_test_hostlist scripts/scr_test_datemanip scripts/scr_test_runtime scripts/scr_param.pm examples/Makefile examples/makefile.examples doc/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -20758,6 +20726,9 @@ do
   "scripts/scr_prerun" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_prerun" ;;
   "scripts/scr_retries_halt" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_retries_halt" ;;
   "scripts/scr_srun" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_srun" ;;
+  "scripts/scr_test_hostlist" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_test_hostlist" ;;
+  "scripts/scr_test_datemanip" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_test_datemanip" ;;
+  "scripts/scr_test_runtime" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_test_runtime" ;;
   "scripts/scr_param.pm" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_param.pm" ;;
   "examples/Makefile" ) CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
   "examples/makefile.examples" ) CONFIG_FILES="$CONFIG_FILES examples/makefile.examples" ;;
@@ -20910,7 +20881,6 @@ s,@MAINTAINER_MODE_TRUE@,$MAINTAINER_MODE_TRUE,;t t
 s,@MAINTAINER_MODE_FALSE@,$MAINTAINER_MODE_FALSE,;t t
 s,@MAINT@,$MAINT,;t t
 s,@MPICC@,$MPICC,;t t
-s,@MPICXX@,$MPICXX,;t t
 s,@CC@,$CC,;t t
 s,@CFLAGS@,$CFLAGS,;t t
 s,@LDFLAGS@,$LDFLAGS,;t t

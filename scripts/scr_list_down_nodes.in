@@ -21,25 +21,50 @@ if (defined $ENV{SCR_CONF_FILE}) {
   $param = new scr_param();
 }
 
-sub print_usage
-{
-  print "\n";
-  print "  Usage:  $prog [--reason] [--free] [--down <nodeset>] [--secs <runtime>] [<nodeset>]\n";
-  print "\n";
+my %conf = ();
+
+$conf{usage} = <<EOF
+
+  $prog -- tests and lists nodes that are not available for SCR
+
+  Usage:  $prog [options] [nodeset]
+
+  Options:
+    -r, --reason
+          Print reason node is down
+    -f, --free
+          Test required drive space based on free amount, rather than capacity
+    -d, --down=NODESET
+          Force nodes to be down without testing
+
+    -l, --log
+          Add entry to SCR log for each down node
+    -s, --secs=N
+          Specify the job's runtime seconds for SCR log
+
+EOF
+;
+
+# print usage and exit
+sub print_usage {
+  print STDOUT $conf{usage};
   exit 1;
 }
 
 # read in environment variables and command line options
-my %conf = ();
 $conf{reason}       = undef;
 $conf{free}         = undef;
 $conf{nodeset_down} = undef;
+$conf{log_nodes}    = undef;
 $conf{runtime_secs} = undef;
+$conf{help}         = undef;
 my $rc = GetOptions (
   "reason|r"  => \$conf{reason},
   "free|f"    => \$conf{free},
   "down|d=s"  => \$conf{nodeset_down},
-  "secs|s=i"  => \$conf{runtime_secs}
+  "log|l"     => \$conf{log_nodes},
+  "secs|s=i"  => \$conf{runtime_secs},
+  "help|h"    => \$conf{help}
 );
 if ($conf{help} or not $rc) {
   print_usage();
@@ -236,12 +261,14 @@ if (@failed_nodes) {
   }
 
   # log each newly failed node, along with the reason
-  foreach my $node (keys %newly_failed_nodes) {
-    my $duration = "";
-    if (defined $conf{runtime_secs}) {
-      $duration = "-D $conf{runtime_secs}";
+  if (defined $conf{log_nodes}) {
+    foreach my $node (keys %newly_failed_nodes) {
+      my $duration = "";
+      if (defined $conf{runtime_secs}) {
+        $duration = "-D $conf{runtime_secs}";
+      }
+      `$bindir/scr_log_event -T 'FAILED NODE' -N '$node: $reason{$node}' -S $start_time $duration`;
     }
-    `$bindir/scr_log_event -T 'FAILED NODE' -N '$node: $reason{$node}' -S $start_time $duration`;
   }
 
   # now output info to the user

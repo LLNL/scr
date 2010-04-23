@@ -825,9 +825,10 @@ int open(const char *pathname, int flags, ...)
 
     /* reroute file to cache */
     scri_interpose_enabled = 0;
-    SCR_Route_file((char*) pathname, temp);
+    if (SCR_Route_file((char*) pathname, temp) == SCR_SUCCESS) {
+      name = temp;
+    }
     scri_interpose_enabled = 1;
-    name = temp;
   }
 
   /* extract the mode (see man 2 open) */
@@ -904,9 +905,10 @@ FILE* fopen(const char * pathname, const char * mode)
 
     /* reroute file to cache */
     scri_interpose_enabled = 0;
-    SCR_Route_file((char*) pathname, temp);
+    if (SCR_Route_file((char*) pathname, temp) == SCR_SUCCESS) {
+      name = temp;
+    }
     scri_interpose_enabled = 1;
-    name = temp;
   }
 
   /* open the file */

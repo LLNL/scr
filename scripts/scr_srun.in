@@ -24,6 +24,13 @@ bindir="@X_BINDIR@"
 timestamp=`date`
 echo "$prog: Started: $timestamp"
 
+# check that we have runtime dependencies
+$bindir/scr_test_runtime
+if [ $? -ne 0 ] ; then
+  echo "$prog: exit code: 1"
+  exit 1
+fi
+
 # TODO: if not in job allocation, bail out
 
 jobid=`$bindir/scr_env --jobid`
@@ -117,8 +124,11 @@ while [ 1 ] ; do
 
   # are there enough nodes to continue?
   exclude=""
-  down_nodes=`$bindir/scr_list_down_nodes $free_flag $keep_down --secs 0`
+  down_nodes=`$bindir/scr_list_down_nodes $free_flag $keep_down`
   if [ "$down_nodes" != "" ] ; then
+    # print the reason for the down nodes, and log them
+    $bindir/scr_list_down_nodes $free_flag $keep_down --log --reason --secs 0
+
     # if this is the first run, we hit down nodes right off the bat, make a record of them
     if [ $attempts -eq 0 ] ; then
       start_secs=`date +%s`
@@ -178,7 +188,7 @@ while [ 1 ] ; do
   run_secs=$(($end_secs - $start_secs))
 
   # check for and log any down nodes
-  $bindir/scr_list_down_nodes $keep_down --secs $run_secs
+  $bindir/scr_list_down_nodes $keep_down --log --reason --secs $run_secs
 
   # log stats on the latest run attempt
   $bindir/scr_log_event -T "RUN ENDED" -N "Job=$jobid, Run=$attempts" -S $end_secs -D $run_secs

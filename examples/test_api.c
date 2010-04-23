@@ -65,20 +65,29 @@ double getbw(char* name, char* buf, size_t size, int times)
 
         /* write the checkpoint data */
         rc = write_checkpoint(fd_me, timestep, buf, size);
-        if (rc < 0) { valid = 0; }
+        if (rc < 0) {
+          valid = 0;
+        }
 
         /* force the data to storage */
         rc = fsync(fd_me);
-        if (rc < 0) { valid = 0; }
+        if (rc < 0) {
+          valid = 0;
+        }
 
         /* make sure the close is without error */
         rc = close(fd_me);
-        if (rc < 0) { valid = 0; }
+        if (rc < 0) {
+          valid = 0;
+        }
       }
 
       /* mark this checkpoint as complete */
       SCR_Complete_checkpoint(valid);
-      if (rank == 0) { printf("Completed checkpoint %d.\n", timestep); fflush(stdout); }
+      if (rank == 0) {
+        printf("Completed checkpoint %d.\n", timestep);
+        fflush(stdout);
+      }
 
 /*
       }
@@ -135,36 +144,37 @@ int main (int argc, char* argv[])
   MPI_Reduce(&secs, &secsmin, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
   MPI_Reduce(&secs, &secsmax, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
   MPI_Reduce(&secs, &secssum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-  if (rank == 0) { printf("Init: Min %8.6f s\tMax %8.6f s\tAvg %8.6f s\n", secsmin, secsmax, secssum/ranks); }
+  if (rank == 0) {
+    printf("Init: Min %8.6f s\tMax %8.6f s\tAvg %8.6f s\n", secsmin, secsmax, secssum/ranks);
+  }
 
   MPI_Barrier(MPI_COMM_WORLD);
-
-  /* get the name of our checkpoint file to open for read on restart */
-  char name[256];
-  char file[SCR_MAX_FILENAME];
-  sprintf(name, "rank_%d.ckpt", rank);
-  SCR_Route_file(name, file);
 
   /* allocate space for the checkpoint data (make filesize a function of rank for some variation) */
   filesize = filesize + rank;
   char* buf = (char*) malloc(filesize);
   
-  /* read checkpoint file, and check that all tasks were able to read their file */
-  int found_checkpoint, all_found_checkpoint;
-  if (read_checkpoint(file, &timestep, buf, filesize)) {
-    /* read the file ok, now check that contents are good */
-    found_checkpoint = 1;
-    if (!check_buffer(buf, filesize, rank, timestep)) {
-      printf("%d: Invalid value in buffer\n", rank);
-      MPI_Abort(MPI_COMM_WORLD, 1);
-      return 1;
+  /* get the name of our checkpoint file to open for read on restart */
+  char name[256];
+  char file[SCR_MAX_FILENAME];
+  sprintf(name, "rank_%d.ckpt", rank);
+  int found_checkpoint = 0;
+  if (SCR_Route_file(name, file) == SCR_SUCCESS) {
+    if (read_checkpoint(file, &timestep, buf, filesize)) {
+      /* read the file ok, now check that contents are good */
+      found_checkpoint = 1;
+      if (!check_buffer(buf, filesize, rank, timestep)) {
+        printf("%d: Invalid value in buffer\n", rank);
+        MPI_Abort(MPI_COMM_WORLD, 1);
+        return 1;
+      }
     }
-  } else {
-    /* failed to read the checkpoint file */
-    found_checkpoint = 0;
+  } else if (rank == 0) {
+    printf("SCR_Route_file failed during restart attempt\n");
   }
 
   /* determine whether all tasks successfully read their checkpoint file */
+  int all_found_checkpoint = 0;
   MPI_Allreduce(&found_checkpoint, &all_found_checkpoint, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
   if (!all_found_checkpoint && rank == 0) {
     printf("At least one rank (perhaps all) did not find its checkpoint\n");
@@ -205,7 +215,10 @@ int main (int argc, char* argv[])
     }
   }
 
-  if (buf != NULL) { free(buf); buf = NULL; }
+  if (buf != NULL) {
+    free(buf);
+    buf = NULL;
+  }
 
   SCR_Finalize();
   MPI_Finalize();

@@ -46,9 +46,22 @@ Required:
 
   pdsh -- parallel remote shell command (pdsh, dshbak)
     http://sourceforge.net/projects/pdsh
+    e.g.,
+      wget http://downloads.sourceforge.net/project/pdsh/pdsh/pdsh-2.18/pdsh-2.18.tar.bz2
+      bunzip2 pdsh-2.18.tar.bz2
+      tar -xf pdsh-2.18.tar
+      pushd pdsh-2.18
+      ./configure --prefix=/tmp
+      make
+      make install
 
   Hostlist.pm -- Perl module for working with nodelists in range syntax
     http://sourceforge.net/projects/genders
+    e.g.,
+      wget http://downloads.sourceforge.net/project/genders/genders/1.14-1/genders-1.14.tar.gz
+      tar -zxf genders-1.14.tar.gz
+      pushd genders-1.14
+      cp compat/hostlist.pl /usr/lib/perl5/site_perl/5.8.8/Hostlist.pm
 
   Date::Manip -- Perl module for date/time interpretation
     http://search.cpan.org/~sbeck/Date-Manip-5.54/lib/Date/Manip.pod
@@ -310,10 +323,10 @@ are the locations where SCR currently depends on SLURM.
 
 Additionally, the current implementation depends on SLURM for the
 following features:
-  * To clean the cache and control directories between allocations,
+  * To clean the cache and control directories between job allocations
     via an rm command executed in the SLURM prolog or epilog.
   * To kill a job which has suffered a failure.
-  * To enable the batch script to continue to run in an allocation
+  * To allow the batch script to continue running in an allocation
     which has lost one or more nodes.
 
 -----------------------------

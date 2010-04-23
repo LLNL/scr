@@ -12,7 +12,10 @@ bin_SCRIPTS = \
 	scr_postrun \
 	scr_prerun \
 	scr_retries_halt \
-	scr_srun
+	scr_srun \
+	scr_test_hostlist \
+	scr_test_datemanip \
+	scr_test_runtime
 
 EXTRA_DIST = \
 	scr_cntl_dir \
@@ -28,7 +31,10 @@ EXTRA_DIST = \
 	scr_postrun \
 	scr_prerun \
 	scr_retries_halt \
-	scr_srun
+	scr_srun \
+	scr_test_hostlist \
+	scr_test_datemanip \
+	scr_test_runtime
 
 install-data-local:
 	-$(top_srcdir)/config/install-sh -m 755 -d \

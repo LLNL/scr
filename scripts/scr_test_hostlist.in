@@ -1,0 +1,9 @@
+#!/usr/bin/perl -w
+use strict;
+use Hostlist;
+
+# just do a couple of calls to Hostlist functions to see if we can
+my @nodes = Hostlist::expand("atlas[3-5]");
+my $nodelist = Hostlist::compress(@nodes);
+
+exit 0;

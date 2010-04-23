@@ -135,7 +135,6 @@ META_NAME = @META_NAME@
 META_RELEASE = @META_RELEASE@
 META_VERSION = @META_VERSION@
 MPICC = @MPICC@
-MPICXX = @MPICXX@
 MYSQL_CPPFLAGS = @MYSQL_CPPFLAGS@
 MYSQL_LDFLAGS = @MYSQL_LDFLAGS@
 MYSQL_LIBS = @MYSQL_LIBS@
@@ -223,7 +222,7 @@ target_cpu = @target_cpu@
 target_os = @target_os@
 target_vendor = @target_vendor@
 SUBDIRS = man scripts src doc examples
-EXTRA_DIST = DISCLAIMER META README LICENSE.TXT scr.conf scr.mysql
+EXTRA_DIST = DISCLAIMER META NEWS README LICENSE.TXT scr.conf scr.mysql
 all: all-recursive
 
 .SUFFIXES:

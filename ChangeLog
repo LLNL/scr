@@ -1,3 +1,28 @@
+2010-04-19 Adam Moody <moody20@llnl.gov>
+
+	* examples/makefile.examples.in : Removed hardcoded -lyogrt library from link line.
+
+	* scripts/scr_test_hostlist.in,
+	  scripts/scr_test_datemanip.in,
+	  scripts/scr_test_runtime.in,
+	  scripts/scr_prerun.in : Add checks for pdsh and dshbak commands, as well as,
+	  Hostlist and Date::Manip perl modules.  Called from scr_prerun with fatal error.
+
+	* config/x_ac_prog_mpicc.m4 : Dropped check for MPICXX and modified check to
+	  default MPICC to mpicc if nothing is found.
+
+2010-04-06 Adam Moody <moody20@llnl.gov>
+
+	* config/x_ac_prog_pdsh : Changed check for pdsh and dshbak commands from fatal errors
+	  to warnings, simply call pdsh and dshbak if not found.  It may be a better option to
+	  drop absolute path and just always calls "pdsh" or "dshbak".
+
+	* scripts/scr_list_down_nodes.in,
+	  scripts/scr_srun.in : Add --log flag and an additional call to scr_list_down_nodes
+	  to print reason to screen.  Disable logging unless --log is specified.
+
+	* scripts/scr_check_node.in : Added test to touch and rm a file from directories.
+
 2010-04-01 Adam Moody <moody20@llnl.gov>
 
 	* src/scr.c : Added logic to support SCR_GLOBAL_RESTART.  When enabled, SCR will

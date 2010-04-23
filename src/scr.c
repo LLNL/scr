@@ -5977,7 +5977,7 @@ static int scr_get_params()
   double d;
   unsigned long long ull;
 
-  /* user may want to disable SCR at runtime */
+  /* user may want to disable SCR at runtime, read env var to avoid reading config files */
   if ((value = getenv("SCR_ENABLE")) != NULL) {
     scr_enabled = atoi(value);
   }
@@ -5987,38 +5987,19 @@ static int scr_get_params()
     return SCR_FAILURE;
   }
 
-  /* read username from environment */
-  if ((value = getenv("USER")) != NULL) {
-    scr_username = strdup(value);
-    if (scr_username == NULL) {
-      scr_abort(-1, "Failed to allocate memory to record username (%s) @ %s:%d",
-              value, __FILE__, __LINE__
-      );
-    }
-  }
-
-  /* read SLURM jobid from environment */
-  if ((value = getenv("SLURM_JOBID")) != NULL) {
-    scr_jobid = strdup(value);
-    if (scr_jobid == NULL) {
-      scr_abort(-1, "Failed to allocate memory to record jobid (%s) @ %s:%d",
-              value, __FILE__, __LINE__
-      );
-    }
-  }
-
-  /* read jobname from environment */
-  if ((value = getenv("SCR_JOB_NAME")) != NULL) {
-    scr_jobname = strdup(value);
-    if (scr_jobname == NULL) {
-      scr_abort(-1, "Failed to allocate memory to record jobname (%s) @ %s:%d",
-              value, __FILE__, __LINE__
-      );
-    }
-  }
-
   /* read in our configuration parameters */
   scr_param_init();
+
+  /* check enabled parameter again, this time including settings from config files */
+  if ((value = scr_param_get("SCR_ENABLE")) != NULL) {
+    scr_enabled = atoi(value);
+  }
+
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    scr_param_finalize();
+    return SCR_FAILURE;
+  }
 
   /* set debug verbosity level */
   if ((value = scr_param_get("SCR_DEBUG")) != NULL) {
@@ -6028,6 +6009,50 @@ static int scr_get_params()
   /* set logging */
   if ((value = scr_param_get("SCR_LOG_ENABLE")) != NULL) {
     scr_log_enable = atoi(value);
+  }
+
+  /* read username from SCR_USER_NAME, if not set, try USER from environment */
+  if ((value = scr_param_get("SCR_USER_NAME")) != NULL) {
+    scr_username = strdup(value);
+    if (scr_username == NULL) {
+      scr_abort(-1, "Failed to allocate memory to record username (%s) @ %s:%d",
+              value, __FILE__, __LINE__
+      );
+    }
+  } else if ((value = getenv("USER")) != NULL) {
+    scr_username = strdup(value);
+    if (scr_username == NULL) {
+      scr_abort(-1, "Failed to allocate memory to record username (%s) @ %s:%d",
+              value, __FILE__, __LINE__
+      );
+    }
+  }
+
+  /* read jobid from SCR_JOB_ID, if not set, try SLURM_JOBID from environment */
+  if ((value = scr_param_get("SCR_JOB_ID")) != NULL) {
+    scr_jobid = strdup(value);
+    if (scr_jobid == NULL) {
+      scr_abort(-1, "Failed to allocate memory to record jobid (%s) @ %s:%d",
+              value, __FILE__, __LINE__
+      );
+    }
+  } else if ((value = getenv("SLURM_JOBID")) != NULL) {
+    scr_jobid = strdup(value);
+    if (scr_jobid == NULL) {
+      scr_abort(-1, "Failed to allocate memory to record jobid (%s) @ %s:%d",
+              value, __FILE__, __LINE__
+      );
+    }
+  }
+
+  /* read job name from SCR_JOB_NAME */
+  if ((value = scr_param_get("SCR_JOB_NAME")) != NULL) {
+    scr_jobname = strdup(value);
+    if (scr_jobname == NULL) {
+      scr_abort(-1, "Failed to allocate memory to record jobname (%s) @ %s:%d",
+              value, __FILE__, __LINE__
+      );
+    }
   }
 
   /* override default base control directory */
@@ -6273,6 +6298,20 @@ int SCR_Init()
 {
   int i;
 
+  /* check whether user has disabled library via environment variable */
+  char* value = NULL;
+  if ((value = getenv("SCR_ENABLE")) != NULL) {
+    scr_enabled = atoi(value);
+  }
+
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* NOTE: SCR_ENABLE can also be set in a config file, but to read a config file,
+   * we must at least create scr_comm_world and call scr_get_params() */
+
   /* create a context for the library */
   MPI_Comm_dup(MPI_COMM_WORLD, &scr_comm_world);
 
@@ -6307,6 +6346,13 @@ int SCR_Init()
     MPI_Comm_free(&scr_comm_world);
 
     return SCR_FAILURE;
+  }
+
+  /* check that some required parameters are set */
+  if (scr_username == NULL || scr_jobid == NULL) {
+    scr_abort(-1, "Jobid or username is not set; you may need to manually set SCR_JOB_ID or SCR_USER_NAME @ %s:%d",
+              __FILE__, __LINE__
+    );
   }
 
   /* create a scr_comm_local communicator to hold all tasks on the same node */

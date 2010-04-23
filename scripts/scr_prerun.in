@@ -20,6 +20,8 @@ fi
 start_time=`date`
 start_secs=`date +%s`
 
+bindir="@X_BINDIR@"
+
 prog="scr_prerun"
 
 print_usage() { echo "Usage: $prog [-p prefix_dir]"; exit 1; }
@@ -41,6 +43,15 @@ fi
 
 # all parameters checked out, start normal output
 echo "$prog: Started: $start_time"
+
+ret=0
+
+# check that we have all of the runtime dependencies we need
+$bindir/scr_test_runtime
+if [ $? -ne 0 ] ; then
+  echo "$prog: exit code: 1"
+  exit 1
+fi
 
 # TODO: It would be nice to clear the cache and control directories
 # here in preparation for the run.  However, a simple rm -rf is too
