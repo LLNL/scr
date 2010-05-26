@@ -191,29 +191,25 @@ if ((keys %recoverable) > 0) {
 }
 
 if (@ranks_missing_files == 0) {
+  # count the number of full files that we have across all ranks
+  my $num_full_files = 0;
+  for(my $i=0; $i<$maxranks; $i++) {
+    my @full_files = (keys %{$ranks{$i}{type}{$SCR_FILE_FULL}});
+    $num_full_files += scalar(@full_files);
+  }
+
   my $summary = "$from/scr_summary.txt";
   print "$prog: Writing $summary ...\n";
   open(OUT, ">$summary");
   print OUT "Version: 3\n";
-  print OUT "Rows: $num_files\n";
+  print OUT "Rows: $num_full_files\n";
   print OUT "Rank\tSCR\tRanks\tID\tComp\tExpSize\tExists\tSize\tFilename\tCRC32Computed\tCRC32\n";
 
+  # for each rank, write out a record for each full file
   for(my $i=0; $i<$maxranks; $i++) {
     my @full_files = (keys %{$ranks{$i}{type}{$SCR_FILE_FULL}});
     foreach my $file (@full_files) {
       my $h = $ranks{$i}{type}{$SCR_FILE_FULL}{$file};
-
-      # record a line in the summary file
-      print OUT "$i\t1\t$$h{meta}{ranks}\t";
-      print OUT "$$h{meta}{iter}\t$$h{meta}{comp}\t$$h{meta}{size}\t";
-      print OUT "$$h{real}{exist}\t$$h{real}{size}\t" . basename($$h{real}{file});
-      print OUT "\t$$h{meta}{crc32computed}\t$$h{meta}{crc32}";
-      print OUT "\n";
-    }
-
-    my @xor_files = (keys %{$ranks{$i}{type}{$SCR_FILE_XOR}});
-    foreach my $file (@xor_files) {
-      my $h = $ranks{$i}{type}{$SCR_FILE_XOR}{$file};
 
       # record a line in the summary file
       print OUT "$i\t1\t$$h{meta}{ranks}\t";

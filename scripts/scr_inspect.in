@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 use strict;
+use lib '@X_DATADIR@/scr';
+use scr_hostlist;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
-use Hostlist qw/ expand compress intersect diff /;
-$Hostlist::quadrics_ranges = 1;
 
 # This file will flush files from cache to the parallel file system using pdsh.
 # It checks for pdsh errors in case any nodes should be retried.
@@ -60,21 +60,21 @@ if (not $rc) {
 my $cntldir   = $conf{dir_from};
 
 # get nodesets
-my @jobnodes  = Hostlist::expand($conf{nodeset_job});
+my @jobnodes  = scr_hostlist::expand($conf{nodeset_job});
 my @upnodes   = ();
 my @downnodes = ();
 if (defined $conf{nodeset_down}) {
-  @downnodes = Hostlist::expand($conf{nodeset_down});
-  @upnodes   = Hostlist::diff(\@jobnodes, \@downnodes);
+  @downnodes = scr_hostlist::expand($conf{nodeset_down});
+  @upnodes   = scr_hostlist::diff(\@jobnodes, \@downnodes);
 } elsif (defined $conf{nodeset_up}) {
-  @upnodes   = Hostlist::expand($conf{nodeset_up});
-  @downnodes = Hostlist::diff(\@jobnodes, \@upnodes);
+  @upnodes   = scr_hostlist::expand($conf{nodeset_up});
+  @downnodes = scr_hostlist::diff(\@jobnodes, \@upnodes);
 } else {
   @upnodes = @jobnodes;
 }
 
 # format up and down node sets for pdsh command
-my $upnodes   = Hostlist::compress(@upnodes);
+my $upnodes   = scr_hostlist::compress(@upnodes);
 
 # build the output filenames
 my $pwd = `pwd`;

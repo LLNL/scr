@@ -1,3 +1,16 @@
+2010-05-11 Adam Moody <moody20@llnl.gov>
+
+	* scripts/scr_hostlist.pm,
+	  scripts/scr_list_down_nodes.in,
+	  scripts/scr_flush.in,
+	  scripts/scr_inspect.in,
+	  scripts/scr_glob_hosts.in,
+	  scripts/scr_test_runtime.in,
+	  scripts/README : Replaced Hostlist.pm with scr_hostlist.pm to remove dependency.
+
+	* scripts/scr_check_complete.in : Don't add entries for XOR files in scr_summary.txt
+	  to fix bug in scr_fetch_files() which expects only FULL files to be listed.
+
 2010-04-19 Adam Moody <moody20@llnl.gov>
 
 	* examples/makefile.examples.in : Removed hardcoded -lyogrt library from link line.

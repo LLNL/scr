@@ -45,5 +45,7 @@ install-data-local:
 		$(DESTDIR)$(datadir)/scr
 	$(top_srcdir)/config/install-sh -m 644 $(srcdir)/scr_param.pm \
 		$(DESTDIR)$(datadir)/scr
+	$(top_srcdir)/config/install-sh -m 644 $(srcdir)/scr_hostlist.pm \
+		$(DESTDIR)$(datadir)/scr
 
-EXTRA_DIST += scr_meta.pm scr_hash.pm scr_param.pm
+EXTRA_DIST += scr_meta.pm scr_hash.pm scr_param.pm scr_hostlist.pm

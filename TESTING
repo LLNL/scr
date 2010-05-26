@@ -74,6 +74,7 @@ srun -n4 -N4 ./test_api
 # check that rebuild works for older checkpoint
 srun -n2 -N2 /bin/rm -rf /ssd/moody20/scr.$jobid/index.2/checkpoint.18
 srun -n2 -N2 /bin/rm -rf /tmp/moody20/scr.$jobid/index.2/checkpoint.18
+srun -n2 -N2 /bin/rm -rf /tmp/moody20/scr.$jobid/index.0/checkpoint.18
 ../bin/scr_halt -r
 srun -n4 -N4 ./test_api
 
@@ -114,7 +115,7 @@ unsetenv SCR_EXCLUDE_NODES
 ../bin/scr_halt --checkpoints 5 ; sleep 5
 ../bin/scr_halt --unset-checkpoints ; sleep 5
 ../bin/scr_halt --unset-reason ; sleep 5
-../bin/scr_halt --remove ; sleep 5
+../bin/scr_halt --remove
 
 # check that scr_env seems to work
 ../bin/scr_env --user

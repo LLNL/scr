@@ -2,7 +2,7 @@
 use strict;
 use lib '@X_DATADIR@/scr';
 use scr_param;
-use Hostlist;
+use scr_hostlist;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 
 my $prog = "scr_list_down_nodes";
@@ -89,7 +89,7 @@ if (not defined $nodeset) {
 }
 
 # get list of nodes from nodeset
-my @nodes = Hostlist::expand($nodeset);
+my @nodes = scr_hostlist::expand($nodeset);
 
 # this hash defines all nodes available in our allocation
 my %allocation = ();
@@ -106,7 +106,7 @@ my %reason = ();
 # mark the set of nodes the resource manager thinks is down
 my $resmgr_down = `$bindir/scr_env --down`;
 if ($resmgr_down ne "") {
-  my @resmgr_nodes = Hostlist::expand($resmgr_down);
+  my @resmgr_nodes = scr_hostlist::expand($resmgr_down);
   foreach my $node (@resmgr_nodes) {
     delete $available{$node};
     $unavailable{$node} = 1;
@@ -128,7 +128,7 @@ foreach my $node (@nodes) {
 # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
 my $exclude = $param->get("SCR_EXCLUDE_NODES");
 if (defined $exclude) {
-  my @exclude_nodes = Hostlist::expand($exclude);
+  my @exclude_nodes = scr_hostlist::expand($exclude);
   foreach my $node (@exclude_nodes) {
     if (defined $allocation{$node}) {
       delete $available{$node};
@@ -140,7 +140,7 @@ if (defined $exclude) {
 
 # mark any nodes specified on the command line
 if (defined $conf{nodeset_down}) {
-  my @exclude_nodes = Hostlist::expand($conf{nodeset_down});
+  my @exclude_nodes = scr_hostlist::expand($conf{nodeset_down});
   foreach my $node (@exclude_nodes) {
     if (defined $allocation{$node}) {
       delete $available{$node};
@@ -210,7 +210,7 @@ my @still_up = (sort {
   my ($num_a) = ($a =~ /^[a-z]+(\d+$)/);
   my ($num_b) = ($b =~ /^[a-z]+(\d+$)/);
   return $num_a <=> $num_b;} keys %available);
-my $upnodes = Hostlist::compress(@still_up);
+my $upnodes = scr_hostlist::compress(@still_up);
 
 # run scr_check_node on each node specifying control and cache directories to check
 if (@still_up > 0) {
@@ -223,7 +223,7 @@ if (@still_up > 0) {
       $line = shift @lines;
       my $result = shift @lines;
       if ($result !~ /PASS/) {
-        my @exclude_nodes = Hostlist::expand($nodeset);
+        my @exclude_nodes = scr_hostlist::expand($nodeset);
         foreach my $node (@exclude_nodes) {
           if (defined $allocation{$node}) {
             delete $available{$node};
@@ -252,7 +252,7 @@ if (@failed_nodes) {
 
   # remove any nodes that user already knew to be down
   if (defined $conf{nodeset_down}) {
-    my @exclude_nodes = Hostlist::expand($conf{nodeset_down});
+    my @exclude_nodes = scr_hostlist::expand($conf{nodeset_down});
     foreach my $node (@exclude_nodes) {
       if (defined $newly_failed_nodes{$node}) {
         delete $newly_failed_nodes{$node};
@@ -279,7 +279,7 @@ if (@failed_nodes) {
     }
   } else {
     # simply print the list of down node in range syntax
-    print Hostlist::compress(@failed_nodes) . "\n";
+    print scr_hostlist::compress(@failed_nodes) . "\n";
   }
   exit(1);
 }

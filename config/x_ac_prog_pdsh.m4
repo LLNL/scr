@@ -49,8 +49,6 @@ AC_DEFUN([X_AC_PROG_PDSH], [
   # TODO: check for Date::Manip
   # see http://www.nongnu.org/autoconf-archive/macros-by-category.html#PERL
 
-  AC_PROG_PERL_MODULES([Hostlist], [], [AC_MSG_WARN([Could not find Hostlist perl module, see README])])
-
   AC_PROG_PERL_MODULES([Date::Manip], [], [AC_MSG_WARN([Could not find Date::Manip perl module, see README])])
 
 ])

@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
-use Hostlist;
+use lib '@X_DATADIR@/scr';
+use scr_hostlist;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 
 my $prog = "scr_glob_hosts";
@@ -43,16 +44,16 @@ my $valid = undef;
 my @hostset = ();
 if (defined $conf{hosts}) {
   # user specified precise nodeset to use
-  @hostset = Hostlist::expand($conf{hosts});
+  @hostset = scr_hostlist::expand($conf{hosts});
   $valid = 1;
 } elsif (defined $conf{minus}) {
   # subtract nodes in set2 from set1
   if ($conf{minus} =~ /^(.*):(.*)$/) {
     my $h1 = $1;
     my $h2 = $2;
-    my @set1 = Hostlist::expand($h1);
-    my @set2 = Hostlist::expand($h2);
-    @hostset = Hostlist::diff(\@set1, \@set2);
+    my @set1 = scr_hostlist::expand($h1);
+    my @set2 = scr_hostlist::expand($h2);
+    @hostset = scr_hostlist::diff(\@set1, \@set2);
     $valid = 1;
   } else {
     print_usage();
@@ -62,9 +63,9 @@ if (defined $conf{hosts}) {
   if ($conf{intersection} =~ /^(.*):(.*)$/) {
     my $h1 = $1;
     my $h2 = $2;
-    my @set1 = Hostlist::expand($h1);
-    my @set2 = Hostlist::expand($h2);
-    @hostset = Hostlist::intersect(\@set1, \@set2);
+    my @set1 = scr_hostlist::expand($h1);
+    my @set2 = scr_hostlist::expand($h2);
+    @hostset = scr_hostlist::intersect(\@set1, \@set2);
     $valid = 1;
   } else {
     print_usage();
@@ -91,7 +92,7 @@ if (defined $conf{nth}) {
   print scalar(@hostset) . "\n";
 } else {
   # just print the nodelist
-  print Hostlist::compress(@hostset) . "\n";
+  print scr_hostlist::compress(@hostset) . "\n";
 }
 
 exit 0;

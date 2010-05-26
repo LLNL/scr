@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 use strict;
-use Hostlist;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 use lib '@X_DATADIR@/scr';
 use scr_hash;

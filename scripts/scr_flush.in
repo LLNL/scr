@@ -2,9 +2,8 @@
 use strict;
 use lib '@X_DATADIR@/scr';
 use scr_param;
+use scr_hostlist;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
-use Hostlist qw/ expand compress intersect diff /;
-$Hostlist::quadrics_ranges = 1;
 
 # This file will flush files from cache to the parallel file system using pdsh.
 # It checks for pdsh errors in case any nodes should be retried.
@@ -101,21 +100,21 @@ my $cntldir   = $conf{dir_from};
 my $current   = $conf{dir_to};
 
 # get nodesets
-my @jobnodes  = Hostlist::expand($conf{nodeset_job});
+my @jobnodes  = scr_hostlist::expand($conf{nodeset_job});
 my @upnodes   = ();
 my @downnodes = ();
 if (defined $conf{nodeset_down}) {
-  @downnodes = Hostlist::expand($conf{nodeset_down});
-  @upnodes   = Hostlist::diff(\@jobnodes, \@downnodes);
+  @downnodes = scr_hostlist::expand($conf{nodeset_down});
+  @upnodes   = scr_hostlist::diff(\@jobnodes, \@downnodes);
 } elsif (defined $conf{nodeset_up}) {
-  @upnodes   = Hostlist::expand($conf{nodeset_up});
-  @downnodes = Hostlist::diff(\@jobnodes, \@upnodes);
+  @upnodes   = scr_hostlist::expand($conf{nodeset_up});
+  @downnodes = scr_hostlist::diff(\@jobnodes, \@upnodes);
 } else {
   @upnodes = @jobnodes;
 }
 
 # format up and down node sets for pdsh command
-my $upnodes = Hostlist::compress(@upnodes);
+my $upnodes = scr_hostlist::compress(@upnodes);
 my $downnodes_spaced = join(" ", @downnodes);
 
 # add checkpoint id option if one was specified
@@ -247,8 +246,8 @@ if (@copy_failed > 0 or @pdsh_failed > 0) {
     my ($numB) = ($b =~ /\w+(\d+)/);
     return $numA <=> $numB} keys %partner_nodes);
 
-  print "$prog: pdsh failed on: ", scalar(Hostlist::compress(@failed));
-  print ", trying partners: ", scalar(Hostlist::compress(@partners)), "\n\n";
+  print "$prog: pdsh failed on: ", scalar(scr_hostlist::compress(@failed));
+  print ", trying partners: ", scalar(scr_hostlist::compress(@partners)), "\n\n";
 
   # run pdsh scr_copy --partner with updated 'failed' list
   my $new_downnodes_spaced = join(" ", @failed);
@@ -261,11 +260,11 @@ if (@copy_failed > 0 or @pdsh_failed > 0) {
     # TODO: when using spare nodes, this will produce a lot of noise
     # -- just remove an attempt in this case?
     # we don't know all partners, so run on everyone (subtract out failed nodes)
-    my @new_upnodes = Hostlist::diff(\@upnodes, \@failed);
-    $new_upnodes = Hostlist::compress(@new_upnodes);
+    my @new_upnodes = scr_hostlist::diff(\@upnodes, \@failed);
+    $new_upnodes = scr_hostlist::compress(@new_upnodes);
   } else {
     # we identified a partner for each failed node, just run on partners
-    $new_upnodes = Hostlist::compress(@partners);
+    $new_upnodes = scr_hostlist::compress(@partners);
   }
   $partner_flag = 1;
   $cmd = "$bindir/scr_copy $cntldir $ckpt $current $buf_size $crc $partner_flag $new_downnodes_spaced";

@@ -55,14 +55,6 @@ Required:
       make
       make install
 
-  Hostlist.pm -- Perl module for working with nodelists in range syntax
-    http://sourceforge.net/projects/genders
-    e.g.,
-      wget http://downloads.sourceforge.net/project/genders/genders/1.14-1/genders-1.14.tar.gz
-      tar -zxf genders-1.14.tar.gz
-      pushd genders-1.14
-      cp compat/hostlist.pl /usr/lib/perl5/site_perl/5.8.8/Hostlist.pm
-
   Date::Manip -- Perl module for date/time interpretation
     http://search.cpan.org/~sbeck/Date-Manip-5.54/lib/Date/Manip.pod
 
@@ -272,7 +264,7 @@ node names are expected to be of the form
 where clustername is a string of letters common for all nodes,
 and # is the node number, like atlas35 and atlas173.
 
-The Hostlist perl module will compress lists of such nodenames into a
+The scr_hostlist.pm perl module compresses lists of such nodenames into a
 form like so:
   atlas[31-43,45,48-51]
 

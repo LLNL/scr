@@ -235,7 +235,7 @@ EXTRA_DIST = scr_cntl_dir scr_check_complete scr_check_node scr_env \
 	scr_inspect scr_flush scr_flush_file scr_glob_hosts scr_halt \
 	scr_list_down_nodes scr_postrun scr_prerun scr_retries_halt \
 	scr_srun scr_test_hostlist scr_test_datemanip scr_test_runtime \
-	scr_meta.pm scr_hash.pm scr_param.pm
+	scr_meta.pm scr_hash.pm scr_param.pm scr_hostlist.pm
 all: all-am
 
 .SUFFIXES:
@@ -464,6 +464,8 @@ install-data-local:
 	$(top_srcdir)/config/install-sh -m 644 $(srcdir)/scr_hash.pm \
 		$(DESTDIR)$(datadir)/scr
 	$(top_srcdir)/config/install-sh -m 644 $(srcdir)/scr_param.pm \
+		$(DESTDIR)$(datadir)/scr
+	$(top_srcdir)/config/install-sh -m 644 $(srcdir)/scr_hostlist.pm \
 		$(DESTDIR)$(datadir)/scr
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
