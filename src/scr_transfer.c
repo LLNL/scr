@@ -9,13 +9,14 @@
  * Please also read this file: LICENSE.TXT.
 */
 
-/* This is a utility program that lets one list, set, and unset values
- * in the halt file.  It's a small C program which must run on the
- * same node where rank 0 runs -- it's coordinates access to the halt
- * file with rank 0 via flock(), which does not work across NFS.
- *
- * One will typically call some other script, which in turn identifies
- * the rank 0 node and issues a remote shell command to run this utility. */
+/*
+ * The scr_transfer program is a deamon process that SCR launches as
+ * one process per compute node.  It sleeps in the background, waking
+ * periodically to read the transfer.scrinfo file from cache, which
+ * the library will fill with info regarding asynchronous flushes.
+ * When it detects a START flag in this file, it slowly copies files
+ * from cache to the parallel file system.
+*/
 
 #include "scr_conf.h"
 #include "scr.h"
@@ -68,10 +69,12 @@ int close_files(char* src, int* fd_src, char* dst, int* fd_dst)
   return SCR_SUCCESS;
 }
 
-/* free strings pointed to by src and dst (if any) and set them to NULL, set position to 0 */
+/* free strings pointed to by src and dst (if any) and set them to NULL,
+ * set position to 0 */
 int clear_parameters(char** src, char** dst, off_t* position)
 {
-  /* free the string src points to (if any) and set the pointer to NULL */
+  /* free the string src points to (if any) and set the pointer to
+   * NULL */
   if (src != NULL) {
     /* free the string */
     if (*src != NULL) {
@@ -82,7 +85,8 @@ int clear_parameters(char** src, char** dst, off_t* position)
     *src = NULL;
   }
 
-  /* free the string dst points to (if any) and set the pointer to NULL */
+  /* free the string dst points to (if any) and set the pointer to
+   * NULL */
   if (dst != NULL) {
     /* free the string */
     if (*dst != NULL) {
@@ -101,8 +105,9 @@ int clear_parameters(char** src, char** dst, off_t* position)
   return SCR_SUCCESS;
 }
 
-/* given a hash of files and a file name, check whether the named file needs data transfered,
- * if so, strdup its destination name and set its position and filesize */
+/* given a hash of files and a file name, check whether the named
+ * file needs data transfered, if so, strdup its destination name
+ * and set its position and filesize */
 int need_transfer(struct scr_hash* files, char* src, char** dst, off_t* position, off_t* filesize)
 {
   /* check that we got a hash of files and a file name */
@@ -121,7 +126,8 @@ int need_transfer(struct scr_hash* files, char* src, char** dst, off_t* position
   char* written = scr_hash_elem_get_first_val(file_hash, "WRITTEN");
   char* dest    = scr_hash_elem_get_first_val(file_hash, "DESTINATION");
 
-  /* if the bytes written value is less than the file size, we've got a valid file */
+  /* if the bytes written value is less than the file size,
+   * we've got a valid file */
   if (size != NULL && written != NULL) {
     /* convert the file size and bytes written strings to numbers */
     off_t size_count    = strtoul(size,    NULL, 0);
@@ -140,8 +146,8 @@ int need_transfer(struct scr_hash* files, char* src, char** dst, off_t* position
   return SCR_FAILURE;
 }
 
-/* given a hash of transfer file data, look for a file which needs to be transfered.
- * if src file is set, try to continue with that file,
+/* given a hash of transfer file data, look for a file which needs to
+ * be transfered. If src file is set, try to continue with that file,
  * otherwise, pick the first available file */
 int find_file(struct scr_hash* hash, char** src, char** dst, off_t* position, off_t* filesize)
 {
@@ -151,23 +157,28 @@ int find_file(struct scr_hash* hash, char** src, char** dst, off_t* position, of
   if (files != NULL) {
     /* if we're given a file name, try to continue with that file */
     if (!found_a_file && src != NULL && *src != NULL) {
-      /* src was set, so assume dst is also set, create a dummy dst variable
-       * to hold the string which may be strdup'd in need_transfer call */
+      /* src was set, so assume dst is also set, create a dummy dst
+       * variable to hold the string which may be strdup'd in
+       * need_transfer call */
       char* tmp_dst = NULL;
       if (need_transfer(files, *src, &tmp_dst, position, filesize) == SCR_SUCCESS) {
-        /* can continue with the same file (position may have been updated though) */
+        /* can continue with the same file (position may have been
+         * updated though) */
         found_a_file = 1;
 
         /* free the dummy */
-        /* TODO: note that if destination has been updated, we're ignoring that change */
+        /* TODO: note that if destination has been updated, we're
+         * ignoring that change */
         free(tmp_dst);
       } else {
-        /* otherwise, this file no longer needs transfered, so free the strings */
+        /* otherwise, this file no longer needs transfered,
+         * so free the strings */
         clear_parameters(src, dst, position);
       }
     }
 
-    /* if we still don't have a file, scan the hash and use the first file we find */
+    /* if we still don't have a file, scan the hash and use the first
+     * file we find */
     if (!found_a_file) {
       struct scr_hash_elem* elem;
       for (elem = scr_hash_elem_first(files);
@@ -181,7 +192,8 @@ int find_file(struct scr_hash* hash, char** src, char** dst, off_t* position, of
         if (name != NULL &&
             need_transfer(files, name, dst, position, filesize) == SCR_SUCCESS)
         {
-          /* found a file, copy its name (the destination and postion are set in need_transfer) */
+          /* found a file, copy its name (the destination and postion
+           * are set in need_transfer) */
           *src = strdup(name);
           found_a_file = 1;
           break;
@@ -190,7 +202,8 @@ int find_file(struct scr_hash* hash, char** src, char** dst, off_t* position, of
     }
   }
 
-  /* if we didn't find a file, set src and dst to NULL and set position to 0 */
+  /* if we didn't find a file, set src and dst to NULL and set
+   * position to 0 */
   if (!found_a_file) {
     clear_parameters(src, dst, position);
     return SCR_FAILURE;
@@ -276,8 +289,9 @@ struct scr_hash* read_transfer_file()
     }
   }
 
-  /* ensure that our current state is always recorded in the file (the file
-   * may have been deleted since we last wrote our state to it) */
+  /* ensure that our current state is always recorded in the file
+   * (the file may have been deleted since we last wrote our state
+   * to it) */
   value = scr_hash_elem_get_first_val(hash, SCR_TRANSFER_KEY_STATE);
   if (value == NULL) {
     if (state == STOPPED) {
@@ -322,8 +336,8 @@ int set_transfer_file_state(char* s, int done)
   return SCR_SUCCESS;
 }
 
-/* given src and dst, find the matching entry in the transfer file and update the WRITTEN field
- * to the given position in that file */
+/* given src and dst, find the matching entry in the transfer file and
+ * update the WRITTEN field to the given position in that file */
 int update_transfer_file(char* src, char* dst, off_t position)
 {
   /* create a hash to store data from file */
@@ -352,7 +366,8 @@ int update_transfer_file(char* src, char* dst, off_t position)
   return SCR_SUCCESS;
 }
 
-/* returns 1 if file1 and file2 are different (NULL pointers are allowed) */
+/* returns 1 if file1 and file2 are different
+ * (NULL pointers are allowed) */
 int bool_diff_files(char* file1, char* file2)
 {
   /* if file2 is set but file1 is not, they're different */
@@ -365,7 +380,8 @@ int bool_diff_files(char* file1, char* file2)
     return 1;
   }
 
-  /* if file1 and file2 and both set, check whether the strings are the same */
+  /* if file1 and file2 and both set,
+   * check whether the strings are the same */
   if (file1 != NULL && file2 != NULL && strcmp(file1, file2) != 0) {
     return 1;
   }
@@ -399,7 +415,8 @@ int read_params()
 
 int main (int argc, char *argv[])
 {
-  /* check that we were given at least one argument (the transfer file name) */
+  /* check that we were given at least one argument
+   * (the transfer file name) */
   if (argc != 2) {
     printf("Usage: scr_transfer <transferfile>\n");
     return 1;
@@ -417,7 +434,8 @@ int main (int argc, char *argv[])
   /* initialize our tracking variables */
   read_params();
 
-  /* we cache the opened file descriptors to avoid extra opens, seeks, and closes */
+  /* we cache the opened file descriptors to avoid extra opens,
+   * seeks, and closes */
   int fd_src = -1;
   int fd_dst = -1;
 
@@ -453,18 +471,21 @@ int main (int argc, char *argv[])
   double secs_last_write = secs_run_start;
   struct scr_hash* hash = scr_hash_new();
   while (keep_running) {
-    /* loop here sleeping and checking transfer file periodically until state changes and / or some time elapses */
+    /* loop here sleeping and checking transfer file periodically
+     * until state changes and / or some time elapses */
     /* reset our timer for our last write */
     double secs_remain = scr_transfer_secs;
     while (keep_running && (state == STOPPED || secs_remain > 0.0)) {
       /* remember our current state before reading transfer file */
       int old_state = state;
 
-      /* read the transfer file, which fills in our hash and also updates state and bytes_per_second */
+      /* read the transfer file, which fills in our hash and
+       * also updates state and bytes_per_second */
       scr_hash_delete(hash);
       hash = read_transfer_file();
 
-      /* compute time we should sleep before writing more data based on bandwidth and percent of runtime limits */
+      /* compute time we should sleep before writing more data based
+       * on bandwidth and percent of runtime limits */
       if (state == RUNNING) {
         /* get the current time */
         double secs_now = scr_seconds();
@@ -482,7 +503,8 @@ int main (int argc, char *argv[])
          * compute time we need to sleep before attempting our next write */
         double secs_remain_runtime = 0.0;
         if (percent_runtime > 0.0) {
-          /* stop the run clock, add to the run time, and restart the run clock */
+          /* stop the run clock, add to the run time,
+           * and restart the run clock */
           secs_run_end = secs_now;
           secs_run += secs_run_end - secs_run_start;
           secs_run_start = secs_run_end;
@@ -502,7 +524,8 @@ int main (int argc, char *argv[])
       /* check for a state transition */
       if (state != old_state) {
         if (state == RUNNING) {
-          /* if we switched to RUNNING, kick out without sleeping and reset the total run and sleep times */
+          /* if we switched to RUNNING, kick out without sleeping and
+           * reset the total run and sleep times */
           secs_remain = 0.0;
           secs_run    = 0.0;
           secs_slept  = 0.0;
@@ -525,7 +548,8 @@ int main (int argc, char *argv[])
         secs = scr_transfer_secs;
       }
 
-      /* set a maximum time to sleep before we read the hash file again (ensures some responsiveness) */
+      /* set a maximum time to sleep before we read the hash file again
+       * (ensures some responsiveness) */
       if (secs > scr_transfer_secs) {
         secs = scr_transfer_secs;
       }
@@ -552,7 +576,8 @@ int main (int argc, char *argv[])
       off_t filesize = 0;
       find_file(hash, &new_file_src, &new_file_dst, &new_position, &filesize);
 
-      /* if we got a new file, close the old one (if open), open the new file */
+      /* if we got a new file, close the old one (if open),
+       * open the new file */
       if (bool_diff_files(new_file_src, old_file_src)) {
         /* close the old descriptor if it's open */
         if (fd_src >= 0) {
@@ -578,7 +603,8 @@ int main (int argc, char *argv[])
         }
       }
 
-      /* if we got a new file, close the old one (if open), open the new file */
+      /* if we got a new file, close the old one (if open),
+       * open the new file */
       if (bool_diff_files(new_file_dst, old_file_dst)) {
         /* close the old descriptor if it's open */
         if (fd_dst >= 0) {
@@ -604,7 +630,8 @@ int main (int argc, char *argv[])
         }
       }
 
-      /* we may have the same file, but perhaps the position changed (may need to seek) */
+      /* we may have the same file, but perhaps the position changed
+       * (may need to seek) */
       if (new_position != old_position) {
         if (fd_src >= 0) {
           lseek(fd_src, new_position, SEEK_SET);
@@ -620,7 +647,8 @@ int main (int argc, char *argv[])
         old_position = new_position;
       }
 
-      /* if we have two open files, copy a chunk from source file to destination file */
+      /* if we have two open files,
+       * copy a chunk from source file to destination file */
       nread = 0;
       if (fd_src >= 0 && fd_dst >= 0) {
         /* compute number of bytes to read from file */
@@ -656,7 +684,8 @@ int main (int argc, char *argv[])
           clear_parameters(&old_file_src, &old_file_dst, &old_position);
         }
       } else {
-        /* TODO: we may have an error (failed to open the source or dest file) */
+        /* TODO: we may have an error
+         * (failed to open the source or dest file) */
         /* if we found no file to transfer, move to a STOPPED state */
         if (new_file_src == NULL) {
           state = STOPPED;

@@ -150,6 +150,13 @@ installed on the system.  It uses the standard mpicc compiler wrapper.
 If there are multiple MPI libraries, a separate SCR library must be
 built for each MPI library.
 
+If you are using the scr.conf file, you'll also need to edit this file
+to match the settings on your system.  Please open this file and make
+any necessary changes -- it is self-documented with comments.  After
+modifyingthis file, copy it to the location specified in your configure
+step.  The configure option simply informs the SCR install where to
+look for the file, it does not modify or install the file.
+
 -----------------------------
 SCR directories
 -----------------------------

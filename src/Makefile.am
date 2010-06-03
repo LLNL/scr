@@ -131,16 +131,18 @@ install-exec-local:
 	mkdir -p $(DESTDIR)$(prefix)/include
 	mkdir -p $(DESTDIR)$(prefix)/lib
 	mkdir -p $(DESTDIR)$(prefix)/src
-	cp scr.h $(DESTDIR)$(prefix)/include/.
+	libtool --mode=install cp scr.h $(DESTDIR)$(prefix)/include/.
 	libtool --mode=install cp libscr.la $(DESTDIR)$(prefix)/lib
 	libtool --mode=install cp libscr_interpose.la $(DESTDIR)$(prefix)/lib
-	cp ../config/config.h $(DESTDIR)$(prefix)/src
-	cp *.c *.h $(DESTDIR)$(prefix)/src
+	libtool --mode=install cp ../config/config.h $(DESTDIR)$(prefix)/src
+	libtool --mode=install cp *.c *.h $(DESTDIR)$(prefix)/src
 
 # TODO: there must be a better way to do this uninstall, but I don't know how
 uninstall-local:
 	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/lib/libscr*
-	rm -rf $(DESTDIR)$(prefix)/src/*
+	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/scr*
+	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/{queue,config}.h
+	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/tv_data_display.{c,h}
 
 #nodist_libscr_SOURCES = libscr.c
 #nodist_libscr_interpose_SOURCES = libscr.c

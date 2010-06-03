@@ -1,3 +1,10 @@
+2010-06-03 Adam Moody <moody20@llnl.gov>
+
+	* : tag scr-1.1-7
+
+	* src/Makefile.am : Replace straight cp with libtool --mode=install cp to fix
+	  minor make install bug when doing consecutive make installs.
+
 2010-05-11 Adam Moody <moody20@llnl.gov>
 
 	* scripts/scr_hostlist.pm,
