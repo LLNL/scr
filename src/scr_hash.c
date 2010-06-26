@@ -280,6 +280,8 @@ struct scr_hash* scr_hash_setf(struct scr_hash* hash, struct scr_hash* hash_valu
       size = snprintf(key, sizeof(key), token, va_arg(args, int));
     } else if (strcmp(token, "%lu") == 0) {
       size = snprintf(key, sizeof(key), token, va_arg(args, unsigned long));
+    } else if (strcmp(token, "%#lx") == 0) {
+      size = snprintf(key, sizeof(key), token, va_arg(args, unsigned long));
     } else if (strcmp(token, "%llu") == 0) {
       size = snprintf(key, sizeof(key), token, va_arg(args, unsigned long long));
     } else if (strcmp(token, "%f") == 0) {

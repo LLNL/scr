@@ -106,32 +106,23 @@ if [ "$UPNODES" != "" ] ; then
             $bindir/scr_flush $verbose --id $c --from $cntldir --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
             echo "$prog: Done flushing files from cache to $checkpoint"
 
-            # check that gathered set is complete, if not, don't update current / old links
+            # check that gathered set is complete, if not, don't update current symlink
             update_current=1
             echo "$prog: Checking that new checkpoint set is complete"
             echo "$bindir/scr_check_complete $checkpoint"
             $bindir/scr_check_complete $checkpoint
             if [ $? -ne 0 ] ; then
-              update_current=0 # incomplete checkpoint set, don't update current / old links
+              update_current=0 # incomplete checkpoint set, don't update current symlink
             fi
 
-            # if the set is complete, update the current and old symlinks
+            # if the set is complete, update the current symlink
             if [ "$update_current" == "1" ] ; then
-              echo "$prog: Updating old & current symlinks"
-              old="$pardir/scr.old"
+              echo "$prog: Updating scr.current symlink"
               current="$pardir/scr.current"
 
-              # if there is an old, remove it
-              if [ -e $old ] ; then
-                rm -f $old
-              fi
-
-              # if there is a current, move it to old
+              # if there is a current, remove it
               if [ -e $current ] ; then
-                current_save=`readlink $current`
                 rm -f $current
-                echo "$prog:   $old     --> $current_save"
-                ln -s $current_save $old
               fi
 
               # make the new current

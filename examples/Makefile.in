@@ -203,6 +203,8 @@ files_to_be_installed = \
 	test_api_multiple.c \
 	test_interpose.c \
 	test_interpose_multiple.c \
+	test_ckpt.C \
+	test_ckpt.F \
 	scr.moab \
 	scr_interpose.moab
 

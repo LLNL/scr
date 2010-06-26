@@ -22,6 +22,7 @@ bin_PROGRAMS = \
 scr_headers = \
 	scr_conf.h \
 	scr.h \
+	scrf.h \
 	scr_err.h \
 	scr_io.h \
 	scr_util.h \
@@ -37,6 +38,7 @@ scr_headers = \
 
 scr_srcs = \
 	scr.c \
+	scrf.c \
 	scr_io.c \
 	scr_util.c \
 	scr_hash.c \
@@ -51,6 +53,7 @@ scr_srcs = \
 
 scr_objs = \
 	scr.lo \
+	scrf.lo \
 	scr_io.lo \
 	scr_util.lo \
 	scr_hash.lo \
@@ -105,6 +108,9 @@ scr_halt.lo: $(scr_headers) $(scr_sources)
 scr.lo: $(scr_headers) $(scr_sources)
 	libtool --tag=CC --mode=compile $(MPICC) -c scr.c -o $@ $(SCR_C_FLAGS)
 
+scrf.lo: $(scr_headers) $(scr_sources)
+	libtool --tag=CC --mode=compile $(MPICC) -c scrf.c -o $@ $(SCR_C_FLAGS)
+
 scr_interpose.lo: $(scr_headers) $(scr_sources)
 	libtool --mode=compile --tag=CC $(MPICC) -c scr_interpose.c -o $@ $(SCR_C_FLAGS)
 
@@ -132,6 +138,7 @@ install-exec-local:
 	mkdir -p $(DESTDIR)$(prefix)/lib
 	mkdir -p $(DESTDIR)$(prefix)/src
 	libtool --mode=install cp scr.h $(DESTDIR)$(prefix)/include/.
+	libtool --mode=install cp scrf.h $(DESTDIR)$(prefix)/include/.
 	libtool --mode=install cp libscr.la $(DESTDIR)$(prefix)/lib
 	libtool --mode=install cp libscr_interpose.la $(DESTDIR)$(prefix)/lib
 	libtool --mode=install cp ../config/config.h $(DESTDIR)$(prefix)/src

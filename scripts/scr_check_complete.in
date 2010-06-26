@@ -3,7 +3,6 @@ use strict;
 use File::Basename;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 use lib '@X_DATADIR@/scr';
-use scr_meta;
 use scr_hash;
 
 my $prog = "scr_check_complete";
@@ -12,8 +11,9 @@ my $bindir = "@X_BINDIR@";
 my $rebuild = "$bindir/scr_rebuild_xor";
 
 # SCR filetype constants
-my $SCR_FILE_FULL = 0;
-my $SCR_FILE_XOR  = 2;
+my $SCR_FILE_FULL    = "FULL";
+my $SCR_FILE_UNKNOWN = "UNKNOWN";
+my $SCR_FILE_XOR     = "XOR";
 
 # log the start time for the check complete operation
 my $start_time = time();
@@ -191,37 +191,80 @@ if ((keys %recoverable) > 0) {
 }
 
 if (@ranks_missing_files == 0) {
-  # count the number of full files that we have across all ranks
-  my $num_full_files = 0;
-  for(my $i=0; $i<$maxranks; $i++) {
+  # create a new hash object to save our summary data
+  my %summary_hash = ();
+
+  # set the summary file version number
+  %{$summary_hash{VERSION}{4}} = ();
+
+  # get the checkpoint id (we assume all files have the same checkpoint
+  my $ckpt = undef;
+  my $i = 0;
+  while (not defined $ckpt and $i < $maxranks) {
     my @full_files = (keys %{$ranks{$i}{type}{$SCR_FILE_FULL}});
-    $num_full_files += scalar(@full_files);
+    foreach my $file (@full_files) {
+      my $h = $ranks{$i}{type}{$SCR_FILE_FULL}{$file};
+      $ckpt = $$h{meta}{iter};
+    }
+    $i++;
   }
 
-  my $summary = "$from/scr_summary.txt";
-  print "$prog: Writing $summary ...\n";
-  open(OUT, ">$summary");
-  print OUT "Version: 3\n";
-  print OUT "Rows: $num_full_files\n";
-  print OUT "Rank\tSCR\tRanks\tID\tComp\tExpSize\tExists\tSize\tFilename\tCRC32Computed\tCRC32\n";
+  if (not defined $ckpt) {
+    # TODO: this is a problem
+  }
+  %{$summary_hash{CKPT}{$ckpt}} = ();
 
-  # for each rank, write out a record for each full file
-  for(my $i=0; $i<$maxranks; $i++) {
+  my $filecount = 0;
+  my $all_complete = 1;
+  for(my $i=0; $i < $maxranks; $i++) {
     my @full_files = (keys %{$ranks{$i}{type}{$SCR_FILE_FULL}});
     foreach my $file (@full_files) {
       my $h = $ranks{$i}{type}{$SCR_FILE_FULL}{$file};
 
-      # record a line in the summary file
-      print OUT "$i\t1\t$$h{meta}{ranks}\t";
-      print OUT "$$h{meta}{iter}\t$$h{meta}{comp}\t$$h{meta}{size}\t";
-      print OUT "$$h{real}{exist}\t$$h{real}{size}\t" . basename($$h{real}{file});
-      print OUT "\t$$h{meta}{crc32computed}\t$$h{meta}{crc32}";
-      print OUT "\n";
+      # get a reference to the hash for this file
+      my $files_ref = \%{$summary_hash{CKPT}{$ckpt}{RANK}{$i}{FILE}};
+
+      # record the basename of the file
+      my $basefile = basename($$h{real}{file});
+      %{$$files_ref{$basefile}} = ();
+
+      # record the file size
+      my $size = $$h{real}{size};
+      %{$$files_ref{$basefile}{SIZE}{$size}} = ();
+
+      # if the crc32 is valid, record its value
+      if ($$h{meta}{crc32computed} == 1) {
+        my $crc = $$h{meta}{crc32};
+        %{$$files_ref{$basefile}{CRC}{$crc}} = ();
+      }
+
+      # if the file is incomplete, mark it as such
+      my $complete = $$h{meta}{comp};
+      if ($complete == 0) {
+        %{$$files_ref{$basefile}{COMPLETE}{0}} = ();
+        $all_complete = 0;
+      }
+
+      # check that our checkpoint id matches
+      if ($ckpt != $$h{meta}{iter}) {
+        # found a file which is on a different checkpoint iteration
+        # mark this set as incomplete
+        $all_complete = 0;
+      }
+
+      # count the number of files
+      $filecount++;
     }
   }
 
-  print OUT "\n";
-  close(OUT);
+  %{$summary_hash{CKPT}{$ckpt}{RANKS}{$maxranks}} = ();
+  %{$summary_hash{CKPT}{$ckpt}{FILES}{$filecount}} = ();
+  %{$summary_hash{CKPT}{$ckpt}{COMPLETE}{$all_complete}} = ();
+
+  my $summary = "$from/scr_summary.txt";
+  print "$prog: Writing $summary ...\n";
+  my $scr_hash = new scr_hash($prog);
+  my $tmp_rc = $scr_hash->write_file($summary, \%summary_hash);
 }
 
 # get a timestamp for logging timing values
@@ -253,8 +296,8 @@ exit 0;
 # read_info(scr_file) - reads values out of .scr file
 sub read_info
 {
-  my $file = shift @_;
-  my $h    = shift @_;
+  my $filename = shift @_;
+  my $h        = shift @_;
 
   $$h{rank}     = -1;
   $$h{ranks}    = -1;
@@ -262,21 +305,116 @@ sub read_info
   $$h{complete} =  0;
   $$h{filesize} = -1;
 
-  open(IN, $file);
-  while(my $line = <IN>) {
-    chomp $line;
-    my ($name, $val) = split(/\s+/, $line);         
-    if    ($name eq "Rank:")         { $$h{rank}         = int($val); }
-    elsif ($name eq "Ranks:")        { $$h{ranks}        = int($val); }
-    elsif ($name eq "CheckpointID:") { $$h{count}        = int($val); }
-    elsif ($name eq "Filetype:")     { $$h{filetype}     = int($val); }
-    elsif ($name eq "Filename:")     { $$h{filename}     = basename($val); }
-    elsif ($name eq "Filesize:")     { $$h{filesize}     = int($val); }
-    elsif ($name eq "Complete:")     { $$h{complete}     = int($val); }
-    elsif ($name eq "CRC32Computed:"){ $$h{crc32computed} = int($val); }
-    elsif ($name eq "CRC32:")        { $$h{crc32}        = $val; }
-  } 
-  close(IN);
+  my %hash = ();
+  my $scr_hash = new scr_hash($prog);
+  $scr_hash->read_file($filename, \%hash);
+
+  my $meta_ref = \%hash;
+
+  # read the checkpoint id from the hash
+  my $ckpt     = undef;
+  my $ckpt_ref = undef;
+  if (defined $$meta_ref{CKPT}) {
+    my @keys = (keys %{$$meta_ref{CKPT}});
+    if (scalar(@keys) != 1) {
+      # TODO: error
+      return;
+    }
+    $ckpt = $keys[0];
+    $ckpt_ref = \%{$$meta_ref{CKPT}{$ckpt}};
+  }
+
+  # read the rank id from the hash
+  my $rank = undef;
+  my $rank_ref = undef;
+  if (defined $$ckpt_ref{RANK}) {
+    my @keys = (keys %{$$ckpt_ref{RANK}});
+    if (scalar(@keys != 1)) {
+      # TODO: error
+      return;
+    }
+    $rank = $keys[0];
+    $rank_ref = \%{$$ckpt_ref{RANK}{$rank}};
+  }
+
+  # read the ranks from the hash
+  my $ranks = undef;
+  if (defined $$ckpt_ref{RANKS}) {
+    my @keys = (keys %{$$ckpt_ref{RANKS}});
+    if (scalar(@keys != 1)) {
+      # TODO: error
+      return;
+    }
+    $ranks = $keys[0];
+  }
+
+  # read the filename from the hash
+  my $file = undef;
+  my $file_ref = undef;
+  if (defined $$rank_ref{FILE}) {
+    my @keys = (keys %{$$rank_ref{FILE}});
+    if (scalar(@keys != 1)) {
+      # TODO: error
+      return;
+    }
+    $file = $keys[0];
+    $file_ref = \%{$$rank_ref{FILE}{$file}};
+  }
+
+  # get the file size
+  my $filesize = undef;
+  if (defined $$file_ref{SIZE}) {
+    my @keys = (keys %{$$file_ref{SIZE}});
+    if (scalar(@keys != 1)) {
+      # TODO: error
+      return;
+    }
+    $filesize = $keys[0];
+  }
+
+  # get the file type
+  my $filetype = undef;
+  if (defined $$file_ref{TYPE}) {
+    my @keys = (keys %{$$file_ref{TYPE}});
+    if (scalar(@keys != 1)) {
+      # TODO: error
+      return;
+    }
+    $filetype = $keys[0];
+  }
+
+  # get the crc
+  my $crc = undef;
+  if (defined $$file_ref{CRC}) {
+    my @keys = (keys %{$$file_ref{CRC}});
+    if (scalar(@keys == 1)) {
+      $crc = $keys[0];
+    }
+  }
+
+  # get the complete flag
+  my $complete = 0;
+  if (defined $$file_ref{COMPLETE}) {
+    my @keys = (keys %{$$file_ref{COMPLETE}});
+    if (scalar(@keys == 1)) {
+      $complete = $keys[0];
+    }
+  }
+
+  $$h{rank}  = int($rank);
+  $$h{ranks} = int($ranks);
+  $$h{count} = int($ckpt);
+  $$h{filename} = basename($file);
+  $$h{filetype} = $filetype;
+  $$h{filesize} = int($filesize);
+  if (defined $crc) {
+    $$h{crc32computed} = 1;
+    $$h{crc32} = $crc;
+  } else {
+    $$h{crc32computed} = 1;
+    $$h{crc32} = undef;
+  }
+  $$h{complete} = int($complete);
 
   # TODO: these should be fields in the file (not in the title)
   if ($file =~ /(\d+)_of_(\d+)_in_(\d+).xor/) {
@@ -328,7 +466,7 @@ sub scan_files
       $$h{meta}{crc32computed} = $info{crc32computed};
       $$h{meta}{crc32}         = $info{crc32};
     }
-    if ($info{filetype} == $SCR_FILE_XOR) {
+    if ($info{filetype} eq $SCR_FILE_XOR) {
       $$h{meta}{xor_gid}   = $info{xor_gid};
       $$h{meta}{xor_size}  = $info{xor_size};
       $$h{meta}{xor_index} = $info{xor_index};

@@ -21,8 +21,9 @@
 #include <zlib.h>
 
 /* file types */
-#define SCR_FILE_FULL (0)
-#define SCR_FILE_XOR  (2)
+#define SCR_FILE_FULL    (0)
+#define SCR_FILE_UNKNOWN (1)
+#define SCR_FILE_XOR     (2)
 
 /*
 =========================================

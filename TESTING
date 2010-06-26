@@ -1,11 +1,10 @@
 #Uploading a new release to sourceforge
-First, create directory via web, then run a command like the following:
-scp ${scrversion}.tar.gz <username>,scalablecr@frs.sourceforge.net:/home/frs/project/s/sc/scalablecr/releases/<new_directory>/.
+scp ${scrversion}.tar.gz <username>,scalablecr@frs.sourceforge.net:/home/frs/project/s/sc/scalablecr/releases/.
 
 # build the dist tarball
 cd ~/packages/scr
 setenv CFLAGS "-g -O0"
-setenv scrversion scr-1.1-7
+setenv scrversion scr-1.1-8
 make distclean
 ./autogen.sh
 ./configure --prefix=/usr/local/tools/scr-1.1 --with-scr-config-file=/etc/scr.conf

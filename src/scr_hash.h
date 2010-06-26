@@ -79,6 +79,30 @@ Define common hash key strings
 #define SCR_CONFIG_KEY_GROUP_SIZE ("GROUP_SIZE")
 #define SCR_CONFIG_KEY_GROUP_RANK ("GROUP_RANK")
 
+#define SCR_SUMMARY_KEY_VERSION  ("VERSION")
+#define SCR_SUMMARY_KEY_CKPT     ("CKPT")
+#define SCR_SUMMARY_KEY_RANK     ("RANK")
+#define SCR_SUMMARY_KEY_RANKS    ("RANKS")
+#define SCR_SUMMARY_KEY_COMPLETE ("COMPLETE")
+#define SCR_SUMMARY_KEY_FILE     ("FILE")
+#define SCR_SUMMARY_KEY_FILES    ("FILES")
+#define SCR_SUMMARY_KEY_SIZE     ("SIZE")
+#define SCR_SUMMARY_KEY_CRC      ("CRC")
+
+#define SCR_META_KEY_CKPT     ("CKPT")
+#define SCR_META_KEY_RANKS    ("RANKS")
+#define SCR_META_KEY_RANK     ("RANK")
+#define SCR_META_KEY_FILE     ("FILE")
+#define SCR_META_KEY_SIZE     ("SIZE")
+#define SCR_META_KEY_TYPE     ("TYPE")
+#define SCR_META_KEY_CRC      ("CRC")
+#define SCR_META_KEY_COMPLETE ("COMPLETE")
+
+#define SCR_INDEX_KEY_DIR  ("DIR")
+#define SCR_INDEX_KEY_CKPT ("CKPT")
+#define SCR_INDEX_KEY_COMPLETE ("COMPLETE")
+#define SCR_INDEX_KEY_FAILED   ("FAILED")
+
 /*
 =========================================
 Define hash and element structures

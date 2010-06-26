@@ -1,3 +1,30 @@
+2010-06-25 Adam Moody <moody20@llnl.gov>
+
+	* src/scr.c : Added scr.index file to track checkpoint flush directories
+	  over time.  Dropped scr.old symlink.
+
+	  Still need to update scr_postrun to update index.
+
+2010-06-23 Adam Moody <moody20@llnl.gov>
+
+	* src/scr_meta.h,
+	  src/scr_meta.c : Convert meta file format to hash.
+
+	* src/scr.c,
+	  scripts/scr_check_complete.in : Convert scr_summary.txt file to hash.
+
+	* src/scrf.h,
+	  src/scrf.c : Added Fortran77 support.
+
+	* examples/test_ckpt.C : Added test for C++ codes using the C interface.
+
+2010-06-17 Adam Moody <moody20@llnl.gov>
+
+	* src/scr.h : Added extern "C" to improve support for C++ codes.
+
+	* src/scr.c : Added check to abort if user calls SCR_Start_checkpoint twice
+	  without a call to SCR_Complete_checkpoint in between.
+
 2010-06-03 Adam Moody <moody20@llnl.gov>
 
 	* : tag scr-1.1-7
