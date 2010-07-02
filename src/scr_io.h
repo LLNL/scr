@@ -22,6 +22,25 @@
 #define SCR_MAX_LINE (1024)
 #endif
 
+/* adds byte swapping routines */
+#include "endian.h"
+#include "byteswap.h"
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+# define scr_ntoh16(x) bswap_16(x)
+# define scr_ntoh32(x) bswap_32(x)
+# define scr_ntoh64(x) bswap_64(x)
+# define scr_hton16(x) bswap_16(x)
+# define scr_hton32(x) bswap_32(x)
+# define scr_hton64(x) bswap_64(x)
+#else
+# define scr_ntoh16(x) (x)
+# define scr_ntoh32(x) (x)
+# define scr_ntoh64(x) (x)
+# define scr_hton16(x) (x)
+# define scr_hton32(x) (x)
+# define scr_hton64(x) (x)
+#endif
+
 /*
 =========================================
 Basic File I/O
@@ -78,12 +97,18 @@ int scr_file_exists(const char* file);
 /* opens, reads, and computes the crc32 value for the given filename */
 int scr_crc32(const char* filename, uLong* crc);
 
+/*
+=========================================
+Directory functions
+=========================================
+*/
+
 /* split path and filename from fullpath on the rightmost '/'
    assumes all filename if no '/' is found */
 int scr_split_path (const char* file, char* path, char* filename);
 
-/* combine path and filename into a fullpath in file */
-int scr_build_path (char* file, const char* path, const char* filename);
+/* combine path and file into a full path in buf whose size is given in size */
+int scr_build_path (char* buf, size_t size, const char* path, const char* file);
 
 /* recursively create directory and subdirectories */
 int scr_mkdir(const char* dir, mode_t mode);
@@ -94,7 +119,7 @@ File Copy Functions
 =========================================
 */
 
-int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, char* dst, uLong* crc);
+int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, char* dst, size_t dst_size, uLong* crc);
 
 /*
 =========================================

@@ -1,3 +1,14 @@
+2010-07-02 Adam Moody <moody20@llnl.gov>
+
+	* cmds/scr_index.c : Added command to replace scr_check_complete,
+	  which builds summary file and adds checkpoint dir to index file
+	  in prefix directory.
+
+	* scripts/scr_test_hostlist.in,
+	  scripts/scr_test_runtime.in,
+	  scripts/Makefile.am : Dropped test for Hostlist module now that
+	  scr_hostlist.pm is provided.
+
 2010-06-25 Adam Moody <moody20@llnl.gov>
 
 	* src/scr.c : Added scr.index file to track checkpoint flush directories

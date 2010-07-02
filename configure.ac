@@ -49,6 +49,7 @@ X_AC_CONFIG_SCR
 AC_CONFIG_FILES( \
   Makefile \
   src/Makefile \
+  src/cmds/Makefile \
   man/Makefile \
   man/scr.1 \
   man/scr_check_complete.1 \
@@ -71,7 +72,6 @@ AC_CONFIG_FILES( \
   scripts/scr_prerun \
   scripts/scr_retries_halt \
   scripts/scr_srun \
-  scripts/scr_test_hostlist \
   scripts/scr_test_datemanip \
   scripts/scr_test_runtime \
   scripts/scr_param.pm \

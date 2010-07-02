@@ -28,15 +28,6 @@ if ($? != 0) {
   $rc = 1;
 }
 
-## test whether the Hostlist module is installed
-##`bash -c "$bindir/scr_test_hostlist 2>&1 > /dev/null"`;
-#`$bindir/scr_test_hostlist`;
-#if ($? != 0) {
-#  print "$prog: ERROR: '$bindir/scr_test_hostlist' failed\n";
-#  print "$prog: ERROR: Problem using Hostlist perl module, see README for help\n";
-#  $rc = 1;
-#}
-
 # test whether the Date::Manip module is installed
 #`bash -c "$bindir/scr_test_datemanip 2>&1 > /dev/null"`;
 `$bindir/scr_test_datemanip`;

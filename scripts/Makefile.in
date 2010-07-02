@@ -47,7 +47,7 @@ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/scr_param.pm.in $(srcdir)/scr_postrun.in \
 	$(srcdir)/scr_prerun.in $(srcdir)/scr_retries_halt.in \
 	$(srcdir)/scr_srun.in $(srcdir)/scr_test_datemanip.in \
-	$(srcdir)/scr_test_hostlist.in $(srcdir)/scr_test_runtime.in
+	$(srcdir)/scr_test_runtime.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/x_ac_config_scr.m4 \
 	$(top_srcdir)/config/x_ac_expand_install_dirs.m4 \
@@ -64,8 +64,8 @@ CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES = scr_cntl_dir scr_check_complete scr_check_node \
 	scr_env scr_inspect scr_flush scr_flush_file scr_glob_hosts \
 	scr_halt scr_list_down_nodes scr_postrun scr_prerun \
-	scr_retries_halt scr_srun scr_test_hostlist scr_test_datemanip \
-	scr_test_runtime scr_param.pm
+	scr_retries_halt scr_srun scr_test_datemanip scr_test_runtime \
+	scr_param.pm
 am__installdirs = "$(DESTDIR)$(bindir)"
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(bin_SCRIPTS)
@@ -227,15 +227,14 @@ bin_SCRIPTS = \
 	scr_prerun \
 	scr_retries_halt \
 	scr_srun \
-	scr_test_hostlist \
 	scr_test_datemanip \
 	scr_test_runtime
 
 EXTRA_DIST = scr_cntl_dir scr_check_complete scr_check_node scr_env \
 	scr_inspect scr_flush scr_flush_file scr_glob_hosts scr_halt \
 	scr_list_down_nodes scr_postrun scr_prerun scr_retries_halt \
-	scr_srun scr_test_hostlist scr_test_datemanip scr_test_runtime \
-	scr_hash.pm scr_param.pm scr_hostlist.pm
+	scr_srun scr_test_datemanip scr_test_runtime scr_hash.pm \
+	scr_param.pm scr_hostlist.pm
 all: all-am
 
 .SUFFIXES:
@@ -295,8 +294,6 @@ scr_prerun: $(top_builddir)/config.status $(srcdir)/scr_prerun.in
 scr_retries_halt: $(top_builddir)/config.status $(srcdir)/scr_retries_halt.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 scr_srun: $(top_builddir)/config.status $(srcdir)/scr_srun.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
-scr_test_hostlist: $(top_builddir)/config.status $(srcdir)/scr_test_hostlist.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 scr_test_datemanip: $(top_builddir)/config.status $(srcdir)/scr_test_datemanip.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@

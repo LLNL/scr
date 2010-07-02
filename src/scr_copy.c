@@ -313,7 +313,7 @@ int main (int argc, char *argv[])
           crc_p = &crc;
         }
         char dst[SCR_MAX_FILENAME];
-        if (scr_copy_to(file, dir, buf_size, dst, crc_p) != SCR_SUCCESS) {
+        if (scr_copy_to(file, dir, buf_size, dst, sizeof(dst), crc_p) != SCR_SUCCESS) {
           crc_valid = 0;
           rc = 1;
         }
@@ -364,7 +364,7 @@ int main (int argc, char *argv[])
         char metafile[SCR_MAX_FILENAME];
         char dst_metafile[SCR_MAX_FILENAME];
         scr_meta_name(metafile, file);
-        if (scr_copy_to(metafile, dir, buf_size, dst_metafile, NULL) != SCR_SUCCESS) {
+        if (scr_copy_to(metafile, dir, buf_size, dst_metafile, sizeof(dst_metafile), NULL) != SCR_SUCCESS) {
           rc = 1;
         }
       } else {

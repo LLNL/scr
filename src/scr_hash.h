@@ -98,10 +98,12 @@ Define common hash key strings
 #define SCR_META_KEY_CRC      ("CRC")
 #define SCR_META_KEY_COMPLETE ("COMPLETE")
 
-#define SCR_INDEX_KEY_DIR  ("DIR")
-#define SCR_INDEX_KEY_CKPT ("CKPT")
-#define SCR_INDEX_KEY_COMPLETE ("COMPLETE")
-#define SCR_INDEX_KEY_FAILED   ("FAILED")
+#define SCR_INDEX_KEY_VERSION   ("VERSION")
+#define SCR_INDEX_KEY_DIR       ("DIR")
+#define SCR_INDEX_KEY_CKPT      ("CKPT")
+#define SCR_INDEX_KEY_COMPLETE  ("COMPLETE")
+#define SCR_INDEX_KEY_FETCHED   ("FETCHED")
+#define SCR_INDEX_KEY_FAILED    ("FAILED")
 
 /*
 =========================================
@@ -159,6 +161,9 @@ int scr_hash_merge(struct scr_hash* hash1, const struct scr_hash* hash2);
 /* traverse the given hash using a printf-like format string setting an arbitrary list of keys
  * to set (or reset) the hash associated with the last key */
 struct scr_hash* scr_hash_setf(struct scr_hash* hash, struct scr_hash* hash_value, const char* format, ...);
+
+/* sort the hash assuming the keys are ints */
+int scr_hash_sort_int(struct scr_hash* hash);
 
 /*
 =========================================

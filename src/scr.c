@@ -56,6 +56,7 @@
 #include "scr_hash.h"
 #include "scr_filemap.h"
 #include "scr_param.h"
+#include "scr_index.h"
 
 #ifdef HAVE_LIBYOGRT
 #include "yogrt.h"
@@ -73,6 +74,8 @@ Globals
 
 #define SCR_TEST_AND_HALT (1)
 #define SCR_TEST_BUT_DONT_HALT (2)
+
+#define SCR_CURRENT_LINK "scr.current"
 
 /* copy file operation flags: copy file vs. move file */
 #define COPY_FILES 0
@@ -1547,7 +1550,7 @@ File Copy Functions
 */
 
 static int scr_swap_file_names(const char* file_send, int rank_send,
-                                     char* file_recv, int rank_recv,
+                                     char* file_recv, size_t size_recv, int rank_recv,
                                const char* dir_recv, MPI_Comm comm)
 {
   int rc = SCR_SUCCESS;
@@ -1593,7 +1596,7 @@ static int scr_swap_file_names(const char* file_send, int rank_send,
     char path[SCR_MAX_FILENAME] = "";
     char name[SCR_MAX_FILENAME] = "";
     scr_split_path(file_recv_orig, path, name);
-    scr_build_path(file_recv, dir_recv, name);
+    scr_build_path(file_recv, size_recv, dir_recv, name);
   }
 
   return SCR_SUCCESS;
@@ -2001,7 +2004,7 @@ static int scr_copy_partner(scr_filemap* map, const struct scr_ckptdesc* c, int 
 
     /* exhange file names with partners */
     char file_partner[SCR_MAX_FILENAME];
-    scr_swap_file_names(file, send_rank, file_partner, recv_rank, ckpt_path, c->comm);
+    scr_swap_file_names(file, send_rank, file_partner, sizeof(file_partner), recv_rank, ckpt_path, c->comm);
 
     /* if we'll receive a file, record the name of our partner's file in the filemap */
     if (recv_rank != MPI_PROC_NULL) {
@@ -2399,186 +2402,23 @@ Flush and fetch functions
 =========================================
 */
 
-static int scr_index_read(const char* dir, struct scr_hash* index)
-{
-  char index_file[SCR_MAX_FILENAME];
-  scr_build_path(index_file, dir, "scr.index");
-
-  if (scr_file_exists(index_file) == SCR_SUCCESS) {
-    int rc = scr_hash_read(index_file, index);
-    return rc;
-  }
-
-  return SCR_SUCCESS;
-}
-
-static int scr_index_write(const char* dir, struct scr_hash* index)
-{
-  char index_file[SCR_MAX_FILENAME];
-  scr_build_path(index_file, dir, "scr.index");
-
-  int rc = scr_hash_write(index_file, index);
-  return rc;
-}
-
-static int scr_index_add_checkpoint_dir(struct scr_hash* index, int checkpoint_id, const char* name)
-{
-  /* set the checkpoint directory */
-  struct scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
-  struct scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name);
-
-  /* add entry to directory index */
-  struct scr_hash* dir2  = scr_hash_set_kv(index, SCR_INDEX_KEY_DIR, name);
-  struct scr_hash* ckpt2 = scr_hash_set_kv_int(dir2, SCR_INDEX_KEY_CKPT, checkpoint_id);
-
-  return SCR_SUCCESS;
-}
-
-static int scr_index_mark_completeness(struct scr_hash* index, int checkpoint_id, const char* name, int complete)
-{
-  /* TODO: ugly hack: subtract off scr_par_prefix */
-  char* name_tmp = strdup(name);
-  char* base = basename(name_tmp);
-  char name2[SCR_MAX_FILENAME];
-  strcpy(name2, base);
-  free(name_tmp);
-
-  /* mark the checkpoint as complete */
-  struct scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
-  struct scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name2);
-  scr_hash_set_kv_int(dir1, SCR_INDEX_KEY_COMPLETE, complete);
-
-  /* add entry to directory index */
-  struct scr_hash* dir2  = scr_hash_set_kv(index, SCR_INDEX_KEY_DIR, name2);
-  struct scr_hash* ckpt2 = scr_hash_set_kv_int(dir2, SCR_INDEX_KEY_CKPT, checkpoint_id);
-
-  return SCR_SUCCESS;
-}
-
-static int scr_index_mark_failed(struct scr_hash* index, int checkpoint_id, const char* name)
-{
-  /* TODO: ugly hack: subtract off scr_par_prefix */
-  char* name_tmp = strdup(name);
-  char* base = basename(name_tmp);
-  char name2[SCR_MAX_FILENAME];
-  strcpy(name2, base);
-  free(name_tmp);
-
-  /* format timestamp */
-  time_t now = time(NULL);
-  char timestamp[30];
-  strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", localtime(&now));
-
-  /* mark the checkpoint as complete */
-  struct scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
-  struct scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name2);
-  scr_hash_set_kv(dir1, SCR_INDEX_KEY_FAILED, timestamp);
-
-  /* add entry to directory index */
-  struct scr_hash* dir2  = scr_hash_set_kv(index, SCR_INDEX_KEY_DIR, name2);
-  struct scr_hash* ckpt2 = scr_hash_set_kv_int(dir2, SCR_INDEX_KEY_CKPT, checkpoint_id);
-
-  return SCR_SUCCESS;
-}
-
-static int scr_index_get_checkpoint_id_by_dir(const struct scr_hash* index, const char* name, int* checkpoint_id)
-{
-  /* assume that we won't find this checkpoint */
-  *checkpoint_id = -1;
-
-  /* attempt to lookup the checkpoint id */
-  struct scr_hash* dir = scr_hash_get_kv(index, SCR_INDEX_KEY_DIR, name);
-  char* checkpoint_id_str = scr_hash_elem_get_first_val(dir, SCR_INDEX_KEY_CKPT);
-  if (checkpoint_id_str != NULL) {
-    /* found it, convert the string to an int and return */
-    *checkpoint_id = atoi(checkpoint_id_str);
-    return SCR_SUCCESS;
-  }
-
-  /* couldn't find it, return failure */
-  return SCR_FAILURE;
-}
-
-static int scr_index_most_recent_complete(const struct scr_hash* index, int earlier_than, int* checkpoint_id, char* name)
-{
-  /* assume that we won't find this checkpoint */
-  *checkpoint_id = -1;
-
-  /* search for the maximum checkpoint id which is complete and less than earlier_than
-   * if earlier_than is set */
-  int max_id = -1;
-  struct scr_hash* ckpts = scr_hash_get(index, SCR_INDEX_KEY_CKPT);
-  struct scr_hash_elem* ckpt = NULL;
-  for (ckpt = scr_hash_elem_first(ckpts);
-       ckpt != NULL;
-       ckpt = scr_hash_elem_next(ckpt))
-  {
-    /* get the id for this checkpoint */
-    char* key = scr_hash_elem_key(ckpt);
-    if (key != NULL) {
-      int id = atoi(key);
-      /* if this checkpoint id is less than our limit and it's more than
-       * our current max, check whether it's complete */
-      if ((earlier_than == -1 || id <= earlier_than) && id > max_id) {
-        /* alright, this checkpoint id is within range to be the most recent,
-         * now scan the various dirs we have for this checkpoint looking for a complete */
-        struct scr_hash* ckpt_hash = scr_hash_elem_hash(ckpt);
-        struct scr_hash* dirs = scr_hash_get(ckpt_hash, SCR_INDEX_KEY_DIR);
-        struct scr_hash_elem* dir = NULL;
-        for (dir = scr_hash_elem_first(dirs);
-             dir != NULL;
-             dir = scr_hash_elem_next(dir))
-        {
-          char* dir_key = scr_hash_elem_key(dir);
-          struct scr_hash* dir_hash = scr_hash_elem_hash(dir);
-
-          int found_one = 1;
-
-          /* look for the complete string */
-          char* complete_str = scr_hash_elem_get_first_val(dir_hash, SCR_INDEX_KEY_COMPLETE);
-          if (complete_str != NULL) {
-            int complete = atoi(complete_str);
-            if (complete != 1) {
-              found_one = 0;
-            }
-          } else {
-            found_one = 0;
-          }
-
-          /* check that there is no failed string */
-          struct scr_hash* failed = scr_hash_get(dir_hash, SCR_INDEX_KEY_FAILED);
-          if (failed != NULL) {
-            found_one = 0;
-          }
-
-          /* if we found one, copy the checkpoint id and directory name, and update our max */
-          if (found_one) {
-            *checkpoint_id = id;
-            strcpy(name, dir_key);
-
-            /* update our max */
-            max_id = id;
-            break;
-          }
-        }
-      }
-    }
-
-  }
-
-  return SCR_FAILURE;
-}
-
 /* read in scr_summary.txt file from dir */
-static int scr_read_summary(const char* dir, int* num_files, struct scr_meta** v)
+static int scr_summary_read(const char* dir, int* num_files, struct scr_meta** v)
 {
   /* initialize num_files and the data pointer */
   *num_files = 0;
   *v = NULL;
 
-  /* check whether we can read the summary file */
+  /* build the filename for the summary file */
   char file[SCR_MAX_FILENAME];
-  scr_build_path(file, dir, "scr_summary.txt");
+  if (scr_build_path(file, sizeof(file), dir, "scr_summary.txt") != SCR_SUCCESS) {
+    scr_err("Failed to build full filename for summary file @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check whether we can read the summary file */
   if (access(file, R_OK) < 0) {
     return SCR_FAILURE;
   }
@@ -2734,8 +2574,8 @@ static int scr_read_summary(const char* dir, int* num_files, struct scr_meta** v
   return SCR_SUCCESS;
 }
 
-/* read in scr_summary.txt file from dir */
-static int scr_read_summary2(const char* dir, int* num_files, struct scr_meta** v)
+/* read in the summary file from dir */
+static int scr_summary_read2(const char* dir, int* num_files, struct scr_meta** v)
 {
   /* initialize num_files and the data pointer */
   *num_files = 0;
@@ -2743,7 +2583,12 @@ static int scr_read_summary2(const char* dir, int* num_files, struct scr_meta** 
 
   /* build the filename for the summary file */
   char summary_file[SCR_MAX_FILENAME];
-  scr_build_path(summary_file, dir, "scr_summary.txt");
+  if (scr_build_path(summary_file, sizeof(summary_file), dir, "summary.scr") != SCR_SUCCESS) {
+    scr_err("Failed to build full filename for summary file @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
 
   /* check whether we have read access
    * (do this error to avoid printing an error in scr_hash_read) */
@@ -2760,7 +2605,7 @@ static int scr_read_summary2(const char* dir, int* num_files, struct scr_meta** 
     scr_hash_delete(hash);
 
     /* failed to read the file, maybe it's in the old format? */
-    if (scr_read_summary(dir, num_files, v) == SCR_SUCCESS) {
+    if (scr_summary_read(dir, num_files, v) == SCR_SUCCESS) {
       return SCR_SUCCESS;
     }
 
@@ -2974,11 +2819,16 @@ static int scr_read_summary2(const char* dir, int* num_files, struct scr_meta** 
 }
 
 /* write out scr_summary.txt file to dir */
-static int scr_write_summary(const char* dir, int num_files, const struct scr_meta* data)
+static int scr_summary_write(const char* dir, int num_files, const struct scr_meta* data)
 {
   /* build the filename */
   char file[SCR_MAX_FILENAME];
-  scr_build_path(file, dir, "scr_summary.txt");
+  if (scr_build_path(file, sizeof(file), dir, "scr_summary.txt") != SCR_SUCCESS) {
+    scr_err("Failed to build full filename for summary file @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
 
   /* open the summary file */
   FILE* fs = fopen(file, "w");
@@ -3014,12 +2864,18 @@ static int scr_write_summary(const char* dir, int num_files, const struct scr_me
   return SCR_SUCCESS;
 }
 
-/* write out scr_summary.txt file to dir */
-static int scr_write_summary2(const char* dir, int checkpoint_id, int num_files, const struct scr_meta* data)
+/* write out the summary file to dir */
+static int scr_summary_write2(const char* dir, int checkpoint_id, int num_files, const struct scr_meta* data)
 {
   /* build the filename */
   char file[SCR_MAX_FILENAME];
-  scr_build_path(file, dir, "scr_summary.txt");
+  if (scr_build_path(file, sizeof(file), dir, "summary.scr") != SCR_SUCCESS) {
+    scr_err("Failed to build full filename for summary file @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
 
   /* create an empty hash to build our summary info */
   struct scr_hash* summary = scr_hash_new();
@@ -3036,7 +2892,7 @@ static int scr_write_summary2(const char* dir, int checkpoint_id, int num_files,
   /* write the number of ranks used to write this checkpoint */
   scr_hash_set_kv_int(ckpt, SCR_SUMMARY_KEY_RANKS, scr_ranks_world);
 
-  /* for each file, insert hash listing filename, and file size, crc, and incomplete flag under that */
+  /* for each file, insert hash listing filename, then file size, crc, and incomplete flag under that */
   int all_complete = 1;
   int i;
   for(i=0; i < num_files; i++) {
@@ -3072,12 +2928,19 @@ static int scr_write_summary2(const char* dir, int checkpoint_id, int num_files,
   /* free the hash object */
   scr_hash_delete(summary);
 
+  /* TODO: ugly hack: subtract off scr_par_prefix */
+  char* dir_tmp = strdup(dir);
+  char* dir_base = basename(dir_tmp);
+
   /* mark the checkpoint as complete in the index file */
-  struct scr_hash* index = scr_hash_new();
-  scr_index_read(scr_par_prefix, index);
-  scr_index_mark_completeness(index, checkpoint_id, dir, all_complete);
-  scr_index_write(scr_par_prefix, index);
-  scr_hash_delete(index);
+  struct scr_hash* index_hash = scr_hash_new();
+  scr_index_read(scr_par_prefix, index_hash);
+  scr_index_mark_completeness(index_hash, checkpoint_id, dir_base, all_complete);
+  scr_index_write(scr_par_prefix, index_hash);
+  scr_hash_delete(index_hash);
+
+  /* TODO: free data for our ugly hack */
+  free(dir_tmp);
 
   return SCR_SUCCESS;
 }
@@ -3211,13 +3074,19 @@ static int scr_bool_is_flushing(int checkpoint_id)
 }
 
 /* fetch file name in meta from dir and build new full path in newfile, return whether operation succeeded */
-static int scr_fetch_a_file(const char* src_dir, const struct scr_meta* meta, const char* dst_dir, char* newfile)
+static int scr_fetch_a_file(const char* src_dir, const struct scr_meta* meta, const char* dst_dir,
+                            char* newfile, size_t newfile_size)
 {
   int success = SCR_SUCCESS;
 
   /* build full path to file */
   char filename[SCR_MAX_FILENAME];
-  scr_build_path(filename, src_dir, meta->filename);
+  if (scr_build_path(filename, sizeof(filename), src_dir, meta->filename) != SCR_SUCCESS) {
+    scr_err("Failed to build full file name of target file for fetch @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
 
   /* fetch file */
   uLong crc;
@@ -3225,12 +3094,12 @@ static int scr_fetch_a_file(const char* src_dir, const struct scr_meta* meta, co
   if (scr_crc_on_flush) {
     crc_p = &crc;
   }
-  success = scr_copy_to(filename, dst_dir, scr_file_buf_size, newfile, crc_p);
+  success = scr_copy_to(filename, dst_dir, scr_file_buf_size, newfile, newfile_size, crc_p);
 
   /* check that crc matches crc stored in meta */
   if (success == SCR_SUCCESS && scr_crc_on_flush && meta->crc32_computed && crc != meta->crc32) {
     success = SCR_FAILURE;
-    scr_err("scr_fetch_a_file: CRC32 mismatch detected when fetching file from %s to %s @ %s:%d",
+    scr_err("CRC32 mismatch detected when fetching file from %s to %s @ %s:%d",
             filename, newfile, __FILE__, __LINE__
     );
 
@@ -3297,7 +3166,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
       }
 
       /* read data from the summary file */
-      read_summary = scr_read_summary2(fetch_dir, &total_files, &data);
+      read_summary = scr_summary_read2(fetch_dir, &total_files, &data);
 
       /* allocate arrays to hold number of files and offset for each rank */
       num_files    = (int*) malloc(scr_ranks_world * sizeof(int));
@@ -3403,14 +3272,14 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
 
       /* get the destination file name */
       char newfile[SCR_MAX_FILENAME];
-      scr_build_path(newfile, ckpt_path, name);
+      scr_build_path(newfile, sizeof(newfile), ckpt_path, name);
       
       /* add the file to our filemap and write it to disk before creating the file */
       scr_filemap_add_file(map, checkpoint_id, scr_my_rank_world, newfile);
       scr_filemap_write(scr_map_file, map);
 
       /* fetch the file */
-      if (scr_fetch_a_file(fetch_dir, &meta, ckpt_path, newfile) != SCR_SUCCESS) {
+      if (scr_fetch_a_file(fetch_dir, &meta, ckpt_path, newfile, sizeof(newfile)) != SCR_SUCCESS) {
         success = 0;
       }
 
@@ -3519,14 +3388,14 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
 
       /* get the destination file name */
       char newfile[SCR_MAX_FILENAME];
-      scr_build_path(newfile, ckpt_path, name);
+      scr_build_path(newfile, sizeof(newfile), ckpt_path, name);
       
       /* add the file to our filemap and write it to disk before creating the file */
       scr_filemap_add_file(map, checkpoint_id, scr_my_rank_world, newfile);
       scr_filemap_write(scr_map_file, map);
 
       /* fetch the file */
-      if (scr_fetch_a_file(fetch_dir, &meta, ckpt_path, newfile) != SCR_SUCCESS) {
+      if (scr_fetch_a_file(fetch_dir, &meta, ckpt_path, newfile, sizeof(newfile)) != SCR_SUCCESS) {
         success = 0;
       }
 
@@ -3645,11 +3514,11 @@ static int scr_flush_dir_create(int checkpoint_id, char* dir)
     sprintf(dirname, "scr.%s.%s.%d", timestamp, scr_jobid, checkpoint_id);
 
     /* add the directory to our index file */
-    struct scr_hash* index = scr_hash_new();
-    scr_index_read(scr_par_prefix, index);
-    scr_index_add_checkpoint_dir(index, checkpoint_id, dirname);
-    scr_index_write(scr_par_prefix, index);
-    scr_hash_delete(index);
+    struct scr_hash* index_hash = scr_hash_new();
+    scr_index_read(scr_par_prefix, index_hash);
+    scr_index_add_checkpoint_dir(index_hash, checkpoint_id, dirname);
+    scr_index_write(scr_par_prefix, index_hash);
+    scr_hash_delete(index_hash);
 
     /* create the directory, set dir to an empty string if mkdir fails */
     sprintf(dir, "%s/%s", scr_par_prefix, dirname);
@@ -3713,7 +3582,9 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, struct sc
     crc_p = &crc;
   }
   char my_flushed_file[SCR_MAX_FILENAME];
-  tmp_rc = scr_copy_to(file, dst_dir, scr_file_buf_size, my_flushed_file, crc_p);
+  tmp_rc = scr_copy_to(file, dst_dir, scr_file_buf_size,
+                       my_flushed_file, sizeof(my_flushed_file), crc_p
+  );
   if (tmp_rc != SCR_SUCCESS) {
     crc_valid = 0;
     flushed = SCR_FAILURE;
@@ -3758,7 +3629,9 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, struct sc
 
   /* copy corresponding .scr file */
   char my_flushed_metafile[SCR_MAX_FILENAME];
-  tmp_rc = scr_copy_to(metafile, dst_dir, scr_file_buf_size, my_flushed_metafile, NULL);
+  tmp_rc = scr_copy_to(metafile, dst_dir, scr_file_buf_size,
+                       my_flushed_metafile, sizeof(my_flushed_metafile), NULL
+  );
   if (tmp_rc != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
@@ -3797,7 +3670,7 @@ static int scr_flush_async_file_enqueue(struct scr_hash* hash, const char* file,
 
   /* create dest_file using dest_dir and name */
   char dest_file[SCR_MAX_FILENAME];
-  scr_build_path(dest_file, dst_dir, name);
+  scr_build_path(dest_file, sizeof(dest_file), dst_dir, name);
 
   /* look up the filesize of the file */
   unsigned long filesize = scr_filesize(file);
@@ -3825,7 +3698,7 @@ static int scr_flush_async_file_enqueue(struct scr_hash* hash, const char* file,
 
   /* create dest_file using dest_dir and name */
   char dest_metafile[SCR_MAX_FILENAME];
-  scr_build_path(dest_metafile, dst_dir, metaname);
+  scr_build_path(dest_metafile, sizeof(dest_metafile), dst_dir, metaname);
 
   /* add the metafile to the transfer hash, and add its filesize to the number of bytes written */
   file_hash = scr_hash_set_kv(hash, SCR_TRANSFER_KEY_FILES, metafile);
@@ -4464,7 +4337,7 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
     }
 
     /* write out summary file */
-    int wrote_summary = scr_write_summary2(scr_flush_async_dir, scr_flush_async_checkpoint_id, total_files, data);
+    int wrote_summary = scr_summary_write2(scr_flush_async_dir, scr_flush_async_checkpoint_id, total_files, data);
     if (wrote_summary != SCR_SUCCESS) {
       flushed = SCR_FAILURE;
     }
@@ -4495,13 +4368,13 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
   /* determine whether everyone wrote their files ok */
   int write_succeeded = scr_alltrue((flushed == SCR_SUCCESS));
 
-  /* if flush succeeded, update the scr.current symlink */
+  /* if flush succeeded, update the current symlink */
   if (write_succeeded && scr_my_rank_world == 0) {
     /* TODO: update 'flushed' depending on symlink update */
 
     /* file write succeeded, now update symlinks */
     char current[SCR_MAX_FILENAME];
-    scr_build_path(current, scr_par_prefix, "scr.current");
+    scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
 
     /* if current exists, read it in, unlink it, and create old */
     if (access(current, F_OK) == 0) {
@@ -4696,9 +4569,6 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
     }
   }
 
-  /* create an empty hash to hold the index file */
-  struct scr_hash* index_hash = scr_hash_new();
-
   /* create the checkpoint directory */
   char dir[SCR_MAX_FILENAME];
   if (scr_flush_dir_create(checkpoint_id, dir) != SCR_SUCCESS) {
@@ -4866,7 +4736,7 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
     }
 
     /* write out summary file */
-    if (scr_write_summary2(dir, checkpoint_id, total_files, data) != SCR_SUCCESS) {
+    if (scr_summary_write2(dir, checkpoint_id, total_files, data) != SCR_SUCCESS) {
       flushed = SCR_FAILURE;
     }
   } else {
@@ -4914,13 +4784,13 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
   /* determine whether everyone wrote their files ok */
   int write_succeeded = scr_alltrue((flushed == SCR_SUCCESS));
 
-  /* if flush succeeded, update the scr.current symlink */
+  /* if flush succeeded, update the current symlink */
   if (write_succeeded && scr_my_rank_world == 0) {
     /* TODO: update 'flushed' depending on symlink update */
 
     /* file write succeeded, now update symlinks */
     char current[SCR_MAX_FILENAME];
-    scr_build_path(current, scr_par_prefix, "scr.current");
+    scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
 
     /* if current exists, unlink it */
     if (access(current, F_OK) == 0) {
@@ -5287,7 +5157,7 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
     for (i=0; i < h.my_nfiles; i++) {
       /* create full path to the file */
       char full_file[SCR_MAX_FILENAME];
-      scr_build_path(full_file, path, h.my_files[i].filename);
+      scr_build_path(full_file, sizeof(full_file), path, h.my_files[i].filename);
 
       /* copy the full filename */
       filenames[i] = strdup(full_file);
@@ -5360,7 +5230,7 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
     for (i=0; i < h.my_nfiles; i++) {
       /* get the filename */
       char full_file[SCR_MAX_FILENAME];
-      scr_build_path(full_file, path, h.my_files[i].filename);
+      scr_build_path(full_file, sizeof(full_file), path, h.my_files[i].filename);
       scr_filemap_add_file(map, h.checkpoint_id, scr_my_rank_world, full_file);
     }
     scr_filemap_set_expected_files(map, h.checkpoint_id, scr_my_rank_world, h.my_nfiles + 1);
@@ -5379,7 +5249,7 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
     for (i=0; i < h.my_nfiles; i++) {
       /* get the filename */
       char full_file[SCR_MAX_FILENAME];
-      scr_build_path(full_file, path, h.my_files[i].filename);
+      scr_build_path(full_file, sizeof(full_file), path, h.my_files[i].filename);
 
       /* copy the filename */
       filenames[i] = strdup(full_file);
@@ -6148,7 +6018,7 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_ckptdesc* c, 
 
         /* build the new filename */
         char newfile[SCR_MAX_FILENAME];
-        scr_build_path(newfile, ckpt_path, name);
+        scr_build_path(newfile, sizeof(newfile), ckpt_path, name);
 
         /* build the name of the existing and new meta files */
         char metafile[SCR_MAX_FILENAME];
@@ -6265,7 +6135,9 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_ckptdesc* c, 
 
           /* exhange file names with partners */
           char file_partner[SCR_MAX_FILENAME];
-          scr_swap_file_names(file, send_rank, file_partner, recv_rank, ckpt_path, scr_comm_world);
+          scr_swap_file_names(file, send_rank, file_partner, sizeof(file_partner), recv_rank,
+                              ckpt_path, scr_comm_world
+          );
 
           /* if we'll receive a file, record the name of our file in the filemap and write it to disk */
           if (recv_rank != MPI_PROC_NULL) {
@@ -6428,15 +6300,13 @@ static int scr_route_file(int checkpoint_id, const char* file, char* newfile, in
   struct scr_ckptdesc* c = scr_ckptdesc_get(checkpoint_id, scr_nckptdescs, scr_ckptdescs);
   scr_checkpoint_dir(c, checkpoint_id, ckpt_path);
 
-  /* check that new composed name does not overrun user buffer */
-  if (strlen(ckpt_path) + 1 + strlen(name) + 1 > n) {
+  /* build the composed name */
+  if (scr_build_path(newfile, n, ckpt_path, name) != SCR_SUCCESS) {
+    /* abort if the new name is longer than our buffer */
     scr_abort(-1, "file name (%s/%s) is longer than n (%d) @ %s:%d",
               ckpt_path, name, n, __FILE__, __LINE__
     );
   }
-
-  /* build the composed name */
-  scr_build_path(newfile, ckpt_path, name);
 
   return SCR_SUCCESS;
 }
@@ -6976,9 +6846,9 @@ int SCR_Init()
   MPI_Barrier(scr_comm_local);
 
   /* build the file names using the control directory prefix */
-  scr_build_path(scr_halt_file,  scr_cntl_prefix, "halt.scrinfo");
-  scr_build_path(scr_flush_file, scr_cntl_prefix, "flush.scrinfo");
-  scr_build_path(scr_nodes_file, scr_cntl_prefix, "nodes.scrinfo");
+  scr_build_path(scr_halt_file,  sizeof(scr_halt_file),  scr_cntl_prefix, "halt.scrinfo");
+  scr_build_path(scr_flush_file, sizeof(scr_flush_file), scr_cntl_prefix, "flush.scrinfo");
+  scr_build_path(scr_nodes_file, sizeof(scr_nodes_file), scr_cntl_prefix, "nodes.scrinfo");
   sprintf(scr_map_file, "%s/filemap_%d.scrinfo", scr_cntl_prefix, scr_my_rank_local);
   sprintf(scr_master_map_file, "%s/filemap.scrinfo", scr_cntl_prefix);
   sprintf(scr_transfer_file, "%s/transfer.scrinfo", scr_cntl_prefix);
@@ -7236,6 +7106,7 @@ int SCR_Init()
   }
 
   /* attempt to fetch files from parallel file system into cache */
+  int fetch_attempted = 0;
   if (rc != SCR_SUCCESS && scr_fetch) {
     /* start timer */
     if (scr_my_rank_world == 0) {
@@ -7246,12 +7117,13 @@ int SCR_Init()
     char fetch_dir[SCR_MAX_FILENAME] = "";
     char target[SCR_MAX_FILENAME] = "";
     struct scr_hash* index_hash = NULL;
+    int read_index_file = 0;
 
-    /* build the filename for the scr.current symlink */
+    /* build the filename for the current symlink */
     char scr_current[SCR_MAX_FILENAME];
-    scr_build_path(scr_current, scr_par_prefix, "scr.current");
+    scr_build_path(scr_current, sizeof(scr_current), scr_par_prefix, SCR_CURRENT_LINK);
 
-    /* have rank 0 read the index file to get the fetch directory */
+    /* have rank 0 read the symlink and index file to get the fetch directory */
     if (scr_my_rank_world == 0) {
       /* read the target of the symlink */
       if (access(scr_current, R_OK) == 0) {
@@ -7266,24 +7138,28 @@ int SCR_Init()
 
       /* read the index file */
       if (scr_index_read(scr_par_prefix, index_hash) == SCR_SUCCESS) {
+        /* remember that we read the index file ok, so we know we can write to it later
+         * this way we don't overwrite an existing index file just because the read happened to fail */
+        read_index_file = 1;
+
         if (strcmp(target, "") != 0) {
-          /* lookup the checkpoint id for the scr.current link */
+          /* lookup the checkpoint id for the current link */
           scr_index_get_checkpoint_id_by_dir(index_hash, target, &current_checkpoint_id);
         } else {
-          /* no scr.current symlink found, get the most recent complete checkpoint id */
+          /* no current symlink found, get the most recent complete checkpoint id */
           scr_index_most_recent_complete(index_hash, -1, &current_checkpoint_id, target);
         }
 
         /* now that we have the subdirectory (target) name, build the full fetch directory */
         if (strcmp(target, "") != 0) {
-          scr_build_path(fetch_dir, scr_par_prefix, target);
+          scr_build_path(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
         } else {
           strcpy(fetch_dir, "");
         }
       } else {
-        /* old style without index file */
+        /* old style without index file -- just an current symlink */
         if (strcmp(target, "") != 0) {
-          scr_build_path(fetch_dir, scr_par_prefix, target);
+          scr_build_path(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
         } else {
           strcpy(fetch_dir, "");
         }
@@ -7294,13 +7170,16 @@ int SCR_Init()
     rc = scr_fetch_files(scr_map, fetch_dir);
     if (rc != SCR_SUCCESS) {
       if (scr_my_rank_world == 0) {
+        /* if the fetch directory is set, mark set as failed so we don't try it again */
         if (strcmp(fetch_dir, "") != 0) {
-          /* mark set as failed so we don't try it again */
-          scr_index_mark_failed(index_hash, current_checkpoint_id, fetch_dir);
-          scr_index_write(scr_par_prefix, index_hash);
+          fetch_attempted = 1;
+          if (read_index_file) {
+            scr_index_mark_failed(index_hash, current_checkpoint_id, fetch_dir);
+            scr_index_write(scr_par_prefix, index_hash);
+          }
         }
 
-        /* current failed, delete the scr.current symlink */
+        /* current failed, delete the current symlink */
         unlink(scr_current);
       }
 
@@ -7315,7 +7194,11 @@ int SCR_Init()
 
           if (current_checkpoint_id != -1) {
             /* try the next most recent checkpoint */
-            scr_build_path(fetch_dir, scr_par_prefix, target);
+            scr_build_path(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
+            if (read_index_file) {
+              scr_index_mark_fetched(index_hash, current_checkpoint_id, target);
+              scr_index_write(scr_par_prefix, index_hash);
+            }
           } else {
             strcpy(fetch_dir, "");
           }
@@ -7323,7 +7206,7 @@ int SCR_Init()
 
         rc = scr_fetch_files(scr_map, fetch_dir);
         if (rc == SCR_SUCCESS) {
-          /* we succeeded in fetching this checkpoint, set scr.current to point to it, and stop fetching */
+          /* we succeeded in fetching this checkpoint, set current to point to it, and stop fetching */
           if (scr_my_rank_world == 0) {
             symlink(target, scr_current);
           }
@@ -7331,8 +7214,10 @@ int SCR_Init()
         } else if (strcmp(fetch_dir, "") != 0) {
           /* mark set as failed so we don't try it again */
           if (scr_my_rank_world == 0) {
-            scr_index_mark_failed(index_hash, current_checkpoint_id, fetch_dir);
-            scr_index_write(scr_par_prefix, index_hash);
+            if (read_index_file) {
+              scr_index_mark_failed(index_hash, current_checkpoint_id, target);
+              scr_index_write(scr_par_prefix, index_hash);
+            }
           }
         } else {
           /* we ran out of valid checkpoints in the index file, bail out of the loop */
@@ -7361,21 +7246,13 @@ int SCR_Init()
     scr_checkpoint_id = 0;
   }
 
-  /* both the distribute and the fetch failed, maybe SCR_FETCH=0? */
+  /* both the distribute and the fetch failed */
   if (rc != SCR_SUCCESS) {
-    if (!scr_fetch) {
-      /* if user told us explicitly not to fetch, assume he knows what he's doing */
-      rc = SCR_SUCCESS;
-    } else {
-      /* TODO: if current and old were not found, we could supress this warning and assume
-       * it's a brand new run */
-      /* otherwise, print a warning */
-      if (scr_my_rank_world == 0) {
-        scr_err("SCR_Init() failed to fetch checkpoint set into cache @ %s:%d", __FILE__, __LINE__);
-        scr_err("Perhaps there is no scr.current checkpoint set, or perhaps SCR_PREFIX is not set.");
-      }
-      rc = SCR_SUCCESS;
+    /* if a fetch was attempted but we failed, print a warning */
+    if (scr_my_rank_world == 0 && fetch_attempted) {
+      scr_err("Failed to fetch checkpoint set into cache @ %s:%d", __FILE__, __LINE__);
     }
+    rc = SCR_SUCCESS;
   }
 
   /* sync everyone before returning to ensure that subsequent calls to SCR functions are valid */

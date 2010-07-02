@@ -13,7 +13,6 @@ bin_SCRIPTS = \
 	scr_prerun \
 	scr_retries_halt \
 	scr_srun \
-	scr_test_hostlist \
 	scr_test_datemanip \
 	scr_test_runtime
 
@@ -32,7 +31,6 @@ EXTRA_DIST = \
 	scr_prerun \
 	scr_retries_halt \
 	scr_srun \
-	scr_test_hostlist \
 	scr_test_datemanip \
 	scr_test_runtime
 

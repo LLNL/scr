@@ -633,28 +633,31 @@ int scr_split_path (const char* file, char* path, char* filename)
   return SCR_SUCCESS;
 }
 
-/* combine path and filename into a fullpath in file */
-int scr_build_path (char* file, const char* path, const char* filename)
+/* combine path and file into a fullpath in buf */
+int scr_build_path (char* buf, size_t size, const char* path, const char* file)
 {
-  /* first build in temp, then copy to file, which lets caller use same variable in input and output parameters */
-  char temp[SCR_MAX_FILENAME];
-
-  if ((path == NULL || strcmp(path, "") == 0) && (filename == NULL || strcmp(filename, "") == 0)) {
-    /* empty path and filename, just write an empty string to file */
-    strcpy(temp, "");
+  int nwrite = 0;
+  if ((path == NULL || strcmp(path, "") == 0) && (file == NULL || strcmp(file, "") == 0)) {
+    /* empty path and file, just write an empty string to file */
+    nwrite = snprintf(buf, size, "");
   } else if (path == NULL || strcmp(path, "") == 0) {
-    /* empty path, just return filename */
-    strcpy(temp, filename);
-  } else if (filename == NULL || strcmp(filename, "") == 0) {
-    /* empty filename, just return path */
-    strcpy(temp, path);
+    /* empty path, just return file */
+    nwrite = snprintf(buf, size, "%s", file);
+  } else if (file == NULL || strcmp(file, "") == 0) {
+    /* empty file, just return path */
+    nwrite = snprintf(buf, size, "%s", path);
   } else {
-    /* concatenate path and filename */
-    sprintf(temp, "%s/%s", path, filename);
+    /* concatenate path and file */
+    nwrite = snprintf(buf, size, "%s/%s", path, file);
   }
 
-  /* finally, copy from temp into file and return */
-  strcpy(file, temp);
+  /* return success or failure depending on whether we fit everything into the buffer */
+  if (nwrite >= size) {
+    scr_err("Output buffer too small to concatenate path and file name (have %d bytes, need %d bytes) @ %s:%d",
+            size, nwrite, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
   return SCR_SUCCESS;
 }
 
@@ -718,7 +721,7 @@ File Copy Functions
 /* TODO: could perhaps use O_DIRECT here as an optimization */
 /* TODO: could apply compression/decompression here */
 /* copy src_file (full path) to dest_path and return new full path in dest_file */
-int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, char* dst, uLong* crc)
+int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, char* dst, size_t dst_size, uLong* crc)
 {
   /* check that we got something for a source file */
   if (src == NULL || strcmp(src, "") == 0) {
@@ -750,7 +753,12 @@ int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, ch
   scr_split_path(src, path, name);
 
   /* create dest_file using dest_path and filename */
-  scr_build_path(dst, dst_dir, name);
+  if (scr_build_path(dst, dst_size, dst_dir, name) != SCR_SUCCESS) {
+    scr_err("Failed to build full filename for destination file @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
 
   /* open src_file for reading */
   int fd_src = scr_open(src, O_RDONLY);

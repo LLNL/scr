@@ -2,6 +2,8 @@ MPICC     = @MPICC@
 
 AM_CFLAGS = -I$(top_srcdir)/src
 
+SUBDIRS = . cmds
+
 include_HEADERS = scr.h
 
 bin_PROGRAMS = \
@@ -15,10 +17,6 @@ bin_PROGRAMS = \
 	scr_log_transfer \
 	scr_transfer
 
-#lib_LTLIBRARIES = \
-#	libscr.la \
-#	libscr_interpose.la
-
 scr_headers = \
 	scr_conf.h \
 	scr.h \
@@ -29,6 +27,7 @@ scr_headers = \
 	scr_hash.h \
 	tv_data_display.h \
 	scr_filemap.h \
+	scr_index.h \
 	scr_meta.h \
 	scr_config.h \
 	scr_param.h \
@@ -44,6 +43,7 @@ scr_srcs = \
 	scr_hash.c \
 	tv_data_display.c \
 	scr_filemap.c \
+	scr_index.c \
 	scr_meta.c \
 	scr_config.c \
 	scr_param.c \
@@ -59,6 +59,7 @@ scr_objs = \
 	scr_hash.lo \
 	tv_data_display.lo \
 	scr_filemap.lo \
+	scr_index.lo \
 	scr_meta.lo \
 	scr_config.lo \
 	scr_param.lo \
@@ -87,6 +88,9 @@ tv_data_display.lo: $(scr_headers) $(scr_sources)
 scr_filemap.lo: $(scr_headers) $(scr_sources)
 	libtool --mode=compile --tag=CC $(CC) -c scr_filemap.c -o $@ $(SCR_C_FLAGS)
 
+scr_index.lo: $(scr_headers) $(scr_sources)
+	libtool --mode=compile --tag=CC $(CC) -c scr_index.c -o $@ $(SCR_C_FLAGS)
+
 scr_meta.lo: $(scr_headers) $(scr_sources)
 	libtool --mode=compile --tag=CC $(CC) -c scr_meta.c -o $@ $(SCR_C_FLAGS)
 
@@ -114,14 +118,10 @@ scrf.lo: $(scr_headers) $(scr_sources)
 scr_interpose.lo: $(scr_headers) $(scr_sources)
 	libtool --mode=compile --tag=CC $(MPICC) -c scr_interpose.c -o $@ $(SCR_C_FLAGS)
 
-#libscr.a: libscr.la $(scr_objs)
-
 libscr.la: $(scr_objs)
 	libtool --mode=link --tag=CC $(MPICC) $(SCR_C_FLAGS) -o $@ \
 	$(scr_objs) \
 	$(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz -rpath $(DESTDIR)$(libdir)
-
-#libscr_interpose.a: libscr_interpose.la $(scr_objs) scr_interpose.lo
 
 libscr_interpose.la: $(scr_objs) scr_interpose.lo
 	libtool --mode=link --tag=CC $(MPICC) $(SCR_C_FLAGS) -o $@ \
@@ -150,48 +150,6 @@ uninstall-local:
 	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/scr*
 	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/{queue,config}.h
 	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/tv_data_display.{c,h}
-
-#nodist_libscr_SOURCES = libscr.c
-#nodist_libscr_interpose_SOURCES = libscr.c
-
-#lib_LTLIBRARIES = libscr.la 
-#libscr_la_SOURCES = \
-#	scr.h \
-#	scr_err.h \
-#	scr_io.c          scr_io.h \
-#	scr_util.c        scr_util.h \
-#	scr_hash.c        scr_hash.h \
-#	tv_data_display.c tv_data_display.h \
-#	scr_filemap.c     scr_filemap.h \
-#	scr_meta.c        scr_meta.h \
-#	scr_config.c      scr_config.h \
-#	scr_param.c       scr_param.h \
-#	scr_log.c         scr_log.h \
-#	scr_copy_xor.c    scr_copy_xor.h \
-#	scr_halt.c        scr_halt.h \
-#	scr.c
-#libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz
-#libscr_la_CFLAGS = $(AM_CFLAGS) $(YOGRT_CPPFLAGS) $(MYSQL_CPPFLAGS)
-
-#lib_LTLIBRARIES += libscr_interpose.la
-#libscr_interpose_la_SOURCES = \
-#	scr.h \
-#	scr_err.h \
-#	scr_io.c          scr_io.h \
-#	scr_util.c        scr_util.h \
-#	scr_hash.c        scr_hash.h \
-#	tv_data_display.c tv_data_display.h \
-#	scr_filemap.c     scr_filemap.h \
-#	scr_meta.c        scr_meta.h \
-#	scr_config.c      scr_config.h \
-#	scr_param.c       scr_param.h \
-#	scr_log.c         scr_log.h \
-#	scr_copy_xor.c    scr_copy_xor.h \
-#	scr_halt.c        scr_halt.h \
-#	scr.c \
-#	scr_interpose.c
-#libscr_interpose_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) -lz
-#libscr_interpose_la_CFLAGS = $(AM_CFLAGS) $(YOGRT_CPPFLAGS)
 
 scr_copy_SOURCES = \
 	scr_conf.h \
