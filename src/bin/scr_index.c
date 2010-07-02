@@ -39,7 +39,7 @@ $TV ../src/scr_index_cmd -a `pwd` scr.2010-06-29_17:22:08.1018033.10 &
 #include "scr_meta.h"
 #include "scr_filemap.h"
 #include "scr_param.h"
-#include "scr_index.h"
+#include "scr_index_api.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -49,7 +49,8 @@ X_AC_CONFIG_SCR
 AC_CONFIG_FILES( \
   Makefile \
   src/Makefile \
-  src/cmds/Makefile \
+  src/lib/Makefile \
+  src/bin/Makefile \
   man/Makefile \
   man/scr.1 \
   man/scr_check_complete.1 \

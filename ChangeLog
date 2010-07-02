@@ -1,5 +1,7 @@
 2010-07-02 Adam Moody <moody20@llnl.gov>
 
+	* : Restructured src directory layout.
+
 	* cmds/scr_index.c : Added command to replace scr_check_complete,
 	  which builds summary file and adds checkpoint dir to index file
 	  in prefix directory.

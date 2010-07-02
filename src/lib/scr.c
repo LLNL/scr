@@ -56,7 +56,7 @@
 #include "scr_hash.h"
 #include "scr_filemap.h"
 #include "scr_param.h"
-#include "scr_index.h"
+#include "scr_index_api.h"
 
 #ifdef HAVE_LIBYOGRT
 #include "yogrt.h"

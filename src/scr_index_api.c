@@ -15,7 +15,7 @@
 #include "scr_io.h"
 #include "scr_err.h"
 #include "scr_hash.h"
-#include "scr_index.h"
+#include "scr_index_api.h"
 
 #include <stdio.h>
 #include <stdlib.h>
