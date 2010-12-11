@@ -108,7 +108,7 @@ int clear_parameters(char** src, char** dst, off_t* position)
 /* given a hash of files and a file name, check whether the named
  * file needs data transfered, if so, strdup its destination name
  * and set its position and filesize */
-int need_transfer(struct scr_hash* files, char* src, char** dst, off_t* position, off_t* filesize)
+int need_transfer(scr_hash* files, char* src, char** dst, off_t* position, off_t* filesize)
 {
   /* check that we got a hash of files and a file name */
   if (files == NULL || src == NULL) {
@@ -116,7 +116,7 @@ int need_transfer(struct scr_hash* files, char* src, char** dst, off_t* position
   }
 
   /* lookup the specified file in the hash */
-  struct scr_hash* file_hash = scr_hash_get(files, src);
+  scr_hash* file_hash = scr_hash_get(files, src);
   if (file_hash == NULL) {
     return SCR_FAILURE;
   }
@@ -149,11 +149,11 @@ int need_transfer(struct scr_hash* files, char* src, char** dst, off_t* position
 /* given a hash of transfer file data, look for a file which needs to
  * be transfered. If src file is set, try to continue with that file,
  * otherwise, pick the first available file */
-int find_file(struct scr_hash* hash, char** src, char** dst, off_t* position, off_t* filesize)
+int find_file(scr_hash* hash, char** src, char** dst, off_t* position, off_t* filesize)
 {
   int found_a_file = 0;
 
-  struct scr_hash* files = scr_hash_get(hash, SCR_TRANSFER_KEY_FILES);
+  scr_hash* files = scr_hash_get(hash, SCR_TRANSFER_KEY_FILES);
   if (files != NULL) {
     /* if we're given a file name, try to continue with that file */
     if (!found_a_file && src != NULL && *src != NULL) {
@@ -180,7 +180,7 @@ int find_file(struct scr_hash* hash, char** src, char** dst, off_t* position, of
     /* if we still don't have a file, scan the hash and use the first
      * file we find */
     if (!found_a_file) {
-      struct scr_hash_elem* elem;
+      scr_hash_elem* elem;
       for (elem = scr_hash_elem_first(files);
            elem != NULL;
            elem = scr_hash_elem_next(elem))
@@ -213,12 +213,12 @@ int find_file(struct scr_hash* hash, char** src, char** dst, off_t* position, of
 }
 
 /* read the transfer file and set our global variables to match */
-struct scr_hash* read_transfer_file()
+scr_hash* read_transfer_file()
 {
   char* value = NULL;
 
   /* get a new hash to store the file data */
-  struct scr_hash* hash = scr_hash_new();
+  scr_hash* hash = scr_hash_new();
 
   /* open transfer file with lock */
   scr_hash_read_with_lock(scr_transfer_file, hash);
@@ -261,7 +261,7 @@ struct scr_hash* read_transfer_file()
 
   /* check for DONE flag */
   int done = 0;
-  struct scr_hash* done_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
+  scr_hash* done_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
   if (done_hash != NULL) {
     done = 1;
   }
@@ -312,7 +312,7 @@ struct scr_hash* read_transfer_file()
 int set_transfer_file_state(char* s, int done)
 {
   /* get a hash to store file data */
-  struct scr_hash* hash = scr_hash_new();
+  scr_hash* hash = scr_hash_new();
 
   /* read the file */
   int fd = -1;
@@ -341,7 +341,7 @@ int set_transfer_file_state(char* s, int done)
 int update_transfer_file(char* src, char* dst, off_t position)
 {
   /* create a hash to store data from file */
-  struct scr_hash* hash = scr_hash_new();
+  scr_hash* hash = scr_hash_new();
 
   /* open transfer file with lock */
   int fd = -1;
@@ -349,7 +349,7 @@ int update_transfer_file(char* src, char* dst, off_t position)
 
   /* search for the source file, and update the bytes written if found */
   if (src != NULL) {
-    struct scr_hash* file_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_FILES, src);
+    scr_hash* file_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_FILES, src);
     if (file_hash != NULL) {
       /* update the bytes written field */
       scr_hash_unset(file_hash, "WRITTEN");
@@ -469,7 +469,7 @@ int main (int argc, char *argv[])
   double secs_run_start  = scr_seconds();
   double secs_run_end    = secs_run_start;
   double secs_last_write = secs_run_start;
-  struct scr_hash* hash = scr_hash_new();
+  scr_hash* hash = scr_hash_new();
   while (keep_running) {
     /* loop here sleeping and checking transfer file periodically
      * until state changes and / or some time elapses */

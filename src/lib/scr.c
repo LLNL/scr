@@ -68,9 +68,7 @@ Globals
 =========================================
 */
 
-#define SCR_SUMMARY_FILE_VERSION_2 (2)
-#define SCR_SUMMARY_FILE_VERSION_3 (3)
-#define SCR_SUMMARY_FILE_VERSION_4 (4)
+#define SCR_SUMMARY_FILE_VERSION_5 (5)
 
 #define SCR_TEST_AND_HALT (1)
 #define SCR_TEST_BUT_DONT_HALT (2)
@@ -111,7 +109,7 @@ static char scr_nodes_file[SCR_MAX_FILENAME];
 static char scr_transfer_file[SCR_MAX_FILENAME];
 
 static scr_filemap* scr_map = NULL;
-static struct scr_hash* scr_halt_hash = NULL;
+static scr_hash* scr_halt_hash = NULL;
 
 static char* scr_username    = NULL;       /* username of owner for running job */
 static char* scr_jobid       = NULL;       /* unique job id string of current job */
@@ -177,8 +175,8 @@ static int  scr_my_rank_local = MPI_PROC_NULL;  /* my local rank on my node */
 static int  scr_my_rank_level = MPI_PROC_NULL;  /* my rank in processes at my level */
 static char scr_my_hostname[256] = "";
 
-struct scr_hash* scr_cachedesc_hash = NULL;
-struct scr_hash* scr_ckptdesc_hash  = NULL;
+scr_hash* scr_cachedesc_hash = NULL;
+scr_hash* scr_ckptdesc_hash  = NULL;
 
 struct scr_ckptdesc {
   int      enabled;
@@ -317,6 +315,498 @@ static int scr_set_partners(MPI_Comm comm, int dist,
   return SCR_SUCCESS;
 }
 
+/* The sparse_exchange function will eventually be moved to a separate library, as
+ * it is generally useful to many MPI applications.  The implementation included
+ * here is a simplified version based on Brucks algorithm.  It assumes each rank
+ * will send small amounts of data to a small number of other tasks. */
+
+/* In the Brucks implementation, we pack and forward data through intermediate ranks.
+ * An individual message is packed into an element, and then a list of elements is
+ * packed into a packet and forwarded on to the destination.  The message data is
+ * assumed to be small, and is thus inlined with the element header.
+ *  <packet_header> : <element_header> <element_data>, <element_header> <element data>, ...
+ */
+
+/* qsort integer compare (using first four bytes of structure) */
+static int int_cmp_fn(const void* a, const void* b)
+{
+  return (int) (*(int*)a - *(int*)b);
+}
+
+typedef struct {
+  int rank;    /* rank of final destination */
+  int msgs;    /* count of total number of messages headed for destination */
+  int bytes;   /* count of total number of data bytes headed for destination */
+  int payload; /* number of bytes in current packet (sum of bytes of headers and data of elements) */
+} exv_packet_header;
+
+typedef struct {
+  int rank; /* rank of original sender */
+  int size; /* number of message bytes associated with element */
+} exv_elem_header;
+
+static int sparse_unpack(void* tmp_data, int tmp_data_size,
+                  int* idx, int* rank_list, int* size_list, void** data_list,
+                  void* buf, int* off,
+                  int rank, MPI_Comm comm)
+{
+  /* read packet header and check that it arrived at correct rank */
+  exv_packet_header* packet = (exv_packet_header*) tmp_data;
+  int current_rank = packet->rank;
+  if (current_rank != rank) {
+    /* error, received data for a different rank (shouldn't happen) */
+    scr_abort(1, "Received data for rank %d @ %s:%d",
+      current_rank, __FILE__, __LINE__
+    );
+  }
+
+  /* set offset past packet header */
+  int tmp_data_offset = sizeof(exv_packet_header);
+
+  /* extract contents of each element in packet */
+  int index  = *idx;
+  int offset = *off;
+  while (tmp_data_offset < tmp_data_size) {
+    /* get pointer to header of the next element */
+    exv_elem_header* elem = (exv_elem_header*) (tmp_data + tmp_data_offset);
+
+    /* read the source rank, element type, and message size */
+    int elem_rank = elem->rank;
+    int elem_size = elem->size;
+
+    /* advance pointer past the element header */
+    tmp_data_offset += sizeof(exv_elem_header);
+
+    /* the message data is inlined, copy the data to our receive buffer */
+    rank_list[index] = elem_rank;
+    size_list[index] = elem_size;
+    data_list[index] = buf + offset;
+    if (elem_size > 0) {
+      memcpy(buf + offset, tmp_data + tmp_data_offset, elem_size);
+    }
+    offset += elem_size;
+    tmp_data_offset += elem_size;
+    index++;
+  }
+
+  *idx = index;
+  *off = offset;
+
+  return 0;
+}
+
+/* used to efficiently implement an alltoallv where each process only sends to a handful of other processes,
+ * uses the indexing algorithm by Jehoshua Bruck et al, IEEE TPDS, Nov. 97 */
+static int sparse_exchangev_malloc_brucks(
+    int  send_nranks, int*  send_ranks, int*  send_sizes, void**  send_ptrs,
+    int* recv_nranks, int** recv_ranks, int** recv_sizes, void*** recv_ptrs, void** recv_alloc,
+    MPI_Comm comm)
+{
+  int i;
+  exv_packet_header* packet = NULL;
+  exv_elem_header* elem = NULL;
+  int rc = MPI_SUCCESS;
+
+  /* currently limits one message to a single destination */
+
+  /* data is grouped into packets based on the sender of form
+   *   dest_rank, num_send_ranks, total_bytes,
+   *       send_rank_1, send_size_1, send_data_1, send_rank_2, send_size_2, send_data_2, ...
+   * total_bytes measures the total bytes in the data list including the bytes taken to record the
+   * sender rank and size
+   */
+
+  /* get the size of our communicator and our position within it */
+  int rank, ranks;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &ranks);
+
+  /* compute number of communication rounds */
+  int num_rounds = 0;
+  int factor = 1;
+  while (factor < ranks) {
+    num_rounds++;
+    factor *= 2;
+  }
+
+  /* allocate space for send and destination rank arrays, size arrays, and MPI request and status objects
+   * to be a bit more efficient, we allocation one big section of memory and then adjust pointers for each
+   * of these data structures into that larger block of memory */
+  int dst = MPI_PROC_NULL;    /* rank this process will send to during a given round */
+  int src = MPI_PROC_NULL;    /* rank this process will receive from in a given round */
+  int send_bytes = 0;    /* number of bytes this process will send */
+  int recv_bytes = 0;    /* number of bytes this process will receive */
+  int recv_offset = 0;    /* array to hold offset into each of the receive buffers for the merge step */
+  int payload_sizes[2]; /* number of bytes in each payload */
+  int payload_offs[2];  /* offsets into each payload */
+  void* payload_bufs[2];  /* array of pointers to payload data to be merged */
+  MPI_Request req[2];  /* array of MPI_Requests for outstanding messages when exchanging number of bytes */
+  MPI_Request req2[2]; /* array of MPI_Requests for outstanding messages when exchanging data */
+  MPI_Status stat[2];  /* array of MPI_Status objects for number-of-byte messages */
+  MPI_Status stat2[2]; /* array of MPI_Status objects for data exchange messages */
+
+  void* tmp_data = NULL;
+  int tmp_data_size = 0;
+  if (send_nranks > 0) {
+    /* sort the input ranks, remember their original location to copy the data */
+    int* sort_list = (int*) malloc(2 * sizeof(int) * send_nranks);
+    if (sort_list == NULL) {
+      scr_abort(1, "Failed to allocate memory for sort list @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+    int send_byte_count = 0;
+    for (i=0; i < send_nranks; i++) {
+      sort_list[i*2+0] = send_ranks[i];
+      sort_list[i*2+1] = i;
+      send_byte_count += send_sizes[i];
+    }
+    qsort(sort_list, send_nranks, 2 * sizeof(int), &int_cmp_fn);
+
+    /* prepare data for sending */
+    tmp_data = malloc((sizeof(exv_packet_header) + sizeof(exv_elem_header)) * send_nranks + send_byte_count);
+    if (tmp_data == NULL) {
+      scr_abort(1, "Failed to allocate temporary send buffer @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+
+    int last_rank = MPI_PROC_NULL;
+    for (i=0; i < send_nranks; i++) {
+      /* get the rank this packet is headed to */
+      int current_rank = sort_list[i*2+0];
+      if (current_rank == last_rank && last_rank != MPI_PROC_NULL) {
+        scr_abort(1,"Destination rank %d specified multiple times @ %s:%d",
+          __FILE__, __LINE__
+        );
+      }
+      if (current_rank >= 0 && current_rank < ranks) {
+        int rank_index = sort_list[i*2+1];
+        int send_size  = send_sizes[rank_index];
+        void* send_ptr = send_ptrs[rank_index];
+
+        packet = (exv_packet_header*) (tmp_data + tmp_data_size);
+        tmp_data_size += sizeof(exv_packet_header);
+
+        elem = (exv_elem_header*) (tmp_data + tmp_data_size);
+        tmp_data_size += sizeof(exv_elem_header);
+
+        /* fill in our packet header */
+        int packet_payload = sizeof(exv_elem_header);
+        packet_payload += send_size;
+        packet->rank    = current_rank;
+        packet->msgs    = 1;
+        packet->bytes   = send_size;
+        packet->payload = packet_payload;
+
+        /* fill in out element header */
+        elem->rank = rank;
+        elem->size = send_size;
+
+        /* inline the message data */
+        if (send_size > 0) {
+          memcpy(tmp_data + tmp_data_size, send_ptr, send_size);
+          tmp_data_size += send_size;
+        }
+      } else if (current_rank != MPI_PROC_NULL) {
+        /* error, rank out of range */
+        scr_abort(1, "Invalid destination rank %d @ %s:%d",
+          current_rank, __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* free the sort array */
+    if (sort_list != NULL) {
+      free(sort_list);
+      sort_list = NULL;
+    }
+  }
+
+  /* now run through Bruck's index algorithm to exchange data */
+  factor = 1;
+  while (factor < ranks) {
+    /* allocate a buffer to pack our send data in, assume we need to send the full buffer to each destination */
+    void* tmp_send = NULL;
+    if (tmp_data_size > 0) {
+      tmp_send = malloc(tmp_data_size);
+      if (tmp_send == NULL) {
+        scr_abort(1, "Failed to allocate temporary pack buffer @ %s:%d",
+          __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* determine our source and destination ranks for this step and set our send buffer locations and send size */
+    dst = (rank + factor + ranks) % ranks;
+    src = (rank - factor + ranks) % ranks;
+
+    /* pack our send messages and count number of bytes in each */
+    send_bytes = 0;
+    int offset = 0;
+    while (offset < tmp_data_size) {
+      packet = (exv_packet_header*) (tmp_data + offset);
+      int current_rank = packet->rank;
+      int current_size = sizeof(exv_packet_header) + packet->payload;
+      int relative_rank = (current_rank - rank + ranks) % ranks;
+      int relative_id = (relative_rank / factor) % 2;
+      if (relative_id > 0) {
+        memcpy(tmp_send + send_bytes, tmp_data + offset, current_size);
+        send_bytes += current_size;
+      }
+      offset += current_size;
+    }
+
+    /* exchange number of bytes for this round */
+    MPI_Irecv(&recv_bytes, 1, MPI_INT, src, 0, comm, &req[0]);
+    MPI_Isend(&send_bytes, 1, MPI_INT, dst, 0, comm, &req[1]);
+
+    /* eagerly send our non-zero messages */
+    int req2_count = 0;
+    if (send_bytes > 0) {
+      MPI_Isend(tmp_send, send_bytes, MPI_BYTE, dst, 0, comm, &req2[req2_count]);
+      req2_count++;
+    }
+
+    /* wait for the number-of-bytes messages to complete */
+    MPI_Waitall(2, req, stat);
+
+    /* count total number of bytes we'll receive in this round */
+    int tmp_recv_size = recv_bytes;
+
+    /* allocate buffer to hold all of those bytes */
+    void* tmp_recv = NULL;
+    if (tmp_recv_size > 0) {
+      tmp_recv = (void*) malloc(tmp_recv_size);
+      if (tmp_recv == NULL) {
+        scr_abort(1, "Failed to allocate temporary receive buffer @ %s:%d",
+          __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* finally, recv each non-zero message, and wait on sends and receives of non-zero messages */
+    if (recv_bytes > 0) {
+      MPI_Irecv(tmp_recv, recv_bytes, MPI_BYTE, src, 0, comm, &req2[req2_count]);
+      req2_count++;
+    }
+    if (req2_count > 0) {
+      MPI_Waitall(req2_count, req2, stat2);
+    }
+
+    /* free the temporary send buffer */
+    if (tmp_send != NULL) {
+      free(tmp_send);
+      tmp_send = NULL;
+    }
+
+    /* allocate space to merge received data with our data */
+    void* new_data = malloc(tmp_data_size + tmp_recv_size);
+    if (new_data == NULL) {
+      scr_abort(1, "Failed to allocate merge buffer @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+    int new_data_size = 0;
+
+    /* initialize offsets for our current buffer and each of our receive buffers */
+    int tmp_offset  = 0;
+    recv_offset = 0;
+
+    /* merge received data with data we've yet to send */
+    int data_remaining = 1;
+    while (data_remaining) {
+      /* first, scan through and identify lowest rank among our buffer and receive buffers */
+      int reduce_rank  = -1;
+
+      /* first check our buffer */
+      int tmp_current_rank = -1;
+      while (tmp_offset < tmp_data_size && tmp_current_rank == -1) { 
+        packet = (exv_packet_header*) (tmp_data + tmp_offset);
+        int current_rank = packet->rank;
+        int relative_rank = (current_rank - rank + ranks) % ranks;
+        int relative_id = (relative_rank / factor) % 2;
+        if (relative_id == 0) {
+          /* we kept the data for this rank during this round, so consider this rank for merging */
+          tmp_current_rank = current_rank;
+        } else {
+          /* we sent this data for this rank to someone else during this step, so skip it */
+          tmp_offset += sizeof(exv_packet_header) + packet->payload;
+        }
+      }
+      if (tmp_current_rank != -1) {
+        reduce_rank = tmp_current_rank;
+      }
+
+      /* now check each of our receive buffers */
+      if (recv_offset < recv_bytes) {
+        packet = (exv_packet_header*) (tmp_recv + recv_offset);
+        int current_rank = packet->rank;
+        if (current_rank < reduce_rank || reduce_rank == -1) {
+          reduce_rank = current_rank;
+        }
+      }
+
+      /* if we found a rank, merge the data in the new_data buffer */
+      if (reduce_rank != -1) {
+        int num_msgs = 0;
+        int num_bytes = 0;
+        int payload_count = 0;
+
+        /* if the current destination rank of the temp buffer matches the reduce rank,
+         * get the count of the number of messages for the destination rank */
+        if (tmp_offset < tmp_data_size) { 
+          packet = (exv_packet_header*) (tmp_data + tmp_offset);
+          int current_rank = packet->rank;
+          if (current_rank == reduce_rank) {
+            num_msgs  += packet->msgs;
+            num_bytes += packet->bytes;
+            int payload = packet->payload;
+            payload_bufs[payload_count]  = (tmp_data + tmp_offset + sizeof(exv_packet_header));
+            payload_sizes[payload_count] = payload;
+            payload_offs[payload_count]  = 0;
+            payload_count++;
+            tmp_offset += sizeof(exv_packet_header) + payload;
+          }
+        }
+
+        /* get the count from each receive buffer if they match the destination rank */
+        if (recv_offset < recv_bytes) {
+          packet = (exv_packet_header*) (tmp_recv + recv_offset);
+          int current_rank = packet->rank;
+          if (current_rank == reduce_rank) {
+            num_msgs  += packet->msgs;
+            num_bytes += packet->bytes;
+            int payload = packet->payload;
+            payload_bufs[payload_count]  = tmp_recv + recv_offset + sizeof(exv_packet_header);
+            payload_sizes[payload_count] = payload;
+            payload_offs[payload_count]  = 0;
+            payload_count++;
+            recv_offset += sizeof(exv_packet_header) + payload;
+          }
+        }
+
+        /* prepare our packet header */
+        packet = (exv_packet_header*) (new_data + new_data_size);
+        packet->rank    = reduce_rank;
+        packet->msgs    = num_msgs;
+        packet->bytes   = num_bytes;
+
+        /* merge payloads into a single payload */
+        void* merge_buf = new_data + new_data_size + sizeof(exv_packet_header);
+        int merge_size = 0;
+        for (i = 0; i < payload_count; i++) {
+          memcpy(merge_buf + merge_size, payload_bufs[i], payload_sizes[i]);
+          merge_size += payload_sizes[i];
+        }
+
+        /* update based on the merged payload size */
+        packet->payload = merge_size;
+        new_data_size += sizeof(exv_packet_header) + merge_size;
+      } else {
+        /* found no rank on this scan, so we must be done */
+        data_remaining = 0;
+      }
+    }
+
+    /* we've merged our receive data, so free the receive buffer */
+    if (tmp_recv != NULL) {
+      free(tmp_recv);
+      tmp_recv = NULL;
+    }
+
+    /* free our current buffer and assign the pointer to the newly merged buffer */
+    if (tmp_data != NULL) {
+      free(tmp_data);
+      tmp_data = NULL;
+    }
+    tmp_data      = new_data;
+    tmp_data_size = new_data_size;
+    new_data      = NULL;
+    new_data_size = 0;
+
+    /* go on to the next phase of the exchange */
+    factor *= 2;
+  }
+
+  /* format received data according to interface */
+  *recv_nranks = 0;
+  *recv_ranks  = NULL;
+  *recv_sizes  = NULL;
+  *recv_ptrs   = NULL;
+  *recv_alloc  = NULL;
+  if (tmp_data_size > 0) {
+    /* read packet header and check that it arrived at correct rank */
+    packet = (exv_packet_header*) tmp_data;
+    int current_rank  = packet->rank;
+    if (current_rank != rank) {
+      /* error, received data for a different rank (shouldn't happen) */
+      scr_abort(1, "Received data for rank %d @ %s:%d",
+        current_rank, __FILE__, __LINE__
+      );
+    }
+
+    /* count the number of elements we received */
+    int msgs  = packet->msgs;
+    int bytes = packet->bytes;
+
+    /* compute number of bytes to allocate to receive all data */
+    void* ret_buf = NULL;
+    int ret_buf_size = (2 * sizeof(int) + sizeof(void*)) * msgs + bytes;
+    if (ret_buf_size > 0) {
+      ret_buf = (void*) malloc(ret_buf_size);
+      if (ret_buf == NULL) {
+        scr_abort(1, "Failed to allocate memory for return data @ %s:%d",
+          __FILE__, __LINE__
+        );
+      }
+    }
+
+    int*   rank_list = NULL;
+    int*   size_list = NULL;
+    void** data_list = NULL;
+    void*  data_set  = NULL;
+
+    void* ret_buf_tmp = ret_buf;
+    if (msgs > 0) {
+      rank_list = ret_buf_tmp;
+      ret_buf_tmp += sizeof(int) * msgs;
+
+      size_list = ret_buf_tmp;
+      ret_buf_tmp += sizeof(int) * msgs;
+
+      data_list = ret_buf_tmp;
+      ret_buf_tmp += sizeof(void*) * msgs;
+    }
+    if (bytes > 0) {
+      data_set = ret_buf_tmp;
+      ret_buf_tmp += bytes;
+    }
+
+    int index = 0;
+    int data_set_offset = 0;
+    sparse_unpack(tmp_data, tmp_data_size,
+                  &index, rank_list, size_list, data_list,
+                  data_set, &data_set_offset,
+                  rank, comm
+    );
+
+    *recv_nranks = msgs;
+    *recv_ranks  = rank_list;
+    *recv_sizes  = size_list;
+    *recv_ptrs   = data_list;
+    *recv_alloc  = ret_buf;
+  }
+
+  /* free off the result buffer */
+  if (tmp_data != NULL) {
+    free(tmp_data);
+    tmp_data = NULL;
+  }
+
+  return rc;
+}
+
 /*
 =========================================
 Hash MPI transfer functions
@@ -324,10 +814,10 @@ Hash MPI transfer functions
 */
 
 /* packs and send the given hash to the specified rank */
-static int scr_hash_send(struct scr_hash* hash, int rank, MPI_Comm comm)
+static int scr_hash_send(const scr_hash* hash, int rank, MPI_Comm comm)
 {
   /* first get the size of the hash */
-  size_t size = scr_hash_get_pack_size(hash);
+  size_t size = scr_hash_pack_size(hash);
   
   /* tell rank how big the pack size is */
   MPI_Send(&size, sizeof(size), MPI_BYTE, rank, 0, comm);
@@ -353,10 +843,12 @@ static int scr_hash_send(struct scr_hash* hash, int rank, MPI_Comm comm)
 }
 
 /* receives a hash from the specified rank */
-static struct scr_hash* scr_hash_recv(int rank, MPI_Comm comm)
+static int scr_hash_recv(scr_hash* hash, int rank, MPI_Comm comm)
 {
-  /* create a new empty hash */
-  struct scr_hash* hash = scr_hash_new();
+  /* check that we got a hash to receive into */
+  if (hash == NULL) {
+    return SCR_FAILURE;
+  }
 
   /* get the size of the incoming hash */
   MPI_Status status;
@@ -380,15 +872,93 @@ static struct scr_hash* scr_hash_recv(int rank, MPI_Comm comm)
     }
   }
 
-  return hash;
+  return SCR_SUCCESS;
+}
+
+static int scr_hash_sendrecv(const scr_hash* hash_send, int rank_send,
+                                   scr_hash* hash_recv, int rank_recv,
+                             MPI_Comm comm)
+{
+  int rc = SCR_SUCCESS;
+
+  int num_req;
+  MPI_Request request[2];
+  MPI_Status  status[2];
+
+  /* determine whether we have a rank to send to and a rank to receive from */
+  int have_outgoing = 0;
+  int have_incoming = 0;
+  if (rank_send != MPI_PROC_NULL) {
+    have_outgoing = 1;
+  }
+  if (rank_recv != MPI_PROC_NULL) {
+    have_incoming = 1;
+  }
+
+  /* exchange hash pack sizes in order to allocate buffers */
+  num_req = 0;
+  size_t size_send = 0;
+  size_t size_recv = 0;
+  if (have_incoming) {
+    MPI_Irecv(&size_recv, sizeof(size_recv), MPI_BYTE, rank_recv, 0, comm, &request[num_req]);
+    num_req++;
+  }
+  if (have_outgoing) {
+    size_send = scr_hash_pack_size(hash_send);
+    MPI_Isend(&size_send, sizeof(size_send), MPI_BYTE, rank_send, 0, comm, &request[num_req]);
+    num_req++;
+  }
+  if (num_req > 0) {
+    MPI_Waitall(num_req, request, status);
+  }
+
+  /* allocate space to pack our hash and space to receive the incoming hash */
+  num_req = 0;
+  char* buf_send = NULL;
+  char* buf_recv = NULL;
+  if (size_recv > 0) {
+    /* allocate space to receive a packed hash, and receive it */
+    buf_recv = (char*) malloc(size_recv);
+    /* TODO: check for errors */
+    MPI_Irecv(buf_recv, size_recv, MPI_BYTE, rank_recv, 0, comm, &request[num_req]);
+    num_req++;
+  }
+  if (size_send > 0) {
+    /* allocate space, pack our hash, and send it */
+    buf_send = (char*) malloc(size_send);
+    /* TODO: check for errors */
+    scr_hash_pack(buf_send, hash_send);
+    MPI_Isend(buf_send, size_send, MPI_BYTE, rank_send, 0, comm, &request[num_req]);
+    num_req++;
+  }
+  if (num_req > 0) {
+    MPI_Waitall(num_req, request, status);
+  }
+
+  /* unpack the hash into the hash_recv provided by the caller */
+  if (size_recv > 0) {
+    scr_hash_unpack(buf_recv, hash_recv);
+  }
+
+  /* free the pack buffers */
+  if (buf_recv != NULL) {
+    free(buf_recv);
+    buf_recv = NULL;
+  }
+  if (buf_send != NULL) {
+    free(buf_send);
+    buf_send = NULL;
+  }
+
+  return rc;
 }
 
 /* broadcasts a hash from a root to all tasks in the communicator */
-static int scr_hash_bcast(struct scr_hash* hash, int root, MPI_Comm comm)
+static int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
 {
   if (scr_my_rank_world == root) {
     /* first get the size of the hash */
-    size_t size = scr_hash_get_pack_size(hash);
+    size_t size = scr_hash_pack_size(hash);
   
     /* broadcast the size */
     MPI_Bcast(&size, sizeof(size), MPI_BYTE, root, comm);
@@ -438,82 +1008,142 @@ static int scr_hash_bcast(struct scr_hash* hash, int root, MPI_Comm comm)
   return SCR_SUCCESS;
 }
 
-static int scr_hash_sendrecv(const struct scr_hash* hash_send, int rank_send,
-                                   struct scr_hash* hash_recv, int rank_recv,
-                             MPI_Comm comm)
+/* hash_send specifies destinations as:
+ * <rank_X>
+ *   <hash_to_send_to_rank_X>
+ * <rank_Y>
+ *   <hash_to_send_to_rank_Y>
+ *
+ * hash_recv returns hashes sent from remote ranks as:
+ * <rank_A>
+ *   <hash_received_from_rank_A>
+ * <rank_B>
+ *   <hash_received_from_rank_B> */
+static int scr_hash_exchange(const scr_hash* hash_send, scr_hash* hash_recv, MPI_Comm comm)
 {
-  int rc = SCR_SUCCESS;
+  int index;
+  scr_hash_elem* elem = NULL;
 
-  int num_req;
-  MPI_Request request[2];
-  MPI_Status  status[2];
+  /* get the number of ranks we'll be sending to */
+  int send_count = scr_hash_size(hash_send);
 
-  /* determine whether we have a rank to send to and a rank to receive from */
-  int have_outgoing = 0;
-  int have_incoming = 0;
-  if (rank_send != MPI_PROC_NULL) {
-    have_outgoing = 1;
-  }
-  if (rank_recv != MPI_PROC_NULL) {
-    have_incoming = 1;
-  }
+  /* allocate space for our list of ranks, sizes, and send buffer pointers */
+  int* send_ranks  = NULL;
+  int* send_sizes  = NULL;
+  void** send_bufs = NULL;
+  void* scratch = NULL;
+  int scratch_size = (2 * sizeof(int) + sizeof(void*)) * send_count;
+  if (scratch_size > 0) {
+    /* attempt to allocate some memory for our data strucutres */
+    scratch = (void*) malloc(scratch_size);
+    if (scratch == NULL) {
+      scr_abort(-1, "Failed to allocate list of ranks, sizes, or buffers @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+    void* tmp_scratch = scratch;
 
-  /* exchange hash pack sizes in order to allocate buffers */
-  num_req = 0;
-  size_t size_send = 0;
-  size_t size_recv = 0;
-  if (have_incoming) {
-    MPI_Irecv(&size_recv, sizeof(size_recv), MPI_BYTE, rank_recv, 0, comm, &request[num_req]);
-    num_req++;
-  }
-  if (have_outgoing) {
-    size_send = scr_hash_get_pack_size(hash_send);
-    MPI_Isend(&size_send, sizeof(size_send), MPI_BYTE, rank_send, 0, comm, &request[num_req]);
-    num_req++;
-  }
-  if (num_req > 0) {
-    MPI_Waitall(num_req, request, status);
-  }
+    send_ranks = (int*) tmp_scratch;
+    tmp_scratch += sizeof(int) * send_count;
 
-  /* allocate space to pack our hash and space to receive the incoming hash */
-  num_req = 0;
-  char* buf_send = NULL;
-  char* buf_recv = NULL;
-  if (size_recv > 0) {
-    /* allocate space to receive a packed hash, and receive it */
-    buf_recv = (char*) malloc(size_recv);
-    /* TODO: check for errors */
-    MPI_Irecv(buf_recv, size_recv, MPI_BYTE, rank_recv, 0, comm, &request[num_req]);
-    num_req++;
+    send_sizes = (int*) tmp_scratch;
+    tmp_scratch += sizeof(int) * send_count;
+
+    send_bufs = (void*) tmp_scratch;
+    tmp_scratch += sizeof(void*) * send_count;
   }
-  if (size_send > 0) {
-    /* allocate space, pack our hash, and send it */
-    buf_send = (char*) malloc(size_send);
-    /* TODO: check for errors */
-    scr_hash_pack(buf_send, hash_send);
-    MPI_Isend(buf_send, size_send, MPI_BYTE, rank_send, 0, comm, &request[num_req]);
-    num_req++;
-  }
-  if (num_req > 0) {
-    MPI_Waitall(num_req, request, status);
+    
+  /* fill in the list of ranks and sizes, and count the total number of bytes we'll send */
+  index = 0;
+  size_t pack_count = 0;
+  for (elem = scr_hash_elem_first(hash_send);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* record the rank id */
+    int send_rank = scr_hash_elem_key_int(elem);
+    send_ranks[index] = send_rank;
+
+    /* record the size of the packed hash, and add to total send size */
+    scr_hash* hash = scr_hash_elem_hash(elem);
+    int pack_size = scr_hash_pack_size(hash);
+    send_sizes[index] = pack_size;
+    pack_count += pack_size;
+
+    index++;
   }
 
-  /* unpack the hash into the hash_recv provided by the caller */
-  if (size_recv > 0) {
-    scr_hash_unpack(buf_recv, hash_recv);
+  /* allocate space to pack all of the outgoing hashes */
+  void* send_buf = NULL;
+  if (pack_count > 0) {
+    send_buf = (void*) malloc(pack_count);
+    if (send_buf == NULL) {
+      scr_abort(-1, "Failed to allocate buffer to pack outgoing hashes @ %s:%d",
+              __FILE__, __LINE__
+      );
+    }
   }
 
-  /* free the pack buffers */
-  if (buf_recv != NULL) {
-    free(buf_recv);
-    buf_recv = NULL;
-  }
-  if (buf_send != NULL) {
-    free(buf_send);
-    buf_send = NULL;
+  /* pack each of our outgoing hashes */
+  index = 0;
+  size_t pack_offset = 0;
+  for (elem = scr_hash_elem_first(hash_send);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* record the location of the buffer to pack the current hash */
+    void* buf = send_buf + pack_offset;
+    send_bufs[index] = buf;
+
+    /* pack the hash into our buffer */
+    scr_hash* hash = scr_hash_elem_hash(elem);
+    int pack_size = scr_hash_pack(buf, hash);
+    pack_offset += pack_size;
+
+    index++;
   }
 
-  return rc;
+  /* exchange messages using a sparse_exchange call */
+  int  recv_count = 0;
+  int* recv_ranks = NULL;
+  int* recv_sizes = NULL;
+  void** recv_bufs = NULL;
+  void* recv_malloc = NULL;
+  sparse_exchangev_malloc_brucks(
+    send_count,  send_ranks,  send_sizes,  send_bufs,
+    &recv_count, &recv_ranks, &recv_sizes, &recv_bufs, &recv_malloc,
+    comm
+  );
+
+  /* unpack our received messages and merge into our receive hash */
+  for(index = 0; index < recv_count; index++) {
+    /* unpack hash into a temporary hash */
+    void* buf = recv_bufs[index];
+    scr_hash* hash = scr_hash_new();
+    scr_hash_unpack(buf, hash);
+
+    /* store this hash in our recv hash */
+    int rank = recv_ranks[index];
+    scr_hash_setf(hash_recv, hash, "%d", rank);
+  }
+
+  /* free memory allocated in call to sparse_exchange */
+  if (recv_malloc != NULL) {
+    free(recv_malloc);
+    recv_malloc = NULL;
+  }
+
+  /* free off our internal data structures */
+  if (send_buf != NULL) {
+    free(send_buf);
+    send_buf = NULL;
+  }
+  if (scratch != NULL) {
+    free(scratch);
+    scratch = NULL;
+  }
+
+  return SCR_SUCCESS;
 }
 
 /*
@@ -523,7 +1153,7 @@ Configuration file
 */
 
 /* read parameters from config file and fill in hash (parallel) */
-int scr_config_read(const char* file, struct scr_hash* hash)
+int scr_config_read(const char* file, scr_hash* hash)
 {
   int rc = SCR_FAILURE;
 
@@ -624,7 +1254,7 @@ static struct scr_ckptdesc* scr_ckptdesc_get(int checkpoint_id, int nckpts, stru
   return c;
 }
 
-static int scr_ckptdesc_store_to_hash(const struct scr_ckptdesc* c, struct scr_hash* hash)
+static int scr_ckptdesc_store_to_hash(const struct scr_ckptdesc* c, scr_hash* hash)
 {
   /* check that we got a valid pointer to a checkpoint descriptor and a hash */
   if (c == NULL || hash == NULL) {
@@ -679,7 +1309,7 @@ static int scr_ckptdesc_store_to_hash(const struct scr_ckptdesc* c, struct scr_h
   return SCR_SUCCESS;
 }
 
-static int scr_ckptdesc_create_from_hash(struct scr_ckptdesc* c, int index, const struct scr_hash* hash)
+static int scr_ckptdesc_create_from_hash(struct scr_ckptdesc* c, int index, const scr_hash* hash)
 {
   int rc = SCR_SUCCESS;
 
@@ -892,7 +1522,7 @@ static char* scr_ckptdesc_val_from_filemap(scr_filemap* map, int ckpt, int rank,
   }
 
   /* create an empty hash to store the checkpoint descriptor hash from the filemap */
-  struct scr_hash* desc = scr_hash_new();
+  scr_hash* desc = scr_hash_new();
   if (desc == NULL) {
     return NULL;
   }
@@ -940,7 +1570,7 @@ static int scr_ckptdesc_create_from_filemap(scr_filemap* map, int ckpt, int rank
   }
 
   /* create an empty hash to store the checkpoint descriptor hash from the filemap */
-  struct scr_hash* desc = scr_hash_new();
+  scr_hash* desc = scr_hash_new();
   if (desc == NULL) {
     return SCR_FAILURE;
   }
@@ -967,7 +1597,7 @@ static int scr_ckptdesc_create_list()
 {
   /* set the number of checkpoint descriptors */
   scr_nckptdescs = 0;
-  struct scr_hash* tmp = scr_hash_get(scr_ckptdesc_hash, SCR_CONFIG_KEY_CKPTDESC);
+  scr_hash* tmp = scr_hash_get(scr_ckptdesc_hash, SCR_CONFIG_KEY_CKPTDESC);
   if (tmp != NULL) {
     scr_nckptdescs = scr_hash_size(tmp);
   }
@@ -984,7 +1614,7 @@ static int scr_ckptdesc_create_list()
   int i;
   for (i=0; i < scr_nckptdescs; i++) {
     /* get the info hash for this checkpoint */
-    struct scr_hash* ckpt_hash = scr_hash_get_kv_int(scr_ckptdesc_hash, SCR_CONFIG_KEY_CKPTDESC, i);
+    scr_hash* ckpt_hash = scr_hash_get_kv_int(scr_ckptdesc_hash, SCR_CONFIG_KEY_CKPTDESC, i);
     if (scr_ckptdesc_create_from_hash(&scr_ckptdescs[i], i, ckpt_hash) != SCR_SUCCESS) {
       all_valid = 0;
     }
@@ -1028,24 +1658,16 @@ Metadata functions
 /* marks file as incomplete by deleting corresponding .scr meta file */
 static int scr_incomplete(const char* file)
 {
-  /* create the .scr extension for file */
-  char file_scr[SCR_MAX_FILENAME];
-  scr_meta_name(file_scr, file);
-
-  /* delete the .scr file ==> the current file is not complete */
-  unlink(file_scr);
-
-  return SCR_SUCCESS;
+  /* delete the meta data file */
+  int rc = scr_meta_unlink(file);
+  return rc;
 }
 
 /* creates corresponding .scr meta file for file to record completion info */
-static int scr_complete(const char* file, const struct scr_meta* meta)
+static int scr_complete(const char* file, const scr_meta* meta)
 {
-  int rc = SCR_SUCCESS;
-
-  /* just need to write out the meta data */
-  scr_meta_write(file, meta);
-
+  /* write out the meta data */
+  int rc = scr_meta_write(file, meta);
   return rc;
 }
 
@@ -1082,14 +1704,14 @@ Checkpoint functions
 static int scr_cachedesc_size(const char* base)
 {
   /* iterate over each of our cache descriptors */
-  struct scr_hash* index = scr_hash_get(scr_cachedesc_hash, SCR_CONFIG_KEY_CACHEDESC);
-  struct scr_hash_elem* elem;
+  scr_hash* index = scr_hash_get(scr_cachedesc_hash, SCR_CONFIG_KEY_CACHEDESC);
+  scr_hash_elem* elem;
   for (elem = scr_hash_elem_first(index);
        elem != NULL;
        elem = scr_hash_elem_next(elem))
   {
     /* get a reference to the hash for the current descriptor */
-    struct scr_hash* h = scr_hash_elem_hash(elem);
+    scr_hash* h = scr_hash_elem_hash(elem);
 
     /* get the BASE value for this descriptor */
     char* b = scr_hash_elem_get_first_val(h, SCR_CONFIG_KEY_BASE);
@@ -1180,7 +1802,7 @@ static int scr_flush_checkpoint_remove(int checkpoint_id)
   /* all master tasks write this file to their node */
   if (scr_my_rank_local == 0) {
     /* read the flush file into hash */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
     scr_hash_read(scr_flush_file, hash);
 
     /* delete this checkpoint id from the flush file */
@@ -1204,14 +1826,14 @@ static int scr_checkpoint_delete(scr_filemap* map, int checkpoint_id)
   }
 
   /* for each file of each rank we have for this checkpoint, delete the file */
-  struct scr_hash_elem* rank_elem;
+  scr_hash_elem* rank_elem;
   for (rank_elem = scr_filemap_first_rank_by_checkpoint(map, checkpoint_id);
        rank_elem != NULL;
        rank_elem = scr_hash_elem_next(rank_elem))
   {
     int rank = scr_hash_elem_key_int(rank_elem);
 
-    struct scr_hash_elem* file_elem;
+    scr_hash_elem* file_elem;
     for (file_elem = scr_filemap_first_file(map, checkpoint_id, rank);
          file_elem != NULL;
          file_elem = scr_hash_elem_next(file_elem))
@@ -1238,12 +1860,12 @@ static int scr_checkpoint_delete(scr_filemap* map, int checkpoint_id)
   }
 
   /* remove the cache directory for this checkpoint */
-  char* ckpt_path = scr_ckptdesc_dir_from_filemap(map, checkpoint_id, scr_my_rank_world);
-  if (ckpt_path != NULL) {
+  char* ckpt_dir = scr_ckptdesc_dir_from_filemap(map, checkpoint_id, scr_my_rank_world);
+  if (ckpt_dir != NULL) {
     /* remove the checkpoint directory from cache */
     /* get the name of the checkpoint directory for the given id */
-    scr_checkpoint_dir_delete(ckpt_path, checkpoint_id);
-    free(ckpt_path);
+    scr_checkpoint_dir_delete(ckpt_dir, checkpoint_id);
+    free(ckpt_dir);
   } else {
     /* TODO: abort! */
   }
@@ -1296,67 +1918,118 @@ static int scr_unlink_all(scr_filemap* map)
 }
 
 /* checks whether specifed file exists, is readable, and is complete */
-static int scr_bool_have_file(const char* file, int ckpt, int rank, int ranks)
+static int scr_bool_have_file(scr_filemap* map, int ckpt, int rank, const char* file, int ranks)
 {
   /* if no filename is given return false */
   if (file == NULL || strcmp(file,"") == 0) {
-    scr_dbg(2, "scr_bool_have_file: File name is null or the empty string");
+    scr_dbg(2, "File name is null or the empty string @ %s:%d",
+            __FILE__, __LINE__
+    );
     return 0;
   }
 
   /* check that we can read the file */
   if (access(file, R_OK) < 0) {
-    scr_dbg(2, "scr_bool_have_file: Do not have read access to file: %s", file);
+    scr_dbg(2, "Do not have read access to file: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
     return 0;
   }
 
+  /* allocate object to read meta data into */
+  scr_meta* meta = scr_meta_new();
+
   /* check that we can read meta file for the file */
-  struct scr_meta meta;
-  if (scr_meta_read(file, &meta) != SCR_SUCCESS) {
-    scr_dbg(2, "scr_bool_have_file: Failed to read meta data file for file: %s", file);
+  if (scr_meta_read(file, meta) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read meta data file for file: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
     return 0;
   }
 
   /* check that the file is complete */
-  if (!meta.complete) {
-    scr_dbg(2, "scr_bool_have_file: File is marked as incomplete: %s", file);
+  if (scr_meta_is_complete(meta) != SCR_SUCCESS) {
+    scr_dbg(2, "File is marked as incomplete: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
     return 0;
   }
 
   /* check that the file really belongs to the checkpoint id we think it does */
-  if (meta.checkpoint_id != ckpt) {
-    scr_dbg(2, "scr_bool_have_file: File's checkpoint ID (%d) does not match id in meta data file (%d) for %s",
-            ckpt, meta.checkpoint_id, file
+  int meta_ckpt = -1;
+  if (scr_meta_get_checkpoint(meta, &meta_ckpt) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read checkpoint field in meta data: %s @ %s:%d",
+            file, __FILE__, __LINE__
     );
+    scr_meta_delete(meta);
+    return 0;
+  }
+  if (ckpt != meta_ckpt) {
+    scr_dbg(2, "File's checkpoint ID (%d) does not match id in meta data file (%d) for %s @ %s:%d",
+            ckpt, meta_ckpt, file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
     return 0;
   }
 
   /* check that the file really belongs to the rank we think it does */
-  if (meta.rank != rank) {
-    scr_dbg(2, "scr_bool_have_file: File's rank (%d) does not match rank in meta data file (%d) for %s",
-            rank, meta.rank, file
+  int meta_rank = -1;
+  if (scr_meta_get_rank(meta, &meta_rank) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read rank field in meta data: %s @ %s:%d",
+            file, __FILE__, __LINE__
     );
+    scr_meta_delete(meta);
+    return 0;
+  }
+  if (rank != meta_rank) {
+    scr_dbg(2, "File's rank (%d) does not match rank in meta data file (%d) for %s @ %s:%d",
+            rank, meta_rank, file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
     return 0;
   }
 
-  /* check that the file meta data has the right number of ranks */
-  if (meta.ranks != ranks) {
-    scr_dbg(2, "scr_bool_have_file: File's number of ranks (%d) does not match number of ranks in meta data file (%d) for %s",
-            ranks, meta.ranks, file
+  /* check that the file really belongs to the rank we think it does */
+  int meta_ranks = -1;
+  if (scr_meta_get_ranks(meta, &meta_ranks) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read ranks field in meta data: %s @ %s:%d",
+            file, __FILE__, __LINE__
     );
+    scr_meta_delete(meta);
+    return 0;
+  }
+  if (ranks != meta_ranks) {
+    scr_dbg(2, "File's ranks (%d) does not match ranks in meta data file (%d) for %s @ %s:%d",
+            ranks, meta_ranks, file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
     return 0;
   }
 
   /* check that the file size matches (use strtol while reading data) */
   unsigned long size = scr_filesize(file);
-  if (meta.filesize != size) {
-    scr_dbg(2, "scr_bool_have_file: Filesize is incorrect, currently %lu, expected %lu for %s",
-            size, meta.filesize, file
+  unsigned long meta_size = 0;
+  if (scr_meta_get_filesize(meta, &meta_size) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read filesize field in meta data: %s @ %s:%d",
+            file, __FILE__, __LINE__
     );
+    scr_meta_delete(meta);
+    return 0;
+  }
+  if (size != meta_size) {
+    scr_dbg(2, "Filesize is incorrect, currently %lu, expected %lu for %s @ %s:%d",
+            size, meta_size, file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
     return 0;
   }
 
   /* TODO: check that crc32 match if set (this would be expensive) */
+
+  /* free meta data object */
+  scr_meta_delete(meta);
 
   /* if we made it here, assume the file is good */
   return 1;
@@ -1379,13 +2052,13 @@ static int scr_bool_have_files(scr_filemap* map, int ckpt, int rank)
 
   /* check the integrity of each of the files */
   int missing_a_file = 0;
-  struct scr_hash_elem* file_elem;
+  scr_hash_elem* file_elem;
   for (file_elem = scr_filemap_first_file(map, ckpt, rank);
        file_elem != NULL;
        file_elem = scr_hash_elem_next(file_elem))
   {
     char* file = scr_hash_elem_key(file_elem);
-    if (!scr_bool_have_file(file, ckpt, rank, scr_ranks_world)) {
+    if (!scr_bool_have_file(map, ckpt, rank, file, scr_ranks_world)) {
       missing_a_file = 1;
     }
   }
@@ -1404,14 +2077,14 @@ static int scr_clean_files(scr_filemap* map)
   scr_filemap* keep_map = scr_filemap_new();
 
   /* scan each file for each rank of each checkpoint */
-  struct scr_hash_elem* ckpt_elem;
+  scr_hash_elem* ckpt_elem;
   for (ckpt_elem = scr_filemap_first_checkpoint(map);
        ckpt_elem != NULL;
        ckpt_elem = scr_hash_elem_next(ckpt_elem))
   {
     int ckpt = scr_hash_elem_key_int(ckpt_elem);
 
-    struct scr_hash_elem* rank_elem;
+    scr_hash_elem* rank_elem;
     for (rank_elem = scr_filemap_first_rank_by_checkpoint(map, ckpt);
          rank_elem != NULL;
          rank_elem = scr_hash_elem_next(rank_elem))
@@ -1423,7 +2096,7 @@ static int scr_clean_files(scr_filemap* map)
       int missing_file = 0;
 
       /* first time through the file list, check that we have each file */
-      struct scr_hash_elem* file_elem = NULL;
+      scr_hash_elem* file_elem = NULL;
       for (file_elem = scr_filemap_first_file(map, ckpt, rank);
            file_elem != NULL;
            file_elem = scr_hash_elem_next(file_elem))
@@ -1432,7 +2105,7 @@ static int scr_clean_files(scr_filemap* map)
         char* file = scr_hash_elem_key(file_elem);
 
         /* check whether we have it */
-        if (!scr_bool_have_file(file, ckpt, rank, scr_ranks_world)) {
+        if (!scr_bool_have_file(map, ckpt, rank, file, scr_ranks_world)) {
             missing_file = 1;
             scr_dbg(1, "File is unreadable or incomplete: CheckpointID %d, Rank %d, File: %s",
                     ckpt, rank, file
@@ -1441,7 +2114,7 @@ static int scr_clean_files(scr_filemap* map)
       }
 
       /* add checkpoint descriptor to keep map, if one is set */
-      struct scr_hash* desc = scr_hash_new();
+      scr_hash* desc = scr_hash_new();
       if (scr_filemap_get_desc(map, ckpt, rank, desc) == SCR_SUCCESS) {
         scr_filemap_set_desc(keep_map, ckpt, rank, desc);
       }
@@ -1504,13 +2177,13 @@ static int scr_check_files(scr_filemap* map, int checkpoint_id)
 {
   /* for each file of each rank for specified checkpoint id */
   int failed_read = 0;
-  struct scr_hash_elem* rank_elem;
+  scr_hash_elem* rank_elem;
   for (rank_elem = scr_filemap_first_rank_by_checkpoint(map, checkpoint_id);
        rank_elem != NULL;
        rank_elem = scr_hash_elem_next(rank_elem))
   {
     int rank = scr_hash_elem_key_int(rank_elem);
-    struct scr_hash_elem* file_elem;
+    scr_hash_elem* file_elem;
     for (file_elem = scr_filemap_first_file(map, checkpoint_id, rank);
          file_elem != NULL;
          file_elem = scr_hash_elem_next(file_elem))
@@ -1522,16 +2195,16 @@ static int scr_check_files(scr_filemap* map, int checkpoint_id)
       }
 
       /* check that we can read meta file for the file */
-      struct scr_meta meta;
-      if (scr_meta_read(file, &meta) != SCR_SUCCESS) {
+      scr_meta* meta = scr_meta_new();
+      if (scr_meta_read(file, meta) != SCR_SUCCESS) {
         failed_read = 1;
       } else {
-        /* TODO: check that filesizes match (use strtol while reading data) */
         /* check that the file is complete */
-        if (!meta.complete) {
+        if (scr_meta_is_complete(meta) != SCR_SUCCESS) {
           failed_read = 1;
         }
       }
+      scr_meta_delete(meta);
     }
   }
 
@@ -1675,9 +2348,10 @@ static int scr_swap_files(int swap_type,
   }
 
   /* read in the metadata for our file, we don't send yet because we may update the CRC value */
-  struct scr_meta meta_send;
+  scr_meta* meta_send = NULL;
   if (have_outgoing) {
-    scr_meta_read(file_send, &meta_send);
+    meta_send = scr_meta_new();
+    scr_meta_read(file_send, meta_send);
   }
 
   /* initialize crc values */
@@ -1764,10 +2438,10 @@ static int scr_swap_files(int swap_type,
 
     /* set crc field on our file if it hasn't been set already */
     if (scr_crc_on_copy && have_outgoing) {
-      if (!meta_send.crc32_computed) {
-        meta_send.crc32_computed = 1;
-        meta_send.crc32          = crc32_send;
-        scr_complete(file_send, &meta_send);
+      uLong meta_send_crc;
+      if (scr_meta_get_crc32(meta_send, &meta_send_crc) != SCR_SUCCESS) {
+        scr_meta_set_crc32(meta_send, crc32_send);
+        scr_complete(file_send, meta_send);
       } else {
         /* TODO: we could check that the crc on the sent file matches and take some action if not */
       }
@@ -1883,10 +2557,10 @@ static int scr_swap_files(int swap_type,
     }
 
     if (scr_crc_on_copy && have_outgoing) {
-      if (!meta_send.crc32_computed) {
+      uLong meta_send_crc;
+      if (scr_meta_get_crc32(meta_send, &meta_send_crc) != SCR_SUCCESS) {
         /* we transfer this meta data across below, so may as well update these fields so we can use them */
-        meta_send.crc32_computed = 1;
-        meta_send.crc32          = crc32_send;
+        scr_meta_set_crc32(meta_send, crc32_send);
         /* do not complete file send, we just deleted it above */
       } else {
         /* TODO: we could check that the crc on the sent file matches and take some action if not */
@@ -1908,37 +2582,41 @@ static int scr_swap_files(int swap_type,
   }
 
   /* exchange meta file info with partners */
-  struct scr_meta meta_recv;
-  int num_req = 0;
-  if (have_incoming) {
-    MPI_Irecv((void*) &meta_recv, sizeof(struct scr_meta), MPI_BYTE, rank_recv, 0, comm, &request[num_req]);
-    num_req++;
-  }
+  scr_meta* meta_recv = scr_meta_new();
+  scr_hash_sendrecv(meta_send, rank_send, meta_recv, rank_recv, comm);
+
+  /* delete our send meta data object */
   if (have_outgoing) {
-    MPI_Isend((void*) &meta_send, sizeof(struct scr_meta), MPI_BYTE, rank_send, 0, comm, &request[num_req]);
-    num_req++;
-  }
-  if (num_req > 0) {
-    MPI_Waitall(num_req, request, status);
+    scr_meta_delete(meta_send);
   }
 
   /* mark received file as complete */
   if (have_incoming) {
     /* check that our written file is the correct size */
     unsigned long filesize_wrote = scr_filesize(file_recv);
-    if (filesize_wrote < meta_recv.filesize) {
-      meta_recv.complete = 0;
+    if (scr_meta_check_filesize(meta_recv, filesize_wrote) != SCR_SUCCESS) {
+      scr_meta_set_complete(meta_recv, 0);
       rc = SCR_FAILURE;
     }
 
     /* check that there was no corruption in receiving the file */
-    if (scr_crc_on_copy && meta_recv.crc32_computed && crc32_recv != meta_recv.crc32) {
-      meta_recv.complete = 0;
-      rc = SCR_FAILURE;
+    if (scr_crc_on_copy) {
+      /* if we computed crc during the copy, and crc is set in the received meta data
+       * check that our computed value matches */
+      uLong crc32_recv_meta;
+      if (scr_meta_get_crc32(meta_recv, &crc32_recv_meta) == SCR_SUCCESS) {
+        if (crc32_recv != crc32_recv_meta) {
+          scr_meta_set_complete(meta_recv, 0);
+          rc = SCR_FAILURE;
+        }
+      }
     }
 
-    scr_complete(file_recv, &meta_recv);
+    scr_complete(file_recv, meta_recv);
   }
+
+  /* delete our received meta data */
+  scr_meta_delete(meta_recv);
 
   return rc;
 }
@@ -1966,8 +2644,8 @@ static int scr_copy_partner(scr_filemap* map, const struct scr_ckptdesc* c, int 
   scr_filemap_set_tag(map, checkpoint_id, c->lhs_rank_world, SCR_FILEMAP_KEY_PARTNER, c->lhs_hostname);
 
   /* record partner's checkpoint descriptor hash */
-  struct scr_hash* lhs_desc_hash = scr_hash_new();
-  struct scr_hash* my_desc_hash  = scr_hash_new();
+  scr_hash* lhs_desc_hash = scr_hash_new();
+  scr_hash* my_desc_hash  = scr_hash_new();
   scr_ckptdesc_store_to_hash(c, my_desc_hash);
   scr_hash_sendrecv(my_desc_hash, c->rhs_rank, lhs_desc_hash, c->lhs_rank, c->comm);
   scr_filemap_set_desc(map, checkpoint_id, c->lhs_rank_world, lhs_desc_hash);
@@ -1978,8 +2656,8 @@ static int scr_copy_partner(scr_filemap* map, const struct scr_ckptdesc* c, int 
   scr_filemap_write(scr_map_file, map);
 
   /* define directory to receive partner file in */
-  char ckpt_path[SCR_MAX_FILENAME];
-  scr_checkpoint_dir(c, checkpoint_id, ckpt_path);
+  char ckpt_dir[SCR_MAX_FILENAME];
+  scr_checkpoint_dir(c, checkpoint_id, ckpt_dir);
 
   /* for each potential file, step through a call to swap */
   while (send_num > 0 || recv_num > 0) {
@@ -2004,7 +2682,7 @@ static int scr_copy_partner(scr_filemap* map, const struct scr_ckptdesc* c, int 
 
     /* exhange file names with partners */
     char file_partner[SCR_MAX_FILENAME];
-    scr_swap_file_names(file, send_rank, file_partner, sizeof(file_partner), recv_rank, ckpt_path, c->comm);
+    scr_swap_file_names(file, send_rank, file_partner, sizeof(file_partner), recv_rank, ckpt_dir, c->comm);
 
     /* if we'll receive a file, record the name of our partner's file in the filemap */
     if (recv_rank != MPI_PROC_NULL) {
@@ -2031,26 +2709,36 @@ static int scr_copy_partner(scr_filemap* map, const struct scr_ckptdesc* c, int 
 /* set the ranks array in the header
  * (We implement this function here rather in scr_copy_xor.c,
  * so that the serial rebuild program does not need to include MPI.) */
-static int scr_copy_xor_header_set_ranks(struct scr_copy_xor_header* h, MPI_Comm comm, MPI_Comm comm_world)
+static int scr_copy_xor_header_set_ranks(scr_hash* header, MPI_Comm comm, MPI_Comm comm_world)
 {
-  MPI_Comm_size(comm_world, &h->nranks);
+  scr_hash_unset(header, SCR_KEY_COPY_XOR_RANKS);
+  scr_hash_unset(header, SCR_KEY_COPY_XOR_GROUP);
 
-  /* get the size of the xor communicator, and fill in the ranks */
-  int i;
-  MPI_Comm_size(comm, &h->xor_nranks);
-  if (h->xor_nranks > 0) {
-    h->xor_ranks  = (int*) malloc(h->xor_nranks * sizeof(int));
-    /* TODO: check for null */
+  /* record the total number of ranks in comm_world */
+  int ranks_world;
+  MPI_Comm_size(comm_world, &ranks_world);
+  scr_hash_set_kv_int(header, SCR_KEY_COPY_XOR_RANKS, ranks_world);
 
+  /* create a new empty hash to track group info for this xor set */
+  scr_hash* hash = scr_hash_new();
+  scr_hash_set(header, SCR_KEY_COPY_XOR_GROUP, hash);
+
+  /* record the total number of ranks in the xor communicator */
+  int ranks_comm;
+  MPI_Comm_size(comm, &ranks_comm);
+  scr_hash_set_kv_int(hash, SCR_KEY_COPY_XOR_GROUP_RANKS, ranks_comm);
+
+  /* record mapping of rank in xor group to corresponding world rank */
+  int i, rank;
+  if (ranks_comm > 0) {
     /* map ranks in comm to ranks in scr_comm_world */
     MPI_Group group, group_world;
     MPI_Comm_group(comm, &group);
     MPI_Comm_group(comm_world, &group_world);
-    for (i=0; i < h->xor_nranks; i++) {
-      MPI_Group_translate_ranks(group, 1, &i, group_world, &(h->xor_ranks[i]));
+    for (i=0; i < ranks_comm; i++) {
+      MPI_Group_translate_ranks(group, 1, &i, group_world, &rank);
+      scr_hash_setf(hash, NULL, "%s %d %d", SCR_KEY_COPY_XOR_GROUP_RANK, i, rank);
     }
-  } else {
-    h->xor_ranks = NULL;
   }
 
   return SCR_SUCCESS;
@@ -2061,6 +2749,7 @@ static int scr_copy_xor(scr_filemap* map, const struct scr_ckptdesc* c, int chec
 {
   int rc = SCR_SUCCESS;
   int tmp_rc;
+  int i;
 
   /* allocate buffer to read a piece of my file */
   char* send_buf = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
@@ -2094,48 +2783,65 @@ static int scr_copy_xor(scr_filemap* map, const struct scr_ckptdesc* c, int chec
     }
   }
 
-  /* record partner's checkpoint descriptor hash */
-  struct scr_hash* lhs_desc_hash = scr_hash_new();
-  struct scr_hash* my_desc_hash  = scr_hash_new();
+  /* record partner's checkpoint descriptor hash in our filemap */
+  scr_hash* lhs_desc_hash = scr_hash_new();
+  scr_hash* my_desc_hash  = scr_hash_new();
   scr_ckptdesc_store_to_hash(c, my_desc_hash);
   scr_hash_sendrecv(my_desc_hash, c->rhs_rank, lhs_desc_hash, c->lhs_rank, c->comm);
   scr_filemap_set_desc(map, checkpoint_id, c->lhs_rank_world, lhs_desc_hash);
   scr_hash_delete(my_desc_hash);
   scr_hash_delete(lhs_desc_hash);
 
-  struct scr_copy_xor_header h;
-  scr_copy_xor_header_set_ranks(&h, c->comm, scr_comm_world);
-  scr_copy_xor_header_alloc_my_files(&h, scr_my_rank_world, num_files);
+  /* allocate a new xor file header hash, record the global ranks of the
+   * processes in our xor group, and record the checkpoint id */
+  scr_hash* header = scr_hash_new();
+  scr_copy_xor_header_set_ranks(header, c->comm, scr_comm_world);
+  scr_hash_set_kv_int(header, SCR_KEY_COPY_XOR_CKPT, checkpoint_id);
 
   /* open each file, get the filesize of each, and read the meta data of each */
-  int i = 0;
+  scr_hash* current_files = scr_hash_new();
+  int file_count = 0;
   unsigned long my_bytes = 0;
-  struct scr_hash_elem* file_elem;
+  scr_hash_elem* file_elem;
   for (file_elem = scr_filemap_first_file(map, checkpoint_id, scr_my_rank_world);
        file_elem != NULL;
        file_elem = scr_hash_elem_next(file_elem))
   {
     /* get the filename */
-    filenames[i] = scr_hash_elem_key(file_elem);
+    filenames[file_count] = scr_hash_elem_key(file_elem);
 
     /* get the filesize of this file and add the byte count to the total */
-    filesizes[i] = scr_filesize(filenames[i]);
-    my_bytes += filesizes[i];
+    filesizes[file_count] = scr_filesize(filenames[file_count]);
+    my_bytes += filesizes[file_count];
 
-    /* read the meta for this file */
-    scr_meta_read(filenames[i], &(h.my_files[i]));
+    /* read the meta data for this file and insert it into the current_files hash */
+    scr_meta* file_hash = scr_meta_new();
+    scr_meta_read(filenames[file_count], file_hash);
+    scr_hash_setf(current_files, file_hash, "%d", file_count);
 
     /* open the file */
-    fds[i]  = scr_open(filenames[i], O_RDONLY);
-    if (fds[i] < 0) {
+    fds[file_count]  = scr_open(filenames[file_count], O_RDONLY);
+    if (fds[file_count] < 0) {
       /* TODO: try again? */
       scr_abort(-1, "Opening checkpoint file for copying: scr_open(%s, O_RDONLY) errno=%d %m @ %s:%d",
-                filenames[i], errno, __FILE__, __LINE__
+                filenames[file_count], errno, __FILE__, __LINE__
       );
     }
 
-    i++;
+    file_count++;
   }
+
+  /* set total number of files we have, plus our rank */
+  scr_hash* current_hash = scr_hash_new();
+  scr_hash_set_kv_int(current_hash, SCR_KEY_COPY_XOR_RANK,  scr_my_rank_world);
+  scr_hash_set_kv_int(current_hash, SCR_KEY_COPY_XOR_FILES, file_count);
+  scr_hash_set(current_hash, SCR_KEY_COPY_XOR_FILE, current_files);
+
+  /* exchange file info with partners and add data to our header */
+  scr_hash* partner_hash = scr_hash_new();
+  scr_hash_sendrecv(current_hash, c->rhs_rank, partner_hash, c->lhs_rank, c->comm);
+  scr_hash_set(header, SCR_KEY_COPY_XOR_CURRENT, current_hash);
+  scr_hash_set(header, SCR_KEY_COPY_XOR_PARTNER, partner_hash);
 
   /* allreduce to get maximum filesize */
   unsigned long max_bytes;
@@ -2157,14 +2863,13 @@ static int scr_copy_xor(scr_filemap* map, const struct scr_ckptdesc* c, int chec
   }
 
   /* record the checkpoint_id and the chunk size in the xor chunk header */
-  h.checkpoint_id = checkpoint_id;
-  h.chunk_size    = chunk_size;
+  scr_hash_setf(header, NULL, "%s %lu", SCR_KEY_COPY_XOR_CHUNK, chunk_size);
 
   /* set chunk filenames of form:  <xor_rank+1>_of_<xor_ranks>_in_<group_id>.xor */
   char my_chunk_file[SCR_MAX_FILENAME];
-  char ckpt_path[SCR_MAX_FILENAME];
-  scr_checkpoint_dir(c, checkpoint_id, ckpt_path);
-  sprintf(my_chunk_file,  "%s/%d_of_%d_in_%d.xor", ckpt_path, c->my_rank+1, c->ranks, c->group_id);
+  char ckpt_dir[SCR_MAX_FILENAME];
+  scr_checkpoint_dir(c, checkpoint_id, ckpt_dir);
+  sprintf(my_chunk_file,  "%s/%d_of_%d_in_%d.xor", ckpt_dir, c->my_rank+1, c->ranks, c->group_id);
 
   /* record chunk file in filemap before creating it */
   scr_filemap_add_file(map, checkpoint_id, scr_my_rank_world, my_chunk_file);
@@ -2179,28 +2884,12 @@ static int scr_copy_xor(scr_filemap* map, const struct scr_ckptdesc* c, int chec
     );
   }
 
+  /* write out the xor chunk header */
+  scr_hash_write_fd(my_chunk_file, fd_chunk, header);
+  scr_hash_delete(header);
+
   MPI_Request request[2];
   MPI_Status  status[2];
-
-  /* tell right hand side partner how many files we have */
-  int num_files_lhs = 0;
-  MPI_Irecv(&num_files_lhs, 1, MPI_INT, c->lhs_rank, 0, c->comm, &request[0]);
-  MPI_Isend(&num_files,     1, MPI_INT, c->rhs_rank, 0, c->comm, &request[1]);
-  MPI_Waitall(2, request, status);
-  scr_copy_xor_header_alloc_partner_files(&h, c->lhs_rank_world, num_files_lhs);
-
-  /* exchange meta with our partners */
-  /* TODO: this is part of the meta data, but it will take significant work to change scr_meta */
-  MPI_Irecv(h.partner_files, h.partner_nfiles * sizeof(struct scr_meta), MPI_BYTE,
-            c->lhs_rank, 0, c->comm, &request[0]
-  );
-  MPI_Isend(h.my_files,      h.my_nfiles      * sizeof(struct scr_meta), MPI_BYTE,
-            c->rhs_rank, 0, c->comm, &request[1]
-  );
-  MPI_Waitall(2, request, status);
-
-  /* write out the xor chunk header */
-  scr_copy_xor_header_write(fd_chunk, &h);
 
   /* XOR Reduce_scatter */
   size_t nread = 0;
@@ -2231,7 +2920,6 @@ static int scr_copy_xor(scr_filemap* map, const struct scr_ckptdesc* c, int chec
       /* TODO: XORing with unsigned long would be faster here (if chunk size is multiple of this size) */
       /* merge the blocks via xor operation */
       if (chunk_id < c->ranks-1) {
-        int i;
         for (i = 0; i < count; i++) {
           send_buf[i] ^= recv_buf[i];
         }
@@ -2260,11 +2948,10 @@ static int scr_copy_xor(scr_filemap* map, const struct scr_ckptdesc* c, int chec
 
   /* close my checkpoint files */
   for (i=0; i < num_files; i++) {
-    scr_close(h.my_files[i].filename, fds[i]);
+    scr_close(filenames[i], fds[i]);
   }
 
   /* free the buffers */
-  scr_copy_xor_header_free(&h);
   if (filesizes != NULL) {
     free(filesizes);
     filesizes = NULL;
@@ -2283,9 +2970,11 @@ static int scr_copy_xor(scr_filemap* map, const struct scr_ckptdesc* c, int chec
 
   /* TODO: need to check for errors */
   /* write meta file for xor chunk */
-  struct scr_meta meta;
-  scr_meta_set(&meta, my_chunk_file, scr_my_rank_world, scr_ranks_world, checkpoint_id, SCR_FILE_XOR, 1);
-  scr_complete(my_chunk_file, &meta);
+  unsigned long my_chunk_file_size = scr_filesize(my_chunk_file);
+  scr_meta* meta = scr_meta_new();
+  scr_meta_set(meta, my_chunk_file, SCR_META_FILE_XOR, my_chunk_file_size, checkpoint_id, scr_my_rank_world, scr_ranks_world, 1);
+  scr_complete(my_chunk_file, meta);
+  scr_meta_delete(meta);
 
   /* if crc_on_copy is set, compute and store CRC32 value for chunk file */
   if (scr_crc_on_copy) {
@@ -2305,7 +2994,7 @@ int scr_copy_files(scr_filemap* map, const struct scr_ckptdesc* c, int checkpoin
   /* step through each of my files for the latest checkpoint to scan for any incomplete files */
   int valid = 1;
   double my_bytes = 0.0;
-  struct scr_hash_elem* file_elem;
+  scr_hash_elem* file_elem;
   for (file_elem = scr_filemap_first_file(map, checkpoint_id, scr_my_rank_world);
        file_elem != NULL;
        file_elem = scr_hash_elem_next(file_elem))
@@ -2314,7 +3003,7 @@ int scr_copy_files(scr_filemap* map, const struct scr_ckptdesc* c, int checkpoin
     char* file = scr_hash_elem_key(file_elem);
 
     /* check the file */
-    if (!scr_bool_have_file(file, checkpoint_id, scr_my_rank_world, scr_ranks_world)) {
+    if (!scr_bool_have_file(map, checkpoint_id, scr_my_rank_world, file, scr_ranks_world)) {
       scr_dbg(2, "scr_copy_files: File determined to be invalid: %s", file);
       valid = 0;
     }
@@ -2387,9 +3076,9 @@ int scr_copy_files(scr_filemap* map, const struct scr_ckptdesc* c, int checkpoin
 
     /* log data on the copy in the database */
     if (scr_log_enable) {
-      char ckpt_path[SCR_MAX_FILENAME];
-      scr_checkpoint_dir(c, checkpoint_id, ckpt_path);
-      scr_log_transfer("COPY", c->base, ckpt_path, &checkpoint_id, &timestamp_start, &time_diff, bytes);
+      char ckpt_dir[SCR_MAX_FILENAME];
+      scr_checkpoint_dir(c, checkpoint_id, ckpt_dir);
+      scr_log_transfer("COPY", c->base, ckpt_dir, &checkpoint_id, &timestamp_start, &time_diff, bytes);
     }
   }
 
@@ -2402,185 +3091,9 @@ Flush and fetch functions
 =========================================
 */
 
-/* read in scr_summary.txt file from dir */
-static int scr_summary_read(const char* dir, int* num_files, struct scr_meta** v)
-{
-  /* initialize num_files and the data pointer */
-  *num_files = 0;
-  *v = NULL;
-
-  /* build the filename for the summary file */
-  char file[SCR_MAX_FILENAME];
-  if (scr_build_path(file, sizeof(file), dir, "scr_summary.txt") != SCR_SUCCESS) {
-    scr_err("Failed to build full filename for summary file @ %s:%d",
-            __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* check whether we can read the summary file */
-  if (access(file, R_OK) < 0) {
-    return SCR_FAILURE;
-  }
-
-  /* open the summary file */
-  FILE* fs = fopen(file, "r");
-  if (fs == NULL) {
-    scr_err("Opening summary file for read: fopen(%s, \"r\") errno=%d %m @ %s:%d",
-            file, errno, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* assume we have one file per rank */
-  *num_files = scr_ranks_world;
-
-  /* read the first line (all versions have at least one header line) */
-  int linenum = 0;
-  char line[2048];
-  char field[2048];
-  fgets(line, sizeof(line), fs);
-  linenum++;
-
-  /* get the summary file version number, if no number, assume version=1 */
-  int version = 1;
-  sscanf(line, "%s", field);
-  if (strcmp(field, "Version:") == 0) {
-    sscanf(line, "%s %d", field, &version);
-  }
-
-  /* all versions greater than 1, have two header lines, read and throw away the second */
-  if (version > 1) {
-    /* version 3 and higher writes the number of rows in the file (ranks may write 0 or more files) */
-    if (version >= 3) {
-      fgets(line, sizeof(line), fs);
-      linenum++;
-      sscanf(line, "%s %d", field, num_files);
-    }
-    fgets(line, sizeof(line), fs);
-    linenum++;
-  }
-
-  /* now we know how many records we'll be reading, so allocate space for them */
-  struct scr_meta* data = NULL;
-  if (*num_files > 0) {
-    data = (struct scr_meta*) malloc(*num_files * sizeof(struct scr_meta));
-    if (data == NULL) {
-      *num_files = 0;
-      scr_err("Could not allocate space to read in summary file %s, which has %d records.", file, *num_files);
-      fclose(fs);
-      return SCR_FAILURE;
-    }
-  } else {
-    *num_files = 0;
-    scr_err("No file records found in summary file %s, perhaps it is corrupt or incomplete.", file);
-    fclose(fs);
-    return SCR_FAILURE;
-  }
-
-  /* read the record for each rank */
-  int bad_values = 0;
-  int i;
-  for(i=0; i < *num_files; i++) {
-    int expected_n, n;
-    int rank, scr, ranks, pattern, checkpoint_id, complete, match_filesize;
-    char filename[SCR_MAX_FILENAME];
-    unsigned long exp_filesize, filesize;
-    int crc_computed = 0;
-    uLong crc = 0UL;
-
-    /* read a line from the file, parse depending on version */
-    if (version == 1) {
-      expected_n = 10;
-      n = fscanf(fs, "%d\t%d\t%d\t%d\t%d\t%d\t%lu\t%d\t%lu\t%s\n",
-                 &rank, &scr, &ranks, &pattern, &checkpoint_id, &complete, &exp_filesize, &match_filesize, &filesize, filename
-          );
-      linenum++;
-    } else {
-      expected_n = 11;
-      n = fscanf(fs, "%d\t%d\t%d\t%d\t%d\t%lu\t%d\t%lu\t%s\t%d\t0x%lx\n",
-                 &rank, &scr, &ranks, &checkpoint_id, &complete, &exp_filesize, &match_filesize, &filesize, filename,
-                 &crc_computed, &crc
-          );
-      linenum++;
-    }
-
-    /* check the return code returned from the read */
-    if (n == EOF) {
-      scr_err("Early EOF in summary file %s at line %d.  Only read %d of %d expected records.", file, linenum, i, *num_files);
-      *num_files = 0;
-      if (data != NULL) {
-        free(data);
-        data = NULL;
-      }
-      fclose(fs);
-      return SCR_FAILURE;
-    } else if (n != expected_n) {
-      scr_err("Invalid read of record %d in %s at line %d.", i, file, linenum);
-      *num_files = 0;
-      if (data != NULL) {
-        free(data);
-        data = NULL;
-      }
-      fclose(fs);
-      return SCR_FAILURE;
-    }
-    scr_dbg(2, "scr_summary.txt: rank %d file %s", rank, filename);
-
-    /* TODO: check whether all files are complete, match expected size, number of ranks, checkpoint_id, etc */
-    if (rank < 0 || rank >= scr_ranks_world) {
-      bad_values = 1;
-      scr_err("Invalid rank detected (%d) in a job with %d tasks in %s at line %d.",
-              rank, scr_my_rank_world, file, linenum
-      );
-    }
-
-    /* TODO: don't need to store entire path
-    char path[SCR_MAX_FILENAME], name[SCR_MAX_FILENAME];
-    scr_split_path(filename, path, name);
-    printf("%d %s %s\n", rank, path, name);
-    */
-
-    /* chop to basename of filename */
-    char* base = basename(filename);
-
-    data[i].rank          = rank;
-    data[i].ranks         = ranks;
-    data[i].checkpoint_id = checkpoint_id;
-    data[i].filetype      = SCR_FILE_FULL;
-
-    strcpy(data[i].filename, base);
-    data[i].filesize       = exp_filesize;
-    data[i].complete       = complete;
-    data[i].crc32_computed = crc_computed;
-    data[i].crc32          = crc;
-  }
-
-  /* close the file */
-  fclose(fs);
-
-  /* if we found any problems while reading the file, free the memory and return with an error */
-  if (bad_values) {
-    *num_files = 0;
-    if (data != NULL) {
-      free(data);
-      data = NULL;
-    }
-    return SCR_FAILURE;
-  }
-
-  /* otherwise, update the caller's pointer and return */
-  *v = data;
-  return SCR_SUCCESS;
-}
-
 /* read in the summary file from dir */
-static int scr_summary_read2(const char* dir, int* num_files, struct scr_meta** v)
+static int scr_summary_read(const char* dir, scr_hash* summary_hash, int* checkpoint_id)
 {
-  /* initialize num_files and the data pointer */
-  *num_files = 0;
-  *v = NULL;
-
   /* build the filename for the summary file */
   char summary_file[SCR_MAX_FILENAME];
   if (scr_build_path(summary_file, sizeof(summary_file), dir, "summary.scr") != SCR_SUCCESS) {
@@ -2596,19 +3109,8 @@ static int scr_summary_read2(const char* dir, int* num_files, struct scr_meta** 
     return SCR_FAILURE;
   }
 
-  /* create an empty hash to hold the summary data */
-  struct scr_hash* hash = scr_hash_new();
-
   /* read in the summary hash file */
-  if (scr_hash_read(summary_file, hash) != SCR_SUCCESS) {
-    /* free the summary hash object */
-    scr_hash_delete(hash);
-
-    /* failed to read the file, maybe it's in the old format? */
-    if (scr_summary_read(dir, num_files, v) == SCR_SUCCESS) {
-      return SCR_SUCCESS;
-    }
-
+  if (scr_hash_read(summary_file, summary_hash) != SCR_SUCCESS) {
     /* the old read format also failed, print an error and return failure */
     scr_err("Reading summary hash file %s @ %s:%d",
             summary_file, __FILE__, __LINE__
@@ -2618,17 +3120,14 @@ static int scr_summary_read2(const char* dir, int* num_files, struct scr_meta** 
 
   /* check that the summary file version is something we support */
   int supported_version = 0;
-  char* version_str = scr_hash_elem_get_first_val(hash, SCR_SUMMARY_KEY_VERSION);
+  char* version_str = scr_hash_elem_get_first_val(summary_hash, SCR_SUMMARY_KEY_VERSION);
   if (version_str != NULL) {
     int version = atoi(version_str);
-    if (version == SCR_SUMMARY_FILE_VERSION_4) {
+    if (version == SCR_SUMMARY_FILE_VERSION_5) {
       supported_version = 1;
     }
   }
   if (! supported_version) {
-    /* free the summary hash object */
-    scr_hash_delete(hash);
-
     /* the old read format also failed, print an error and return failure */
     scr_err("Summary file version is not supported in %s @ %s:%d",
             summary_file, __FILE__, __LINE__
@@ -2637,19 +3136,18 @@ static int scr_summary_read2(const char* dir, int* num_files, struct scr_meta** 
   }
 
   /* check that we have exactly one checkpoint */
-  struct scr_hash* ckpt_hash = scr_hash_get(hash, SCR_SUMMARY_KEY_CKPT);
+  scr_hash* ckpt_hash = scr_hash_get(summary_hash, SCR_SUMMARY_KEY_CKPT);
   if (scr_hash_size(ckpt_hash) != 1) {
     scr_err("More than one checkpoint found in summary file %s @ %s:%d",
             summary_file, __FILE__, __LINE__
     );
-    scr_hash_delete(hash);
     return SCR_FAILURE;
   }
 
   /* get the first (and only) checkpoint id */
-  char* ckpt_str = scr_hash_elem_get_first_val(hash, SCR_META_KEY_CKPT);
-  struct scr_hash* ckpt = scr_hash_get(ckpt_hash, ckpt_str);
-  int checkpoint_id = atoi(ckpt_str);
+  char* ckpt_str = scr_hash_elem_get_first_val(summary_hash, SCR_META_KEY_CKPT);
+  scr_hash* ckpt = scr_hash_get(ckpt_hash, ckpt_str);
+  *checkpoint_id = atoi(ckpt_str);
 
   /* check that the complete string is set and is set to 1 */
   int set_is_complete = 0;
@@ -2661,211 +3159,33 @@ static int scr_summary_read2(const char* dir, int* num_files, struct scr_meta** 
     }
   }
   if (! set_is_complete) {
-    /* free the summary hash object */
-    scr_hash_delete(hash);
     return SCR_FAILURE;
   }
 
-  /* read in the the number of ranks and the number of files for this checkpoint */
+  /* read in the the number of ranks for this checkpoint */
   char* ranks_str = scr_hash_elem_get_first_val(ckpt, SCR_SUMMARY_KEY_RANKS);
-  char* files_str = scr_hash_elem_get_first_val(ckpt, SCR_SUMMARY_KEY_FILES);
-  if (ranks_str == NULL || files_str == NULL) {
+  if (ranks_str == NULL) {
+    scr_err("Failed to read number of ranks in summary file %s @ %s:%d",
+            summary_file, __FILE__, __LINE__
+    );
     /* free the summary hash object */
-    scr_hash_delete(hash);
     return SCR_FAILURE;
   }
   int ranks = atoi(ranks_str);
-  int files = atoi(files_str);
 
   /* check that the number of ranks matches the number we're currently running with */
   if (ranks != scr_ranks_world) {
     scr_err("Number of ranks %s that wrote checkpoint %s in %s does not match current number of ranks %d @ %s:%d",
             ranks_str, ckpt_str, summary_file, scr_ranks_world, __FILE__, __LINE__
     );
-    /* free the summary hash object */
-    scr_hash_delete(hash);
     return SCR_FAILURE;
   }
-
-  /* allocate a meta data structure for each files we'll be reading */
-  struct scr_meta* data = NULL;
-  if (files > 0) {
-    data = (struct scr_meta*) malloc(files * sizeof(struct scr_meta));
-    if (data == NULL) {
-      scr_err("Could not allocate space to read in summary file %s, which has %d records @ %s:%d.",
-              summary_file, files, __FILE__, __LINE__
-      );
-      /* free the summary hash object */
-      scr_hash_delete(hash);
-      return SCR_FAILURE;
-    }
-  } else {
-    scr_err("No file records found in summary file %s, perhaps it is corrupt or incomplete @ %s:%d",
-            summary_file, __FILE__, __LINE__
-    );
-    /* free the summary hash object */
-    scr_hash_delete(hash);
-    return SCR_FAILURE;
-  }
-
-  /* TODO: would be cleaner to use an ordered list of ranks here */
-  /* iterate through each rank */
-  int bad_values = 0;
-  int rank = 0;
-  int index = 0;
-  for(rank = 0; rank < ranks; rank++) {
-    /* get the hash for this rank */
-    struct scr_hash* rank_hash = scr_hash_get_kv_int(ckpt, SCR_SUMMARY_KEY_RANK, rank);
-    if (rank_hash != NULL) {
-      /* iterate through each file for this rank */
-      struct scr_hash* files_hash = scr_hash_get(rank_hash, SCR_SUMMARY_KEY_FILE);
-      struct scr_hash_elem* elem = NULL;
-      for (elem = scr_hash_elem_first(files_hash);
-           elem != NULL;
-           elem = scr_hash_elem_next(elem))
-      {
-        /* record the rank, number of ranks, checkpoint id, and file type for this file */
-        data[index].rank          = rank;
-        data[index].ranks         = ranks;
-        data[index].checkpoint_id = checkpoint_id;
-        data[index].filetype      = SCR_FILE_FULL;
-
-        /* get the filename */
-        char* key = scr_hash_elem_key(elem);
-        if (key != NULL ) {
-          /* chop to basename of filename */
-          char* filename = strdup(key);
-          char* base = basename(filename);
-          strcpy(data[index].filename, base);
-          free(filename);
-        } else {
-          /* NULL pointer for a filename */
-          scr_err("Invalid filename for rank %d in %s @ %s:%d",
-                  rank, summary_file, __FILE__, __LINE__
-          );
-          strcpy(data[index].filename, "");
-          bad_values = 1;
-        }
-
-        /* get the hash for this file to read size, crc, and complete code */
-        struct scr_hash* file = scr_hash_elem_hash(elem);
-
-        /* read the filesize for this file */
-        data[index].filesize = 0;
-        char* size_str = scr_hash_elem_get_first_val(file, SCR_SUMMARY_KEY_SIZE);
-        if (size_str != NULL) {
-          off_t size = strtoul(size_str, NULL, 0);
-          data[index].filesize = size;
-        } else {
-          /* No size specified */
-          scr_err("Invalid size for rank %d and file %s in %s @ %s:%d",
-                  rank, data[index].filename, summary_file, __FILE__, __LINE__
-          );
-          bad_values = 1;
-        }
-
-        /* read the crc value for this file, if one is recorded */
-        data[index].crc32_computed = 0;
-        char* crc_str = scr_hash_elem_get_first_val(file, SCR_SUMMARY_KEY_CRC);
-        if (crc_str != NULL) {
-          data[index].crc32_computed = 1;
-          data[index].crc32          = strtoul(crc_str, NULL, 0);
-        }
-
-        /* if the complete string is set, check that it's not set to 0 */
-        data[index].complete = 1;
-        char* file_complete_str = scr_hash_elem_get_first_val(file, SCR_SUMMARY_KEY_COMPLETE);
-        if (file_complete_str != NULL) {
-          int file_complete = atoi(file_complete_str);
-          if (file_complete == 0) {
-            /* this file is explicitly marked as incomplete */
-            data[index].complete = 0;
-            bad_values = 1;
-          }
-        }
-
-        /* point to the next meta data structure in our array */
-        index++;
-      }
-    }
-  }
-
-  /* check that we found each file that we should find */
-  if (index != files) {
-    scr_err("Read data for %d files when %d were expected in %s @ %s:%d",
-            index, files, summary_file, __FILE__, __LINE__
-    );
-    bad_values = 1;
-  }
-
-  /* if we found any problems while reading the file, free the memory and return with an error */
-  if (bad_values) {
-    if (data != NULL) {
-      free(data);
-      data = NULL;
-    }
-    scr_hash_delete(hash);
-    return SCR_FAILURE;
-  }
-
-  /* delete the summary hash */
-  scr_hash_delete(hash);
-
-  /* otherwise, update the caller's pointer and return */
-  *num_files = files;
-  *v = data;
-
-  return SCR_SUCCESS;
-}
-
-/* write out scr_summary.txt file to dir */
-static int scr_summary_write(const char* dir, int num_files, const struct scr_meta* data)
-{
-  /* build the filename */
-  char file[SCR_MAX_FILENAME];
-  if (scr_build_path(file, sizeof(file), dir, "scr_summary.txt") != SCR_SUCCESS) {
-    scr_err("Failed to build full filename for summary file @ %s:%d",
-            __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* open the summary file */
-  FILE* fs = fopen(file, "w");
-  if (fs == NULL) {
-    scr_err("Opening summary file for writing: fopen(%s, \"w\") errno=%d %m @ %s:%d",
-            file, errno, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* write the file version */
-  fprintf(fs, "Version: %d\n", SCR_SUMMARY_FILE_VERSION_3);
-
-  /* write the number of rows */
-  fprintf(fs, "Rows: %d\n", num_files);
-
-  /* write the header */
-  fprintf(fs, "Rank\tSCR\tRanks\tID\tComp\tExpSize\tExists\tSize\tFilename\tCRC\tCRC32\n");
-
-  /* read the record for each rank */
-  int i;
-  for(i=0; i < num_files; i++) {
-    fprintf(fs, "%d\t%d\t%d\t%d\t%d\t%lu\t%d\t%lu\t%s\t%d\t0x%lx\n",
-               data[i].rank, 1, data[i].ranks, data[i].checkpoint_id,
-               data[i].complete, data[i].filesize, 1, data[i].filesize, data[i].filename,
-               data[i].crc32_computed, data[i].crc32
-    );
-  }
-
-  /* close the file */
-  fclose(fs);
 
   return SCR_SUCCESS;
 }
 
 /* write out the summary file to dir */
-static int scr_summary_write2(const char* dir, int checkpoint_id, int num_files, const struct scr_meta* data)
+static int scr_summary_write(const char* dir, int checkpoint_id, int all_complete, scr_hash* data)
 {
   /* build the filename */
   char file[SCR_MAX_FILENAME];
@@ -2878,64 +3198,38 @@ static int scr_summary_write2(const char* dir, int checkpoint_id, int num_files,
 
 
   /* create an empty hash to build our summary info */
-  struct scr_hash* summary = scr_hash_new();
+  scr_hash* summary_hash = scr_hash_new();
 
   /* write the summary file version number */
-  scr_hash_set_kv_int(summary, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_4);
+  scr_hash_set_kv_int(summary_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_5);
 
   /* write the checkpoint id */
-  struct scr_hash* ckpt = scr_hash_set_kv_int(summary, SCR_SUMMARY_KEY_CKPT, checkpoint_id);
-
-  /* write the number of files in this checkpoint */
-  scr_hash_set_kv_int(ckpt, SCR_SUMMARY_KEY_FILES, num_files);
+  scr_hash* ckpt_hash = scr_hash_set_kv_int(summary_hash, SCR_SUMMARY_KEY_CKPT, checkpoint_id);
 
   /* write the number of ranks used to write this checkpoint */
-  scr_hash_set_kv_int(ckpt, SCR_SUMMARY_KEY_RANKS, scr_ranks_world);
+  scr_hash_set_kv_int(ckpt_hash, SCR_SUMMARY_KEY_RANKS, scr_ranks_world);
 
   /* for each file, insert hash listing filename, then file size, crc, and incomplete flag under that */
-  int all_complete = 1;
-  int i;
-  for(i=0; i < num_files; i++) {
-    /* set / get the hash for the current rank */
-    struct scr_hash* rank = scr_hash_set_kv_int(ckpt, SCR_SUMMARY_KEY_RANK, data[i].rank);
-
-    /* set / get the hash for this filename */
-    struct scr_hash* file = scr_hash_set_kv(rank, SCR_SUMMARY_KEY_FILE, data[i].filename);
-
-    /* record the filesize */
-    scr_hash_setf(file, NULL, "%s %lu", SCR_SUMMARY_KEY_SIZE, data[i].filesize);
-
-    /* record the crc if it's set */
-    if (data[i].crc32_computed) {
-      scr_hash_setf(file, NULL, "%s %#lx", SCR_SUMMARY_KEY_CRC, data[i].crc32);
-    }
-
-    /* we assume each file is complete, but we mark any that aren't */
-    if (data[i].complete == 0) {
-      scr_hash_set_kv_int(file, SCR_SUMMARY_KEY_COMPLETE, 0);
-
-      /* track whether all files are complete */
-      all_complete = 0;
-    }
-  }
+  scr_hash_merge(ckpt_hash, data);
+//  scr_hash_set(ckpt_hash, SCR_SUMMARY_KEY_RANK, data);
 
   /* mark whether the checkpoint set as a whole is complete */
-  scr_hash_set_kv_int(ckpt, SCR_SUMMARY_KEY_COMPLETE, all_complete);
+  scr_hash_set_kv_int(ckpt_hash, SCR_SUMMARY_KEY_COMPLETE, all_complete);
 
   /* write the hash to a file */
-  scr_hash_write(file, summary);
+  scr_hash_write(file, summary_hash);
 
   /* free the hash object */
-  scr_hash_delete(summary);
+  scr_hash_delete(summary_hash);
 
   /* TODO: ugly hack: subtract off scr_par_prefix */
   char* dir_tmp = strdup(dir);
   char* dir_base = basename(dir_tmp);
 
   /* mark the checkpoint as complete in the index file */
-  struct scr_hash* index_hash = scr_hash_new();
+  scr_hash* index_hash = scr_hash_new();
   scr_index_read(scr_par_prefix, index_hash);
-  scr_index_mark_completeness(index_hash, checkpoint_id, dir_base, all_complete);
+  scr_index_set_complete_key(index_hash, checkpoint_id, dir_base, all_complete);
   scr_index_write(scr_par_prefix, index_hash);
   scr_hash_delete(index_hash);
 
@@ -2952,13 +3246,13 @@ static int scr_bool_need_flush(int checkpoint_id)
 
   if (scr_my_rank_local == 0) {
     /* read the flush file */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
     scr_hash_read(scr_flush_file, hash);
 
     /* if we have the checkpoint in cache, but not on the parallel file system, then it needs to be flushed */
-    struct scr_hash* ckpt_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_CKPT, checkpoint_id);
-    struct scr_hash* in_cache = scr_hash_get_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
-    struct scr_hash* in_pfs   = scr_hash_get_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_PFS);
+    scr_hash* ckpt_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_CKPT, checkpoint_id);
+    scr_hash* in_cache = scr_hash_get_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
+    scr_hash* in_pfs   = scr_hash_get_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_PFS);
     if (in_cache != NULL && in_pfs == NULL) {
       need_flush = 1;
     }
@@ -2977,11 +3271,11 @@ static int scr_flush_location_set(int checkpoint_id, const char* location)
   /* all master tasks write this file to their node */
   if (scr_my_rank_local == 0) {
     /* read the flush file into hash */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
     scr_hash_read(scr_flush_file, hash);
 
     /* set the location for this checkpoint */
-    struct scr_hash* ckpt_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_CKPT, checkpoint_id);
+    scr_hash* ckpt_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_CKPT, checkpoint_id);
     scr_hash_set_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, location);
 
     /* write the hash back to the flush file */
@@ -3000,12 +3294,12 @@ static int scr_flush_location_test(int checkpoint_id, const char* location)
   int at_location = 0;
   if (scr_my_rank_local == 0) {
     /* read the flush file into hash */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
     scr_hash_read(scr_flush_file, hash);
 
     /* check the location for this checkpoint */
-    struct scr_hash* ckpt_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_CKPT, checkpoint_id);
-    struct scr_hash* value     = scr_hash_get_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, location);
+    scr_hash* ckpt_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_CKPT, checkpoint_id);
+    scr_hash* value     = scr_hash_get_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, location);
     if (value != NULL) {
       at_location = 1;
     }
@@ -3027,11 +3321,11 @@ static int scr_flush_location_unset(int checkpoint_id, const char* location)
   /* all master tasks write this file to their node */
   if (scr_my_rank_local == 0) {
     /* read the flush file into hash */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
     scr_hash_read(scr_flush_file, hash);
 
     /* unset the location for this checkpoint */
-    struct scr_hash* ckpt_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_CKPT, checkpoint_id);
+    scr_hash* ckpt_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_CKPT, checkpoint_id);
     scr_hash_unset_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, location);
 
     /* write the hash back to the flush file */
@@ -3052,12 +3346,12 @@ static int scr_bool_is_flushing(int checkpoint_id)
   /* have the master on each node check the flush file */
   if (scr_my_rank_local == 0) {
     /* read flush file into hash */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
     scr_hash_read(scr_flush_file, hash);
 
     /* attempt to look up the FLUSHING state for this checkpoint */
-    struct scr_hash* ckpt_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_CKPT, checkpoint_id);
-    struct scr_hash* flushing_hash = scr_hash_get_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_FLUSHING);
+    scr_hash* ckpt_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_CKPT, checkpoint_id);
+    scr_hash* flushing_hash = scr_hash_get_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_FLUSHING);
     if (flushing_hash != NULL) {
       is_flushing = 1;
     }
@@ -3074,21 +3368,30 @@ static int scr_bool_is_flushing(int checkpoint_id)
 }
 
 /* fetch file name in meta from dir and build new full path in newfile, return whether operation succeeded */
-static int scr_fetch_a_file(const char* src_dir, const struct scr_meta* meta, const char* dst_dir,
+static int scr_fetch_a_file(const char* src_dir, const scr_meta* meta, const char* dst_dir,
                             char* newfile, size_t newfile_size)
 {
   int success = SCR_SUCCESS;
 
+  /* get the filename from the meta data */
+  char* meta_filename;
+  if (scr_meta_get_filename(meta, &meta_filename) != SCR_SUCCESS) {
+    scr_err("Failed to read filename from meta data @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
   /* build full path to file */
   char filename[SCR_MAX_FILENAME];
-  if (scr_build_path(filename, sizeof(filename), src_dir, meta->filename) != SCR_SUCCESS) {
+  if (scr_build_path(filename, sizeof(filename), src_dir, meta_filename) != SCR_SUCCESS) {
     scr_err("Failed to build full file name of target file for fetch @ %s:%d",
             __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
 
-  /* fetch file */
+  /* fetch the file */
   uLong crc;
   uLong* crc_p = NULL;
   if (scr_crc_on_flush) {
@@ -3097,25 +3400,131 @@ static int scr_fetch_a_file(const char* src_dir, const struct scr_meta* meta, co
   success = scr_copy_to(filename, dst_dir, scr_file_buf_size, newfile, newfile_size, crc_p);
 
   /* check that crc matches crc stored in meta */
-  if (success == SCR_SUCCESS && scr_crc_on_flush && meta->crc32_computed && crc != meta->crc32) {
-    success = SCR_FAILURE;
-    scr_err("CRC32 mismatch detected when fetching file from %s to %s @ %s:%d",
-            filename, newfile, __FILE__, __LINE__
-    );
+  uLong meta_crc;
+  if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
+    if (success == SCR_SUCCESS && scr_crc_on_flush && crc != meta_crc) {
+      success = SCR_FAILURE;
+      scr_err("CRC32 mismatch detected when fetching file from %s to %s @ %s:%d",
+              filename, newfile, __FILE__, __LINE__
+      );
 
-    /* delete the file -- it's corrupted */
-    unlink(newfile);
+      /* delete the file -- it's corrupted */
+      unlink(newfile);
 
-    /* TODO: would be good to log this, but right now only rank 0 can write log entries */
-    /*
-    if (scr_log_enable) {
-      time_t now = scr_log_seconds();
-      scr_log_event("CRC32 MISMATCH", filename, NULL, &now, NULL);
+      /* TODO: would be good to log this, but right now only rank 0 can write log entries */
+      /*
+      if (scr_log_enable) {
+        time_t now = scr_log_seconds();
+        scr_log_event("CRC32 MISMATCH", filename, NULL, &now, NULL);
+      }
+      */
     }
-    */
   }
 
   return success;
+}
+
+/* fetch files listed in hash for specified checkpoint id into specified checkpoint directory,
+ * update filemap and fill in total number of bytes fetched,
+ * returns SCR_SUCCESS if successful */
+static int scr_fetch_files_list(scr_filemap* map, const scr_hash* list_hash, int checkpoint_id, const char* fetch_dir, const char* ckpt_dir, double* total_bytes)
+{
+  /* assume we'll succeed in fetching our files */
+  int rc = SCR_SUCCESS;
+
+  /* assume we don't have any files to fetch */
+  int my_num_files = 0;
+  *total_bytes = 0.0;
+
+  /* lookup the file hash */
+  scr_hash* file_hash = scr_hash_get(list_hash, SCR_SUMMARY_KEY_FILE);
+
+  /* now iterate through the file list and fetch each file */
+  scr_hash_elem* file_elem = NULL;
+  for (file_elem = scr_hash_elem_first(file_hash);
+       file_elem != NULL;
+       file_elem = scr_hash_elem_next(file_elem))
+  {
+    /* get the filename */
+    char* summary_filename = scr_hash_elem_key(file_elem);
+
+    /* get a pointer to the hash for this file */
+    scr_hash* hash = scr_hash_elem_hash(file_elem);
+
+    /* check whether we are supposed to fetch this file */
+    /* TODO: this is a hacky way to avoid reading a redundancy file back in
+     * assuming that it's an original file, which breaks our redundancy computation
+     * due to a name conflict on the file names */
+    scr_hash_elem* no_fetch_hash = scr_hash_elem_get(hash, SCR_SUMMARY_KEY_NOFETCH);
+    if (no_fetch_hash != NULL) {
+      continue;
+    }
+
+    /* increment our file count */
+    my_num_files++;
+
+    /* split filename into path and name components */
+    char path[SCR_MAX_FILENAME];
+    char name[SCR_MAX_FILENAME];
+    scr_split_path(summary_filename, path, name);
+
+    /* build the destination file name */
+    char newfile[SCR_MAX_FILENAME];
+    scr_build_path(newfile, sizeof(newfile), ckpt_dir, name);
+      
+    /* add the file to our filemap and write it to disk before creating the file */
+    scr_filemap_add_file(map, checkpoint_id, scr_my_rank_world, newfile);
+    scr_filemap_write(scr_map_file, map);
+
+    /* get the file size */
+    unsigned long summary_filesize = 0;
+    if (scr_hash_util_get_unsigned_long(hash, SCR_SUMMARY_KEY_SIZE, &summary_filesize) != SCR_SUCCESS) {
+      scr_err("Failed to read file size from summary data @ %s:%d",
+              __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+      break;
+    }
+
+    /* add the filesize to our byte count */
+    *total_bytes += (double) summary_filesize;
+
+    /* check for a complete flag */
+    int summary_complete = 1;
+    if (scr_hash_util_get_int(hash, SCR_SUMMARY_KEY_COMPLETE, &summary_complete) != SCR_SUCCESS) {
+      /* in summary file, the absence of a complete flag on a file implies the file is complete */
+      summary_complete = 1;
+    }
+
+    /* create a new meta data object for this file */
+    scr_meta* meta = scr_meta_new();
+
+    /* set the meta data */
+    scr_meta_set(meta, newfile, SCR_META_FILE_FULL, summary_filesize, checkpoint_id, scr_my_rank_world, scr_ranks_world, summary_complete);
+
+    /* get the crc, if set, and add it to the meta data */
+    uLong summary_crc;
+    if (scr_hash_util_get_crc32(hash, SCR_SUMMARY_KEY_CRC, &summary_crc) == SCR_SUCCESS) {
+      scr_meta_set_crc32(meta, summary_crc);
+    }
+
+    /* finally, fetch the file */
+    if (scr_fetch_a_file(fetch_dir, meta, ckpt_dir, newfile, sizeof(newfile)) != SCR_SUCCESS) {
+      rc = SCR_FAILURE;
+    }
+
+    /* mark the file as complete */
+    scr_complete(newfile, meta);
+
+    /* free the meta data object */
+    scr_meta_delete(meta);
+  }
+
+  /* set the expected number of files for this checkpoint */
+  scr_filemap_set_expected_files(map, checkpoint_id, scr_my_rank_world, my_num_files);
+  scr_filemap_write(scr_map_file, map);
+
+  return rc;
 }
 
 /* fetch files from parallel file system */
@@ -3123,9 +3532,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
 {
   int i, j;
   int rc = SCR_SUCCESS;
-  int* num_files     = NULL;
-  int* offset_files  = NULL;
-  int checkpoint_id  = -1;
+  int checkpoint_id = -1;
   double total_bytes = 0.0;
 
   /* start timer */
@@ -3142,17 +3549,17 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
     dirsize = strlen(fetch_dir) + 1;
   }
   MPI_Bcast(&dirsize, 1, MPI_INT, 0, scr_comm_world);
-  MPI_Bcast(fetch_dir, dirsize, MPI_BYTE, 0, scr_comm_world);
+  MPI_Bcast(fetch_dir, dirsize, MPI_CHAR, 0, scr_comm_world);
 
   /* if there is no directory, bail out with failure */
   if (strcmp(fetch_dir, "") == 0) {
     return SCR_FAILURE;
   }
 
+  scr_hash* summary_hash = scr_hash_new();
+
   /* have rank 0 read summary file, if it exists */
   int read_summary = SCR_FAILURE;
-  int total_files = 0;
-  struct scr_meta* data = NULL;
   if (scr_my_rank_world == 0) {
     /* this may take a while, so tell user what we're doing */
     scr_dbg(1, "scr_fetch_files: Attempting fetch from %s", fetch_dir);
@@ -3166,43 +3573,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
       }
 
       /* read data from the summary file */
-      read_summary = scr_summary_read2(fetch_dir, &total_files, &data);
-
-      /* allocate arrays to hold number of files and offset for each rank */
-      num_files    = (int*) malloc(scr_ranks_world * sizeof(int));
-      offset_files = (int*) malloc(scr_ranks_world * sizeof(int));
-      if (num_files == NULL || offset_files == NULL) {
-        scr_err("scr_fetch_files: Failed to allocate memory for scatter @ %s:%d",
-                __FILE__, __LINE__
-        );
-        read_summary = SCR_FAILURE;
-      } else {
-        /* initialize these arrays to zero */
-        for (i=0; i < scr_ranks_world; i++) {
-          num_files[i]    = 0;
-          offset_files[i] = 0;
-        }
-
-        /* step through each rows in the data to determine number and offset per rank */
-        int curr_rank = -1;
-        for (i=0; i < total_files; i++) {
-          int next_rank = data[i].rank;
-          if (next_rank != curr_rank) {
-            /* check order of ranks in file */
-            if (next_rank < curr_rank) {
-              scr_err("scr_fetch_files: Unexpected rank order in summary file got %d expected something over %d @ %s:%d",
-                      next_rank, curr_rank, __FILE__, __LINE__
-              );
-              read_summary = SCR_FAILURE;
-            }
-            curr_rank = next_rank;
-            offset_files[curr_rank] = i;
-          }
-          num_files[curr_rank]++;
-          checkpoint_id = data[i].checkpoint_id;
-          total_bytes += (double) data[i].filesize;
-        }
-      }
+      read_summary = scr_summary_read(fetch_dir, summary_hash, &checkpoint_id);
     } else {
       scr_err("scr_fetch_files: Failed to access directory %s @ %s:%d", fetch_dir, __FILE__, __LINE__);
     }
@@ -3212,10 +3583,6 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
   MPI_Bcast(&read_summary, 1, MPI_INT, 0, scr_comm_world);
   if (read_summary != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
-      if (data != NULL) {
-        free(data);
-        data = NULL;
-      }
       scr_dbg(1, "scr_fetch_files: Failed to read summary file @ %s:%d", __FILE__, __LINE__);
       if (scr_log_enable) {
         double time_end = MPI_Wtime();
@@ -3224,11 +3591,25 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
         scr_log_event("FETCH FAILED", fetch_dir, NULL, &now, &time_diff);
       }
     }
+    scr_hash_delete(summary_hash);
     return SCR_FAILURE;
   }
 
   /* broadcast the checkpoint id */
   MPI_Bcast(&checkpoint_id, 1, MPI_INT, 0, scr_comm_world);
+  if (checkpoint_id < 0) {
+    if (scr_my_rank_world == 0) {
+      scr_dbg(1, "scr_fetch_files: Invalid checkpoint id in summary file @ %s:%d", __FILE__, __LINE__);
+      if (scr_log_enable) {
+        double time_end = MPI_Wtime();
+        double time_diff = time_end - time_start;
+        time_t now = scr_log_seconds();
+        scr_log_event("FETCH FAILED", fetch_dir, NULL, &now, &time_diff);
+      }
+    }
+    scr_hash_delete(summary_hash);
+    return SCR_FAILURE;
+  }
 
   /* delete any existing checkpoint files for this checkpoint id (do this before filemap_read) */
   scr_checkpoint_delete(map, checkpoint_id);
@@ -3237,7 +3618,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
   struct scr_ckptdesc* c = scr_ckptdesc_get(checkpoint_id, scr_nckptdescs, scr_ckptdescs);
 
   /* store our checkpoint descriptor hash in the filemap */
-  struct scr_hash* my_desc_hash = scr_hash_new();
+  scr_hash* my_desc_hash = scr_hash_new();
   scr_ckptdesc_store_to_hash(c, my_desc_hash);
   scr_filemap_set_desc(map, checkpoint_id, scr_my_rank_world, my_desc_hash);
   scr_hash_delete(my_desc_hash);
@@ -3249,47 +3630,27 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
   scr_checkpoint_dir_create(c, checkpoint_id);
 
   /* get the checkpoint directory */
-  char ckpt_path[SCR_MAX_FILENAME];
-  scr_checkpoint_dir(c, checkpoint_id, ckpt_path);
-
-  /* scatter the number of files per rank */
-  int my_num_files = 0;
-  MPI_Scatter(num_files, 1, MPI_INT, &my_num_files, 1, MPI_INT, 0, scr_comm_world);
+  char ckpt_dir[SCR_MAX_FILENAME];
+  scr_checkpoint_dir(c, checkpoint_id, ckpt_dir);
 
   /* flow control rate of file reads from rank 0 by scattering file names to processes */
   int success = 1;
   if (scr_my_rank_world == 0) {
-    /* fetch each of our checkpoint files */
-    for (j=0; j < my_num_files; j++) {
-      /* copy my meta from data into a local struct */
-      struct scr_meta meta;
-      scr_meta_copy(&meta, &data[j]);
+    /* sort the rank hash by rank id */
+    scr_hash* ckpt_hash = scr_hash_get_kv_int(summary_hash, SCR_SUMMARY_KEY_CKPT, checkpoint_id);
+    scr_hash* ranks_hash = scr_hash_get(ckpt_hash, SCR_SUMMARY_KEY_RANK);
+    scr_hash_sort_int(ranks_hash);
 
-      /* split src_file into path and filename */
-      char path[SCR_MAX_FILENAME];
-      char name[SCR_MAX_FILENAME];
-      scr_split_path(meta.filename, path, name);
+    /* lookup the hash belonging to our rank */
+    scr_hash* rank_hash = scr_hash_get_kv_int(ckpt_hash, SCR_SUMMARY_KEY_RANK, 0);
 
-      /* get the destination file name */
-      char newfile[SCR_MAX_FILENAME];
-      scr_build_path(newfile, sizeof(newfile), ckpt_path, name);
-      
-      /* add the file to our filemap and write it to disk before creating the file */
-      scr_filemap_add_file(map, checkpoint_id, scr_my_rank_world, newfile);
-      scr_filemap_write(scr_map_file, map);
-
-      /* fetch the file */
-      if (scr_fetch_a_file(fetch_dir, &meta, ckpt_path, newfile, sizeof(newfile)) != SCR_SUCCESS) {
-        success = 0;
-      }
-
-      /* mark the file as complete */
-      scr_complete(newfile, &meta);
+    /* fetch these files into the checkpoint directory */
+    if (scr_fetch_files_list(map, rank_hash, checkpoint_id, fetch_dir, ckpt_dir, &total_bytes) != SCR_SUCCESS) {
+      success = 0;
     }
 
-    /* set the expected number of files for this checkpoint */
-    scr_filemap_set_expected_files(map, checkpoint_id, scr_my_rank_world, my_num_files);
-    scr_filemap_write(scr_map_file, map);
+    /* clear the hash for this element (speeds lookup for later ranks) */
+    scr_hash_unset_kv_int(ckpt_hash, SCR_SUMMARY_KEY_RANK, 0);
 
     /* now, have a sliding window of w processes read simultaneously */
     int w = scr_fetch_width;
@@ -3298,23 +3659,10 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
     }
 
     /* allocate MPI_Request arrays and an array of ints */
-    int* done = (int*) malloc(w * sizeof(int));
+    int* bytes            = (int*)         malloc(w * sizeof(double));
     MPI_Request* req_recv = (MPI_Request*) malloc(w * sizeof(MPI_Request));
-    MPI_Request* req_send = (MPI_Request*) malloc(w * sizeof(MPI_Request));
     MPI_Status status;
-    if (done == NULL || req_recv == NULL || req_send == NULL) {
-      if (done != NULL) {
-        free(done);
-        done = NULL;
-      }
-      if (req_recv != NULL) {
-        free(req_recv);
-        req_recv = NULL;
-      }
-      if (req_send != NULL) {
-        free(req_send);
-        req_send = NULL;
-      }
+    if (bytes == NULL || req_recv == NULL) {
       scr_abort(-1, "scr_fetch_files: Failed to allocate memory for flow control @ %s:%d",
                 __FILE__, __LINE__
       );
@@ -3327,95 +3675,61 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
       /* issue up to w outstanding sends and receives */
       while (i < scr_ranks_world && outstanding < w) {
         /* post a receive for the response message we'll get back when rank i is done */
-        MPI_Irecv(&done[index], 1, MPI_INT, i, 0, scr_comm_world, &req_recv[index]);
+        MPI_Irecv(&bytes[index], 1, MPI_DOUBLE, i, 0, scr_comm_world, &req_recv[index]);
 
-        /* post a send to tell rank i to start */
-        MPI_Isend(&data[offset_files[i]], num_files[i] * sizeof(struct scr_meta), MPI_BYTE,
-                  i, 0, scr_comm_world, &req_send[index]
-        );
+        /* TODO: would be more efficient to scatter this data */
+        /* lookup hash for this rank, send it to the rank, and then unset it from the summary hash */
+        scr_hash* rank_hash = scr_hash_get_kv_int(ckpt_hash, SCR_SUMMARY_KEY_RANK, i);
+        scr_hash_send(rank_hash, i, scr_comm_world);
+        scr_hash_unset_kv_int(ckpt_hash, SCR_SUMMARY_KEY_RANK, i);
 
         /* update the number of outstanding requests */
-        i++;
         outstanding++;
         index++;
+        i++;
       }
 
       /* wait to hear back from any rank */
       MPI_Waitany(w, req_recv, &index, &status);
 
-      /* once we hear back from a rank, the send to that rank should also be done */
-      MPI_Wait(&req_send[index], &status);
-
       /* TODO: want to check success code from processes here
        * (e.g., we could abort read early if rank 1 has trouble?) */
+
+      /* add bytes to our total */
+      total_bytes += bytes[index];
 
       /* one less request outstanding now */
       outstanding--;
     }
 
     /* free the MPI_Request arrays */
-    free(done);     done     = NULL;
-    free(req_recv); req_recv = NULL;
-    free(req_send); req_send = NULL;
-
-    /* free the summary data buffer */
-    free(num_files);    num_files    = NULL;
-    free(offset_files); offset_files = NULL;
-    free(data);         data         = NULL;
+    if (req_recv != NULL) {
+      free(req_recv);
+      req_recv = NULL;
+    }
+    if (bytes != NULL) {
+      free(bytes);
+      bytes = NULL;
+    }
   } else {
-    /* allocate memory to store the meta data for our files */
-    data = (struct scr_meta*) malloc(my_num_files * sizeof(struct scr_meta));
-    if (data == NULL) {
-      scr_abort(-1, "scr_fetch_files: Failed to allocate memory to receive file meta @ %s:%d",
-              __FILE__, __LINE__
-      );
+    /* receive our file data from rank 0 */
+    scr_hash* rank_hash = scr_hash_new();
+    scr_hash_recv(rank_hash, 0, scr_comm_world);
+
+    /* fetch these files into the checkpoint directory */
+    if (scr_fetch_files_list(map, rank_hash, checkpoint_id, fetch_dir, ckpt_dir, &total_bytes) != SCR_SUCCESS) {
+      success = 0;
     }
 
-    /* receive meta data info for my file from rank 0 */
-    MPI_Status status;
-    MPI_Recv(data, my_num_files * sizeof(struct scr_meta), MPI_BYTE, 0, 0, scr_comm_world, &status);
+    /* delete our file data hash object */
+    scr_hash_delete(rank_hash);
 
-    /* fetch each of our checkpoint files */
-    for (j=0; j < my_num_files; j++) {
-      /* copy my meta from data into a local struct */
-      struct scr_meta meta;
-      scr_meta_copy(&meta, &data[j]);
-
-      /* split src_file into path and filename */
-      char path[SCR_MAX_FILENAME];
-      char name[SCR_MAX_FILENAME];
-      scr_split_path(meta.filename, path, name);
-
-      /* get the destination file name */
-      char newfile[SCR_MAX_FILENAME];
-      scr_build_path(newfile, sizeof(newfile), ckpt_path, name);
-      
-      /* add the file to our filemap and write it to disk before creating the file */
-      scr_filemap_add_file(map, checkpoint_id, scr_my_rank_world, newfile);
-      scr_filemap_write(scr_map_file, map);
-
-      /* fetch the file */
-      if (scr_fetch_a_file(fetch_dir, &meta, ckpt_path, newfile, sizeof(newfile)) != SCR_SUCCESS) {
-        success = 0;
-      }
-
-      /* mark the file as complete */
-      scr_complete(newfile, &meta);
-    }
-
-    /* set the expected number of files for this checkpoint */
-    scr_filemap_set_expected_files(map, checkpoint_id, scr_my_rank_world, my_num_files);
-    scr_filemap_write(scr_map_file, map);
- 
-    /* tell rank 0 that we're done, indicate whether we were succesful */
-    MPI_Send(&success, 1, MPI_INT, 0, 0, scr_comm_world);
-
-    /* free our meta data memory */
-    if (data != NULL) {
-      free(data);
-      data = NULL;
-    }
+    /* tell rank 0 that we're done and send total number of bytes we read */
+    MPI_Send(&total_bytes, 1, MPI_DOUBLE, 0, 0, scr_comm_world);
   }
+
+  /* free the hash holding the summary file data */
+  scr_hash_delete(summary_hash);
 
   /* check that all processes copied their file successfully */
   if (!scr_alltrue(success)) {
@@ -3448,6 +3762,9 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
     scr_flush_location_set(checkpoint_id, SCR_FLUSH_KEY_LOCATION_CACHE);
     scr_flush_location_set(checkpoint_id, SCR_FLUSH_KEY_LOCATION_PFS);
     scr_flush_location_unset(checkpoint_id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
+  } else {
+    /* something went wrong, so delete this checkpoint from the cache */
+    scr_checkpoint_delete(scr_map, scr_checkpoint_id);
   }
 
   /* stop timer, compute bandwidth, and report performance */
@@ -3462,11 +3779,15 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
     /* log data on the fetch to the database */
     if (scr_log_enable) {
       time_t now = scr_log_seconds();
-      scr_log_event("FETCH SUCCEEDED", fetch_dir, &checkpoint_id, &now, &time_diff);
+      if (rc == SCR_SUCCESS) {
+        scr_log_event("FETCH SUCCEEDED", fetch_dir, &checkpoint_id, &now, &time_diff);
+      } else {
+        scr_log_event("FETCH FAILED", fetch_dir, &checkpoint_id, &now, &time_diff);
+      }
 
-      char ckpt_path[SCR_MAX_FILENAME];
-      scr_checkpoint_dir(c, checkpoint_id, ckpt_path);
-      scr_log_transfer("FETCH", fetch_dir, ckpt_path, &checkpoint_id,
+      char ckpt_dir[SCR_MAX_FILENAME];
+      scr_checkpoint_dir(c, checkpoint_id, ckpt_dir);
+      scr_log_transfer("FETCH", fetch_dir, ckpt_dir, &checkpoint_id,
                        &timestamp_start, &time_diff, &total_bytes
       );
     }
@@ -3482,15 +3803,16 @@ static int scr_bool_flush_file(const char* file)
   int flush = 1;
 
   /* read meta info for file */
-  struct scr_meta meta;
-  if (scr_meta_read(file, &meta) == SCR_SUCCESS) {
+  scr_meta* meta = scr_meta_new();
+  if (scr_meta_read(file, meta) == SCR_SUCCESS) {
     /* don't flush XOR files */
-    if (meta.filetype == SCR_FILE_XOR) {
+    if (scr_meta_check_filetype(meta, SCR_META_FILE_XOR) == SCR_SUCCESS) {
       flush = 0;
     }
   } else {
     /* TODO: print error */
   }
+  scr_meta_delete(meta);
 
   return flush;
 }
@@ -3513,10 +3835,11 @@ static int scr_flush_dir_create(int checkpoint_id, char* dir)
     char dirname[SCR_MAX_FILENAME];
     sprintf(dirname, "scr.%s.%s.%d", timestamp, scr_jobid, checkpoint_id);
 
-    /* add the directory to our index file */
-    struct scr_hash* index_hash = scr_hash_new();
+    /* add the directory to our index file, and record the flush timestamp */
+    scr_hash* index_hash = scr_hash_new();
     scr_index_read(scr_par_prefix, index_hash);
     scr_index_add_checkpoint_dir(index_hash, checkpoint_id, dirname);
+    scr_index_mark_flushed(index_hash, checkpoint_id, dirname);
     scr_index_write(scr_par_prefix, index_hash);
     scr_hash_delete(index_hash);
 
@@ -3550,7 +3873,7 @@ static int scr_flush_dir_create(int checkpoint_id, char* dir)
 }
 
 /* flushes file named in src_file to dst_dir and fills in meta based on flush, returns success of flush */
-static int scr_flush_a_file(const char* src_file, const char* dst_dir, struct scr_meta* meta)
+static int scr_flush_a_file(const char* src_file, const char* dst_dir, scr_meta* meta)
 {
   int flushed = SCR_SUCCESS;
   int tmp_rc;
@@ -3595,15 +3918,16 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, struct sc
 
   /* if file has crc32, check it against the one computed during the copy, otherwise if scr_crc_on_flush is set, record crc32 */
   if (crc_valid) {
-    if (meta->crc32_computed) {
-      if (crc != meta->crc32) { 
+    uLong crc_meta;
+    if (scr_meta_get_crc32(meta, &crc_meta) == SCR_SUCCESS) {
+      if (crc != crc_meta) { 
         /* detected a crc mismatch during the copy */
 
         /* TODO: unlink the copied file */
         /* unlink(my_flushed_file); */
 
         /* mark the file as invalid */
-        meta->complete = 0;
+        scr_meta_set_complete(meta, 0);
         scr_meta_write(file, meta);
 
         flushed = SCR_FAILURE;
@@ -3621,8 +3945,7 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, struct sc
       }
     } else {
       /* the crc was not already in the metafile, but we just computed it, so set it */
-      meta->crc32_computed = 1;
-      meta->crc32          = crc;
+      scr_meta_set_crc32(meta, crc);
       scr_meta_write(file, meta);
     }
   }
@@ -3643,7 +3966,8 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, struct sc
 
   /* fill out meta data, set complete field based on flush success */
   /* (we don't update the meta file here, since perhaps the file in cache is ok and only the flush failed) */
-  meta->complete = (flushed == SCR_SUCCESS);
+  int complete = (flushed == SCR_SUCCESS);
+  scr_meta_set_complete(meta, complete);
 
   return flushed;
 }
@@ -3653,12 +3977,12 @@ static int    scr_flush_async_checkpoint_id = -1;    /* tracks the id of the che
 static time_t scr_flush_async_timestamp_start;       /* records the time the async flush started */
 static double scr_flush_async_time_start;            /* records the time the async flush started */
 static char   scr_flush_async_dir[SCR_MAX_FILENAME]; /* records the directory the async flush is writing to */
-static struct scr_hash* scr_flush_async_hash = NULL; /* tracks list of files written with flush */
+static scr_hash* scr_flush_async_hash = NULL; /* tracks list of files written with flush */
 static double scr_flush_async_bytes = 0.0;           /* records the total number of bytes to be flushed */
 static int    scr_flush_async_num_files = 0;         /* records the number of files this process must flush */
 
 /* queues file to flushed to dst_dir in hash, returns size of file in bytes */
-static int scr_flush_async_file_enqueue(struct scr_hash* hash, const char* file, const char* dst_dir, double* bytes)
+static int scr_flush_async_file_enqueue(scr_hash* hash, const char* file, const char* dst_dir, double* bytes)
 {
   /* start with 0 bytes written for this file */
   *bytes = 0.0;
@@ -3676,7 +4000,7 @@ static int scr_flush_async_file_enqueue(struct scr_hash* hash, const char* file,
   unsigned long filesize = scr_filesize(file);
 
   /* add this file to the hash, and add its filesize to the number of bytes written */
-  struct scr_hash* file_hash = scr_hash_set_kv(hash, SCR_TRANSFER_KEY_FILES, file);
+  scr_hash* file_hash = scr_hash_set_kv(hash, SCR_TRANSFER_KEY_FILES, file);
   if (file_hash != NULL) {
     scr_hash_setf(file_hash, NULL, "%s %s",  "DESTINATION", dest_file);
     scr_hash_setf(file_hash, NULL, "%s %lu", "SIZE",        filesize);
@@ -3713,13 +4037,13 @@ static int scr_flush_async_file_enqueue(struct scr_hash* hash, const char* file,
 }
 
 /* given a hash, test whether the files in that hash have completed their flush */
-static int scr_flush_async_file_test(const struct scr_hash* hash, double* bytes)
+static int scr_flush_async_file_test(const scr_hash* hash, double* bytes)
 {
   /* initialize bytes to 0 */
   *bytes = 0.0;
 
   /* get the FILES hash */
-  struct scr_hash* files_hash = scr_hash_get(hash, SCR_TRANSFER_KEY_FILES);
+  scr_hash* files_hash = scr_hash_get(hash, SCR_TRANSFER_KEY_FILES);
   if (files_hash == NULL) {
     /* can't tell whether this flush has completed */
     return SCR_FAILURE;
@@ -3730,7 +4054,7 @@ static int scr_flush_async_file_test(const struct scr_hash* hash, double* bytes)
 
   /* for each file, check whether the WRITTEN field matches the SIZE field,
    * which indicates the file has completed its transfer */
-  struct scr_hash_elem* elem;
+  scr_hash_elem* elem;
   for (elem = scr_hash_elem_first(files_hash);
        elem != NULL;
        elem = scr_hash_elem_next(elem))
@@ -3739,7 +4063,7 @@ static int scr_flush_async_file_test(const struct scr_hash* hash, double* bytes)
     char* file = scr_hash_elem_key(elem);
 
     /* get the hash for this file */
-    struct scr_hash* file_hash = scr_hash_elem_hash(elem);
+    scr_hash* file_hash = scr_hash_elem_hash(elem);
     if (file_hash == NULL) {
       transfer_complete = 0;
       continue;
@@ -3773,12 +4097,12 @@ static int scr_flush_async_file_test(const struct scr_hash* hash, double* bytes)
 }
 
 /* dequeues files listed in hash2 from hash1 */
-static int scr_flush_async_file_dequeue(struct scr_hash* hash1, struct scr_hash* hash2)
+static int scr_flush_async_file_dequeue(scr_hash* hash1, scr_hash* hash2)
 {
   /* for each file listed in hash2, remove it from hash1 */
-  struct scr_hash* file_hash = scr_hash_get(hash2, SCR_TRANSFER_KEY_FILES);
+  scr_hash* file_hash = scr_hash_get(hash2, SCR_TRANSFER_KEY_FILES);
   if (file_hash != NULL) {
-    struct scr_hash_elem* elem;
+    scr_hash_elem* elem;
     for (elem = scr_hash_elem_first(file_hash);
          elem != NULL;
          elem = scr_hash_elem_next(elem))
@@ -3894,7 +4218,7 @@ static int scr_flush_async_start(scr_filemap* map, int checkpoint_id)
 
   /* add each of my files to the transfer file list */
   double my_bytes = 0.0;
-  struct scr_hash_elem* elem;
+  scr_hash_elem* elem;
   for (elem = scr_filemap_first_file(map, checkpoint_id, scr_my_rank_world);
        elem != NULL;
        elem = scr_hash_elem_next(elem))
@@ -3916,13 +4240,14 @@ static int scr_flush_async_start(scr_filemap* map, int checkpoint_id)
     /* receive hash data from other processes on the same node and merge with our data */
     int i;
     for (i=1; i < scr_ranks_local; i++) {
-      struct scr_hash* h = scr_hash_recv(i, scr_comm_local);
+      scr_hash* h = scr_hash_new();
+      scr_hash_recv(h, i, scr_comm_local);
       scr_hash_merge(scr_flush_async_hash, h);
       scr_hash_delete(h);
     }
 
     /* get a hash to store file data */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
 
     /* open transfer file with lock */
     int fd = -1;
@@ -3982,7 +4307,7 @@ static int scr_flush_async_command_set(char* command)
   /* have the master on each node write this command to the file */
   if (scr_my_rank_local == 0) {
     /* get a hash to store file data */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
 
     /* read the file */
     int fd = -1;
@@ -4014,13 +4339,13 @@ static int scr_flush_async_state_wait(char* state)
     /* have the master on each node check the state in the transfer file */
     if (scr_my_rank_local == 0) {
       /* get a hash to store file data */
-      struct scr_hash* hash = scr_hash_new();
+      scr_hash* hash = scr_hash_new();
 
       /* open transfer file with lock */
       scr_hash_read_with_lock(scr_transfer_file, hash);
 
       /* check for the specified state */
-      struct scr_hash* state_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_STATE, state);
+      scr_hash* state_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_STATE, state);
       if (state_hash == NULL) {
         valid = 0;
       }
@@ -4049,7 +4374,7 @@ static int scr_flush_async_file_clear_all()
   /* have the master on each node clear the FILES field */
   if (scr_my_rank_local == 0) {
     /* get a hash to store file data */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
 
     /* read the file */
     int fd = -1;
@@ -4148,7 +4473,7 @@ static int scr_flush_async_test(scr_filemap* map, int checkpoint_id, double* byt
   double bytes_written = 0.0;
   if (scr_my_rank_local == 0) {
     /* create a hash to hold the transfer file data */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
 
     /* read transfer file with lock */
     if (scr_hash_read_with_lock(scr_transfer_file, hash) == SCR_SUCCESS) {
@@ -4209,29 +4534,8 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
 
   /* TODO: have master tell each rank on node whether its files were written successfully */
 
-  /* gather the number of files written by each process */
-  int* num_files = NULL;
-  if (scr_my_rank_world == 0) {
-    /* get count of number of files from each process */
-    num_files = (int*) malloc(scr_ranks_world * sizeof(int));
-  }
-  MPI_Gather(&scr_flush_async_num_files, 1, MPI_INT, num_files, 1, MPI_INT, 0, scr_comm_world);
-
-  /* compute the offsets and total number of files written */
-  int* offset_files = NULL;
-  int total_files = scr_flush_async_num_files;
-  if (scr_my_rank_world == 0) {
-    /* compute offsets to write data structures for each rank */
-    offset_files = (int*) malloc(scr_ranks_world * sizeof(int));
-    offset_files[0] = 0;
-    for (i=1; i < scr_ranks_world; i++) {
-      offset_files[i] = offset_files[i-1] + num_files[i-1];
-    }
-    total_files = offset_files[scr_ranks_world-1] + num_files[scr_ranks_world-1];
-  }
-
   /* allocate structure to hold metadata info */
-  struct scr_meta* data = (struct scr_meta*) malloc(total_files * sizeof(struct scr_meta));
+  scr_hash* data = scr_hash_new();
   if (data == NULL) {
     scr_err("scr_flush_async_complete: Failed to malloc data structure to write out summary file @ file %s:%d",
             __FILE__, __LINE__
@@ -4239,9 +4543,12 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
     MPI_Abort(scr_comm_world, 0);
   }
 
+  /* set our rank */
+  scr_hash* rank_hash = scr_hash_set_kv_int(data, SCR_SUMMARY_KEY_RANK, scr_my_rank_world);
+
   /* fill in metadata info for the files this process flushed */
-  i = 0;
-  struct scr_hash_elem* elem = NULL;
+  double total_bytes = 0.0;
+  scr_hash_elem* elem = NULL;
   for (elem = scr_filemap_first_file(map, checkpoint_id, scr_my_rank_world);
        elem != NULL;
        elem = scr_hash_elem_next(elem))
@@ -4251,9 +4558,33 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
 
     /* if we flushed this file, read its metadata info */
     if (scr_bool_flush_file(file)) {
-      scr_meta_read(file, &data[i]);
+      /* record the filename in the hash, and get reference to a hash for this file */
+      char path[SCR_MAX_FILENAME];
+      char name[SCR_MAX_FILENAME];
+      scr_split_path(file, path, name);
+      scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_KEY_FILE, name);
+
+      /* read meta data for this file */
+      scr_hash* flush_meta = scr_hash_new();
+      scr_meta_read(file, flush_meta);
+
       /* TODO: check that this file was written successfully */
-      i++;
+
+      /* successfully flushed this file, record the filesize */
+      unsigned long flush_filesize = 0;
+      if (scr_meta_get_filesize(flush_meta, &flush_filesize) == SCR_SUCCESS) {
+        scr_hash_setf(file_hash, NULL, "%s %lu", SCR_SUMMARY_KEY_SIZE, flush_filesize);
+        total_bytes += (double) flush_filesize;
+      }
+
+      /* record the crc32 if one was computed */
+      uLong flush_crc32;
+      if (scr_meta_get_crc32(flush_meta, &flush_crc32) == SCR_SUCCESS) {
+        scr_hash_setf(file_hash, NULL, "%s %#lx", SCR_SUMMARY_KEY_CRC, flush_crc32);
+      }
+
+      /* delete our temporary meta data object */
+      scr_hash_delete(flush_meta);
     }
   }
 
@@ -4268,6 +4599,7 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
 
     /* allocate MPI_Request arrays and an array of ints */
     int*         ranks    = (int*)         malloc(w * sizeof(int));
+    double*      bytes    = (double*)      malloc(w * sizeof(double));
     MPI_Request* req_recv = (MPI_Request*) malloc(w * sizeof(MPI_Request));
     MPI_Request* req_send = (MPI_Request*) malloc(w * sizeof(MPI_Request));
     MPI_Status status;
@@ -4282,11 +4614,7 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
         ranks[index] = i;
 
         /* post a receive for the response message we'll get back when rank i is done */
-        int num = num_files[i];
-        int offset = offset_files[i];
-        MPI_Irecv(&data[offset], num * sizeof(struct scr_meta), MPI_BYTE, i,
-                  0, scr_comm_world, &req_recv[index]
-        );
+        MPI_Irecv(&bytes[index], 1, MPI_DOUBLE, i, 0, scr_comm_world, &req_recv[index]);
 
         /* post a send to tell rank i to start */
         int start = 1;
@@ -4304,19 +4632,14 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
       /* once we hear back from a rank, the send to that rank should also be done, so complete it */
       MPI_Wait(&req_send[index], &status);
 
-      /* check whether this rank wrote its files successfully */
-      int rank = ranks[index];
-      int j;
-      for (j=0; j < num_files[rank]; j++) {
-        /* compute the offset for each file from this rank */
-        int offset = offset_files[rank] + j;
+      /* receive the meta data from this rank */
+      scr_hash* incoming_hash = scr_hash_new();
+      scr_hash_recv(incoming_hash, ranks[index], scr_comm_world);
+      scr_hash_merge(data, incoming_hash);
+      scr_hash_delete(incoming_hash);
 
-        /* TODO: check that this file was written successfully */
-
-        scr_dbg(2, "scr_flush_async_complete: Rank %d wrote %s with completeness code %d @ %s:%d",
-                rank, data[offset].filename, data[offset].complete, __FILE__, __LINE__
-        );
-      }
+      /* add the number of bytes written by this rank */
+      total_bytes += bytes[index];
 
       /* one less request outstanding now */
       outstanding--;
@@ -4331,15 +4654,13 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
       free(req_recv);
       req_recv = NULL;
     }
+    if (bytes != NULL) {
+      free(bytes);
+      bytes = NULL;
+    }
     if (ranks != NULL) {
       free(ranks);
-      ranks    = NULL;
-    }
-
-    /* write out summary file */
-    int wrote_summary = scr_summary_write2(scr_flush_async_dir, scr_flush_async_checkpoint_id, total_files, data);
-    if (wrote_summary != SCR_SUCCESS) {
-      flushed = SCR_FAILURE;
+      ranks = NULL;
     }
   } else {
     /* receive signal to start */
@@ -4347,48 +4668,91 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
     MPI_Status status;
     MPI_Recv(&start, 1, MPI_INT, 0, 0, scr_comm_world, &status);
 
-    /* send meta data to rank 0 */
-    MPI_Send(data, total_files * sizeof(struct scr_meta), MPI_BYTE, 0, 0, scr_comm_world);
-  }
+    /* flush each of my files and fill in meta data structures */
+    scr_hash_elem* elem = NULL;
+    for (elem = scr_filemap_first_file(map, checkpoint_id, scr_my_rank_world);
+         elem != NULL;
+         elem = scr_hash_elem_next(elem))
+    {
+      /* get the filename */
+      char* file = scr_hash_elem_key(elem);
 
-  /* free data structures */
-  if (data != NULL) {
-    free(data);
-    data = NULL;
-  }
-  if (offset_files != NULL) {
-    free(offset_files);
-    offset_files = NULL;
-  }
-  if (num_files != NULL) {
-    free(num_files);
-    num_files = NULL;
+      /* flush this file if needed */
+      if (scr_bool_flush_file(file)) {
+        /* record the filename in the hash, and get reference to a hash for this file */
+        char path[SCR_MAX_FILENAME];
+        char name[SCR_MAX_FILENAME];
+        scr_split_path(file, path, name);
+        scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_KEY_FILE, name);
+
+        /* read meta data for this file */
+        scr_hash* flush_meta = scr_hash_new();
+        scr_meta_read(file, flush_meta);
+
+        /* TODO: check that this file was written successfully */
+
+        /* successfully flushed this file, record the filesize */
+        unsigned long flush_filesize = 0;
+        if (scr_meta_get_filesize(flush_meta, &flush_filesize) == SCR_SUCCESS) {
+          scr_hash_setf(file_hash, NULL, "%s %lu", SCR_SUMMARY_KEY_SIZE, flush_filesize);
+          total_bytes += (double) flush_filesize;
+        }
+
+        /* record the crc32 if one was computed */
+        uLong flush_crc32;
+        if (scr_meta_get_crc32(flush_meta, &flush_crc32) == SCR_SUCCESS) {
+          scr_hash_setf(file_hash, NULL, "%s %#lx", SCR_SUMMARY_KEY_CRC, flush_crc32);
+        }
+
+        /* delete our temporary meta data object */
+        scr_hash_delete(flush_meta);
+      }
+    }
+
+    /* send total bytes to rank 0 */
+    MPI_Send(&total_bytes, 1, MPI_DOUBLE, 0, 0, scr_comm_world);
+
+    /* would be better to do this as a reduction-type of operation */
+    scr_hash_send(data, 0, scr_comm_world);
   }
 
   /* determine whether everyone wrote their files ok */
-  int write_succeeded = scr_alltrue((flushed == SCR_SUCCESS));
+  int all_success = scr_alltrue((flushed == SCR_SUCCESS));
 
-  /* if flush succeeded, update the current symlink */
-  if (write_succeeded && scr_my_rank_world == 0) {
-    /* TODO: update 'flushed' depending on symlink update */
+  if (scr_my_rank_world == 0) {
+    if (all_success) {
+      /* everyone wrote their files ok, now write out summary file */
+      int wrote_summary = scr_summary_write(scr_flush_async_dir, checkpoint_id, all_success, data);
+      if (wrote_summary != SCR_SUCCESS) {
+        flushed = SCR_FAILURE;
+      }
 
-    /* file write succeeded, now update symlinks */
-    char current[SCR_MAX_FILENAME];
-    scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
+      /* if we also wrote the summary file ok, update the current symlink */
+      if (flushed == SCR_SUCCESS) {
+        /* TODO: update 'flushed' depending on symlink update */
 
-    /* if current exists, read it in, unlink it, and create old */
-    if (access(current, F_OK) == 0) {
-      unlink(current);
+        /* build path to current symlink */
+        char current[SCR_MAX_FILENAME];
+        scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
+
+        /* if current exists, unlink it */
+        if (access(current, F_OK) == 0) {
+          unlink(current);
+        }
+
+        /* create new current to point to new directory */
+        char target_path[SCR_MAX_FILENAME];
+        char target_name[SCR_MAX_FILENAME];
+        scr_split_path(scr_flush_async_dir, target_path, target_name);
+        symlink(target_name, current);
+      } else {
+        /* someone failed to write a file */
+        flushed = SCR_FAILURE;
+      }
     }
-
-    /* create new current to point to new directory */
-    char target_path[SCR_MAX_FILENAME];
-    char target_name[SCR_MAX_FILENAME];
-    scr_split_path(scr_flush_async_dir, target_path, target_name);
-    symlink(target_name, current);
   }
 
-  /* have rank 0 broadcast whether the entire flush and symlink update succeeded */
+  /* have rank 0 broadcast whether the entire flush succeeded, including summary file and symlink update */
   MPI_Bcast(&flushed, 1, MPI_INT, 0, scr_comm_world);
 
   /* mark set as flushed to the parallel file system */
@@ -4403,28 +4767,31 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
   /* have master on each node remove files from the transfer file */
   if (scr_my_rank_local == 0) {
     /* get a hash to read from the file */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* transfer_hash = scr_hash_new();
 
-    /* lock the transfer file, open in, and read it into the hash */
+    /* lock the transfer file, open it, and read it into the hash */
     int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
+    scr_hash_lock_open_read(scr_transfer_file, &fd, transfer_hash);
 
     /* remove files from the list */
-    scr_flush_async_file_dequeue(hash, scr_flush_async_hash);
+    scr_flush_async_file_dequeue(transfer_hash, scr_flush_async_hash);
 
     /* set the STOP command */
-    scr_hash_unset(hash, SCR_TRANSFER_KEY_COMMAND);
-    scr_hash_set_kv(hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_STOP);
+    scr_hash_unset(transfer_hash, SCR_TRANSFER_KEY_COMMAND);
+    scr_hash_set_kv(transfer_hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_STOP);
 
     /* write the hash back to the file */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+    scr_hash_write_close_unlock(scr_transfer_file, &fd, transfer_hash);
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(transfer_hash);
   }
 
   /* free the file list for this checkpoint */
   scr_hash_delete(scr_flush_async_hash);
+
+  /* free data structures */
+  scr_hash_delete(data);
 
   /* stop timer, compute bandwidth, and report performance */
   if (scr_my_rank_world == 0) {
@@ -4446,12 +4813,12 @@ static int scr_flush_async_complete(scr_filemap* map, int checkpoint_id)
         scr_log_event("ASYNC FLUSH SUCCEEDED", scr_flush_async_dir, &checkpoint_id, &now, &time_diff);
 
         /* lookup the checkpoint directory for this checkpoint */
-        char* ckpt_path = scr_ckptdesc_dir_from_filemap(map, checkpoint_id, scr_my_rank_world);
-        scr_log_transfer("ASYNC FLUSH", ckpt_path, scr_flush_async_dir, &checkpoint_id,
+        char* ckpt_dir = scr_ckptdesc_dir_from_filemap(map, checkpoint_id, scr_my_rank_world);
+        scr_log_transfer("ASYNC FLUSH", ckpt_dir, scr_flush_async_dir, &checkpoint_id,
                          &scr_flush_async_timestamp_start, &time_diff, &scr_flush_async_bytes
         );
-        if (ckpt_path != NULL) {
-          free(ckpt_path);
+        if (ckpt_dir != NULL) {
+          free(ckpt_dir);
         }
       }
     } else {
@@ -4492,6 +4859,67 @@ static int scr_flush_async_wait(scr_filemap* map)
   }
 
   return SCR_SUCCESS;
+}
+
+/* flush files listed in filemap for specified checkpoint_id to specified directory,
+ * record files in hash and fill in number of bytes flushed,
+ * returns SCR_SUCCESS if successful */
+static int scr_flush_files_list(scr_filemap* map, scr_hash* hash, int checkpoint_id, const char* flush_dir, double* total_bytes)
+{
+  /* assume we will succeed in this flush */
+  int rc = SCR_SUCCESS;
+
+  /* assume we won't flush any files */
+  *total_bytes = 0.0;
+
+  /* flush each of my files, fill in meta data structure, add to the byte count */
+  scr_hash_elem* elem = NULL;
+  for (elem = scr_filemap_first_file(map, checkpoint_id, scr_my_rank_world);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* get the filename */
+    char* file = scr_hash_elem_key(elem);
+
+    /* flush this file if needed */
+    if (scr_bool_flush_file(file)) {
+      /* record the filename in the hash, and get reference to a hash for this file */
+      char path[SCR_MAX_FILENAME];
+      char name[SCR_MAX_FILENAME];
+      scr_split_path(file, path, name);
+      scr_hash* file_hash = scr_hash_set_kv(hash, SCR_SUMMARY_KEY_FILE, name);
+
+      /* allocate a new meta data object */
+      scr_meta* meta = scr_meta_new();
+
+      /* flush the file and fill in the meta data for this file */
+      if (scr_flush_a_file(file, flush_dir, meta) != SCR_SUCCESS) {
+        /* the flush failed */
+        rc = SCR_FAILURE;
+
+        /* explicitly mark incomplete files */
+        scr_hash_set_kv_int(file_hash, SCR_SUMMARY_KEY_COMPLETE, 0);
+      } else {
+        /* successfully flushed this file, record the filesize */
+        unsigned long filesize = 0;
+        if (scr_meta_get_filesize(meta, &filesize) == SCR_SUCCESS) {
+          scr_hash_setf(file_hash, NULL, "%s %lu", SCR_SUMMARY_KEY_SIZE, filesize);
+          *total_bytes += (double) filesize;
+        }
+
+        /* record the crc32 if one was computed */
+        uLong crc = 0;
+        if (scr_meta_get_crc32(meta, &crc) == SCR_SUCCESS) {
+          scr_hash_setf(file_hash, NULL, "%s %#lx", SCR_SUMMARY_KEY_CRC, crc);
+        }
+      }
+
+      /* delete our temporary meta data object */
+      scr_meta_delete(meta);
+    }
+  }
+
+  return rc;
 }
 
 /* flush files from cache to parallel file system under SCR_PREFIX */
@@ -4587,42 +5015,8 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
     scr_dbg(1, "scr_flush_files: Flushing to %s", dir);
   }
 
-  /* count the number of files we need to flush for this checkpoint id and rank */
-  int my_num_files = 0;
-  struct scr_hash_elem* elem = NULL;
-  for (elem = scr_filemap_first_file(map, checkpoint_id, scr_my_rank_world);
-       elem != NULL;
-       elem = scr_hash_elem_next(elem))
-  {
-    /* get the filename, and count it if it should be flushed */
-    char* file = scr_hash_elem_key(elem);
-    if (scr_bool_flush_file(file)) {
-      my_num_files++;
-    }
-  }
-
-  /* gather the number of files for each process */
-  int* num_files = NULL;
-  if (scr_my_rank_world == 0) {
-    num_files = (int*) malloc(scr_ranks_world * sizeof(int));
-  }
-  MPI_Gather(&my_num_files, 1, MPI_INT, num_files, 1, MPI_INT, 0, scr_comm_world);
-
-  /* compute the offsets and total number of files written */
-  int* offset_files = NULL;
-  int total_files = my_num_files;
-  if (scr_my_rank_world == 0) {
-    /* compute offsets to write data structures for each rank */
-    offset_files = (int*) malloc(scr_ranks_world * sizeof(int));
-    offset_files[0] = 0;
-    for (i=1; i < scr_ranks_world; i++) {
-      offset_files[i] = offset_files[i-1] + num_files[i-1];
-    }
-    total_files = offset_files[scr_ranks_world-1] + num_files[scr_ranks_world-1];
-  }
-
-  /* allocate structure to hold metadata info */
-  struct scr_meta* data = (struct scr_meta*) malloc(total_files * sizeof(struct scr_meta));
+  /* allocate structure to hold summary file info */
+  scr_hash* data = scr_hash_new();
   if (data == NULL) {
     scr_err("scr_flush_files: Failed to malloc data structure to write out summary file @ file %s:%d",
             __FILE__, __LINE__
@@ -4630,28 +5024,14 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
     MPI_Abort(scr_comm_world, 0);
   }
 
+  /* set our rank */
+  scr_hash* rank_hash = scr_hash_set_kv_int(data, SCR_SUMMARY_KEY_RANK, scr_my_rank_world);
+
   /* flow control the write among processes, and gather meta data to rank 0 */
   double total_bytes = 0.0;
   if (scr_my_rank_world == 0) {
     /* flush each of my files, fill in meta data structure, add to the byte count */
-    i = 0;
-    for (elem = scr_filemap_first_file(map, checkpoint_id, scr_my_rank_world);
-         elem != NULL;
-         elem = scr_hash_elem_next(elem))
-    {
-      /* get the filename */
-      char* file = scr_hash_elem_key(elem);
-
-      /* flush this file if needed */
-      if (scr_bool_flush_file(file)) {
-        if (scr_flush_a_file(file, dir, &data[i]) != SCR_SUCCESS) {
-          flushed = SCR_FAILURE;
-        } else {
-          total_bytes += (double) data[i].filesize;
-        }
-        i++;
-      }
-    }
+    scr_flush_files_list(map, rank_hash, checkpoint_id, dir, &total_bytes);
 
     /* now, have a sliding window of w processes write simultaneously */
     int w = scr_flush_width;
@@ -4661,6 +5041,7 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
 
     /* allocate MPI_Request arrays and an array of ints */
     int*         ranks    = (int*)         malloc(w * sizeof(int));
+    double*      bytes    = (double*)      malloc(w * sizeof(double));
     MPI_Request* req_recv = (MPI_Request*) malloc(w * sizeof(MPI_Request));
     MPI_Request* req_send = (MPI_Request*) malloc(w * sizeof(MPI_Request));
     MPI_Status status;
@@ -4675,11 +5056,7 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
         ranks[index] = i;
 
         /* post a receive for the response message we'll get back when rank i is done */
-        int num = num_files[i];
-        int offset = offset_files[i];
-        MPI_Irecv(&data[offset], num * sizeof(struct scr_meta), MPI_BYTE,
-                  i, 0, scr_comm_world, &req_recv[index]
-        );
+        MPI_Irecv(&bytes[index], 1, MPI_DOUBLE, i, 0, scr_comm_world, &req_recv[index]);
 
         /* post a send to tell rank i to start */
         int start = 1;
@@ -4694,28 +5071,17 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
       /* wait to hear back from any rank */
       MPI_Waitany(w, req_recv, &index, &status);
 
-      /* once we hear back from a rank, the send to that rank should also be done, so complete it */
+      /* someone responded, the send to this rank should also be done, so complete it */
       MPI_Wait(&req_send[index], &status);
 
-      /* check whether this rank wrote its files successfully */
-      int rank = ranks[index];
-      int j;
-      for (j=0; j < num_files[rank]; j++) {
-        /* compute the offset for each file from this rank */
-        int offset = offset_files[rank] + j;
+      /* receive the meta data from this rank */
+      scr_hash* incoming_hash = scr_hash_new();
+      scr_hash_recv(incoming_hash, ranks[index], scr_comm_world);
+      scr_hash_merge(data, incoming_hash);
+      scr_hash_delete(incoming_hash);
 
-        /* check that this file was written successfully */
-        if (!data[offset].complete) {
-          flushed = SCR_FAILURE;
-        }
-
-        /* add the number of bytes written to the total */
-        total_bytes += (double) data[offset].filesize;
-
-        scr_dbg(2, "scr_flush_files: Rank %d wrote %s with completeness code %d @ %s:%d",
-                rank, data[offset].filename, data[offset].complete, __FILE__, __LINE__
-        );
-      }
+      /* add the number of bytes written by this rank */
+      total_bytes += bytes[index];
 
       /* one less request outstanding now */
       outstanding--;
@@ -4730,14 +5096,13 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
       free(req_recv);
       req_recv = NULL;
     }
+    if (bytes != NULL) {
+      free(bytes);
+      bytes = NULL;
+    }
     if (ranks != NULL) {
       free(ranks);
-      ranks    = NULL;
-    }
-
-    /* write out summary file */
-    if (scr_summary_write2(dir, checkpoint_id, total_files, data) != SCR_SUCCESS) {
-      flushed = SCR_FAILURE;
+      ranks = NULL;
     }
   } else {
     /* receive signal to start */
@@ -4746,71 +5111,60 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
     MPI_Recv(&start, 1, MPI_INT, 0, 0, scr_comm_world, &status);
 
     /* flush each of my files and fill in meta data structures */
-    i = 0;
-    for (elem = scr_filemap_first_file(map, checkpoint_id, scr_my_rank_world);
-         elem != NULL;
-         elem = scr_hash_elem_next(elem))
-    {
-      /* get the filename */
-      char* file = scr_hash_elem_key(elem);
+    scr_flush_files_list(map, rank_hash, checkpoint_id, dir, &total_bytes);
 
-      /* flush this file if needed */
-      if (scr_bool_flush_file(file)) {
-        if (scr_flush_a_file(file, dir, &data[i]) != SCR_SUCCESS) {
-          flushed = SCR_FAILURE;
-        }
-        i++;
-      }
-    }
+    /* send total bytes to rank 0 */
+    MPI_Send(&total_bytes, 1, MPI_DOUBLE, 0, 0, scr_comm_world);
 
-    /* send meta data to rank 0 */
-    MPI_Send(data, my_num_files * sizeof(struct scr_meta), MPI_BYTE, 0, 0, scr_comm_world);
-  }
-
-  /* free data structures */
-  if (data != NULL) {
-    free(data);
-    data = NULL;
-  }
-  if (offset_files != NULL) {
-    free(offset_files);
-    offset_files = NULL;
-  }
-  if (num_files != NULL) {
-    free(num_files);
-    num_files = NULL;
+    /* would be better to do this as a reduction-type of operation */
+    scr_hash_send(data, 0, scr_comm_world);
   }
 
   /* determine whether everyone wrote their files ok */
-  int write_succeeded = scr_alltrue((flushed == SCR_SUCCESS));
+  int all_success = scr_alltrue((flushed == SCR_SUCCESS));
 
-  /* if flush succeeded, update the current symlink */
-  if (write_succeeded && scr_my_rank_world == 0) {
-    /* TODO: update 'flushed' depending on symlink update */
+  if (scr_my_rank_world == 0) {
+    if (all_success) {
+      /* everyone wrote their files ok, now write out summary file */
+      if (scr_summary_write(dir, checkpoint_id, all_success, data) != SCR_SUCCESS) {
+        flushed = SCR_FAILURE;
+      }
 
-    /* file write succeeded, now update symlinks */
-    char current[SCR_MAX_FILENAME];
-    scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
+      /* if we also wrote the summary file ok, update the current symlink */
+      if (flushed == SCR_SUCCESS) {
+        /* TODO: update 'flushed' depending on symlink update */
 
-    /* if current exists, unlink it */
-    if (access(current, F_OK) == 0) {
-      unlink(current);
+        /* build path to current symlink */
+        char current[SCR_MAX_FILENAME];
+        scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
+
+        /* if current exists, unlink it */
+        if (access(current, F_OK) == 0) {
+          unlink(current);
+        }
+
+        /* create new current to point to new directory */
+        char target_path[SCR_MAX_FILENAME];
+        char target_name[SCR_MAX_FILENAME];
+        scr_split_path(dir, target_path, target_name);
+        symlink(target_name, current);
+      } else {
+        /* someone failed to write a file */
+        flushed = SCR_FAILURE;
+      }
     }
-
-    /* create new current to point to new directory */
-    char target_path[SCR_MAX_FILENAME];
-    char target_name[SCR_MAX_FILENAME];
-    scr_split_path(dir, target_path, target_name);
-    symlink(target_name, current);
   }
 
-  /* have rank 0 broadcast whether the entire flush and symlink update succeeded */
+  /* have rank 0 broadcast whether the entire flush succeeded, including summary file and symlink update */
   MPI_Bcast(&flushed, 1, MPI_INT, 0, scr_comm_world);
 
-  /* mark set as flushed to the parallel file system */
+  /* mark this checkpoint as flushed to the parallel file system */
   if (flushed == SCR_SUCCESS) {
     scr_flush_location_set(checkpoint_id, SCR_FLUSH_KEY_LOCATION_PFS);
   }
+
+  /* free data structures */
+  scr_hash_delete(data);
 
   /* stop timer, compute bandwidth, and report performance */
   if (scr_my_rank_world == 0) {
@@ -4832,10 +5186,10 @@ static int scr_flush_files(scr_filemap* map, int checkpoint_id)
         scr_log_event("FLUSH SUCCEEDED", dir, &checkpoint_id, &now, &time_diff);
 
         /* lookup the checkpoint descriptor for this checkpoint */
-        char* ckpt_path = scr_ckptdesc_dir_from_filemap(map, checkpoint_id, scr_my_rank_world);
-        scr_log_transfer("FLUSH", ckpt_path, dir, &checkpoint_id, &timestamp_start, &time_diff, &total_bytes);
-        if (ckpt_path != NULL) {
-          free(ckpt_path);
+        char* ckpt_dir = scr_ckptdesc_dir_from_filemap(map, checkpoint_id, scr_my_rank_world);
+        scr_log_transfer("FLUSH", ckpt_dir, dir, &checkpoint_id, &timestamp_start, &time_diff, &total_bytes);
+        if (ckpt_dir != NULL) {
+          free(ckpt_dir);
         }
       }
     } else {
@@ -4861,15 +5215,17 @@ static int scr_check_flush(scr_filemap* map)
     /* every scr_flush checkpoints, flush the checkpoint set */
     if (scr_checkpoint_id > 0 && scr_checkpoint_id % scr_flush == 0) {
       if (scr_flush_async) {
-        /* we need to flush the current checkpoint, however, another flush is ongoing,
-         * so wait for this other flush to complete before starting the next one */
+        /* check that we don't start an async flush if one is already in progress */
         if (scr_flush_async_in_progress) {
+          /* we need to flush the current checkpoint, however, another flush is ongoing,
+           * so wait for this other flush to complete before starting the next one */
           scr_flush_async_wait(map);
         }
 
         /* start an async flush on the current checkpoint id */
         scr_flush_async_start(map, scr_checkpoint_id);
       } else {
+        /* synchronously flush the current checkpoint */
         scr_flush_files(map, scr_checkpoint_id);
       }
     }
@@ -5074,7 +5430,7 @@ static int scr_bool_have_xor_file(scr_filemap* map, int checkpoint_id, char* xor
   int rc = 0;
 
   /* find the name of my xor chunk file: read filemap and check filetype of each file */
-  struct scr_hash_elem* file_elem;
+  scr_hash_elem* file_elem = NULL;
   for (file_elem = scr_filemap_first_file(map, checkpoint_id, scr_my_rank_world);
        file_elem != NULL;
        file_elem = scr_hash_elem_next(file_elem))
@@ -5083,15 +5439,22 @@ static int scr_bool_have_xor_file(scr_filemap* map, int checkpoint_id, char* xor
     char* file = scr_hash_elem_key(file_elem);
 
     /* read the meta for this file */
-    struct scr_meta meta;
-    scr_meta_read(file, &meta);
+    scr_meta* meta = scr_meta_new();
+    scr_meta_read(file, meta);
 
     /* if the filetype of this file is an XOR fule, copy the filename and bail out */
-    if (meta.filetype == SCR_FILE_XOR) {
-      strcpy(xor_file, file);
-      rc = 1;
-      break;
+    char* filetype = NULL;
+    if (scr_meta_get_filetype(meta, &filetype) == SCR_SUCCESS) {
+      if (strcmp(filetype, SCR_META_FILE_XOR) == 0) {
+        strcpy(xor_file, file);
+        rc = 1;
+        scr_meta_delete(meta);
+        break;
+      }
     }
+
+    /* free the meta data for this file and go on to the next */
+    scr_meta_delete(meta);
   }
 
   return rc;
@@ -5102,46 +5465,55 @@ static int scr_bool_have_xor_file(scr_filemap* map, int checkpoint_id, char* xor
 static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int checkpoint_id, int root)
 {
   int rc = SCR_SUCCESS;
-
-  int fd_chunk;
-  struct scr_copy_xor_header h;
   int i;
+  MPI_Status  status[2];
+
+  int fd_chunk = 0;
+  char full_chunk_filename[SCR_MAX_FILENAME] = "";
+  char path[SCR_MAX_FILENAME] = "";
+  char name[SCR_MAX_FILENAME] = "";
+
   int* fds = NULL;
   char** filenames = NULL;
   unsigned long* filesizes = NULL;
 
-  char full_chunk_filename[SCR_MAX_FILENAME];
-  char path[SCR_MAX_FILENAME] = "";
-  char name[SCR_MAX_FILENAME] = "";
-  unsigned long my_bytes;
-  MPI_Status  status[2];
-  if (root != c->my_rank) {
-    /* find the name of my xor chunk file: read filemap and check filetype of each file */
-    if (!scr_bool_have_xor_file(map, checkpoint_id, full_chunk_filename)) {
-      /* TODO: need to throw an error if we didn't find the file */
-    }
+  /* allocate hash object to read in (or receive) the header of the XOR file */
+  scr_hash* header = scr_hash_new();
 
-    /* read the meta file for our XOR chunk */
-    struct scr_meta meta_chunk;
-    scr_meta_read(full_chunk_filename, &meta_chunk);
+  int num_files = -1;
+  scr_hash* current_hash = NULL;
+  if (root != c->my_rank) {
+    /* lookup name of xor file */
+    if (!scr_bool_have_xor_file(map, checkpoint_id, full_chunk_filename)) {
+      scr_abort(-1, "Missing XOR file %s @ %s:%d",
+              full_chunk_filename, __FILE__, __LINE__
+      );
+    }
 
     /* open our xor file for reading */
     fd_chunk = scr_open(full_chunk_filename, O_RDONLY);
     if (fd_chunk < 0) {
-      /* TODO: try again? */
       scr_abort(-1, "Opening XOR file for reading in XOR rebuild: scr_open(%s, O_RDONLY) errno=%d %m @ %s:%d",
               full_chunk_filename, errno, __FILE__, __LINE__
       );
     }
 
     /* read in the xor chunk header */
-    scr_copy_xor_header_read(fd_chunk, &h);
+    scr_hash_read_fd(full_chunk_filename, fd_chunk, header);
+
+    /* lookup number of files this process wrote */
+    current_hash = scr_hash_get(header, SCR_KEY_COPY_XOR_CURRENT);
+    if (scr_hash_util_get_int(current_hash, SCR_KEY_COPY_XOR_FILES, &num_files) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to read number of files from XOR file header: %s @ %s:%d",
+              full_chunk_filename, __FILE__, __LINE__
+      );
+    }
 
     /* allocate arrays to hold file descriptors, filenames, and filesizes for each of our files */
-    if (h.my_nfiles > 0) {
-      fds       = (int*)           malloc(h.my_nfiles * sizeof(int));
-      filenames = (char**)         malloc(h.my_nfiles * sizeof(char*));
-      filesizes = (unsigned long*) malloc(h.my_nfiles * sizeof(unsigned long));
+    if (num_files > 0) {
+      fds       = (int*)           malloc(num_files * sizeof(int));
+      filenames = (char**)         malloc(num_files * sizeof(char*));
+      filesizes = (unsigned long*) malloc(num_files * sizeof(unsigned long));
       if (fds == NULL || filenames == NULL || filesizes == NULL) {
         scr_abort(-1, "Failed to allocate file arrays @ %s:%d",
                   __FILE__, __LINE__
@@ -5153,11 +5525,26 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
     scr_split_path(full_chunk_filename, path, name);
 
     /* open each of our files */
-    unsigned long my_bytes = 0;
-    for (i=0; i < h.my_nfiles; i++) {
+    for (i=0; i < num_files; i++) {
+      /* lookup meta data for this file from header hash */
+      scr_hash* meta_tmp = scr_hash_get_kv_int(current_hash, SCR_KEY_COPY_XOR_FILE, i);
+      if (meta_tmp == NULL) {
+        scr_abort(-1, "Failed to find file %d in XOR file header %s @ %s:%d",
+                  i, full_chunk_filename, __FILE__, __LINE__
+        );
+      }
+
+      /* get pointer to filename for this file */
+      char* filename = NULL;
+      if (scr_meta_get_filename(meta_tmp, &filename) != SCR_SUCCESS) {
+        scr_abort(-1, "Failed to read filename for file %d in XOR file header %s @ %s:%d",
+                  i, full_chunk_filename, __FILE__, __LINE__
+        );
+      }
+
       /* create full path to the file */
       char full_file[SCR_MAX_FILENAME];
-      scr_build_path(full_file, sizeof(full_file), path, h.my_files[i].filename);
+      scr_build_path(full_file, sizeof(full_file), path, filename);
 
       /* copy the full filename */
       filenames[i] = strdup(full_file);
@@ -5167,12 +5554,12 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
         );
       }
 
-      /* get the filesize */
-      filesizes[i] = h.my_files[i].filesize;
-      my_bytes = filesizes[i];
-
-      /* read meta for the file */
-      scr_meta_read(full_file, &(h.my_files[i]));
+      /* lookup the filesize */
+      if (scr_meta_get_filesize(meta_tmp, &filesizes[i]) != SCR_SUCCESS) {
+        scr_abort(-1, "Failed to read file size for file %s in XOR file header during rebuild @ %s:%d",
+                  full_file, __FILE__, __LINE__
+        );
+      }
 
       /* open the file for reading */
       fds[i] = scr_open(full_file, O_RDONLY);
@@ -5184,56 +5571,102 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
       }
     }
 
-    /* if failed rank is to my left, i have the meta for his files, send it to him */
+    /* if failed rank is to my left, i have the meta for his files, send him the header */
     if (root == c->lhs_rank) {
-      MPI_Send(&h.partner_nfiles, 1, MPI_INT, c->lhs_rank, 0, c->comm);
-      MPI_Send(h.partner_files, h.partner_nfiles * sizeof(struct scr_meta), MPI_BYTE, c->lhs_rank, 0, c->comm);
-      MPI_Send(&h.checkpoint_id, 1, MPI_INT, c->lhs_rank, 0, c->comm);
-      MPI_Send(&h.chunk_size, sizeof(unsigned long), MPI_BYTE, c->lhs_rank, 0, c->comm);
+      scr_hash_send(header, c->lhs_rank, c->comm);
     }
 
-    /* if failed rank is to my right, send him my file count and meta data so he can write his XOR header */
+    /* if failed rank is to my right, send him my file info so he can write his XOR header */
     if (root == c->rhs_rank) {
-      MPI_Send(&h.my_nfiles, 1, MPI_INT, c->rhs_rank, 0, c->comm);
-      MPI_Send(h.my_files, h.my_nfiles * sizeof(struct scr_meta), MPI_BYTE, c->rhs_rank, 0, c->comm);
+      scr_hash_send(current_hash, c->rhs_rank, c->comm);
     }
   } else {
-    /* receive the number of files and meta data for my files, as well as, 
-     * the checkpoint id and the chunk size from right-side partner */
-    MPI_Recv(&h.my_nfiles, 1, MPI_INT, c->rhs_rank, 0, c->comm, &status[0]);
-    scr_copy_xor_header_set_ranks(&h, scr_comm_level, scr_comm_world);
-    scr_copy_xor_header_alloc_my_files(&h, scr_my_rank_world, h.my_nfiles);
-    if (h.my_nfiles > 0) {
-      fds       = (int*)           malloc(h.my_nfiles * sizeof(int));
-      filenames = (char**)         malloc(h.my_nfiles * sizeof(char*));
-      filesizes = (unsigned long*) malloc(h.my_nfiles * sizeof(unsigned long));
+    /* receive the header from right-side partner;
+     * includes number of files and meta data for my files, as well as, 
+     * the checkpoint id and the chunk size */
+    scr_hash_recv(header, c->rhs_rank, c->comm);
+
+    /* rename PARTNER to CURRENT in our header */
+    current_hash = scr_hash_new();
+    scr_hash* old_hash = scr_hash_get(header, SCR_KEY_COPY_XOR_PARTNER);
+    scr_hash_merge(current_hash, old_hash);
+    scr_hash_unset(header, SCR_KEY_COPY_XOR_CURRENT);
+    scr_hash_unset(header, SCR_KEY_COPY_XOR_PARTNER);
+    scr_hash_set(header, SCR_KEY_COPY_XOR_CURRENT, current_hash);
+
+    /* receive number of files our left-side partner has and allocate an array of
+     * meta structures to store info */
+    scr_hash* partner_hash = scr_hash_new();
+    scr_hash_recv(partner_hash, c->lhs_rank, c->comm);
+    scr_hash_set(header, SCR_KEY_COPY_XOR_PARTNER, partner_hash);
+
+    /* get the number of files */
+    if (scr_hash_util_get_int(current_hash, SCR_KEY_COPY_XOR_FILES, &num_files) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to read number of files from XOR file header during rebuild @ %s:%d",
+              __FILE__, __LINE__
+      );
+    }
+    if (num_files > 0) {
+      fds       = (int*)           malloc(num_files * sizeof(int));
+      filenames = (char**)         malloc(num_files * sizeof(char*));
+      filesizes = (unsigned long*) malloc(num_files * sizeof(unsigned long));
       if (fds == NULL || filenames == NULL || filesizes == NULL) {
         scr_abort(-1, "Failed to allocate file arrays @ %s:%d",
                   __FILE__, __LINE__
         );
       }
     }
-    MPI_Recv(h.my_files, h.my_nfiles * sizeof(struct scr_meta), MPI_BYTE, c->rhs_rank, 0, c->comm, &status[0]);
-    MPI_Recv(&h.checkpoint_id, 1, MPI_INT, c->rhs_rank, 0, c->comm, &status[0]);
-    MPI_Recv(&h.chunk_size, sizeof(unsigned long), MPI_BYTE, c->rhs_rank, 0, c->comm, &status[0]);
 
     /* set chunk filename of form:  <xor_rank+1>_of_<xorset_size>_in_<level_partion>x<xorset_size>.xor */
-    char ckpt_path[SCR_MAX_FILENAME];
-    scr_checkpoint_dir(c, checkpoint_id, ckpt_path);
-    sprintf(full_chunk_filename, "%s/%d_of_%d_in_%d.xor", ckpt_path, c->my_rank+1, c->ranks, c->group_id);
+    char ckpt_dir[SCR_MAX_FILENAME];
+    scr_checkpoint_dir(c, checkpoint_id, ckpt_dir);
+    sprintf(full_chunk_filename, "%s/%d_of_%d_in_%d.xor", ckpt_dir, c->my_rank+1, c->ranks, c->group_id);
 
     /* split file into path and name */
     scr_split_path(full_chunk_filename, path, name);
 
     /* record our chunk file and each of our checkpoint files in the filemap before creating */
-    scr_filemap_add_file(map, h.checkpoint_id, scr_my_rank_world, full_chunk_filename);
-    for (i=0; i < h.my_nfiles; i++) {
+    scr_filemap_add_file(map, checkpoint_id, scr_my_rank_world, full_chunk_filename);
+    for (i=0; i < num_files; i++) {
+      /* lookup meta data for this file from header hash */
+      scr_hash* meta_tmp = scr_hash_get_kv_int(current_hash, SCR_KEY_COPY_XOR_FILE, i);
+      if (meta_tmp == NULL) {
+        scr_abort(-1, "Failed to find file %d in XOR file header %s @ %s:%d",
+                  i, full_chunk_filename, __FILE__, __LINE__
+        );
+      }
+
+      /* get pointer to filename for this file */
+      char* filename = NULL;
+      if (scr_meta_get_filename(meta_tmp, &filename) != SCR_SUCCESS) {
+        scr_abort(-1, "Failed to read filename for file %d in XOR file header %s @ %s:%d",
+                  i, full_chunk_filename, __FILE__, __LINE__
+        );
+      }
+
       /* get the filename */
       char full_file[SCR_MAX_FILENAME];
-      scr_build_path(full_file, sizeof(full_file), path, h.my_files[i].filename);
-      scr_filemap_add_file(map, h.checkpoint_id, scr_my_rank_world, full_file);
+      scr_build_path(full_file, sizeof(full_file), path, filename);
+
+      /* copy the filename */
+      filenames[i] = strdup(full_file);
+      if (filenames[i] == NULL) {
+        scr_abort(-1, "Failed to copy filename during rebuild @ %s:%d",
+                  full_file, __FILE__, __LINE__
+        );
+      }
+
+      /* get the filesize */
+      if (scr_meta_get_filesize(meta_tmp, &filesizes[i]) != SCR_SUCCESS) {
+        scr_abort(-1, "Failed to read file size for file %s in XOR file header during rebuild @ %s:%d",
+                  full_file, __FILE__, __LINE__
+        );
+      }
+
+      /* add the file to our filemap */
+      scr_filemap_add_file(map, checkpoint_id, scr_my_rank_world, full_file);
     }
-    scr_filemap_set_expected_files(map, h.checkpoint_id, scr_my_rank_world, h.my_nfiles + 1);
+    scr_filemap_set_expected_files(map, checkpoint_id, scr_my_rank_world, num_files + 1);
     scr_filemap_write(scr_map_file, map);
 
     /* open my chunk file for writing */
@@ -5246,49 +5679,28 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
     }
 
     /* open each of my files for writing */
-    for (i=0; i < h.my_nfiles; i++) {
-      /* get the filename */
-      char full_file[SCR_MAX_FILENAME];
-      scr_build_path(full_file, sizeof(full_file), path, h.my_files[i].filename);
-
-      /* copy the filename */
-      filenames[i] = strdup(full_file);
-      if (filenames[i] == NULL) {
-        scr_abort(-1, "Failed to copy filename during rebuild @ %s:%d",
-                  full_file, __FILE__, __LINE__
-        );
-      }
-
-      /* get the filesize */
-      filesizes[i] = h.my_files[i].filesize;
-      my_bytes += filesizes[i];
-
+    for (i=0; i < num_files; i++) {
       /* open my file for writing */
-      fds[i] = scr_open(full_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+      fds[i] = scr_open(filenames[i], O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
       if (fds[i] < 0) {
         /* TODO: try again? */
         scr_abort(-1, "Opening checkpoint file for writing in XOR rebuild: scr_open(%s) errno=%d %m @ %s:%d",
-                  full_file, errno, __FILE__, __LINE__
+                  filenames[i], errno, __FILE__, __LINE__
         );
       }
     }
 
-    /* receive number of files our left-side partner has and allocate an array of
-     * meta structures to store info */
-    MPI_Recv(&h.partner_nfiles, 1, MPI_INT, c->lhs_rank, 0, c->comm, &status[0]);
-    scr_copy_xor_header_alloc_partner_files(&h, c->lhs_rank_world, h.partner_nfiles);
-
-    /* receive meta for our partner's files */
-    MPI_Recv(h.partner_files, h.partner_nfiles * sizeof(struct scr_meta), MPI_BYTE,
-             c->lhs_rank, 0, c->comm, &status[0]
-    );
-
     /* write XOR chunk file header */
-    scr_copy_xor_header_write(fd_chunk, &h);
+    scr_hash_write_fd(full_chunk_filename, fd_chunk, header);
   }
 
-  unsigned long chunk_size = h.chunk_size;
-  int num_files = h.my_nfiles;
+  /* read the chunk size used to compute the xor data */
+  unsigned long chunk_size;
+  if (scr_hash_util_get_unsigned_long(header, SCR_KEY_COPY_XOR_CHUNK, &chunk_size) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to read chunk size from XOR file header %s @ %s:%d",
+            full_chunk_filename, __FILE__, __LINE__
+    );
+  }
 
   /* allocate buffer to read a piece of my file */
   char* send_buf = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
@@ -5393,7 +5805,8 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
       /* TODO: need to check for errors, check that file is really valid */
 
       /* fill out meta info for our file and complete it */
-      scr_complete(filenames[i], &(h.my_files[i]));
+      scr_hash* meta_tmp = scr_hash_get_kv_int(current_hash, SCR_KEY_COPY_XOR_FILE, i);
+      scr_complete(filenames[i], meta_tmp);
 
       /* if crc_on_copy is set, compute and store CRC32 value for each file */
       if (scr_crc_on_copy) {
@@ -5410,9 +5823,11 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
     }
 
     /* create meta data for chunk and complete it */
-    struct scr_meta meta_chunk;
-    scr_meta_set(&meta_chunk, full_chunk_filename, scr_my_rank_world, scr_ranks_world, h.checkpoint_id, SCR_FILE_XOR, 1);
-    scr_complete(full_chunk_filename, &meta_chunk);
+    unsigned long full_chunk_filesize = scr_filesize(full_chunk_filename);
+    scr_meta* meta_chunk = scr_meta_new();
+    scr_meta_set(meta_chunk, full_chunk_filename, SCR_META_FILE_XOR, full_chunk_filesize, checkpoint_id, scr_my_rank_world, scr_ranks_world, 1);
+    scr_complete(full_chunk_filename, meta_chunk);
+    scr_meta_delete(meta_chunk);
 
     /* if crc_on_copy is set, compute and store CRC32 value for chunk file */
     if (scr_crc_on_copy) {
@@ -5422,7 +5837,8 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
   }
 
   /* free the buffers */
-  scr_copy_xor_header_free(&h);
+  scr_align_free(recv_buf);
+  scr_align_free(send_buf);
   if (filesizes != NULL) {
     free(filesizes);
     filesizes = NULL;
@@ -5442,8 +5858,7 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* c, int c
     free(fds);
     fds = NULL;
   }
-  scr_align_free(send_buf);
-  scr_align_free(recv_buf);
+  scr_hash_delete(header);
 
   return rc;
 }
@@ -5511,7 +5926,7 @@ static int scr_attempt_rebuild_xor(scr_filemap* map, const struct scr_ckptdesc* 
 static int scr_unlink_rank(scr_filemap* map, int ckpt, int rank)
 {
   /* delete each file and remove its metadata file */
-  struct scr_hash_elem* file_elem;
+  scr_hash_elem* file_elem;
   for (file_elem = scr_filemap_first_file(map, ckpt, rank);
        file_elem != NULL;
        file_elem = scr_hash_elem_next(file_elem))
@@ -5541,18 +5956,18 @@ static int scr_unlink_rank(scr_filemap* map, int ckpt, int rank)
 }
 
 /* send the given filemap to the specified rank */
-int scr_filemap_send(scr_filemap* map, int rank, MPI_Comm comm)
+int scr_filemap_send(const scr_filemap* map, int rank, MPI_Comm comm)
 {
   int rc = scr_hash_send(map, rank, comm);
   return rc;
 }
 
 /* receive a filemap from the specified rank */
-scr_filemap* scr_filemap_recv(int rank, MPI_Comm comm)
+int scr_filemap_recv(scr_filemap* map, int rank, MPI_Comm comm)
 {
   /* set our map's hash to the one we receive from rank */
-  scr_filemap* map = scr_hash_recv(rank, comm);
-  return map;
+  int rc = scr_hash_recv(map, rank, comm);
+  return rc;
 }
 
 /* since on a restart we may end up with more or fewer ranks on a node than the previous run,
@@ -5565,11 +5980,11 @@ static int scr_gather_scatter_filemaps(scr_filemap* my_map)
     scr_filemap* all_map = scr_filemap_new();
 
     /* read in the master map */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
     scr_hash_read(scr_master_map_file, hash);
 
     /* for each filemap listed in the master map */
-    struct scr_hash_elem* elem;
+    scr_hash_elem* elem;
     for (elem = scr_hash_elem_first(scr_hash_get(hash, "Filemap"));
          elem != NULL;
          elem = scr_hash_elem_next(elem))
@@ -5708,7 +6123,8 @@ static int scr_gather_scatter_filemaps(scr_filemap* my_map)
       MPI_Recv(&recv_map, 1, MPI_INT, 0, 0, scr_comm_local, &status);
 
       if (recv_map) {
-        scr_filemap* tmp_map = scr_filemap_recv(0, scr_comm_local);
+        scr_filemap* tmp_map = scr_filemap_new();
+        scr_filemap_recv(tmp_map, 0, scr_comm_local);
         scr_filemap_merge(my_map, tmp_map);
         scr_filemap_delete(tmp_map);
       }
@@ -5729,232 +6145,200 @@ static int scr_gather_scatter_filemaps(scr_filemap* my_map)
 static int scr_distribute_ckptdescs(scr_filemap* map, int checkpoint_id, struct scr_ckptdesc* c)
 {
   int i;
-  int rc = SCR_SUCCESS;
 
-  /* allocate enough space for each rank we have for this checkpoint */
-  int* send_ranks = NULL;
-  int send_nranks = scr_filemap_num_ranks_by_checkpoint(map, checkpoint_id);
-  if (send_nranks > 0) {
-    send_ranks = (int*) malloc(sizeof(int) * send_nranks);
-  }
+  /* create a new hash and copy our checkpoint descriptors to it */
+  scr_hash* send_hash = scr_hash_new();
 
-  /* TODO: would like to remove these allgather and alltoall calls for better scalability,
-   * however, they work for now and should handle tens of thousands of processes without too much trouble */
+  /* for this checkpoint, get list of ranks we have data for */
+  int  nranks = 0;
+  int* ranks = NULL;
+  scr_filemap_list_ranks_by_checkpoint(map, checkpoint_id, &nranks, &ranks);
 
-  /* someone is missing files, mark which files we have and in which round we can send them */
-  int* found_files = (int*) malloc(sizeof(int) * scr_ranks_world);
-  int round = 1;
-  int defined_ranks = 0;
-  for(i = 0; i < scr_ranks_world; i++) {
-    int rel_rank = (scr_my_rank_world + i) % scr_ranks_world;
-    /* we could just call scr_bool_have_files here, but since it involves a file open/read/close with each call,
-     * let's avoid calling it too often here by checking with the filemap first */
-    found_files[rel_rank] = 0; 
-    if (scr_filemap_have_rank_by_checkpoint(map, checkpoint_id, rel_rank)) {
-      send_ranks[round-1] = rel_rank;
-      defined_ranks++;
-      struct scr_hash* desc = scr_hash_new();
-      scr_filemap_get_desc(map, checkpoint_id, rel_rank, desc);
-      if (scr_hash_size(desc) != 0) {
-        found_files[rel_rank] = round;
-        round++;
-      }
+  /* for each rank we have files for, check whether we also have its checkpoint descriptor */
+  int invalid_rank_found = 0;
+  for (i=0; i < nranks; i++) {
+    /* get the rank id */
+    int rank = ranks[i];
+
+    /* check that the rank is within range */
+    if (rank < 0 || rank >= scr_ranks_world) {
+      scr_err("Invalid rank id %d in world of %d @ %s:%d",
+         rank, scr_ranks_world, __FILE__, __LINE__
+      );
+      invalid_rank_found = 1;
+    }
+
+    /* lookup the checkpoint descriptor hash for this rank */
+    scr_hash* desc = scr_hash_new();
+    scr_filemap_get_desc(map, checkpoint_id, rank, desc);
+
+    /* if this descriptor has entries, add it to our send hash, delete the hash otherwise */
+    if (scr_hash_size(desc) > 0) {
+      scr_hash_setf(send_hash, desc, "%d", rank);
+    } else {
       scr_hash_delete(desc);
     }
   }
 
-  /* check that each of our send_ranks is well-defined (may not be if job was restarted with fewer processes) */
-  if (!scr_alltrue(defined_ranks == send_nranks)) {
+  /* free off our list of ranks */
+  if (ranks != NULL) {
+    free(ranks);
+    ranks = NULL;
+  }
+
+  /* check that we didn't find an invalid rank on any process */
+  if (!scr_alltrue(invalid_rank_found == 0)) {
+    scr_hash_delete(send_hash);
     return SCR_FAILURE;
   }
 
-  /* tell everyone whether we have their files */
-  int* has_my_files = (int*) malloc(sizeof(int) * scr_ranks_world);
-  MPI_Alltoall(found_files, 1, MPI_INT, has_my_files, 1, MPI_INT, scr_comm_world);
+  /* create an empty hash to receive any incoming descriptors */
+  /* exchange descriptors with other ranks */
+  scr_hash* recv_hash = scr_hash_new();
+  scr_hash_exchange(send_hash, recv_hash, scr_comm_world);
 
-  /* TODO: try to pick the closest node which has my files */
-  /* identify the rank and round in which we'll fetch our files */
-  int retrieve_rank  = MPI_PROC_NULL;
-  int retrieve_round = -1;
-  for(i = 0; i < scr_ranks_world; i++) {
-    /* pick the earliest round i can get my files from someone (round 1 may be ourselves) */
-    int rel_rank = (scr_my_rank_world + i) % scr_ranks_world;
-    if (has_my_files[rel_rank] > 0 && (has_my_files[rel_rank] < retrieve_round || retrieve_round < 0)) {
-      retrieve_rank  = rel_rank;
-      retrieve_round = has_my_files[rel_rank];
-    }
-  }
-
-  /* we know at this point whether we can recover all checkpoint descriptors */
-  int can_get_files = (retrieve_rank != MPI_PROC_NULL);
-  if (!scr_alltrue(can_get_files)) {
-    if (send_ranks != NULL) {
-      free(send_ranks);
-      send_ranks = NULL;
-    }
-    if (has_my_files != NULL) {
-      free(has_my_files);
-      has_my_files = NULL;
-    }
-    if (found_files != NULL) {
-      free(found_files);
-      found_files = NULL;
-    }
-    if (!can_get_files) {
-      scr_dbg(2, "Cannot find process that has my checkpoint descriptor @ %s:%d", __FILE__, __LINE__);
-    }
+  /* check that everyone can get their descriptor */
+  int num_desc = scr_hash_size(recv_hash);
+  if (!scr_alltrue(num_desc > 0)) {
+    scr_hash_delete(recv_hash);
+    scr_hash_delete(send_hash);
+    scr_dbg(2, "Cannot find process that has my checkpoint descriptor @ %s:%d", __FILE__, __LINE__);
     return SCR_FAILURE;
   }
 
-  /* get the maximum retrieve round */
-  int max_rounds = 0;
-  MPI_Allreduce(&retrieve_round, &max_rounds, 1, MPI_INT, MPI_MAX, scr_comm_world);
+  /* just go with the first checkpoint descriptor in our list -- they should all be the same */
+  scr_hash_elem* desc_elem = scr_hash_elem_first(recv_hash);
+  scr_hash* desc_hash = scr_hash_elem_hash(desc_elem);
 
-  /* tell everyone from which rank we intend to grab our files */
-  int* retrieve_ranks = (int*) malloc(sizeof(int) * scr_ranks_world);
-  MPI_Allgather(&retrieve_rank, 1, MPI_INT, retrieve_ranks, 1, MPI_INT, scr_comm_world);
-
-  int tmp_rc = 0;
-
-  /* run through rounds and exchange files */
-  for (round = 1; round <= max_rounds; round++) {
-    /* assume we don't need to send or receive any files this round */
-    int send_rank = MPI_PROC_NULL;
-    int recv_rank = MPI_PROC_NULL;
-    struct scr_hash* recv_desc = NULL;
-    struct scr_hash* send_desc = NULL;
-
-    /* check whether I can potentially send to anyone in this round */
-    if (round <= send_nranks) {
-      /* have someone's files, check whether they are asking for them this round */
-      int dst_rank = send_ranks[round-1];
-      if (retrieve_ranks[dst_rank] == scr_my_rank_world) {
-        /* need to send files this round, remember to whom and how many */
-        send_rank = dst_rank;
-        send_desc = scr_hash_new();
-        scr_filemap_get_desc(map, checkpoint_id, send_rank, send_desc);
-      }
-    }
-
-    /* if I'm supposed to get my files this round, set the recv_rank */
-    if (retrieve_round == round) {
-      recv_rank = retrieve_rank;
-      recv_desc = scr_hash_new();
-    }
-
-    /* exchange checkpoint descriptors */
-    scr_hash_sendrecv(send_desc, send_rank, recv_desc, recv_rank, scr_comm_world);
-
-    /* TODO: delete the checkpoint descriptor that we just sent from our filemap */
-
-    /* if we received a checkpoint descriptor, add it to our filemap and then free it */
-    if (recv_desc != NULL) {
-      scr_filemap_set_desc(map, checkpoint_id, scr_my_rank_world, recv_desc);
-      scr_hash_delete(recv_desc);
-      recv_desc = NULL;
-    }
-
-    /* free the send descriptor hash if we have one */
-    if (send_desc != NULL) {
-      scr_hash_delete(send_desc);
-      send_desc = NULL;
-    }
-  }
-
-  /* write out new filemap */
+  /* record the descriptor in our filemap */
+  scr_filemap_set_desc(map, checkpoint_id, scr_my_rank_world, desc_hash);
   scr_filemap_write(scr_map_file, map);
+
+  /* TODO: at this point, we could delete descriptors for other ranks for this checkpoint */
 
   /* read our checkpoint descriptor from the map */
   scr_ckptdesc_create_from_filemap(map, checkpoint_id, scr_my_rank_world, c);
 
-  if (send_ranks != NULL) {
-    free(send_ranks);
-    send_ranks = NULL;
-  }
-  if (retrieve_ranks != NULL) {
-    free(retrieve_ranks);
-    retrieve_ranks = NULL;
-  }
-  if (has_my_files != NULL) {
-    free(has_my_files);
-    has_my_files = NULL;
-  }
-  if (found_files != NULL) {
-    free(found_files);
-    found_files = NULL;
-  }
+  /* free off our send and receive hashes */
+  scr_hash_delete(recv_hash);
+  scr_hash_delete(send_hash);
 
-  return rc;
+  return SCR_SUCCESS;
 }
 
 /* this moves all files in the cache to make them accessible to new rank mapping */
 static int scr_distribute_files(scr_filemap* map, const struct scr_ckptdesc* c, int checkpoint_id)
 {
-  int i;
+  int i, round;
   int rc = SCR_SUCCESS;
 
   /* clean out any incomplete files before we start */
   scr_clean_files(map);
 
-  /* allocate enough space for each rank we have for this checkpoint */
-  int* send_ranks = NULL;
-  int send_nranks = scr_filemap_num_ranks_by_checkpoint(map, checkpoint_id);
-  if (send_nranks > 0) {
-    send_ranks = (int*) malloc(sizeof(int) * send_nranks);
-  }
+  /* for this checkpoint, get list of ranks we have data for */
+  int  nranks = 0;
+  int* ranks = NULL;
+  scr_filemap_list_ranks_by_checkpoint(map, checkpoint_id, &nranks, &ranks);
 
-  /* TODO: would like to remove these allgather and alltoall calls for better scalability,
-   * however, they work for now and should handle tens of thousands of processes without too much trouble */
+  /* walk backwards through the list of ranks, and set our start index to the rank which
+   * is the first rank that is equal to or higher than our own rank -- when we assign round
+   * ids below, this offsetting helps distribute the load */
+  int start_index = 0;
+  int invalid_rank_found = 0;
+  for (i = nranks-1; i >= 0; i--) {
+    int rank = ranks[i];
 
-  /* someone is missing files, mark which files we have and in which round we can send them */
-  int* found_files = (int*) malloc(sizeof(int) * scr_ranks_world);
-  int round = 1;
-  for(i = 0; i < scr_ranks_world; i++) {
-    int rel_rank = (scr_my_rank_world + i) % scr_ranks_world;
-    /* we could just call scr_bool_have_files here, but since it involves a file open/read/close with each call,
-     * let's avoid calling it too often here by checking with the filemap first */
-    found_files[rel_rank] = 0; 
-    if (scr_filemap_have_rank_by_checkpoint(map, checkpoint_id, rel_rank)) {
-      send_ranks[round-1] = rel_rank;
-      if (scr_bool_have_files(map, checkpoint_id, rel_rank)) {
-        found_files[rel_rank] = round;
-        round++;
-      }
+    /* pick the first rank whose rank id is equal to or higher than our own */
+    if (rank >= scr_my_rank_world) {
+      start_index = i;
+    }
+
+    /* while we're at it, check that the rank is within range */
+    if (rank < 0 || rank >= scr_ranks_world) {
+      scr_err("Invalid rank id %d in world of %d @ %s:%d",
+         rank, scr_ranks_world, __FILE__, __LINE__
+      );
+      invalid_rank_found = 1;
     }
   }
 
-  /* tell everyone whether we have their files */
-  int* has_my_files = (int*) malloc(sizeof(int) * scr_ranks_world);
-  MPI_Alltoall(found_files, 1, MPI_INT, has_my_files, 1, MPI_INT, scr_comm_world);
+  /* check that we didn't find an invalid rank on any process */
+  if (!scr_alltrue(invalid_rank_found == 0)) {
+    if (ranks != NULL) {
+      free(ranks);
+      ranks = NULL;
+    }
+    return SCR_FAILURE;
+  }
 
-  /* TODO: try to pick the closest node which has my files */
-  /* identify the rank and round in which we'll fetch our files */
+  /* allocate array to record the rank we can send to in each round */
+  int* have_rank_by_round = (int*) malloc(sizeof(int) * nranks);
+  int* send_flag_by_round = (int*) malloc(sizeof(int) * nranks);
+  if (have_rank_by_round == NULL || send_flag_by_round == NULL) {
+    scr_abort(-1,"Failed to allocate memory to record rank id by round @ %s:%d",
+       __FILE__, __LINE__
+    );
+  }
+
+  /* check that we have all of the files for each rank, and determine the round we can send them */
+  scr_hash* send_hash = scr_hash_new();
+  scr_hash* recv_hash = scr_hash_new();
+  for (round = 0; round < nranks; round++) {
+    /* get the rank id */
+    int index = (start_index + round) % nranks;
+    int rank = ranks[index];
+
+    /* record the rank indexed by the round number */
+    have_rank_by_round[round] = rank;
+
+    /* assume we won't be sending to this rank in this round */
+    send_flag_by_round[round] = 0;
+
+    /* if we have files for this rank, specify the round we can send those files in */
+    if (scr_bool_have_files(map, checkpoint_id, rank)) {
+      scr_hash_setf(send_hash, NULL, "%d %d", rank, round);
+    }
+  }
+  scr_hash_exchange(send_hash, recv_hash, scr_comm_world);
+
+  /* search for the minimum round we can get our files */
   int retrieve_rank  = -1;
   int retrieve_round = -1;
-  for(i = 0; i < scr_ranks_world; i++) {
-    /* pick the earliest round i can get my files from someone (round 1 may be ourselves) */
-    int rel_rank = (scr_my_rank_world + i) % scr_ranks_world;
-    if (has_my_files[rel_rank] > 0 && (has_my_files[rel_rank] < retrieve_round || retrieve_round < 0)) {
-      retrieve_rank  = rel_rank;
-      retrieve_round = has_my_files[rel_rank];
+  scr_hash_elem* elem = NULL;
+  for (elem = scr_hash_elem_first(recv_hash);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* get the rank id */
+    int rank = scr_hash_elem_key_int(elem);
+
+    /* get the round id */
+    scr_hash* round_hash = scr_hash_elem_hash(elem);
+    scr_hash_elem* round_elem = scr_hash_elem_first(round_hash);
+    char* round_str = scr_hash_elem_key(round_elem);
+    int round = atoi(round_str);
+
+    /* record this round and rank number of it's less than the current round */
+    if (round < retrieve_round || retrieve_round == -1) {
+      retrieve_round = round;
+      retrieve_rank  = rank;
     }
+  }
+
+  /* done with the round hashes, free them off */
+  scr_hash_delete(recv_hash);
+  scr_hash_delete(send_hash);
+
+  /* free off our list of ranks */
+  if (ranks != NULL) {
+    free(ranks);
+    ranks = NULL;
   }
 
   /* for some redundancy schemes, we know at this point whether we can recover all files */
   int can_get_files = (retrieve_rank != -1);
   if (c->copy_type != SCR_COPY_XOR && !scr_alltrue(can_get_files)) {
-    if (send_ranks != NULL) {
-      free(send_ranks);
-      send_ranks = NULL;
-    }
-    if (has_my_files != NULL) {
-      free(has_my_files);
-      has_my_files = NULL;
-    }
-    if (found_files != NULL) {
-      free(found_files);
-      found_files = NULL;
-    }
+    /* print a debug message indicating which rank is missing files */
     if (!can_get_files) {
       scr_dbg(2, "Cannot find process that has my checkpoint files @ %s:%d", __FILE__, __LINE__);
     }
@@ -5965,18 +6349,43 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_ckptdesc* c, 
   int max_rounds = 0;
   MPI_Allreduce(&retrieve_round, &max_rounds, 1, MPI_INT, MPI_MAX, scr_comm_world);
 
-  /* tell everyone from which rank we intend to grab our files */
-  int* retrieve_ranks = (int*) malloc(sizeof(int) * scr_ranks_world);
-  MPI_Allgather(&retrieve_rank, 1, MPI_INT, retrieve_ranks, 1, MPI_INT, scr_comm_world);
+  /* tell destination which round we'll take our files in */
+  send_hash = scr_hash_new();
+  recv_hash = scr_hash_new();
+  if (retrieve_rank != -1) {
+    scr_hash_setf(send_hash, NULL, "%d %d", retrieve_rank, retrieve_round);
+  }
+  scr_hash_exchange(send_hash, recv_hash, scr_comm_world);
+
+  /* determine which ranks want to fetch their files from us */
+  for(elem = scr_hash_elem_first(recv_hash);
+      elem != NULL;
+      elem = scr_hash_elem_next(elem))
+  {
+    /* get the round id */
+    scr_hash* round_hash = scr_hash_elem_hash(elem);
+    scr_hash_elem* round_elem = scr_hash_elem_first(round_hash);
+    char* round_str = scr_hash_elem_key(round_elem);
+    int round = atoi(round_str);
+
+    /* record whether this rank wants its files from us */
+    if (round >= 0 && round < nranks) {
+      send_flag_by_round[round] = 1;
+    }
+  }
+
+  /* done with the round hashes, free them off */
+  scr_hash_delete(recv_hash);
+  scr_hash_delete(send_hash);
 
   int tmp_rc = 0;
 
   /* get the path for this checkpoint */
-  char ckpt_path[SCR_MAX_FILENAME];
-  scr_checkpoint_dir(c, checkpoint_id, ckpt_path);
+  char ckpt_dir[SCR_MAX_FILENAME];
+  scr_checkpoint_dir(c, checkpoint_id, ckpt_dir);
 
   /* run through rounds and exchange files */
-  for (round = 1; round <= max_rounds; round++) {
+  for (round = 0; round <= max_rounds; round++) {
     /* assume we don't need to send or receive any files this round */
     int send_rank = MPI_PROC_NULL;
     int recv_rank = MPI_PROC_NULL;
@@ -5984,11 +6393,11 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_ckptdesc* c, 
     int recv_num  = 0;
 
     /* check whether I can potentially send to anyone in this round */
-    if (round <= send_nranks) {
+    if (round < nranks) {
       /* have someone's files, check whether they are asking for them this round */
-      int dst_rank = send_ranks[round-1];
-      if (retrieve_ranks[dst_rank] == scr_my_rank_world) {
+      if (send_flag_by_round[round]) {
         /* need to send files this round, remember to whom and how many */
+        int dst_rank = have_rank_by_round[round];
         send_rank = dst_rank;
         send_num  = scr_filemap_num_files(map, checkpoint_id, dst_rank);
       }
@@ -6018,7 +6427,7 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_ckptdesc* c, 
 
         /* build the new filename */
         char newfile[SCR_MAX_FILENAME];
-        scr_build_path(newfile, sizeof(newfile), ckpt_path, name);
+        scr_build_path(newfile, sizeof(newfile), ckpt_dir, name);
 
         /* build the name of the existing and new meta files */
         char metafile[SCR_MAX_FILENAME];
@@ -6067,8 +6476,8 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_ckptdesc* c, 
       }
     } else {
       /* if we have files for this round, but the correspdonding rank doesn't need them, delete the files */
-      if (round <= send_nranks && send_rank == MPI_PROC_NULL) {
-        int dst_rank = send_ranks[round-1];
+      if (round < nranks && send_rank == MPI_PROC_NULL) {
+        int dst_rank = have_rank_by_round[round];
         scr_unlink_rank(map, checkpoint_id, dst_rank);
       }
 
@@ -6136,7 +6545,7 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_ckptdesc* c, 
           /* exhange file names with partners */
           char file_partner[SCR_MAX_FILENAME];
           scr_swap_file_names(file, send_rank, file_partner, sizeof(file_partner), recv_rank,
-                              ckpt_path, scr_comm_world
+                              ckpt_dir, scr_comm_world
           );
 
           /* if we'll receive a file, record the name of our file in the filemap and write it to disk */
@@ -6198,27 +6607,19 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_ckptdesc* c, 
   }
 
   /* if we have more rounds than max rounds, delete the remainder of our files */
-  for (round = max_rounds+1; round < send_nranks; round++) {
+  for (round = max_rounds+1; round < nranks; round++) {
     /* have someone's files for this round, so delete them */
-    int dst_rank = send_ranks[round-1];
+    int dst_rank = have_rank_by_round[round];
     scr_unlink_rank(map, checkpoint_id, dst_rank);
   }
 
-  if (send_ranks != NULL) {
-    free(send_ranks);
-    send_ranks = NULL;
+  if (send_flag_by_round != NULL) {
+    free(send_flag_by_round);
+    send_flag_by_round = NULL;
   }
-  if (retrieve_ranks != NULL) {
-    free(retrieve_ranks);
-    retrieve_ranks = NULL;
-  }
-  if (has_my_files != NULL) {
-    free(has_my_files);
-    has_my_files = NULL;
-  }
-  if (found_files != NULL) {
-    free(found_files);
-    found_files = NULL;
+  if (have_rank_by_round != NULL) {
+    free(have_rank_by_round);
+    have_rank_by_round = NULL;
   }
 
   /* write out new filemap and free the memory resources */
@@ -6296,15 +6697,15 @@ static int scr_route_file(int checkpoint_id, const char* file, char* newfile, in
   scr_split_path(file, path, name);
 
   /* lookup the checkpoint directory */
-  char ckpt_path[SCR_MAX_FILENAME];
+  char ckpt_dir[SCR_MAX_FILENAME];
   struct scr_ckptdesc* c = scr_ckptdesc_get(checkpoint_id, scr_nckptdescs, scr_ckptdescs);
-  scr_checkpoint_dir(c, checkpoint_id, ckpt_path);
+  scr_checkpoint_dir(c, checkpoint_id, ckpt_dir);
 
   /* build the composed name */
-  if (scr_build_path(newfile, n, ckpt_path, name) != SCR_SUCCESS) {
+  if (scr_build_path(newfile, n, ckpt_dir, name) != SCR_SUCCESS) {
     /* abort if the new name is longer than our buffer */
     scr_abort(-1, "file name (%s/%s) is longer than n (%d) @ %s:%d",
-              ckpt_path, name, n, __FILE__, __LINE__
+              ckpt_dir, name, n, __FILE__, __LINE__
     );
   }
 
@@ -6315,7 +6716,7 @@ static int scr_route_file(int checkpoint_id, const char* file, char* newfile, in
 static int scr_get_params()
 {
   char* value;
-  struct scr_hash* tmp;
+  scr_hash* tmp;
   double d;
   unsigned long long ull;
 
@@ -6700,7 +7101,7 @@ int SCR_Init()
 
   /* create a scr_comm_local communicator to hold all tasks on the same node */
   /* TODO: maybe a better way to identify processes on the same node?
-   * TODO: could improve scalability here using a bi-tonic sort and prefix scan
+   * TODO: could improve scalability here using a parallel sort and prefix scan
    * TODO: need something to work on systems with IPv6
    * Assumes: same int(IP) ==> same node 
    *   1. Get IP address as integer data type
@@ -6864,8 +7265,8 @@ int SCR_Init()
   int num_nodes = 0;
   MPI_Allreduce(&scr_ranks_level, &num_nodes, 1, MPI_INT, MPI_MAX, scr_comm_world);
   if (scr_my_rank_local == 0) {
-    struct scr_hash* nodes_hash = scr_hash_new();
-    scr_hash_setf(nodes_hash, NULL, "%s %d", "NODES", num_nodes);
+    scr_hash* nodes_hash = scr_hash_new();
+    scr_hash_setf(nodes_hash, NULL, "%s %d", SCR_NODES_KEY_NODES, num_nodes);
     scr_hash_write(scr_nodes_file, nodes_hash);
     scr_hash_delete(nodes_hash);
   }
@@ -7113,26 +7514,14 @@ int SCR_Init()
       time_start = MPI_Wtime();
     }
 
-    int current_checkpoint_id = -1;
-    char fetch_dir[SCR_MAX_FILENAME] = "";
-    char target[SCR_MAX_FILENAME] = "";
-    struct scr_hash* index_hash = NULL;
-    int read_index_file = 0;
-
     /* build the filename for the current symlink */
     char scr_current[SCR_MAX_FILENAME];
     scr_build_path(scr_current, sizeof(scr_current), scr_par_prefix, SCR_CURRENT_LINK);
 
-    /* have rank 0 read the symlink and index file to get the fetch directory */
+    /* have rank 0 read the index file */
+    scr_hash* index_hash = NULL;
+    int read_index_file = 0;
     if (scr_my_rank_world == 0) {
-      /* read the target of the symlink */
-      if (access(scr_current, R_OK) == 0) {
-        int target_len = readlink(scr_current, target, sizeof(target)-1);
-        if (target_len >= 0) {
-          target[target_len] = '\0';
-        }
-      }
-
       /* create an empty hash to store our index */
       index_hash = scr_hash_new();
 
@@ -7141,80 +7530,71 @@ int SCR_Init()
         /* remember that we read the index file ok, so we know we can write to it later
          * this way we don't overwrite an existing index file just because the read happened to fail */
         read_index_file = 1;
-
-        if (strcmp(target, "") != 0) {
-          /* lookup the checkpoint id for the current link */
-          scr_index_get_checkpoint_id_by_dir(index_hash, target, &current_checkpoint_id);
-        } else {
-          /* no current symlink found, get the most recent complete checkpoint id */
-          scr_index_most_recent_complete(index_hash, -1, &current_checkpoint_id, target);
-        }
-
-        /* now that we have the subdirectory (target) name, build the full fetch directory */
-        if (strcmp(target, "") != 0) {
-          scr_build_path(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
-        } else {
-          strcpy(fetch_dir, "");
-        }
-      } else {
-        /* old style without index file -- just an current symlink */
-        if (strcmp(target, "") != 0) {
-          scr_build_path(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
-        } else {
-          strcpy(fetch_dir, "");
-        }
       }
     }
 
-    /* attempt the fetch */
-    rc = scr_fetch_files(scr_map, fetch_dir);
-    if (rc != SCR_SUCCESS) {
+    /* now start fetching, we keep trying until we exhaust all valid checkpoints */
+    char target[SCR_MAX_FILENAME];
+    char fetch_dir[SCR_MAX_FILENAME];
+    int current_checkpoint_id = -1;
+    int continue_fetching = 1;
+    while (continue_fetching) {
+      /* initialize our target and fetch directory values to empty strings */
+      strcpy(target, "");
+      strcpy(fetch_dir, "");
+
+      /* rank 0 determines the directory to fetch from */
       if (scr_my_rank_world == 0) {
-        /* if the fetch directory is set, mark set as failed so we don't try it again */
-        if (strcmp(fetch_dir, "") != 0) {
-          fetch_attempted = 1;
-          if (read_index_file) {
-            scr_index_mark_failed(index_hash, current_checkpoint_id, fetch_dir);
+        /* read the target of the current symlink if there is one */
+        if (access(scr_current, R_OK) == 0) {
+          int target_len = readlink(scr_current, target, sizeof(target)-1);
+          if (target_len >= 0) {
+            target[target_len] = '\0';
+          }
+        }
+
+        /* if we read the index file, lookup the checkpoint id */
+        if (read_index_file) {
+          int next_checkpoint_id = -1;
+          if (strcmp(target, "") != 0) {
+            /* we have a subdirectory name, lookup the checkpoint id corresponding to this directory */
+            scr_index_get_checkpoint_id_by_dir(index_hash, target, &next_checkpoint_id);
+          } else {
+            /* otherwise, just get the most recent complete checkpoint (that's older than the current id) */
+            scr_index_most_recent_complete(index_hash, current_checkpoint_id, &next_checkpoint_id, target);
+          }
+          current_checkpoint_id = next_checkpoint_id;
+        }
+
+        /* if we have a subdirectory (target) name, build the full fetch directory */
+        if (strcmp(target, "") != 0) {
+          /* record that we're attempting a fetch of this checkpoint */
+          if (read_index_file && current_checkpoint_id != -1) {
+            scr_index_mark_fetched(index_hash, current_checkpoint_id, target);
             scr_index_write(scr_par_prefix, index_hash);
           }
-        }
 
-        /* current failed, delete the current symlink */
-        unlink(scr_current);
+          /* we have a subdirectory, now build the full path */
+          scr_build_path(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
+        }
       }
 
-      /* keep trying until we exhaust all valid checkpoints */
-      int continue_fetching = 1;
-      while (continue_fetching) {
+      /* now attempt to fetch the checkpoint */
+      rc = scr_fetch_files(scr_map, fetch_dir);
+      if (rc == SCR_SUCCESS) {
+        /* we succeeded in fetching this checkpoint, set current to point to it, and stop fetching */
         if (scr_my_rank_world == 0) {
-          /* get the next most recent checkpoint */
-          int next_checkpoint_id = -1;
-          scr_index_most_recent_complete(index_hash, current_checkpoint_id, &next_checkpoint_id, target);
-          current_checkpoint_id = next_checkpoint_id;
-
-          if (current_checkpoint_id != -1) {
-            /* try the next most recent checkpoint */
-            scr_build_path(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
-            if (read_index_file) {
-              scr_index_mark_fetched(index_hash, current_checkpoint_id, target);
-              scr_index_write(scr_par_prefix, index_hash);
-            }
-          } else {
-            strcpy(fetch_dir, "");
-          }
+          symlink(target, scr_current);
         }
+        continue_fetching = 0;
+      } else {
+        /* fetch failed, delete the current symlink */
+        unlink(scr_current);
 
-        rc = scr_fetch_files(scr_map, fetch_dir);
-        if (rc == SCR_SUCCESS) {
-          /* we succeeded in fetching this checkpoint, set current to point to it, and stop fetching */
+        /* if we had a fetch directory, mark it as failed so we don't try it again */
+        if (strcmp(fetch_dir, "") != 0) {
           if (scr_my_rank_world == 0) {
-            symlink(target, scr_current);
-          }
-          continue_fetching = 0;
-        } else if (strcmp(fetch_dir, "") != 0) {
-          /* mark set as failed so we don't try it again */
-          if (scr_my_rank_world == 0) {
-            if (read_index_file) {
+            if (read_index_file && current_checkpoint_id != -1 && strcmp(target, "") != 0) {
               scr_index_mark_failed(index_hash, current_checkpoint_id, target);
               scr_index_write(scr_par_prefix, index_hash);
             }
@@ -7231,6 +7611,7 @@ int SCR_Init()
       scr_hash_delete(index_hash);
     }
 
+    /* stop timer for fetch */
     if (scr_my_rank_world == 0) {
       time_end = MPI_Wtime();
       time_diff = time_end - time_start;
@@ -7568,7 +7949,7 @@ int SCR_Start_checkpoint()
 
   /* store the checkpoint descriptor in the filemap, so if we die before completing
    * the checkpoint, we'll have a record of the new directory we're about to create */
-  struct scr_hash* my_desc_hash = scr_hash_new();
+  scr_hash* my_desc_hash = scr_hash_new();
   scr_ckptdesc_store_to_hash(c, my_desc_hash);
   scr_filemap_set_desc(scr_map, scr_checkpoint_id, scr_my_rank_world, my_desc_hash);
   scr_filemap_write(scr_map_file, scr_map);
@@ -7645,8 +8026,8 @@ int SCR_Complete_checkpoint(int valid)
     return SCR_FAILURE;
   }
 
-  /* mark each file as complete and add each one to our filemap */
-  struct scr_hash_elem* elem;
+  /* mark each file as complete or not */
+  scr_hash_elem* elem;
   for (elem = scr_filemap_first_file(scr_map, scr_checkpoint_id, scr_my_rank_world);
        elem != NULL;
        elem = scr_hash_elem_next(elem))
@@ -7655,11 +8036,15 @@ int SCR_Complete_checkpoint(int valid)
     char* file = scr_hash_elem_key(elem);
 
     /* fill out meta info for our file */
-    struct scr_meta meta;
-    scr_meta_set(&meta, file, scr_my_rank_world, scr_ranks_world, scr_checkpoint_id, SCR_FILE_FULL, valid);
+    unsigned long filesize = scr_filesize(file);
+    scr_meta* meta = scr_meta_new();
+    scr_meta_set(meta, file, SCR_META_FILE_FULL, filesize,
+                 scr_checkpoint_id, scr_my_rank_world, scr_ranks_world, valid
+    );
 
     /* mark the file as complete */
-    scr_complete(file, &meta);
+    scr_complete(file, meta);
+    scr_meta_delete(meta);
   }
 
   /* apply redundancy scheme */
@@ -7691,9 +8076,9 @@ int SCR_Complete_checkpoint(int valid)
       scr_log_event("CHECKPOINT COMPLETED", c->base, &scr_checkpoint_id, &now, &time_diff);
 
       /* log the transfer details */
-      char ckpt_path[SCR_MAX_FILENAME];
-      scr_checkpoint_dir(c, scr_checkpoint_id, ckpt_path);
-      scr_log_transfer("CHECKPOINT", c->base, ckpt_path, &scr_checkpoint_id,
+      char ckpt_dir[SCR_MAX_FILENAME];
+      scr_checkpoint_dir(c, scr_checkpoint_id, ckpt_dir);
+      scr_log_transfer("CHECKPOINT", c->base, ckpt_dir, &scr_checkpoint_id,
                        &scr_timestamp_checkpoint_start, &cost, &bytes_copied
       );
     }

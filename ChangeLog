@@ -1,3 +1,20 @@
+2010-12-10 Adam Moody <moody20@llnl.gov>
+
+	* : Completed conversion of meta data to hash.
+
+	* src/bin/scr_nodes_file.c : Added to read nodes file and print
+	  number of nodes used in previous run, called by scr_env --runnodes.
+
+	* src/bin/scr_flush_file.c,
+	  src/bin/scr_retries_halt.c : Converted command from perl to C so
+	  that we can drop support for scr_hash.pm.
+
+	* src/bin/scr_index.c : Added --list option to list checkpoints
+	  along with flags, flush times, and associated directories.
+
+	* src/scr_hash_util.{c,h} : Includes various functions to simplify
+	  certain hash operations.
+
 2010-07-02 Adam Moody <moody20@llnl.gov>
 
 	* : Restructured src directory layout.

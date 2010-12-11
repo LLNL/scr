@@ -54,48 +54,52 @@ static int scr_bool_have_file(const char* file, int ckpt, int rank)
     return 0;
   }
 
+  int valid = 1;
+
   /* check that we can read meta file for the file */
-  struct scr_meta meta;
-  if (scr_meta_read(file, &meta) != SCR_SUCCESS) {
+  scr_meta* meta = scr_meta_new();
+  if (valid && scr_meta_read(file, meta) != SCR_SUCCESS) {
     scr_dbg(2, "scr_bool_have_file: Failed to read meta data file for file: %s", file);
-    return 0;
+    valid = 0;
   }
 
   /* check that the file is complete */
-  if (!meta.complete) {
+  if (valid && scr_meta_is_complete(meta) != SCR_SUCCESS) {
     scr_dbg(2, "scr_bool_have_file: File is marked as incomplete: %s", file);
-    return 0;
+    valid = 0;
   }
 
   /* check that the file really belongs to the checkpoint id we think it does */
-  if (meta.checkpoint_id != ckpt) {
-    scr_dbg(2, "scr_bool_have_file: File's checkpoint ID (%d) does not match id in meta data file (%d) for %s",
-            ckpt, meta.checkpoint_id, file
+  if (valid && scr_meta_check_checkpoint(meta, ckpt) != SCR_SUCCESS) {
+    scr_dbg(2, "scr_bool_have_file: File's checkpoint ID (%d) does not match id in meta data file for %s",
+            ckpt, file
     );
-    return 0;
+    valid = 0;
   }
 
   /* check that the file really belongs to the rank we think it does */
-  if (meta.rank != rank) {
-    scr_dbg(2, "scr_bool_have_file: File's rank (%d) does not match rank in meta data file (%d) for %s",
-            rank, meta.rank, file
+  if (valid && scr_meta_check_rank(meta, rank) != SCR_SUCCESS) {
+    scr_dbg(2, "scr_bool_have_file: File's rank (%d) does not match rank in meta data file for %s",
+            rank, file
     );
-    return 0;
+    valid = 0;
   }
 
   /* check that the file size matches (use strtol while reading data) */
   unsigned long size = scr_filesize(file);
-  if (meta.filesize != size) {
-    scr_dbg(2, "scr_bool_have_file: Filesize is incorrect, currently %lu, expected %lu for %s",
-            size, meta.filesize, file
+  if (valid && scr_meta_check_filesize(meta, size) != SCR_SUCCESS) {
+    scr_dbg(2, "scr_bool_have_file: Filesize is incorrect, currently %lu for %s",
+            size, file
     );
-    return 0;
+    valid = 0;
   }
+
+  scr_meta_delete(meta);
 
   /* TODO: check that crc32 match if set (this would be expensive) */
 
   /* if we made it here, assume the file is good */
-  return 1;
+  return valid;
 }
 
 static int scr_bool_have_files(scr_filemap* map, int ckpt, int rank)
@@ -110,14 +114,14 @@ static int scr_bool_have_files(scr_filemap* map, int ckpt, int rank)
   int have_files = 1;
 
   /* now check that we have each file */
-  struct scr_hash_elem* rank_elem;
+  scr_hash_elem* rank_elem;
   for (rank_elem = scr_filemap_first_rank_by_checkpoint(map, ckpt);
        rank_elem != NULL;
        rank_elem = scr_hash_elem_next(rank_elem))
   {
     int rank = scr_hash_elem_key_int(rank_elem);
 
-    struct scr_hash_elem* file_elem = NULL;
+    scr_hash_elem* file_elem = NULL;
     for (file_elem = scr_filemap_first_file(map, ckpt, rank);
          file_elem != NULL;
          file_elem = scr_hash_elem_next(file_elem))
@@ -195,11 +199,11 @@ int main (int argc, char *argv[])
   int partner_flag = atoi(argv[6]);
 
   /* read the flush file */
-  struct scr_hash* flush = scr_hash_new();
+  scr_hash* flush = scr_hash_new();
   scr_hash_read(scr_flush_file, flush);
 
   /* check whether we have the specified checkpoint id */
-  struct scr_hash* ckpt_hash = scr_hash_get_kv_int(flush, SCR_FLUSH_KEY_CKPT, ckpt);
+  scr_hash* ckpt_hash = scr_hash_get_kv_int(flush, SCR_FLUSH_KEY_CKPT, ckpt);
   if (ckpt_hash == NULL) {
     scr_hash_delete(flush);
     free(dir);
@@ -210,7 +214,7 @@ int main (int argc, char *argv[])
   }
 
   /* if this checkpoint has already been flushed, return success immediately */
-  struct scr_hash* flush_hash = scr_hash_get_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_PFS);
+  scr_hash* flush_hash = scr_hash_get_kv(ckpt_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_PFS);
   if (flush_hash != NULL) {
     scr_hash_delete(flush);
     free(dir);
@@ -225,14 +229,14 @@ int main (int argc, char *argv[])
   /* TODO: get list of partner nodes I have files for */
 
   /* read in the master map */
-  struct scr_hash* hash = scr_hash_new();
+  scr_hash* hash = scr_hash_new();
   scr_hash_read(scr_master_map_file, hash);
 
   /* create an empty filemap */
   scr_filemap* map = scr_filemap_new();
 
   /* for each filemap listed in the master map */
-  struct scr_hash_elem* elem;
+  scr_hash_elem* elem;
   for (elem = scr_hash_elem_first(scr_hash_get(hash, "Filemap"));
        elem != NULL;
        elem = scr_hash_elem_next(elem))
@@ -254,7 +258,7 @@ int main (int argc, char *argv[])
   int rc = 0;
 
   /* iterate over each file for each rank we have for this checkpoint */
-  struct scr_hash_elem* rank_elem;
+  scr_hash_elem* rank_elem;
   for (rank_elem = scr_filemap_first_rank_by_checkpoint(map, ckpt);
        rank_elem != NULL;
        rank_elem = scr_hash_elem_next(rank_elem))
@@ -296,7 +300,7 @@ int main (int argc, char *argv[])
     int num_files = scr_filemap_num_expected_files(map, ckpt, rank);
     scr_filemap_set_expected_files(rank_map, ckpt, rank, num_files);
 
-    struct scr_hash_elem* file_elem = NULL;
+    scr_hash_elem* file_elem = NULL;
     for (file_elem = scr_filemap_first_file(map, ckpt, rank);
          file_elem != NULL;
          file_elem = scr_hash_elem_next(file_elem))
@@ -318,26 +322,35 @@ int main (int argc, char *argv[])
           rc = 1;
         }
 
-        /* read the .scr for this file */
-        struct scr_meta meta;
-        scr_meta_read(file, &meta);
+        /* read the meta data for this file */
+        scr_meta* meta = scr_meta_new();
+        scr_meta_read(file, meta);
 
         /* add this file to the rank_map */
-        scr_filemap_add_file(rank_map, ckpt, rank, meta.filename);
+        char* meta_filename = NULL;
+        if (scr_meta_get_filename(meta, &meta_filename) != SCR_SUCCESS) {
+          scr_err("scr_copy: CRC32 mismatch detected when flushing file %s to %s @ %s:%d",
+                  file, dst, __FILE__, __LINE__
+          );
+          rc = 1;
+          continue;
+        }
+        scr_filemap_add_file(rank_map, ckpt, rank, meta_filename);
 
         /* if file has crc32, check it against the one computed during the copy,
          * otherwise if crc_flag is set, record crc32 */
         if (crc_valid) {
-          if (meta.crc32_computed) {
-            if (crc != meta.crc32) { 
+          uLong meta_crc;
+          if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
+            if (crc != meta_crc) { 
               /* detected a crc mismatch during the copy */
 
               /* TODO: unlink the copied file */
               /* unlink(dst); */
 
               /* mark the file as invalid */
-              meta.complete = 0;
-              scr_meta_write(file, &meta);
+              scr_meta_set_complete(meta, 0);
+              scr_meta_write(file, meta);
 
               rc = 1;
               scr_err("scr_copy: CRC32 mismatch detected when flushing file %s to %s @ %s:%d",
@@ -354,11 +367,12 @@ int main (int argc, char *argv[])
             }
           } else {
             /* the crc was not already in the metafile, but we just computed it, so set it */
-            meta.crc32_computed = 1;
-            meta.crc32          = crc;
-            scr_meta_write(file, &meta);
+            scr_meta_set_crc32(meta, crc);
+            scr_meta_write(file, meta);
           }
         }
+
+        scr_meta_delete(meta);
 
         /* now copy the metafile */
         char metafile[SCR_MAX_FILENAME];

@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
   char* filename = strdup(argv[1]);
   if (filename != NULL) {
     /* get a hash to read in the file */
-    struct scr_hash* hash = scr_hash_new();
+    scr_hash* hash = scr_hash_new();
 
     /* read in the file */
     if (scr_hash_read(filename, hash) == SCR_SUCCESS) {

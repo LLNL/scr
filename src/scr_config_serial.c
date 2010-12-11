@@ -31,7 +31,7 @@
 #include <errno.h>
 
 /* read parameters from config file and fill in hash */
-int scr_config_read(const char* file, struct scr_hash* hash)
+int scr_config_read(const char* file, scr_hash* hash)
 {
   int rc = scr_config_read_serial(file, hash);
   return rc;

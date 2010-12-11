@@ -14,6 +14,6 @@
 
 #include "scr_hash.h"
 
-int scr_config_read(const char* file, struct scr_hash* hash);
+int scr_config_read(const char* file, scr_hash* hash);
 
 #endif

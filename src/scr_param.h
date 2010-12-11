@@ -35,6 +35,6 @@ char* scr_param_get(char* name);
 
 /* searchs for name and returns a newly allocated hash of its value if set,
  * returns NULL if not found */
-struct scr_hash* scr_param_get_hash(char* name);
+scr_hash* scr_param_get_hash(char* name);
 
 #endif

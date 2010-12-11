@@ -109,8 +109,8 @@ if [ "$UPNODES" != "" ] ; then
             # check that gathered set is complete, if not, don't update current symlink
             update_current=1
             echo "$prog: Checking that new checkpoint set is complete"
-            echo "$bindir/scr_check_complete $checkpoint"
-            $bindir/scr_check_complete $checkpoint
+            echo "$bindir/scr_index --prefix $pardir --check $scrdir"
+            $bindir/scr_index --prefix $pardir --check $scrdir
             if [ $? -ne 0 ] ; then
               update_current=0 # incomplete checkpoint set, don't update current symlink
             fi

@@ -178,7 +178,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
 
 /* read in halt file (which program may have changed), update internal data structure,
  * set & unset any fields, and write out halt file all while locked */
-int scr_halt_sync_and_set(const char* file, struct arglist* args, struct scr_hash* data)
+int scr_halt_sync_and_set(const char* file, struct arglist* args, scr_hash* data)
 {
   /* set the mode on the file to be readable/writable by all
    * (enables a sysadmin to halt a user's job via scr_halt --all) */
@@ -285,7 +285,7 @@ int main (int argc, char *argv[])
   }
 
   /* create a new hash to hold the file data */
-  struct scr_hash* data = scr_hash_new();
+  scr_hash* data = scr_hash_new();
 
   if (args.list) {
     /* if the user wants to list the values, just read the file, print the values, and exit */
@@ -329,7 +329,7 @@ int main (int argc, char *argv[])
 
   /* print the current settings */
   time_t secs;
-  struct scr_hash* key = NULL;
+  scr_hash* key = NULL;
   char* value = NULL;
   printf("Halt file settings for %s:\n", args.file);
   int have_one = 0;

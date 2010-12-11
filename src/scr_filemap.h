@@ -16,7 +16,7 @@
 #include "scr_hash.h"
 
 /* a special type of hash */
-typedef struct scr_hash scr_filemap;
+typedef scr_hash scr_filemap;
 
 /*
 =========================================
@@ -31,13 +31,16 @@ int scr_filemap_add_file(scr_filemap* map, int checkpointid, int rank, const cha
 int scr_filemap_remove_file(scr_filemap* map, int checkpointid, int rank, const char* file);
 
 /* sets the checkpoint descriptor hash for the given rank and checkpoint id */
-int scr_filemap_set_desc(scr_filemap* map, int ckpt, int rank, struct scr_hash* hash);
+int scr_filemap_set_desc(scr_filemap* map, int ckpt, int rank, scr_hash* hash);
 
 /* copies the checkpoint descriptor hash for the given rank and checkpoint id into hash */
-int scr_filemap_get_desc(scr_filemap* map, int ckpt, int rank, struct scr_hash* hash);
+int scr_filemap_get_desc(scr_filemap* map, int ckpt, int rank, scr_hash* hash);
 
 /* unset the checkpoint descriptor hash for the given rank and checkpoint id */
 int scr_filemap_unset_desc(scr_filemap* map, int ckpt, int rank);
+
+/* returns a reference to the meta data hash for the given checkpoint id, rank, and file */
+scr_hash* scr_filemap_meta(scr_filemap* map, int ckpt, int rank, const char* file);
 
 /* set number of files to expect for a given rank in a given checkpoint id */
 int scr_filemap_set_expected_files(scr_filemap* map, int ckpt, int rank, int expect);
@@ -108,19 +111,19 @@ Filemap iterator functions
 */
 
 /* given a filemap, return a hash elem pointer to the first rank */
-struct scr_hash_elem* scr_filemap_first_rank(scr_filemap* map);
+scr_hash_elem* scr_filemap_first_rank(scr_filemap* map);
 
 /* given a filemap, return a hash elem pointer to the first rank for a given checkpoint */
-struct scr_hash_elem* scr_filemap_first_rank_by_checkpoint(scr_filemap* map, int checkpoint);
+scr_hash_elem* scr_filemap_first_rank_by_checkpoint(scr_filemap* map, int checkpoint);
 
 /* given a filemap, return a hash elem pointer to the first checkpoint */
-struct scr_hash_elem* scr_filemap_first_checkpoint(scr_filemap* map);
+scr_hash_elem* scr_filemap_first_checkpoint(scr_filemap* map);
 
 /* given a filemap, return a hash elem pointer to the first checkpoint for a given rank */
-struct scr_hash_elem* scr_filemap_first_checkpoint_by_rank(scr_filemap* map, int rank);
+scr_hash_elem* scr_filemap_first_checkpoint_by_rank(scr_filemap* map, int rank);
 
 /* given a filemap, a checkpoint id, and a rank, return a hash elem pointer to the first file */
-struct scr_hash_elem* scr_filemap_first_file(scr_filemap* map, int checkpoint, int rank);
+scr_hash_elem* scr_filemap_first_file(scr_filemap* map, int checkpoint, int rank);
 
 /*
 =========================================

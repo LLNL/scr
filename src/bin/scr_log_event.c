@@ -30,10 +30,6 @@
 #include "scr_log.h"
 #include "scr_param.h"
 
-/*
-#include "scr_param.h"
-*/
-
 struct arglist {
   char*  username;
   char*  jobname;

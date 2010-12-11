@@ -28,26 +28,22 @@
 
 #define SCR_XOR_VERSION (3)
 
+#if 0
 /* print contents of header structure */
-int scr_copy_xor_header_print(struct scr_copy_xor_header* h)
+int scr_copy_xor_header_print(scr_copy_xor_header* h)
 {
-  printf("version: %d, nranks: %d, xor_nranks: %d, checkpoint_id: %d, chunk_size: %lu, my_rank: %d, my_nfiles: %d, partner_rank: %d, partner_nfiles: %d\n",
-         h->version, h->nranks, h->xor_nranks, h->checkpoint_id, h->chunk_size, h->my_rank, h->my_nfiles, h->partner_rank, h->partner_nfiles
-  );
+  scr_hash_print(h);
   return SCR_SUCCESS;
 }
 
 /* given a meta structure, file out an xor file header structure */
 int scr_copy_xor_header_alloc_my_files(struct scr_copy_xor_header* h, int rank, int nfiles)
 {
-  h->my_rank = rank;
-  h->my_nfiles = nfiles;
-  if (nfiles > 0) {
-    h->my_files  = (struct scr_meta*) malloc(nfiles * sizeof(struct scr_meta));
-    /* TODO: check for null */
-  } else {
-    h->my_files = NULL;
-  }
+  scr_hash_unset(h, SCR_KEY_COPY_XOR_RANK);
+  scr_hash_set_kv_int(h, SCR_KEY_COPY_XOR_RANK, rank);
+
+  scr_hash_unset(h, SCR_KEY_COPY_XOR_FILES);
+  scr_hash_set_kv_int(h, SCR_KEY_COPY_XOR_FILES, nfiles);
 
   return SCR_SUCCESS;
 }
@@ -58,13 +54,19 @@ int scr_copy_xor_header_alloc_partner_files(struct scr_copy_xor_header* h, int r
   h->partner_rank = rank;
   h->partner_nfiles = nfiles;
   if (nfiles > 0) {
-    h->partner_files  = (struct scr_meta*) malloc(nfiles * sizeof(struct scr_meta));
+    h->partner_files  = (scr_meta*) malloc(nfiles * sizeof(scr_meta));
     /* TODO: check for null */
   } else {
     h->partner_files = NULL;
   }
 
   return SCR_SUCCESS;
+}
+
+scr_copy_xor_header* scr_copy_xor_header_new()
+{
+  scr_hash* hash = scr_hash_new();
+  return hash;
 }
 
 int scr_copy_xor_header_free(struct scr_copy_xor_header* h)
@@ -222,3 +224,5 @@ int scr_copy_xor_header_write(int fd, struct scr_copy_xor_header* h)
 
   return SCR_SUCCESS;
 }
+
+#endif

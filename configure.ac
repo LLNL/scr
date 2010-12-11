@@ -65,13 +65,11 @@ AC_CONFIG_FILES( \
   scripts/scr_env \
   scripts/scr_inspect \
   scripts/scr_flush \
-  scripts/scr_flush_file \
   scripts/scr_glob_hosts \
   scripts/scr_halt \
   scripts/scr_list_down_nodes \
   scripts/scr_postrun \
   scripts/scr_prerun \
-  scripts/scr_retries_halt \
   scripts/scr_srun \
   scripts/scr_test_datemanip \
   scripts/scr_test_runtime \

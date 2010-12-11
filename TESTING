@@ -1,6 +1,10 @@
 #Uploading a new release to sourceforge
 scp ${scrversion}.tar.gz <username>,scalablecr@frs.sourceforge.net:/home/frs/project/s/sc/scalablecr/releases/.
 
+$TV ../bin/scr_index -a --prefix /g/g0/${USER}/packages/scr-dist/testing/examples --check scr.2010-10-29_16:06:16.1015976.36 &
+
+$TV /g/g0/${USER}/packages/scr-dist/testing/bin/scr_rebuild_xor -a 4 1 2_of_4_in_0.xor 1_of_4_in_0.xor 3_of_4_in_0.xor 4_of_4_in_0.xor &
+
 # build the dist tarball
 cd ~/packages/scr
 setenv CFLAGS "-g -O0"
@@ -20,12 +24,12 @@ mv ${scrversion}.tar.gz ../scr-dist/.
 cd ../scr-dist
 tar -zxf ${scrversion}.tar.gz
 cd ${scrversion}
-./configure --prefix=/g/g0/moody20/packages/scr-dist/testing --with-scr-config-file=/etc/scr.conf
+./configure --prefix=/g/g0/${USER}/packages/scr-dist/testing --with-scr-config-file=/etc/scr.conf
 make
 make install
 
 # cd to examples directory, and check that build of test programs works
-cd /g/g0/moody20/packages/scr-dist/testing/examples
+cd /g/g0/${USER}/packages/scr-dist/testing/examples
 setenv OPT "-g -O0"
 make
 
@@ -40,7 +44,7 @@ echo $downnode
 
 setenv SCR_PREFIX `pwd`
 
-setenv LD_LIBRARY_PATH /g/g0/moody20/packages/scr-dist/testing/lib
+setenv LD_LIBRARY_PATH /g/g0/${USER}/packages/scr-dist/testing/lib
 setenv TV /usr/global/tools/totalview/v/totalview.8X.8.0-4/bin/totalview
 setenv SCR_FETCH 0
 setenv SCR_FLUSH 0
@@ -50,8 +54,8 @@ setenv SCR_JOB_NAME testing_job
 
 setenv SCR_CONF_FILE ~/myscr.conf
 
-srun -n4 -N4 /bin/rm -rf /tmp/moody20/scr.$jobid 
-srun -n4 -N4 /bin/rm -rf /ssd/moody20/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 
 # check that a run works
 srun -n4 -N4 ./test_api
@@ -64,28 +68,28 @@ srun -n4 -N4 ./test_api
 srun -n4 -N4 ./test_api
 
 # delete all files from /ssd on rank 0, remove halt file, run again, check that rebuild works
-rm -rf /tmp/moody20/scr.$jobid
-rm -rf /ssd/moody20/scr.$jobid
+rm -rf /tmp/${USER}/scr.$jobid
+rm -rf /ssd/${USER}/scr.$jobid
 ../bin/scr_halt -r
 srun -n4 -N4 ./test_api
 
 # delete latest checkpoint directory from two nodes, remove halt file, run again,
 # check that rebuild works for older checkpoint
-srun -n2 -N2 /bin/rm -rf /ssd/moody20/scr.$jobid/index.2/checkpoint.18
-srun -n2 -N2 /bin/rm -rf /tmp/moody20/scr.$jobid/index.2/checkpoint.18
-srun -n2 -N2 /bin/rm -rf /tmp/moody20/scr.$jobid/index.0/checkpoint.18
+srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid/index.2/checkpoint.18
+srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/index.2/checkpoint.18
+srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/index.0/checkpoint.18
 ../bin/scr_halt -r
 srun -n4 -N4 ./test_api
 
 # delete all files from all nodes, remove halt file, run again, check that run starts over
-srun -n4 -N4 /bin/rm -rf /ssd/moody20/scr.$jobid
-srun -n4 -N4 /bin/rm -rf /tmp/moody20/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 ../bin/scr_halt -r
 srun -n4 -N4 ./test_api
 
 # clear the cache and control directory
-srun -n4 -N4 /bin/rm -rf /tmp/moody20/scr.$jobid
-srun -n4 -N4 /bin/rm -rf /ssd/moody20/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 
 # check that scr_cntl_dir returns good values
 ../bin/scr_cntl_dir
@@ -129,8 +133,8 @@ unsetenv SCR_EXCLUDE_NODES
 ../bin/scr_postrun
 
 # clear the cache, make a new run, and check that scr_postrun drains successfully (no rebuild)
-srun -n4 -N4 /bin/rm -rf /tmp/moody20/scr.$jobid
-srun -n4 -N4 /bin/rm -rf /ssd/moody20/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 ./test_api
 ../bin/scr_postrun
 
@@ -142,21 +146,21 @@ srun -n4 -N4 ./test_api
 unsetenv SCR_EXCLUDE_NODES
 
 # delete all files, enable fetch, run again, check that fetch succeeds
-srun -n4 -N4 /bin/rm -rf /tmp/moody20/scr.$jobid
-srun -n4 -N4 /bin/rm -rf /ssd/moody20/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 setenv SCR_FETCH 1
 srun -n4 -N4 ./test_api
 
 # delete all files from 2 nodes, remove halt file, run again, check that distribute fails but fetch succeeds
-srun -n2 -N2 /bin/rm -rf /tmp/moody20/scr.$jobid
-srun -n2 -N2 /bin/rm -rf /ssd/moody20/scr.$jobid
+srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid
 ../bin/scr_halt -r
 srun -n4 -N4 ./test_api
 
 # delete all files, corrupt file on disc, run again, check that fetch of current fails but old succeeds
-srun -n4 -N4 /bin/rm -rf /tmp/moody20/scr.$jobid
-srun -n4 -N4 /bin/rm -rf /ssd/moody20/scr.$jobid
-vi -b /g/g0/moody20/packages/scr-dist/testing/examples/scr.current/rank_2.ckpt
+srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
+vi -b /g/g0/${USER}/packages/scr-dist/testing/examples/scr.current/rank_2.ckpt
 srun -n4 -N4 ./test_api
 
 # remove halt file, enable flush, run again and check that flush succeeds and that postrun realizes that
@@ -166,6 +170,7 @@ srun -n4 -N4 ./test_api
 ../bin/scr_postrun
 
 # clear cache and check that scr_srun works
-srun -n4 -N4 /bin/rm -rf /tmp/moody20/scr.$jobid
-srun -n4 -N4 /bin/rm -rf /ssd/moody20/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 ../bin/scr_srun -n4 -N4 ./test_api
+

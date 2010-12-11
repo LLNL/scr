@@ -2,9 +2,11 @@
 use strict;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 use lib '@X_DATADIR@/scr';
-use scr_hash;
 
 my $prog = "scr_env";
+
+my $bin = "@X_BINDIR@";
+my $scr_nodes_file = "$bin/scr_nodes_file";
 
 sub print_usage
 {
@@ -86,21 +88,13 @@ if (defined $conf{user}) {
 } elsif (defined $conf{runnodes} and defined $conf{cntldir}) {
   # get an object to read a hash file
   # and read the nodes.scrinfo file
-  my $h = {};
-  my $scr_hash = new scr_hash($prog);
-  if ($scr_hash->read_file("$conf{cntldir}/nodes.scrinfo", $h)) {
-    # look for the NODES key in the file hash
-    if (defined $$h{NODES}) {
-      # found the NODES key, get and return its value
-      my $nnodes = (keys %{$$h{NODES}})[0];
-      print "$nnodes\n";
-    } else {
-      # could not find the NODES key
-      print "0\n";
-      exit 1;
-    }
+  my $nodes = `$scr_nodes_file --dir $conf{cntldir}`;
+  if ($? == 0) {
+    chomp $nodes;
+    print "$nodes\n";
+    exit 0;
   } else {
-    # had a problem reading the file
+    # had a problem executing scr_nodes_file command
     print "0\n";
     exit 1;
   }

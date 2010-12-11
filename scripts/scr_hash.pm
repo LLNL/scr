@@ -130,6 +130,13 @@ sub read_file
       $rc = 0;
     }
 
+    # check that the magic number matches
+    my $flags = read32();
+    if (not defined $flags or $flags != 0x00000001) {
+      print "$self->{prog}: $self->{file}: Unrecognized flags field\n";
+      $rc = 0;
+    }
+
     # read the hash data
     if ($rc and not $self->read_hash($h)) {
       print "$self->{prog}: $self->{file}: Failed to read hash\n";
@@ -203,6 +210,12 @@ sub read_elem
   }
   return $rc;
 }
+
+######################################
+### reads were used longer than writes
+### so the write code below may not be
+### consistent with read code above
+######################################
 
 #sub writestr
 #{

@@ -12,6 +12,7 @@ scr_headers = \
 	../scr_io.h \
 	../scr_util.h \
 	../scr_hash.h \
+	../scr_hash_util.h \
 	../tv_data_display.h \
 	../scr_filemap.h \
 	../scr_index_api.h \
@@ -28,6 +29,7 @@ scr_sources = \
 	../scr_io.c \
 	../scr_util.c \
 	../scr_hash.c \
+	../scr_hash_util.c \
 	../tv_data_display.c \
 	../scr_filemap.c \
 	../scr_index_api.c \
@@ -44,6 +46,7 @@ scr_objs = \
 	../scr_io.lo \
 	../scr_util.lo \
 	../scr_hash.lo \
+	../scr_hash_util.lo \
 	../tv_data_display.lo \
 	../scr_filemap.lo \
 	../scr_index_api.lo \

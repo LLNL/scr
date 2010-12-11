@@ -27,7 +27,7 @@
 #include <unistd.h>
 
 /* given the name of a halt file, read it and fill in hash */
-int scr_halt_read(const char* file, struct scr_hash* hash)
+int scr_halt_read(const char* file, scr_hash* hash)
 {
   /* check whether halt file even exists */
   if (scr_file_exists(file) != SCR_SUCCESS) {
@@ -73,7 +73,7 @@ int scr_halt_read(const char* file, struct scr_hash* hash)
 
 /* read in halt file (which user may have changed via scr_halt), update internal data structure,
  * optionally decrement the checkpoints_left field, and write out halt file all while locked */
-int scr_halt_sync_and_decrement(const char* file, struct scr_hash* hash, int dec_count)
+int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
 {
   /* set the mode on the file to be readable/writable by all
    * (enables a sysadmin to halt a user's job via scr_halt --all) */
@@ -105,7 +105,7 @@ int scr_halt_sync_and_decrement(const char* file, struct scr_hash* hash, int dec
   }
 
   /* get a new blank hash to read in file */
-  struct scr_hash* file_hash = scr_hash_new();
+  scr_hash* file_hash = scr_hash_new();
 
   /* read in the file data */
   scr_hash_read_fd(file, fd, file_hash);

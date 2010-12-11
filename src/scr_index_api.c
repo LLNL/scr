@@ -40,12 +40,12 @@
 #define SCR_INDEX_FILENAME "index.scr"
 #define SCR_INDEX_FILE_VERSION_1 (1)
 
-/* this index will be used to lookup a checkpoint id given a hash and checkpoint directory name */
-static int scr_index_set_directory(struct scr_hash* hash, const char* name, int checkpoint_id)
+/* this index is used to lookup a checkpoint id given a hash and checkpoint directory name */
+static int scr_index_set_directory(scr_hash* hash, const char* name, int checkpoint_id)
 {
   /* add entry to directory index */
-  struct scr_hash* dir  = scr_hash_set_kv(hash, SCR_INDEX_KEY_DIR, name);
-  struct scr_hash* ckpt = scr_hash_set_kv_int(dir, SCR_INDEX_KEY_CKPT, checkpoint_id);
+  scr_hash* dir  = scr_hash_set_kv(hash, SCR_INDEX_KEY_DIR, name);
+  scr_hash* ckpt = scr_hash_set_kv_int(dir, SCR_INDEX_KEY_CKPT, checkpoint_id);
   if (ckpt == NULL) {
     return SCR_FAILURE;
   }
@@ -53,7 +53,7 @@ static int scr_index_set_directory(struct scr_hash* hash, const char* name, int 
 }
 
 /* read the index file from given directory and merge its contents into the given hash */
-int scr_index_read(const char* dir, struct scr_hash* index)
+int scr_index_read(const char* dir, scr_hash* index)
 {
   /* build the file name for the index file */
   char index_file[SCR_MAX_FILENAME];
@@ -74,7 +74,7 @@ int scr_index_read(const char* dir, struct scr_hash* index)
 }
 
 /* overwrite the contents of the index file in given directory with given hash */
-int scr_index_write(const char* dir, struct scr_hash* index)
+int scr_index_write(const char* dir, scr_hash* index)
 {
   /* build the file name for the index file */
   char index_file[SCR_MAX_FILENAME];
@@ -86,7 +86,7 @@ int scr_index_write(const char* dir, struct scr_hash* index)
   }
 
   /* set the index file version key if it's not set already */
-  struct scr_hash* version = scr_hash_get(index, SCR_INDEX_KEY_VERSION);
+  scr_hash* version = scr_hash_get(index, SCR_INDEX_KEY_VERSION);
   if (version == NULL) {
     scr_hash_set_kv_int(index, SCR_INDEX_KEY_VERSION, SCR_INDEX_FILE_VERSION_1);
   }
@@ -97,11 +97,11 @@ int scr_index_write(const char* dir, struct scr_hash* index)
 }
 
 /* add given checkpoint id and directory name to given hash */
-int scr_index_add_checkpoint_dir(struct scr_hash* index, int checkpoint_id, const char* name)
+int scr_index_add_checkpoint_dir(scr_hash* index, int checkpoint_id, const char* name)
 {
   /* set the checkpoint directory */
-  struct scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
-  struct scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name);
+  scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
+  scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name);
 
   /* add entry to directory index */
   scr_index_set_directory(index, name, checkpoint_id);
@@ -110,11 +110,11 @@ int scr_index_add_checkpoint_dir(struct scr_hash* index, int checkpoint_id, cons
 }
 
 /* write completeness code (0 or 1) for given checkpoint id and directory in given hash */
-int scr_index_mark_completeness(struct scr_hash* index, int checkpoint_id, const char* name, int complete)
+int scr_index_set_complete_key(scr_hash* index, int checkpoint_id, const char* name, int complete)
 {
   /* mark the checkpoint as complete or incomplete */
-  struct scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
-  struct scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name);
+  scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
+  scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name);
   scr_hash_set_kv_int(dir1, SCR_INDEX_KEY_COMPLETE, complete);
 
   /* add entry to directory index */
@@ -123,17 +123,40 @@ int scr_index_mark_completeness(struct scr_hash* index, int checkpoint_id, const
   return SCR_SUCCESS;
 }
 
+/* get completeness code for given checkpoint id and directory in given hash,
+ * sets complete=0 and returns SCR_FAILURE if key is not set */
+int scr_index_get_complete_key(scr_hash* index, int checkpoint_id, const char* name, int* complete)
+{
+  int rc = SCR_FAILURE;
+  *complete = 0;
+
+  /* get the value of the COMPLETE key */
+  scr_hash* ckpt = scr_hash_get_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
+  scr_hash* dir  = scr_hash_get_kv(ckpt, SCR_INDEX_KEY_DIR, name);
+  scr_hash* comp = scr_hash_get(dir, SCR_INDEX_KEY_COMPLETE);
+  int size = scr_hash_size(comp);
+  if (size == 1) {
+    char* complete_str = scr_hash_elem_get_first_val(dir, SCR_INDEX_KEY_COMPLETE);
+    if (complete_str != NULL) {
+      *complete = atoi(complete_str);
+      rc = SCR_SUCCESS;
+    }
+  }
+
+  return rc;
+}
+
 /* record fetch event for given checkpoint id and directory in given hash */
-int scr_index_mark_fetched(struct scr_hash* index, int checkpoint_id, const char* name)
+int scr_index_mark_fetched(scr_hash* index, int checkpoint_id, const char* name)
 {
   /* format timestamp */
   time_t now = time(NULL);
   char timestamp[30];
   strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", localtime(&now));
 
-  /* mark the checkpoint as complete */
-  struct scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
-  struct scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name);
+  /* mark the checkpoint as fetched at current timestamp */
+  scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
+  scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name);
   scr_hash_set_kv(dir1, SCR_INDEX_KEY_FETCHED, timestamp);
 
   /* add entry to directory index */
@@ -143,17 +166,36 @@ int scr_index_mark_fetched(struct scr_hash* index, int checkpoint_id, const char
 }
 
 /* record failed fetch event for given checkpoint id and directory in given hash */
-int scr_index_mark_failed(struct scr_hash* index, int checkpoint_id, const char* name)
+int scr_index_mark_failed(scr_hash* index, int checkpoint_id, const char* name)
 {
   /* format timestamp */
   time_t now = time(NULL);
   char timestamp[30];
   strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", localtime(&now));
 
-  /* mark the checkpoint as complete */
-  struct scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
-  struct scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name);
+  /* mark the checkpoint as failed at current timestamp */
+  scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
+  scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name);
   scr_hash_set_kv(dir1, SCR_INDEX_KEY_FAILED, timestamp);
+
+  /* add entry to directory index */
+  scr_index_set_directory(index, name, checkpoint_id);
+
+  return SCR_SUCCESS;
+}
+
+/* record flush event for given checkpoint id and directory in given hash */
+int scr_index_mark_flushed(scr_hash* index, int checkpoint_id, const char* name)
+{
+  /* format timestamp */
+  time_t now = time(NULL);
+  char timestamp[30];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", localtime(&now));
+
+  /* mark the checkpoint as flushed at current timestamp */
+  scr_hash* ckpt1 = scr_hash_set_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
+  scr_hash* dir1  = scr_hash_set_kv(ckpt1, SCR_INDEX_KEY_DIR, name);
+  scr_hash_set_kv(dir1, SCR_INDEX_KEY_FLUSHED, timestamp);
 
   /* add entry to directory index */
   scr_index_set_directory(index, name, checkpoint_id);
@@ -163,13 +205,13 @@ int scr_index_mark_failed(struct scr_hash* index, int checkpoint_id, const char*
 
 /* lookup the checkpoint id corresponding to the given checkpoint directory name in given hash
  * (assumes a directory maps to a single checkpoint id) */
-int scr_index_get_checkpoint_id_by_dir(const struct scr_hash* index, const char* name, int* checkpoint_id)
+int scr_index_get_checkpoint_id_by_dir(const scr_hash* index, const char* name, int* checkpoint_id)
 {
   /* assume that we won't find this checkpoint */
   *checkpoint_id = -1;
 
   /* attempt to lookup the checkpoint id */
-  struct scr_hash* dir = scr_hash_get_kv(index, SCR_INDEX_KEY_DIR, name);
+  scr_hash* dir = scr_hash_get_kv(index, SCR_INDEX_KEY_DIR, name);
   char* checkpoint_id_str = scr_hash_elem_get_first_val(dir, SCR_INDEX_KEY_CKPT);
   if (checkpoint_id_str != NULL) {
     /* found it, convert the string to an int and return */
@@ -183,7 +225,7 @@ int scr_index_get_checkpoint_id_by_dir(const struct scr_hash* index, const char*
 
 /* lookup the most recent complete checkpoint id and directory whose id is less than earlier_than
  * setting earlier_than = -1 disables this filter */
-int scr_index_most_recent_complete(const struct scr_hash* index, int earlier_than, int* checkpoint_id, char* name)
+int scr_index_most_recent_complete(const scr_hash* index, int earlier_than, int* checkpoint_id, char* name)
 {
   /* assume that we won't find this checkpoint */
   *checkpoint_id = -1;
@@ -191,8 +233,8 @@ int scr_index_most_recent_complete(const struct scr_hash* index, int earlier_tha
   /* search for the maximum checkpoint id which is complete and less than earlier_than
    * if earlier_than is set */
   int max_id = -1;
-  struct scr_hash* ckpts = scr_hash_get(index, SCR_INDEX_KEY_CKPT);
-  struct scr_hash_elem* ckpt = NULL;
+  scr_hash* ckpts = scr_hash_get(index, SCR_INDEX_KEY_CKPT);
+  scr_hash_elem* ckpt = NULL;
   for (ckpt = scr_hash_elem_first(ckpts);
        ckpt != NULL;
        ckpt = scr_hash_elem_next(ckpt))
@@ -206,15 +248,15 @@ int scr_index_most_recent_complete(const struct scr_hash* index, int earlier_tha
       if ((earlier_than == -1 || id <= earlier_than) && id > max_id) {
         /* alright, this checkpoint id is within range to be the most recent,
          * now scan the various dirs we have for this checkpoint looking for a complete */
-        struct scr_hash* ckpt_hash = scr_hash_elem_hash(ckpt);
-        struct scr_hash* dirs = scr_hash_get(ckpt_hash, SCR_INDEX_KEY_DIR);
-        struct scr_hash_elem* dir = NULL;
+        scr_hash* ckpt_hash = scr_hash_elem_hash(ckpt);
+        scr_hash* dirs = scr_hash_get(ckpt_hash, SCR_INDEX_KEY_DIR);
+        scr_hash_elem* dir = NULL;
         for (dir = scr_hash_elem_first(dirs);
              dir != NULL;
              dir = scr_hash_elem_next(dir))
         {
           char* dir_key = scr_hash_elem_key(dir);
-          struct scr_hash* dir_hash = scr_hash_elem_hash(dir);
+          scr_hash* dir_hash = scr_hash_elem_hash(dir);
 
           int found_one = 1;
 
@@ -230,10 +272,12 @@ int scr_index_most_recent_complete(const struct scr_hash* index, int earlier_tha
           }
 
           /* check that there is no failed string */
-          struct scr_hash* failed = scr_hash_get(dir_hash, SCR_INDEX_KEY_FAILED);
+          scr_hash* failed = scr_hash_get(dir_hash, SCR_INDEX_KEY_FAILED);
           if (failed != NULL) {
             found_one = 0;
           }
+
+          /* TODO: also avoid checkpoint if we've tried to read it too many times */
 
           /* if we found one, copy the checkpoint id and directory name, and update our max */
           if (found_one) {

@@ -40,13 +40,13 @@ static int scr_param_ref_count = 0;
 static char scr_config_file[SCR_MAX_FILENAME] = SCR_CONFIG_FILE;
 
 /* this data structure holds variables names which we can't not lookup in environment */
-static struct scr_hash* scr_no_user_hash = NULL;
+static scr_hash* scr_no_user_hash = NULL;
 
 /* this data structure will hold values read from the user config file */
-static struct scr_hash* scr_user_hash = NULL;
+static scr_hash* scr_user_hash = NULL;
 
 /* this data structure will hold values read from the system config file */
-static struct scr_hash* scr_system_hash = NULL;
+static scr_hash* scr_system_hash = NULL;
 
 /* searchs for name and returns a character pointer to its value if set,
  * returns NULL if not found */
@@ -55,7 +55,7 @@ char* scr_param_get(char* name)
   char* value = NULL;
 
   /* see if this parameter is one which is restricted from user */
-  struct scr_hash* no_user = scr_hash_get(scr_no_user_hash, name);
+  scr_hash* no_user = scr_hash_get(scr_no_user_hash, name);
 
   /* if parameter is set in environment, return that value */
   if (no_user == NULL && getenv(name) != NULL) {
@@ -81,13 +81,13 @@ char* scr_param_get(char* name)
 
 /* searchs for name and returns a newly allocated hash of its value if set,
  * returns NULL if not found */
-struct scr_hash* scr_param_get_hash(char* name)
+scr_hash* scr_param_get_hash(char* name)
 {
-  struct scr_hash* hash = NULL;
-  struct scr_hash* value_hash = NULL;
+  scr_hash* hash = NULL;
+  scr_hash* value_hash = NULL;
 
   /* see if this parameter is one which is restricted from user */
-  struct scr_hash* no_user = scr_hash_get(scr_no_user_hash, name);
+  scr_hash* no_user = scr_hash_get(scr_no_user_hash, name);
 
   /* if parameter is set in environment, return that value */
   if (no_user == NULL && getenv(name) != NULL) {
@@ -138,7 +138,7 @@ int scr_param_init()
     scr_config_read(scr_config_file, scr_system_hash);
 
     /* warn user if he set any parameters in his environment or user config file which aren't permitted */
-    struct scr_hash_elem* elem;
+    scr_hash_elem* elem;
     for (elem = scr_hash_elem_first(scr_no_user_hash);
          elem != NULL;
          elem = scr_hash_elem_next(elem))
@@ -147,7 +147,7 @@ int scr_param_init()
       char* key = scr_hash_elem_key(elem);
 
       char* env_val = getenv(key);
-      struct scr_hash* env_hash = scr_hash_get(scr_user_hash, key);
+      scr_hash* env_hash = scr_hash_get(scr_user_hash, key);
 
       /* check whether this is set in the environment */
       if (env_val != NULL || env_hash != NULL) {

@@ -92,7 +92,7 @@ static int scr_config_read_token(FILE* fs, const char* file, int linenum, int* n
 /* found a key value pair, read in the values and insert it into the hash */
 static int scr_config_read_kv(FILE* fs, const char* file, int linenum,
                                     int* n_external, char* c_external,
-                                    struct scr_hash* hash, struct scr_hash** hash2)
+                                    scr_hash* hash, scr_hash** hash2)
 {
   int  n = *n_external;
   char c = *c_external;
@@ -129,7 +129,7 @@ static int scr_config_read_kv(FILE* fs, const char* file, int linenum,
   }
 
   /* insert key/value into hash */
-  struct scr_hash* tmp_hash = scr_hash_set_kv(hash, key, value);
+  scr_hash* tmp_hash = scr_hash_set_kv(hash, key, value);
 
   *n_external = n;
   *c_external = c;
@@ -154,12 +154,12 @@ static int scr_config_read_comment(FILE* fs, const char* file, int linenum, int*
 }
 
 /* process all items found on the current line from the config file */
-static int scr_config_read_line(FILE* fs, const char* file, int linenum, int* n_external, char* c_external, struct scr_hash* hash)
+static int scr_config_read_line(FILE* fs, const char* file, int linenum, int* n_external, char* c_external, scr_hash* hash)
 {
   int  n = *n_external;
   char c = *c_external;
 
-  struct scr_hash* target_hash = hash;
+  scr_hash* target_hash = hash;
   int set_root = 0;
   while (n != EOF && c != '\n') {
     /* remove whitespace (spaces and tabs) until we hit a character */
@@ -170,7 +170,7 @@ static int scr_config_read_line(FILE* fs, const char* file, int linenum, int* n_
         scr_config_read_comment(fs, file, linenum, &n, &c);
       } else {
         /* must have a key value chain, so read them in */
-        struct scr_hash* tmp_hash = NULL;
+        scr_hash* tmp_hash = NULL;
         scr_config_read_kv(fs, file, linenum, &n, &c, target_hash, &tmp_hash);
         if (set_root == 0) {
           target_hash = tmp_hash;
@@ -186,7 +186,7 @@ static int scr_config_read_line(FILE* fs, const char* file, int linenum, int* n_
 }
 
 /* read parameters from config file and fill in hash */
-int scr_config_read_serial(const char* file, struct scr_hash* hash)
+int scr_config_read_serial(const char* file, scr_hash* hash)
 {
   /* check whether we can read the file */
   if (access(file, R_OK) < 0) {

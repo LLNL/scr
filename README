@@ -153,7 +153,7 @@ built for each MPI library.
 If you are using the scr.conf file, you'll also need to edit this file
 to match the settings on your system.  Please open this file and make
 any necessary changes -- it is self-documented with comments.  After
-modifyingthis file, copy it to the location specified in your configure
+modifying this file, copy it to the location specified in your configure
 step.  The configure option simply informs the SCR install where to
 look for the file, it does not modify or install the file.
 
@@ -257,7 +257,7 @@ checkpoint before the last run was killed.
 The commands are just as vital as the library in order for SCR to
 function.  In particular, after a node failure, the commands must be
 able to access the cache and control directories of the nodes which
-are still healty.  Thus, the resource manager must be configured to
+are still healthy.  Thus, the resource manager must be configured to
 enable these commands to run on the remaining nodes of an allocation,
 which may have sustained one or more failed nodes. 
 
@@ -408,33 +408,32 @@ Different commands may run in different places.
 
 Compute node only:
   scripts/scr_check_node.in      perl
-  src/scr_inspect_cache.in       C
-  src/scr_copy.in                C
-  src/scr_halt_cntl.c            C
-  src/scr_transfer.c             C
+  src/bin/scr_inspect_cache.in   C
+  src/bin/scr_copy.in            C
+  src/bin/scr_halt_cntl.c        C
+  src/bin/scr_transfer.c         C
 
 Batch script only:
-  scripts/scr_prerun.in          bash shell
-  scripts/scr_list_down_nodes.in perl
-  scripts/scr_srun.in            bash shell
-  scripts/scr_postrun.in         bash shell
+  scripts/scr_prerun.in          bash
+  scripts/scr_srun.in            bash
+  scripts/scr_postrun.in         bash
   scripts/scr_flush.in           perl
-  scripts/scr_retries_halt.in    perl
-  scripts/scr_cntl_dir.in        perl
   scripts/scr_env.in             perl
-  src/scr_log_event.c            C
-  src/scr_log_transfer.c         C
-
-Compute node and batch script:
-  scripts/scr_flush_file.in      perl
+  scripts/scr_cntl_dir.in        perl
+  scripts/scr_list_down_nodes.in perl
+  src/bin/scr_log_event.c        C
+  src/bin/scr_log_transfer.c     C
+  src/bin/scr_retries_halt.c     C
+  src/bin/scr_flush_file.c       C
+  src/bin/scr_nodes_file.c       C
 
 Within or external to batch script:
   scripts/scr_halt.in            perl
   scripts/scr_check_complete.in  perl
   scripts/scr_glob_hosts.in      perl
-  src/scr_rebuild_xor.c          C
-  src/scr_crc32.c                C
-  src/scr_print_hash_file.c      C
+  src/bin/scr_rebuild_xor.c      C
+  src/bin/scr_crc32.c            C
+  src/bin/scr_print_hash_file.c  C
 
 -----------------------------
 Program flow
