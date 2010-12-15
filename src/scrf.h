@@ -9,7 +9,7 @@
 !
 ! return codes
       INTEGER SCR_SUCCESS
-      PARAMETER (MPI_SUCCESS=0)
+      PARAMETER (SCR_SUCCESS=0)
 
 ! constants
       INTEGER SCR_MAX_FILENAME

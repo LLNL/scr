@@ -35,7 +35,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-target_triplet = @target@
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/config/config.h.in \
 	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
@@ -44,14 +43,13 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	config/missing
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/config/x_ac_config_scr.m4 \
-	$(top_srcdir)/config/x_ac_expand_install_dirs.m4 \
-	$(top_srcdir)/config/x_ac_meta.m4 \
-	$(top_srcdir)/config/x_ac_mysql.m4 \
-	$(top_srcdir)/config/x_ac_prog_mpicc.m4 \
-	$(top_srcdir)/config/x_ac_prog_pdsh.m4 \
-	$(top_srcdir)/config/x_ac_prog_perl_modules.m4 \
-	$(top_srcdir)/config/x_ac_yogrt.m4 $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/lx_find_mpi.m4 \
+	$(top_srcdir)/m4/x_ac_config_scr.m4 \
+	$(top_srcdir)/m4/x_ac_expand_install_dirs.m4 \
+	$(top_srcdir)/m4/x_ac_meta.m4 $(top_srcdir)/m4/x_ac_mysql.m4 \
+	$(top_srcdir)/m4/x_ac_prog_pdsh.m4 \
+	$(top_srcdir)/m4/x_ac_prog_perl_modules.m4 \
+	$(top_srcdir)/m4/x_ac_yogrt.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -121,9 +119,6 @@ LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-MAINT = @MAINT@
-MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
-MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 META_ALIAS = @META_ALIAS@
 META_AUTHOR = @META_AUTHOR@
@@ -135,6 +130,8 @@ META_NAME = @META_NAME@
 META_RELEASE = @META_RELEASE@
 META_VERSION = @META_VERSION@
 MPICC = @MPICC@
+MPI_CFLAGS = @MPI_CFLAGS@
+MPI_CLDFLAGS = @MPI_CLDFLAGS@
 MYSQL_CPPFLAGS = @MYSQL_CPPFLAGS@
 MYSQL_LDFLAGS = @MYSQL_LDFLAGS@
 MYSQL_LIBS = @MYSQL_LIBS@
@@ -216,11 +213,8 @@ program_transform_name = @program_transform_name@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
-target = @target@
 target_alias = @target_alias@
-target_cpu = @target_cpu@
-target_os = @target_os@
-target_vendor = @target_vendor@
+ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = man scripts src doc examples
 EXTRA_DIST = DISCLAIMER META NEWS README LICENSE.TXT scr.conf scr.mysql
 all: all-recursive
@@ -228,7 +222,7 @@ all: all-recursive
 .SUFFIXES:
 am--refresh:
 	@:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -255,9 +249,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
 
-$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
+$(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(srcdir) && $(AUTOCONF)
-$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
+$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 
 config/config.h: config/stamp-h1
@@ -269,7 +263,7 @@ config/config.h: config/stamp-h1
 config/stamp-h1: $(top_srcdir)/config/config.h.in $(top_builddir)/config.status
 	@rm -f config/stamp-h1
 	cd $(top_builddir) && $(SHELL) ./config.status config/config.h
-$(top_srcdir)/config/config.h.in: @MAINTAINER_MODE_TRUE@ $(am__configure_deps) 
+$(top_srcdir)/config/config.h.in:  $(am__configure_deps) 
 	cd $(top_srcdir) && $(AUTOHEADER)
 	rm -f config/stamp-h1
 	touch $@
@@ -422,7 +416,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/config $(distdir)/examples $(distdir)/man $(distdir)/scripts
+	$(mkdir_p) $(distdir)/config $(distdir)/examples $(distdir)/m4 $(distdir)/man $(distdir)/scripts
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

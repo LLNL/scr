@@ -1,10 +1,15 @@
 ##
 # Prologue.
 ##
-AC_INIT([scr])
-AC_CONFIG_AUX_DIR([config])
-AC_CONFIG_SRCDIR([NEWS])
-AC_CANONICAL_SYSTEM
+AC_INIT
+AC_CONFIG_SRCDIR([src/lib/scr.c])
+AC_CONFIG_AUX_DIR(config)
+AC_CONFIG_MACRO_DIR([m4])
+
+AM_CONFIG_HEADER([config/config.h])
+
+#AC_CANONICAL_SYSTEM
+
 X_AC_META
 X_AC_EXPAND_INSTALL_DIRS
 
@@ -12,17 +17,30 @@ X_AC_EXPAND_INSTALL_DIRS
 # Automake support.
 ##
 AM_INIT_AUTOMAKE([$META_NAME], [$META_VERSION]-[$META_RELEASE])
-AM_CONFIG_HEADER([config/config.h])
-AM_MAINTAINER_MODE
+
+#AM_MAINTAINER_MODE
 
 ##
 # Checks for programs.
 ##
-X_AC_PROG_MPICC
+AC_PROG_CC
+#AC_PROG_CXX
+#X_AC_PROG_MPICC
+LX_FIND_MPI
 X_AC_YOGRT
 X_AC_MYSQL
-X_AC_PROG_PDSH
+
+##
+# enable libtool
+##
 AC_PROG_LIBTOOL
+
+##
+# Extra packages
+##
+#X_AC_MRNET
+#X_AC_LAUNCHMON
+X_AC_PROG_PDSH
 
 ##
 # Checks for header files.
@@ -46,21 +64,19 @@ X_AC_CONFIG_SCR
 ##
 # Epilogue.
 ##
-AC_CONFIG_FILES( \
+AC_CONFIG_FILES([ \
   Makefile \
   src/Makefile \
   src/lib/Makefile \
   src/bin/Makefile \
   man/Makefile \
   man/scr.1 \
-  man/scr_check_complete.1 \
   man/scr_halt.1 \
   man/scr_postrun.1 \
   man/scr_prerun.1 \
   man/scr_srun.1 \
   scripts/Makefile \
   scripts/scr_cntl_dir \
-  scripts/scr_check_complete \
   scripts/scr_check_node \
   scripts/scr_env \
   scripts/scr_inspect \
@@ -77,6 +93,6 @@ AC_CONFIG_FILES( \
   examples/Makefile \
   examples/makefile.examples \
   doc/Makefile \
-)
+])
 AC_OUTPUT
 

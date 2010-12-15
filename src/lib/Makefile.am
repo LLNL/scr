@@ -1,8 +1,11 @@
-MPICC     = @MPICC@
+#MPICC     = @MPICC@
 
 AM_CFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/config
 
-#include_HEADERS = ../scr.h
+lib_LTLIBRARIES = \
+	libscr.la \
+	libscrf.la \
+	libscr_interpose.la
 
 scr_headers = \
 	../scr_conf.h \
@@ -57,42 +60,38 @@ scr_objs = \
 	../scr_copy_xor.lo \
 	../scr_halt.lo
 
-SCR_C_FLAGS = \
+INCLUDES = \
 	$(DEFS) \
-	$(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(DEFAULT_INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) \
 	$(AM_CFLAGS) $(CFLAGS) \
 	$(YOGRT_CPPFLAGS) \
 	$(MYSQL_CPPFLAGS)
 
-scr.lo: $(scr_headers) $(scr_sources)
-	libtool --tag=CC --mode=compile $(MPICC) -c scr.c -o $@ $(SCR_C_FLAGS)
+libscr_la_SOURCES = $(scr_sources)
+libscr_la_CFLAGS = $(INCLUDES) $(MPI_CFLAGS)
+libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz $(MPI_CLDFLAGS)
+#libscr_la_LDFLAGS = -rpath $(DESTDIR)$(libdir)
+#libscr_la_LDFLAGS = -avoid-version (avoids numbers at end of library name)
 
-scrf.lo: $(scr_headers) $(scr_sources)
-	libtool --tag=CC --mode=compile $(MPICC) -c scrf.c -o $@ $(SCR_C_FLAGS)
+libscrf_la_SOURCES = $(scr_sources)
+libscrf_la_CFLAGS = $(INCLUDES) $(MPI_CFLAGS)
+libscrf_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz $(MPI_CLDFLAGS)
 
-scr_interpose.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(MPICC) -c scr_interpose.c -o $@ $(SCR_C_FLAGS)
+libscr_interpose_la_SOURCES = $(scr_sources) scr_interpose.c
+libscr_interpose_la_CFLAGS = $(INCLUDES) $(MPI_CFLAGS)
+libscr_interpose_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz $(MPI_CLDFLAGS)
 
-libscr.la: $(scr_objs)
-	libtool --mode=link --tag=CC $(MPICC) $(SCR_C_FLAGS) -o $@ \
-	$(scr_objs) \
-	$(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz -rpath $(DESTDIR)$(libdir)
-
-libscr_interpose.la: $(scr_objs) scr_interpose.lo
-	libtool --mode=link --tag=CC $(MPICC) $(SCR_C_FLAGS) -o $@ \
-	$(scr_objs) scr_interpose.lo \
-	$(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz -rpath $(DESTDIR)$(libdir)
-
-all-local: libscr.la libscr_interpose.la
+all-local: libscr.la libscrf.la libscr_interpose.la
 	
 clean-local:
-	libtool --mode=clean /bin/rm -rf libscr.la libscr_interpose.la *.o
+	libtool --mode=clean /bin/rm -rf libscr.la libscrf.la libscr_interpose.la *.o
 
 install-exec-local:
 	mkdir -p $(DESTDIR)$(prefix)/lib
 	mkdir -p $(DESTDIR)$(prefix)/src/lib
 	libtool --mode=install cp libscr.la $(DESTDIR)$(prefix)/lib
+	libtool --mode=install cp libscrf.la $(DESTDIR)$(prefix)/lib
 	libtool --mode=install cp libscr_interpose.la $(DESTDIR)$(prefix)/lib
 	libtool --mode=install cp *.c $(DESTDIR)$(prefix)/src/lib
 

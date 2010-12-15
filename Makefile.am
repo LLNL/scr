@@ -1,3 +1,5 @@
+ACLOCAL_AMFLAGS = -I m4
+
 SUBDIRS = man scripts src doc examples
 
 EXTRA_DIST = DISCLAIMER META NEWS README LICENSE.TXT scr.conf scr.mysql

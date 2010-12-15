@@ -18,7 +18,7 @@ than the parallel file system.
 \fISCR User Manual\fR
 .LP
 \fBscr_srun\fR(1), \fBscr_halt\fR(1), \fBscr_prerun\fR(1),
-\fBscr_postrun\fR(1), \fBscr_check_complete\fR(1)
+\fBscr_postrun\fR(1), \fBscr_index\fR(1)
 
 .SH AUTHOR
 Adam Moody <moody20@llnl.gov>.

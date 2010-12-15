@@ -1,5 +1,3 @@
-MPICC     = @MPICC@
-
 AM_CFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/config
 
 SUBDIRS = . lib bin
@@ -55,54 +53,7 @@ scr_objs = \
 	scr_copy_xor.lo \
 	scr_halt.lo
 
-SCR_C_FLAGS = \
-	$(DEFS) \
-	$(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) \
-	$(AM_CFLAGS) $(CFLAGS) \
-	$(YOGRT_CPPFLAGS) \
-	$(MYSQL_CPPFLAGS)
-
-scr_io.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_io.c -o $@ $(SCR_C_FLAGS)
-
-scr_util.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_util.c -o $@ $(SCR_C_FLAGS)
-
-scr_hash.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_hash.c -o $@ $(SCR_C_FLAGS)
-
-scr_hash_util.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_hash_util.c -o $@ $(SCR_C_FLAGS)
-
-tv_data_display.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c tv_data_display.c -o $@ $(SCR_C_FLAGS)
-
-scr_filemap.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_filemap.c -o $@ $(SCR_C_FLAGS)
-
-scr_index_api.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_index_api.c -o $@ $(SCR_C_FLAGS)
-
-scr_meta.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_meta.c -o $@ $(SCR_C_FLAGS)
-
-scr_config.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_config.c -o $@ $(SCR_C_FLAGS)
-
-scr_param.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_param.c -o $@ $(SCR_C_FLAGS)
-
-scr_log.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_log.c -o $@ $(SCR_C_FLAGS)
-
-scr_copy_xor.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_copy_xor.c -o $@ $(SCR_C_FLAGS)
-
-scr_halt.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(CC) -c scr_halt.c -o $@ $(SCR_C_FLAGS)
-
-all-local: $(scr_objs)
+all-local:
 	
 clean-local:
 	libtool --mode=clean /bin/rm -rf $(scr_objs)
@@ -120,5 +71,6 @@ uninstall-local:
 	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/scr*
 	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/{queue,config}.h
 	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/tv_data_display.{c,h}
+	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/lib/libscr*
 
 EXTRA_DIST = queue.h $(scr_headers) $(scr_sources)

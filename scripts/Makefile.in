@@ -36,34 +36,31 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-target_triplet = @target@
 subdir = scripts
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/scr_check_complete.in $(srcdir)/scr_check_node.in \
-	$(srcdir)/scr_cntl_dir.in $(srcdir)/scr_env.in \
-	$(srcdir)/scr_flush.in $(srcdir)/scr_glob_hosts.in \
-	$(srcdir)/scr_halt.in $(srcdir)/scr_inspect.in \
-	$(srcdir)/scr_list_down_nodes.in $(srcdir)/scr_param.pm.in \
-	$(srcdir)/scr_postrun.in $(srcdir)/scr_prerun.in \
-	$(srcdir)/scr_srun.in $(srcdir)/scr_test_datemanip.in \
-	$(srcdir)/scr_test_runtime.in
+	$(srcdir)/scr_check_node.in $(srcdir)/scr_cntl_dir.in \
+	$(srcdir)/scr_env.in $(srcdir)/scr_flush.in \
+	$(srcdir)/scr_glob_hosts.in $(srcdir)/scr_halt.in \
+	$(srcdir)/scr_inspect.in $(srcdir)/scr_list_down_nodes.in \
+	$(srcdir)/scr_param.pm.in $(srcdir)/scr_postrun.in \
+	$(srcdir)/scr_prerun.in $(srcdir)/scr_srun.in \
+	$(srcdir)/scr_test_datemanip.in $(srcdir)/scr_test_runtime.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/config/x_ac_config_scr.m4 \
-	$(top_srcdir)/config/x_ac_expand_install_dirs.m4 \
-	$(top_srcdir)/config/x_ac_meta.m4 \
-	$(top_srcdir)/config/x_ac_mysql.m4 \
-	$(top_srcdir)/config/x_ac_prog_mpicc.m4 \
-	$(top_srcdir)/config/x_ac_prog_pdsh.m4 \
-	$(top_srcdir)/config/x_ac_prog_perl_modules.m4 \
-	$(top_srcdir)/config/x_ac_yogrt.m4 $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/lx_find_mpi.m4 \
+	$(top_srcdir)/m4/x_ac_config_scr.m4 \
+	$(top_srcdir)/m4/x_ac_expand_install_dirs.m4 \
+	$(top_srcdir)/m4/x_ac_meta.m4 $(top_srcdir)/m4/x_ac_mysql.m4 \
+	$(top_srcdir)/m4/x_ac_prog_pdsh.m4 \
+	$(top_srcdir)/m4/x_ac_prog_perl_modules.m4 \
+	$(top_srcdir)/m4/x_ac_yogrt.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
-CONFIG_CLEAN_FILES = scr_cntl_dir scr_check_complete scr_check_node \
-	scr_env scr_inspect scr_flush scr_glob_hosts scr_halt \
-	scr_list_down_nodes scr_postrun scr_prerun scr_srun \
-	scr_test_datemanip scr_test_runtime scr_param.pm
+CONFIG_CLEAN_FILES = scr_cntl_dir scr_check_node scr_env scr_inspect \
+	scr_flush scr_glob_hosts scr_halt scr_list_down_nodes \
+	scr_postrun scr_prerun scr_srun scr_test_datemanip \
+	scr_test_runtime scr_param.pm
 am__installdirs = "$(DESTDIR)$(bindir)"
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(bin_SCRIPTS)
@@ -110,9 +107,6 @@ LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-MAINT = @MAINT@
-MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
-MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 META_ALIAS = @META_ALIAS@
 META_AUTHOR = @META_AUTHOR@
@@ -124,6 +118,8 @@ META_NAME = @META_NAME@
 META_RELEASE = @META_RELEASE@
 META_VERSION = @META_VERSION@
 MPICC = @MPICC@
+MPI_CFLAGS = @MPI_CFLAGS@
+MPI_CLDFLAGS = @MPI_CLDFLAGS@
 MYSQL_CPPFLAGS = @MYSQL_CPPFLAGS@
 MYSQL_LDFLAGS = @MYSQL_LDFLAGS@
 MYSQL_LIBS = @MYSQL_LIBS@
@@ -205,14 +201,9 @@ program_transform_name = @program_transform_name@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
-target = @target@
 target_alias = @target_alias@
-target_cpu = @target_cpu@
-target_os = @target_os@
-target_vendor = @target_vendor@
 bin_SCRIPTS = \
 	scr_cntl_dir \
-	scr_check_complete \
 	scr_check_node \
 	scr_env \
 	scr_inspect \
@@ -226,15 +217,14 @@ bin_SCRIPTS = \
 	scr_test_datemanip \
 	scr_test_runtime
 
-EXTRA_DIST = scr_cntl_dir scr_check_complete scr_check_node scr_env \
-	scr_inspect scr_flush scr_glob_hosts scr_halt \
-	scr_list_down_nodes scr_postrun scr_prerun scr_srun \
-	scr_test_datemanip scr_test_runtime scr_param.pm \
-	scr_hostlist.pm
+EXTRA_DIST = scr_cntl_dir scr_check_node scr_env scr_inspect scr_flush \
+	scr_glob_hosts scr_halt scr_list_down_nodes scr_postrun \
+	scr_prerun scr_srun scr_test_datemanip scr_test_runtime \
+	scr_param.pm scr_hostlist.pm
 all: all-am
 
 .SUFFIXES:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -259,13 +249,11 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
+$(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
+$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 scr_cntl_dir: $(top_builddir)/config.status $(srcdir)/scr_cntl_dir.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
-scr_check_complete: $(top_builddir)/config.status $(srcdir)/scr_check_complete.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 scr_check_node: $(top_builddir)/config.status $(srcdir)/scr_check_node.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@

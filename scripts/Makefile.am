@@ -1,6 +1,5 @@
 bin_SCRIPTS = \
 	scr_cntl_dir \
-	scr_check_complete \
 	scr_check_node \
 	scr_env \
 	scr_inspect \
@@ -16,7 +15,6 @@ bin_SCRIPTS = \
 
 EXTRA_DIST = \
 	scr_cntl_dir \
-	scr_check_complete \
 	scr_check_node \
 	scr_env \
 	scr_inspect \

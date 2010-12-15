@@ -13,6 +13,9 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
+
+#MPICC     = @MPICC@
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -35,25 +38,92 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-target_triplet = @target@
 subdir = src/lib
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/config/x_ac_config_scr.m4 \
-	$(top_srcdir)/config/x_ac_expand_install_dirs.m4 \
-	$(top_srcdir)/config/x_ac_meta.m4 \
-	$(top_srcdir)/config/x_ac_mysql.m4 \
-	$(top_srcdir)/config/x_ac_prog_mpicc.m4 \
-	$(top_srcdir)/config/x_ac_prog_pdsh.m4 \
-	$(top_srcdir)/config/x_ac_prog_perl_modules.m4 \
-	$(top_srcdir)/config/x_ac_yogrt.m4 $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/lx_find_mpi.m4 \
+	$(top_srcdir)/m4/x_ac_config_scr.m4 \
+	$(top_srcdir)/m4/x_ac_expand_install_dirs.m4 \
+	$(top_srcdir)/m4/x_ac_meta.m4 $(top_srcdir)/m4/x_ac_mysql.m4 \
+	$(top_srcdir)/m4/x_ac_prog_pdsh.m4 \
+	$(top_srcdir)/m4/x_ac_prog_perl_modules.m4 \
+	$(top_srcdir)/m4/x_ac_yogrt.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES =
-SOURCES =
-DIST_SOURCES =
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
+am__installdirs = "$(DESTDIR)$(libdir)"
+libLTLIBRARIES_INSTALL = $(INSTALL)
+LTLIBRARIES = $(lib_LTLIBRARIES)
+am__DEPENDENCIES_1 =
+libscr_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
+am__objects_1 = libscr_la-scr.lo libscr_la-scrf.lo libscr_la-scr_io.lo \
+	libscr_la-scr_util.lo libscr_la-scr_hash.lo \
+	libscr_la-scr_hash_util.lo libscr_la-tv_data_display.lo \
+	libscr_la-scr_filemap.lo libscr_la-scr_index_api.lo \
+	libscr_la-scr_meta.lo libscr_la-scr_config.lo \
+	libscr_la-scr_param.lo libscr_la-scr_log.lo \
+	libscr_la-scr_copy_xor.lo libscr_la-scr_halt.lo
+am_libscr_la_OBJECTS = $(am__objects_1)
+libscr_la_OBJECTS = $(am_libscr_la_OBJECTS)
+libscr_interpose_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+am__objects_2 = libscr_interpose_la-scr.lo libscr_interpose_la-scrf.lo \
+	libscr_interpose_la-scr_io.lo libscr_interpose_la-scr_util.lo \
+	libscr_interpose_la-scr_hash.lo \
+	libscr_interpose_la-scr_hash_util.lo \
+	libscr_interpose_la-tv_data_display.lo \
+	libscr_interpose_la-scr_filemap.lo \
+	libscr_interpose_la-scr_index_api.lo \
+	libscr_interpose_la-scr_meta.lo \
+	libscr_interpose_la-scr_config.lo \
+	libscr_interpose_la-scr_param.lo \
+	libscr_interpose_la-scr_log.lo \
+	libscr_interpose_la-scr_copy_xor.lo \
+	libscr_interpose_la-scr_halt.lo
+am_libscr_interpose_la_OBJECTS = $(am__objects_2) \
+	libscr_interpose_la-scr_interpose.lo
+libscr_interpose_la_OBJECTS = $(am_libscr_interpose_la_OBJECTS)
+libscrf_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
+am__objects_3 = libscrf_la-scr.lo libscrf_la-scrf.lo \
+	libscrf_la-scr_io.lo libscrf_la-scr_util.lo \
+	libscrf_la-scr_hash.lo libscrf_la-scr_hash_util.lo \
+	libscrf_la-tv_data_display.lo libscrf_la-scr_filemap.lo \
+	libscrf_la-scr_index_api.lo libscrf_la-scr_meta.lo \
+	libscrf_la-scr_config.lo libscrf_la-scr_param.lo \
+	libscrf_la-scr_log.lo libscrf_la-scr_copy_xor.lo \
+	libscrf_la-scr_halt.lo
+am_libscrf_la_OBJECTS = $(am__objects_3)
+libscrf_la_OBJECTS = $(am_libscrf_la_OBJECTS)
+DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/config
+depcomp = $(SHELL) $(top_srcdir)/config/depcomp
+am__depfiles_maybe = depfiles
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+SOURCES = $(libscr_la_SOURCES) $(libscr_interpose_la_SOURCES) \
+	$(libscrf_la_SOURCES)
+DIST_SOURCES = $(libscr_la_SOURCES) $(libscr_interpose_la_SOURCES) \
+	$(libscrf_la_SOURCES)
+ETAGS = etags
+CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
@@ -95,9 +165,6 @@ LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-MAINT = @MAINT@
-MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
-MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 META_ALIAS = @META_ALIAS@
 META_AUTHOR = @META_AUTHOR@
@@ -109,6 +176,8 @@ META_NAME = @META_NAME@
 META_RELEASE = @META_RELEASE@
 META_VERSION = @META_VERSION@
 MPICC = @MPICC@
+MPI_CFLAGS = @MPI_CFLAGS@
+MPI_CLDFLAGS = @MPI_CLDFLAGS@
 MYSQL_CPPFLAGS = @MYSQL_CPPFLAGS@
 MYSQL_LDFLAGS = @MYSQL_LDFLAGS@
 MYSQL_LIBS = @MYSQL_LIBS@
@@ -190,14 +259,13 @@ program_transform_name = @program_transform_name@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
-target = @target@
 target_alias = @target_alias@
-target_cpu = @target_cpu@
-target_os = @target_os@
-target_vendor = @target_vendor@
 AM_CFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/config
+lib_LTLIBRARIES = \
+	libscr.la \
+	libscrf.la \
+	libscr_interpose.la
 
-#include_HEADERS = ../scr.h
 scr_headers = \
 	../scr_conf.h \
 	../scr.h \
@@ -251,19 +319,31 @@ scr_objs = \
 	../scr_copy_xor.lo \
 	../scr_halt.lo
 
-SCR_C_FLAGS = \
+INCLUDES = \
 	$(DEFS) \
-	$(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(DEFAULT_INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) \
 	$(AM_CFLAGS) $(CFLAGS) \
 	$(YOGRT_CPPFLAGS) \
 	$(MYSQL_CPPFLAGS)
 
+libscr_la_SOURCES = $(scr_sources)
+libscr_la_CFLAGS = $(INCLUDES) $(MPI_CFLAGS)
+libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz $(MPI_CLDFLAGS)
+#libscr_la_LDFLAGS = -rpath $(DESTDIR)$(libdir)
+#libscr_la_LDFLAGS = -avoid-version (avoids numbers at end of library name)
+libscrf_la_SOURCES = $(scr_sources)
+libscrf_la_CFLAGS = $(INCLUDES) $(MPI_CFLAGS)
+libscrf_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz $(MPI_CLDFLAGS)
+libscr_interpose_la_SOURCES = $(scr_sources) scr_interpose.c
+libscr_interpose_la_CFLAGS = $(INCLUDES) $(MPI_CFLAGS)
+libscr_interpose_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz $(MPI_CLDFLAGS)
 EXTRA_DIST = scr.c scrf.c scr_interpose.c
 all: all-am
 
 .SUFFIXES:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
+.SUFFIXES: .c .lo .o .obj
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -288,10 +368,439 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
+$(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
+$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	test -z "$(libdir)" || $(mkdir_p) "$(DESTDIR)$(libdir)"
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  if test -f $$p; then \
+	    f=$(am__strip_dir) \
+	    echo " $(LIBTOOL) --mode=install $(libLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) '$$p' '$(DESTDIR)$(libdir)/$$f'"; \
+	    $(LIBTOOL) --mode=install $(libLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) "$$p" "$(DESTDIR)$(libdir)/$$f"; \
+	  else :; fi; \
+	done
+
+uninstall-libLTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@set -x; list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  p=$(am__strip_dir) \
+	  echo " $(LIBTOOL) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$p'"; \
+	  $(LIBTOOL) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$p"; \
+	done
+
+clean-libLTLIBRARIES:
+	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
+	  test "$$dir" != "$$p" || dir=.; \
+	  echo "rm -f \"$${dir}/so_locations\""; \
+	  rm -f "$${dir}/so_locations"; \
+	done
+libscr.la: $(libscr_la_OBJECTS) $(libscr_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libscr_la_LDFLAGS) $(libscr_la_OBJECTS) $(libscr_la_LIBADD) $(LIBS)
+libscr_interpose.la: $(libscr_interpose_la_OBJECTS) $(libscr_interpose_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libscr_interpose_la_LDFLAGS) $(libscr_interpose_la_OBJECTS) $(libscr_interpose_la_LIBADD) $(LIBS)
+libscrf.la: $(libscrf_la_OBJECTS) $(libscrf_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libscrf_la_LDFLAGS) $(libscrf_la_OBJECTS) $(libscrf_la_LIBADD) $(LIBS)
+
+mostlyclean-compile:
+	-rm -f *.$(OBJEXT)
+
+distclean-compile:
+	-rm -f *.tab.c
+
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_config.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_copy_xor.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_filemap.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_halt.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_hash.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_hash_util.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_index_api.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_interpose.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_io.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_log.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_meta.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_param.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scr_util.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-scrf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_interpose_la-tv_data_display.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_config.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_copy_xor.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_filemap.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_halt.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_hash.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_hash_util.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_index_api.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_io.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_log.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_meta.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_param.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_util.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scrf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-tv_data_display.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_config.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_copy_xor.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_filemap.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_halt.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_hash.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_hash_util.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_index_api.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_io.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_log.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_meta.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_param.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scr_util.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scrf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-tv_data_display.Plo@am__quote@
+
+.c.o:
+@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c $<
+
+.c.obj:
+@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ `$(CYGPATH_W) '$<'`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+.c.lo:
+@am__fastdepCC_TRUE@	if $(LTCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Plo"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
+
+libscr_la-scr.lo: scr.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr.Tpo" -c -o libscr_la-scr.lo `test -f 'scr.c' || echo '$(srcdir)/'`scr.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr.Tpo" "$(DEPDIR)/libscr_la-scr.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr.c' object='libscr_la-scr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr.lo `test -f 'scr.c' || echo '$(srcdir)/'`scr.c
+
+libscr_la-scrf.lo: scrf.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scrf.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scrf.Tpo" -c -o libscr_la-scrf.lo `test -f 'scrf.c' || echo '$(srcdir)/'`scrf.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scrf.Tpo" "$(DEPDIR)/libscr_la-scrf.Plo"; else rm -f "$(DEPDIR)/libscr_la-scrf.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scrf.c' object='libscr_la-scrf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scrf.lo `test -f 'scrf.c' || echo '$(srcdir)/'`scrf.c
+
+libscr_la-scr_io.lo: ../scr_io.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_io.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_io.Tpo" -c -o libscr_la-scr_io.lo `test -f '../scr_io.c' || echo '$(srcdir)/'`../scr_io.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_io.Tpo" "$(DEPDIR)/libscr_la-scr_io.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_io.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_io.c' object='libscr_la-scr_io.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_io.lo `test -f '../scr_io.c' || echo '$(srcdir)/'`../scr_io.c
+
+libscr_la-scr_util.lo: ../scr_util.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_util.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_util.Tpo" -c -o libscr_la-scr_util.lo `test -f '../scr_util.c' || echo '$(srcdir)/'`../scr_util.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_util.Tpo" "$(DEPDIR)/libscr_la-scr_util.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_util.c' object='libscr_la-scr_util.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_util.lo `test -f '../scr_util.c' || echo '$(srcdir)/'`../scr_util.c
+
+libscr_la-scr_hash.lo: ../scr_hash.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_hash.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_hash.Tpo" -c -o libscr_la-scr_hash.lo `test -f '../scr_hash.c' || echo '$(srcdir)/'`../scr_hash.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_hash.Tpo" "$(DEPDIR)/libscr_la-scr_hash.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_hash.c' object='libscr_la-scr_hash.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_hash.lo `test -f '../scr_hash.c' || echo '$(srcdir)/'`../scr_hash.c
+
+libscr_la-scr_hash_util.lo: ../scr_hash_util.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_hash_util.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_hash_util.Tpo" -c -o libscr_la-scr_hash_util.lo `test -f '../scr_hash_util.c' || echo '$(srcdir)/'`../scr_hash_util.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_hash_util.Tpo" "$(DEPDIR)/libscr_la-scr_hash_util.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_hash_util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_hash_util.c' object='libscr_la-scr_hash_util.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_hash_util.lo `test -f '../scr_hash_util.c' || echo '$(srcdir)/'`../scr_hash_util.c
+
+libscr_la-tv_data_display.lo: ../tv_data_display.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-tv_data_display.lo -MD -MP -MF "$(DEPDIR)/libscr_la-tv_data_display.Tpo" -c -o libscr_la-tv_data_display.lo `test -f '../tv_data_display.c' || echo '$(srcdir)/'`../tv_data_display.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-tv_data_display.Tpo" "$(DEPDIR)/libscr_la-tv_data_display.Plo"; else rm -f "$(DEPDIR)/libscr_la-tv_data_display.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../tv_data_display.c' object='libscr_la-tv_data_display.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-tv_data_display.lo `test -f '../tv_data_display.c' || echo '$(srcdir)/'`../tv_data_display.c
+
+libscr_la-scr_filemap.lo: ../scr_filemap.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_filemap.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_filemap.Tpo" -c -o libscr_la-scr_filemap.lo `test -f '../scr_filemap.c' || echo '$(srcdir)/'`../scr_filemap.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_filemap.Tpo" "$(DEPDIR)/libscr_la-scr_filemap.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_filemap.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_filemap.c' object='libscr_la-scr_filemap.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_filemap.lo `test -f '../scr_filemap.c' || echo '$(srcdir)/'`../scr_filemap.c
+
+libscr_la-scr_index_api.lo: ../scr_index_api.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_index_api.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_index_api.Tpo" -c -o libscr_la-scr_index_api.lo `test -f '../scr_index_api.c' || echo '$(srcdir)/'`../scr_index_api.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_index_api.Tpo" "$(DEPDIR)/libscr_la-scr_index_api.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_index_api.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_index_api.c' object='libscr_la-scr_index_api.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_index_api.lo `test -f '../scr_index_api.c' || echo '$(srcdir)/'`../scr_index_api.c
+
+libscr_la-scr_meta.lo: ../scr_meta.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_meta.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_meta.Tpo" -c -o libscr_la-scr_meta.lo `test -f '../scr_meta.c' || echo '$(srcdir)/'`../scr_meta.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_meta.Tpo" "$(DEPDIR)/libscr_la-scr_meta.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_meta.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_meta.c' object='libscr_la-scr_meta.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_meta.lo `test -f '../scr_meta.c' || echo '$(srcdir)/'`../scr_meta.c
+
+libscr_la-scr_config.lo: ../scr_config.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_config.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_config.Tpo" -c -o libscr_la-scr_config.lo `test -f '../scr_config.c' || echo '$(srcdir)/'`../scr_config.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_config.Tpo" "$(DEPDIR)/libscr_la-scr_config.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_config.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_config.c' object='libscr_la-scr_config.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_config.lo `test -f '../scr_config.c' || echo '$(srcdir)/'`../scr_config.c
+
+libscr_la-scr_param.lo: ../scr_param.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_param.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_param.Tpo" -c -o libscr_la-scr_param.lo `test -f '../scr_param.c' || echo '$(srcdir)/'`../scr_param.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_param.Tpo" "$(DEPDIR)/libscr_la-scr_param.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_param.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_param.c' object='libscr_la-scr_param.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_param.lo `test -f '../scr_param.c' || echo '$(srcdir)/'`../scr_param.c
+
+libscr_la-scr_log.lo: ../scr_log.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_log.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_log.Tpo" -c -o libscr_la-scr_log.lo `test -f '../scr_log.c' || echo '$(srcdir)/'`../scr_log.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_log.Tpo" "$(DEPDIR)/libscr_la-scr_log.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_log.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_log.c' object='libscr_la-scr_log.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_log.lo `test -f '../scr_log.c' || echo '$(srcdir)/'`../scr_log.c
+
+libscr_la-scr_copy_xor.lo: ../scr_copy_xor.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_copy_xor.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_copy_xor.Tpo" -c -o libscr_la-scr_copy_xor.lo `test -f '../scr_copy_xor.c' || echo '$(srcdir)/'`../scr_copy_xor.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_copy_xor.Tpo" "$(DEPDIR)/libscr_la-scr_copy_xor.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_copy_xor.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_copy_xor.c' object='libscr_la-scr_copy_xor.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_copy_xor.lo `test -f '../scr_copy_xor.c' || echo '$(srcdir)/'`../scr_copy_xor.c
+
+libscr_la-scr_halt.lo: ../scr_halt.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_halt.lo -MD -MP -MF "$(DEPDIR)/libscr_la-scr_halt.Tpo" -c -o libscr_la-scr_halt.lo `test -f '../scr_halt.c' || echo '$(srcdir)/'`../scr_halt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_la-scr_halt.Tpo" "$(DEPDIR)/libscr_la-scr_halt.Plo"; else rm -f "$(DEPDIR)/libscr_la-scr_halt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_halt.c' object='libscr_la-scr_halt.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_halt.lo `test -f '../scr_halt.c' || echo '$(srcdir)/'`../scr_halt.c
+
+libscr_interpose_la-scr.lo: scr.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr.Tpo" -c -o libscr_interpose_la-scr.lo `test -f 'scr.c' || echo '$(srcdir)/'`scr.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr.Tpo" "$(DEPDIR)/libscr_interpose_la-scr.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr.c' object='libscr_interpose_la-scr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr.lo `test -f 'scr.c' || echo '$(srcdir)/'`scr.c
+
+libscr_interpose_la-scrf.lo: scrf.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scrf.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scrf.Tpo" -c -o libscr_interpose_la-scrf.lo `test -f 'scrf.c' || echo '$(srcdir)/'`scrf.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scrf.Tpo" "$(DEPDIR)/libscr_interpose_la-scrf.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scrf.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scrf.c' object='libscr_interpose_la-scrf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scrf.lo `test -f 'scrf.c' || echo '$(srcdir)/'`scrf.c
+
+libscr_interpose_la-scr_io.lo: ../scr_io.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_io.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_io.Tpo" -c -o libscr_interpose_la-scr_io.lo `test -f '../scr_io.c' || echo '$(srcdir)/'`../scr_io.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_io.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_io.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_io.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_io.c' object='libscr_interpose_la-scr_io.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_io.lo `test -f '../scr_io.c' || echo '$(srcdir)/'`../scr_io.c
+
+libscr_interpose_la-scr_util.lo: ../scr_util.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_util.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_util.Tpo" -c -o libscr_interpose_la-scr_util.lo `test -f '../scr_util.c' || echo '$(srcdir)/'`../scr_util.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_util.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_util.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_util.c' object='libscr_interpose_la-scr_util.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_util.lo `test -f '../scr_util.c' || echo '$(srcdir)/'`../scr_util.c
+
+libscr_interpose_la-scr_hash.lo: ../scr_hash.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_hash.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_hash.Tpo" -c -o libscr_interpose_la-scr_hash.lo `test -f '../scr_hash.c' || echo '$(srcdir)/'`../scr_hash.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_hash.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_hash.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_hash.c' object='libscr_interpose_la-scr_hash.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_hash.lo `test -f '../scr_hash.c' || echo '$(srcdir)/'`../scr_hash.c
+
+libscr_interpose_la-scr_hash_util.lo: ../scr_hash_util.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_hash_util.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_hash_util.Tpo" -c -o libscr_interpose_la-scr_hash_util.lo `test -f '../scr_hash_util.c' || echo '$(srcdir)/'`../scr_hash_util.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_hash_util.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_hash_util.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_hash_util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_hash_util.c' object='libscr_interpose_la-scr_hash_util.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_hash_util.lo `test -f '../scr_hash_util.c' || echo '$(srcdir)/'`../scr_hash_util.c
+
+libscr_interpose_la-tv_data_display.lo: ../tv_data_display.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-tv_data_display.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-tv_data_display.Tpo" -c -o libscr_interpose_la-tv_data_display.lo `test -f '../tv_data_display.c' || echo '$(srcdir)/'`../tv_data_display.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-tv_data_display.Tpo" "$(DEPDIR)/libscr_interpose_la-tv_data_display.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-tv_data_display.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../tv_data_display.c' object='libscr_interpose_la-tv_data_display.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-tv_data_display.lo `test -f '../tv_data_display.c' || echo '$(srcdir)/'`../tv_data_display.c
+
+libscr_interpose_la-scr_filemap.lo: ../scr_filemap.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_filemap.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_filemap.Tpo" -c -o libscr_interpose_la-scr_filemap.lo `test -f '../scr_filemap.c' || echo '$(srcdir)/'`../scr_filemap.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_filemap.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_filemap.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_filemap.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_filemap.c' object='libscr_interpose_la-scr_filemap.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_filemap.lo `test -f '../scr_filemap.c' || echo '$(srcdir)/'`../scr_filemap.c
+
+libscr_interpose_la-scr_index_api.lo: ../scr_index_api.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_index_api.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_index_api.Tpo" -c -o libscr_interpose_la-scr_index_api.lo `test -f '../scr_index_api.c' || echo '$(srcdir)/'`../scr_index_api.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_index_api.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_index_api.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_index_api.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_index_api.c' object='libscr_interpose_la-scr_index_api.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_index_api.lo `test -f '../scr_index_api.c' || echo '$(srcdir)/'`../scr_index_api.c
+
+libscr_interpose_la-scr_meta.lo: ../scr_meta.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_meta.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_meta.Tpo" -c -o libscr_interpose_la-scr_meta.lo `test -f '../scr_meta.c' || echo '$(srcdir)/'`../scr_meta.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_meta.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_meta.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_meta.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_meta.c' object='libscr_interpose_la-scr_meta.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_meta.lo `test -f '../scr_meta.c' || echo '$(srcdir)/'`../scr_meta.c
+
+libscr_interpose_la-scr_config.lo: ../scr_config.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_config.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_config.Tpo" -c -o libscr_interpose_la-scr_config.lo `test -f '../scr_config.c' || echo '$(srcdir)/'`../scr_config.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_config.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_config.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_config.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_config.c' object='libscr_interpose_la-scr_config.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_config.lo `test -f '../scr_config.c' || echo '$(srcdir)/'`../scr_config.c
+
+libscr_interpose_la-scr_param.lo: ../scr_param.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_param.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_param.Tpo" -c -o libscr_interpose_la-scr_param.lo `test -f '../scr_param.c' || echo '$(srcdir)/'`../scr_param.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_param.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_param.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_param.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_param.c' object='libscr_interpose_la-scr_param.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_param.lo `test -f '../scr_param.c' || echo '$(srcdir)/'`../scr_param.c
+
+libscr_interpose_la-scr_log.lo: ../scr_log.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_log.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_log.Tpo" -c -o libscr_interpose_la-scr_log.lo `test -f '../scr_log.c' || echo '$(srcdir)/'`../scr_log.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_log.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_log.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_log.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_log.c' object='libscr_interpose_la-scr_log.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_log.lo `test -f '../scr_log.c' || echo '$(srcdir)/'`../scr_log.c
+
+libscr_interpose_la-scr_copy_xor.lo: ../scr_copy_xor.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_copy_xor.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_copy_xor.Tpo" -c -o libscr_interpose_la-scr_copy_xor.lo `test -f '../scr_copy_xor.c' || echo '$(srcdir)/'`../scr_copy_xor.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_copy_xor.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_copy_xor.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_copy_xor.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_copy_xor.c' object='libscr_interpose_la-scr_copy_xor.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_copy_xor.lo `test -f '../scr_copy_xor.c' || echo '$(srcdir)/'`../scr_copy_xor.c
+
+libscr_interpose_la-scr_halt.lo: ../scr_halt.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_halt.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_halt.Tpo" -c -o libscr_interpose_la-scr_halt.lo `test -f '../scr_halt.c' || echo '$(srcdir)/'`../scr_halt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_halt.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_halt.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_halt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_halt.c' object='libscr_interpose_la-scr_halt.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_halt.lo `test -f '../scr_halt.c' || echo '$(srcdir)/'`../scr_halt.c
+
+libscr_interpose_la-scr_interpose.lo: scr_interpose.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -MT libscr_interpose_la-scr_interpose.lo -MD -MP -MF "$(DEPDIR)/libscr_interpose_la-scr_interpose.Tpo" -c -o libscr_interpose_la-scr_interpose.lo `test -f 'scr_interpose.c' || echo '$(srcdir)/'`scr_interpose.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_interpose_la-scr_interpose.Tpo" "$(DEPDIR)/libscr_interpose_la-scr_interpose.Plo"; else rm -f "$(DEPDIR)/libscr_interpose_la-scr_interpose.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_interpose.c' object='libscr_interpose_la-scr_interpose.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_interpose_la_CFLAGS) $(CFLAGS) -c -o libscr_interpose_la-scr_interpose.lo `test -f 'scr_interpose.c' || echo '$(srcdir)/'`scr_interpose.c
+
+libscrf_la-scr.lo: scr.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr.Tpo" -c -o libscrf_la-scr.lo `test -f 'scr.c' || echo '$(srcdir)/'`scr.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr.Tpo" "$(DEPDIR)/libscrf_la-scr.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr.c' object='libscrf_la-scr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr.lo `test -f 'scr.c' || echo '$(srcdir)/'`scr.c
+
+libscrf_la-scrf.lo: scrf.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scrf.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scrf.Tpo" -c -o libscrf_la-scrf.lo `test -f 'scrf.c' || echo '$(srcdir)/'`scrf.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scrf.Tpo" "$(DEPDIR)/libscrf_la-scrf.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scrf.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scrf.c' object='libscrf_la-scrf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scrf.lo `test -f 'scrf.c' || echo '$(srcdir)/'`scrf.c
+
+libscrf_la-scr_io.lo: ../scr_io.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_io.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_io.Tpo" -c -o libscrf_la-scr_io.lo `test -f '../scr_io.c' || echo '$(srcdir)/'`../scr_io.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_io.Tpo" "$(DEPDIR)/libscrf_la-scr_io.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_io.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_io.c' object='libscrf_la-scr_io.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_io.lo `test -f '../scr_io.c' || echo '$(srcdir)/'`../scr_io.c
+
+libscrf_la-scr_util.lo: ../scr_util.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_util.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_util.Tpo" -c -o libscrf_la-scr_util.lo `test -f '../scr_util.c' || echo '$(srcdir)/'`../scr_util.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_util.Tpo" "$(DEPDIR)/libscrf_la-scr_util.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_util.c' object='libscrf_la-scr_util.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_util.lo `test -f '../scr_util.c' || echo '$(srcdir)/'`../scr_util.c
+
+libscrf_la-scr_hash.lo: ../scr_hash.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_hash.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_hash.Tpo" -c -o libscrf_la-scr_hash.lo `test -f '../scr_hash.c' || echo '$(srcdir)/'`../scr_hash.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_hash.Tpo" "$(DEPDIR)/libscrf_la-scr_hash.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_hash.c' object='libscrf_la-scr_hash.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_hash.lo `test -f '../scr_hash.c' || echo '$(srcdir)/'`../scr_hash.c
+
+libscrf_la-scr_hash_util.lo: ../scr_hash_util.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_hash_util.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_hash_util.Tpo" -c -o libscrf_la-scr_hash_util.lo `test -f '../scr_hash_util.c' || echo '$(srcdir)/'`../scr_hash_util.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_hash_util.Tpo" "$(DEPDIR)/libscrf_la-scr_hash_util.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_hash_util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_hash_util.c' object='libscrf_la-scr_hash_util.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_hash_util.lo `test -f '../scr_hash_util.c' || echo '$(srcdir)/'`../scr_hash_util.c
+
+libscrf_la-tv_data_display.lo: ../tv_data_display.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-tv_data_display.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-tv_data_display.Tpo" -c -o libscrf_la-tv_data_display.lo `test -f '../tv_data_display.c' || echo '$(srcdir)/'`../tv_data_display.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-tv_data_display.Tpo" "$(DEPDIR)/libscrf_la-tv_data_display.Plo"; else rm -f "$(DEPDIR)/libscrf_la-tv_data_display.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../tv_data_display.c' object='libscrf_la-tv_data_display.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-tv_data_display.lo `test -f '../tv_data_display.c' || echo '$(srcdir)/'`../tv_data_display.c
+
+libscrf_la-scr_filemap.lo: ../scr_filemap.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_filemap.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_filemap.Tpo" -c -o libscrf_la-scr_filemap.lo `test -f '../scr_filemap.c' || echo '$(srcdir)/'`../scr_filemap.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_filemap.Tpo" "$(DEPDIR)/libscrf_la-scr_filemap.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_filemap.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_filemap.c' object='libscrf_la-scr_filemap.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_filemap.lo `test -f '../scr_filemap.c' || echo '$(srcdir)/'`../scr_filemap.c
+
+libscrf_la-scr_index_api.lo: ../scr_index_api.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_index_api.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_index_api.Tpo" -c -o libscrf_la-scr_index_api.lo `test -f '../scr_index_api.c' || echo '$(srcdir)/'`../scr_index_api.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_index_api.Tpo" "$(DEPDIR)/libscrf_la-scr_index_api.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_index_api.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_index_api.c' object='libscrf_la-scr_index_api.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_index_api.lo `test -f '../scr_index_api.c' || echo '$(srcdir)/'`../scr_index_api.c
+
+libscrf_la-scr_meta.lo: ../scr_meta.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_meta.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_meta.Tpo" -c -o libscrf_la-scr_meta.lo `test -f '../scr_meta.c' || echo '$(srcdir)/'`../scr_meta.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_meta.Tpo" "$(DEPDIR)/libscrf_la-scr_meta.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_meta.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_meta.c' object='libscrf_la-scr_meta.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_meta.lo `test -f '../scr_meta.c' || echo '$(srcdir)/'`../scr_meta.c
+
+libscrf_la-scr_config.lo: ../scr_config.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_config.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_config.Tpo" -c -o libscrf_la-scr_config.lo `test -f '../scr_config.c' || echo '$(srcdir)/'`../scr_config.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_config.Tpo" "$(DEPDIR)/libscrf_la-scr_config.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_config.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_config.c' object='libscrf_la-scr_config.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_config.lo `test -f '../scr_config.c' || echo '$(srcdir)/'`../scr_config.c
+
+libscrf_la-scr_param.lo: ../scr_param.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_param.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_param.Tpo" -c -o libscrf_la-scr_param.lo `test -f '../scr_param.c' || echo '$(srcdir)/'`../scr_param.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_param.Tpo" "$(DEPDIR)/libscrf_la-scr_param.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_param.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_param.c' object='libscrf_la-scr_param.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_param.lo `test -f '../scr_param.c' || echo '$(srcdir)/'`../scr_param.c
+
+libscrf_la-scr_log.lo: ../scr_log.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_log.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_log.Tpo" -c -o libscrf_la-scr_log.lo `test -f '../scr_log.c' || echo '$(srcdir)/'`../scr_log.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_log.Tpo" "$(DEPDIR)/libscrf_la-scr_log.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_log.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_log.c' object='libscrf_la-scr_log.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_log.lo `test -f '../scr_log.c' || echo '$(srcdir)/'`../scr_log.c
+
+libscrf_la-scr_copy_xor.lo: ../scr_copy_xor.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_copy_xor.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_copy_xor.Tpo" -c -o libscrf_la-scr_copy_xor.lo `test -f '../scr_copy_xor.c' || echo '$(srcdir)/'`../scr_copy_xor.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_copy_xor.Tpo" "$(DEPDIR)/libscrf_la-scr_copy_xor.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_copy_xor.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_copy_xor.c' object='libscrf_la-scr_copy_xor.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_copy_xor.lo `test -f '../scr_copy_xor.c' || echo '$(srcdir)/'`../scr_copy_xor.c
+
+libscrf_la-scr_halt.lo: ../scr_halt.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -MT libscrf_la-scr_halt.lo -MD -MP -MF "$(DEPDIR)/libscrf_la-scr_halt.Tpo" -c -o libscrf_la-scr_halt.lo `test -f '../scr_halt.c' || echo '$(srcdir)/'`../scr_halt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscrf_la-scr_halt.Tpo" "$(DEPDIR)/libscrf_la-scr_halt.Plo"; else rm -f "$(DEPDIR)/libscrf_la-scr_halt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../scr_halt.c' object='libscrf_la-scr_halt.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscrf_la_CFLAGS) $(CFLAGS) -c -o libscrf_la-scr_halt.lo `test -f '../scr_halt.c' || echo '$(srcdir)/'`../scr_halt.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -302,12 +811,54 @@ clean-libtool:
 distclean-libtool:
 	-rm -f libtool
 uninstall-info-am:
+
+ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
+	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	mkid -fID $$unique
 tags: TAGS
-TAGS:
 
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	if test -z "$(ETAGS_ARGS)$$tags$$unique"; then :; else \
+	  test -n "$$unique" || unique=$$empty_fix; \
+	  $(ETAGS) $(ETAGSFLAGS) $(AM_ETAGSFLAGS) $(ETAGS_ARGS) \
+	    $$tags $$unique; \
+	fi
 ctags: CTAGS
-CTAGS:
+CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(CTAGS_ARGS)$$tags$$unique" \
+	  || $(CTAGS) $(CTAGSFLAGS) $(AM_CTAGSFLAGS) $(CTAGS_ARGS) \
+	     $$tags $$unique
 
+GTAGS:
+	here=`$(am__cd) $(top_builddir) && pwd` \
+	  && cd $(top_srcdir) \
+	  && gtags -i $(GTAGS_ARGS) $$here
+
+distclean-tags:
+	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 
 distdir: $(DISTFILES)
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
@@ -338,8 +889,11 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile all-local
+all-am: Makefile $(LTLIBRARIES) all-local
 installdirs:
+	for dir in "$(DESTDIR)$(libdir)"; do \
+	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
+	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -366,11 +920,14 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-local mostlyclean-am
+clean-am: clean-generic clean-libLTLIBRARIES clean-libtool clean-local \
+	mostlyclean-am
 
 distclean: distclean-am
+	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
-distclean-am: clean-am distclean-generic distclean-libtool
+distclean-am: clean-am distclean-compile distclean-generic \
+	distclean-libtool distclean-tags
 
 dvi: dvi-am
 
@@ -384,7 +941,7 @@ info-am:
 
 install-data-am:
 
-install-exec-am: install-exec-local
+install-exec-am: install-exec-local install-libLTLIBRARIES
 
 install-info: install-info-am
 
@@ -393,12 +950,14 @@ install-man:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
+	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
 mostlyclean: mostlyclean-am
 
-mostlyclean-am: mostlyclean-generic mostlyclean-libtool
+mostlyclean-am: mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool
 
 pdf: pdf-am
 
@@ -408,48 +967,34 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-info-am uninstall-local
+uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES \
+	uninstall-local
 
-.PHONY: all all-am all-local check check-am clean clean-generic \
-	clean-libtool clean-local distclean distclean-generic \
-	distclean-libtool distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-exec \
-	install-exec-am install-exec-local install-info \
-	install-info-am install-man install-strip installcheck \
+.PHONY: CTAGS GTAGS all all-am all-local check check-am clean \
+	clean-generic clean-libLTLIBRARIES clean-libtool clean-local \
+	ctags distclean distclean-compile distclean-generic \
+	distclean-libtool distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-data \
+	install-data-am install-exec install-exec-am \
+	install-exec-local install-info install-info-am \
+	install-libLTLIBRARIES install-man install-strip installcheck \
 	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am uninstall uninstall-am \
-	uninstall-info-am uninstall-local
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-info-am \
+	uninstall-libLTLIBRARIES uninstall-local
 
 
-scr.lo: $(scr_headers) $(scr_sources)
-	libtool --tag=CC --mode=compile $(MPICC) -c scr.c -o $@ $(SCR_C_FLAGS)
-
-scrf.lo: $(scr_headers) $(scr_sources)
-	libtool --tag=CC --mode=compile $(MPICC) -c scrf.c -o $@ $(SCR_C_FLAGS)
-
-scr_interpose.lo: $(scr_headers) $(scr_sources)
-	libtool --mode=compile --tag=CC $(MPICC) -c scr_interpose.c -o $@ $(SCR_C_FLAGS)
-
-libscr.la: $(scr_objs)
-	libtool --mode=link --tag=CC $(MPICC) $(SCR_C_FLAGS) -o $@ \
-	$(scr_objs) \
-	$(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz -rpath $(DESTDIR)$(libdir)
-
-libscr_interpose.la: $(scr_objs) scr_interpose.lo
-	libtool --mode=link --tag=CC $(MPICC) $(SCR_C_FLAGS) -o $@ \
-	$(scr_objs) scr_interpose.lo \
-	$(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) -lz -rpath $(DESTDIR)$(libdir)
-
-all-local: libscr.la libscr_interpose.la
+all-local: libscr.la libscrf.la libscr_interpose.la
 
 clean-local:
-	libtool --mode=clean /bin/rm -rf libscr.la libscr_interpose.la *.o
+	libtool --mode=clean /bin/rm -rf libscr.la libscrf.la libscr_interpose.la *.o
 
 install-exec-local:
 	mkdir -p $(DESTDIR)$(prefix)/lib
 	mkdir -p $(DESTDIR)$(prefix)/src/lib
 	libtool --mode=install cp libscr.la $(DESTDIR)$(prefix)/lib
+	libtool --mode=install cp libscrf.la $(DESTDIR)$(prefix)/lib
 	libtool --mode=install cp libscr_interpose.la $(DESTDIR)$(prefix)/lib
 	libtool --mode=install cp *.c $(DESTDIR)$(prefix)/src/lib
 

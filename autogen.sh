@@ -1,6 +1,6 @@
 #!/bin/sh
 echo "Running aclocal ... "
-aclocal -I config
+aclocal -I config -I m4
 echo "Running libtoolize ... "
 libtoolize --automake --copy 
 echo "Running autoheader ... "

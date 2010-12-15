@@ -35,19 +35,17 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-target_triplet = @target@
 subdir = examples
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/makefile.examples.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/config/x_ac_config_scr.m4 \
-	$(top_srcdir)/config/x_ac_expand_install_dirs.m4 \
-	$(top_srcdir)/config/x_ac_meta.m4 \
-	$(top_srcdir)/config/x_ac_mysql.m4 \
-	$(top_srcdir)/config/x_ac_prog_mpicc.m4 \
-	$(top_srcdir)/config/x_ac_prog_pdsh.m4 \
-	$(top_srcdir)/config/x_ac_prog_perl_modules.m4 \
-	$(top_srcdir)/config/x_ac_yogrt.m4 $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/lx_find_mpi.m4 \
+	$(top_srcdir)/m4/x_ac_config_scr.m4 \
+	$(top_srcdir)/m4/x_ac_expand_install_dirs.m4 \
+	$(top_srcdir)/m4/x_ac_meta.m4 $(top_srcdir)/m4/x_ac_mysql.m4 \
+	$(top_srcdir)/m4/x_ac_prog_pdsh.m4 \
+	$(top_srcdir)/m4/x_ac_prog_perl_modules.m4 \
+	$(top_srcdir)/m4/x_ac_yogrt.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -96,9 +94,6 @@ LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-MAINT = @MAINT@
-MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
-MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 META_ALIAS = @META_ALIAS@
 META_AUTHOR = @META_AUTHOR@
@@ -110,6 +105,8 @@ META_NAME = @META_NAME@
 META_RELEASE = @META_RELEASE@
 META_VERSION = @META_VERSION@
 MPICC = @MPICC@
+MPI_CFLAGS = @MPI_CFLAGS@
+MPI_CLDFLAGS = @MPI_CLDFLAGS@
 MYSQL_CPPFLAGS = @MYSQL_CPPFLAGS@
 MYSQL_LDFLAGS = @MYSQL_LDFLAGS@
 MYSQL_LIBS = @MYSQL_LIBS@
@@ -191,11 +188,7 @@ program_transform_name = @program_transform_name@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
-target = @target@
 target_alias = @target_alias@
-target_cpu = @target_cpu@
-target_os = @target_os@
-target_vendor = @target_vendor@
 files_to_be_installed = \
 	test_common.c \
 	test_common.h \
@@ -212,7 +205,7 @@ EXTRA_DIST = makefile.examples $(files_to_be_installed)
 all: all-am
 
 .SUFFIXES:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -237,9 +230,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
+$(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
+$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 makefile.examples: $(top_builddir)/config.status $(srcdir)/makefile.examples.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@

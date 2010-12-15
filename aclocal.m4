@@ -6900,35 +6900,6 @@ fi
 rmdir .tst 2>/dev/null
 AC_SUBST([am__leading_dot])])
 
-# Add --enable-maintainer-mode option to configure.         -*- Autoconf -*-
-# From Jim Meyering
-
-# Copyright (C) 1996, 1998, 2000, 2001, 2002, 2003, 2004, 2005
-# Free Software Foundation, Inc.
-#
-# This file is free software; the Free Software Foundation
-# gives unlimited permission to copy and/or distribute it,
-# with or without modifications, as long as this notice is preserved.
-
-# serial 4
-
-AC_DEFUN([AM_MAINTAINER_MODE],
-[AC_MSG_CHECKING([whether to enable maintainer-specific portions of Makefiles])
-  dnl maintainer-mode is disabled by default
-  AC_ARG_ENABLE(maintainer-mode,
-[  --enable-maintainer-mode  enable make rules and dependencies not useful
-			  (and sometimes confusing) to the casual installer],
-      USE_MAINTAINER_MODE=$enableval,
-      USE_MAINTAINER_MODE=no)
-  AC_MSG_RESULT([$USE_MAINTAINER_MODE])
-  AM_CONDITIONAL(MAINTAINER_MODE, [test $USE_MAINTAINER_MODE = yes])
-  MAINT=$MAINTAINER_MODE_TRUE
-  AC_SUBST(MAINT)dnl
-]
-)
-
-AU_DEFUN([jm_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
-
 # Check to see how 'make' treats includes.	            -*- Autoconf -*-
 
 # Copyright (C) 2001, 2002, 2003, 2005  Free Software Foundation, Inc.
@@ -7288,3 +7259,11 @@ AC_SUBST([am__tar])
 AC_SUBST([am__untar])
 ]) # _AM_PROG_TAR
 
+m4_include([m4/lx_find_mpi.m4])
+m4_include([m4/x_ac_config_scr.m4])
+m4_include([m4/x_ac_expand_install_dirs.m4])
+m4_include([m4/x_ac_meta.m4])
+m4_include([m4/x_ac_mysql.m4])
+m4_include([m4/x_ac_prog_pdsh.m4])
+m4_include([m4/x_ac_prog_perl_modules.m4])
+m4_include([m4/x_ac_yogrt.m4])
