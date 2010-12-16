@@ -425,7 +425,7 @@ PACKAGE_VERSION=
 PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
-ac_unique_file="src/lib/scr.c"
+ac_unique_file="src/scr.c"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -20236,7 +20236,7 @@ _ACEOF
 ##
 # Epilogue.
 ##
-                                                                                                                                                                                                                                                                                        ac_config_files="$ac_config_files Makefile src/Makefile src/lib/Makefile src/bin/Makefile man/Makefile man/scr.1 man/scr_halt.1 man/scr_postrun.1 man/scr_prerun.1 man/scr_srun.1 scripts/Makefile scripts/scr_cntl_dir scripts/scr_check_node scripts/scr_env scripts/scr_inspect scripts/scr_flush scripts/scr_glob_hosts scripts/scr_halt scripts/scr_list_down_nodes scripts/scr_postrun scripts/scr_prerun scripts/scr_srun scripts/scr_test_datemanip scripts/scr_test_runtime scripts/scr_param.pm examples/Makefile examples/makefile.examples doc/Makefile"
+                                                                                                                                                                                                                                                                    ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile man/scr.1 man/scr_halt.1 man/scr_postrun.1 man/scr_prerun.1 man/scr_srun.1 scripts/Makefile scripts/scr_cntl_dir scripts/scr_check_node scripts/scr_env scripts/scr_inspect scripts/scr_flush scripts/scr_glob_hosts scripts/scr_halt scripts/scr_list_down_nodes scripts/scr_postrun scripts/scr_prerun scripts/scr_srun scripts/scr_test_datemanip scripts/scr_test_runtime scripts/scr_param.pm examples/Makefile examples/makefile.examples doc/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -20796,8 +20796,6 @@ do
   # Handling of arguments.
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "src/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
-  "src/lib/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/lib/Makefile" ;;
-  "src/bin/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/bin/Makefile" ;;
   "man/Makefile" ) CONFIG_FILES="$CONFIG_FILES man/Makefile" ;;
   "man/scr.1" ) CONFIG_FILES="$CONFIG_FILES man/scr.1" ;;
   "man/scr_halt.1" ) CONFIG_FILES="$CONFIG_FILES man/scr_halt.1" ;;

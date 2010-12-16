@@ -2,7 +2,7 @@
 # Prologue.
 ##
 AC_INIT
-AC_CONFIG_SRCDIR([src/lib/scr.c])
+AC_CONFIG_SRCDIR([src/scr.c])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -67,8 +67,6 @@ X_AC_CONFIG_SCR
 AC_CONFIG_FILES([ \
   Makefile \
   src/Makefile \
-  src/lib/Makefile \
-  src/bin/Makefile \
   man/Makefile \
   man/scr.1 \
   man/scr_halt.1 \

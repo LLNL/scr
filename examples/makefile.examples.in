@@ -33,4 +33,4 @@ test_ckpt_C: test_ckpt.C
 
 test_ckpt_F: test_ckpt.F
 	$(MPIF90) $(OPT) $(F90FLAGS) $(INCLUDES) -o test_ckpt_F test_ckpt.F \
-	  $(LDFLAGS) -L$(LIBDIR) -lscr
+	  $(LDFLAGS) -L$(LIBDIR) -lscrf

@@ -1,5 +1,11 @@
 2010-12-15 Adam Moody <moody20@llnl.gov>
 
+	* : Restructured source layout to place all files in the same
+	  directory again.  Quicken build by adding scr_base and scr_cmds
+	  libs which the runtime library and scr commands now depend on.
+
+2010-12-15 Adam Moody <moody20@llnl.gov>
+
 	* scripts/scr_flush_files.in,
 	  scripts/scr_retries_halt.in : Dropped these files since commands
 	  are now implemented in C in src/bin.
