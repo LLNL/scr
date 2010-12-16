@@ -1,3 +1,11 @@
+2010-12-16 Adam Moody <moody20@llnl.gov>
+
+	* : Simplified Makefile.am code, and better follow package conventions.
+	  Thanks to Todd Gamblin.
+
+	* m4/x_ac_yogrt.m4,
+	  m4/x_ac_mysql.m4 : Disable these configure options by default.
+
 2010-12-15 Adam Moody <moody20@llnl.gov>
 
 	* : Restructured source layout to place all files in the same

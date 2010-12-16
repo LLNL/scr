@@ -20,10 +20,12 @@ AC_DEFUN([X_AC_YOGRT], [
 
   AC_ARG_WITH(
     [yogrt],
-    AS_HELP_STRING(--with-yogrt=PATH,Specify path to libyogrt installation),
+    AS_HELP_STRING(--with-yogrt=PATH,Enable libyogrt and optionally specify path),
     [_x_ac_yogrt_dirs="$withval"
      with_yogrt=yes],
-    [with_yogrt=check])
+    [_x_ac_yogrt_dirs=no
+     with_yogrt=no]
+  )
 
   if test "x$_x_ac_yogrt_dirs" = xno ; then
     # user explicitly wants to disable libyogrt support

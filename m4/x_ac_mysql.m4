@@ -8,7 +8,8 @@ AC_DEFUN([X_AC_MYSQL],
         yes) ac_mysql_test=yes ;;
         *)   ac_mysql_test=yes ;;
       esac
-    ]
+    ],
+    [ ac_mysql_test=no ]
   )
   AC_MSG_RESULT([${ac_mysql_test=yes}])
 

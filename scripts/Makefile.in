@@ -14,6 +14,7 @@
 
 @SET_MAKE@
 
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -37,7 +38,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 subdir = scripts
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+DIST_COMMON = $(dist_bin_SCRIPTS) $(dist_pkgdata_DATA) \
+	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/scr_check_node.in $(srcdir)/scr_cntl_dir.in \
 	$(srcdir)/scr_env.in $(srcdir)/scr_flush.in \
 	$(srcdir)/scr_glob_hosts.in $(srcdir)/scr_halt.in \
@@ -61,11 +63,19 @@ CONFIG_CLEAN_FILES = scr_cntl_dir scr_check_node scr_env scr_inspect \
 	scr_flush scr_glob_hosts scr_halt scr_list_down_nodes \
 	scr_postrun scr_prerun scr_srun scr_test_datemanip \
 	scr_test_runtime scr_param.pm
-am__installdirs = "$(DESTDIR)$(bindir)"
-binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
-SCRIPTS = $(bin_SCRIPTS)
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkgdatadir)"
+dist_binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
+SCRIPTS = $(dist_bin_SCRIPTS)
 SOURCES =
 DIST_SOURCES =
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
+dist_pkgdataDATA_INSTALL = $(INSTALL_DATA)
+DATA = $(dist_pkgdata_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
@@ -202,7 +212,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-bin_SCRIPTS = \
+dist_bin_SCRIPTS = \
 	scr_cntl_dir \
 	scr_check_node \
 	scr_env \
@@ -217,10 +227,7 @@ bin_SCRIPTS = \
 	scr_test_datemanip \
 	scr_test_runtime
 
-EXTRA_DIST = scr_cntl_dir scr_check_node scr_env scr_inspect scr_flush \
-	scr_glob_hosts scr_halt scr_list_down_nodes scr_postrun \
-	scr_prerun scr_srun scr_test_datemanip scr_test_runtime \
-	scr_param.pm scr_hostlist.pm
+dist_pkgdata_DATA = scr_param.pm scr_hostlist.pm
 all: all-am
 
 .SUFFIXES:
@@ -281,21 +288,21 @@ scr_test_runtime: $(top_builddir)/config.status $(srcdir)/scr_test_runtime.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 scr_param.pm: $(top_builddir)/config.status $(srcdir)/scr_param.pm.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
-install-binSCRIPTS: $(bin_SCRIPTS)
+install-dist_binSCRIPTS: $(dist_bin_SCRIPTS)
 	@$(NORMAL_INSTALL)
 	test -z "$(bindir)" || $(mkdir_p) "$(DESTDIR)$(bindir)"
-	@list='$(bin_SCRIPTS)'; for p in $$list; do \
+	@list='$(dist_bin_SCRIPTS)'; for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  if test -f $$d$$p; then \
 	    f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
-	    echo " $(binSCRIPT_INSTALL) '$$d$$p' '$(DESTDIR)$(bindir)/$$f'"; \
-	    $(binSCRIPT_INSTALL) "$$d$$p" "$(DESTDIR)$(bindir)/$$f"; \
+	    echo " $(dist_binSCRIPT_INSTALL) '$$d$$p' '$(DESTDIR)$(bindir)/$$f'"; \
+	    $(dist_binSCRIPT_INSTALL) "$$d$$p" "$(DESTDIR)$(bindir)/$$f"; \
 	  else :; fi; \
 	done
 
-uninstall-binSCRIPTS:
+uninstall-dist_binSCRIPTS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(bin_SCRIPTS)'; for p in $$list; do \
+	@list='$(dist_bin_SCRIPTS)'; for p in $$list; do \
 	  f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
 	  echo " rm -f '$(DESTDIR)$(bindir)/$$f'"; \
 	  rm -f "$(DESTDIR)$(bindir)/$$f"; \
@@ -310,6 +317,23 @@ clean-libtool:
 distclean-libtool:
 	-rm -f libtool
 uninstall-info-am:
+install-dist_pkgdataDATA: $(dist_pkgdata_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(pkgdatadir)" || $(mkdir_p) "$(DESTDIR)$(pkgdatadir)"
+	@list='$(dist_pkgdata_DATA)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(dist_pkgdataDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(pkgdatadir)/$$f'"; \
+	  $(dist_pkgdataDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(pkgdatadir)/$$f"; \
+	done
+
+uninstall-dist_pkgdataDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_pkgdata_DATA)'; for p in $$list; do \
+	  f=$(am__strip_dir) \
+	  echo " rm -f '$(DESTDIR)$(pkgdatadir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(pkgdatadir)/$$f"; \
+	done
 tags: TAGS
 TAGS:
 
@@ -346,9 +370,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(SCRIPTS)
+all-am: Makefile $(SCRIPTS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkgdatadir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: install-am
@@ -393,9 +417,9 @@ info: info-am
 
 info-am:
 
-install-data-am: install-data-local
+install-data-am: install-dist_pkgdataDATA
 
-install-exec-am: install-binSCRIPTS
+install-exec-am: install-dist_binSCRIPTS
 
 install-info: install-info-am
 
@@ -419,27 +443,21 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binSCRIPTS uninstall-info-am
+uninstall-am: uninstall-dist_binSCRIPTS uninstall-dist_pkgdataDATA \
+	uninstall-info-am
 
 .PHONY: all all-am check check-am clean clean-generic clean-libtool \
 	distclean distclean-generic distclean-libtool distdir dvi \
 	dvi-am html html-am info info-am install install-am \
-	install-binSCRIPTS install-data install-data-am \
-	install-data-local install-exec install-exec-am install-info \
-	install-info-am install-man install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	install-data install-data-am install-dist_binSCRIPTS \
+	install-dist_pkgdataDATA install-exec install-exec-am \
+	install-info install-info-am install-man install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-generic \
 	mostlyclean-libtool pdf pdf-am ps ps-am uninstall uninstall-am \
-	uninstall-binSCRIPTS uninstall-info-am
+	uninstall-dist_binSCRIPTS uninstall-dist_pkgdataDATA \
+	uninstall-info-am
 
-
-install-data-local:
-	-$(top_srcdir)/config/install-sh -m 755 -d \
-		$(DESTDIR)$(datadir)/scr
-	$(top_srcdir)/config/install-sh -m 644 $(srcdir)/scr_param.pm \
-		$(DESTDIR)$(datadir)/scr
-	$(top_srcdir)/config/install-sh -m 644 $(srcdir)/scr_hostlist.pm \
-		$(DESTDIR)$(datadir)/scr
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

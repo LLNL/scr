@@ -1,4 +1,5 @@
-files_to_be_installed = \
+examplesdir = $(pkgdatadir)/examples
+dist_examples_DATA = \
 	test_common.c \
 	test_common.h \
 	test_api.c \
@@ -10,16 +11,11 @@ files_to_be_installed = \
 	scr.moab \
 	scr_interpose.moab
 
-EXTRA_DIST = makefile.examples $(files_to_be_installed)
+EXTRA_DIST = makefile.examples
 
-install-data-local:
-	-$(top_srcdir)/config/install-sh -m 755 -d \
-		$(DESTDIR)$(prefix)/examples
-	$(top_srcdir)/config/install-sh -m 644 $(srcdir)/makefile.examples \
-		$(DESTDIR)$(prefix)/examples/makefile
-	for f in $(files_to_be_installed) ; do \
-		$(top_srcdir)/config/install-sh -m 644 $(srcdir)/$$f \
-			$(DESTDIR)$(prefix)/examples ; done
+# Use -hook instead of -local b/c we need to do this AFTER the main install data rule.
+install-data-hook:
+	$(INSTALL_DATA) makefile.examples $(DESTDIR)$(examplesdir)/makefile
 
 uninstall-local:
-	rm -f $(DESTDIR)$(prefix)/examples/*
+	-rm -f $(DESTDIR)$(examplesdir)/makefile

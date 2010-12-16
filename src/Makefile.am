@@ -3,8 +3,6 @@ LIBZ_LDFLAGS = -lz
 
 AM_CFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/config
 
-SUBDIRS = .
-
 # headers to be installed in /include subdirectory
 include_HEADERS = \
 	scr.h \
@@ -26,61 +24,8 @@ noinst_HEADERS = \
 	scr_param.h \
 	scr_log.h \
 	scr_copy_xor.h \
-	scr_halt.h
-
-# source files that are used by scr commands and runtime library
-scr_base_srcs = \
-	scr_io.c \
-	scr_util.c \
-	scr_hash.c \
-	scr_hash_util.c \
-	tv_data_display.c \
-	scr_filemap.c \
-	scr_index_api.c \
-	scr_meta.c \
-	scr_config.c \
-	scr_param.c \
-	scr_log.c \
-	scr_copy_xor.c \
-	scr_halt.c
-
-# objects for each of the source files above
-scr_base_objs = \
-	scr_io.lo \
-	scr_util.lo \
-	scr_hash.lo \
-	scr_hash_util.lo \
-	tv_data_display.lo \
-	scr_filemap.lo \
-	scr_index_api.lo \
-	scr_meta.lo \
-	scr_config.lo \
-	scr_param.lo \
-	scr_log.lo \
-	scr_copy_xor.lo \
-	scr_halt.lo
-
-# source files that are only used for commands
-scr_cmds_srcs = \
-	scr_err_serial.c \
-	scr_config_serial.c
-
-# objects that are are only used for commands
-scr_cmds_objs = \
-	scr_err_serial.lo \
-	scr_config_serial.lo
-
-# runtime library source files
-scr_lib_srcs = \
-	scr.c \
-	scrf.c \
-	scr_interpose.c
-
-# runtime libraries objects
-scr_lib_objs = \
-	scr.lo \
-	scrf.lo \
-	scr_interpose.lo
+	scr_halt.h \
+	queue.h
 
 lib_LTLIBRARIES = \
 	libscr_base.la \
@@ -96,12 +41,29 @@ CMDS_INCLUDES = \
 	$(AM_CFLAGS) $(CFLAGS) \
 	$(MYSQL_CPPFLAGS)
 
-libscr_base_la_SOURCES = $(scr_base_srcs)
+# source files that are used by scr commands and runtime library
+libscr_base_la_SOURCES = \
+	scr_io.c \
+	scr_util.c \
+	scr_hash.c \
+	scr_hash_util.c \
+	tv_data_display.c \
+	scr_filemap.c \
+	scr_index_api.c \
+	scr_meta.c \
+	scr_config.c \
+	scr_param.c \
+	scr_log.c \
+	scr_copy_xor.c \
+	scr_halt.c
 libscr_base_la_CFLAGS = $(CMDS_INCLUDES)
 libscr_base_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)
 libscr_base_la_LDFLAGS = -avoid-version
 
-libscr_cmds_la_SOURCES = $(scr_cmds_srcs)
+# source files that are only used for commands
+libscr_cmds_la_SOURCES = \
+	scr_err_serial.c \
+	scr_config_serial.c
 libscr_cmds_la_CFLAGS = $(CMDS_INCLUDES)
 libscr_cmds_la_LIBADD = libscr_base.la
 libscr_cmds_la_LDFLAGS = -avoid-version
@@ -198,31 +160,3 @@ scr_index_SOURCES = scr_index.c
 scr_index_LDADD = $(LIBZ_LDFLAGS) libscr_cmds.la
 scr_index_CFLAGS = $(AM_CFLAGS)
 
-all-local: libscr_base.la libscr_cmds.la libscr.la libscrf.la libscr_interpose.la
-	
-clean-local:
-	libtool --mode=clean /bin/rm -rf $(scr_base_objs) $(scr_cmds_objs) $(scr_lib_objs)
-	libtool --mode=clean /bin/rm -rf libscr_base.la libscr_cmds.la libscr.la libscrf.la libscr_interpose.la
-
-# install source code with package
-install-exec-local:
-	mkdir -p $(DESTDIR)$(prefix)/include
-	mkdir -p $(DESTDIR)$(prefix)/src
-	libtool --mode=install cp scr.h $(DESTDIR)$(prefix)/include/.
-	libtool --mode=install cp scrf.h $(DESTDIR)$(prefix)/include/.
-	libtool --mode=install cp ../config/config.h $(DESTDIR)$(prefix)/src
-	libtool --mode=install cp *.c *.h $(DESTDIR)$(prefix)/src
-	libtool --mode=install cp libscr.la $(DESTDIR)$(prefix)/lib
-	libtool --mode=install cp libscrf.la $(DESTDIR)$(prefix)/lib
-	libtool --mode=install cp libscr_interpose.la $(DESTDIR)$(prefix)/lib
-	libtool --mode=install cp libscr_cmds.la $(DESTDIR)$(prefix)/lib
-	libtool --mode=install cp libscr_base.la $(DESTDIR)$(prefix)/lib
-
-# TODO: there must be a better way to do this uninstall, but I don't know how
-uninstall-local:
-	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/scr*
-	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/{queue,config}.h
-	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/tv_data_display.{c,h}
-	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/lib/libscr*
-
-EXTRA_DIST = queue.h $(include_HEADERS) $(noinst_HEADERS) $(scr_base_srcs) $(scr_cmds_srcs) $(scr_lib_srcs)

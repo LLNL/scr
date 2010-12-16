@@ -78,19 +78,18 @@ am_libscr_la_OBJECTS = libscr_la-scr.lo
 libscr_la_OBJECTS = $(am_libscr_la_OBJECTS)
 libscr_base_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
-am__objects_1 = libscr_base_la-scr_io.lo libscr_base_la-scr_util.lo \
-	libscr_base_la-scr_hash.lo libscr_base_la-scr_hash_util.lo \
+am_libscr_base_la_OBJECTS = libscr_base_la-scr_io.lo \
+	libscr_base_la-scr_util.lo libscr_base_la-scr_hash.lo \
+	libscr_base_la-scr_hash_util.lo \
 	libscr_base_la-tv_data_display.lo \
 	libscr_base_la-scr_filemap.lo libscr_base_la-scr_index_api.lo \
 	libscr_base_la-scr_meta.lo libscr_base_la-scr_config.lo \
 	libscr_base_la-scr_param.lo libscr_base_la-scr_log.lo \
 	libscr_base_la-scr_copy_xor.lo libscr_base_la-scr_halt.lo
-am_libscr_base_la_OBJECTS = $(am__objects_1)
 libscr_base_la_OBJECTS = $(am_libscr_base_la_OBJECTS)
 libscr_cmds_la_DEPENDENCIES = libscr_base.la
-am__objects_2 = libscr_cmds_la-scr_err_serial.lo \
+am_libscr_cmds_la_OBJECTS = libscr_cmds_la-scr_err_serial.lo \
 	libscr_cmds_la-scr_config_serial.lo
-am_libscr_cmds_la_OBJECTS = $(am__objects_2)
 libscr_cmds_la_OBJECTS = $(am_libscr_cmds_la_OBJECTS)
 libscr_interpose_la_DEPENDENCIES = libscr.la
 am_libscr_interpose_la_OBJECTS = libscr_interpose_la-scr_interpose.lo
@@ -176,17 +175,10 @@ DIST_SOURCES = $(libscr_la_SOURCES) $(libscr_base_la_SOURCES) \
 	$(scr_nodes_file_SOURCES) $(scr_print_hash_file_SOURCES) \
 	$(scr_rebuild_xor_SOURCES) $(scr_retries_halt_SOURCES) \
 	$(scr_transfer_SOURCES)
-RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
-	html-recursive info-recursive install-data-recursive \
-	install-exec-recursive install-info-recursive \
-	install-recursive installcheck-recursive installdirs-recursive \
-	pdf-recursive ps-recursive uninstall-info-recursive \
-	uninstall-recursive
 includeHEADERS_INSTALL = $(INSTALL_HEADER)
 HEADERS = $(include_HEADERS) $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
@@ -327,7 +319,6 @@ target_alias = @target_alias@
 # TODO: move -lz to m4 script
 LIBZ_LDFLAGS = -lz
 AM_CFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/config
-SUBDIRS = .
 
 # headers to be installed in /include subdirectory
 include_HEADERS = \
@@ -351,67 +342,8 @@ noinst_HEADERS = \
 	scr_param.h \
 	scr_log.h \
 	scr_copy_xor.h \
-	scr_halt.h
-
-
-# source files that are used by scr commands and runtime library
-scr_base_srcs = \
-	scr_io.c \
-	scr_util.c \
-	scr_hash.c \
-	scr_hash_util.c \
-	tv_data_display.c \
-	scr_filemap.c \
-	scr_index_api.c \
-	scr_meta.c \
-	scr_config.c \
-	scr_param.c \
-	scr_log.c \
-	scr_copy_xor.c \
-	scr_halt.c
-
-
-# objects for each of the source files above
-scr_base_objs = \
-	scr_io.lo \
-	scr_util.lo \
-	scr_hash.lo \
-	scr_hash_util.lo \
-	tv_data_display.lo \
-	scr_filemap.lo \
-	scr_index_api.lo \
-	scr_meta.lo \
-	scr_config.lo \
-	scr_param.lo \
-	scr_log.lo \
-	scr_copy_xor.lo \
-	scr_halt.lo
-
-
-# source files that are only used for commands
-scr_cmds_srcs = \
-	scr_err_serial.c \
-	scr_config_serial.c
-
-
-# objects that are are only used for commands
-scr_cmds_objs = \
-	scr_err_serial.lo \
-	scr_config_serial.lo
-
-
-# runtime library source files
-scr_lib_srcs = \
-	scr.c \
-	scrf.c \
-	scr_interpose.c
-
-
-# runtime libraries objects
-scr_lib_objs = \
-	scr.lo \
-	scrf.lo \
-	scr_interpose.lo
+	scr_halt.h \
+	queue.h
 
 lib_LTLIBRARIES = \
 	libscr_base.la \
@@ -427,11 +359,32 @@ CMDS_INCLUDES = \
 	$(AM_CFLAGS) $(CFLAGS) \
 	$(MYSQL_CPPFLAGS)
 
-libscr_base_la_SOURCES = $(scr_base_srcs)
+
+# source files that are used by scr commands and runtime library
+libscr_base_la_SOURCES = \
+	scr_io.c \
+	scr_util.c \
+	scr_hash.c \
+	scr_hash_util.c \
+	tv_data_display.c \
+	scr_filemap.c \
+	scr_index_api.c \
+	scr_meta.c \
+	scr_config.c \
+	scr_param.c \
+	scr_log.c \
+	scr_copy_xor.c \
+	scr_halt.c
+
 libscr_base_la_CFLAGS = $(CMDS_INCLUDES)
 libscr_base_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)
 libscr_base_la_LDFLAGS = -avoid-version
-libscr_cmds_la_SOURCES = $(scr_cmds_srcs)
+
+# source files that are only used for commands
+libscr_cmds_la_SOURCES = \
+	scr_err_serial.c \
+	scr_config_serial.c
+
 libscr_cmds_la_CFLAGS = $(CMDS_INCLUDES)
 libscr_cmds_la_LIBADD = libscr_base.la
 libscr_cmds_la_LDFLAGS = -avoid-version
@@ -496,8 +449,7 @@ scr_transfer_CFLAGS = $(AM_CFLAGS)
 scr_index_SOURCES = scr_index.c
 scr_index_LDADD = $(LIBZ_LDFLAGS) libscr_cmds.la
 scr_index_CFLAGS = $(AM_CFLAGS)
-EXTRA_DIST = queue.h $(include_HEADERS) $(noinst_HEADERS) $(scr_base_srcs) $(scr_cmds_srcs) $(scr_lib_srcs)
-all: all-recursive
+all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
@@ -1029,77 +981,6 @@ uninstall-includeHEADERS:
 	  rm -f "$(DESTDIR)$(includedir)/$$f"; \
 	done
 
-# This directory's subdirectories are mostly independent; you can cd
-# into them and run `make' without going through this Makefile.
-# To change the values of `make' variables: instead of editing Makefiles,
-# (1) if the variable is set in `config.status', edit `config.status'
-#     (which will cause the Makefiles to be regenerated when you run `make');
-# (2) otherwise, pass the desired values on the `make' command line.
-$(RECURSIVE_TARGETS):
-	@failcom='exit 1'; \
-	for f in x $$MAKEFLAGS; do \
-	  case $$f in \
-	    *=* | --[!k]*);; \
-	    *k*) failcom='fail=yes';; \
-	  esac; \
-	done; \
-	dot_seen=no; \
-	target=`echo $@ | sed s/-recursive//`; \
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    dot_seen=yes; \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
-	  || eval $$failcom; \
-	done; \
-	if test "$$dot_seen" = "no"; then \
-	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
-	fi; test -z "$$fail"
-
-mostlyclean-recursive clean-recursive distclean-recursive \
-maintainer-clean-recursive:
-	@failcom='exit 1'; \
-	for f in x $$MAKEFLAGS; do \
-	  case $$f in \
-	    *=* | --[!k]*);; \
-	    *k*) failcom='fail=yes';; \
-	  esac; \
-	done; \
-	dot_seen=no; \
-	case "$@" in \
-	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
-	  *) list='$(SUBDIRS)' ;; \
-	esac; \
-	rev=''; for subdir in $$list; do \
-	  if test "$$subdir" = "."; then :; else \
-	    rev="$$subdir $$rev"; \
-	  fi; \
-	done; \
-	rev="$$rev ."; \
-	target=`echo $@ | sed s/-recursive//`; \
-	for subdir in $$rev; do \
-	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
-	  || eval $$failcom; \
-	done && test -z "$$fail"
-tags-recursive:
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) tags); \
-	done
-ctags-recursive:
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) ctags); \
-	done
-
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
@@ -1110,23 +991,10 @@ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	mkid -fID $$unique
 tags: TAGS
 
-TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
 	here=`pwd`; \
-	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
-	  include_option=--etags-include; \
-	  empty_fix=.; \
-	else \
-	  include_option=--include; \
-	  empty_fix=; \
-	fi; \
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    test ! -f $$subdir/TAGS || \
-	      tags="$$tags $$include_option=$$here/$$subdir/TAGS"; \
-	  fi; \
-	done; \
 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
@@ -1139,7 +1007,7 @@ TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 	    $$tags $$unique; \
 	fi
 ctags: CTAGS
-CTAGS: ctags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
 	here=`pwd`; \
@@ -1188,40 +1056,24 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
-	list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    test -d "$(distdir)/$$subdir" \
-	    || $(mkdir_p) "$(distdir)/$$subdir" \
-	    || exit 1; \
-	    distdir=`$(am__cd) $(distdir) && pwd`; \
-	    top_distdir=`$(am__cd) $(top_distdir) && pwd`; \
-	    (cd $$subdir && \
-	      $(MAKE) $(AM_MAKEFLAGS) \
-	        top_distdir="$$top_distdir" \
-	        distdir="$$distdir/$$subdir" \
-	        distdir) \
-	      || exit 1; \
-	  fi; \
-	done
 check-am: all-am
-check: check-recursive
-all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(HEADERS) all-local
+check: check-am
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(HEADERS)
 install-binPROGRAMS: install-libLTLIBRARIES
 
-installdirs: installdirs-recursive
-installdirs-am:
+installdirs:
 	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(includedir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
-install: install-recursive
-install-exec: install-exec-recursive
-install-data: install-data-recursive
-uninstall: uninstall-recursive
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-recursive
+installcheck: installcheck-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
 	  install_sh_PROGRAM="$(INSTALL_STRIP_PROGRAM)" INSTALL_STRIP_FLAG=-s \
@@ -1237,106 +1089,73 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-recursive
+clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
-	clean-libtool clean-local mostlyclean-am
+	clean-libtool mostlyclean-am
 
-distclean: distclean-recursive
+distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-tags
 
-dvi: dvi-recursive
+dvi: dvi-am
 
 dvi-am:
 
-html: html-recursive
+html: html-am
 
-info: info-recursive
+info: info-am
 
 info-am:
 
 install-data-am: install-includeHEADERS
 
-install-exec-am: install-binPROGRAMS install-exec-local \
-	install-libLTLIBRARIES
+install-exec-am: install-binPROGRAMS install-libLTLIBRARIES
 
-install-info: install-info-recursive
+install-info: install-info-am
 
 install-man:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-recursive
+maintainer-clean: maintainer-clean-am
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-recursive
+mostlyclean: mostlyclean-am
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool
 
-pdf: pdf-recursive
+pdf: pdf-am
 
 pdf-am:
 
-ps: ps-recursive
+ps: ps-am
 
 ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-includeHEADERS \
-	uninstall-info-am uninstall-libLTLIBRARIES uninstall-local
+	uninstall-info-am uninstall-libLTLIBRARIES
 
-uninstall-info: uninstall-info-recursive
+.PHONY: CTAGS GTAGS all all-am check check-am clean clean-binPROGRAMS \
+	clean-generic clean-libLTLIBRARIES clean-libtool ctags \
+	distclean distclean-compile distclean-generic \
+	distclean-libtool distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-data install-data-am install-exec install-exec-am \
+	install-includeHEADERS install-info install-info-am \
+	install-libLTLIBRARIES install-man install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-includeHEADERS uninstall-info-am \
+	uninstall-libLTLIBRARIES
 
-.PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am all-local check \
-	check-am clean clean-binPROGRAMS clean-generic \
-	clean-libLTLIBRARIES clean-libtool clean-local clean-recursive \
-	ctags ctags-recursive distclean distclean-compile \
-	distclean-generic distclean-libtool distclean-recursive \
-	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-binPROGRAMS install-data \
-	install-data-am install-exec install-exec-am \
-	install-exec-local install-includeHEADERS install-info \
-	install-info-am install-libLTLIBRARIES install-man \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am maintainer-clean maintainer-clean-generic \
-	maintainer-clean-recursive mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool mostlyclean-recursive \
-	pdf pdf-am ps ps-am tags tags-recursive uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-includeHEADERS \
-	uninstall-info-am uninstall-libLTLIBRARIES uninstall-local
-
-
-all-local: libscr_base.la libscr_cmds.la libscr.la libscrf.la libscr_interpose.la
-
-clean-local:
-	libtool --mode=clean /bin/rm -rf $(scr_base_objs) $(scr_cmds_objs) $(scr_lib_objs)
-	libtool --mode=clean /bin/rm -rf libscr_base.la libscr_cmds.la libscr.la libscrf.la libscr_interpose.la
-
-# install source code with package
-install-exec-local:
-	mkdir -p $(DESTDIR)$(prefix)/include
-	mkdir -p $(DESTDIR)$(prefix)/src
-	libtool --mode=install cp scr.h $(DESTDIR)$(prefix)/include/.
-	libtool --mode=install cp scrf.h $(DESTDIR)$(prefix)/include/.
-	libtool --mode=install cp ../config/config.h $(DESTDIR)$(prefix)/src
-	libtool --mode=install cp *.c *.h $(DESTDIR)$(prefix)/src
-	libtool --mode=install cp libscr.la $(DESTDIR)$(prefix)/lib
-	libtool --mode=install cp libscrf.la $(DESTDIR)$(prefix)/lib
-	libtool --mode=install cp libscr_interpose.la $(DESTDIR)$(prefix)/lib
-	libtool --mode=install cp libscr_cmds.la $(DESTDIR)$(prefix)/lib
-	libtool --mode=install cp libscr_base.la $(DESTDIR)$(prefix)/lib
-
-# TODO: there must be a better way to do this uninstall, but I don't know how
-uninstall-local:
-	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/scr*
-	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/{queue,config}.h
-	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/src/tv_data_display.{c,h}
-	libtool --mode=uninstall /bin/rm -rf $(DESTDIR)$(prefix)/lib/libscr*
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -104,7 +104,7 @@ scr.conf:
   configure --with-scr-config-file=/etc/scr.conf ...
 
 libyogrt support:
-  If libyogrt is not installed, specify --without-yogrt during the
+  If libyogrt is available, specify --with-yogrt[=PATH] during the
   configure.
 
   The function of libyogrt is to enable a job to determine how much
@@ -117,8 +117,8 @@ libyogrt support:
 
 MySQL DB Logging:
   SCR can log events to a MySQL database.  However, this feature is
-  still in development, so please disable it for now via
-  --without-mysql.  If you would like to give it a try, see the
+  still in development.  To enable logging to MySQL, configure with
+  --with-mysql. If you would like to give it a try, see the
   scr.mysql file for further instructions.
 
 The compile-time define variables are specified in src/scr_conf.h.  One
@@ -135,9 +135,7 @@ install the library, e.g.:
 
   ./configure \
       --prefix=/usr/local/tools/scr-1.1 \
-      --with-scr-config-file=/etc/scr.conf \
-      --without-yogrt \
-      --without-mysql
+      --with-scr-config-file=/etc/scr.conf
   make
   make install
 

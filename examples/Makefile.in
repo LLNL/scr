@@ -13,6 +13,7 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -36,8 +37,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 subdir = examples
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/makefile.examples.in
+DIST_COMMON = $(dist_examples_DATA) $(srcdir)/Makefile.am \
+	$(srcdir)/Makefile.in $(srcdir)/makefile.examples.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/lx_find_mpi.m4 \
 	$(top_srcdir)/m4/x_ac_config_scr.m4 \
@@ -53,6 +54,15 @@ CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES = makefile.examples
 SOURCES =
 DIST_SOURCES =
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
+am__installdirs = "$(DESTDIR)$(examplesdir)"
+dist_examplesDATA_INSTALL = $(INSTALL_DATA)
+DATA = $(dist_examples_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
@@ -189,7 +199,8 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-files_to_be_installed = \
+examplesdir = $(pkgdatadir)/examples
+dist_examples_DATA = \
 	test_common.c \
 	test_common.h \
 	test_api.c \
@@ -201,7 +212,7 @@ files_to_be_installed = \
 	scr.moab \
 	scr_interpose.moab
 
-EXTRA_DIST = makefile.examples $(files_to_be_installed)
+EXTRA_DIST = makefile.examples
 all: all-am
 
 .SUFFIXES:
@@ -246,6 +257,23 @@ clean-libtool:
 distclean-libtool:
 	-rm -f libtool
 uninstall-info-am:
+install-dist_examplesDATA: $(dist_examples_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(examplesdir)" || $(mkdir_p) "$(DESTDIR)$(examplesdir)"
+	@list='$(dist_examples_DATA)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(dist_examplesDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(examplesdir)/$$f'"; \
+	  $(dist_examplesDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(examplesdir)/$$f"; \
+	done
+
+uninstall-dist_examplesDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_examples_DATA)'; for p in $$list; do \
+	  f=$(am__strip_dir) \
+	  echo " rm -f '$(DESTDIR)$(examplesdir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(examplesdir)/$$f"; \
+	done
 tags: TAGS
 TAGS:
 
@@ -282,8 +310,11 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile
+all-am: Makefile $(DATA)
 installdirs:
+	for dir in "$(DESTDIR)$(examplesdir)"; do \
+	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
+	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -326,7 +357,9 @@ info: info-am
 
 info-am:
 
-install-data-am: install-data-local
+install-data-am: install-dist_examplesDATA
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) install-data-hook
 
 install-exec-am:
 
@@ -352,30 +385,27 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-info-am uninstall-local
+uninstall-am: uninstall-dist_examplesDATA uninstall-info-am \
+	uninstall-local
 
 .PHONY: all all-am check check-am clean clean-generic clean-libtool \
 	distclean distclean-generic distclean-libtool distdir dvi \
 	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-data-local install-exec \
-	install-exec-am install-info install-info-am install-man \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	uninstall uninstall-am uninstall-info-am uninstall-local
+	install-data install-data-am install-data-hook \
+	install-dist_examplesDATA install-exec install-exec-am \
+	install-info install-info-am install-man install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am uninstall uninstall-am \
+	uninstall-dist_examplesDATA uninstall-info-am uninstall-local
 
 
-install-data-local:
-	-$(top_srcdir)/config/install-sh -m 755 -d \
-		$(DESTDIR)$(prefix)/examples
-	$(top_srcdir)/config/install-sh -m 644 $(srcdir)/makefile.examples \
-		$(DESTDIR)$(prefix)/examples/makefile
-	for f in $(files_to_be_installed) ; do \
-		$(top_srcdir)/config/install-sh -m 644 $(srcdir)/$$f \
-			$(DESTDIR)$(prefix)/examples ; done
+# Use -hook instead of -local b/c we need to do this AFTER the main install data rule.
+install-data-hook:
+	$(INSTALL_DATA) makefile.examples $(DESTDIR)$(examplesdir)/makefile
 
 uninstall-local:
-	rm -f $(DESTDIR)$(prefix)/examples/*
+	-rm -f $(DESTDIR)$(examplesdir)/makefile
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
