@@ -16,6 +16,7 @@ noinst_HEADERS = \
 	scr_util.h \
 	scr_hash.h \
 	scr_hash_util.h \
+	scr_hash_mpi.h \
 	tv_data_display.h \
 	scr_filemap.h \
 	scr_index_api.h \
@@ -23,7 +24,6 @@ noinst_HEADERS = \
 	scr_config.h \
 	scr_param.h \
 	scr_log.h \
-	scr_copy_xor.h \
 	scr_halt.h \
 	queue.h
 
@@ -54,7 +54,6 @@ libscr_base_la_SOURCES = \
 	scr_config.c \
 	scr_param.c \
 	scr_log.c \
-	scr_copy_xor.c \
 	scr_halt.c
 libscr_base_la_CFLAGS = $(CMDS_INCLUDES)
 libscr_base_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)
@@ -76,9 +75,12 @@ INCLUDES = \
 	$(YOGRT_CPPFLAGS) \
 	$(MYSQL_CPPFLAGS)
 
-libscr_la_SOURCES = scr.c
-libscr_la_CFLAGS = $(INCLUDES) $(MPI_CFLAGS)
-libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(MPI_CLDFLAGS) libscr_base.la
+# source files that are used by libraries (include MPI)
+libscr_la_SOURCES = \
+	scr_hash_mpi.c \
+	scr.c
+libscr_la_CFLAGS = $(INCLUDES) $(GCS_CFLAGS) $(MPI_CFLAGS)
+libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(GCS_LDFLAGS) $(GCS_LIBS) $(MPI_CLDFLAGS) libscr_base.la
 #(avoids numbers at end of library name)
 libscr_la_LDFLAGS = -avoid-version
 #libscr_la_LDFLAGS = -rpath $(DESTDIR)$(libdir)

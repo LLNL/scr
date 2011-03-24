@@ -59,11 +59,11 @@ int scr_open_with_lock(const char* file, int flags, mode_t mode);
 /* unlocks the specified file descriptor and then closes the file */
 int scr_close_with_unlock(const char* file, int fd);
 
-/* reliable read from file descriptor (retries, if necessary, until hard error) */
-ssize_t scr_read(int fd, void* buf, size_t size);
+/* reliable read from opened file descriptor (retries, if necessary, until hard error) */
+ssize_t scr_read(const char* file, int fd, void* buf, size_t size);
 
-/* reliable write to file descriptor (retries, if necessary, until hard error) */
-ssize_t scr_write(int fd, const void* buf, size_t size);
+/* reliable write to opened file descriptor (retries, if necessary, until hard error) */
+ssize_t scr_write(const char* file, int fd, const void* buf, size_t size);
 
 /* make a good attempt to read from file (retries, if necessary, return error if fail) */
 ssize_t scr_read_attempt(const char* file, int fd, void* buf, size_t size);
@@ -77,10 +77,8 @@ ssize_t scr_read_line(const char* file, int fd, char* buf, size_t size);
 /* write a formatted string to specified file descriptor */
 ssize_t scr_writef(const char* file, int fd, const char* format, ...);
 
-/* read count bytes from fd into buf starting from offset, pad with zero if missing data */
-int scr_read_pad(int fd, char* buf, unsigned long count, unsigned long offset, unsigned long filesize);
-
-/* like scr_read_pad, but this takes an array of open files and treats them as one single large file */
+/* logically concatenate n opened files and read count bytes from this logical file into buf starting
+ * from offset, pad with zero on end if missing data */
 int scr_read_pad_n(int n, char** files, int* fds,
                    char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes);
 

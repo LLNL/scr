@@ -111,6 +111,18 @@ Define common hash key strings
 #define SCR_INDEX_KEY_FLUSHED   ("FLUSHED")
 #define SCR_INDEX_KEY_FAILED    ("FAILED")
 
+#define SCR_KEY_COPY_XOR_CHUNK   ("CHUNK")
+#define SCR_KEY_COPY_XOR_CKPT    ("CKPT")
+#define SCR_KEY_COPY_XOR_CURRENT ("CURRENT")
+#define SCR_KEY_COPY_XOR_PARTNER ("PARTNER")
+#define SCR_KEY_COPY_XOR_FILES   ("FILES")
+#define SCR_KEY_COPY_XOR_FILE    ("FILE")
+#define SCR_KEY_COPY_XOR_RANKS   ("RANKS")
+#define SCR_KEY_COPY_XOR_RANK    ("RANK")
+#define SCR_KEY_COPY_XOR_GROUP   ("GROUP")
+#define SCR_KEY_COPY_XOR_GROUP_RANKS ("RANKS")
+#define SCR_KEY_COPY_XOR_GROUP_RANK  ("RANK")
+
 /*
 =========================================
 Define hash and element structures
@@ -170,6 +182,9 @@ int scr_hash_merge(scr_hash* hash1, const scr_hash* hash2);
 /* traverse the given hash using a printf-like format string setting an arbitrary list of keys
  * to set (or reset) the hash associated with the last key */
 scr_hash* scr_hash_setf(scr_hash* hash, scr_hash* hash_value, const char* format, ...);
+
+/* same as above, but simply returns the hash associated with the list of keys */
+scr_hash* scr_hash_getf(scr_hash* hash, const char* format, ...);
 
 /* sort the hash assuming the keys are ints */
 int scr_hash_sort_int(scr_hash* hash);

@@ -267,7 +267,7 @@ int main (int argc, char *argv[])
 
     char* partner = scr_filemap_get_tag(map, ckpt, rank, SCR_FILEMAP_KEY_PARTNER);
 
-    /* if this rank is not a partner, and out partner only flag is set, skip this rank */
+    /* if this rank is not a partner, and our partner only flag is set, skip this rank */
     if (partner == NULL && partner_flag) {
       continue;
     }

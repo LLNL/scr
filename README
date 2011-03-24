@@ -434,70 +434,332 @@ Within or external to batch script:
   src/bin/scr_print_hash_file.c  C
 
 -----------------------------
-Program flow
+Perl Modules
 -----------------------------
 
-scripts/scr_param.pm
-  returns parameter value searching in the following order:
-    environment variable value, if set
-    configuration file value, if set
+scripts/scr_hostlist.pm
+  Manipulates lists of hostnames.
 
-scripts/scr_cntl_dir.in
-  uses scr_param.pm to read SCR_CACHE_BASE or SCR_CNTL_BASE parameters
-  for full directories:
-    invokes "scr_env --user" to get the username if not specified on command line
-    invokes "scr_env --jobid" to get the jobid if not specified on command line
+  The elements in a set of hostnames are expected to have a common
+  alpha prefix (cluster name) followed by a number (node number).
+  A hostlist can be specified in one of two forms:
+  
+  compressed hostlist (perl string scalar):
+    "atlas[3,5-7,9-11]"
+
+  uncompressed hostlist (perl list of string scalars):
+    ("atlas3","atlas5","atlas6","atlas7","atlas9","atlas10","atlas11")
+
+  Functions:
+  expand($hostlist)
+    given a compressed hostlist, construct the corresponding
+    uncompressed hostlist (preserves order and duplicates)
+  compress(@hostlist)
+    given an uncompressed hostlist, construct a compressed hostlist
+    (preserves duplicate hostnames, but sorts list by node number)
+  diff(\@hostlist1, \@hostlist2)
+    given references to two uncompressed hostlists, subtract second
+    list from first and return remainder
+  intersect(\@hostlist1, \@hostlist2)
+    given references to two uncompressed hostlists, return the
+    intersection of the two
+
+scripts/scr_param.pm
+  Reads and returns SCR configuration parameters, returning the first
+  set value found by searching in the following order:
+    1) Environment variable
+    2) User configuration file
+    3) System configuration file
+    4) Compile-time default
+
+  The full path to a user configuration file is provided when an
+  instance of the object is initialized.  If no path is provided, it's
+  assumed that a user config file does not exist.
+
+  Some parameters cannot be set by a user, and for these parameters
+  any settings in #1 or #2 is ignored.
+
+  The majority of parameters return scalar values, but some return
+  an associated hash.
+
+  Functions:
+  get($name)
+    given the name of an SCR parameter, return its scalar value
+  gethash($name)
+    give the name of an SCR parameters, return a reference to its hash
+
+-----------------------------
+Utilities
+-----------------------------
+
+scripts/scr_glob_hosts.in
+  - uses scr_hostlist.pm to manipulate hostlists
+  - only accepts compressed hostlists for input
+
+  Functions:
+  - given a compressed hostlist, return number of hosts
+  - given a compressed hostlist, return the nth host
+  - given two compressed hostlists, subtract one from the other and
+    return remainder
+  - given two compressed hostlists, return intersection of the two
 
 scripts/scr_list_down_nodes.in
-  invokes "scr_env --nodes" to get the current nodeset
-  invokes "scr_env --down" to ask resource manager whether any nodes are known to be down
-  invokes "ping" in a loop over each node presumed to be up
-  invokes "scr_cntl_dir" to get cache and control directories
-  invokes "pdsh" to run "scr_check_node" on each up node
+  Runs a series of tests over all specified nodes and builds list of
+  nodes which fail one or more tests.
 
-scripts/scr_flush_file.in
-  reads "flush.scrinfo" to answer queries
+  - uses scr_hostlist.pm to manipulate hostlists
+  - uses scr_param.pm to read various parameters
+    interprets $SCR_CONF_FILE to look for configuration file when
+    initializing scr_param object
 
-scripts/scr_copy.in
-  invokes "scr_flush_file --dir --haveid" to check whether the node has any files for given checkpoint
-  invokes "scr_flush_file --dir --needflush" to check whether that checkpoint needs flushed
-  invokes "scr_crc32" to compute checksums of files before flush
-  invokes "cp" to copy each file from the node to the parallel file system
+  - invokes "scr_env --nodes" to get the current nodeset, if not
+    specified on command line
 
-scripts/scr_flush.in
-  invokes "scr_env --jobid" to get jobid
-  invokes "scr_env --nodes" to get the current nodeset
-  invokes "scr_flush_file --dir --latest" to get the latest checkpoint
-  invokes "scr_flush_file --dir --needflush" to determine whether this checkpoint needs flushed
-  invokes "pdsh" to run "scr_copy" on each node
+  - invokes "scr_env --down" to ask resource manager whether any nodes
+    are known to be down
+  - invokes "ping" to each node thought to be up
+  - uses scr_param.pm to read SCR_EXCLUDE_NODES, user may explicitly
+    exclude nodes this way
+  - adds any nodes explicitly listed on command line as being down
 
-scripts/scr_prerun.in
-  Currently does nothing
+  - invokes "scr_cntl_dir" to get list of base directories for control
+    directory
+  - uses scr_param.pm to read CNTLDIR hash from config file to get
+    expected capacity corresponding to each base directory
+  - invokes "scr_cntl_dir" to get list of base directories for cache
+    directory
+  - uses scr_param.pm to read CACHEDIR hash from config file to get
+    expected capacity corresponding to each base directory
+  - invokes "pdsh" to run "scr_check_node" on each node that hasn't yet
+    failed a test
 
-scripts/scr_postrun.in
-  invokes "scr_cntl_dir" to get the control directory
-  invokes "scr_env --nodes" to get the current nodeset
-  invokes "scr_list_down_nodes" to identify down nodes in the allocation
-  invokes "scr_glob_hosts" to subtract down nodes from nodeset to get up nodes
-  invokes "scr_flush_file --dir --latest" to get the id of the latest checkpoint in cache
-  invokes "scr_flush_file --dir --needflush" to determine whether that checkpoint needs to be flushed
-  creates directory to flush to on parallel file system
-  invokes "scr_flush" to initiate the flush
-  invokes "scr_check_complete" to determine whether the flushed set is complete and rebuild files
-  updates scr.current and scr.old symlinks
+  - optionally print list of down nodes to stdout
+  - optionally log each down node with reason via "scr_log_event" if
+    logging is enabled
+  - exit with appropriate code to indicate whether any nodes are down
 
-scripts/scr_retries_halt.in
-  invokes "scr_cntl_dir" to get the control directory
-  reads "halt.scrinfo" file and checks conditions
+scripts/scr_cntl_dir.in
+  Returns full path to control or cache directory.
+
+  - uses scr_param.pm, interprets $SCR_CONF_FILE to look for
+    configuration file when initializing scr_param object (thus,
+    this script should be executed in an environment where this
+    variable is set to the same value as in the running job).
+
+  - uses scr_param.pm to read SCR_CNTL_BASE parameter
+  - uses scr_param.pm to read CACHEDESC parameter
+
+  - invokes "scr_env --user" to get the username if not specified on
+    command line
+  - invokes "scr_env --jobid" to get the jobid if not specified on
+    command line
+
+  - combines base, user, and jobid to build and output full path to
+    control or cache directory
+
+-----------------------------
+Program flow: Running (and re-running) a job
+-----------------------------
 
 scripts/scr_srun.in
-  invokes "scr_env --nodes" to get current nodeset
-  invokes "scr_glob_hosts" to check that script is running on a node in the nodeset
-  invokes "scr_cntl_dir" to get control directory
-  invokes "scr_prerun" to clear the control and cache directories on each node
-  invokes "scr_list_down_nodes" to get a list of nodes identified to be down
-  invokes "scr_env --runnodes" to get number of nodes used in last run
-  invokes "scr_glob_hosts" to count total number of nodes in allocation
-  invokes "srun" to run job
-  invokes "scr_retries_halt" to check whether the job should be halted
-  invokes "scr_postrun" to flush latest cached checkpoint to parallel file system
+  - interprets $SCR_ENABLE, bails out if set to 0
+  - interprets $SCR_DEBUG, enables verbosity if set > 0
+  - invokes "scr_test_runtime" to check that runtime dependencies are
+    available
+  - invokes "scr_env --jobid" to get jobid of current job
+  - interprets $SCR_NODELIST to determine set of nodes job is using
+    sets and exports SCR_NODELIST to value returned by "scr_env --nodes"
+    if not set
+  - interprets $SCR_PREFIX to get prefix directory on parallel file
+    system, sets and exports SCR_PREFIX to pwd if not set
+  - invokes "scr_glob_hosts" to check that script is running on a node
+    in the nodeset, bails with error if not
+  - invokes "scr_cntl_dir" to get control directory
+  - issues a NOP srun command on all nodes to force each node to run
+    SLURM prolog to delete old files from cache
+  - invokes "scr_prerun" to prepare nodes for SCR run
+  - if $SCR_FLUSH_ASYNC == 1, invokes "scr_glog_hosts" to get count of
+    number of nodes, and invokes "srun" to launch an "scr_transfer"
+    process on each node
+
+  ENTER INFINITE WHILE LOOP
+  - invokes "scr_list_down_nodes" to determine list of bad nodes,
+    if any node has been previously marked down, force it to continue
+    to be marked down (we do this to avoid re-running on "bad" nodes,
+    the logic being that if a node was identified as bad in this run
+    once already, there is a good chance that it will be bad again, so
+    avoid it)
+  - count the number of nodes that the application needs
+  - count the number of nodes that are still left
+  - if number of nodes left is smaller than number needed, break loop
+  - check that the node where "scr_srun" is running is still good,
+    if not, break loop
+  - build list of nodes to be excluded from run
+
+  - optionally log start of run
+  - invokes "srun" including node where scr_srun is running and
+    excluding down nodes
+  - invokes "scr_list_down_nodes" to get list of down nodes
+  - optionally log end of run (and down nodes and reason those nodes
+    are down)
+
+  - if number of attempted runs is >= than number of allowed retries,
+    break loop
+  - invokes "scr_retries_halt" and breaks loop if halt condition is
+    detected
+  - invokes "sleep 60" to give nodes in allocation a chance to cleanup
+  - invokes "scr_retries_halt" and breaks loop if halt condition is
+    detected
+  - loop back
+
+  EXIT WHILE LOOP
+  - if SCR_FLUSH_ASYNC == 1, invokes "scr_halt --immediate" to kill
+    "scr_transfer" processes on each node
+  - invokes "scr_postrun" to drain the most recent checkpoint
+
+scripts/scr_test_runtime.in
+  - checks for pdsh command
+  - checks for dshbak command
+  - checks for Date::Manip perl module
+
+scripts/scr_prerun.in
+  Currently does nothing, serves as a place holder
+
+src/scr_retries_halt.c
+  Reads halt file and returns exit code depending on whether the run
+  should be halted or not.
+
+-----------------------------
+Program flow: Draining the most recent checkpoint
+-----------------------------
+
+scripts/scr_postrun.in
+  - interprets $SCR_ENABLE, bails out if set to 0
+  - interprets $SCR_DEBUG, enables verbosity if set > 0
+  - interprets $SCR_PREFIX to determine prefix directory on parallel
+    file system, but this is overridden via -p option from "scr_srun"
+
+  - interprets $SCR_NODELIST to determine set of nodes job is using
+  - invokes "scr_list_down_nodes" to determine whether any nodes are
+    down
+  - invokes "scr_glob_hosts" subtracting down nodes from node list to
+    determine which nodes are still up, bails out if there are no up
+    nodes left
+
+  - invokes "scr_cntl_dir" to get the control directory
+  - invokes "scr_flush_file --dir $cntldir --latest" providing control
+    directory to determine id of most recent checkpoint
+  - if this command fails, there is no checkpoint to flush, so bail out
+
+  - invokes "scr_flush_file --dir $cntldir --needflush $id" providing
+    control directory and checkpoint id to determine whether this
+    checkpoint needs to be flushed
+  - if this command fails, the checkpoint has already been flushed,
+    so bail out
+
+  - creates checkpoint directory on parallel file system for latest
+    checkpoint
+  - invokes "scr_flush" providing control directory, checkpoint id
+    to be flushed, checkpoint directory, and set of known down nodes,
+    which flushes checkpoint files from cache to the PFS
+
+  - invokes "scr_index" providing checkpoint directory, which checks
+    whether all files are accounted for, attempts to rebuild missing
+    files if it can, and records the checkpoint directory and status
+    in the scr.index file
+
+  - if checkpoint was flushed and indexed successfully, the scr.current
+    symlink is updated to point to this checkpoint
+
+src/scr_flush_file.c
+  - reads "flush.scrinfo" file from directory specified via "--dir"
+    option on command line
+  - if "--needflush <id>" is specified, checks whether specified
+    checkpoint id needs to be flushed by looking for
+    SCR_FLUSH_KEY_LOCATION_PFS in flush file, returns 0 if set,
+    which means this checkpoint is already flushed to the PFS
+  - if "--latest" is specified, returns most recent checkpoint id from
+    flush file
+
+scripts/scr_flush.in
+  - uses scr_param.pm and scr_hostlist.pm
+    interprets $SCR_CONF_FILE to look for configuration file when
+    initializing scr_param object
+  - uses scr_param.pm to read SCR_FILE_BUF_SIZE (sets size of buffer
+    when writing to file system)
+  - uses scr_param.pm to read SCR_CRC_ON_FLUSH (compute crc32 on file
+    during flush)
+
+  - invokes "scr_env --jobid" to get jobid
+  - invokes "scr_env --nodes" to get the current nodeset,
+    can override with "--jobset" on command line
+
+  - optionally logs start of flush operation, if logging is enabled
+
+  ROUND 1:
+  - invokes "pdsh" of "scr_copy" providing control directory, checkpoint
+    id to be flushed, checkpoint directory, buffer size, crc flag,
+    partner flag, and list of known down nodes
+  - writes stdout to one file, writes stderr to another
+  - scan stdout file to build list of partner nodes and list of nodes
+    where copy command failed
+  - scan stderr file for a few well-known error strings indicating pdsh
+    failed
+  - build list of all failed nodes and list of nodes who were partners
+    to those failed nodes
+
+  ROUND 2:
+  - invokes "pdsh" of "scr_copy" on partner nodes (if we found a partner
+    for each failed node) or on all non-failed nodes otherwise, provided
+    an updated list of failed nodes
+  
+  - optionally log end of flush, if loggin is enabled
+
+src/scr_copy.c
+  - read control directory from command line
+  - read checkpoint directory from command line
+  - read "flush.scrinfo" file
+  - if specified checkpoint id does not exist, we can't flush it
+  - if specified checkpoint id has already been flushed, we're done
+  - read "filemap.scrinfo" file and then read each filemap this master
+    map includes to get list of all files on the node
+  - for each file belonging to the specified checkpoint, determine
+    whether it is a partner copy, and if so, print out the node it is
+    the partner for
+  - if the partner flag is set on the command line (meaning the original
+    node failed to copy the file), this node will need to copy the file
+    instead
+  - check that we have each file for the specified checkpoint (executes
+    a number of validity checks on each file)
+  - copy the file to the checkpoint directory (optionally compute crc
+    during copy)
+  - copy the meta data file to the checkpoint directory (after updating
+    crc value, if it was computed)
+  - write filemap for the rank to the checkpoint directory
+
+src/scr_index.c
+  Given checkpoint directory as command line argument, checks whether
+  checkpoint is indexed, and adds checkpoint to index if not, attempts
+  to rebuild missing files if needed.
+
+  TODO: complete description
+
+  index_add_dir(const char* prefix, const char* dir)
+    - PFS prefix directory specified in prefix
+    - Checkpoint directory (relative to prefix directory) specified
+      in dir
+
+    - reads index file from prefix and looks for specified checkpoint
+      directory, if found, checkpoint directory is already indexed, so
+      bail with success
+
+    - attempts to read summary file from checkpoint directory, if this
+      fails attempt to create summary file for checkpoint directory,
+      if the build succeeds, attempt to read it again
+
+    - attempt to read checkpoint id from summary file, if not found
+      bail with error
+
+    - if obtain checkpoint id from summary file, add entry for the
+      specified checkpoint directory and corresponding id in the index
+      file

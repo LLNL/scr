@@ -371,6 +371,107 @@ scr_hash* scr_hash_setf(scr_hash* hash, scr_hash* hash_value, const char* format
   return h;
 }
 
+/* return hash associated with list of keys */
+scr_hash* scr_hash_getf(scr_hash* hash, const char* format, ...)
+{
+  /* check that we have a hash */
+  if (hash == NULL) {
+    return NULL;
+  }
+
+  scr_hash* h = hash;
+
+  /* make a copy of the format specifier, since strtok will clobber it */
+  char* format_copy = strdup(format);
+  if (format_copy == NULL) {
+    scr_err("Failed to duplicate format string @ %s:%d",
+            __FILE__, __LINE__
+    );
+    exit(1);
+  }
+
+  /* we break up tokens by spaces */
+  char* search = " ";
+  char* token = NULL;
+
+  /* count how many keys we have */
+  token = strtok(format_copy, search);
+  int count = 0;
+  while (token != NULL) {
+    token = strtok(NULL, search);
+    count++;
+  }
+
+  /* free our copy of the format specifier */
+  if (format_copy != NULL) {
+    free(format_copy);
+  }
+
+  /* make a copy of the format specifier, since strtok will clobber it */
+  format_copy = strdup(format);
+  if (format_copy == NULL) {
+    scr_err("Failed to duplicate format string @ %s:%d",
+            __FILE__, __LINE__
+    );
+    exit(1);
+  }
+
+  /* for each format specifier, convert the next key argument to a string and look up the hash for that key */
+  va_list args;
+  va_start(args, format);
+  token = strtok(format_copy, search);
+  int i = 0;
+  while (i < count && token != NULL && h != NULL) {
+    /* interpret the format and convert the current key argument to a string */
+    char key[SCR_MAX_LINE];
+    int size = 0;
+    if (strcmp(token, "%s") == 0) {
+      size = snprintf(key, sizeof(key), token, va_arg(args, char*));
+    } else if (strcmp(token, "%d")  == 0) {
+      size = snprintf(key, sizeof(key), token, va_arg(args, int));
+    } else if (strcmp(token, "%lu") == 0) {
+      size = snprintf(key, sizeof(key), token, va_arg(args, unsigned long));
+    } else if (strcmp(token, "%#x") == 0) {
+      size = snprintf(key, sizeof(key), token, va_arg(args, unsigned int));
+    } else if (strcmp(token, "%#lx") == 0) {
+      size = snprintf(key, sizeof(key), token, va_arg(args, unsigned long));
+    } else if (strcmp(token, "%llu") == 0) {
+      size = snprintf(key, sizeof(key), token, va_arg(args, unsigned long long));
+    } else if (strcmp(token, "%f") == 0) {
+      size = snprintf(key, sizeof(key), token, va_arg(args, double));
+    } else {
+      scr_err("Unsupported hash key format '%s' @ %s:%d",
+              token, __FILE__, __LINE__
+      );
+      exit(1);
+    }
+
+    /* check that we were able to fit the string into our buffer */
+    if (size >= sizeof(key)) {
+      scr_err("Key buffer too small, have %lu need %d bytes @ %s:%d",
+              sizeof(key), size, __FILE__, __LINE__
+      );
+      exit(1);
+    }
+
+    /* get hash for this key */
+    h = scr_hash_get(h, key);
+
+    /* get the next format string */
+    token = strtok(NULL, search);
+    i++;
+  }
+  va_end(args);
+
+  /* free our copy of the format specifier */
+  if (format_copy != NULL) {
+    free(format_copy);
+  }
+
+  /* return the hash we found */
+  return h;
+}
+
 static int scr_hash_int_cmp_fn(const void* a, const void* b)
 {
   return (int) (*(int*)a - *(int*)b);

@@ -1420,7 +1420,7 @@ int get_args(int argc, char **argv, struct arglist* args)
     {"check",  required_argument, NULL, 'c'},
     {"list",   no_argument,       NULL, 'l'},
     {"help",   no_argument,       NULL, 'h'},
-    {NULL, no_argument, NULL, 0}
+    {NULL,     no_argument,       NULL,   0}
   };
 
   int long_index = 0;

@@ -150,7 +150,7 @@ int scr_close_with_unlock(const char* file, int fd)
 }
 
 /* reliable read from file descriptor (retries, if necessary, until hard error) */
-ssize_t scr_read(int fd, void* buf, size_t size)
+ssize_t scr_read(const char* file, int fd, void* buf, size_t size)
 {
   ssize_t n = 0;
   int retries = 10;
@@ -172,13 +172,13 @@ ssize_t scr_read(int fd, void* buf, size_t size)
       retries--;
       if (retries) {
         /* print an error and try again */
-        scr_err("Error reading: read(%d, %x, %ld) errno=%d %m @ %s:%d",
-                fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
+        scr_err("Error reading %s: read(%d, %x, %ld) errno=%d %m @ %s:%d",
+                file, fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
         );
       } else {
         /* too many failed retries, give up */
-        scr_err("Giving up read: read(%d, %x, %ld) errno=%d %m @ %s:%d",
-	        fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
+        scr_err("Giving up read of %s: read(%d, %x, %ld) errno=%d %m @ %s:%d",
+	        file, fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
         );
         exit(1);
       }
@@ -187,8 +187,8 @@ ssize_t scr_read(int fd, void* buf, size_t size)
   return n;
 }
 
-/* reliable write to file descriptor (retries, if necessary, until hard error) */
-ssize_t scr_write(int fd, const void* buf, size_t size)
+/* reliable write to opened file descriptor (retries, if necessary, until hard error) */
+ssize_t scr_write(const char* file, int fd, const void* buf, size_t size)
 {
   ssize_t n = 0;
   int retries = 10;
@@ -199,8 +199,8 @@ ssize_t scr_write(int fd, const void* buf, size_t size)
       n += rc;
     } else if (rc == 0) {
       /* something bad happened, print an error and abort */
-      scr_err("Error writing: write(%d, %x, %ld) returned 0 @ %s:%d",
-	      fd, (char*) buf + n, size - n, __FILE__, __LINE__
+      scr_err("Error writing %s: write(%d, %x, %ld) returned 0 @ %s:%d",
+	      file, fd, (char*) buf + n, size - n, __FILE__, __LINE__
       );
       exit(1);
     } else { /* (rc < 0) */
@@ -213,13 +213,13 @@ ssize_t scr_write(int fd, const void* buf, size_t size)
       retries--;
       if (retries) {
         /* print an error and try again */
-        scr_err("Error writing: write(%d, %x, %ld) errno=%d %m @ %s:%d",
-                fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
+        scr_err("Error writing %s: write(%d, %x, %ld) errno=%d %m @ %s:%d",
+                file, fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
         );
       } else {
         /* too many failed retries, give up */
-        scr_err("Giving up write: write(%d, %x, %ld) errno=%d %m @ %s:%d",
-                fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
+        scr_err("Giving up write to %s: write(%d, %x, %ld) errno=%d %m @ %s:%d",
+                file, fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
         );
         exit(1);
       }
@@ -316,7 +316,7 @@ ssize_t scr_read_line(const char* file, int fd, char* buf, size_t size)
   while (n < size-1 && !found_end) {
     /* read a character from the file */
     char c;
-    ssize_t nread = scr_read(fd, &c, sizeof(c));
+    ssize_t nread = scr_read(file, fd, &c, sizeof(c));
 
     if (nread > 0) {
       /* we read a character, copy it over to the buffer */
@@ -375,37 +375,13 @@ ssize_t scr_writef(const char* file, int fd, const char* format, ...)
   }
 
   /* write the string out to the file descriptor */
-  ssize_t rc = scr_write(fd, buf, n);
+  ssize_t rc = scr_write(file, fd, buf, n);
 
   return rc;
 }
 
-/* read count bytes from fd into buf starting from offset, pad with zero if file is too short */
-int scr_read_pad(int fd, char* buf, unsigned long count, unsigned long offset, unsigned long filesize)
-{
-  off_t off_start = offset;
-  off_t off_end   = offset + count;
-  if (off_start < filesize) { 
-    /* if our file has start of chunk, seek to it */
-    lseek(fd, off_start, SEEK_SET);
-    if (off_end > filesize) { 
-      /* we have a partial chunk, read what we can, then pad with zero */
-      size_t nread = filesize - off_start;
-      scr_read(fd, buf, nread);
-      memset(buf + nread, 0, count - nread);
-    } else {
-      /* we have the whole chunk, read it all in */
-      scr_read(fd, buf, count);
-    }
-  } else {
-    /* we don't have any of the chunk, set the whole buffer to zero */
-    memset(buf, 0, count);
-  }
-
-  return SCR_SUCCESS;
-}
-
-/* like scr_read_pad, but this takes an array of open files and treats them as one single large file */
+/* logically concatenate n opened files and read count bytes from this logical file into buf starting
+ * from offset, pad with zero on end if missing data */
 int scr_read_pad_n(int n, char** files, int* fds,
                    char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes)
 {
@@ -590,7 +566,7 @@ int scr_crc32(const char* filename, uLong* crc)
   unsigned long buffer_size = 1024*1024;
   char buf[buffer_size];
   do {
-    nread = scr_read(fd, buf, buffer_size);
+    nread = scr_read(filename, fd, buf, buffer_size);
     if (nread > 0) {
       *crc = crc32(*crc, (const Bytef*) buf, (uInt) nread);
     }

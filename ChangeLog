@@ -1,3 +1,30 @@
+2011-03-24 Adam Moody <moody20@llnl.gov>
+
+	* scr.c : Fixed bug regarding leaking group handles.
+
+	* scr.c,
+	  scr_hash_mpi.c : Moved MPI related functions for hash from scr.c to scr_hash_mpi.c.
+	  Includes support for a sparse global exchange.
+
+	* m4/x_ac_gcs.m4,
+	  configure.ac : Added support for libgcs (generalized comm split library), which
+	  enables one to split processes on arbitrary data.  Since this library is only at
+	  LLNL currently, also added --with-gcs configure option and HAVE_LIBGCS compile flag
+	  to enable it.
+
+	* scr_hash.h,
+	  scr_hash.c : Added scr_hash_getf(), similar to scr_hash_setf().
+	  Added hash keys for XOR file header.
+
+2010-12-20 Adam Moody <moody20@llnl.gov>
+
+	* scr_io.h,
+	  scr_io.c : Modified scr_read and scr_write to take (and print) file name.
+
+	* scr_copy_xor.h,
+	  scr_copy_xor.c : Moved what little remained in these files to scr_hash.h,
+	  and dropped these files.
+
 2010-12-16 Adam Moody <moody20@llnl.gov>
 
 	* : Simplified Makefile.am code, and better follow package conventions.

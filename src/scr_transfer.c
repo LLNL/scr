@@ -658,7 +658,7 @@ int main (int argc, char *argv[])
         }
 
         /* read a chunk */
-        nread = scr_read(fd_src, buf, count);
+        nread = scr_read(new_file_src, fd_src, buf, count);
 
         /* if we read data, write it out */
         if (nread > 0) {
@@ -666,7 +666,7 @@ int main (int argc, char *argv[])
           secs_last_write = scr_seconds();
 
           /* write the chunk and force it out with an fsync */
-          scr_write(fd_dst, buf, nread);
+          scr_write(new_file_dst, fd_dst, buf, nread);
           fsync(fd_dst);
 
           /* update our position */
