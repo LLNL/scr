@@ -1,0 +1,49 @@
+.TH scr_index 1  "@META_DATE@" "@META_ALIAS@" "@META_NAME@"
+.SH NAME
+scr_index \- manages status of checkpoints stored on parallel file system
+
+.SH SYNOPSIS
+.B "scr_index [options]"
+
+.SH DESCRIPTION
+The \fBscr_index\fR command manages checkpoints stored on the parallel
+file system.  When adding a directory to the index, the command checks
+that the checkpoint directory on the parallel file system contains a
+complete and valid set of checkpoint files, it rebuilds missing
+checkpoint files if possible, and it writes an \fIscr_summary.txt\fR
+file, which is used by the SCR library to fetch and redistribute files
+to appropriate ranks upon a restart.
+
+.SH OPTIONS
+.TP
+.BI "-p, --prefix"
+Specify prefix directory (defaults to current working directory).
+.TP
+.BI "-a, --add " DIR
+Add checkpoint directory to index.
+.TP
+.BI "-l, --list "
+List contents of index.
+.TP
+.BI "-h, --help"
+Print usage.
+
+.LP
+One may invoke the command outside of a SLURM job allocation, which is
+useful to check and rebuild a checkpoint set in which \fBscr_postrun\fR
+may have failed to complete its internal call to \fBscr_index\fR.
+.SH EXAMPLES
+.TP
+(1) Add checkpoint directory to index file, rebuild missing checkpoint files if necessary, and create summary file:
+.nf
+>> scr_index --add scr.2008-10-20_14:22:10.23167.50
+.fi
+
+.SH SEE ALSO
+\fISCR User Manual\fR
+.LP
+\fBscr\fR(1), \fBscr_srun\fR(1), \fBscr_halt\fR(1),
+\fBscr_prerun\fR(1), \fBscr_postrun\fR(1)
+
+.SH AUTHOR
+Adam Moody <moody20@llnl.gov>.

@@ -1,3 +1,12 @@
+2011-04-06 Adam Moody <moody20@llnl.gov>
+
+	* man/scr_index.1.in : Added man page for scr_index, and removed references to
+	  scr_check_complete.
+
+	* doc/scr_users_manual.pdf,
+	  doc/scr_developers_manual.pdf : Updated user's manual and renamed it.  Added
+	  developer's manual.
+
 2011-03-24 Adam Moody <moody20@llnl.gov>
 
 	* scr.c : Fixed bug regarding leaking group handles.
@@ -45,7 +54,7 @@
 	  scripts/scr_retries_halt.in : Dropped these files since commands
 	  are now implemented in C in src/bin.
 
-	* scripts/scr_hash.pm : No scripts no longer access hash files
+	* scripts/scr_hash.pm : Scripts no longer access hash files
 	  directly, so dropped this file.
 
 	* scripts/scr_check_complete.in,

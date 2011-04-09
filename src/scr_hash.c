@@ -1472,13 +1472,13 @@ static int TV_display_type(const scr_hash* hash)
            * so print this as a key/value pair */
           TV_add_row(key, TV_ascii_string_type, value);
         } else {
-          /* recurse into hash */
-          //TV_add_row(key, "struct scr_hash", h);
+          /* my hash has one value, but the hash for that one value is non-empty.
+           * so we need to recurse into hash */
           TV_add_row(key, "scr_hash", h);
         }
       } else {
-        /* recurse into hash */
-        //TV_add_row(key, "struct scr_hash", h);
+        /* the hash for this key contains multiple elements,
+         * so this is not a key/value pair, which means we need to recurse into hash */
         TV_add_row(key, "scr_hash", h);
       }
     } else {

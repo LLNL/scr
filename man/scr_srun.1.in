@@ -11,7 +11,7 @@ scr_srun \- srun wrapper script to simplify running SCR jobs
 The \fBscr_srun\fR command wraps calls to a number of SCR commands and
 other logic that simplifies the use of SCR in the common case.
 Internally, it invokes \fBscr_prerun\fR, \fBsrun\fR, \fBscr_postrun\fR,
-and \fBscr_check_complete\fR.  It also contains logic to optionally restart
+and \fBscr_index\fR.  It also contains logic to optionally restart
 a job within an allocation.
 .LP
 Before calling \fBscr_srun\fR, it is required that the SCR_PREFIX environment
@@ -58,7 +58,7 @@ run with the SCR interpose library:
 \fISCR User Manual\fR
 .LP
 \fBscr\fR(1), \fBscr_halt\fR(1), \fBscr_prerun\fR(1),
-\fBscr_postrun\fR(1), \fBscr_check_complete\fR(1)
+\fBscr_postrun\fR(1), \fBscr_index\fR(1)
 
 .SH AUTHOR
 Adam Moody <moody20@llnl.gov>.

@@ -390,7 +390,7 @@ int main (int argc, char *argv[])
       }
     }
 
-    /* write out the rank filemap for scr_check_complete */
+    /* write out the rank filemap for scr_index */
     char rank_filemap_name[SCR_MAX_FILENAME];
     sprintf(rank_filemap_name, "%s/%d.scrfilemap", dir, rank);
     if (scr_filemap_write(rank_filemap_name, rank_map) != SCR_SUCCESS) {

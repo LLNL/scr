@@ -1,15 +1,13 @@
-#Uploading a new release to sourceforge
-scp ${scrversion}.tar.gz <username>,scalablecr@frs.sourceforge.net:/home/frs/project/s/sc/scalablecr/releases/.
+# commands to debug various items
+$TV ../../../bin/scr_index -a --prefix /g/g0/${USER}/packages/scr-dist/install/examples --check scr.2010-10-29_16:06:16.1015976.36 &
 
-$TV ../../../bin/scr_index -a --prefix /g/g0/${USER}/packages/scr-dist/testing/examples --check scr.2010-10-29_16:06:16.1015976.36 &
-
-$TV /g/g0/${USER}/packages/scr-dist/testing/bin/scr_rebuild_xor -a 4 1 2_of_4_in_0.xor 1_of_4_in_0.xor 3_of_4_in_0.xor 4_of_4_in_0.xor &
+$TV /g/g0/${USER}/packages/scr-dist/install/bin/scr_rebuild_xor -a 4 1 2_of_4_in_0.xor 1_of_4_in_0.xor 3_of_4_in_0.xor 4_of_4_in_0.xor &
 
 # build the dist tarball
 setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-gcs=/usr/global/tools/gcs"
-cd ~/packages/scr
 setenv CFLAGS "-g -O0"
-setenv scrversion scr-1.1-8
+setenv scrversion "scr-1.1-8"
+cd ~/packages/scr
 make distclean
 ./autogen.sh
 ./configure --prefix=/usr/local/tools/scr-1.1 $configopts
@@ -25,12 +23,12 @@ mv ${scrversion}.tar.gz ../scr-dist/.
 cd ../scr-dist
 tar -zxf ${scrversion}.tar.gz
 cd ${scrversion}
-./configure --prefix=/g/g0/${USER}/packages/scr-dist/testing $configopts
+./configure --prefix=/g/g0/${USER}/packages/scr-dist/install $configopts
 make
 make install
 
 # cd to examples directory, and check that build of test programs works
-cd /g/g0/${USER}/packages/scr-dist/testing/share/scr/examples
+cd /g/g0/${USER}/packages/scr-dist/install/share/scr/examples
 setenv OPT "-g -O0"
 make
 
@@ -46,8 +44,9 @@ echo $downnode
 
 setenv SCR_PREFIX `pwd`
 
-setenv LD_LIBRARY_PATH /g/g0/${USER}/packages/scr-dist/testing/lib
+#setenv TV /usr/global/tools/totalview/v/totalview.8X.9.9-1/bin/totalview
 setenv TV /usr/global/tools/totalview/v/totalview.8X.8.0-4/bin/totalview
+setenv LD_LIBRARY_PATH /g/g0/${USER}/packages/scr-dist/install/lib
 setenv SCR_FETCH 0
 setenv SCR_FLUSH 0
 setenv SCR_DEBUG 1
@@ -162,7 +161,7 @@ srun -n4 -N4 ./test_api
 # delete all files, corrupt file on disc, run again, check that fetch of current fails but old succeeds
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
-vi -b /g/g0/${USER}/packages/scr-dist/testing/examples/scr.current/rank_2.ckpt
+vi -b /g/g0/${USER}/packages/scr-dist/install/examples/scr.current/rank_2.ckpt
 srun -n4 -N4 ./test_api
 
 # remove halt file, enable flush, run again and check that flush succeeds and that postrun realizes that

@@ -731,9 +731,6 @@ int scr_inspect_scan(scr_hash* scan)
  * Returns SCR_SUCCESS if the files could be scanned */
 int scr_scan_files(const char* dir, scr_hash* scan)
 {
-  DIR* dirp;
-  struct dirent *dp;
-
   /* create an empty hash to hold the file names */
   scr_hash* contents = scr_hash_new();
 
@@ -1260,10 +1257,10 @@ int index_list (const char* prefix)
         complete = atoi(complete_str);
       }
 
-      /* determine whether this checkpoint has been marked as failed */
+      /* determine time at which this checkpoint was marked as failed */
       char* failed_str = scr_hash_elem_get_first_val(info_hash, SCR_INDEX_KEY_FAILED);
 
-      /* determine whether this checkpoint has been marked as failed */
+      /* determine time at which this checkpoint was flushed */
       char* flushed_str = scr_hash_elem_get_first_val(info_hash, SCR_INDEX_KEY_FLUSHED);
 
       printf("%6d", ckpt);
@@ -1376,9 +1373,9 @@ int print_usage()
   printf("  Usage: scr_index [options]\n");
   printf("\n");
   printf("  Options:\n");
-  printf("    -l, --list                  List indexed checkpoints\n");
   printf("    -p, --prefix=<prefix_dir>   Specify prefix directory (defaults to current working directory)\n");
-  printf("    -c, --check=<dir>           Check whether named checkpoint directory is complete\n");
+  printf("    -l, --list                  List indexed checkpoints\n");
+  printf("    -a, --add=<dir>             Add checkpoint directory <dir> to index\n");
   printf("\n");
   return SCR_SUCCESS;
 }
@@ -1386,7 +1383,7 @@ int print_usage()
 struct arglist {
   char* prefix;
   char* dir;
-  int check;
+  int add;
   int list;
 };
 
@@ -1411,13 +1408,13 @@ int get_args(int argc, char **argv, struct arglist* args)
   /* set to default values */
   args->prefix = NULL;
   args->dir    = NULL;
-  args->check = 0;
-  args->list  = 0;
+  args->add    = 0;
+  args->list   = 0;
 
   static const char *opt_string = "p:c:lh";
   static struct option long_options[] = {
     {"prefix", required_argument, NULL, 'p'},
-    {"check",  required_argument, NULL, 'c'},
+    {"add",    required_argument, NULL, 'a'},
     {"list",   no_argument,       NULL, 'l'},
     {"help",   no_argument,       NULL, 'h'},
     {NULL,     no_argument,       NULL,   0}
@@ -1430,9 +1427,9 @@ int get_args(int argc, char **argv, struct arglist* args)
       case 'p':
         args->prefix = strdup(optarg);
         break;
-      case 'c':
+      case 'a':
         args->dir = strdup(optarg);
-        args->check = 1;
+        args->add = 1;
         break;
       case 'l':
         args->list = 1;
@@ -1475,7 +1472,7 @@ int main(int argc, char *argv[])
   }
 
   /* check that the named checkpoint directory is complete */
-  if (args.check == 1) {
+  if (args.add == 1) {
     /* check that we have a prefix and checkpoint directory defined */
     if (args.prefix == NULL || args.dir == NULL) {
       print_usage();
