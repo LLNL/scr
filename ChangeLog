@@ -1,3 +1,17 @@
+2011-04-13 Adam Moody <moody20@llnl.gov>
+
+	* scr.c : Added scr_summary_read_v4_to_v5 to read old scr_summary.txt files and
+	  convert them into equivalent v5 hash for backwards compatibility.  This enables
+	  v1.1-8 to restart from checkpoints stored in v1.1-7 or earlier.
+
+	* scr_hash.c,
+	  scr_hash.h : Added scr_hash_sort to sort keys in hash by string, also modified
+	  integer sort call to accept ascending or descending flag.
+
+	* scr_index.c : Added --remove option to drop a directory from the index.
+
+	* man/scr_index.1.in : Described format of --list output and added an example.
+
 2011-04-06 Adam Moody <moody20@llnl.gov>
 
 	* man/scr_index.1.in : Added man page for scr_index, and removed references to

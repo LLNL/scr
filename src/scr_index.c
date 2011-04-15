@@ -281,7 +281,7 @@ int scr_fork_rebuilds(const char* dir, scr_hash* cmds)
     scr_hash* cmd_hash = scr_hash_elem_hash(elem);
 
     /* sort the arguments by their index */
-    scr_hash_sort_int(cmd_hash);
+    scr_hash_sort_int(cmd_hash, SCR_HASH_SORT_ASCENDING);
 
     /* print the command to screen, so the user knows what's happening */
     int offset = 0;
@@ -580,7 +580,7 @@ int scr_inspect_scan(scr_hash* scan)
 
     /* get the ranks hash and sort it by rank id */
     scr_hash* ranks_hash = scr_hash_get(ckpt_hash, SCR_SUMMARY_KEY_RANK);
-    scr_hash_sort_int(ranks_hash);
+    scr_hash_sort_int(ranks_hash, SCR_HASH_SORT_ASCENDING);
 
     /* for each rank, check that we have each of its files */
     int expected_rank = 0;
@@ -1202,6 +1202,9 @@ int is_complete(const char* prefix, const char* dir)
     }
   }
 
+  /* free the index hash */
+  scr_hash_delete(index);
+
   return rc;
 }
 
@@ -1225,7 +1228,11 @@ int index_list (const char* prefix)
   /* get a pointer to the checkpoint hash */
   scr_hash* ckpt_hash = scr_hash_get(index, SCR_INDEX_KEY_CKPT);
 
-  printf("  CKPT  FLAGS  FLUSHED              DIRECTORY\n");
+  /* sort checkpoints in descending order */
+  scr_hash_sort_int(ckpt_hash, SCR_HASH_SORT_DESCENDING);
+
+//  printf("FLAGS  FLUSHED              FETCH  LAST_FETCHED         CKPT  DIRECTORY\n");
+  printf("FLAGS  FLUSHED              CKPT  DIRECTORY\n");
   /* iterate over each of the checkpoints and print the id and other info */
   scr_hash_elem* elem;
   for (elem = scr_hash_elem_first(ckpt_hash);
@@ -1238,6 +1245,12 @@ int index_list (const char* prefix)
     /* get the hash for this checkpoint */
     scr_hash* hash = scr_hash_elem_hash(elem);
     scr_hash* dir_hash = scr_hash_get(hash, SCR_INDEX_KEY_DIR);
+
+    /* TODO: since directories have the date and time in their name,
+     * this is a hacky way to list directories in order from most recent
+     * to oldest. */
+    /* sort directories in descending order */
+    scr_hash_sort(dir_hash, SCR_HASH_SORT_DESCENDING);
 
     scr_hash_elem* dir_elem;
     for (dir_elem = scr_hash_elem_first(dir_hash);
@@ -1263,18 +1276,24 @@ int index_list (const char* prefix)
       /* determine time at which this checkpoint was flushed */
       char* flushed_str = scr_hash_elem_get_first_val(info_hash, SCR_INDEX_KEY_FLUSHED);
 
-      printf("%6d", ckpt);
+      /* compute number of times (and last time) checkpoint has been fetched */
+/*
+      scr_hash* fetched_hash = scr_hash_get(info_hash, SCR_INDEX_KEY_FETCHED);
+      int num_fetch = scr_hash_size(fetched_hash);
+      scr_hash_sort(fetched_hash, SCR_HASH_SORT_DESCENDING);
+      scr_hash_elem* fetched_elem = scr_hash_elem_first(fetched_hash);
+      char* fetched_str = scr_hash_elem_key(fetched_elem);
+*/
 
-      printf("  ");
       if (complete != 1) {
-        printf("X");
+        printf("x");
       } else {
-        printf("C");
+        printf("c");
       }
       if (failed_str != NULL) {
-        printf("F");
+        printf("f");
       } else {
-        printf(" ");
+        printf("-");
       }
       printf("   ");
 
@@ -1285,6 +1304,19 @@ int index_list (const char* prefix)
         printf("                   ");
       }
 
+/*
+      printf("%7d", num_fetch);
+
+      printf("  ");
+      if (flushed_str != NULL) {
+        printf("%s", fetched_str);
+      } else {
+        printf("                   ");
+      }
+*/
+
+      printf("%6d", ckpt);
+
       printf("  ");
       if (dir != NULL) {
         printf("%s", dir);
@@ -1293,6 +1325,59 @@ int index_list (const char* prefix)
       }
       printf("\n");
     }
+  }
+
+  /* free off our index hash */
+  scr_hash_delete(index);
+
+  return rc;
+}
+
+/* delete named directory from index (does not delete files) */
+int index_remove_dir (const char* prefix, const char* dir)
+{
+  int rc = SCR_SUCCESS;
+
+  /* create a new hash to store our index file data */
+  scr_hash* index = scr_hash_new();
+
+  /* read index file from the prefix directory */
+  if (scr_index_read(prefix, index) != SCR_SUCCESS) {
+    scr_err("Failed to read index file in %s @ %s:%d",
+            prefix, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* lookup the checkpoint id based on the directory name */
+  int checkpoint_id = 0;
+  scr_index_get_checkpoint_id_by_dir(index, dir, &checkpoint_id);
+
+  /* delete directory entry from checkpoint key */
+  if (checkpoint_id != -1) {
+    /* delete directory from the directory-to-checkpoint-id index */
+    scr_hash_unset_kv(index, SCR_INDEX_KEY_DIR, dir);
+
+    /* get the hash for this checkpoint id */
+    scr_hash* ckpt = scr_hash_get_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
+
+    /* delete this directory from the hash for this checkpoint id */
+    scr_hash_unset_kv(ckpt, SCR_INDEX_KEY_DIR, dir);
+
+    /* if that was the only directory for this checkpoint id,
+     * also delete the checkpoint id field */
+    if (scr_hash_size(ckpt) == 0) {
+      scr_hash_unset_kv_int(index, SCR_INDEX_KEY_CKPT, checkpoint_id);
+    }
+
+    /* write out the new index file */
+    scr_index_write(prefix, index); 
+  } else {
+    /* couldn't find the named directory, print an error */
+    scr_err("Named directory was not found in index file: %s @ %s:%d",
+            dir, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
   }
 
   /* free off our index hash */
@@ -1373,9 +1458,11 @@ int print_usage()
   printf("  Usage: scr_index [options]\n");
   printf("\n");
   printf("  Options:\n");
-  printf("    -p, --prefix=<prefix_dir>   Specify prefix directory (defaults to current working directory)\n");
-  printf("    -l, --list                  List indexed checkpoints\n");
-  printf("    -a, --add=<dir>             Add checkpoint directory <dir> to index\n");
+  printf("    -l, --list          List indexed checkpoints (default behavior)\n");
+  printf("    -a, --add=<dir>     Add checkpoint directory <dir> to index\n");
+  printf("    -r, --remove=<dir>  Remove checkpoint directory <dir> from index (does not delete files)\n");
+  printf("    -p, --prefix=<dir>  Specify prefix directory (defaults to current working directory)\n");
+  printf("    -h, --help          Print usage\n");
   printf("\n");
   return SCR_SUCCESS;
 }
@@ -1383,8 +1470,9 @@ int print_usage()
 struct arglist {
   char* prefix;
   char* dir;
-  int add;
   int list;
+  int add;
+  int remove;
 };
 
 /* free any memory allocation during get_args */
@@ -1408,14 +1496,16 @@ int get_args(int argc, char **argv, struct arglist* args)
   /* set to default values */
   args->prefix = NULL;
   args->dir    = NULL;
+  args->list   = 1;
   args->add    = 0;
-  args->list   = 0;
+  args->remove = 0;
 
-  static const char *opt_string = "p:c:lh";
+  static const char *opt_string = "la:r:p:h";
   static struct option long_options[] = {
-    {"prefix", required_argument, NULL, 'p'},
-    {"add",    required_argument, NULL, 'a'},
     {"list",   no_argument,       NULL, 'l'},
+    {"add",    required_argument, NULL, 'a'},
+    {"remove", required_argument, NULL, 'r'},
+    {"prefix", required_argument, NULL, 'p'},
     {"help",   no_argument,       NULL, 'h'},
     {NULL,     no_argument,       NULL,   0}
   };
@@ -1424,15 +1514,21 @@ int get_args(int argc, char **argv, struct arglist* args)
   int opt = getopt_long(argc, argv, opt_string, long_options, &long_index);
   while (opt != -1) {
     switch(opt) {
-      case 'p':
-        args->prefix = strdup(optarg);
-        break;
-      case 'a':
-        args->dir = strdup(optarg);
-        args->add = 1;
-        break;
       case 'l':
         args->list = 1;
+        break;
+      case 'a':
+        args->dir  = strdup(optarg);
+        args->add  = 1;
+        args->list = 0;
+        break;
+      case 'r':
+        args->dir    = strdup(optarg);
+        args->remove = 1;
+        args->list   = 0;
+        break;
+      case 'p':
+        args->prefix = strdup(optarg);
         break;
       case 'h':
         return SCR_FAILURE;
@@ -1489,6 +1585,23 @@ int main(int argc, char *argv[])
     if (index_add_dir(prefix, dir) == SCR_SUCCESS) {
       rc = is_complete(prefix, dir);
     }
+  }
+
+  /* remove the named directory from the index file (does not delete files) */
+  if (args.remove == 1) {
+    /* check that we have a prefix and checkpoint directory defined */
+    if (args.prefix == NULL || args.dir == NULL) {
+      print_usage();
+      return 1;
+    }
+
+    /* record the name of the prefix and checkpoint directories */
+    char* prefix = args.prefix;
+    char* dir = args.dir;
+
+    /* add the checkpoint directory dir to the index.scr file in the prefix directory,
+     * rebuild missing files if necessary */
+    rc = index_remove_dir(prefix, dir);
   }
 
   /* list checkpoints recorded in index file */

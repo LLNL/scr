@@ -2282,9 +2282,215 @@ Flush and fetch functions
 =========================================
 */
 
-/* read in the summary file from dir */
-static int scr_summary_read(const char* dir, scr_hash* summary_hash, int* checkpoint_id)
+/* read in the summary file from dir assuming file is using version 4 format or earlier, convert to version 5 hash */
+static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
 {
+  /* check that we have a pointer to a hash */
+  if (summary_hash == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* check whether we can read the summary file */
+  char summary_file[SCR_MAX_FILENAME];
+  if (scr_build_path(summary_file, sizeof(summary_file), dir, "scr_summary.txt") != SCR_SUCCESS) {
+    scr_err("Failed to build full filename for summary file @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check whether we can read the file before we actually try,
+   * we take this step to avoid printing an error in scr_hash_read */
+  if (access(summary_file, R_OK) < 0) {
+    return SCR_FAILURE;
+  }
+
+  /* open the summary file */
+  FILE* fs = fopen(summary_file, "r");
+  if (fs == NULL) {
+    scr_err("Opening summary file for read: fopen(%s, \"r\") errno=%d %m @ %s:%d",
+            summary_file, errno, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* assume we have one file per rank */
+  int num_records = scr_ranks_world;
+
+  /* read the first line (all versions have at least one header line) */
+  int linenum = 0;
+  char line[2048];
+  char field[2048];
+  fgets(line, sizeof(line), fs);
+  linenum++;
+
+  /* get the summary file version number, if no number, assume version=1 */
+  int version = 1;
+  sscanf(line, "%s", field);
+  if (strcmp(field, "Version:") == 0) {
+    sscanf(line, "%s %d", field, &version);
+  }
+
+  /* all versions greater than 1, have two header lines, read and throw away the second */
+  if (version > 1) {
+    /* version 3 and higher writes the number of rows in the file (ranks may write 0 or more files) */
+    if (version >= 3) {
+      fgets(line, sizeof(line), fs);
+      linenum++;
+      sscanf(line, "%s %d", field, &num_records);
+    }
+    fgets(line, sizeof(line), fs);
+    linenum++;
+  }
+
+  /* now we know how many records we'll be reading, so allocate space for them */
+  if (num_records <= 0) {
+    scr_err("No file records found in summary file %s, perhaps it is corrupt or incomplete @ %s:%d",
+            summary_file, __FILE__, __LINE__
+    );
+    fclose(fs);
+    return SCR_FAILURE;
+  }
+
+  /* set the version number in the summary hash, initialize a pointer to the checkpoint hash */
+  scr_hash_set_kv_int(summary_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_5);
+  scr_hash* ckpt_hash = NULL;
+
+  /* read the record for each rank */
+  int i;
+  int bad_values        =  0;
+  int all_complete      =  1;
+  int all_ranks         = -1;
+  int all_checkpoint_id = -1;
+  for(i=0; i < num_records; i++) {
+    int expected_n, n;
+    int rank, scr, ranks, pattern, complete, match_filesize, checkpoint_id;
+    char filename[SCR_MAX_FILENAME];
+    unsigned long exp_filesize, filesize;
+    int crc_computed = 0;
+    uLong crc = 0UL;
+
+    /* read a line from the file, parse depending on version */
+    if (version == 1) {
+      expected_n = 10;
+      n = fscanf(fs, "%d\t%d\t%d\t%d\t%d\t%d\t%lu\t%d\t%lu\t%s\n",
+                 &rank, &scr, &ranks, &pattern, &checkpoint_id, &complete,
+                 &exp_filesize, &match_filesize, &filesize, filename
+      );
+      linenum++;
+    } else {
+      expected_n = 11;
+      n = fscanf(fs, "%d\t%d\t%d\t%d\t%d\t%lu\t%d\t%lu\t%s\t%d\t0x%lx\n",
+                 &rank, &scr, &ranks, &checkpoint_id, &complete,
+                 &exp_filesize, &match_filesize, &filesize, filename,
+                 &crc_computed, &crc
+      );
+      linenum++;
+    }
+
+    /* check the return code returned from the read */
+    if (n == EOF) {
+      scr_err("Early EOF in summary file %s at line %d.  Only read %d of %d expected records @ %s:%d",
+              summary_file, linenum, i, num_records, __FILE__, __LINE__
+      );
+      fclose(fs);
+      scr_hash_unset_all(summary_hash);
+      return SCR_FAILURE;
+    } else if (n != expected_n) {
+      scr_err("Invalid read of record %d in %s at line %d @ %s:%d",
+              i, summary_file, linenum, __FILE__, __LINE__
+      );
+      fclose(fs);
+      scr_hash_unset_all(summary_hash);
+      return SCR_FAILURE;
+    }
+
+    /* TODO: check whether all files are complete, match expected size, number of ranks, checkpoint_id, etc */
+    if (rank < 0 || rank >= scr_ranks_world) {
+      bad_values = 1;
+      scr_err("Invalid rank detected (%d) in a job with %d tasks in %s at line %d @ %s:%d",
+              rank, scr_my_rank_world, summary_file, linenum, __FILE__, __LINE__
+      );
+    }
+
+    /* chop to basename of filename */
+    char* base = basename(filename);
+
+    /* set the pointer to the checkpoint hash, if we haven't already */
+    if (ckpt_hash == NULL) {
+      /* get a pointer to the checkpoint hash */
+      ckpt_hash = scr_hash_set_kv_int(summary_hash, SCR_SUMMARY_KEY_CKPT, checkpoint_id);
+    }
+
+    /* get a pointer to the hash for this rank, and then to the file for this rank */
+    scr_hash* rank_hash = scr_hash_set_kv_int(ckpt_hash, SCR_SUMMARY_KEY_RANK, rank);
+    scr_hash* file_hash = scr_hash_set_kv(    rank_hash, SCR_SUMMARY_KEY_FILE, base);
+
+    /* set the file size, and the crc32 value if it was computed */
+    scr_hash_setf(file_hash, NULL, "%s %lu", SCR_SUMMARY_KEY_SIZE, exp_filesize);
+    if (crc_computed) {
+      scr_hash_setf(file_hash, NULL, "%s %#lx", SCR_SUMMARY_KEY_CRC, crc);
+    }
+
+    /* if the file is incomplete, set the incomplete field for this file */
+    if (! complete) {
+      all_complete = 0;
+      scr_hash_set_kv_int(file_hash, SCR_SUMMARY_KEY_COMPLETE, 0);
+    }
+
+    /* check that the checkpoint id matches all other checkpoint ids in the file */
+    if (checkpoint_id != all_checkpoint_id) {
+      if (all_checkpoint_id == -1) {
+        all_checkpoint_id = checkpoint_id;
+      } else {
+        bad_values = 1;
+        scr_err("Checkpoint id %d on record %d does not match expected checkpoint id %d in %s at line %d @ %s:%d",
+                checkpoint_id, i, all_checkpoint_id, summary_file, linenum, __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* check that the number of ranks matches all the number of ranks specified by all other records in the file */
+    if (ranks != all_ranks) {
+      if (all_ranks == -1) {
+        all_ranks = ranks;
+      } else {
+        bad_values = 1;
+        scr_err("Number of ranks %d on record %d does not match expected number of ranks %d in %s at line %d @ %s:%d",
+                ranks, i, all_ranks, summary_file, linenum, __FILE__, __LINE__
+        );
+      }
+    }
+  }
+
+  /* we've read in all of the records, now set the values for the complete field and the number of ranks field */
+  if (ckpt_hash != NULL) {
+    scr_hash_set_kv_int(ckpt_hash, SCR_SUMMARY_KEY_COMPLETE, all_complete);
+    scr_hash_set_kv_int(ckpt_hash, SCR_SUMMARY_KEY_RANKS, all_ranks);
+  }
+
+  /* close the file */
+  fclose(fs);
+
+  /* if we found any problems while reading the file, clear the hash and return with an error */
+  if (bad_values) {
+    /* clear the hash, since we may have set bad values */
+    scr_hash_unset_all(summary_hash);
+    return SCR_FAILURE;
+  }
+
+  /* otherwise, return success */
+  return SCR_SUCCESS;
+}
+
+/* read in the summary file from dir */
+static int scr_summary_read_v5(const char* dir, scr_hash* summary_hash)
+{
+  /* check that we got a pointer to a hash */
+  if (summary_hash == NULL) {
+    return SCR_FAILURE;
+  }
+
   /* build the filename for the summary file */
   char summary_file[SCR_MAX_FILENAME];
   if (scr_build_path(summary_file, sizeof(summary_file), dir, "summary.scr") != SCR_SUCCESS) {
@@ -2294,19 +2500,47 @@ static int scr_summary_read(const char* dir, scr_hash* summary_hash, int* checkp
     return SCR_FAILURE;
   }
 
-  /* check whether we have read access
-   * (do this error to avoid printing an error in scr_hash_read) */
+  /* check whether we can read the file before we actually try,
+   * we take this step to avoid printing an error in scr_hash_read */
   if (access(summary_file, R_OK) < 0) {
     return SCR_FAILURE;
   }
 
   /* read in the summary hash file */
   if (scr_hash_read(summary_file, summary_hash) != SCR_SUCCESS) {
-    /* the old read format also failed, print an error and return failure */
-    scr_err("Reading summary hash file %s @ %s:%d",
+    scr_err("Reading summary file %s @ %s:%d",
             summary_file, __FILE__, __LINE__
     );
     return SCR_FAILURE;
+  }
+
+  /* if we made it here, we successfully read the summary file as a hash */
+  return SCR_SUCCESS;
+}
+
+/* read in the summary file from dir */
+static int scr_summary_read(const char* dir, scr_hash* summary_hash, int* checkpoint_id)
+{
+  /* check that we have pointers to a hash and an integer */
+  if (summary_hash == NULL || checkpoint_id == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* clear the hash and initialize the checkpoint id */
+  scr_hash_unset_all(summary_hash);
+  *checkpoint_id = -1;
+
+  /* attempt to read the summary file, assuming it is in version 5 format */
+  if (scr_summary_read_v5(dir, summary_hash) != SCR_SUCCESS) {
+    /* failed to read the summary file, try again, but now assume an older format */
+    if (scr_summary_read_v4_to_v5(dir, summary_hash) != SCR_SUCCESS) {
+      /* we still failed, don't report an error here, just return failure,
+       * the read functions will report errors as needed */
+      scr_err("Reading summary file in %s @ %s:%d",
+              dir, __FILE__, __LINE__
+      );
+      return SCR_FAILURE;
+    }
   }
 
   /* check that the summary file version is something we support */
@@ -2321,7 +2555,7 @@ static int scr_summary_read(const char* dir, scr_hash* summary_hash, int* checkp
   if (! supported_version) {
     /* the old read format also failed, print an error and return failure */
     scr_err("Summary file version is not supported in %s @ %s:%d",
-            summary_file, __FILE__, __LINE__
+            dir, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -2329,8 +2563,8 @@ static int scr_summary_read(const char* dir, scr_hash* summary_hash, int* checkp
   /* check that we have exactly one checkpoint */
   scr_hash* ckpt_hash = scr_hash_get(summary_hash, SCR_SUMMARY_KEY_CKPT);
   if (scr_hash_size(ckpt_hash) != 1) {
-    scr_err("More than one checkpoint found in summary file %s @ %s:%d",
-            summary_file, __FILE__, __LINE__
+    scr_err("More than one checkpoint found in summary file in %s @ %s:%d",
+            dir, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -2356,8 +2590,8 @@ static int scr_summary_read(const char* dir, scr_hash* summary_hash, int* checkp
   /* read in the the number of ranks for this checkpoint */
   char* ranks_str = scr_hash_elem_get_first_val(ckpt, SCR_SUMMARY_KEY_RANKS);
   if (ranks_str == NULL) {
-    scr_err("Failed to read number of ranks in summary file %s @ %s:%d",
-            summary_file, __FILE__, __LINE__
+    scr_err("Failed to read number of ranks in summary file in %s @ %s:%d",
+            dir, __FILE__, __LINE__
     );
     /* free the summary hash object */
     return SCR_FAILURE;
@@ -2367,7 +2601,7 @@ static int scr_summary_read(const char* dir, scr_hash* summary_hash, int* checkp
   /* check that the number of ranks matches the number we're currently running with */
   if (ranks != scr_ranks_world) {
     scr_err("Number of ranks %s that wrote checkpoint %s in %s does not match current number of ranks %d @ %s:%d",
-            ranks_str, ckpt_str, summary_file, scr_ranks_world, __FILE__, __LINE__
+            ranks_str, ckpt_str, dir, scr_ranks_world, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -2830,7 +3064,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir)
     /* sort the rank hash by rank id */
     scr_hash* ckpt_hash = scr_hash_get_kv_int(summary_hash, SCR_SUMMARY_KEY_CKPT, checkpoint_id);
     scr_hash* ranks_hash = scr_hash_get(ckpt_hash, SCR_SUMMARY_KEY_RANK);
-    scr_hash_sort_int(ranks_hash);
+    scr_hash_sort_int(ranks_hash, SCR_HASH_SORT_ASCENDING);
 
     /* lookup the hash belonging to our rank */
     scr_hash* rank_hash = scr_hash_get_kv_int(ckpt_hash, SCR_SUMMARY_KEY_RANK, 0);

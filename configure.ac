@@ -70,6 +70,7 @@ AC_CONFIG_FILES([ \
   src/Makefile \
   man/Makefile \
   man/scr.1 \
+  man/scr_index.1 \
   man/scr_halt.1 \
   man/scr_postrun.1 \
   man/scr_prerun.1 \

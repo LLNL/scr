@@ -7,34 +7,58 @@ scr_index \- manages status of checkpoints stored on parallel file system
 
 .SH DESCRIPTION
 The \fBscr_index\fR command manages checkpoints stored on the parallel
-file system.  When adding a directory to the index, the command checks
+file system.
+
+.SH OPTIONS
+.TP
+.BI "-l, --list "
+List contents of index (default behavior).
+.TP
+.BI "-a, --add " DIR
+Add checkpoint directory to index.
+.TP
+.BI "-r, --remove " DIR
+Remove checkpoint directory from index.  Does not delete corresponding files.
+.TP
+.BI "-p, --prefix"
+Specify prefix directory (defaults to current working directory).
+.TP
+.BI "-h, --help"
+Print usage.
+
+.LP
+When adding a directory to the index, the command checks
 that the checkpoint directory on the parallel file system contains a
 complete and valid set of checkpoint files, it rebuilds missing
 checkpoint files if possible, and it writes an \fIscr_summary.txt\fR
 file, which is used by the SCR library to fetch and redistribute files
 to appropriate ranks upon a restart.
 
-.SH OPTIONS
-.TP
-.BI "-p, --prefix"
-Specify prefix directory (defaults to current working directory).
-.TP
-.BI "-a, --add " DIR
-Add checkpoint directory to index.
-.TP
-.BI "-l, --list "
-List contents of index.
-.TP
-.BI "-h, --help"
-Print usage.
-
-.LP
 One may invoke the command outside of a SLURM job allocation, which is
 useful to check and rebuild a checkpoint set in which \fBscr_postrun\fR
 may have failed to complete its internal call to \fBscr_index\fR.
+
+When listing checkpoints, the internal SCR checkpoint id is shown,
+along with the checkpoint directory name.  In addition, the time
+the checkpoint was flushed is shown as well as a set of flags.
+The flags are shown as a series of columns consisting of single characters.
+The first column represents whether the checkpoint is complete.
+An 'x' in the first column implies the checkpoint is incomplete while 'c' means the checkpoint is complete.
+An 'f' in the second column indicates that SCR has marked the checkpoint as failed.
+During a restart, SCR will not attempt to fetch a checkpoint that is marked as incomplete or failed.
+
 .SH EXAMPLES
 .TP
-(1) Add checkpoint directory to index file, rebuild missing checkpoint files if necessary, and create summary file:
+(1) List checkpoint direcotries in index file:
+.nf
+>> scr_index --list
+FLAGS  FLUSHED              CKPT  DIRECTORY
+c-     2011-04-11T17:59:27    18  scr.2011-04-11_17:59:27.427417.18
+c-     2011-04-11T17:59:24    12  scr.2011-04-11_17:59:24.427417.12
+c-     2011-04-11T17:59:21     6  scr.2011-04-11_17:59:21.427417.6
+.fi
+.TP
+(2) Add checkpoint directory to index file, rebuild missing checkpoint files if necessary, and create summary file:
 .nf
 >> scr_index --add scr.2008-10-20_14:22:10.23167.50
 .fi

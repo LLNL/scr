@@ -472,13 +472,90 @@ scr_hash* scr_hash_getf(scr_hash* hash, const char* format, ...)
   return h;
 }
 
-static int scr_hash_int_cmp_fn(const void* a, const void* b)
+/* sort strings in ascending order */
+static int scr_hash_cmp_fn_str_asc(const void* a, const void* b)
+{
+  int cmp = strcmp((char*)a, (char*)b);
+  return cmp;
+}
+
+/* sort strings in descending order */
+static int scr_hash_cmp_fn_str_desc(const void* a, const void* b)
+{
+  int cmp = strcmp((char*)b, (char*)a);
+  return cmp;
+}
+
+/* sort integers in ascending order */
+static int scr_hash_cmp_fn_int_asc(const void* a, const void* b)
 {
   return (int) (*(int*)a - *(int*)b);
 }
 
+/* sort integers in descending order */
+static int scr_hash_cmp_fn_int_desc(const void* a, const void* b)
+{
+  return (int) (*(int*)b - *(int*)a);
+}
+
 /* sort the hash assuming the keys are ints */
-int scr_hash_sort_int(scr_hash* hash)
+int scr_hash_sort(scr_hash* hash, int direction)
+{
+  /* get the size of the hash */
+  int count = scr_hash_size(hash);
+
+  /* define a structure to hold the key and elem address */
+  struct sort_elem {
+    char* key;
+    scr_hash_elem* addr;
+  };
+
+  /* allocate space for each element */
+  struct sort_elem* list = (struct sort_elem*) malloc(count * sizeof(struct sort_elem));
+  if (list == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* walk the hash and fill in the keys */
+  scr_hash_elem* elem = NULL;
+  int index = 0;
+  for (elem = scr_hash_elem_first(hash);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    char* key = scr_hash_elem_key(elem);
+    list[index].key = key;
+    list[index].addr = elem;
+    index++;
+  }
+
+  /* sort the elements by key */
+  int (*fn)(const void* a, const void* b) = NULL;
+  fn = &scr_hash_cmp_fn_str_asc;
+  if (direction == SCR_HASH_SORT_DESCENDING) {
+    fn = &scr_hash_cmp_fn_str_desc;
+  }
+  qsort(list, count, sizeof(struct sort_elem), fn);
+
+  /* walk the sorted list backwards, extracting the element by address, and inserting at the head */
+  while (index > 0) {
+    index--;
+    elem = list[index].addr;
+    LIST_REMOVE(elem, pointers);
+    LIST_INSERT_HEAD(hash, elem, pointers);
+  }
+
+  /* free the list */
+  if (list != NULL) {
+    free(list);
+    list = NULL;
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* sort the hash assuming the keys are ints */
+int scr_hash_sort_int(scr_hash* hash, int direction)
 {
   /* get the size of the hash */
   int count = scr_hash_size(hash);
@@ -509,7 +586,12 @@ int scr_hash_sort_int(scr_hash* hash)
   }
 
   /* sort the elements by key */
-  qsort(list, count, sizeof(struct sort_elem), &scr_hash_int_cmp_fn);
+  int (*fn)(const void* a, const void* b) = NULL;
+  fn = &scr_hash_cmp_fn_str_asc;
+  if (direction == SCR_HASH_SORT_DESCENDING) {
+    fn = &scr_hash_cmp_fn_str_desc;
+  }
+  qsort(list, count, sizeof(struct sort_elem), fn);
 
   /* walk the sorted list backwards, extracting the element by address, and inserting at the head */
   while (index > 0) {

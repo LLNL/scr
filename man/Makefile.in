@@ -38,8 +38,9 @@ host_triplet = @host@
 subdir = man
 DIST_COMMON = $(dist_man1_MANS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/scr.1.in \
-	$(srcdir)/scr_halt.1.in $(srcdir)/scr_postrun.1.in \
-	$(srcdir)/scr_prerun.1.in $(srcdir)/scr_srun.1.in
+	$(srcdir)/scr_halt.1.in $(srcdir)/scr_index.1.in \
+	$(srcdir)/scr_postrun.1.in $(srcdir)/scr_prerun.1.in \
+	$(srcdir)/scr_srun.1.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/lx_find_mpi.m4 \
 	$(top_srcdir)/m4/x_ac_config_scr.m4 \
@@ -53,8 +54,8 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
-CONFIG_CLEAN_FILES = scr.1 scr_halt.1 scr_postrun.1 scr_prerun.1 \
-	scr_srun.1
+CONFIG_CLEAN_FILES = scr.1 scr_index.1 scr_halt.1 scr_postrun.1 \
+	scr_prerun.1 scr_srun.1
 SOURCES =
 DIST_SOURCES =
 man1dir = $(mandir)/man1
@@ -203,6 +204,7 @@ target_alias = @target_alias@
 dist_man1_MANS = \
 	scr.1 \
 	scr_halt.1 \
+	scr_index.1 \
 	scr_postrun.1 \
 	scr_prerun.1 \
 	scr_srun.1
@@ -240,6 +242,8 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 scr.1: $(top_builddir)/config.status $(srcdir)/scr.1.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+scr_index.1: $(top_builddir)/config.status $(srcdir)/scr_index.1.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 scr_halt.1: $(top_builddir)/config.status $(srcdir)/scr_halt.1.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@

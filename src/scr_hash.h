@@ -29,6 +29,15 @@ and a pointer to another hash.
 
 /*
 =========================================
+Sort directions for sorting keys in hash
+========================================
+*/
+
+#define SCR_HASH_SORT_ASCENDING  (0)
+#define SCR_HASH_SORT_DESCENDING (1)
+
+/*
+=========================================
 Define common hash key strings
 ========================================
 */
@@ -186,8 +195,11 @@ scr_hash* scr_hash_setf(scr_hash* hash, scr_hash* hash_value, const char* format
 /* same as above, but simply returns the hash associated with the list of keys */
 scr_hash* scr_hash_getf(scr_hash* hash, const char* format, ...);
 
+/* sort the hash assuming the keys are strings */
+int scr_hash_sort(scr_hash* hash, int direction);
+
 /* sort the hash assuming the keys are ints */
-int scr_hash_sort_int(scr_hash* hash);
+int scr_hash_sort_int(scr_hash* hash, int direction);
 
 /*
 =========================================
