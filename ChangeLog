@@ -1,3 +1,10 @@
+2011-05-23 Adam Moody <moody20@llnl.gov>
+
+	* scr_hash.c,
+	  tv_data_display.c,
+	  tv_data_display.h : Updated to latest C++View files to restore printing capability
+	  in TotalView.
+
 2011-04-13 Adam Moody <moody20@llnl.gov>
 
 	* scr.c : Added scr_summary_read_v4_to_v5 to read old scr_summary.txt files and

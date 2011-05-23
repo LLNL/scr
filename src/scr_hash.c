@@ -1519,11 +1519,11 @@ Pretty print for TotalView debug window
 
 #include "tv_data_display.h"
 
-static int TV_display_type(const scr_hash* hash)
+static int TV_ttf_display_type(const scr_hash* hash)
 {
   if (hash == NULL) {
     /* empty hash, nothing to display here */
-    return TV_format_OK;
+    return TV_ttf_format_ok;
   }
 
   scr_hash_elem* elem = NULL;
@@ -1544,7 +1544,7 @@ static int TV_display_type(const scr_hash* hash)
 
       if (size == 0) {
         /* if the hash is empty, stop at the key */
-        TV_add_row("value", TV_ascii_string_type, key);
+        TV_ttf_add_row("value", TV_ttf_type_ascii_string, key);
       } else if (size == 1) {
         /* my hash has one value, this may be a key/value pair */
         char* value = scr_hash_elem_get_first_val(hash, key);
@@ -1552,22 +1552,22 @@ static int TV_display_type(const scr_hash* hash)
         if (h2 == NULL || scr_hash_size(h2) == 0) {
           /* my hash has one value, and the hash for that one value is empty,
            * so print this as a key/value pair */
-          TV_add_row(key, TV_ascii_string_type, value);
+          TV_ttf_add_row(key, TV_ttf_type_ascii_string, value);
         } else {
           /* my hash has one value, but the hash for that one value is non-empty.
            * so we need to recurse into hash */
-          TV_add_row(key, "scr_hash", h);
+          TV_ttf_add_row(key, "scr_hash", h);
         }
       } else {
         /* the hash for this key contains multiple elements,
          * so this is not a key/value pair, which means we need to recurse into hash */
-        TV_add_row(key, "scr_hash", h);
+        TV_ttf_add_row(key, "scr_hash", h);
       }
     } else {
       /* this key has a NULL hash, so stop at the key */
-      TV_add_row("value", TV_ascii_string_type, key);
+      TV_ttf_add_row("value", TV_ttf_type_ascii_string, key);
     }
   }
 
-  return TV_format_OK;
+  return TV_ttf_format_ok;
 }
