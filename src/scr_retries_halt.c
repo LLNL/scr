@@ -27,20 +27,20 @@
 #include <getopt.h>
 
 #define PROG ("scr_retries_halt")
-#define NAME ("halt.scrinfo")
+#define NAME ("halt.scr")
 #define NEED_HALT (0)
 #define DONT_HALT (1)
 
 int print_usage()
 {
   printf("\n");
-  printf("  Usage:  %s --dir <cntl_dir>\n", PROG);
+  printf("  Usage:  %s --dir <dir>\n", PROG);
   printf("\n");
   exit(1);
 }
 
 struct arglist {
-  char* cntl_dir; /* control direcotry */
+  char* dir; /* direcotry containing halt file */
 };
 
 int process_args(int argc, char **argv, struct arglist* args)
@@ -55,7 +55,7 @@ int process_args(int argc, char **argv, struct arglist* args)
   };
 
   /* set our options to default values */
-  args->cntl_dir = NULL;
+  args->dir = NULL;
 
   /* loop through and process all options */
   int c;
@@ -65,8 +65,8 @@ int process_args(int argc, char **argv, struct arglist* args)
     c = getopt_long(argc, argv, "d:h", long_options, &option_index);
     switch (c) {
       case 'd':
-        /* control directory */
-        args->cntl_dir = optarg;
+        /* directory containing halt file */
+        args->dir = optarg;
         break;
       case 'h':
         /* print help message and exit */
@@ -84,8 +84,8 @@ int process_args(int argc, char **argv, struct arglist* args)
   } while (c != -1);
 
   /* check that we got a directory name */
-  if (args->cntl_dir == NULL) {
-    scr_err("%s: Must specify control directory via '--dir <cntl_dir>'", PROG);
+  if (args->dir == NULL) {
+    scr_err("%s: Must specify directory containing halt file via '--dir <dir>'", PROG);
     return 0;
   }
 
@@ -103,7 +103,7 @@ int main (int argc, char *argv[])
   }
 
   /* determine the number of bytes we need to hold the full name of the halt file */
-  int filelen = snprintf(NULL, 0, "%s/%s", args.cntl_dir, NAME);
+  int filelen = snprintf(NULL, 0, "%s/%s", args.dir, NAME);
   filelen++; /* add one for the terminating NUL char */
 
   /* allocate space to store the filename */
@@ -121,7 +121,7 @@ int main (int argc, char *argv[])
   }
 
   /* build the full file name */
-  int n = snprintf(file, filelen, "%s/%s", args.cntl_dir, NAME);
+  int n = snprintf(file, filelen, "%s/%s", args.dir, NAME);
   if (n >= filelen) {
     /* failed to write halt file name into buffer, to be safe, assume we need to halt */
     scr_err("%s: Flush file name is too long (need %d bytes, %d byte buffer) @ %s:%d",

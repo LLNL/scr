@@ -13,6 +13,8 @@
 
 #include "scr.h"
 #include "scr_err.h"
+#include "scr_io.h" /* for byteswap operations */
+#include "scr_util.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,6 +25,12 @@
 
 /* variable length args */
 #include <errno.h>
+
+/* gettimeofday */
+#include <sys/time.h>
+
+/* localtime, asctime */
+#include <time.h>
 
 /* TODO: support processing of byte values */
 
@@ -207,4 +215,238 @@ void scr_align_free(void* buf)
 /*sprintfs a formatted string into an newly allocated string */
 char* scr_strdupf()
 {
+}
+
+/* returns the current linux timestamp */
+int64_t scr_time_usecs()
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  int64_t now = ((int64_t) tv.tv_sec) * 1000000 + ((int64_t) tv.tv_usec);
+  return now;
+}
+
+/* pack an unsigned 16 bit value to specified buffer in network order */
+int scr_pack_uint16_t(void* buf, size_t buf_size, size_t* buf_pos, uint16_t val)
+{
+  /* check that we have a valid pointer to a buffer position value */
+  if (buf == NULL || buf_pos == NULL) {
+    scr_err("NULL pointer to buffer or buffer position @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* get current buffer position */
+  size_t pos = *buf_pos;
+
+  /* compute final buffer position */
+  size_t pos_final = pos + sizeof(val);
+
+  /* check that we won't overrun the buffer */
+  if (pos_final > buf_size) {
+    scr_err("Attempting to pack too many bytes into buffer @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* convert value to network order */
+  uint16_t val_network = scr_hton16(val);
+
+  /* pack value into buffer */
+  memcpy(buf + pos, &val_network, sizeof(val_network));
+
+  /* update position */
+  *buf_pos = pos_final;
+
+  return SCR_SUCCESS;
+}
+
+/* pack an unsigned 32 bit value to specified buffer in network order */
+int scr_pack_uint32_t(void* buf, size_t buf_size, size_t* buf_pos, uint32_t val)
+{
+  /* check that we have a valid pointer to a buffer position value */
+  if (buf == NULL || buf_pos == NULL) {
+    scr_err("NULL pointer to buffer or buffer position @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* get current buffer position */
+  size_t pos = *buf_pos;
+
+  /* compute final buffer position */
+  size_t pos_final = pos + sizeof(val);
+
+  /* check that we won't overrun the buffer */
+  if (pos_final > buf_size) {
+    scr_err("Attempting to pack too many bytes into buffer @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* convert value to network order */
+  uint32_t val_network = scr_hton32(val);
+
+  /* pack value into buffer */
+  memcpy(buf + pos, &val_network, sizeof(val_network));
+
+  /* update position */
+  *buf_pos = pos_final;
+
+  return SCR_SUCCESS;
+}
+
+/* pack an unsigned 64 bit value to specified buffer in network order */
+int scr_pack_uint64_t(void* buf, size_t buf_size, size_t* buf_pos, uint64_t val)
+{
+  /* check that we have a valid pointer to a buffer position value */
+  if (buf == NULL || buf_pos == NULL) {
+    scr_err("NULL pointer to buffer or buffer position @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* get current buffer position */
+  size_t pos = *buf_pos;
+
+  /* compute final buffer position */
+  size_t pos_final = pos + sizeof(val);
+
+  /* check that we won't overrun the buffer */
+  if (pos_final > buf_size) {
+    scr_err("Attempting to pack too many bytes into buffer @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* convert value to network order */
+  uint64_t val_network = scr_hton64(val);
+
+  /* pack value into buffer */
+  memcpy(buf + pos, &val_network, sizeof(val_network));
+
+  /* update position */
+  *buf_pos = pos_final;
+
+  return SCR_SUCCESS;
+}
+
+/* unpack an unsigned 16 bit value to specified buffer in host order */
+int scr_unpack_uint16_t(void* buf, size_t buf_size, size_t* buf_pos, uint16_t* val)
+{
+  /* check that we have a valid pointer to a buffer position value */
+  if (buf == NULL || buf_pos == NULL || val == NULL) {
+    scr_err("NULL pointer to buffer, buffer position, or value @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* get current buffer position */
+  size_t pos = *buf_pos;
+
+  /* compute final buffer position */
+  size_t pos_final = pos + sizeof(uint16_t);
+
+  /* check that we won't overrun the buffer */
+  if (pos_final > buf_size) {
+    scr_err("Attempting to unpack too many bytes into buffer @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* read value from buffer (stored in network order) */
+  uint16_t val_network;
+  memcpy(&val_network, buf + pos, sizeof(val_network));
+
+  /* conver to host order */
+  *val = scr_ntoh16(val_network);
+
+  /* update position */
+  *buf_pos = pos_final;
+
+  return SCR_SUCCESS;
+}
+
+/* unpack an unsigned 32 bit value to specified buffer in host order */
+int scr_unpack_uint32_t(void* buf, size_t buf_size, size_t* buf_pos, uint32_t* val)
+{
+  /* check that we have a valid pointer to a buffer position value */
+  if (buf == NULL || buf_pos == NULL || val == NULL) {
+    scr_err("NULL pointer to buffer, buffer position, or value @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* get current buffer position */
+  size_t pos = *buf_pos;
+
+  /* compute final buffer position */
+  size_t pos_final = pos + sizeof(uint32_t);
+
+  /* check that we won't overrun the buffer */
+  if (pos_final > buf_size) {
+    scr_err("Attempting to unpack too many bytes into buffer @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* read value from buffer (stored in network order) */
+  uint32_t val_network;
+  memcpy(&val_network, buf + pos, sizeof(val_network));
+
+  /* conver to host order */
+  *val = scr_ntoh32(val_network);
+
+  /* update position */
+  *buf_pos = pos_final;
+
+  return SCR_SUCCESS;
+}
+
+/* unpack an unsigned 64 bit value to specified buffer in host order */
+int scr_unpack_uint64_t(void* buf, size_t buf_size, size_t* buf_pos, uint64_t* val)
+{
+  /* check that we have a valid pointer to a buffer position value */
+  if (buf == NULL || buf_pos == NULL || val == NULL) {
+    scr_err("NULL pointer to buffer, buffer position, or value @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* get current buffer position */
+  size_t pos = *buf_pos;
+
+  /* compute final buffer position */
+  size_t pos_final = pos + sizeof(uint64_t);
+
+  /* check that we won't overrun the buffer */
+  if (pos_final > buf_size) {
+    scr_err("Attempting to unpack too many bytes into buffer @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* read value from buffer (stored in network order) */
+  uint64_t val_network;
+  memcpy(&val_network, buf + pos, sizeof(val_network));
+
+  /* conver to host order */
+  *val = scr_ntoh64(val_network);
+
+  /* update position */
+  *buf_pos = pos_final;
+
+  return SCR_SUCCESS;
 }

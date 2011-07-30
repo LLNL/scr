@@ -19,7 +19,7 @@ sub print_usage
   print "    -n, --nodes    List the nodeset the current job is using.\n";
   print "    -d, --down     List any nodes of the job's nodeset that\n";
   print "                     the resource managers knows to be down.\n";
-  print "    -c, --cntldir  Specify the control directory.\n";
+  print "    -p, --prefix   Specify the prefix directory.\n";
   print "    -r, --runnodes List the number of nodes used in the last run.\n";
   print "\n";
   exit 1;
@@ -31,7 +31,7 @@ $conf{user}  = undef;
 $conf{jobid} = undef;
 $conf{nodes} = undef;
 $conf{down}  = undef;
-$conf{cntldir}  = undef;
+$conf{prefix}  = undef;
 $conf{runnodes} = undef;
 $conf{help}  = undef;
 my $rc = GetOptions (
@@ -39,7 +39,7 @@ my $rc = GetOptions (
   "jobid|j"        => \$conf{jobid},
   "nodes|n"        => \$conf{nodes},
   "down|d"         => \$conf{down},
-  "cntldir|c=s"    => \$conf{cntldir},
+  "prefix|p=s"     => \$conf{prefix},
   "runnodes|r"     => \$conf{runnodes},
   "help|h"         => \$conf{help},
 );
@@ -85,10 +85,9 @@ if (defined $conf{user}) {
   } else {
     exit 1;
   }
-} elsif (defined $conf{runnodes} and defined $conf{cntldir}) {
-  # get an object to read a hash file
-  # and read the nodes.scrinfo file
-  my $nodes = `$scr_nodes_file --dir $conf{cntldir}`;
+} elsif (defined $conf{runnodes} and defined $conf{prefix}) {
+  # read the nodes file to determine how many nodes the last job ran with
+  my $nodes = `$scr_nodes_file --dir $conf{prefix}`;
   if ($? == 0) {
     chomp $nodes;
     print "$nodes\n";

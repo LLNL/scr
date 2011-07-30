@@ -12,6 +12,9 @@
 #ifndef SCR_UTIL_H
 #define SCR_UTIL_H
 
+#include <stdlib.h>
+#include <stdint.h>
+
 /* given a string, convert it to a double and write that value to val */
 int scr_atod(char* str, double* val);
 
@@ -23,5 +26,27 @@ void* scr_align_malloc(size_t size, size_t align);
 
 /* frees a blocked allocated with a call to scr_align_malloc */
 void scr_align_free(void* buf);
+
+/* returns the current linux timestamp (in microseconds) */
+int64_t scr_time_usecs();
+
+
+/* pack an unsigned 16 bit value to specified buffer in network order */
+int scr_pack_uint16_t(void* buf, size_t buf_size, size_t* buf_pos, uint16_t val);
+
+/* pack an unsigned 32 bit value to specified buffer in network order */
+int scr_pack_uint32_t(void* buf, size_t buf_size, size_t* buf_pos, uint32_t val);
+
+/* pack an unsigned 64 bit value to specified buffer in network order */
+int scr_pack_uint64_t(void* buf, size_t buf_size, size_t* buf_pos, uint64_t val);
+
+/* unpack an unsigned 16 bit value to specified buffer in network order */
+int scr_unpack_uint16_t(void* buf, size_t buf_size, size_t* buf_pos, uint16_t* val);
+
+/* unpack an unsigned 32 bit value to specified buffer in network order */
+int scr_unpack_uint32_t(void* buf, size_t buf_size, size_t* buf_pos, uint32_t* val);
+
+/* unpack an unsigned 64 bit value to specified buffer in network order */
+int scr_unpack_uint64_t(void* buf, size_t buf_size, size_t* buf_pos, uint64_t* val);
 
 #endif

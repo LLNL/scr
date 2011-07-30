@@ -43,7 +43,72 @@ Define common hash key strings
 */
 
 /* generic hash keys */
-#define SCR_FLUSH_KEY_CKPT ("CKPT")
+#define SCR_KEY_DATASET   ("DSET")
+#define SCR_KEY_PATH      ("PATH")
+#define SCR_KEY_SEGMENT   ("SEG")
+#define SCR_KEY_CONTAINER ("CTR")
+#define SCR_KEY_ID        ("ID")
+#define SCR_KEY_NAME      ("NAME")
+#define SCR_KEY_SIZE      ("SIZE")
+#define SCR_KEY_OFFSET    ("OFFSET")
+#define SCR_KEY_LENGTH    ("LENGTH")
+#define SCR_KEY_RANK      ("RANK")
+#define SCR_KEY_RANKS     ("RANKS")
+#define SCR_KEY_FILE      ("FILE")
+#define SCR_KEY_FILES     ("FILES")
+#define SCR_KEY_META      ("META")
+#define SCR_KEY_COMPLETE  ("COMPLETE")
+#define SCR_KEY_CRC       ("CRC")
+
+/* these keys are kept in hashes stored in files for long periods of time,
+ * thus we associate a version number with them in order to read old files */
+#define SCR_SUMMARY_KEY_VERSION ("VERSION")
+
+#define SCR_SUMMARY_FILE_VERSION_5 (5)
+#define SCR_SUMMARY_5_KEY_CKPT      ("CKPT")
+#define SCR_SUMMARY_5_KEY_RANK      ("RANK")
+#define SCR_SUMMARY_5_KEY_RANKS     ("RANKS")
+#define SCR_SUMMARY_5_KEY_COMPLETE  ("COMPLETE")
+#define SCR_SUMMARY_5_KEY_FILE      ("FILE")
+#define SCR_SUMMARY_5_KEY_FILES     ("FILES")
+#define SCR_SUMMARY_5_KEY_SIZE      ("SIZE")
+#define SCR_SUMMARY_5_KEY_CRC       ("CRC")
+#define SCR_SUMMARY_5_KEY_NOFETCH   ("NOFETCH")
+
+#define SCR_SUMMARY_FILE_VERSION_6 (6)
+#define SCR_SUMMARY_6_KEY_DATASET   ("DSET")
+#define SCR_SUMMARY_6_KEY_RANK2FILE ("RANK2FILE")
+#define SCR_SUMMARY_6_KEY_RANK      ("RANK")
+#define SCR_SUMMARY_6_KEY_RANKS     ("RANKS")
+#define SCR_SUMMARY_6_KEY_COMPLETE  ("COMPLETE")
+#define SCR_SUMMARY_6_KEY_FILE      ("FILE")
+#define SCR_SUMMARY_6_KEY_FILES     ("FILES")
+#define SCR_SUMMARY_6_KEY_SIZE      ("SIZE")
+#define SCR_SUMMARY_6_KEY_CRC       ("CRC")
+#define SCR_SUMMARY_6_KEY_NOFETCH   ("NOFETCH")
+#define SCR_SUMMARY_6_KEY_CONTAINER ("CTR")
+#define SCR_SUMMARY_6_KEY_SEGMENT   ("SEG")
+#define SCR_SUMMARY_6_KEY_ID        ("ID")
+#define SCR_SUMMARY_6_KEY_LENGTH    ("LENGTH")
+#define SCR_SUMMARY_6_KEY_OFFSET    ("OFFSET")
+
+#define SCR_INDEX_KEY_VERSION ("VERSION")
+
+#define SCR_INDEX_FILE_VERSION_1 (1)
+#define SCR_INDEX_1_KEY_DIR       ("DIR")
+#define SCR_INDEX_1_KEY_CKPT      ("CKPT")
+#define SCR_INDEX_1_KEY_DATASET   ("DSET")
+#define SCR_INDEX_1_KEY_COMPLETE  ("COMPLETE")
+#define SCR_INDEX_1_KEY_FETCHED   ("FETCHED")
+#define SCR_INDEX_1_KEY_FLUSHED   ("FLUSHED")
+#define SCR_INDEX_1_KEY_FAILED    ("FAILED")
+
+/* the rest of these hash keys are only used in memory or in files
+ * that live for the life of the job, thus backwards compatibility is not needed */
+#define SCR_FLUSH_KEY_FILE      ("FILE")
+#define SCR_FLUSH_KEY_META      ("META")
+#define SCR_FLUSH_KEY_PATH      ("PATH")
+#define SCR_FLUSH_KEY_DATASET   ("DATASET")
 
 #define SCR_FLUSH_KEY_LOCATION ("LOCATION")
 #define SCR_FLUSH_KEY_LOCATION_CACHE    ("CACHE")
@@ -90,20 +155,24 @@ Define common hash key strings
 #define SCR_CONFIG_KEY_GROUP_SIZE ("GROUP_SIZE")
 #define SCR_CONFIG_KEY_GROUP_RANK ("GROUP_RANK")
 
-#define SCR_SUMMARY_KEY_VERSION  ("VERSION")
-#define SCR_SUMMARY_KEY_CKPT     ("CKPT")
-#define SCR_SUMMARY_KEY_RANK     ("RANK")
-#define SCR_SUMMARY_KEY_RANKS    ("RANKS")
-#define SCR_SUMMARY_KEY_COMPLETE ("COMPLETE")
-#define SCR_SUMMARY_KEY_FILE     ("FILE")
-#define SCR_SUMMARY_KEY_FILES    ("FILES")
-#define SCR_SUMMARY_KEY_SIZE     ("SIZE")
-#define SCR_SUMMARY_KEY_CRC      ("CRC")
-#define SCR_SUMMARY_KEY_NOFETCH  ("NOFETCH")
+#define SCR_DATASET_KEY_ID       ("ID")
+#define SCR_DATASET_KEY_USER     ("USER")
+#define SCR_DATASET_KEY_JOBNAME  ("JOBNAME")
+#define SCR_DATASET_KEY_NAME     ("NAME")
+#define SCR_DATASET_KEY_SIZE     ("SIZE")
+#define SCR_DATASET_KEY_FILES    ("FILES")
+#define SCR_DATASET_KEY_CREATED  ("CREATED")
+#define SCR_DATASET_KEY_JOBID    ("JOBID")
+#define SCR_DATASET_KEY_CLUSTER  ("CLUSTER")
+#define SCR_DATASET_KEY_CKPT     ("CKPT")
+#define SCR_DATASET_KEY_COMPLETE ("COMPLETE")
 
 #define SCR_META_KEY_CKPT     ("CKPT")
 #define SCR_META_KEY_RANKS    ("RANKS")
 #define SCR_META_KEY_RANK     ("RANK")
+#define SCR_META_KEY_ORIG     ("ORIG")
+#define SCR_META_KEY_PATH     ("PATH")
+#define SCR_META_KEY_NAME     ("NAME")
 #define SCR_META_KEY_FILE     ("FILE")
 #define SCR_META_KEY_SIZE     ("SIZE")
 #define SCR_META_KEY_TYPE     ("TYPE")
@@ -112,16 +181,8 @@ Define common hash key strings
 #define SCR_META_KEY_CRC      ("CRC")
 #define SCR_META_KEY_COMPLETE ("COMPLETE")
 
-#define SCR_INDEX_KEY_VERSION   ("VERSION")
-#define SCR_INDEX_KEY_DIR       ("DIR")
-#define SCR_INDEX_KEY_CKPT      ("CKPT")
-#define SCR_INDEX_KEY_COMPLETE  ("COMPLETE")
-#define SCR_INDEX_KEY_FETCHED   ("FETCHED")
-#define SCR_INDEX_KEY_FLUSHED   ("FLUSHED")
-#define SCR_INDEX_KEY_FAILED    ("FAILED")
-
 #define SCR_KEY_COPY_XOR_CHUNK   ("CHUNK")
-#define SCR_KEY_COPY_XOR_CKPT    ("CKPT")
+#define SCR_KEY_COPY_XOR_DATASET ("DSET")
 #define SCR_KEY_COPY_XOR_CURRENT ("CURRENT")
 #define SCR_KEY_COPY_XOR_PARTNER ("PARTNER")
 #define SCR_KEY_COPY_XOR_FILES   ("FILES")
@@ -200,6 +261,9 @@ int scr_hash_sort(scr_hash* hash, int direction);
 
 /* sort the hash assuming the keys are ints */
 int scr_hash_sort_int(scr_hash* hash, int direction);
+
+/* return list of keys in hash as integers, caller must free list */
+int scr_hash_list_int(scr_hash* hash, int* num, int** list);
 
 /*
 =========================================

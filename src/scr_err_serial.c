@@ -28,7 +28,7 @@ Error and Debug Messages
 =========================================
 */
 
-/* print message to stderr */
+/* print error message to stdout */
 void scr_err(const char *fmt, ...)
 {
   /* get my hostname */
@@ -38,11 +38,28 @@ void scr_err(const char *fmt, ...)
   }
 
   va_list argp;
-  fprintf(stderr, "SCR ERROR: %s: ", hostname);
+  fprintf(stdout, "SCR %s ERROR: %s: ", SCR_ERR_VERSION, hostname);
   va_start(argp, fmt);
-  vfprintf(stderr, fmt, argp);
+  vfprintf(stdout, fmt, argp);
   va_end(argp);
-  fprintf(stderr, "\n");
+  fprintf(stdout, "\n");
+}
+
+/* print warning message to stdout */
+void scr_warn(const char *fmt, ...)
+{
+  /* get my hostname */
+  char hostname[256];
+  if (gethostname(hostname, sizeof(hostname)) != 0) {
+    /* TODO: error! */
+  }
+
+  va_list argp;
+  fprintf(stdout, "SCR %s WARNING: %s: ", SCR_ERR_VERSION, hostname);
+  va_start(argp, fmt);
+  vfprintf(stdout, fmt, argp);
+  va_end(argp);
+  fprintf(stdout, "\n");
 }
 
 /* print message to stdout if scr_debug is set and it is >= level */
@@ -58,7 +75,7 @@ void scr_dbg(int level, const char *fmt, ...)
   /*
   if (level == 0 || (scr_debug > 0 && scr_debug >= level)) {
   */
-    fprintf(stdout, "SCR: %s: ", hostname);
+    fprintf(stdout, "SCR %s: %s: ", SCR_ERR_VERSION, hostname);
     va_start(argp, fmt);
     vfprintf(stdout, fmt, argp);
     va_end(argp);
@@ -78,7 +95,7 @@ void scr_abort(int rc, const char *fmt, ...)
   }
 
   va_list argp;
-  fprintf(stderr, "SCR ABORT: %s: ", hostname);
+  fprintf(stderr, "SCR %s ABORT: %s: ", SCR_ERR_VERSION, hostname);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);

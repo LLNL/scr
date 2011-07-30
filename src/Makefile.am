@@ -21,8 +21,10 @@ noinst_HEADERS = \
 	scr_filemap.h \
 	scr_index_api.h \
 	scr_meta.h \
+	scr_dataset.h \
 	scr_config.h \
 	scr_param.h \
+	scr_env.h \
 	scr_log.h \
 	scr_halt.h \
 	queue.h
@@ -51,8 +53,10 @@ libscr_base_la_SOURCES = \
 	scr_filemap.c \
 	scr_index_api.c \
 	scr_meta.c \
+	scr_dataset.c \
 	scr_config.c \
 	scr_param.c \
+	scr_env.c \
 	scr_log.c \
 	scr_halt.c
 libscr_base_la_CFLAGS = $(CMDS_INCLUDES)

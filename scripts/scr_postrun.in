@@ -28,10 +28,10 @@ hostname=`hostname`
 
 print_usage() { echo "Usage: $prog [-p prefix_dir]"; exit 1; }
 
-# pass prefixes via command line
+# pass prefix via command line
 pardir=${SCR_PREFIX:-`pwd`}
 OPTIND=1
-while getopts "j:t:p:v" flag ; do
+while getopts "p:" flag ; do
   case $flag in
     p) pardir=$OPTARG;;  # parallel file system prefix
     *) print_usage;;
@@ -74,45 +74,48 @@ if [ "$UPNODES" != "" ] ; then
   cntldir=`$bindir/scr_cntl_dir`;
   # TODO: check that we have a control directory
 
-  # check whether we have a checkpoint set to flush
-  echo "$prog: Looking for latest checkpoint set id"
-  latestid=`$bindir/scr_flush_file --dir $cntldir --latest`
+  # TODODEST: need to flush latest checkpoint and any output set
+
+  # check whether we have a dataset set to flush
+  echo "$prog: Looking for latest dataset set id"
+  latestid=`$bindir/scr_flush_file --dir $pardir --latest`
   if [ $? -eq 0 ] ; then
-    # we have a  checkpoint, check whether it still needs to be flushed?
-    $bindir/scr_flush_file --dir $cntldir --needflush $latestid
+    # we have a dataset, check whether it still needs to be flushed
+    $bindir/scr_flush_file --dir $pardir --needflush $latestid
     if [ $? -eq 0 ] ; then
-      # get the jobid
-      jobid=`$bindir/scr_env --jobid`
-      # TODO: check that we got the jobid
+#      # get the jobid
+#      jobid=`$bindir/scr_env --jobid`
+#      # TODO: check that we got the jobid
 
-      # get list of possible checkpoints
-      checkpoint_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
+      # get list of possible datasets
+      dataset_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
       if [ $? -eq 0 ] ; then
-        for c in $checkpoint_list ; do
-          # determine whether this checkpoint needs flushed
-          $bindir/scr_flush_file --dir $cntldir --needflush $c
+        for d in $dataset_list ; do
+          # determine whether this dataset needs flushed
+          $bindir/scr_flush_file --dir $pardir --needflush $d
           if [ $? -eq 0 ] ; then
-            echo "$prog: Attempting flush of checkpoint $c"
+            echo "$prog: Attempting flush of dataset $d"
 
-            # make a new directory to store the files for this checkpoint
-            timestamp=`date +%F_%H:%M:%S`
-            scrdir="scr.${timestamp}.${jobid}.${c}"
-            checkpoint=$pardir/$scrdir
-            mkdir -p $checkpoint
+            # make a new directory to store the files for this dataset
+#            timestamp=`date +%F_%H:%M:%S`
+#            scrdir="scr.${timestamp}.${jobid}.${d}"
+            scrdir="scr.dataset.${d}"
+            datadir=$pardir/$scrdir
+            mkdir -p $datadir
 
             # Gather files from cache to parallel file system
-            echo "$prog: Flushing files from cache to $checkpoint"
-            echo $prog: $bindir/scr_flush $verbose --id $c --from $cntldir --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
-            $bindir/scr_flush $verbose --id $c --from $cntldir --to $checkpoint --jobset $SCR_NODELIST --up $UPNODES
-            echo "$prog: Done flushing files from cache to $checkpoint"
+            echo "$prog: Flushing files from cache to $datadir"
+            echo $prog: $bindir/scr_flush $verbose --id $d --from $cntldir --to $datadir --jobset $SCR_NODELIST --up $UPNODES
+            $bindir/scr_flush $verbose --id $d --from $cntldir --to $datadir --jobset $SCR_NODELIST --up $UPNODES
+            echo "$prog: Done flushing files from cache to $datadir"
 
             # check that gathered set is complete, if not, don't update current symlink
             update_current=1
-            echo "$prog: Checking that new checkpoint set is complete"
+            echo "$prog: Checking that dataset is complete"
             echo "$bindir/scr_index --prefix $pardir --add $scrdir"
             $bindir/scr_index --prefix $pardir --add $scrdir
             if [ $? -ne 0 ] ; then
-              update_current=0 # incomplete checkpoint set, don't update current symlink
+              update_current=0 # incomplete dataset, don't update current symlink
             fi
 
             # if the set is complete, update the current symlink
@@ -129,26 +132,26 @@ if [ "$UPNODES" != "" ] ; then
               echo "$prog:   $current --> $scrdir"
               ln -s $scrdir $current
 
-              # just completed flushing this checkpoint, so quit
+              # just completed flushing this dataset, so quit
               ret=0
               break;
             fi
           else
-            # found a checkpoint which has already been flushed, we can quit
-            echo "$prog: Checkpoint $c has already been flushed"
+            # found a dataset that has already been flushed, we can quit
+            echo "$prog: Dataset $d has already been flushed"
             ret=0
             break;
           fi
         done
       else
-        echo "$prog: Failed to inspect cache or cannot recover any checkpoints"
+        echo "$prog: Failed to inspect cache or cannot recover any datasets"
       fi
     else
-      echo "$prog: Latest checkpoint set has already been flushed from $hostname"
+      echo "$prog: Latest dataset set has already been flushed from $hostname"
       ret=0
     fi
   else
-    echo "$prog: Found no checkpoint set to flush on $hostname"
+    echo "$prog: Found no dataset set to flush on $hostname"
   fi
 fi
 

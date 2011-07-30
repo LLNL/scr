@@ -28,13 +28,13 @@
 int print_usage()
 {
   printf("\n");
-  printf("  Usage:  %s --dir <cntl_dir>\n", PROG);
+  printf("  Usage:  %s --dir <dir>\n", PROG);
   printf("\n");
   exit(1);
 }
 
 struct arglist {
-  char* cntl_dir; /* control direcotry */
+  char* dir; /* direcotry containing nodes file */
 };
 
 int process_args(int argc, char **argv, struct arglist* args)
@@ -49,7 +49,7 @@ int process_args(int argc, char **argv, struct arglist* args)
   };
 
   /* set our options to default values */
-  args->cntl_dir = NULL;
+  args->dir = NULL;
 
   /* loop through and process all options */
   int c;
@@ -59,8 +59,8 @@ int process_args(int argc, char **argv, struct arglist* args)
     c = getopt_long(argc, argv, "d:h", long_options, &option_index);
     switch (c) {
       case 'd':
-        /* control directory */
-        args->cntl_dir = optarg;
+        /* directory containing nodes file */
+        args->dir = optarg;
         break;
       case 'h':
         /* print help message and exit */
@@ -78,8 +78,8 @@ int process_args(int argc, char **argv, struct arglist* args)
   } while (c != -1);
 
   /* check that we got a directory name */
-  if (args->cntl_dir == NULL) {
-    scr_err("%s: Must specify control directory via '--dir <cntl_dir>'", PROG);
+  if (args->dir == NULL) {
+    scr_err("%s: Must specify directory containing nodes file via '--dir <dir>'", PROG);
     return 0;
   }
 
@@ -95,7 +95,7 @@ int main (int argc, char *argv[])
   }
 
   /* determine the number of bytes we need to hold the full name of the nodes file */
-  int filelen = snprintf(NULL, 0, "%s/nodes.scrinfo", args.cntl_dir);
+  int filelen = snprintf(NULL, 0, "%s/nodes.scr", args.dir);
   filelen++; /* add one for the terminating NUL char */
 
   /* allocate space to store the filename */
@@ -111,7 +111,7 @@ int main (int argc, char *argv[])
   }
 
   /* build the full file name */
-  int n = snprintf(file, filelen, "%s/nodes.scrinfo", args.cntl_dir);
+  int n = snprintf(file, filelen, "%s/nodes.scr", args.dir);
   if (n >= filelen) {
     scr_err("%s: Flush file name is too long (need %d bytes, %d byte buffer) @ %s:%d",
             PROG, n, filelen, __FILE__, __LINE__

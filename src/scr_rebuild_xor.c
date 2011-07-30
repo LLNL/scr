@@ -17,6 +17,7 @@
 #include "scr_meta.h"
 #include "scr_err.h"
 #include "scr_filemap.h"
+#include "scr_dataset.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -183,10 +184,13 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  /* read the checkpoint id */
-  int checkpoint_id = -1;
-  if (scr_hash_util_get_int(xor_headers[0], SCR_KEY_COPY_XOR_CKPT, &checkpoint_id) != SCR_SUCCESS) {
-    scr_err("Failed to read checkpoint id from XOR file header in %s @ %s:%d",
+  /* get the dataset */
+  scr_dataset* dataset = scr_hash_get(xor_headers[0], SCR_KEY_COPY_XOR_DATASET);
+
+  /* read the dataset id */
+  int dset_id = -1;
+  if (scr_dataset_get_id(dataset, &dset_id) != SCR_SUCCESS) {
+    scr_err("Failed to read dataset id from XOR file header in %s @ %s:%d",
            xor_files[0], __FILE__, __LINE__
     );
     return 1;
@@ -438,28 +442,31 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  /* record the dataset information in the filemap */
+  scr_filemap_set_dataset(map, dset_id, my_rank, dataset);
+
   /* write meta data for each of the full files and add each one to the filemap */
   for (j=0; j < num_files[0]; j++) {
     scr_meta* meta = scr_hash_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
     if (scr_meta_write(full_files[j], meta) != SCR_SUCCESS) {
       rc = 1;
     }
-    scr_filemap_add_file(map, checkpoint_id, my_rank, full_files[j]);
+    scr_filemap_add_file(map, dset_id, my_rank, full_files[j]);
   }
 
   /* write .scr file for xor file and add it to the filemap */
   unsigned long full_chunk_filesize = scr_filesize(xor_files[0]);
   int missing_complete = 1;
   scr_meta* meta_chunk = scr_meta_new();
-  scr_meta_set(meta_chunk, xor_files[0], SCR_META_FILE_XOR, full_chunk_filesize, checkpoint_id, my_rank, num_ranks, missing_complete);
+  scr_meta_set(meta_chunk, xor_files[0], SCR_META_FILE_XOR, full_chunk_filesize, dset_id, my_rank, num_ranks, missing_complete);
   if (scr_meta_write(xor_files[0], meta_chunk) != SCR_SUCCESS) {
     rc = 1;
   }
-  scr_filemap_add_file(map, checkpoint_id, my_rank, xor_files[0]);
+  scr_filemap_add_file(map, dset_id, my_rank, xor_files[0]);
 
   /* set expected number of files for the missing rank */
-  scr_filemap_set_expected_files(map, checkpoint_id, my_rank,
-           scr_filemap_num_files(map, checkpoint_id, my_rank)
+  scr_filemap_set_expected_files(map, dset_id, my_rank,
+           scr_filemap_num_files(map, dset_id, my_rank)
   );
 
   /* write filemap for this rank, and delete the map */

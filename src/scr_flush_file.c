@@ -34,20 +34,20 @@
 int print_usage()
 {
   printf("\n");
-  printf("  Usage:  %s --dir <cntl_dir> [--needflush <id> | --latest]\n", PROG);
+  printf("  Usage:  %s --dir <dir> [--needflush <id> | --latest]\n", PROG);
   printf("\n");
   exit(1);
 }
 
 struct arglist {
-  char* dir;      /* control direcotry */
-  int need_flush; /* check whether a certain checkpoint id needs to be flushed */
-  int latest;     /* return the id of the latest (most recent) checkpoint in cache */
+  char* dir;      /* direcotry containing flush file */
+  int need_flush; /* check whether a certain dataset id needs to be flushed */
+  int latest;     /* return the id of the latest (most recent) dataset in cache */
 };
 
 int process_args(int argc, char **argv, struct arglist* args)
 {
-  int ckpt;
+  int dset;
 
   /* define our options */
   static struct option long_options[] = {
@@ -71,19 +71,19 @@ int process_args(int argc, char **argv, struct arglist* args)
     c = getopt_long(argc, argv, "d:n:lh", long_options, &option_index);
     switch (c) {
       case 'd':
-        /* control directory */
+        /* directory containing flush file */
         args->dir = optarg;
         break;
       case 'n':
-        /* check whether specified checkpoint id needs to be flushed */
-        ckpt = atoi(optarg);
-        if (ckpt <= 0) {
-          return 1;
+        /* check whether specified dataset id needs to be flushed */
+        dset = atoi(optarg);
+        if (dset <= 0) {
+          return 0;
         }
-        args->need_flush = ckpt;
+        args->need_flush = dset;
         break;
       case 'l':
-        /* return the id of the latest (most recent) checkpoint in cache */
+        /* return the id of the latest (most recent) dataset in cache */
         args->latest = 1;
         break;
       case 'h':
@@ -103,7 +103,7 @@ int process_args(int argc, char **argv, struct arglist* args)
 
   /* check that we got a directory name */
   if (args->dir == NULL) {
-    scr_err("%s: Must specify control directory via '--dir <cntl_dir>'", PROG);
+    scr_err("%s: Must specify directory containing flush file via '--dir <dir>'", PROG);
     return 0;
   }
 
@@ -119,7 +119,7 @@ int main (int argc, char *argv[])
   }
 
   /* determine the number of bytes we need to hold the full name of the flush file */
-  int filelen = snprintf(NULL, 0, "%s/flush.scrinfo", args.dir);
+  int filelen = snprintf(NULL, 0, "%s/flush.scr", args.dir);
   filelen++; /* add one for the terminating NUL char */
 
   /* allocate space to store the filename */
@@ -135,7 +135,7 @@ int main (int argc, char *argv[])
   }
 
   /* build the full file name */
-  int n = snprintf(file, filelen, "%s/flush.scrinfo", args.dir);
+  int n = snprintf(file, filelen, "%s/flush.scr", args.dir);
   if (n >= filelen) {
     scr_err("%s: Flush file name is too long (need %d bytes, %d byte buffer) @ %s:%d",
             PROG, n, filelen, __FILE__, __LINE__
@@ -156,16 +156,16 @@ int main (int argc, char *argv[])
     goto cleanup;
   }
 
-  /* check whether a specified checkpoint id needs to be flushed */
+  /* check whether a specified dataset id needs to be flushed */
   if (args.need_flush != -1) {
-    /* first, see if we have this checkpoint */
-    scr_hash* ckpt_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_CKPT, args.need_flush);
-    if (ckpt_hash != NULL) {
+    /* first, see if we have this dataset */
+    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.need_flush);
+    if (dset_hash != NULL) {
       /* now check for the PFS location marker */
-      scr_hash* location_hash = scr_hash_get(ckpt_hash, SCR_FLUSH_KEY_LOCATION);
+      scr_hash* location_hash = scr_hash_get(dset_hash, SCR_FLUSH_KEY_LOCATION);
       scr_hash_elem* pfs_elem = scr_hash_elem_get(location_hash, SCR_FLUSH_KEY_LOCATION_PFS);
       if (pfs_elem == NULL) {
-        /* we have the checkpoint, but we didn't find the PFS marker,
+        /* we have the dataset, but we didn't find the PFS marker,
          * so return success to indicate that we do need to flush it */
         rc = 0;
       }
@@ -173,26 +173,26 @@ int main (int argc, char *argv[])
     goto cleanup;
   }
 
-  /* print the latest checkpoint id to stdout */
+  /* print the latest dataset id to stdout */
   if (args.latest) {
-    /* scan through the checkpoint ids to find the most recent */
-    int latest_ckpt = -1;
+    /* scan through the dataset ids to find the most recent */
+    int latest_dset = -1;
     scr_hash_elem* elem;
-    scr_hash* latest_hash = scr_hash_get(hash, SCR_FLUSH_KEY_CKPT);
+    scr_hash* latest_hash = scr_hash_get(hash, SCR_FLUSH_KEY_DATASET);
     for (elem = scr_hash_elem_first(latest_hash);
          elem != NULL;
          elem = scr_hash_elem_next(elem))
     {
-      /* update our latest checkpoint id if this checkpoint is more recent */
-      int ckpt = scr_hash_elem_key_int(elem);
-      if (ckpt > latest_ckpt) {
-        latest_ckpt = ckpt;
+      /* update our latest dataset id if this dataset is more recent */
+      int dset = scr_hash_elem_key_int(elem);
+      if (dset > latest_dset) {
+        latest_dset = dset;
       }
     }
 
-    /* if we found a checkpoint, print its id and return success */
-    if (latest_ckpt != -1) {
-      printf("%d\n", latest_ckpt);
+    /* if we found a dataset, print its id and return success */
+    if (latest_dset != -1) {
+      printf("%d\n", latest_dset);
       rc = 0;
     }
     goto cleanup;

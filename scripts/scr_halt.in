@@ -6,10 +6,9 @@ use Date::Manip;
 my $bindir = "@X_BINDIR@";
 my $prog = "scr_halt";
 
-# requires: pdsh, squeue, scontrol, scancel, umask (shell command)
+# requires: squeue, scontrol, scancel, umask (shell command)
 
 # use absolute paths to internal commands
-my $pdsh  = "@PDSH_EXE@";
 my $bash  = "/bin/bash";
 my $mkdir = "/bin/mkdir";
 my $rm    = "/bin/rm";
@@ -22,7 +21,7 @@ $conf{usage} = <<EOF
 
   $prog -- set or modify halt conditions for an SCR job
 
-  Usage:  $prog [options] [jobid ...]
+  Usage:  $prog [options] [prefixdir ...]
 
   Options:
     -z, --all
@@ -58,8 +57,6 @@ $conf{usage} = <<EOF
     -r, --remove
           Remove halt file.
 
-    -e, --every
-          Write halt file to / remove halt file from every node in job allocation.
     -v, --verbose
           Increase verbosity.
     -h, --help
@@ -74,8 +71,8 @@ may be specified in one of many formats. Examples include '12pm',
 'yesterday,noon', '12/25-15:30:33', and so on. See the Date::Manip(3pm)
 manpage for more examples.
 
-If no jobid is specified, and --user and --all are not given, then
-the jobid is set from the environment.  This feature is convenient when
+If no directory is specified, and --user and --all are not given, then
+the directory is set from the environment.  This feature is convenient when
 invoking the command in job batch scripts.
 
 EOF
@@ -105,7 +102,6 @@ $conf{unset_after}       = undef;
 $conf{unset_seconds}     = undef;
 $conf{unset_reason}      = undef;
 $conf{remove}      = 0;
-$conf{every}       = 0;
 $conf{verbose}     = 0;
 $conf{help}        = 0;
 my $rc = GetOptions (
@@ -123,7 +119,6 @@ my $rc = GetOptions (
   "unset-seconds"     => \$conf{unset_seconds},
   "unset-reason"      => \$conf{unset_reason},
   "remove|r"    => \$conf{remove},
-  "every|e"     => \$conf{every},
   "verbose|v"   => \$conf{verbose},
   "help|h"      => \$conf{help},
 );
@@ -131,66 +126,60 @@ if ($conf{help} or not $rc) {
   print_usage();
 }
 
-# get the jobids
-my @jobids = ();
-my @found_jobs = ();
-my @missing_jobs = ();
+# TODO: eventually, we'll want a way to map a username/machinename/jobid to
+# a simulation name, and then update the halt file for that simulation
+
+# get the directories
+my @dirs = ();
 if ($conf{all} or $conf{user}) {
-  my $user_query = "";
-  if ($conf{user}) {
-    $user_query = "--user=$conf{user}";
-  }
-  my $jobs = `squeue $user_query --format=\%i -h`;
-  chomp $jobs;
-  @jobids = split("\n", $jobs);
-  @found_jobs = @jobids;
+  print "$prog: ERROR: --all and --user options not yet supported";
+  exit 1;
+
+  # we keep this here in case an admin wants to stop
+  # a running job by jobid
+#  my $user_query = "";
+#  if ($conf{user}) {
+#    $user_query = "--user=$conf{user}";
+#  }
+#  my $jobs = `squeue $user_query --format=\%i -h`;
+#  chomp $jobs;
+#  @jobids = split("\n", $jobs);
+#  @found_jobs = @jobids;
 } else {
-  # check that we have at least one job listed
+  # check that we have at least one directory listed
   if (@ARGV >= 1) {
     # if find some arguments on the command line, assume they are jobids
-    @jobids = @ARGV;
+    @dirs = @ARGV;
   } else {
-    # try to pick up jobid of the current job from environment
-    my $jobid = `$bindir/scr_env --jobid`;
-    if ($? != 0) {
-      # couldn't find a job id, print usage and bail out
-      print_usage();
-    }
-    chomp $jobid;
-    push @jobids, $jobid;
+    # TODO: we could try to pick up the setting for SCR_PREFIX
+    print "$prog: ERROR: Must specify prefix directory containing halt file\n";
+    print_usage();
   }
 
-  # check that user gave a valid jobid
-  my $jobs = join(",", @jobids);
-  my $output = `squeue -o "%u %i" -j $jobs -h`;
-  $rc = $?;
-  if ($rc == 0) {
-    foreach my $jobid (@jobids) {
-      my $found = 0;
-      foreach my $line (split "\n", $output) {
-        my ($user, $id) = split /\s+/, $line;
-        if ($id == $jobid) {
-          $found = 1;
-          last;
-        }
-      }
-      if ($found) {
-        push @found_jobs, $jobid;
-      } else {
-        push @missing_jobs, $jobid;
-      }
-    }
-  }
-}
-
-foreach my $jobid (@missing_jobs) {
-  print "$prog: ERROR: Could not find job $jobid\n";
+#  # check that user gave a valid jobid
+#  my $jobs = join(",", @jobids);
+#  my $output = `squeue -o "%u %i" -j $jobs -h`;
+#  $rc = $?;
+#  if ($rc == 0) {
+#    foreach my $jobid (@jobids) {
+#      my $found = 0;
+#      foreach my $line (split "\n", $output) {
+#        my ($user, $id) = split /\s+/, $line;
+#        if ($id == $jobid) {
+#          $found = 1;
+#          last;
+#        }
+#      }
+#      if ($found) {
+#        push @found_jobs, $jobid;
+#      } else {
+#        push @missing_jobs, $jobid;
+#      }
+#    }
+#  }
 }
 
 my $ret = 0;
-
-# TODO: a faster way to halt all jobs is to add first and last node of
-# all jobs into a single pdsh list
 
 # commands to build halt file
 my @halt_conditions = ();
@@ -266,116 +255,97 @@ if ($conf{remove}) {
 }
 
 # create a halt file on each node
-foreach my $jobid (@found_jobs) {
+foreach my $dir (@dirs) {
   my $rc = 0;
 
-  print "Updating halt file for jobid $jobid ... \n";
+  print "Updating halt file for $dir\n";
 
-  # lookup nodeset for jobid
-  my $nodes_and_user = `squeue -j $jobid --format="\%N \%u" -h\n`;
-  $rc = $?;
-  if ($rc != 0) {
-    print "\n";
-    print "$prog: ERROR: Failed to find nodeset and username for job $jobid\n";
-    $ret = 1;
-    next;
-  }
-  my ($nodeset, $username) = split(/\s+/, $nodes_and_user);
+#  # lookup nodeset for jobid
+#  my $nodes_and_user = `squeue -j $jobid --format="\%N \%u" -h\n`;
+#  $rc = $?;
+#  if ($rc != 0) {
+#    print "\n";
+#    print "$prog: ERROR: Failed to find nodeset and username for job $jobid\n";
+#    $ret = 1;
+#    next;
+#  }
+#  my ($nodeset, $username) = split(/\s+/, $nodes_and_user);
 
-  # build the name of the halt file
-  my $cntldir = `$bindir/scr_cntl_dir --user $username --jobid $jobid`;
-  chomp $cntldir;
-  my $halt_file = "$cntldir/halt.scrinfo";
+#  # build the name of the halt file
+#  my $cntldir = `$bindir/scr_cntl_dir --user $username --jobid $jobid`;
+#  chomp $cntldir;
+  my $halt_file = "$dir/halt.scr";
 
   # TODO: Set halt file permissions so system admins can modify them
-  # Create directory containing the halt file (and the halt file itself) with umask 000.
-  # This gives everyone read/write/execute access to the directory and the halt file,
-  # which enables system administrators to halt a user's job without having to login as the user.
-  # This is useful to halt all jobs on the machine with a single command (scr_halt -a).
-  # For now, this is secure so long as only the user (and the admin) can can access
-  # the nodes is the user's job is running on.
-  # A better solution: create a separate directory for the halt file so permissions on
-  # the entire checkpoint cache are not wide open.
-  #
   my $halt_cmd = "";
   if (@halt_conditions) {
     # create the halt file with specified conditions
     my $halt_file_options = join(" ", @halt_conditions);
-    $halt_cmd = "$bash -c \"$umask 000; $mkdir -p $cntldir; $bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
+    $halt_cmd = "$bash -c \"$mkdir -p $dir; $bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
   } else {
     # remove the halt file
     $halt_cmd = "$bash -c \"$rm -f $halt_file\"";
   }
 
-  # write to just the first node in the allocation if every is not set
-  if (not $conf{every}) {
-    my $first_node = `$bindir/scr_glob_hosts -n 1 -h '$nodeset'`;
-    $nodeset = $first_node;
-  }
-
-  # pdsh the command to the nodeset
-  chomp $nodeset;
+  # execute the command
   if ($conf{verbose}) {
-    print "\n`$pdsh -f 128 -w '$nodeset' '$halt_cmd'`\n";
+    print "\n$halt_cmd\n";
   }
-  my $pdsh_output = `$pdsh -f 128 -w '$nodeset' '$halt_cmd'`;
+  my $output = `$halt_cmd`;
   $rc = $?;
   if ($rc != 0) {
     print "\n";
-    print "$prog: ERROR: Failed to create halt file for job $jobid\n";
+    print "$prog: ERROR: Failed to update halt file for $dir\n";
     $ret = 1;
   }
 
-  # dispaly the current halt file settings
-  if (not $conf{every}) {
-    print "\n";
-    print "$pdsh_output\n";
-  } else {
-    # we do this to prevent too much data from blasting to the screen, maybe it's not necessary?
-    if ($conf{list}) {
-      print "$prog: ERROR: Can not --list halt file on --every node\n";
-    }
-  }
+  # print output to screen
+  chomp $output;
+  print "\n$output\n";
 }
 
 # TODO: would like to protect against killing a job in the middle of a checkpoint if possible
 
 # kill job if immediate was set
 if ($conf{immediate}) {
-  if (@found_jobs > 0) {
-    print "Cancelling job steps ...\n";
-  }
-  foreach my $jobid (@found_jobs) {
-    my $rc = 0;
+  # TODO: lookup active jobid for given prefix directory and halt job based on system
+  print "$prog: ERROR: --immediate option not yet supported\n";
+  exit 1;
 
-    my $scontrol = `scontrol show step $jobid`;
-    if ($? == 0) {
-      my @lines = split("\n", $scontrol);
-      my @steps = ();
-      foreach my $line (@lines) {
-        if ($line =~ /StepId=(\d+\.\d+)/) {
-          my $step = $1;
-          # don't want to cancel jobid.0 (that's the allocation, not a step)
-          if ($step ne "$jobid.0") {
-            push @steps, $1;
-          }
-        }
-      }
-      if (@steps > 0) {
-        my $steps = join(" ", @steps);
-        print "  scancel $steps\n";
-        `scancel $steps`;
-        $rc = $?;
-        if ($rc != 0) {
-          print "$prog: ERROR: Failed to cancel job steps $steps\n";
-          $ret = 1;
-        }
-      }
-    } else {
-      print "$prog: ERROR: Failed to lookup job step ids for jobid $jobid\n";
-      $ret = 1;
-    }
-  }
+#  if (@found_jobs > 0) {
+#    print "Cancelling job steps ...\n";
+#  }
+#  foreach my $jobid (@found_jobs) {
+#    my $rc = 0;
+#
+#    my $scontrol = `scontrol show step $jobid`;
+#    if ($? == 0) {
+#      my @lines = split("\n", $scontrol);
+#      my @steps = ();
+#      foreach my $line (@lines) {
+#        if ($line =~ /StepId=(\d+\.\d+)/) {
+#          my $step = $1;
+#          # don't want to cancel jobid.0 (that's the allocation, not a step)
+#          if ($step ne "$jobid.0") {
+#            push @steps, $1;
+#          }
+#        }
+#      }
+#      if (@steps > 0) {
+#        my $steps = join(" ", @steps);
+#        print "  scancel $steps\n";
+#        `scancel $steps`;
+#        $rc = $?;
+#        if ($rc != 0) {
+#          print "$prog: ERROR: Failed to cancel job steps $steps\n";
+#          $ret = 1;
+#        }
+#      }
+#    } else {
+#      print "$prog: ERROR: Failed to lookup job step ids for jobid $jobid\n";
+#      $ret = 1;
+#    }
+#  }
 }
 
 exit $ret;

@@ -9,7 +9,7 @@
  * Please also read this file: LICENSE.TXT.
 */
 
-/* Reads filemap and reports info on checkpoints which need flushed */
+/* Reads filemap and reports info on datasets which need flushed */
 
 #include "scr.h"
 #include "scr_err.h"
@@ -39,7 +39,7 @@ static char scr_my_hostname[SCR_MAX_FILENAME];
 static char* scr_master_map_file = NULL;
 
 /* checks whether specifed file exists, is readable, and is complete */
-static int scr_bool_have_file(const char* file, int ckpt, int rank)
+static int scr_bool_have_file(const char* file, int dset, int rank)
 {
   /* if no filename is given return false */
   if (file == NULL || strcmp(file,"") == 0) {
@@ -76,22 +76,25 @@ static int scr_bool_have_file(const char* file, int ckpt, int rank)
     return 0;
   }
 
+  /* TODODSET: check that dataset id matches */
+#if 0
   /* check that the file really belongs to the checkpoint id we think it does */
-  int meta_ckpt = -1;
-  if (scr_meta_get_checkpoint(meta, &meta_ckpt) != SCR_SUCCESS) {
+  int meta_dset = -1;
+  if (scr_meta_get_checkpoint(meta, &meta_dset) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read checkpoint field in meta data: %s @ %s:%d",
             file, __FILE__, __LINE__
     );
     scr_meta_delete(meta);
     return 0;
   }
-  if (ckpt != meta_ckpt) {
+  if (dset != meta_dset) {
     scr_dbg(2, "File's checkpoint ID (%d) does not match id in meta data file (%d) for %s @ %s:%d",
-            ckpt, meta_ckpt, file, __FILE__, __LINE__
+            dset, meta_dset, file, __FILE__, __LINE__
     );
     scr_meta_delete(meta);
     return 0;
   }
+#endif
 
   /* check that the file really belongs to the rank we think it does */
   int meta_rank = -1;
@@ -203,37 +206,37 @@ int main(int argc, char* argv[])
     scr_filemap_delete(tmp_map);
   }
 
-  /* scan each file for each rank of each checkpoint */
-  scr_hash_elem* ckpt_elem;
-  for (ckpt_elem = scr_filemap_first_checkpoint(map);
-       ckpt_elem != NULL;
-       ckpt_elem = scr_hash_elem_next(ckpt_elem))
+  /* scan each file for each rank of each dataset */
+  scr_hash_elem* dset_elem;
+  for (dset_elem = scr_filemap_first_dataset(map);
+       dset_elem != NULL;
+       dset_elem = scr_hash_elem_next(dset_elem))
   {
-    int ckpt = scr_hash_elem_key_int(ckpt_elem);
+    int dset = scr_hash_elem_key_int(dset_elem);
 
     scr_hash_elem* rank_elem;
-    for (rank_elem = scr_filemap_first_rank_by_checkpoint(map, ckpt);
+    for (rank_elem = scr_filemap_first_rank_by_dataset(map, dset);
          rank_elem != NULL;
          rank_elem = scr_hash_elem_next(rank_elem))
     {
       int rank = scr_hash_elem_key_int(rank_elem);
 
       int missing_file = 0;
-      int expected = scr_filemap_num_expected_files(map, ckpt, rank);
-      int num      = scr_filemap_num_files(map, ckpt, rank);
+      int expected = scr_filemap_get_expected_files(map, dset, rank);
+      int num      = scr_filemap_num_files(map, dset, rank);
       if (expected == num) {
         /* first time through the file list, check that we have each file */
         scr_hash_elem* file_elem = NULL;
-        for (file_elem = scr_filemap_first_file(map, ckpt, rank);
+        for (file_elem = scr_filemap_first_file(map, dset, rank);
              file_elem != NULL;
              file_elem = scr_hash_elem_next(file_elem))
         {
           /* get filename and check that we can read it */
           char* file = scr_hash_elem_key(file_elem);
-          if (!scr_bool_have_file(file, ckpt, rank)) {
+          if (!scr_bool_have_file(file, dset, rank)) {
               missing_file = 1;
-              scr_dbg(1, "File is unreadable or incomplete: CheckpointID %d, Rank %d, File: %s",
-                      ckpt, rank, file
+              scr_dbg(1, "File is unreadable or incomplete: Dataset %d, Rank %d, File: %s",
+                      dset, rank, file
               );
           }
         }
@@ -243,9 +246,9 @@ int main(int argc, char* argv[])
 
       /* TODO: print partner names */
       /* if we're not missing a file for rank, print this info out */
-      if (!missing_file) {
+      if (! missing_file) {
         scr_hash* desc = scr_hash_new();
-        scr_filemap_get_desc(map, ckpt, rank, desc);
+        scr_filemap_get_desc(map, dset, rank, desc);
         char* type           = scr_hash_elem_get_first_val(desc, SCR_CONFIG_KEY_TYPE);
         char* groups_str     = scr_hash_elem_get_first_val(desc, SCR_CONFIG_KEY_GROUPS);
         char* group_id_str   = scr_hash_elem_get_first_val(desc, SCR_CONFIG_KEY_GROUP_ID);
@@ -257,8 +260,8 @@ int main(int argc, char* argv[])
           int group_id   = atoi(group_id_str);
           int group_size = atoi(group_size_str);
           int group_rank = atoi(group_rank_str);
-          printf("CKPT=%d RANK=%d TYPE=%s GROUPS=%d GROUP_ID=%d GROUP_SIZE=%d GROUP_RANK=%d FILES=1\n",
-                 ckpt, rank, type, groups, group_id, group_size, group_rank
+          printf("DSET=%d RANK=%d TYPE=%s GROUPS=%d GROUP_ID=%d GROUP_SIZE=%d GROUP_RANK=%d FILES=1\n",
+                 dset, rank, type, groups, group_id, group_size, group_rank
           );
         }
       }

@@ -109,6 +109,30 @@ int scr_meta_set_ranks(scr_meta* meta, int ranks)
   return SCR_SUCCESS;
 }
 
+/* sets the original filename value in meta data */
+int scr_meta_set_orig(scr_meta* meta, const char* file)
+{
+  scr_hash_unset(meta, SCR_META_KEY_ORIG);
+  scr_hash_set_kv(meta, SCR_META_KEY_ORIG, file);
+  return SCR_SUCCESS;
+}
+
+/* sets the full path to the original filename value in meta data */
+int scr_meta_set_origpath(scr_meta* meta, const char* file)
+{
+  scr_hash_unset(meta, SCR_META_KEY_PATH);
+  scr_hash_set_kv(meta, SCR_META_KEY_PATH, file);
+  return SCR_SUCCESS;
+}
+
+/* sets the full directory to the original filename value in meta data */
+int scr_meta_set_origname(scr_meta* meta, const char* file)
+{
+  scr_hash_unset(meta, SCR_META_KEY_NAME);
+  scr_hash_set_kv(meta, SCR_META_KEY_NAME, file);
+  return SCR_SUCCESS;
+}
+
 /* sets the filename value in meta data, strips any leading directory */
 int scr_meta_set_filename(scr_meta* meta, const char* file)
 {
@@ -179,15 +203,32 @@ int scr_meta_get_ranks(const scr_meta* meta, int* ranks)
   return rc;
 }
 
+/* gets original filename recorded in meta data, returns SCR_SUCCESS if successful */
+int scr_meta_get_orig(const scr_meta* meta, char** filename)
+{
+  int rc = scr_hash_util_get_str(meta, SCR_META_KEY_ORIG, filename);
+  return rc;
+}
+
+/* gets full path to the original filename recorded in meta data, returns SCR_SUCCESS if successful */
+int scr_meta_get_origpath(const scr_meta* meta, char** filename)
+{
+  int rc = scr_hash_util_get_str(meta, SCR_META_KEY_PATH, filename);
+  return rc;
+}
+
+/* gets the name of the original filename recorded in meta data, returns SCR_SUCCESS if successful */
+int scr_meta_get_origname(const scr_meta* meta, char** filename)
+{
+  int rc = scr_hash_util_get_str(meta, SCR_META_KEY_NAME, filename);
+  return rc;
+}
+
 /* gets filename recorded in meta data, returns SCR_SUCCESS if successful */
 int scr_meta_get_filename(const scr_meta* meta, char** filename)
 {
-  char* filename_str = scr_hash_elem_get_first_val(meta, SCR_META_KEY_FILE);
-  if (filename_str != NULL) {
-    *filename = filename_str;
-    return SCR_SUCCESS;
-  }
-  return SCR_FAILURE;
+  int rc = scr_hash_util_get_str(meta, SCR_META_KEY_FILE, filename);
+  return rc;
 }
 
 /* gets filesize recorded in meta data, returns SCR_SUCCESS if successful */
@@ -200,12 +241,8 @@ int scr_meta_get_filesize(const scr_meta* meta, unsigned long* filesize)
 /* gets filetype recorded in meta data, returns SCR_SUCCESS if successful */
 int scr_meta_get_filetype(const scr_meta* meta, char** filetype)
 {
-  char* filetype_str = scr_hash_elem_get_first_val(meta, SCR_META_KEY_TYPE);
-  if (filetype_str != NULL) {
-    *filetype = filetype_str;
-    return SCR_SUCCESS;
-  }
-  return SCR_FAILURE;
+  int rc = scr_hash_util_get_str(meta, SCR_META_KEY_TYPE, filetype);
+  return rc;
 }
 
 /* get the completeness field in meta data, returns SCR_SUCCESS if successful */

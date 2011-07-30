@@ -41,11 +41,13 @@ setenv jobid `${scrbin}/scr_env --jobid`
 echo $jobid
 setenv downnode `${scrbin}/scr_glob_hosts -n 1 -h "$SLURM_NODELIST"`
 echo $downnode
+setenv prefix_files "flush.scr halt.scr nodes.scr"
 
 setenv SCR_PREFIX `pwd`
 
 #setenv TV /usr/global/tools/totalview/v/totalview.8X.9.9-1/bin/totalview
-setenv TV /usr/global/tools/totalview/v/totalview.8X.8.0-4/bin/totalview
+#setenv TV /usr/global/tools/totalview/v/totalview.8X.8.0-4/bin/totalview
+setenv TV totalview
 setenv LD_LIBRARY_PATH /g/g0/${USER}/packages/scr-dist/install/lib
 setenv SCR_FETCH 0
 setenv SCR_FLUSH 0
@@ -57,6 +59,7 @@ setenv SCR_CONF_FILE ~/myscr.conf
 
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
+rm -f ${prefix_files}
 
 # check that a run works
 srun -n4 -N4 ./test_api
@@ -65,32 +68,33 @@ srun -n4 -N4 ./test_api
 srun -n4 -N4 ./test_api
 
 # remove halt file and run again, check that checkpoints continue where last run left off
-${scrbin}/scr_halt -r
+${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 
 # delete all files from /ssd on rank 0, remove halt file, run again, check that rebuild works
 rm -rf /tmp/${USER}/scr.$jobid
 rm -rf /ssd/${USER}/scr.$jobid
-${scrbin}/scr_halt -r
+${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 
 # delete latest checkpoint directory from two nodes, remove halt file, run again,
 # check that rebuild works for older checkpoint
-srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid/index.2/checkpoint.18
-srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/index.2/checkpoint.18
-srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/index.0/checkpoint.18
-${scrbin}/scr_halt -r
+srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid/index.2/dataset.18
+srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/index.2/dataset.18
+srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/index.0/dataset.18
+${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 
 # delete all files from all nodes, remove halt file, run again, check that run starts over
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
-${scrbin}/scr_halt -r
+${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 
 # clear the cache and control directory
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
+rm -f ${prefix_files}
 
 # check that scr_cntl_dir returns good values
 ${scrbin}/scr_cntl_dir
@@ -108,18 +112,18 @@ ${scrbin}/scr_list_down_nodes --reason
 unsetenv SCR_EXCLUDE_NODES
 
 # check that scr_halt seems to work
-${scrbin}/scr_halt --list ; sleep 5
-${scrbin}/scr_halt --before '3pm today' ; sleep 5
-${scrbin}/scr_halt --after '4pm today' ; sleep 5
-${scrbin}/scr_halt --seconds 1200 ; sleep 5
-${scrbin}/scr_halt --unset-before ; sleep 5
-${scrbin}/scr_halt --unset-after ; sleep 5
-${scrbin}/scr_halt --unset-seconds ; sleep 5
-${scrbin}/scr_halt ; sleep 5
-${scrbin}/scr_halt --checkpoints 5 ; sleep 5
-${scrbin}/scr_halt --unset-checkpoints ; sleep 5
-${scrbin}/scr_halt --unset-reason ; sleep 5
-${scrbin}/scr_halt --remove
+${scrbin}/scr_halt --list `pwd`; sleep 5
+${scrbin}/scr_halt --before '3pm today' `pwd`; sleep 5
+${scrbin}/scr_halt --after '4pm today' `pwd`; sleep 5
+${scrbin}/scr_halt --seconds 1200 `pwd`; sleep 5
+${scrbin}/scr_halt --unset-before `pwd`; sleep 5
+${scrbin}/scr_halt --unset-after `pwd`; sleep 5
+${scrbin}/scr_halt --unset-seconds `pwd`; sleep 5
+${scrbin}/scr_halt `pwd`; sleep 5
+${scrbin}/scr_halt --checkpoints 5 `pwd`; sleep 5
+${scrbin}/scr_halt --unset-checkpoints `pwd`; sleep 5
+${scrbin}/scr_halt --unset-reason `pwd`; sleep 5
+${scrbin}/scr_halt --remove `pwd`
 
 # check that scr_env seems to work
 ${scrbin}/scr_env --user
@@ -142,7 +146,7 @@ ${scrbin}/scr_index --list
 
 # fake a down node via EXCLUDE_NODES and redo above test (check that rebuild during drain works)
 setenv SCR_EXCLUDE_NODES $downnode
-${scrbin}/scr_halt -r
+${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_postrun
 unsetenv SCR_EXCLUDE_NODES
@@ -151,6 +155,7 @@ ${scrbin}/scr_index --list
 # delete all files, enable fetch, run again, check that fetch succeeds
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
+${scrbin}/scr_halt -r `pwd`
 setenv SCR_FETCH 1
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
@@ -158,7 +163,7 @@ ${scrbin}/scr_index --list
 # delete all files from 2 nodes, remove halt file, run again, check that distribute fails but fetch succeeds
 srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid
-${scrbin}/scr_halt -r
+${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
@@ -166,11 +171,12 @@ ${scrbin}/scr_index --list
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 vi -b /g/g0/${USER}/packages/scr-dist/install/share/scr/examples/scr.current/rank_2.ckpt
+${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
 # remove halt file, enable flush, run again and check that flush succeeds and that postrun realizes that
-${scrbin}/scr_halt -r
+${scrbin}/scr_halt -r `pwd`
 setenv SCR_FLUSH 10
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_postrun
@@ -179,6 +185,7 @@ ${scrbin}/scr_index --list
 # clear cache and check that scr_srun works
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
+rm -f ${prefix_files}
 ${scrbin}/scr_srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 

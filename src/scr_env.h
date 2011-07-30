@@ -9,27 +9,26 @@
  * Please also read this file: LICENSE.TXT.
 */
 
-#ifndef SCR_ERR_H
-#define SCR_ERR_H
-
-#define SCR_ERR_VERSION "v1.1-8"
+#ifndef SCR_ENV_H
+#define SCR_ENV_H
 
 /*
 =========================================
-Error and Debug Messages
+This file contains functions that read / write
+machine-dependent information.
 =========================================
 */
 
-/* print error message to stdout */
-void scr_err(const char *fmt, ...);
+/* returns the number of seconds remaining in the time allocation */
+int scr_env_seconds_remaining();
 
-/* print warning message to stdout */
-void scr_warn(const char *fmt, ...);
+/* allocate and return a string containing the current username */
+char* scr_env_username();
 
-/* print message to stdout if scr_debug is set and it is >= level */
-void scr_dbg(int level, const char *fmt, ...);
+/* allocate and return a string containing the current job id */
+char* scr_env_jobid();
 
-/* print abort message and kill run */
-void scr_abort(int rc, const char *fmt, ...);
+/* read cluster name of current job */
+char* scr_env_cluster();
 
 #endif

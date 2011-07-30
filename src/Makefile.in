@@ -85,8 +85,9 @@ am_libscr_base_la_OBJECTS = libscr_base_la-scr_io.lo \
 	libscr_base_la-scr_hash_util.lo \
 	libscr_base_la-tv_data_display.lo \
 	libscr_base_la-scr_filemap.lo libscr_base_la-scr_index_api.lo \
-	libscr_base_la-scr_meta.lo libscr_base_la-scr_config.lo \
-	libscr_base_la-scr_param.lo libscr_base_la-scr_log.lo \
+	libscr_base_la-scr_meta.lo libscr_base_la-scr_dataset.lo \
+	libscr_base_la-scr_config.lo libscr_base_la-scr_param.lo \
+	libscr_base_la-scr_env.lo libscr_base_la-scr_log.lo \
 	libscr_base_la-scr_halt.lo
 libscr_base_la_OBJECTS = $(am_libscr_base_la_OBJECTS)
 libscr_cmds_la_DEPENDENCIES = libscr_base.la
@@ -344,8 +345,10 @@ noinst_HEADERS = \
 	scr_filemap.h \
 	scr_index_api.h \
 	scr_meta.h \
+	scr_dataset.h \
 	scr_config.h \
 	scr_param.h \
+	scr_env.h \
 	scr_log.h \
 	scr_halt.h \
 	queue.h
@@ -375,8 +378,10 @@ libscr_base_la_SOURCES = \
 	scr_filemap.c \
 	scr_index_api.c \
 	scr_meta.c \
+	scr_dataset.c \
 	scr_config.c \
 	scr_param.c \
+	scr_env.c \
 	scr_log.c \
 	scr_halt.c
 
@@ -603,6 +608,8 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_base_la-scr_config.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_base_la-scr_dataset.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_base_la-scr_env.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_base_la-scr_filemap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_base_la-scr_halt.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_base_la-scr_hash.Plo@am__quote@
@@ -725,6 +732,13 @@ libscr_base_la-scr_meta.lo: scr_meta.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -c -o libscr_base_la-scr_meta.lo `test -f 'scr_meta.c' || echo '$(srcdir)/'`scr_meta.c
 
+libscr_base_la-scr_dataset.lo: scr_dataset.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -MT libscr_base_la-scr_dataset.lo -MD -MP -MF "$(DEPDIR)/libscr_base_la-scr_dataset.Tpo" -c -o libscr_base_la-scr_dataset.lo `test -f 'scr_dataset.c' || echo '$(srcdir)/'`scr_dataset.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_base_la-scr_dataset.Tpo" "$(DEPDIR)/libscr_base_la-scr_dataset.Plo"; else rm -f "$(DEPDIR)/libscr_base_la-scr_dataset.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_dataset.c' object='libscr_base_la-scr_dataset.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -c -o libscr_base_la-scr_dataset.lo `test -f 'scr_dataset.c' || echo '$(srcdir)/'`scr_dataset.c
+
 libscr_base_la-scr_config.lo: scr_config.c
 @am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -MT libscr_base_la-scr_config.lo -MD -MP -MF "$(DEPDIR)/libscr_base_la-scr_config.Tpo" -c -o libscr_base_la-scr_config.lo `test -f 'scr_config.c' || echo '$(srcdir)/'`scr_config.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_base_la-scr_config.Tpo" "$(DEPDIR)/libscr_base_la-scr_config.Plo"; else rm -f "$(DEPDIR)/libscr_base_la-scr_config.Tpo"; exit 1; fi
@@ -738,6 +752,13 @@ libscr_base_la-scr_param.lo: scr_param.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_param.c' object='libscr_base_la-scr_param.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -c -o libscr_base_la-scr_param.lo `test -f 'scr_param.c' || echo '$(srcdir)/'`scr_param.c
+
+libscr_base_la-scr_env.lo: scr_env.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -MT libscr_base_la-scr_env.lo -MD -MP -MF "$(DEPDIR)/libscr_base_la-scr_env.Tpo" -c -o libscr_base_la-scr_env.lo `test -f 'scr_env.c' || echo '$(srcdir)/'`scr_env.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/libscr_base_la-scr_env.Tpo" "$(DEPDIR)/libscr_base_la-scr_env.Plo"; else rm -f "$(DEPDIR)/libscr_base_la-scr_env.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_env.c' object='libscr_base_la-scr_env.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -c -o libscr_base_la-scr_env.lo `test -f 'scr_env.c' || echo '$(srcdir)/'`scr_env.c
 
 libscr_base_la-scr_log.lo: scr_log.c
 @am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -MT libscr_base_la-scr_log.lo -MD -MP -MF "$(DEPDIR)/libscr_base_la-scr_log.Tpo" -c -o libscr_base_la-scr_log.lo `test -f 'scr_log.c' || echo '$(srcdir)/'`scr_log.c; \

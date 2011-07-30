@@ -60,6 +60,15 @@ int scr_meta_set_rank(scr_meta* meta, int rank);
 /* sets the rank in meta data to be the value specified */
 int scr_meta_set_ranks(scr_meta* meta, int ranks);
 
+/* sets the original filename value in meta data */
+int scr_meta_set_orig(scr_meta* meta, const char* file);
+
+/* sets the absolute path to the original file */
+int scr_meta_set_origpath(scr_meta* meta, const char* path);
+
+/* sets the name of the original file */
+int scr_meta_set_origname(scr_meta* meta, const char* path);
+
 /* sets the filename value in meta data, strips any leading directory */
 int scr_meta_set_filename(scr_meta* meta, const char* file);
 
@@ -89,6 +98,15 @@ int scr_meta_get_rank(const scr_meta* meta, int* rank);
 
 /* gets ranks value recorded in meta data, returns SCR_SUCCESS if successful */
 int scr_meta_get_ranks(const scr_meta* meta, int* ranks);
+
+/* gets original filename recorded in meta data, returns SCR_SUCCESS if successful */
+int scr_meta_get_orig(const scr_meta* meta, char** filename);
+
+/* gets full path to original filename recorded in meta data, returns SCR_SUCCESS if successful */
+int scr_meta_get_origpath(const scr_meta* meta, char** path);
+
+/* gets name of the original filename recorded in meta data, returns SCR_SUCCESS if successful */
+int scr_meta_get_origname(const scr_meta* meta, char** name);
 
 /* gets filename recorded in meta data, returns SCR_SUCCESS if successful */
 int scr_meta_get_filename(const scr_meta* meta, char** filename);

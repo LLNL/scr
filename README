@@ -119,8 +119,9 @@ libyogrt support:
   available outside of LLNL, other computer centers often have some
   mechanism that provides similar functionality.  It should be straigt-
   forward to replace calls to libyogrt with something else.  One must
-  simply modify the scr_seconds_remaining() implementation in src/scr.c
-  to return the number of seconds left in the job allocation.
+  simply modify the scr_env_seconds_remaining() implementation in
+  src/scr_env.c to return the number of seconds left in the job
+  allocation.
 
 MySQL DB Logging:
   SCR can log events to a MySQL database.  However, this feature is
@@ -322,8 +323,8 @@ are the locations where SCR currently depends on SLURM.
     attempts to avoid running on bad nodes via "srun -x"
     attempts to ensure rank 0 runs on the same node via "srun -w"
 
-  scr/scr.c
-    reads SLURM_JOBID to get jobid string
+  scr/scr_env.c
+    scr_env_jobid() - reads SLURM_JOBID to get jobid string
 
 Additionally, the current implementation depends on SLURM for the
 following features:
@@ -413,10 +414,10 @@ Different commands may run in different places.
 
 Compute node only:
   scripts/scr_check_node.in      perl
-  src/bin/scr_inspect_cache.in   C
-  src/bin/scr_copy.in            C
-  src/bin/scr_halt_cntl.c        C
-  src/bin/scr_transfer.c         C
+  src/scr_inspect_cache.in       C
+  src/scr_copy.in                C
+  src/scr_halt_cntl.c            C
+  src/scr_transfer.c             C
 
 Batch script only:
   scripts/scr_prerun.in          bash
@@ -426,16 +427,16 @@ Batch script only:
   scripts/scr_env.in             perl
   scripts/scr_cntl_dir.in        perl
   scripts/scr_list_down_nodes.in perl
-  src/bin/scr_log_event.c        C
-  src/bin/scr_log_transfer.c     C
-  src/bin/scr_retries_halt.c     C
-  src/bin/scr_flush_file.c       C
-  src/bin/scr_nodes_file.c       C
+  src/scr_log_event.c            C
+  src/scr_log_transfer.c         C
+  src/scr_retries_halt.c         C
+  src/scr_flush_file.c           C
+  src/scr_nodes_file.c           C
 
 Within or external to batch script:
   scripts/scr_halt.in            perl
-  scripts/scr_check_complete.in  perl
   scripts/scr_glob_hosts.in      perl
-  src/bin/scr_rebuild_xor.c      C
-  src/bin/scr_crc32.c            C
-  src/bin/scr_print_hash_file.c  C
+  src/scr_index.c                C
+  src/scr_rebuild_xor.c          C
+  src/scr_crc32.c                C
+  src/scr_print_hash_file.c      C

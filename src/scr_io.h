@@ -111,6 +111,13 @@ int scr_build_path (char* buf, size_t size, const char* path, const char* file);
 /* recursively create directory and subdirectories */
 int scr_mkdir(const char* dir, mode_t mode);
 
+/* write current working directory to buf */
+int scr_cwd(char* buf, size_t size);
+
+/* given a file or directory name, construct the full path by prepending
+ * the current working directory if needed */
+int scr_build_absolute_path(char* buf, size_t size, const char* file);
+
 /*
 =========================================
 File Copy Functions
@@ -118,6 +125,24 @@ File Copy Functions
 */
 
 int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, char* dst, size_t dst_size, uLong* crc);
+
+/*
+=========================================
+File compression functions
+=========================================
+*/
+
+/* compress the specified file using blocks of size block_size and store as file_dst */
+int scr_compress_in_place(const char* file_src, const char* file_dst, unsigned long block_size, int level);
+
+/* uncompress the specified file and store as file_dst */
+int scr_uncompress_in_place(const char* file_src, const char* file_dst);
+
+/* compress the specified file using blocks of size block_size and store as file_dst */
+int scr_compress(const char* file_src, const char* file_dst, unsigned long block_size, int level);
+
+/* uncompress the specified file and store as file_dst */
+int scr_uncompress(const char* file_src, const char* file_dst);
 
 /*
 =========================================

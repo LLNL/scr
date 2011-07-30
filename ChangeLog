@@ -1,3 +1,68 @@
+2011-07-30 Adam Moody <moody20@llnl.gov>
+
+	* : Changed filemap, summary, and index files to refer to dataset ids
+	  rather than checkpoint ids.  Rebuild now rebuilds all datasets in cache
+	  instead of just the most recent.  Not yet fully tested.
+
+	* : Moved halt, flush, and nodes files from control directory to prefix
+	  directory.  Now only written by rank 0 rather than all master nodes.
+
+	* scr_hash.h,
+	  scr_hash.c : Moved function to list integer keys from filemap to hash.
+	  Fixed bug which was sorting integer keys as strings in scr_hash_sort_int().
+
+2011-06-28 Adam Moody <moody20@llnl.gov>
+
+	* scr_env.h,
+	  scr_env.c : Added file to isolate typical machine dependent code.
+
+	* scr_dataset.h,
+	  scr_dataset.c : Associates attributes with a set of files.  Extends
+	  SCR to handle general output datasets rather than just checkpoints.
+
+	* scr_err.h,
+	  scr_err.c,
+	  scr_err_serial.c : Write all messages to stdout (errors were going to stderr).
+	  Include version number in all messages.  Added new scr_warn() function.
+
+	* scr_io.h,
+	  scr_io.c : Added functions to return current working directory and
+	  to build the absolute path to a file.  Also added functions to compress
+	  and decompress files.
+
+	* scr_util.h,
+	  scr_util.c : Added functions to pack and unpack integer types into a
+	  buffer in network order.
+
+	* scr_hash_util.h,
+	  scr_hash_util.c : Added functions to set/get integer values.
+
+	* scr_flush_file.c : Fixed bug that was returning with wrong code if
+	  named checkpoint is invalid.
+
+	* scr_hash.c : Modified code to use new pack / unpack functions.
+
+	* scr_meta.h,
+	  scr_meta.c : Modified code to use new get / set hash functions.  Also added
+	  functions to record original directory specified by user at SCR_Route_file time.
+
+	* scr_copy.c : Allow caller to specify parameters using options instead of arg order.
+
+	* scr_dataset.h,
+	  scr_dataset.c : Added functions to set / get / unset a dataset hash.
+
+	* scr_conf.h,
+	  scr.c : Added partial support for containers (available in flush and fetch,
+	  but still need drain support).  Added code to record dataset attributes.  Added
+	  code to remember original directories specified by caller, need support to
+	  create them and delete them with checkpoint.
+
+2011-06-10 Adam Moody <moody20@llnl.gov>
+
+	* scr_err.h,
+	  scr_err_serial.c,
+	  scr.c : Added version string to error messages.
+
 2011-05-23 Adam Moody <moody20@llnl.gov>
 
 	* scr_hash.c,

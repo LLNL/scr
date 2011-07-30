@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include "scr_hash.h"
+#include "scr_dataset.h"
 
 /* read the index file from given directory and merge its contents into the given hash */
 int scr_index_read(const char* dir, scr_hash* index);
@@ -23,31 +24,34 @@ int scr_index_read(const char* dir, scr_hash* index);
 /* overwrite the contents of the index file in given directory with given hash */
 int scr_index_write(const char* dir, scr_hash* index);
 
-/* add given checkpoint id and directory name to given hash */
-int scr_index_add_checkpoint_dir(scr_hash* index, int checkpoint_id, const char* name);
+/* add given dataset id and directory name to given hash */
+int scr_index_add_dir(scr_hash* index, int id, const char* name);
 
-/* write completeness code (0 or 1) for given checkpoint id and directory in given hash */
-int scr_index_set_complete_key(scr_hash* index, int checkpoint_id, const char* name, int complete);
+/* write completeness code (0 or 1) for given dataset id and directory in given hash */
+int scr_index_set_dataset(scr_hash* index, const scr_dataset* dataset, int complete);
 
-/* get completeness code for given checkpoint id and directory in given hash,
+/* write completeness code (0 or 1) for given dataset id and directory in given hash */
+int scr_index_set_complete(scr_hash* index, int id, const char* name, int complete);
+
+/* record fetch event for given dataset id and directory in given hash */
+int scr_index_mark_fetched(scr_hash* index, int id, const char* name);
+
+/* record failed fetch event for given dataset id and directory in given hash */
+int scr_index_mark_failed(scr_hash* index, int id, const char* name);
+
+/* record flush time for given dataset id and directory in given hash */
+int scr_index_mark_flushed(scr_hash* index, int id, const char* name);
+
+/* get completeness code for given dataset id and directory in given hash,
  * sets complete=0 and returns SCR_FAILURE if key is not set */
-int scr_index_get_complete_key(scr_hash* index, int checkpoint_id, const char* name, int* complete);
+int scr_index_get_complete(scr_hash* index, int id, const char* name, int* complete);
 
-/* record fetch event for given checkpoint id and directory in given hash */
-int scr_index_mark_fetched(scr_hash* index, int checkpoint_id, const char* name);
+/* lookup the dataset id corresponding to the given dataset directory name in given hash
+ * (assumes a directory maps to a single dataset id) */
+int scr_index_get_id_by_dir(const scr_hash* index, const char* name, int* id);
 
-/* record failed fetch event for given checkpoint id and directory in given hash */
-int scr_index_mark_failed(scr_hash* index, int checkpoint_id, const char* name);
-
-/* record flush time for given checkpoint id and directory in given hash */
-int scr_index_mark_flushed(scr_hash* index, int checkpoint_id, const char* name);
-
-/* lookup the checkpoint id corresponding to the given checkpoint directory name in given hash
- * (assumes a directory maps to a single checkpoint id) */
-int scr_index_get_checkpoint_id_by_dir(const scr_hash* index, const char* name, int* checkpoint_id);
-
-/* lookup the most recent complete checkpoint id and directory whose id is less than earlier_than
+/* lookup the most recent complete dataset id and directory whose id is less than earlier_than
  * setting earlier_than = -1 disables this filter */
-int scr_index_most_recent_complete(const scr_hash* index, int earlier_than, int* checkpoint_id, char* name);
+int scr_index_get_most_recent_complete(const scr_hash* index, int earlier_than, int* id, char* name);
 
 #endif
