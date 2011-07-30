@@ -2984,14 +2984,12 @@ static int scr_flush_file_rebuild(const scr_filemap* map)
         /* dataset exists in flush file but not in cache,
          * delete it from the flush file */
         scr_hash_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, flush_dset);
-printf("Remove dataset id %d from flush file\n", flush_dset);
         flush_index++;
       } else if (cache_dset < flush_dset) {
         /* dataset exists in cache but not flush file,
          * add it to the flush file */
         scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, cache_dset);
         scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
-printf("Adding dataset id %d to flush file\n", cache_dset);
         cache_index++;
       } else {
         /* dataset exists in cache and the flush file,
@@ -2999,7 +2997,6 @@ printf("Adding dataset id %d to flush file\n", cache_dset);
         scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, cache_dset);
         scr_hash_unset_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
         scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
-printf("Found dataset id %d in flush file\n", cache_dset);
         flush_index++;
         cache_index++;
       }
@@ -3009,7 +3006,6 @@ printf("Found dataset id %d in flush file\n", cache_dset);
        * delete it from the flush file */
       int flush_dset = flush_dsets[flush_index];
       scr_hash_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, flush_dset);
-printf("Remove dataset id %d from flush file\n", flush_dset);
       flush_index++;
     }
     while (cache_index < cache_ndsets) {
@@ -3018,7 +3014,6 @@ printf("Remove dataset id %d from flush file\n", flush_dset);
       int cache_dset = cache_dsets[cache_index];
       scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, cache_dset);
       scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
-printf("Adding dataset id %d to flush file\n", cache_dset);
       cache_index++;
     }
 

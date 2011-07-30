@@ -1453,7 +1453,6 @@ int index_add_dir (const char* prefix, const char* subdir)
             scr_index_set_dataset(index, dataset, complete);
             scr_index_mark_flushed(index, dataset_id, dataset_name);
             scr_index_write(prefix, index); 
-printf("Indexed\n");
           } else {
             /* failed to read dataset name */
             rc = SCR_FAILURE;

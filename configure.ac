@@ -80,7 +80,7 @@ AC_CONFIG_FILES([ \
   scripts/scr_check_node \
   scripts/scr_env \
   scripts/scr_inspect \
-  scripts/scr_flush \
+  scripts/scr_scavenge \
   scripts/scr_glob_hosts \
   scripts/scr_halt \
   scripts/scr_list_down_nodes \

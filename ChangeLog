@@ -7,6 +7,10 @@
 	* : Moved halt, flush, and nodes files from control directory to prefix
 	  directory.  Now only written by rank 0 rather than all master nodes.
 
+	* scr_scavenge.in : Renamed scr_flush to scr_scavenge and changed verbage
+	  from flush and drain to scavenge where appropriate.  Flush was overloaded
+	  to refer to different concepts and drain soon will be.
+
 	* scr_hash.h,
 	  scr_hash.c : Moved function to list integer keys from filemap to hash.
 	  Fixed bug which was sorting integer keys as strings in scr_hash_sort_int().

@@ -41,11 +41,11 @@ subdir = scripts
 DIST_COMMON = $(dist_bin_SCRIPTS) $(dist_pkgdata_DATA) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/scr_check_node.in $(srcdir)/scr_cntl_dir.in \
-	$(srcdir)/scr_env.in $(srcdir)/scr_flush.in \
-	$(srcdir)/scr_glob_hosts.in $(srcdir)/scr_halt.in \
-	$(srcdir)/scr_inspect.in $(srcdir)/scr_list_down_nodes.in \
-	$(srcdir)/scr_param.pm.in $(srcdir)/scr_postrun.in \
-	$(srcdir)/scr_prerun.in $(srcdir)/scr_srun.in \
+	$(srcdir)/scr_env.in $(srcdir)/scr_glob_hosts.in \
+	$(srcdir)/scr_halt.in $(srcdir)/scr_inspect.in \
+	$(srcdir)/scr_list_down_nodes.in $(srcdir)/scr_param.pm.in \
+	$(srcdir)/scr_postrun.in $(srcdir)/scr_prerun.in \
+	$(srcdir)/scr_scavenge.in $(srcdir)/scr_srun.in \
 	$(srcdir)/scr_test_datemanip.in $(srcdir)/scr_test_runtime.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/lx_find_mpi.m4 \
@@ -61,7 +61,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES = scr_cntl_dir scr_check_node scr_env scr_inspect \
-	scr_flush scr_glob_hosts scr_halt scr_list_down_nodes \
+	scr_scavenge scr_glob_hosts scr_halt scr_list_down_nodes \
 	scr_postrun scr_prerun scr_srun scr_test_datemanip \
 	scr_test_runtime scr_param.pm
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkgdatadir)"
@@ -221,7 +221,7 @@ dist_bin_SCRIPTS = \
 	scr_check_node \
 	scr_env \
 	scr_inspect \
-	scr_flush \
+	scr_scavenge \
 	scr_glob_hosts \
 	scr_halt \
 	scr_list_down_nodes \
@@ -272,7 +272,7 @@ scr_env: $(top_builddir)/config.status $(srcdir)/scr_env.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 scr_inspect: $(top_builddir)/config.status $(srcdir)/scr_inspect.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
-scr_flush: $(top_builddir)/config.status $(srcdir)/scr_flush.in
+scr_scavenge: $(top_builddir)/config.status $(srcdir)/scr_scavenge.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 scr_glob_hosts: $(top_builddir)/config.status $(srcdir)/scr_glob_hosts.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@

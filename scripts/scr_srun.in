@@ -221,7 +221,7 @@ while [ 1 ] ; do
   fi
 done
 
-# stop scr_transfer processes before we attempt a drain
+# stop scr_transfer processes before we attempt to scavenge
 if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
   $bindir/scr_halt --immediate
 fi
@@ -230,7 +230,7 @@ fi
 timestamp=`date`
 echo "$prog: postrun: $timestamp"
 
-# flush files from cache to parallel file system
+# scavenge files from cache to parallel file system
 $bindir/scr_postrun -p $prefix
 if [ $? -ne 0 ] ; then
   echo "$prog: ERROR: Command failed: scr_postrun -p $prefix"

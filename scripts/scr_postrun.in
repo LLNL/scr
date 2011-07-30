@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run this script after the final run in a job allocation
-# to flush files from cache to parallel file system.
+# to scavenge files from cache to parallel file system.
 
 # if SCR is disabled, immediately exit
 if [ "$SCR_ENABLE" == "0" ] ; then
@@ -24,7 +24,6 @@ start_secs=`date +%s`
 bindir="@X_BINDIR@"
 
 prog="scr_postrun"
-hostname=`hostname`
 
 print_usage() { echo "Usage: $prog [-p prefix_dir]"; exit 1; }
 
@@ -67,20 +66,20 @@ if [ "$DOWNNODES" ]; then
 fi
 echo "$prog: UPNODES:   $UPNODES"
 
-# if there is at least one remaining up node, attempt to flush
+# if there is at least one remaining up node, attempt to scavenge
 ret=1
 if [ "$UPNODES" != "" ] ; then
   # get the SCR control directory
   cntldir=`$bindir/scr_cntl_dir`;
   # TODO: check that we have a control directory
 
-  # TODODEST: need to flush latest checkpoint and any output set
+  # TODODEST: need to scavenge latest checkpoint and any output set
 
   # check whether we have a dataset set to flush
   echo "$prog: Looking for latest dataset set id"
   latestid=`$bindir/scr_flush_file --dir $pardir --latest`
   if [ $? -eq 0 ] ; then
-    # we have a dataset, check whether it still needs to be flushed
+    # we have a dataset, check whether it still needs to be flushed 
     $bindir/scr_flush_file --dir $pardir --needflush $latestid
     if [ $? -eq 0 ] ; then
 #      # get the jobid
@@ -91,10 +90,10 @@ if [ "$UPNODES" != "" ] ; then
       dataset_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
       if [ $? -eq 0 ] ; then
         for d in $dataset_list ; do
-          # determine whether this dataset needs flushed
+          # determine whether this dataset needs to be flushed
           $bindir/scr_flush_file --dir $pardir --needflush $d
           if [ $? -eq 0 ] ; then
-            echo "$prog: Attempting flush of dataset $d"
+            echo "$prog: Attempting to scavenge dataset $d"
 
             # make a new directory to store the files for this dataset
 #            timestamp=`date +%F_%H:%M:%S`
@@ -104,10 +103,10 @@ if [ "$UPNODES" != "" ] ; then
             mkdir -p $datadir
 
             # Gather files from cache to parallel file system
-            echo "$prog: Flushing files from cache to $datadir"
-            echo $prog: $bindir/scr_flush $verbose --id $d --from $cntldir --to $datadir --jobset $SCR_NODELIST --up $UPNODES
-            $bindir/scr_flush $verbose --id $d --from $cntldir --to $datadir --jobset $SCR_NODELIST --up $UPNODES
-            echo "$prog: Done flushing files from cache to $datadir"
+            echo "$prog: Scavenging files from cache to $datadir"
+            echo $prog: $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $datadir --jobset $SCR_NODELIST --up $UPNODES
+            $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $datadir --jobset $SCR_NODELIST --up $UPNODES
+            echo "$prog: Done scavenging files from cache to $datadir"
 
             # check that gathered set is complete, if not, don't update current symlink
             update_current=1
@@ -132,7 +131,7 @@ if [ "$UPNODES" != "" ] ; then
               echo "$prog:   $current --> $scrdir"
               ln -s $scrdir $current
 
-              # just completed flushing this dataset, so quit
+              # just completed scavenging this dataset, so quit
               ret=0
               break;
             fi
@@ -144,14 +143,14 @@ if [ "$UPNODES" != "" ] ; then
           fi
         done
       else
-        echo "$prog: Failed to inspect cache or cannot recover any datasets"
+        echo "$prog: Failed to inspect cache or cannot scavenge any datasets"
       fi
     else
-      echo "$prog: Latest dataset set has already been flushed from $hostname"
+      echo "$prog: Latest dataset set has already been flushed"
       ret=0
     fi
   else
-    echo "$prog: Found no dataset set to flush on $hostname"
+    echo "$prog: Found no dataset set to scavenge"
   fi
 fi
 

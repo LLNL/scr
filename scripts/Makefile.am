@@ -3,7 +3,7 @@ dist_bin_SCRIPTS = \
 	scr_check_node \
 	scr_env \
 	scr_inspect \
-	scr_flush \
+	scr_scavenge \
 	scr_glob_hosts \
 	scr_halt \
 	scr_list_down_nodes \

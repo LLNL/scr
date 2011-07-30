@@ -5,13 +5,13 @@ use scr_param;
 use scr_hostlist;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 
-# This file will flush files from cache to the parallel file system using pdsh.
+# This utility scavenges files from cache to the parallel file system using pdsh.
 # It checks for pdsh errors in case any nodes should be retried.
 
 # requires: pdsh
 
 my $bindir = "@X_BINDIR@";
-my $prog = "scr_flush";
+my $prog = "scr_scavenge";
 
 my $pdsh = "@PDSH_EXE@";
 
@@ -141,8 +141,8 @@ my $error  = "$pwd/$prog.pdsh.e" . $jobid;
 
 my $cmd = undef;
 
-# log the start of the drain operation
-`$bindir/scr_log_event -T 'DRAIN STARTED' -C $dset -S $start_time`;
+# log the start of the scavenge operation
+`$bindir/scr_log_event -T 'SCAVENGE STARTED' -C $dset -S $start_time`;
 
 # gather files via pdsh
 my $partner_flag = "";
@@ -305,6 +305,6 @@ if (@copy_failed > 0 or @pdsh_failed > 0) {
 # get a timestamp for logging timing values
 my $end_time = time();
 my $diff_time = $end_time - $start_time;
-`$bindir/scr_log_event -T 'DRAIN COMPLETED' -C $dset -S $start_time -D $diff_time`;
+`$bindir/scr_log_event -T 'SCAVENGE COMPLETED' -C $dset -S $start_time -D $diff_time`;
 
 exit 0;
