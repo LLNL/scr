@@ -50,6 +50,51 @@ int buffer_size = 128*1024;
      close all files
 */
 
+static int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
+{
+  /* compute crc for the file */
+  uLong crc_file;
+  if (scr_crc32(file, &crc_file) != SCR_SUCCESS) {
+    scr_err("Failed to compute crc for file %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* allocate a new meta data object */
+  scr_meta* meta = scr_meta_new();
+  if (meta == NULL) {
+    scr_abort(-1, "Failed to allocate meta data object @ %s:%d",
+              __FILE__, __LINE__
+    );
+  }
+
+  /* read meta data from filemap */
+  if (scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
+    return SCR_FAILURE;
+  }
+
+  int rc = SCR_SUCCESS;
+
+  /* read crc value from meta data */
+  uLong crc_meta;
+  if (scr_meta_get_crc32(meta, &crc_meta) == SCR_SUCCESS) {
+    /* check that the values are the same */
+    if (crc_file != crc_meta) {
+      rc = SCR_FAILURE;
+    }
+  } else {
+    /* record crc in filemap */
+    scr_meta_set_crc32(meta, crc_file);
+    scr_filemap_set_meta(map, id, rank, file, meta);
+  }
+
+  /* free our meta data object */
+  scr_meta_delete(meta);
+
+  return rc;
+}
+
 int main(int argc, char* argv[])
 {
   int i, j;
@@ -447,27 +492,42 @@ int main(int argc, char* argv[])
 
   /* write meta data for each of the full files and add each one to the filemap */
   for (j=0; j < num_files[0]; j++) {
-    scr_meta* meta = scr_hash_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
-    if (scr_meta_write(full_files[j], meta) != SCR_SUCCESS) {
-      rc = 1;
-    }
     scr_filemap_add_file(map, dset_id, my_rank, full_files[j]);
+    scr_meta* meta = scr_hash_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
+    scr_filemap_set_meta(map, dset_id, my_rank, full_files[j], meta);
   }
 
-  /* write .scr file for xor file and add it to the filemap */
+  /* write meta data for xor file and add it to the filemap */
+  scr_filemap_add_file(map, dset_id, my_rank, xor_files[0]);
   unsigned long full_chunk_filesize = scr_filesize(xor_files[0]);
   int missing_complete = 1;
   scr_meta* meta_chunk = scr_meta_new();
-  scr_meta_set(meta_chunk, xor_files[0], SCR_META_FILE_XOR, full_chunk_filesize, dset_id, my_rank, num_ranks, missing_complete);
-  if (scr_meta_write(xor_files[0], meta_chunk) != SCR_SUCCESS) {
-    rc = 1;
-  }
-  scr_filemap_add_file(map, dset_id, my_rank, xor_files[0]);
+  scr_meta_set_filename(meta_chunk, xor_files[0]);
+  scr_meta_set_filetype(meta_chunk, SCR_META_FILE_XOR);
+  scr_meta_set_filesize(meta_chunk, full_chunk_filesize);
+  /* TODO: remove this from meta file, for now it's needed in scr_index.c */
+  scr_meta_set_ranks(meta_chunk, num_ranks);
+  scr_meta_set_complete(meta_chunk, missing_complete);
+  scr_filemap_set_meta(map, dset_id, my_rank, xor_files[0], meta_chunk);
 
   /* set expected number of files for the missing rank */
-  scr_filemap_set_expected_files(map, dset_id, my_rank,
-           scr_filemap_num_files(map, dset_id, my_rank)
-  );
+  int expected_num_files = scr_filemap_num_files(map, dset_id, my_rank);
+  scr_filemap_set_expected_files(map, dset_id, my_rank, expected_num_files);
+
+  /* compute, check, and store crc values with files */
+  for (j=0; j < num_files[0]; j++) {
+    scr_meta* meta = scr_hash_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
+    if (scr_compute_crc(map, dset_id, my_rank, full_files[j]) != SCR_SUCCESS) {
+      /* the crc check failed, so delete the file */
+      unlink(full_files[j]);
+      rc = 1;
+    }
+  }
+  if (scr_compute_crc(map, dset_id, my_rank, xor_files[0]) != SCR_SUCCESS) {
+    /* the crc check failed, so delete the file */
+    unlink(xor_files[0]);
+    rc = 1;
+  }
 
   /* write filemap for this rank, and delete the map */
   char map_file[SCR_MAX_FILENAME];
@@ -476,31 +536,6 @@ int main(int argc, char* argv[])
     rc = 1;
   }
   scr_filemap_delete(map);
-
-  /* compute, check, and store crc values with files */
-  for (j=0; j < num_files[0]; j++) {
-    scr_meta* meta = scr_hash_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
-    if (scr_compute_crc(full_files[j]) != SCR_SUCCESS) {
-      /* the crc check failed, so delete the file */
-      unlink(full_files[j]);
-
-      /* also record that the file is incomplete in the meta file */
-      scr_meta_set_complete(meta, 0);
-      scr_meta_write(full_files[j], meta);
-
-      rc = 1;
-    }
-  }
-  if (scr_compute_crc(xor_files[0]) != SCR_SUCCESS) {
-    /* the crc check failed, so delete the file */
-    unlink(xor_files[0]);
-
-    /* also record that the file is incomplete in the meta file */
-    scr_meta_set_complete(meta_chunk, 0);
-    scr_meta_write(xor_files[0], meta_chunk);
-
-    rc = 1;
-  }
 
   scr_meta_delete(meta_chunk);
 

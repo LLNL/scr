@@ -48,9 +48,6 @@ Set field values
 =========================================
 */
 
-/* initialize meta structure to represent file, filetype, and complete */
-int scr_meta_set(scr_meta* meta, const char* file, const char* type, unsigned long size, int checkpoint_id, int rank, int ranks, int complete);
-
 /* sets the checkpoint id in meta data to be the value specified */
 int scr_meta_set_checkpoint(scr_meta* meta, int ckpt);
 
@@ -149,26 +146,5 @@ int scr_meta_check_filetype(const scr_meta* meta, const char* filetype);
 
 /* returns SCR_SUCCESS if filesize is set in meta data, and if it matches specified value */
 int scr_meta_check_filesize(const scr_meta* meta, unsigned long filesize);
-
-/*
-=========================================
-Meta data files
-=========================================
-*/
-
-/* build meta data filename for input file */
-int scr_meta_name(char* metaname, const char* file);
-
-/* read meta for file_orig and fill in meta structure */
-int scr_meta_read(const char* file_orig, scr_meta* meta);
-
-/* creates corresponding .scr meta file for file to record completion info */
-int scr_meta_write(const char* file, const scr_meta* meta);
-
-/* unlink meta data file */
-int scr_meta_unlink(const char* file);
-
-/* compute crc32 for file and check value against meta data file, set it if not already set */
-int scr_compute_crc(const char* file);
 
 #endif

@@ -1,3 +1,11 @@
+2011-08-03 Adam Moody <moody20@llnl.gov>
+
+	* : Recording meta data in filemap and summary files instead of separate
+	  meta data files.
+
+	* scr_filemap.h,
+	  scr_filemap.c : Added routines to set/get/unset meta for each file.
+
 2011-07-30 Adam Moody <moody20@llnl.gov>
 
 	* : Changed filemap, summary, and index files to refer to dataset ids

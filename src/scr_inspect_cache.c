@@ -39,7 +39,7 @@ static char scr_my_hostname[SCR_MAX_FILENAME];
 static char* scr_master_map_file = NULL;
 
 /* checks whether specifed file exists, is readable, and is complete */
-static int scr_bool_have_file(const char* file, int dset, int rank)
+static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* file)
 {
   /* if no filename is given return false */
   if (file == NULL || strcmp(file,"") == 0) {
@@ -59,8 +59,8 @@ static int scr_bool_have_file(const char* file, int dset, int rank)
 
   /* check that we can read meta file for the file */
   scr_meta* meta = scr_meta_new();
-  if (scr_meta_read(file, meta) != SCR_SUCCESS) {
-    scr_dbg(2, "Failed to read meta data file for file: %s @ %s:%d",
+  if (scr_filemap_get_meta(map, dset, rank, file, meta) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read meta data for file: %s @ %s:%d",
             file, __FILE__, __LINE__
     );
     scr_meta_delete(meta);
@@ -96,6 +96,7 @@ static int scr_bool_have_file(const char* file, int dset, int rank)
   }
 #endif
 
+#if 0
   /* check that the file really belongs to the rank we think it does */
   int meta_rank = -1;
   if (scr_meta_get_rank(meta, &meta_rank) != SCR_SUCCESS) {
@@ -112,6 +113,7 @@ static int scr_bool_have_file(const char* file, int dset, int rank)
     scr_meta_delete(meta);
     return 0;
   }
+#endif
 
 #if 0
   /* check that the file was written with same number of ranks we think it was */
@@ -212,6 +214,7 @@ int main(int argc, char* argv[])
        dset_elem != NULL;
        dset_elem = scr_hash_elem_next(dset_elem))
   {
+    /* get dataset id */
     int dset = scr_hash_elem_key_int(dset_elem);
 
     scr_hash_elem* rank_elem;
@@ -219,6 +222,7 @@ int main(int argc, char* argv[])
          rank_elem != NULL;
          rank_elem = scr_hash_elem_next(rank_elem))
     {
+      /* get rank id */
       int rank = scr_hash_elem_key_int(rank_elem);
 
       int missing_file = 0;
@@ -231,9 +235,11 @@ int main(int argc, char* argv[])
              file_elem != NULL;
              file_elem = scr_hash_elem_next(file_elem))
         {
-          /* get filename and check that we can read it */
+          /* get filename */
           char* file = scr_hash_elem_key(file_elem);
-          if (!scr_bool_have_file(file, dset, rank)) {
+
+          /* check that we can read the file */
+          if (! scr_bool_have_file(map, dset, rank, file)) {
               missing_file = 1;
               scr_dbg(1, "File is unreadable or incomplete: Dataset %d, Rank %d, File: %s",
                       dset, rank, file

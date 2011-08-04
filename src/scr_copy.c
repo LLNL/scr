@@ -174,7 +174,7 @@ int process_args(int argc, char **argv, struct arglist* args)
 }
 
 /* checks whether specifed file exists, is readable, and is complete */
-static int scr_bool_have_file(const char* file, int id, int rank)
+static int scr_bool_have_file(const scr_filemap* map, int id, int rank, const char* file)
 {
   /* if no filename is given return false */
   if (file == NULL || strcmp(file,"") == 0) {
@@ -192,8 +192,8 @@ static int scr_bool_have_file(const char* file, int id, int rank)
 
   /* check that we can read meta file for the file */
   scr_meta* meta = scr_meta_new();
-  if (valid && scr_meta_read(file, meta) != SCR_SUCCESS) {
-    scr_dbg(2, "%s: Failed to read meta data file for file: %s", PROG, file);
+  if (valid && scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
+    scr_dbg(2, "%s: Failed to read meta data for file: %s", PROG, file);
     valid = 0;
   }
 
@@ -215,6 +215,7 @@ static int scr_bool_have_file(const char* file, int id, int rank)
   }
 #endif
 
+#if 0
   /* check that the file really belongs to the rank we think it does */
   if (valid && scr_meta_check_rank(meta, rank) != SCR_SUCCESS) {
     scr_dbg(2, "%s: File's rank (%d) does not match rank in meta data file for %s",
@@ -222,6 +223,7 @@ static int scr_bool_have_file(const char* file, int id, int rank)
     );
     valid = 0;
   }
+#endif
 
   /* check that the file size matches (use strtol while reading data) */
   unsigned long size = scr_filesize(file);
@@ -267,7 +269,7 @@ static int scr_bool_have_files(scr_filemap* map, int id, int rank)
       /* get filename and check that we can read it */
       char* file = scr_hash_elem_key(file_elem);
 
-      if (! scr_bool_have_file(file, id, rank)) {
+      if (! scr_bool_have_file(map, id, rank, file)) {
         have_files = 0;
       }
     }
@@ -395,7 +397,9 @@ int main (int argc, char *argv[])
     {
       /* get filename and check that we can read it */
       char* file = scr_hash_elem_key(file_elem);
-      if (scr_bool_have_file(file, args.id, rank)) {
+
+      /* check that we can read the file */
+      if (scr_bool_have_file(map, args.id, rank, file)) {
         /* copy the file and optionally compute the crc during the copy */
         int crc_valid = 0;
         uLong crc = crc32(0L, Z_NULL, 0);
@@ -412,12 +416,12 @@ int main (int argc, char *argv[])
 
         /* read the meta data for this file */
         scr_meta* meta = scr_meta_new();
-        scr_meta_read(file, meta);
+        scr_filemap_get_meta(map, args.id, rank, file, meta);
 
         /* add this file to the rank_map */
         char* meta_filename = NULL;
         if (scr_meta_get_filename(meta, &meta_filename) != SCR_SUCCESS) {
-          scr_err("scr_copy: CRC32 mismatch detected when flushing file %s to %s @ %s:%d",
+          scr_err("scr_copy: Failed to read filename from meta data for file %s when flushing to %s @ %s:%d",
                   file, dst, __FILE__, __LINE__
           );
           rc = 1;
@@ -438,7 +442,6 @@ int main (int argc, char *argv[])
 
               /* mark the file as invalid */
               scr_meta_set_complete(meta, 0);
-              scr_meta_write(file, meta);
 
               rc = 1;
               scr_err("scr_copy: CRC32 mismatch detected when flushing file %s to %s @ %s:%d",
@@ -456,19 +459,14 @@ int main (int argc, char *argv[])
           } else {
             /* the crc was not already in the metafile, but we just computed it, so set it */
             scr_meta_set_crc32(meta, crc);
-            scr_meta_write(file, meta);
           }
         }
 
-        scr_meta_delete(meta);
+        /* record its meta data in the filemap */
+        scr_filemap_set_meta(rank_map, args.id, rank, meta_filename, meta);
 
-        /* now copy the metafile */
-        char metafile[SCR_MAX_FILENAME];
-        char dst_metafile[SCR_MAX_FILENAME];
-        scr_meta_name(metafile, file);
-        if (scr_copy_to(metafile, args.dstdir, args.buf_size, dst_metafile, sizeof(dst_metafile), NULL) != SCR_SUCCESS) {
-          rc = 1;
-        }
+        /* free the meta data object */
+        scr_meta_delete(meta);
       } else {
         /* have_file failed, so there was some problem accessing the file */
         rc = 1;

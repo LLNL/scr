@@ -59,38 +59,39 @@ WRITE:
 #define SCR_FILEMAP_KEY_FILE   ("FILE")
 #define SCR_FILEMAP_KEY_DESC   ("REDDESC")
 #define SCR_FILEMAP_KEY_DATA   ("DSETDESC")
+#define SCR_FILEMAP_KEY_META   ("META")
 #define SCR_FILEMAP_KEY_EXPECT ("EXPECT")
 
 /* returns the RANK hash */
-static scr_hash* scr_filemap_get_rh(scr_hash* h)
+static scr_hash* scr_filemap_get_rh(const scr_hash* h)
 {
   scr_hash* rh = scr_hash_get(h, SCR_FILEMAP_KEY_RANK);
   return rh;
 }
 
 /* returns the DSET hash */
-static scr_hash* scr_filemap_get_dh(scr_hash* h)
+static scr_hash* scr_filemap_get_dh(const scr_hash* h)
 {
   scr_hash* dh = scr_hash_get(h, SCR_FILEMAP_KEY_DSET);
   return dh;
 }
 
 /* returns the hash associated with a particular rank */
-static scr_hash* scr_filemap_get_r(scr_hash* h, int rank)
+static scr_hash* scr_filemap_get_r(const scr_hash* h, int rank)
 {
   scr_hash* r = scr_hash_get_kv_int(h, SCR_FILEMAP_KEY_RANK, rank);
   return r;
 }
 
 /* returns the hash associated with a particular dataset */
-static scr_hash* scr_filemap_get_d(scr_hash* h, int dset)
+static scr_hash* scr_filemap_get_d(const scr_hash* h, int dset)
 {
   scr_hash* d = scr_hash_get_kv_int(h, SCR_FILEMAP_KEY_DSET, dset);
   return d;
 }
 
 /* returns the hash associated with a particular rank and dataset pair */
-static scr_hash* scr_filemap_get_rd(scr_hash* h, int dset, int rank)
+static scr_hash* scr_filemap_get_rd(const scr_hash* h, int dset, int rank)
 {
   scr_hash* r  = scr_filemap_get_r(h, rank);
   scr_hash* rd = scr_filemap_get_d(r, dset);
@@ -98,7 +99,7 @@ static scr_hash* scr_filemap_get_rd(scr_hash* h, int dset, int rank)
 }
 
 /* returns the FILE hash associated with a particular rank and dataset pair */
-static scr_hash* scr_filemap_get_fh(scr_hash* hash, int dset, int rank)
+static scr_hash* scr_filemap_get_fh(const scr_hash* hash, int dset, int rank)
 {
   scr_hash* rd = scr_filemap_get_rd(hash, dset, rank);
   scr_hash* fh = scr_hash_get(rd, SCR_FILEMAP_KEY_FILE);
@@ -106,7 +107,7 @@ static scr_hash* scr_filemap_get_fh(scr_hash* hash, int dset, int rank)
 }
 
 /* returns the hash associated with a particular rank, dataset, and file tuple */
-static scr_hash* scr_filemap_get_rdf(scr_hash* hash, int dset, int rank, const char* file)
+static scr_hash* scr_filemap_get_rdf(const scr_hash* hash, int dset, int rank, const char* file)
 {
   scr_hash* fh  = scr_filemap_get_fh(hash, dset, rank);
   scr_hash* rdf = scr_hash_get(fh, file);
@@ -198,7 +199,7 @@ int scr_filemap_set_desc(scr_filemap* map, int dset, int rank, scr_hash* hash)
 }
 
 /* copies the redundancy descriptor hash for the given rank and dataset id into hash */
-int scr_filemap_get_desc(scr_filemap* map, int dset, int rank, scr_hash* hash)
+int scr_filemap_get_desc(const scr_filemap* map, int dset, int rank, scr_hash* hash)
 {
   /* get RANK/DSET hash */
   scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
@@ -242,7 +243,7 @@ int scr_filemap_set_dataset(scr_filemap* map, int dset, int rank, scr_hash* hash
 }
 
 /* copies the dataset hash for the given rank and dataset id into hash */
-int scr_filemap_get_dataset(scr_filemap* map, int dset, int rank, scr_hash* hash)
+int scr_filemap_get_dataset(const scr_filemap* map, int dset, int rank, scr_hash* hash)
 {
   /* get RANK/CKPT hash */
   scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
@@ -283,7 +284,7 @@ int scr_filemap_set_expected_files(scr_filemap* map, int dset, int rank, int exp
 }
 
 /* return the number of expected files in the hash for a given dataset id and rank */
-int scr_filemap_get_expected_files(scr_filemap* map, int dset, int rank)
+int scr_filemap_get_expected_files(const scr_filemap* map, int dset, int rank)
 {
   int num = -1;
   scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
@@ -304,6 +305,52 @@ int scr_filemap_unset_expected_files(scr_filemap* map, int dset, int rank)
   return SCR_SUCCESS;
 }
 
+/* sets metadata for file */
+int scr_filemap_set_meta(scr_filemap* map, int dset, int rank, const char* file, const scr_meta* meta)
+{
+  /* get RANK/DSET/FILE hash */
+  scr_hash* rdf = scr_filemap_get_rdf(map, dset, rank, file);
+
+  /* add metadata */
+  if (rdf != NULL) {
+    scr_hash_unset(rdf, SCR_FILEMAP_KEY_META);
+    scr_meta* meta_copy = scr_meta_new();
+    scr_meta_copy(meta_copy, meta);
+    scr_hash_set(rdf, SCR_FILEMAP_KEY_META, meta_copy);
+    return SCR_SUCCESS;
+  }
+
+  return SCR_FAILURE;
+}
+
+/* gets metadata for file */
+int scr_filemap_get_meta(const scr_filemap* map, int dset, int rank, const char* file, scr_meta* meta)
+{
+  /* get RANK/DSET/FILE hash */
+  scr_hash* rdf = scr_filemap_get_rdf(map, dset, rank, file);
+
+  /* copy metadata if it is set */
+  scr_meta* meta_copy = scr_hash_get(rdf, SCR_FILEMAP_KEY_META);
+  if (meta_copy != NULL) {
+    scr_meta_copy(meta, meta_copy);
+    return SCR_SUCCESS;
+  }
+
+  return SCR_FAILURE;
+}
+
+/* unsets metadata for file */
+int scr_filemap_unset_meta(scr_filemap* map, int dset, int rank, const char* file)
+{
+  /* set indicies and get hash reference */
+  scr_hash* rdf = scr_filemap_get_rdf(map, dset, rank, file);
+
+  /* unset metadata */
+  scr_hash_unset(rdf, SCR_FILEMAP_KEY_META);
+
+  return SCR_SUCCESS;
+}
+
 /* sets a tag/value pair */
 int scr_filemap_set_tag(scr_filemap* map, int dset, int rank, const char* tag, const char* value)
 {
@@ -315,7 +362,7 @@ int scr_filemap_set_tag(scr_filemap* map, int dset, int rank, const char* tag, c
 }
 
 /* gets the value for a given tag, returns NULL if not found */
-char* scr_filemap_get_tag(scr_filemap* map, int dset, int rank, const char* tag)
+char* scr_filemap_get_tag(const scr_filemap* map, int dset, int rank, const char* tag)
 {
   /* define tag in Rank/Dset/File hash */
   scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
@@ -400,21 +447,21 @@ int scr_filemap_clear(scr_filemap* map)
 }
 
 /* returns true if we have a hash for specified rank */
-int scr_filemap_have_rank(scr_filemap* map, int rank)
+int scr_filemap_have_rank(const scr_filemap* map, int rank)
 {
   scr_hash* hash = scr_filemap_get_r(map, rank);
   return (hash != NULL);
 }
 
 /* returns true if we have a hash for specified rank for the given dataset */
-int scr_filemap_have_rank_by_dataset(scr_filemap* map, int dset, int rank)
+int scr_filemap_have_rank_by_dataset(const scr_filemap* map, int dset, int rank)
 {
   scr_hash* hash = scr_filemap_get_rd(map, dset, rank);
   return (hash != NULL);
 }
 
 /* returns the latest dataset id (largest int) in given map */
-int scr_filemap_latest_dataset(scr_filemap* map)
+int scr_filemap_latest_dataset(const scr_filemap* map)
 {
   /* initialize with a value indicating that we have no datasets */
   int dset = -1;
@@ -437,7 +484,7 @@ int scr_filemap_latest_dataset(scr_filemap* map)
 }
 
 /* returns the oldest dataset id (smallest int larger than younger_than) in given map */
-int scr_filemap_oldest_dataset(scr_filemap* map, int younger_than)
+int scr_filemap_oldest_dataset(const scr_filemap* map, int younger_than)
 {
   /* initialize our oldest dataset id to be the same as the latest dataset id */
   int dset = scr_filemap_latest_dataset(map);
@@ -461,7 +508,7 @@ int scr_filemap_oldest_dataset(scr_filemap* map, int younger_than)
 
 /* given a filemap, return a list of ranks */
 /* TODO: must free ranks list when done with it */
-int scr_filemap_list_ranks(scr_filemap* map, int* n, int** v)
+int scr_filemap_list_ranks(const scr_filemap* map, int* n, int** v)
 {
   scr_hash* rh = scr_filemap_get_rh(map);
   scr_hash_list_int(rh, n, v);
@@ -469,7 +516,7 @@ int scr_filemap_list_ranks(scr_filemap* map, int* n, int** v)
 }
 
 /* given a filemap, return a list of datasets */
-int scr_filemap_list_datasets(scr_filemap* map, int* n, int** v)
+int scr_filemap_list_datasets(const scr_filemap* map, int* n, int** v)
 {
   scr_hash* dh = scr_filemap_get_dh(map);
   scr_hash_list_int(dh, n, v);
@@ -478,7 +525,7 @@ int scr_filemap_list_datasets(scr_filemap* map, int* n, int** v)
 
 /* given a filemap and a dataset, return a list of ranks */
 /* TODO: must free datasets list when done with it */
-int scr_filemap_list_ranks_by_dataset(scr_filemap* map, int dset, int* n, int** v)
+int scr_filemap_list_ranks_by_dataset(const scr_filemap* map, int dset, int* n, int** v)
 {
   scr_hash* d = scr_filemap_get_d(map, dset);
   scr_hash* rh = scr_filemap_get_rh(d);
@@ -487,7 +534,7 @@ int scr_filemap_list_ranks_by_dataset(scr_filemap* map, int dset, int* n, int** 
 }
 
 /* given a filemap, a dataset id, and a rank, return the number of files and a list of the filenames */
-int scr_filemap_list_files(scr_filemap* map, int dset, int rank, int* n, char*** v)
+int scr_filemap_list_files(const scr_filemap* map, int dset, int rank, int* n, char*** v)
 {
   /* assume there aren't any matching files */
   *n = 0;
@@ -526,7 +573,7 @@ int scr_filemap_list_files(scr_filemap* map, int dset, int rank, int* n, char***
 }
 
 /* given a filemap, return a hash elem pointer to the first rank */
-scr_hash_elem* scr_filemap_first_rank(scr_filemap* map)
+scr_hash_elem* scr_filemap_first_rank(const scr_filemap* map)
 {
   scr_hash* rh = scr_filemap_get_rh(map);
   scr_hash_elem* elem = scr_hash_elem_first(rh);
@@ -534,7 +581,7 @@ scr_hash_elem* scr_filemap_first_rank(scr_filemap* map)
 }
 
 /* given a filemap, return a hash elem pointer to the first rank for a given dataset */
-scr_hash_elem* scr_filemap_first_rank_by_dataset(scr_filemap* map, int dset)
+scr_hash_elem* scr_filemap_first_rank_by_dataset(const scr_filemap* map, int dset)
 {
   scr_hash* d  = scr_filemap_get_d(map, dset);
   scr_hash* rh = scr_filemap_get_rh(d);
@@ -543,7 +590,7 @@ scr_hash_elem* scr_filemap_first_rank_by_dataset(scr_filemap* map, int dset)
 }
 
 /* given a filemap, return a hash elem pointer to the first dataset */
-scr_hash_elem* scr_filemap_first_dataset(scr_filemap* map)
+scr_hash_elem* scr_filemap_first_dataset(const scr_filemap* map)
 {
   scr_hash* dh = scr_filemap_get_dh(map);
   scr_hash_elem* elem = scr_hash_elem_first(dh);
@@ -551,7 +598,7 @@ scr_hash_elem* scr_filemap_first_dataset(scr_filemap* map)
 }
 
 /* given a filemap, return a hash elem pointer to the first dataset for a given rank */
-scr_hash_elem* scr_filemap_first_dataset_by_rank(scr_filemap* map, int rank)
+scr_hash_elem* scr_filemap_first_dataset_by_rank(const scr_filemap* map, int rank)
 {
   scr_hash* r  = scr_filemap_get_r(map, rank);
   scr_hash* dh = scr_filemap_get_dh(r);
@@ -560,7 +607,7 @@ scr_hash_elem* scr_filemap_first_dataset_by_rank(scr_filemap* map, int rank)
 }
 
 /* given a filemap, a dataset id, and a rank, return a hash elem pointer to the first file */
-scr_hash_elem* scr_filemap_first_file(scr_filemap* map, int dset, int rank)
+scr_hash_elem* scr_filemap_first_file(const scr_filemap* map, int dset, int rank)
 {
   scr_hash* fh = scr_filemap_get_fh(map, dset, rank);
   scr_hash_elem* elem = scr_hash_elem_first(fh);
@@ -568,7 +615,7 @@ scr_hash_elem* scr_filemap_first_file(scr_filemap* map, int dset, int rank)
 }
 
 /* return the number of ranks in the hash */
-int scr_filemap_num_ranks(scr_filemap* map)
+int scr_filemap_num_ranks(const scr_filemap* map)
 {
   scr_hash* rh = scr_filemap_get_rh(map);
   int size = scr_hash_size(rh);
@@ -576,7 +623,7 @@ int scr_filemap_num_ranks(scr_filemap* map)
 }
 
 /* return the number of ranks in the hash for a given dataset id */
-int scr_filemap_num_ranks_by_dataset(scr_filemap* map, int dset)
+int scr_filemap_num_ranks_by_dataset(const scr_filemap* map, int dset)
 {
   scr_hash* d  = scr_filemap_get_d(map, dset);
   scr_hash* rh = scr_filemap_get_rh(d);
@@ -585,7 +632,7 @@ int scr_filemap_num_ranks_by_dataset(scr_filemap* map, int dset)
 }
 
 /* return the number of datasets in the hash */
-int scr_filemap_num_datasets(scr_filemap* map)
+int scr_filemap_num_datasets(const scr_filemap* map)
 {
   scr_hash* dh = scr_filemap_get_dh(map);
   int size = scr_hash_size(dh);
@@ -593,7 +640,7 @@ int scr_filemap_num_datasets(scr_filemap* map)
 }
 
 /* return the number of files in the hash for a given dataset id and rank */
-int scr_filemap_num_files(scr_filemap* map, int dset, int rank)
+int scr_filemap_num_files(const scr_filemap* map, int dset, int rank)
 {
   scr_hash* fh = scr_filemap_get_fh(map, dset, rank);
   int size = scr_hash_size(fh);
@@ -684,7 +731,7 @@ int scr_filemap_read(const char* file, scr_filemap* map)
 }
 
 /* writes given filemap to specified file */
-int scr_filemap_write(const char* file, scr_filemap* map)
+int scr_filemap_write(const char* file, const scr_filemap* map)
 {
   /* check that we have a map pointer */
   if (map == NULL) {

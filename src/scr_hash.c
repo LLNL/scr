@@ -374,7 +374,7 @@ scr_hash* scr_hash_setf(scr_hash* hash, scr_hash* hash_value, const char* format
 }
 
 /* return hash associated with list of keys */
-scr_hash* scr_hash_getf(scr_hash* hash, const char* format, ...)
+scr_hash* scr_hash_getf(const scr_hash* hash, const char* format, ...)
 {
   /* check that we have a hash */
   if (hash == NULL) {
@@ -616,7 +616,7 @@ int scr_hash_sort_int(scr_hash* hash, int direction)
 
 /* given a hash, return a list of all keys converted to ints */
 /* caller must free list when done with it */
-int scr_hash_list_int(scr_hash* hash, int* n, int** v)
+int scr_hash_list_int(const scr_hash* hash, int* n, int** v)
 {
   /* assume there aren't any keys */
   *n = 0;

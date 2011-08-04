@@ -186,8 +186,8 @@ static int  scr_my_rank_level = MPI_PROC_NULL;  /* my rank in processes at my le
 
 static char scr_my_hostname[256] = "";
 
-scr_hash* scr_cachedesc_hash = NULL;
-scr_hash* scr_reddesc_hash  = NULL;
+static scr_hash* scr_cachedesc_hash = NULL;
+static scr_hash* scr_reddesc_hash   = NULL;
 
 /*
 =========================================
@@ -372,7 +372,7 @@ int scr_config_read(const char* file, scr_hash* hash)
 
 /*
 =========================================
-Checkpoint descriptor functions
+Redundancy descriptor functions
 =========================================
 */
 
@@ -857,39 +857,11 @@ static int scr_reddesc_free_list()
 
 /*
 =========================================
-Metadata functions
-=========================================
-*/
-
-/* marks file as incomplete by deleting corresponding .scr meta file */
-static int scr_incomplete(const char* file)
-{
-  /* delete the meta data file */
-  int rc = scr_meta_unlink(file);
-  return rc;
-}
-
-/*
-=========================================
 Checkpoint functions
 =========================================
 */
 
 /*
-  READ:
-  master process on each node reads filemap
-  and distributes pieces to others
-
-  WRITE:
-  all processes send their file info to master
-  and master writes it out
-
-  master filemap file
-    list of ranks this node has files for
-      for each rank, list of checkpoint ids
-        for each checkpoint id, list of locations (RAM,SSD,PFS,etc)
-            for each location, list of files for this rank for this checkpoint
-
   GOALS: 
     - support different number of processes per node on
       a restart
@@ -899,7 +871,7 @@ Checkpoint functions
 
 /* searches through the cache descriptors and returns the size of the cache whose BASE
  * matches the specified base */
-static int scr_cachedesc_size(const char* base)
+static int scr_cachedesc_size(const char* target)
 {
   /* iterate over each of our cache descriptors */
   scr_hash* index = scr_hash_get(scr_cachedesc_hash, SCR_CONFIG_KEY_CACHEDESC);
@@ -912,19 +884,19 @@ static int scr_cachedesc_size(const char* base)
     scr_hash* h = scr_hash_elem_hash(elem);
 
     /* get the BASE value for this descriptor */
-    char* b = scr_hash_elem_get_first_val(h, SCR_CONFIG_KEY_BASE);
+    char* base;
+    if (scr_hash_util_get_str(h, SCR_CONFIG_KEY_BASE, &base) == SCR_SUCCESS) {
+      /* if the BASE is set, and if it matches the specified base, lookup and return the size */
+      if (strcmp(base, target) == 0) {
+        int size;
+        if (scr_hash_util_get_int(h, SCR_CONFIG_KEY_SIZE, &size) == SCR_SUCCESS) {
+          return size;
+        }
 
-    /* if the BASE is set, and if it matches the specified base, lookup and return the size */
-    if (b != NULL && strcmp(b, base) == 0) {
-      char* s = scr_hash_elem_get_first_val(h, SCR_CONFIG_KEY_SIZE);
-      if (s != NULL) {
-        int size = atoi(s);
-        return size;
+        /* found the base, but couldn't find the size, so return a size of 0 */
+        return 0;
       }
-
-      /* found the base, but couldn't find the size, so return a size of 0 */
-      return 0;
-    }   
+    }
   }
 
   /* couldn't find the specified base, so return a size of 0 */
@@ -1015,7 +987,52 @@ static int scr_flush_file_dataset_remove(int id)
   return SCR_SUCCESS;
 }
 
-/* remove all files and meta data associated with specified dataset */
+static int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
+{
+  /* compute crc for the file */
+  uLong crc_file;
+  if (scr_crc32(file, &crc_file) != SCR_SUCCESS) {
+    scr_err("Failed to compute crc for file %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* allocate a new meta data object */
+  scr_meta* meta = scr_meta_new();
+  if (meta == NULL) {
+    scr_abort(-1, "Failed to allocate meta data object @ %s:%d",
+              __FILE__, __LINE__
+    );
+  }
+
+  /* read meta data from filemap */
+  if (scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
+    return SCR_FAILURE;
+  }
+
+  int rc = SCR_SUCCESS;
+
+  /* read crc value from meta data */
+  uLong crc_meta;
+  if (scr_meta_get_crc32(meta, &crc_meta) == SCR_SUCCESS) {
+    /* check that the values are the same */
+    if (crc_file != crc_meta) {
+      rc = SCR_FAILURE;
+    }
+  } else {
+    /* record crc in filemap */
+    scr_meta_set_crc32(meta, crc_file);
+    scr_filemap_set_meta(map, id, rank, file, meta);
+  }
+
+  /* free our meta data object */
+  scr_meta_delete(meta);
+
+  return rc;
+}
+
+/* remove all files associated with specified dataset */
 static int scr_cache_delete(scr_filemap* map, int id)
 {
   /* print a debug messages */
@@ -1029,6 +1046,7 @@ static int scr_cache_delete(scr_filemap* map, int id)
        rank_elem != NULL;
        rank_elem = scr_hash_elem_next(rank_elem))
   {
+    /* get the rank id */
     int rank = scr_hash_elem_key_int(rank_elem);
 
     scr_hash_elem* file_elem;
@@ -1042,7 +1060,7 @@ static int scr_cache_delete(scr_filemap* map, int id)
       /* check file's crc value (monitor that cache hardware isn't corrupting files on us) */
       if (scr_crc_on_delete) {
         /* TODO: if corruption, need to log */
-        if (scr_compute_crc(file) != SCR_SUCCESS) {
+        if (scr_compute_crc(map, id, rank, file) != SCR_SUCCESS) {
           scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
                   file, __FILE__, __LINE__
           );
@@ -1051,9 +1069,6 @@ static int scr_cache_delete(scr_filemap* map, int id)
 
       /* delete the file */
       unlink(file);
-
-      /* remove the corresponding meta file */
-      scr_incomplete(file);
     }
   }
 
@@ -1096,7 +1111,7 @@ static int scr_next_dataset(int ndsets, const int* dsets, int* index, int* curre
   int current_id;
   MPI_Allreduce(&id, &current_id, 1, MPI_INT, MPI_MAX, scr_comm_world);
 
-  /* if we have a dataset, try to distribute and rebuild it */
+  /* if any process has any dataset, identify the smallest */
   if (current_id != -1) {
     /* now find the minimum dataset id (that's not -1) */
     if (id == -1) {
@@ -1149,6 +1164,8 @@ static int scr_cache_purge(scr_filemap* map)
 
   /* TODO: want to clear the map object here? */
 
+  /* TODO: want to delete the master map file? */
+
   /* free our list of dataset ids */
   if (dsets != NULL) {
     free(dsets);
@@ -1181,8 +1198,8 @@ static int scr_bool_have_file(scr_filemap* map, int dset, int rank, const char* 
   scr_meta* meta = scr_meta_new();
 
   /* check that we can read meta file for the file */
-  if (scr_meta_read(file, meta) != SCR_SUCCESS) {
-    scr_dbg(2, "Failed to read meta data file for file: %s @ %s:%d",
+  if (scr_filemap_get_meta(map, dset, rank, file, meta) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read meta data for file: %s @ %s:%d",
             file, __FILE__, __LINE__
     );
     scr_meta_delete(meta);
@@ -1219,6 +1236,7 @@ static int scr_bool_have_file(scr_filemap* map, int dset, int rank, const char* 
   }
 #endif
 
+#if 0
   /* check that the file really belongs to the rank we think it does */
   int meta_rank = -1;
   if (scr_meta_get_rank(meta, &meta_rank) != SCR_SUCCESS) {
@@ -1229,13 +1247,15 @@ static int scr_bool_have_file(scr_filemap* map, int dset, int rank, const char* 
     return 0;
   }
   if (rank != meta_rank) {
-    scr_dbg(2, "File's rank (%d) does not match rank in meta data file (%d) for %s @ %s:%d",
+    scr_dbg(2, "File's rank (%d) does not match rank in meta data (%d) for %s @ %s:%d",
             rank, meta_rank, file, __FILE__, __LINE__
     );
     scr_meta_delete(meta);
     return 0;
   }
+#endif
 
+#if 0
   /* check that the file really belongs to the rank we think it does */
   int meta_ranks = -1;
   if (scr_meta_get_ranks(meta, &meta_ranks) != SCR_SUCCESS) {
@@ -1252,8 +1272,9 @@ static int scr_bool_have_file(scr_filemap* map, int dset, int rank, const char* 
     scr_meta_delete(meta);
     return 0;
   }
+#endif
 
-  /* check that the file size matches (use strtol while reading data) */
+  /* check that the file size matches */
   unsigned long size = scr_filesize(file);
   unsigned long meta_size = 0;
   if (scr_meta_get_filesize(meta, &meta_size) != SCR_SUCCESS) {
@@ -1328,6 +1349,7 @@ static int scr_cache_clean(scr_filemap* map)
        dset_elem != NULL;
        dset_elem = scr_hash_elem_next(dset_elem))
   {
+    /* get the dataset id */
     int dset = scr_hash_elem_key_int(dset_elem);
 
     scr_hash_elem* rank_elem;
@@ -1335,6 +1357,7 @@ static int scr_cache_clean(scr_filemap* map)
          rank_elem != NULL;
          rank_elem = scr_hash_elem_next(rank_elem))
     {
+      /* get the rank id */
       int rank = scr_hash_elem_key_int(rank_elem);
 
       /* if we're missing any file for this rank in this checkpoint,
@@ -1403,12 +1426,16 @@ static int scr_cache_clean(scr_filemap* map)
 
           /* delete the file */
           unlink(file);
-
-          /* delete the meta file */
-          scr_incomplete(file);
         } else {
           /* keep this file */
           scr_filemap_add_file(keep_map, dset, rank, file);
+
+          /* copy the meta data */
+          scr_meta* meta = scr_meta_new();
+          if (scr_filemap_get_meta(map, dset, rank, file, meta) == SCR_SUCCESS) {
+            scr_filemap_set_meta(keep_map, dset, rank, file, meta);
+          }
+          scr_meta_delete(meta);
         }
       }
     }
@@ -1435,21 +1462,25 @@ static int scr_cache_check_files(scr_filemap* map, int id)
        rank_elem != NULL;
        rank_elem = scr_hash_elem_next(rank_elem))
   {
+    /* get the rank id */
     int rank = scr_hash_elem_key_int(rank_elem);
+
     scr_hash_elem* file_elem;
     for (file_elem = scr_filemap_first_file(map, id, rank);
          file_elem != NULL;
          file_elem = scr_hash_elem_next(file_elem))
     {
+      /* get the filename */
       char* file = scr_hash_elem_key(file_elem);
+
       /* check that we can read the file */
       if (access(file, R_OK) < 0) {
         failed_read = 1;
       }
 
-      /* check that we can read meta file for the file */
+      /* get meta data for this file */
       scr_meta* meta = scr_meta_new();
-      if (scr_meta_read(file, meta) != SCR_SUCCESS) {
+      if (scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
         failed_read = 1;
       } else {
         /* check that the file is complete */
@@ -1540,10 +1571,11 @@ static int scr_swap_file_names(const char* file_send, int rank_send,
  *   It is then truncated and renamed according the size and name of the incoming file,
  *   or it is deleted (moved) if there is no incoming file.
  */
-static int scr_swap_files(int swap_type,
-                  const char* file_send, int rank_send,
-                  const char* file_recv, int rank_recv,
-                  MPI_Comm comm)
+static int scr_swap_files(
+  int swap_type,
+  const char* file_send, scr_meta* meta_send, int rank_send,
+  const char* file_recv, scr_meta* meta_recv, int rank_recv,
+  MPI_Comm comm)
 {
   int rc = SCR_SUCCESS;
   MPI_Request request[2];
@@ -1567,10 +1599,8 @@ static int scr_swap_files(int swap_type,
     have_incoming = 1;
   }
 
-  /* remove the completion marker for partner's file */
-  if (have_incoming) {
-    scr_incomplete(file_recv);
-  }
+  /* exchange meta file info with partners */
+  scr_hash_sendrecv(meta_send, rank_send, meta_recv, rank_recv, comm);
 
   /* allocate MPI send buffer */
   char *buf_send = NULL;
@@ -1598,14 +1628,6 @@ static int scr_swap_files(int swap_type,
       }
       return SCR_FAILURE;
     }
-  }
-
-  /* read in the metadata for our file,
-   * we don't send yet because we may update the CRC value */
-  scr_meta* meta_send = NULL;
-  if (have_outgoing) {
-    meta_send = scr_meta_new();
-    scr_meta_read(file_send, meta_send);
   }
 
   /* initialize crc values */
@@ -1696,7 +1718,6 @@ static int scr_swap_files(int swap_type,
       uLong meta_send_crc;
       if (scr_meta_get_crc32(meta_send, &meta_send_crc) != SCR_SUCCESS) {
         scr_meta_set_crc32(meta_send, crc32_send);
-        scr_meta_write(file_send, meta_send);
       } else {
         /* TODO: we could check that the crc on the sent file matches and take some action if not */
       }
@@ -1718,12 +1739,6 @@ static int scr_swap_files(int swap_type,
         scr_abort(-1, "Opening file for send/recv: scr_open(%s, O_RDWR) errno=%d %m @ %s:%d",
                 file_send, errno, __FILE__, __LINE__
         );
-      }
-
-      /* if we are overwriting our current file with the incoming file,
-       * remove its completion marker now since it will soon have invalid data */
-      if (have_incoming) {
-        scr_incomplete(file_send);
       }
     } else if (have_incoming) {
       /* if we're in this branch, then we only have an incoming file,
@@ -1815,7 +1830,6 @@ static int scr_swap_files(int swap_type,
       /* only sent a file; close it, delete it, and remove its completion marker */
       scr_close(file_send, fd);
       unlink(file_send);
-      scr_incomplete(file_send);
     } else if (have_incoming) {
       /* only received a file; just need to close it */
       scr_close(file_recv, fd);
@@ -1847,15 +1861,6 @@ static int scr_swap_files(int swap_type,
     buf_recv = NULL;
   }
 
-  /* exchange meta file info with partners */
-  scr_meta* meta_recv = scr_meta_new();
-  scr_hash_sendrecv(meta_send, rank_send, meta_recv, rank_recv, comm);
-
-  /* delete our send meta data object */
-  if (have_outgoing) {
-    scr_meta_delete(meta_send);
-  }
-
   /* mark received file as complete */
   if (have_incoming) {
     /* check that our written file is the correct size */
@@ -1883,12 +1888,7 @@ static int scr_swap_files(int swap_type,
         }
       }
     }
-
-    scr_meta_write(file_recv, meta_recv);
   }
-
-  /* delete our received meta data */
-  scr_meta_delete(meta_recv);
 
   return rc;
 }
@@ -1962,11 +1962,24 @@ static int scr_copy_partner(scr_filemap* map, const struct scr_reddesc* c, int i
       scr_filemap_write(scr_map_file, map);
     }
 
+    /* get meta data of file we're sending */
+    scr_meta* send_meta = scr_meta_new();
+    scr_filemap_get_meta(map, id, scr_my_rank_world, file, send_meta);
+
     /* exhange files with partners */
-    if (scr_swap_files(COPY_FILES, file, send_rank, file_partner, recv_rank, c->comm) != SCR_SUCCESS) {
+    scr_meta* recv_meta = scr_meta_new();
+    if (scr_swap_files(COPY_FILES, file, send_meta, send_rank, file_partner, recv_meta, recv_rank, c->comm) != SCR_SUCCESS) {
       rc = SCR_FAILURE;
     }
+    scr_filemap_set_meta(map, id, c->lhs_rank_world, file_partner, recv_meta);
+
+    /* free meta data for these files */
+    scr_meta_delete(recv_meta);
+    scr_meta_delete(send_meta);
   }
+
+  /* write out the updated filemap */
+  scr_filemap_write(scr_map_file, map);
 
   /* free our list of files */
   if (files != NULL) {
@@ -2091,7 +2104,7 @@ static int scr_copy_xor(scr_filemap* map, const struct scr_reddesc* c, int id)
 
     /* read the meta data for this file and insert it into the current_files hash */
     scr_meta* file_hash = scr_meta_new();
-    scr_meta_read(filenames[file_count], file_hash);
+    scr_filemap_get_meta(map, id, scr_my_rank_world, filenames[file_count], file_hash);
     scr_hash_setf(current_files, file_hash, "%d", file_count);
 
     /* open the file */
@@ -2247,13 +2260,19 @@ static int scr_copy_xor(scr_filemap* map, const struct scr_reddesc* c, int id)
   /* write meta file for xor chunk */
   unsigned long my_chunk_file_size = scr_filesize(my_chunk_file);
   scr_meta* meta = scr_meta_new();
-  scr_meta_set(meta, my_chunk_file, SCR_META_FILE_XOR, my_chunk_file_size, id, scr_my_rank_world, scr_ranks_world, 1);
-  scr_meta_write(my_chunk_file, meta);
+  scr_meta_set_filename(meta, my_chunk_file);
+  scr_meta_set_filetype(meta, SCR_META_FILE_XOR);
+  scr_meta_set_filesize(meta, my_chunk_file_size);
+  scr_meta_set_complete(meta, 1);
+  /* TODODSET: move the ranks field elsewhere, for now it's needed by scr_index.c */
+  scr_meta_set_ranks(meta, scr_ranks_world);
+  scr_filemap_set_meta(map, id, scr_my_rank_world, my_chunk_file, meta);
+  scr_filemap_write(scr_map_file, map);
   scr_meta_delete(meta);
 
   /* if crc_on_copy is set, compute and store CRC32 value for chunk file */
   if (scr_crc_on_copy) {
-    scr_compute_crc(my_chunk_file);
+    scr_compute_crc(map, id, scr_my_rank_world, my_chunk_file);
     /* TODO: would be nice to save this CRC in our partner's XOR file so we can check correctness on a rebuild */
   }
 
@@ -2288,13 +2307,13 @@ int scr_copy_files(scr_filemap* map, const struct scr_reddesc* c, int id, double
 
     /* if crc_on_copy is set, compute crc and update meta file (PARTNER does this during the copy) */
     if (scr_crc_on_copy && c->copy_type != SCR_COPY_PARTNER) {
-      scr_compute_crc(file);
+      scr_compute_crc(map, id, scr_my_rank_world, file);
     }
   }
 
   /* determine whether everyone's files are good */
   int all_valid = scr_alltrue(valid);
-  if (!all_valid) {
+  if (! all_valid) {
     if (scr_my_rank_world == 0) {
       scr_dbg(1, "scr_copy_files: Exiting copy since one or more checkpoint files is invalid");
     }
@@ -2331,7 +2350,7 @@ int scr_copy_files(scr_filemap* map, const struct scr_reddesc* c, int id, double
 
   /* determine whether everyone succeeded in their copy */
   int valid_copy = (rc == SCR_SUCCESS);
-  if (!valid_copy) {
+  if (! valid_copy) {
     scr_err("scr_copy_files failed with return code %d @ %s:%d", rc, __FILE__, __LINE__);
   }
   int all_valid_copy = scr_alltrue(valid_copy);
@@ -2825,7 +2844,8 @@ static int scr_summary_write(const char* dir, const scr_dataset* dataset, int al
   scr_hash_merge(dataset_hash, dataset);
   scr_hash_set(summary_hash, SCR_SUMMARY_6_KEY_DATASET, dataset_hash);
 
-  /* for each file, insert hash listing filename, then file size, crc, and incomplete flag under that */
+  /* for each file, insert hash listing filename, then file size, crc,
+   * and incomplete flag under that */
   scr_hash_merge(summary_hash, data);
 
   /* write the number of ranks used to write this dataset */
@@ -2865,7 +2885,8 @@ static int scr_bool_need_flush(int id)
     scr_hash* hash = scr_hash_new();
     scr_hash_read(scr_flush_file, hash);
 
-    /* if we have the dataset in cache, but not on the parallel file system, then it needs to be flushed */
+    /* if we have the dataset in cache, but not on the parallel file system,
+     * then it needs to be flushed */
     scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
     scr_hash* in_cache = scr_hash_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
     scr_hash* in_pfs   = scr_hash_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_PFS);
@@ -3068,7 +3089,8 @@ static int scr_bool_is_flushing(int id)
   return is_flushing;
 }
 
-/* fetch file name in meta from dir and build new full path in newfile, return whether operation succeeded */
+/* fetch file name in meta from dir and build new full path in newfile,
+ * return whether operation succeeded */
 static int scr_fetch_a_file(const char* src_dir, const scr_meta* meta, const char* dst_dir,
                             char* newfile, size_t newfile_size)
 {
@@ -3169,7 +3191,8 @@ static int scr_container_get_name_size_offset_length(
   return SCR_SUCCESS;
 }
 
-/* fetch file name in meta from dir and build new full path in newfile, return whether operation succeeded */
+/* fetch file name in meta from dir and build new full path in newfile,
+ * return whether operation succeeded */
 static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_hash* segments, const scr_hash* containers)
 {
   unsigned long buf_size = scr_file_buf_size;
@@ -3437,7 +3460,12 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
     scr_meta* meta = scr_meta_new();
 
     /* set the meta data */
-    scr_meta_set(meta, newfile, SCR_META_FILE_FULL, filesize, id, scr_my_rank_world, scr_ranks_world, complete);
+    scr_meta_set_filename(meta, newfile);
+    scr_meta_set_filetype(meta, SCR_META_FILE_FULL);
+    scr_meta_set_filesize(meta, filesize);
+    scr_meta_set_complete(meta, 1);
+    /* TODODSET: move the ranks field elsewhere, for now it's needed by scr_index.c */
+    scr_meta_set_ranks(meta, scr_ranks_world);
 
     /* get the crc, if set, and add it to the meta data */
     uLong crc;
@@ -3472,8 +3500,10 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
       }
     }
 
+    /* TODODSET: want to write out filemap before we start to fetch each file? */
+
     /* mark the file as complete */
-    scr_meta_write(newfile, meta);
+    scr_filemap_set_meta(map, id, scr_my_rank_world, newfile, meta);
 
     /* free the meta data object */
     scr_meta_delete(meta);
@@ -3859,14 +3889,14 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
 }
 
 /* returns true if the named file needs to be flushed, 0 otherwise */
-static int scr_bool_flush_file(const char* file)
+static int scr_bool_flush_file(const scr_filemap* map, int dset, int rank, const char* file)
 {
   /* assume we need to flush this file */
   int flush = 1;
 
   /* read meta info for file */
   scr_meta* meta = scr_meta_new();
-  if (scr_meta_read(file, meta) == SCR_SUCCESS) {
+  if (scr_filemap_get_meta(map, dset, rank, file, meta) == SCR_SUCCESS) {
     /* don't flush XOR files */
     if (scr_meta_check_filetype(meta, SCR_META_FILE_XOR) == SCR_SUCCESS) {
       flush = 0;
@@ -3900,7 +3930,7 @@ static int scr_flush_build_list(scr_filemap* map, int id, scr_hash* file_list)
 
     /* read meta data for file and attach it to file list */
     scr_meta* meta = scr_meta_new();
-    if (scr_meta_read(file, meta) == SCR_SUCCESS) {
+    if (scr_filemap_get_meta(map, id, scr_my_rank_world, file, meta) == SCR_SUCCESS) {
       /* don't flush XOR files */
       int flush = 1;
       if (scr_meta_check_filetype(meta, SCR_META_FILE_XOR) == SCR_SUCCESS) {
@@ -4106,7 +4136,7 @@ static int scr_flush_create_dirs(const scr_hash* file_list)
     }
 
     /* select leaders */
-    GCS_Select_leaders_strings(dirs, count, leaders, scr_comm_world);
+    GCS_Select_leaders_strings((void*) dirs, count, leaders, scr_comm_world);
 
     /* have leaders issue mkdir */
     int success = 1;
@@ -4309,7 +4339,8 @@ static int scr_flush_identify_containers(scr_hash* file_list)
   return SCR_SUCCESS;
 }
 
-/* flushes file named in src_file to dst_dir and fills in meta based on flush, returns success of flush */
+/* flushes file named in src_file to dst_dir and fills in meta based on flush,
+ * returns success of flush */
 static int scr_flush_a_file(const char* file, const char* dir, scr_meta* meta)
 {
   int flushed = SCR_SUCCESS;
@@ -4353,7 +4384,6 @@ static int scr_flush_a_file(const char* file, const char* dir, scr_meta* meta)
 
         /* mark the file as invalid */
         scr_meta_set_complete(meta, 0);
-        scr_meta_write(file, meta);
 
         flushed = SCR_FAILURE;
         scr_err("scr_flush_a_file: CRC32 mismatch detected when flushing file %s to %s @ %s:%d",
@@ -4371,25 +4401,8 @@ static int scr_flush_a_file(const char* file, const char* dir, scr_meta* meta)
     } else {
       /* the crc was not already in the metafile, but we just computed it, so set it */
       scr_meta_set_crc32(meta, crc);
-      scr_meta_write(file, meta);
     }
   }
-
-  /* get meta data file name for file */
-  char metafile[SCR_MAX_FILENAME];
-  scr_meta_name(metafile, file);
-
-  /* copy corresponding .scr file */
-  char my_flushed_metafile[SCR_MAX_FILENAME];
-  tmp_rc = scr_copy_to(metafile, dir, scr_file_buf_size,
-                       my_flushed_metafile, sizeof(my_flushed_metafile), NULL
-  );
-  if (tmp_rc != SCR_SUCCESS) {
-    flushed = SCR_FAILURE;
-  }
-  scr_dbg(2, "scr_flush_a_file: Read and copied %s to %s with success code %d @ %s:%d",
-          metafile, my_flushed_metafile, tmp_rc, __FILE__, __LINE__
-  );
 
   /* TODO: check that written filesize matches expected filesize */
 
@@ -4413,6 +4426,7 @@ static int    scr_flush_async_num_files = 0;         /* records the number of fi
 /* queues file to flushed to dst_dir in hash, returns size of file in bytes */
 static int scr_flush_async_file_enqueue(scr_hash* hash, const char* file, const char* dst_dir, double* bytes)
 {
+#if 0
   /* start with 0 bytes written for this file */
   *bytes = 0.0;
 
@@ -4461,6 +4475,7 @@ static int scr_flush_async_file_enqueue(scr_hash* hash, const char* file, const 
     scr_hash_util_set_bytecount(file_hash, "WRITTEN", 0);
   }
   *bytes += (double) metasize;
+#endif
  
   return SCR_SUCCESS;
 }
@@ -4468,6 +4483,7 @@ static int scr_flush_async_file_enqueue(scr_hash* hash, const char* file, const 
 /* given a hash, test whether the files in that hash have completed their flush */
 static int scr_flush_async_file_test(const scr_hash* hash, double* bytes)
 {
+#if 0
   /* initialize bytes to 0 */
   *bytes = 0.0;
 
@@ -4523,11 +4539,14 @@ static int scr_flush_async_file_test(const scr_hash* hash, double* bytes)
     return SCR_SUCCESS;
   }
   return SCR_FAILURE;
+#endif
+  return SCR_SUCCESS;
 }
 
 /* dequeues files listed in hash2 from hash1 */
 static int scr_flush_async_file_dequeue(scr_hash* hash1, scr_hash* hash2)
 {
+#if 0
   /* for each file listed in hash2, remove it from hash1 */
   scr_hash* file_hash = scr_hash_get(hash2, SCR_TRANSFER_KEY_FILES);
   if (file_hash != NULL) {
@@ -4546,13 +4565,14 @@ static int scr_flush_async_file_dequeue(scr_hash* hash1, scr_hash* hash2)
       scr_hash_unset_kv(hash1, SCR_TRANSFER_KEY_FILES, metafile);
     }
   }
-
+#endif
   return SCR_SUCCESS;
 }
 
 /* start an asynchronous flush from cache to parallel file system under SCR_PREFIX */
 static int scr_flush_async_start(scr_filemap* map, int id)
 {
+#if 0
   int tmp_rc;
 
   /* if user has disabled flush, return failure */
@@ -4656,7 +4676,7 @@ static int scr_flush_async_start(scr_filemap* map, int id)
     char* file = scr_hash_elem_key(elem);
 
     /* enqueue this file, and add its byte count to the total */
-    if (scr_bool_flush_file(file)) {
+    if (scr_bool_flush_file(map, id, scr_my_rank_world, file)) {
       double file_bytes = 0.0;
       scr_flush_async_file_enqueue(scr_flush_async_hash, file, scr_flush_async_dir, &file_bytes);
       my_bytes += file_bytes;
@@ -4726,13 +4746,14 @@ static int scr_flush_async_start(scr_filemap* map, int id)
 
   /* make sure all processes have started before we leave */
   MPI_Barrier(scr_comm_world);
-
+#endif
   return SCR_SUCCESS;
 }
 
 /* writes the specified command to the transfer file */
 static int scr_flush_async_command_set(char* command)
 {
+#if 0
   /* have the master on each node write this command to the file */
   if (scr_my_rank_local == 0) {
     /* get a hash to store file data */
@@ -4752,13 +4773,14 @@ static int scr_flush_async_command_set(char* command)
     /* delete the hash */
     scr_hash_delete(hash);
   }
-
+#endif
   return SCR_SUCCESS;
 }
 
 /* waits until all transfer processes are in the specified state */
 static int scr_flush_async_state_wait(char* state)
 {
+#if 0
   /* wait until each process matches the state */
   int all_valid = 0;
   while (!all_valid) {
@@ -4793,13 +4815,14 @@ static int scr_flush_async_state_wait(char* state)
       usleep(10*1000*1000);
     }
   }
-
+#endif
   return SCR_SUCCESS;
 }
 
 /* removes all files from the transfer file */
 static int scr_flush_async_file_clear_all()
 {
+#if 0
   /* have the master on each node clear the FILES field */
   if (scr_my_rank_local == 0) {
     /* get a hash to store file data */
@@ -4818,13 +4841,14 @@ static int scr_flush_async_file_clear_all()
     /* delete the hash */
     scr_hash_delete(hash);
   }
-
+#endif
   return SCR_SUCCESS;
 }
 
 /* stop an ongoing asynchronous flush for a specified checkpoint */
 static int scr_flush_async_stop()
 {
+#if 0
   int tmp_rc;
 
   /* if user has disabled flush, return failure */
@@ -4859,13 +4883,14 @@ static int scr_flush_async_stop()
 
   /* make sure all processes have made it this far before we leave */
   MPI_Barrier(scr_comm_world);
-
+#endif
   return SCR_SUCCESS;
 }
 
 /* check whether the flush from cache to parallel file system has completed */
 static int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
 {
+#if 0
   /* initialize bytes to 0 */
   *bytes = 0.0;
 
@@ -4927,11 +4952,14 @@ static int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
     return SCR_SUCCESS;
   }
   return SCR_FAILURE;
+#endif
+  return SCR_SUCCESS;
 }
 
 /* complete the flush from cache to parallel file system has completed */
 static int scr_flush_async_complete(scr_filemap* map, int id)
 {
+#if 0
   int tmp_rc;
   int i;
 
@@ -4986,7 +5014,7 @@ static int scr_flush_async_complete(scr_filemap* map, int id)
     char* file = scr_hash_elem_key(elem);
 
     /* if we flushed this file, read its metadata info */
-    if (scr_bool_flush_file(file)) {
+    if (scr_bool_flush_file(map, id, scr_my_rank_world, file)) {
       /* record the filename in the hash, and get reference to a hash for this file */
       char path[SCR_MAX_FILENAME];
       char name[SCR_MAX_FILENAME];
@@ -5107,7 +5135,7 @@ static int scr_flush_async_complete(scr_filemap* map, int id)
       char* file = scr_hash_elem_key(elem);
 
       /* flush this file if needed */
-      if (scr_bool_flush_file(file)) {
+      if (scr_bool_flush_file(map, id, scr_my_rank_world, file)) {
         /* record the filename in the hash, and get reference to a hash for this file */
         char path[SCR_MAX_FILENAME];
         char name[SCR_MAX_FILENAME];
@@ -5263,11 +5291,14 @@ static int scr_flush_async_complete(scr_filemap* map, int id)
   }
 
   return flushed;
+#endif
+  return SCR_SUCCESS;
 }
 
 /* wait until the checkpoint currently being flushed completes */
 static int scr_flush_async_wait(scr_filemap* map)
 {
+#if 0
   if (scr_flush_async_in_progress) {
     while (scr_bool_is_flushing(scr_flush_async_checkpoint_id)) {
       /* test whether the flush has completed, and if so complete the flush */
@@ -5286,7 +5317,7 @@ static int scr_flush_async_wait(scr_filemap* map)
       }
     }
   }
-
+#endif
   return SCR_SUCCESS;
 }
 
@@ -5671,7 +5702,7 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
 
 /* flushes data for files specified in file_list (with flow control),
  * and records status of each file in data */
-static int scr_flush_data(const scr_hash* file_list, scr_hash* data)
+static int scr_flush_data(scr_hash* file_list, scr_hash* data)
 {
   int flushed = SCR_SUCCESS;
 
@@ -6057,7 +6088,8 @@ static int scr_cache_flush(scr_filemap* map, int id)
     }
   }
 
-  /* have rank 0 broadcast whether the entire flush succeeded, including summary file and symlink update */
+  /* have rank 0 broadcast whether the entire flush succeeded,
+   * including summary file and symlink update */
   MPI_Bcast(&flushed, 1, MPI_INT, 0, scr_comm_world);
 
   /* mark this dataset as flushed to the parallel file system */
@@ -6324,7 +6356,7 @@ static int scr_bool_have_xor_file(scr_filemap* map, int checkpoint_id, char* xor
 
     /* read the meta for this file */
     scr_meta* meta = scr_meta_new();
-    scr_meta_read(file, meta);
+    scr_filemap_get_meta(map, checkpoint_id, scr_my_rank_world, file, meta);
 
     /* if the filetype of this file is an XOR fule, copy the filename and bail out */
     char* filetype = NULL;
@@ -6690,12 +6722,14 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_reddesc* c, int id
 
       /* fill out meta info for our file and complete it */
       scr_hash* meta_tmp = scr_hash_get_kv_int(current_hash, SCR_KEY_COPY_XOR_FILE, i);
-      scr_meta_write(filenames[i], meta_tmp);
+      scr_filemap_set_meta(map, id, scr_my_rank_world, filenames[i], meta_tmp);
+
+      /* TODODSET:write out filemap here? */
 
       /* if crc_on_copy is set, compute and store CRC32 value for each file */
       if (scr_crc_on_copy) {
         /* check for mismatches here, in case we failed to rebuild the file correctly */
-        if (scr_compute_crc(filenames[i]) != SCR_SUCCESS) {
+        if (scr_compute_crc(map, id, scr_my_rank_world, filenames[i]) != SCR_SUCCESS) {
           scr_err("Failed to verify CRC32 after rebuild on file %s @ %s:%d",
                   filenames[i], __FILE__, __LINE__
           );
@@ -6709,14 +6743,20 @@ static int scr_rebuild_xor(scr_filemap* map, const struct scr_reddesc* c, int id
     /* create meta data for chunk and complete it */
     unsigned long full_chunk_filesize = scr_filesize(full_chunk_filename);
     scr_meta* meta_chunk = scr_meta_new();
-    scr_meta_set(meta_chunk, full_chunk_filename, SCR_META_FILE_XOR, full_chunk_filesize, id, scr_my_rank_world, scr_ranks_world, 1);
-    scr_meta_write(full_chunk_filename, meta_chunk);
+    scr_meta_set_filename(meta_chunk, full_chunk_filename);
+    scr_meta_set_filetype(meta_chunk, SCR_META_FILE_XOR);
+    scr_meta_set_filesize(meta_chunk, full_chunk_filesize);
+    scr_meta_set_complete(meta_chunk, 1);
+    /* TODODSET: move the ranks field elsewhere, for now it's needed by scr_index.c */
+    scr_meta_set_ranks(meta_chunk, scr_ranks_world);
+    scr_filemap_set_meta(map, id, scr_my_rank_world, full_chunk_filename, meta_chunk);
+    scr_filemap_write(scr_map_file, map);
     scr_meta_delete(meta_chunk);
 
     /* if crc_on_copy is set, compute and store CRC32 value for chunk file */
     if (scr_crc_on_copy) {
       /* TODO: would be nice to check for mismatches here, but we did not save this value in the partner XOR file */
-      scr_compute_crc(full_chunk_filename);
+      scr_compute_crc(map, id, scr_my_rank_world, full_chunk_filename);
     }
   }
 
@@ -6821,9 +6861,6 @@ static int scr_unlink_rank(scr_filemap* map, int id, int rank)
 
       /* delete the file */
       unlink(file);
-
-      /* delete the meta file */
-      scr_incomplete(file);
 
       /* remove the file from the map */
       scr_filemap_remove_file(map, id, rank, file);
@@ -7375,17 +7412,15 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
         char newfile[SCR_MAX_FILENAME];
         scr_build_path(newfile, sizeof(newfile), dir, name);
 
-        /* build the name of the existing and new meta files */
-        char metafile[SCR_MAX_FILENAME];
-        char newmetafile[SCR_MAX_FILENAME];
-        scr_meta_name(metafile,    file);
-        scr_meta_name(newmetafile, newfile);
-
         /* if the new file name is different from the old name, rename it */
         if (strcmp(file, newfile) != 0) {
           /* record the new filename to our map and write it to disk */
           scr_filemap_add_file(map, id, send_rank, newfile);
+          scr_meta* oldmeta = scr_meta_new();
+          scr_filemap_get_meta(map, id, send_rank, file, oldmeta);
+          scr_filemap_set_meta(map, id, send_rank, newfile, oldmeta);
           scr_filemap_write(scr_map_file, map);
+          scr_meta_delete(oldmeta);
 
           /* rename the file */
           scr_dbg(2, "Round %d: rename(%s, %s)", round, file, newfile);
@@ -7394,17 +7429,6 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
             /* TODO: to cross mount points, if tmp_rc == EXDEV, open new file, copy, and delete orig */
             scr_err("Moving checkpoint file: rename(%s, %s) %m errno=%d @ %s:%d",
                     file, newfile, errno, __FILE__, __LINE__
-            );
-            rc = SCR_FAILURE;
-          }
-
-          /* rename the meta file */
-          scr_dbg(2, "rename(%s, %s)", metafile, newmetafile);
-          tmp_rc = rename(metafile, newmetafile);
-          if (tmp_rc != 0) {
-            /* TODO: to cross mount points, if tmp_rc == EXDEV, open new file, copy, and delete orig */
-            scr_err("Moving checkpoint file: rename(%s, %s) %m errno=%d @ %s:%d",
-                    metafile, newmetafile, errno, __FILE__, __LINE__
             );
             rc = SCR_FAILURE;
           }
@@ -7484,8 +7508,11 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
         while (have_incoming || have_outgoing) {
           /* get the filename */
           char* file = NULL;
+          scr_meta* send_meta = NULL;
           if (have_outgoing) {
             file = files[numfiles - send_num];
+            send_meta = scr_meta_new();
+            scr_filemap_get_meta(map, id, send_rank, file, send_meta);
           }
 
           /* exhange file names with partners */
@@ -7495,7 +7522,9 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
           );
 
           /* if we'll receive a file, record the name of our file in the filemap and write it to disk */
+          scr_meta* recv_meta = NULL;
           if (recv_rank != MPI_PROC_NULL) {
+            recv_meta = scr_meta_new();
             scr_filemap_add_file(map, id, scr_my_rank_world, file_partner);
             scr_filemap_write(scr_map_file, map);
           }
@@ -7503,7 +7532,7 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
           /* either sending or receiving a file this round, since we move files,
            * it will be deleted or overwritten */
           char newfile[SCR_MAX_FILENAME];
-          if (scr_swap_files(MOVE_FILES, file, send_rank, file_partner, recv_rank, scr_comm_world)
+          if (scr_swap_files(MOVE_FILES, file, send_meta, send_rank, file_partner, recv_meta, recv_rank, scr_comm_world)
                 != SCR_SUCCESS)
           {
             scr_err("Swapping files: %s to %d, %s from %d @ %s:%d",
@@ -7512,14 +7541,13 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
             rc = SCR_FAILURE;
           }
 
-          /* if we sent a file, remove its name from the filemap and write it to disk */
-          if (send_rank != MPI_PROC_NULL) {
-            scr_filemap_remove_file(map, id, send_rank, file);
-            scr_filemap_write(scr_map_file, map);
-          }
-
-          /* if we received a file, decrement receive count */
+          /* if we received a file, record its meta data and decrement our receive count */
           if (have_incoming) {
+            /* record meta data for the file we received */
+            scr_filemap_set_meta(map, id, scr_my_rank_world, file_partner, recv_meta);
+            scr_meta_delete(recv_meta);
+
+            /* decrement receive count */
             recv_num--;
             if (recv_num == 0) {
               have_incoming = 0;
@@ -7527,26 +7555,28 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
             }
           }
 
-          /* if we sent a file, get the next filename and decrement our send count */
+          /* if we sent a file, remove it from the filemap and decrement our send count */
           if (have_outgoing) {
+            /* remove file from the filemap */
+            scr_filemap_remove_file(map, id, send_rank, file);
+            scr_meta_delete(send_meta);
+
+            /* decrement our send count */
             send_num--;
             if (send_num == 0) {
               have_outgoing = 0;
               send_rank = MPI_PROC_NULL;
             }
           }
+
+          /* update filemap on disk */
+          scr_filemap_write(scr_map_file, map);
         }
 
         /* free our file list */
         if (files != NULL) {
           free(files);
           files = NULL;
-        }
-
-        /* if we sent to someone, remove those files from the filemap */
-        if (filemap_send_rank != MPI_PROC_NULL) {
-          scr_filemap_remove_rank_by_dataset(map, id, filemap_send_rank);
-          scr_filemap_write(scr_map_file, map);
         }
       }
     }
@@ -8913,7 +8943,7 @@ int SCR_Start_checkpoint()
     }
   }
 
-  /* increment our checkpoint counter */
+  /* increment our dataset and checkpoint counters */
   scr_dataset_id++;
   scr_checkpoint_id++;
 
@@ -9074,16 +9104,17 @@ int SCR_Route_file(const char* file, char* newfile)
 
     /* add the file to the filemap */
     scr_filemap_add_file(scr_map, scr_dataset_id, scr_my_rank_world, newfile);
-    scr_filemap_write(scr_map_file, scr_map);
 
     /* read meta data for this file */
     scr_meta* meta = scr_meta_new();
-    scr_meta_read(newfile, meta);
+    scr_filemap_get_meta(scr_map, scr_dataset_id, scr_my_rank_world, newfile, meta);
 
     /* set parameters for the file */
-    scr_meta_set(meta, file, SCR_META_FILE_FULL, 0,
-                 scr_dataset_id, scr_my_rank_world, scr_ranks_world, 0
-    );
+    scr_meta_set_filename(meta, newfile);
+    scr_meta_set_filetype(meta, SCR_META_FILE_FULL);
+    scr_meta_set_complete(meta, 0);
+    /* TODODSET: move the ranks field elsewhere, for now it's needed by scr_index.c */
+    scr_meta_set_ranks(meta, scr_ranks_world);
     scr_meta_set_orig(meta, file);
 
     /* determine full path to original file and record it in the meta data */
@@ -9101,8 +9132,13 @@ int SCR_Route_file(const char* file, char* newfile)
       );
     }
 
-    /* write out the meta data and delete the meta data object */
-    scr_meta_write(newfile, meta);
+    /* record the meta data for this file */
+    scr_filemap_set_meta(scr_map, scr_dataset_id, scr_my_rank_world, newfile, meta);
+
+    /* write out the filemap */
+    scr_filemap_write(scr_map_file, scr_map);
+
+    /* delete the meta data object */
     scr_meta_delete(meta);
   } else {
     /* if we can't read the file, return an error */
@@ -9137,7 +9173,7 @@ int SCR_Complete_checkpoint(int valid)
     return SCR_FAILURE;
   }
 
-  /* mark each file as complete or not */
+  /* record filesize for each file */
   unsigned long my_counts[3] = {0, 0, 0};
   scr_hash_elem* elem;
   for (elem = scr_filemap_first_file(scr_map, scr_dataset_id, scr_my_rank_world);
@@ -9154,10 +9190,10 @@ int SCR_Complete_checkpoint(int valid)
 
     /* fill in filesize and complete flag in the meta data for the file */
     scr_meta* meta = scr_meta_new();
-    scr_meta_read(file, meta);
+    scr_filemap_get_meta(scr_map, scr_dataset_id, scr_my_rank_world, file, meta);
     scr_meta_set_filesize(meta, filesize);
     scr_meta_set_complete(meta, valid);
-    scr_meta_write(file, meta);
+    scr_filemap_set_meta(scr_map, scr_dataset_id, scr_my_rank_world, file, meta);
     scr_meta_delete(meta);
   }
 
@@ -9182,8 +9218,10 @@ int SCR_Complete_checkpoint(int valid)
     scr_dataset_set_complete(dataset, 0);
   }
   scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
-  scr_filemap_write(scr_map_file, scr_map);
   scr_dataset_delete(dataset);
+
+  /* write out info to filemap */
+  scr_filemap_write(scr_map_file, scr_map);
 
   /* apply redundancy scheme */
   double bytes_copied = 0.0;

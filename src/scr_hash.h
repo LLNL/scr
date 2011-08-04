@@ -254,7 +254,7 @@ int scr_hash_merge(scr_hash* hash1, const scr_hash* hash2);
 scr_hash* scr_hash_setf(scr_hash* hash, scr_hash* hash_value, const char* format, ...);
 
 /* same as above, but simply returns the hash associated with the list of keys */
-scr_hash* scr_hash_getf(scr_hash* hash, const char* format, ...);
+scr_hash* scr_hash_getf(const scr_hash* hash, const char* format, ...);
 
 /* sort the hash assuming the keys are strings */
 int scr_hash_sort(scr_hash* hash, int direction);
@@ -263,7 +263,7 @@ int scr_hash_sort(scr_hash* hash, int direction);
 int scr_hash_sort_int(scr_hash* hash, int direction);
 
 /* return list of keys in hash as integers, caller must free list */
-int scr_hash_list_int(scr_hash* hash, int* num, int** list);
+int scr_hash_list_int(const scr_hash* hash, int* num, int** list);
 
 /*
 =========================================
