@@ -562,6 +562,9 @@ int scr_hash_recv(scr_hash* hash, int rank, MPI_Comm comm)
     return SCR_FAILURE;
   }
 
+  /* clear the hash */
+  scr_hash_unset_all(hash);
+
   /* get the size of the incoming hash */
   MPI_Status status;
   size_t size = 0;
@@ -589,8 +592,8 @@ int scr_hash_recv(scr_hash* hash, int rank, MPI_Comm comm)
 
 /* send and receive a hash in the same step */
 int scr_hash_sendrecv(const scr_hash* hash_send, int rank_send,
-                                   scr_hash* hash_recv, int rank_recv,
-                             MPI_Comm comm)
+                            scr_hash* hash_recv, int rank_recv,
+                            MPI_Comm comm)
 {
   int rc = SCR_SUCCESS;
 
@@ -605,6 +608,7 @@ int scr_hash_sendrecv(const scr_hash* hash_send, int rank_send,
     have_outgoing = 1;
   }
   if (rank_recv != MPI_PROC_NULL) {
+    scr_hash_unset_all(hash_recv);
     have_incoming = 1;
   }
 

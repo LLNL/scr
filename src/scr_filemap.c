@@ -54,13 +54,13 @@ WRITE:
 #include "scr_hash.h"
 #include "scr_filemap.h"
 
-#define SCR_FILEMAP_KEY_RANK   ("RANK")
-#define SCR_FILEMAP_KEY_DSET   ("DSET")
-#define SCR_FILEMAP_KEY_FILE   ("FILE")
-#define SCR_FILEMAP_KEY_DESC   ("REDDESC")
-#define SCR_FILEMAP_KEY_DATA   ("DSETDESC")
-#define SCR_FILEMAP_KEY_META   ("META")
-#define SCR_FILEMAP_KEY_EXPECT ("EXPECT")
+#define SCR_FILEMAP_KEY_RANK  ("RANK")
+#define SCR_FILEMAP_KEY_DSET  ("DSET")
+#define SCR_FILEMAP_KEY_FILES ("FILES")
+#define SCR_FILEMAP_KEY_FILE  ("FILE")
+#define SCR_FILEMAP_KEY_DESC  ("REDDESC")
+#define SCR_FILEMAP_KEY_DATA  ("DSETDESC")
+#define SCR_FILEMAP_KEY_META  ("META")
 
 /* returns the RANK hash */
 static scr_hash* scr_filemap_get_rh(const scr_hash* h)
@@ -277,8 +277,8 @@ int scr_filemap_set_expected_files(scr_filemap* map, int dset, int rank, int exp
   /* set indicies and get hash reference */
   scr_hash* rd = scr_filemap_set_rd(map, dset, rank);
 
-  /* set the EXPECT value under the RANK/DSET hash */
-  scr_hash_util_set_int(rd, SCR_FILEMAP_KEY_EXPECT, expect);
+  /* set the FILES value under the RANK/DSET hash */
+  scr_hash_util_set_int(rd, SCR_FILEMAP_KEY_FILES, expect);
 
   return SCR_SUCCESS;
 }
@@ -288,16 +288,16 @@ int scr_filemap_get_expected_files(const scr_filemap* map, int dset, int rank)
 {
   int num = -1;
   scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
-  scr_hash_util_get_int(rd, SCR_FILEMAP_KEY_EXPECT, &num);
+  scr_hash_util_get_int(rd, SCR_FILEMAP_KEY_FILES, &num);
   return num;
 }
 
 /* unset number of files to expect for a given rank in a given dataset id */
 int scr_filemap_unset_expected_files(scr_filemap* map, int dset, int rank)
 {
-  /* unset EXPECT value */
+  /* unset FILES value */
   scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
-  scr_hash_unset(rd, SCR_FILEMAP_KEY_EXPECT);
+  scr_hash_unset(rd, SCR_FILEMAP_KEY_FILES);
 
   /* unset RANK/DSET and DSET/RANK indicies if the hash is empty */
   scr_filemap_unset_if_empty(map, dset, rank);

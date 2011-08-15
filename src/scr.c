@@ -433,7 +433,7 @@ static int scr_reddesc_free(struct scr_reddesc* c)
 
 /* given a checkpoint id and a list of redundancy descriptor structs,
  * select and return a pointer to a descriptor for the specified checkpoint id */
-static struct scr_reddesc* scr_ckptdesc_get(int id, int nckpts, struct scr_reddesc* ckpts)
+static struct scr_reddesc* scr_reddesc_for_checkpoint(int id, int nckpts, struct scr_reddesc* ckpts)
 {
   struct scr_reddesc* c = NULL;
 
@@ -3794,7 +3794,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
   scr_cache_delete(map, id);
 
   /* get the redundancy descriptor for this id */
-  struct scr_reddesc* c = scr_ckptdesc_get(ckpt_id, scr_nreddescs, scr_reddescs);
+  struct scr_reddesc* c = scr_reddesc_for_checkpoint(ckpt_id, scr_nreddescs, scr_reddescs);
 
   /* store our redundancy descriptor hash in the filemap */
   scr_hash* my_desc_hash = scr_hash_new();
@@ -8948,7 +8948,7 @@ int SCR_Start_checkpoint()
   scr_checkpoint_id++;
 
   /* get the redundancy descriptor for this checkpoint id */
-  struct scr_reddesc* c = scr_ckptdesc_get(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
+  struct scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
 
   /* start the clock to record how long it takes to checkpoint */
   if (scr_my_rank_world == 0) {
@@ -9088,7 +9088,7 @@ int SCR_Route_file(const char* file, char* newfile)
   }
 
   /* get the redundancy descriptor for the current checkpoint */
-  struct scr_reddesc* c = scr_ckptdesc_get(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
+  struct scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
 
   /* route the file */
   int n = SCR_MAX_FILENAME;
@@ -9225,7 +9225,7 @@ int SCR_Complete_checkpoint(int valid)
 
   /* apply redundancy scheme */
   double bytes_copied = 0.0;
-  struct scr_reddesc* c = scr_ckptdesc_get(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
+  struct scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
   int rc = scr_copy_files(scr_map, c, scr_dataset_id, &bytes_copied);
 
   /* TODO: set size of dataset and complete flag */
