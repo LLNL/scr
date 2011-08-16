@@ -1,17 +1,18 @@
+SUBDIRS = common cray_xt TLCC 
 dist_bin_SCRIPTS = \
-	scr_cntl_dir \
-	scr_check_node \
-	scr_env \
-	scr_inspect \
-	scr_scavenge \
-	scr_glob_hosts \
-	scr_halt \
-	scr_list_down_nodes \
-	scr_postrun \
-	scr_prerun \
-	scr_srun \
-	scr_test_datemanip \
-	scr_test_runtime
+	common/scr_cntl_dir \
+	common/scr_check_node \
+	common/scr_glob_hosts \
+	common/scr_postrun \
+	common/scr_prerun \
+	common/scr_test_datemanip \
+	common/scr_test_runtime \
+	$(MACHINE_NAME)/scr_inspect \
+	$(MACHINE_NAME)/scr_list_down_nodes \
+	$(MACHINE_NAME)/scr_scavenge \
+	$(MACHINE_NAME)/scr_run \
+	$(MACHINE_NAME)/scr_env \
+	$(MACHINE_NAME)/scr_halt 
 
-dist_pkgdata_DATA = scr_param.pm scr_hostlist.pm
+dist_pkgdata_DATA = common/scr_param.pm common/scr_hostlist.pm
 

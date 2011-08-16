@@ -43,8 +43,8 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/lx_find_mpi.m4 \
 	$(top_srcdir)/m4/x_ac_config_scr.m4 \
 	$(top_srcdir)/m4/x_ac_expand_install_dirs.m4 \
-	$(top_srcdir)/m4/x_ac_gcs.m4 $(top_srcdir)/m4/x_ac_meta.m4 \
-	$(top_srcdir)/m4/x_ac_mysql.m4 \
+	$(top_srcdir)/m4/x_ac_gcs.m4 $(top_srcdir)/m4/x_ac_machine.m4 \
+	$(top_srcdir)/m4/x_ac_meta.m4 $(top_srcdir)/m4/x_ac_mysql.m4 \
 	$(top_srcdir)/m4/x_ac_prog_pdsh.m4 \
 	$(top_srcdir)/m4/x_ac_prog_perl_modules.m4 \
 	$(top_srcdir)/m4/x_ac_yogrt.m4 $(top_srcdir)/configure.ac
@@ -108,6 +108,7 @@ LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
+MACHINE_NAME = @MACHINE_NAME@
 MAKEINFO = @MAKEINFO@
 META_ALIAS = @META_ALIAS@
 META_AUTHOR = @META_AUTHOR@

@@ -1,0 +1,291 @@
+#!/usr/bin/perl -w
+use strict;
+use lib '@X_DATADIR@/scr';
+use scr_param;
+use scr_hostlist;
+use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+
+my $prog = "scr_list_down_nodes";
+my $ping = "ping";
+
+my $bindir = "@X_BINDIR@";
+my $pdsh   = "@PDSH_EXE@";
+my $dshbak = "@DSHBAK_EXE@";
+
+my $start_time = time();
+
+my $param = undef;
+if (defined $ENV{SCR_CONF_FILE}) {
+  $param = new scr_param($ENV{SCR_CONF_FILE});
+} else {
+  $param = new scr_param();
+}
+
+my %conf = ();
+
+$conf{usage} = <<EOF
+
+  $prog -- tests and lists nodes that are not available for SCR
+
+  Usage:  $prog [options] [nodeset]
+
+  Options:
+    -r, --reason
+          Print reason node is down
+    -f, --free
+          Test required drive space based on free amount, rather than capacity
+    -d, --down=NODESET
+          Force nodes to be down without testing
+
+    -l, --log
+          Add entry to SCR log for each down node
+    -s, --secs=N
+          Specify the job's runtime seconds for SCR log
+
+EOF
+;
+
+# print usage and exit
+sub print_usage {
+  print STDOUT $conf{usage};
+  exit 1;
+}
+
+# read in environment variables and command line options
+$conf{reason}       = undef;
+$conf{free}         = undef;
+$conf{nodeset_down} = undef;
+$conf{log_nodes}    = undef;
+$conf{runtime_secs} = undef;
+$conf{help}         = undef;
+my $rc = GetOptions (
+  "reason|r"  => \$conf{reason},
+  "free|f"    => \$conf{free},
+  "down|d=s"  => \$conf{nodeset_down},
+  "log|l"     => \$conf{log_nodes},
+  "secs|s=i"  => \$conf{runtime_secs},
+  "help|h"    => \$conf{help}
+);
+if ($conf{help} or not $rc) {
+  print_usage();
+}
+
+# read the nodeset from command line or environment
+my $nodeset = undef;
+if (@ARGV) {
+  $nodeset = shift @ARGV;
+} else {
+  my $nodeset_env = `$bindir/scr_env --nodes`;
+  if ($? == 0) {
+    chomp $nodeset_env;
+    $nodeset = $nodeset_env;
+  }
+}
+
+# check that we have a nodeset before going any further
+if (not defined $nodeset) {
+  print "$prog: ERROR: Nodeset must be specified or script must be run from within a job allocation.\n";
+  exit(1);
+}
+
+# get list of nodes from nodeset
+my @nodes = scr_hostlist::expand($nodeset);
+
+# this hash defines all nodes available in our allocation
+my %allocation = ();
+my %available = ();
+foreach my $node (@nodes) {
+  $allocation{$node} = 1;
+  $available{$node} = 1;
+}
+
+# hashes to define all unavailable (down or excluded) nodes and reason
+my %unavailable = ();
+my %reason = ();
+
+# mark the set of nodes the resource manager thinks is down
+my $resmgr_down = `$bindir/scr_env --down`;
+if ($resmgr_down ne "") {
+  my @resmgr_nodes = scr_hostlist::expand($resmgr_down);
+  foreach my $node (@resmgr_nodes) {
+    delete $available{$node};
+    $unavailable{$node} = 1;
+    $reason{$node} = "Reported down by resource manager";
+  }
+}
+
+# mark the set of nodes that we can't ping
+my @failed_ping = ();
+my $hostnames = `$bindir/scr_env --hostnames`;
+my @hosts = scr_hostlist::expand($hostnames);
+
+foreach my $node (@hosts) {
+  `$ping -c 1 $node`;
+  if ($? != 0) {
+    delete $available{$node};
+    $unavailable{$node} = 1;
+    $reason{$node} = "Failed to ping";
+  }
+}
+
+# mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
+my $exclude = $param->get("SCR_EXCLUDE_NODES");
+if (defined $exclude) {
+  my @exclude_nodes = scr_hostlist::expand($exclude);
+  foreach my $node (@exclude_nodes) {
+    if (defined $allocation{$node}) {
+      delete $available{$node};
+      $unavailable{$node} = 1;
+      $reason{$node} = "User excluded via SCR_EXCLUDE_NODES";
+    }
+  }
+}
+
+# mark any nodes specified on the command line
+if (defined $conf{nodeset_down}) {
+  my @exclude_nodes = scr_hostlist::expand($conf{nodeset_down});
+  foreach my $node (@exclude_nodes) {
+    if (defined $allocation{$node}) {
+      delete $available{$node};
+      $unavailable{$node} = 1;
+      $reason{$node} = "Specified on command line";
+    }
+  }
+}
+
+# TODO: read exclude list from a file, as well?
+
+# specify whether to check total or free capacity in directories
+my $free_flag = "";
+if (defined $conf{free}) {
+  $free_flag = "--free";
+}
+
+# check that control and cache directories on each node work and are of proper size
+# get the control directory the job will use
+my @cntldir_vals = ();
+my $cntldir_string = `$bindir/scr_cntl_dir --base`;
+if ($? == 0) {
+  chomp $cntldir_string;
+  my @dirs = split(" ", $cntldir_string);
+  my $cntldirs = $param->get_hash("CNTLDIR");
+  foreach my $base (@dirs) {
+    my $val = "$base";
+    if (defined $cntldirs and defined $$cntldirs{$base} and defined $$cntldirs{$base}{"BYTES"}) {
+      my $size = (keys %{$$cntldirs{$base}{"BYTES"}})[0];
+      if (defined $size) {
+        $val = "$base:$size";
+      }
+    }
+    push @cntldir_vals, $val;
+  }
+}
+my $cntldir_flag = "";
+if (@cntldir_vals > 0) {
+  $cntldir_flag = "--cntl " . join(",", @cntldir_vals);
+}
+
+# get the cache directory the job will use
+my @cachedir_vals = ();
+my $cachedir_string = `$bindir/scr_cntl_dir --cache --base`;
+if ($? == 0) {
+  chomp $cachedir_string;
+  my @dirs = split(" ", $cachedir_string);
+  my $cachedirs = $param->get_hash("CACHEDIR");
+  foreach my $base (@dirs) {
+    my $val = "$base";
+    if (defined $cachedirs and defined $$cachedirs{$base} and defined $$cachedirs{$base}{"BYTES"}) {
+      my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
+      if (defined $size) {
+        $val = "$base:$size";
+      }
+    }
+    push @cachedir_vals, $val;
+  }
+}
+my $cachedir_flag = "";
+if (@cachedir_vals > 0) {
+  $cachedir_flag = "--cache " . join(",", @cachedir_vals);
+}
+
+# only run this against set of nodes known to be responding
+my @still_up = (sort {
+  my ($num_a) = ($a =~ /^[a-z]*(\d+$)/);
+  my ($num_b) = ($b =~ /^[a-z]*(\d+$)/);
+  return $num_a <=> $num_b;} keys %available);
+my $upnodes = scr_hostlist::compress(@still_up);
+
+# run scr_check_node on each node specifying control and cache directories to check
+if (@still_up > 0) {
+  my $output = `$pdsh -Rexec -f 256 -w '$upnodes' aprun -n 1 -L %h $bindir/scr_check_node $free_flag $cntldir_flag $cachedir_flag | $dshbak -c`;
+  my @lines = (split "\n", $output);
+  while (@lines) {
+    my $line = shift @lines;
+    if ($line =~ /^---/) {
+      my $nodeset = shift @lines;
+      $line = shift @lines;
+      my $result = shift @lines;
+      if ($result !~ /PASS/) {
+        my @exclude_nodes = scr_hostlist::expand($nodeset);
+        foreach my $node (@exclude_nodes) {
+          if (defined $allocation{$node}) {
+            delete $available{$node};
+            $unavailable{$node} = 1;
+            $reason{$node} = $result;
+          }
+        }
+      }
+    }
+  }
+}
+
+# take union of all these sets and sort by node name
+my @failed_nodes = (sort {
+  my ($num_a) = ($a =~ /^[a-z]*(\d+$)/);
+  my ($num_b) = ($b =~ /^[a-z]*(\d+$)/);
+  return $num_a <=> $num_b;} keys %unavailable);
+
+# print any failed nodes to stdout and exit with non-zero
+if (@failed_nodes) {
+  # initialize our list of newly failed nodes to be all failed nodes
+  my %newly_failed_nodes = ();
+  foreach my $node (@failed_nodes) {
+    $newly_failed_nodes{$node} = 1;
+  }
+
+  # remove any nodes that user already knew to be down
+  if (defined $conf{nodeset_down}) {
+    my @exclude_nodes = scr_hostlist::expand($conf{nodeset_down});
+    foreach my $node (@exclude_nodes) {
+      if (defined $newly_failed_nodes{$node}) {
+        delete $newly_failed_nodes{$node};
+      }
+    }
+  }
+
+  # log each newly failed node, along with the reason
+  if (defined $conf{log_nodes}) {
+    foreach my $node (keys %newly_failed_nodes) {
+      my $duration = "";
+      if (defined $conf{runtime_secs}) {
+        $duration = "-D $conf{runtime_secs}";
+      }
+      `$bindir/scr_log_event -T 'FAILED NODE' -N '$node: $reason{$node}' -S $start_time $duration`;
+    }
+  }
+
+  # now output info to the user
+  if ( defined $conf{reason}) {
+    # list each node and the reason each is down
+    foreach my $node (@failed_nodes) {
+      print "$node: $reason{$node}\n";
+    }
+  } else {
+    # simply print the list of down node in range syntax
+    print scr_hostlist::compress(@failed_nodes) . "\n";
+  }
+  exit(1);
+}
+
+# otherwise, don't print anything and exit with 0
+exit(0);

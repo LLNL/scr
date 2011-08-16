@@ -24,12 +24,14 @@ AM_INIT_AUTOMAKE([$META_NAME], [$META_VERSION]-[$META_RELEASE])
 # Checks for programs.
 ##
 AC_PROG_CC
+AM_PROG_CC_C_O
 #AC_PROG_CXX
 #X_AC_PROG_MPICC
 LX_FIND_MPI
 X_AC_YOGRT
 X_AC_GCS
 X_AC_MYSQL
+X_AC_MACHINE
 
 ##
 # enable libtool
@@ -76,20 +78,29 @@ AC_CONFIG_FILES([ \
   man/scr_prerun.1 \
   man/scr_srun.1 \
   scripts/Makefile \
-  scripts/scr_cntl_dir \
-  scripts/scr_check_node \
-  scripts/scr_env \
-  scripts/scr_inspect \
-  scripts/scr_scavenge \
-  scripts/scr_glob_hosts \
-  scripts/scr_halt \
-  scripts/scr_list_down_nodes \
-  scripts/scr_postrun \
-  scripts/scr_prerun \
-  scripts/scr_srun \
-  scripts/scr_test_datemanip \
-  scripts/scr_test_runtime \
-  scripts/scr_param.pm \
+  scripts/common/Makefile \
+  scripts/common/scr_cntl_dir \
+  scripts/common/scr_check_node \
+  scripts/common/scr_glob_hosts \
+  scripts/common/scr_postrun \
+  scripts/common/scr_prerun \
+  scripts/common/scr_test_datemanip \
+  scripts/common/scr_test_runtime \
+  scripts/common/scr_param.pm \
+  scripts/TLCC/Makefile \
+  scripts/TLCC/scr_run \
+  scripts/TLCC/scr_env \
+  scripts/TLCC/scr_halt \
+  scripts/TLCC/scr_list_down_nodes \
+  scripts/TLCC/scr_scavenge \
+  scripts/TLCC/scr_inspect \
+  scripts/cray_xt/Makefile \
+  scripts/cray_xt/scr_run \
+  scripts/cray_xt/scr_env \
+  scripts/cray_xt/scr_halt \
+  scripts/cray_xt/scr_list_down_nodes \
+  scripts/cray_xt/scr_scavenge \
+  scripts/cray_xt/scr_inspect \
   examples/Makefile \
   examples/makefile.examples \
   doc/Makefile \

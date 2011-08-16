@@ -463,7 +463,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS META_NAME META_VERSION META_RELEASE META_ALIAS META_DATE META_AUTHOR META_LT_CURRENT META_LT_REVISION META_LT_AGE X_PREFIX X_EXEC_PREFIX X_BINDIR X_SBINDIR X_LIBEXECDIR X_DATADIR X_SYSCONFDIR X_SHAREDSTATEDIR X_LOCALSTATEDIR X_LIBDIR X_INCLUDEDIR X_OLDINCLUDEDIR X_INFODIR X_MANDIR INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE MPICC MPI_CFLAGS MPI_CLDFLAGS YOGRT_CPPFLAGS YOGRT_LDFLAGS YOGRT_LIBS GCS_CFLAGS GCS_LDFLAGS GCS_LIBS MYSQL_CPPFLAGS MYSQL_LDFLAGS MYSQL_LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os SED EGREP LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CPP CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL PDSH_EXE DSHBAK_EXE PERL SCR_CACHE_BASE SCR_CNTL_BASE SCR_CONFIG_FILE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS META_NAME META_VERSION META_RELEASE META_ALIAS META_DATE META_AUTHOR META_LT_CURRENT META_LT_REVISION META_LT_AGE X_PREFIX X_EXEC_PREFIX X_BINDIR X_SBINDIR X_LIBEXECDIR X_DATADIR X_SYSCONFDIR X_SHAREDSTATEDIR X_LOCALSTATEDIR X_LIBDIR X_INCLUDEDIR X_OLDINCLUDEDIR X_INFODIR X_MANDIR INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE MPICC MPI_CFLAGS MPI_CLDFLAGS YOGRT_CPPFLAGS YOGRT_LDFLAGS YOGRT_LIBS GCS_CFLAGS GCS_LDFLAGS GCS_LIBS MYSQL_CPPFLAGS MYSQL_LDFLAGS MYSQL_LIBS MACHINE_NAME build build_cpu build_vendor build_os host host_cpu host_vendor host_os SED EGREP LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CPP CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL PDSH_EXE DSHBAK_EXE PERL SCR_CACHE_BASE SCR_CNTL_BASE SCR_CONFIG_FILE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1039,6 +1039,8 @@ Optional Packages:
   --with-yogrt=PATH       Enable libyogrt and optionally specify path
   --with-gcs=PATH         Specify libgcs path
   --with-mysql            Link to mysql client library
+  --with-machine-name=NAME
+                          Specify the name of the computer
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-pic              try to use only PIC/non-PIC objects [default=use
                           both]
@@ -3378,6 +3380,109 @@ else
 fi
 
 
+if test "x$CC" != xcc; then
+  echo "$as_me:$LINENO: checking whether $CC and cc understand -c and -o together" >&5
+echo $ECHO_N "checking whether $CC and cc understand -c and -o together... $ECHO_C" >&6
+else
+  echo "$as_me:$LINENO: checking whether cc understands -c and -o together" >&5
+echo $ECHO_N "checking whether cc understands -c and -o together... $ECHO_C" >&6
+fi
+set dummy $CC; ac_cc=`echo $2 |
+		      sed 's/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/'`
+if eval "test \"\${ac_cv_prog_cc_${ac_cc}_c_o+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+# Make sure it works both with $CC and with simple cc.
+# We do the test twice because some compilers refuse to overwrite an
+# existing .o file with -o, though they will create one.
+ac_try='$CC -c conftest.$ac_ext -o conftest.$ac_objext >&5'
+if { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+   test -f conftest.$ac_objext && { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); };
+then
+  eval ac_cv_prog_cc_${ac_cc}_c_o=yes
+  if test "x$CC" != xcc; then
+    # Test first that cc exists at all.
+    if { ac_try='cc -c conftest.$ac_ext >&5'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+      ac_try='cc -c conftest.$ac_ext -o conftest.$ac_objext >&5'
+      if { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 test -f conftest.$ac_objext && { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); };
+      then
+	# cc works too.
+	:
+      else
+	# cc exists but doesn't like -o.
+	eval ac_cv_prog_cc_${ac_cc}_c_o=no
+      fi
+    fi
+  fi
+else
+  eval ac_cv_prog_cc_${ac_cc}_c_o=no
+fi
+rm -f conftest*
+
+fi
+if eval "test \"`echo '$ac_cv_prog_cc_'${ac_cc}_c_o`\" = yes"; then
+  echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
+cat >>confdefs.h <<\_ACEOF
+#define NO_MINUS_C_MINUS_O 1
+_ACEOF
+
+fi
+
+# FIXME: we rely on the cache variable name because
+# there is no other way.
+set dummy $CC
+ac_cc=`echo $2 | sed 's/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/'`
+if eval "test \"`echo '$ac_cv_prog_cc_'${ac_cc}_c_o`\" != yes"; then
+   # Losing compiler, so override with the script.
+   # FIXME: It is wrong to rewrite CC.
+   # But if we don't then we get into trouble of one sort or another.
+   # A longer-term fix would be to have automake use am__CC in this case,
+   # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
+   CC="$am_aux_dir/compile $CC"
+fi
+
 #AC_PROG_CXX
 #X_AC_PROG_MPICC
 
@@ -4212,6 +4317,25 @@ fi
 
 
 
+
+  # set the base directory for the checkpoint cache
+
+# Check whether --with-machine-name or --without-machine-name was given.
+if test "${with_machine_name+set}" = set; then
+  withval="$with_machine_name"
+  MACHINE_NAME="$withval"
+else
+  MACHINE_NAME="TLCC"
+fi;
+
+
+cat >>confdefs.h <<_ACEOF
+#define MACHINE_NAME "$MACHINE_NAME"
+_ACEOF
+
+
+
+
 ##
 # enable libtool
 ##
@@ -4836,7 +4960,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 4839 "configure"' > conftest.$ac_ext
+  echo '#line 4963 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -6435,7 +6559,7 @@ fi
 
 
 # Provide some information about the compiler.
-echo "$as_me:6438:" \
+echo "$as_me:6562:" \
      "checking for Fortran 77 compiler version" >&5
 ac_compiler=`set X $ac_compile; echo $2`
 { (eval echo "$as_me:$LINENO: \"$ac_compiler --version </dev/null >&5\"") >&5
@@ -7498,11 +7622,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7501: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7625: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7505: \$? = $ac_status" >&5
+   echo "$as_me:7629: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7766,11 +7890,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7769: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7893: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7773: \$? = $ac_status" >&5
+   echo "$as_me:7897: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7870,11 +7994,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7873: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7997: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:7877: \$? = $ac_status" >&5
+   echo "$as_me:8001: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -9339,7 +9463,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 9342 "configure"' > conftest.$ac_ext
+    echo '#line 9466 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -10236,7 +10360,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10239 "configure"
+#line 10363 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10336,7 +10460,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10339 "configure"
+#line 10463 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12679,11 +12803,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:12682: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:12806: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:12686: \$? = $ac_status" >&5
+   echo "$as_me:12810: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -12783,11 +12907,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:12786: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:12910: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:12790: \$? = $ac_status" >&5
+   echo "$as_me:12914: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -13319,7 +13443,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 13322 "configure"' > conftest.$ac_ext
+    echo '#line 13446 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -14377,11 +14501,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14380: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14504: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14384: \$? = $ac_status" >&5
+   echo "$as_me:14508: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14481,11 +14605,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14484: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14608: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14488: \$? = $ac_status" >&5
+   echo "$as_me:14612: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15930,7 +16054,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 15933 "configure"' > conftest.$ac_ext
+    echo '#line 16057 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -16708,11 +16832,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16711: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16835: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16715: \$? = $ac_status" >&5
+   echo "$as_me:16839: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -16976,11 +17100,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16979: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17103: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16983: \$? = $ac_status" >&5
+   echo "$as_me:17107: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17080,11 +17204,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17083: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17207: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17087: \$? = $ac_status" >&5
+   echo "$as_me:17211: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -18549,7 +18673,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 18552 "configure"' > conftest.$ac_ext
+    echo '#line 18676 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -20467,7 +20591,7 @@ _ACEOF
 ##
 # Epilogue.
 ##
-                                                                                                                                                                                                                                                                              ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile man/scr.1 man/scr_index.1 man/scr_halt.1 man/scr_postrun.1 man/scr_prerun.1 man/scr_srun.1 scripts/Makefile scripts/scr_cntl_dir scripts/scr_check_node scripts/scr_env scripts/scr_inspect scripts/scr_scavenge scripts/scr_glob_hosts scripts/scr_halt scripts/scr_list_down_nodes scripts/scr_postrun scripts/scr_prerun scripts/scr_srun scripts/scr_test_datemanip scripts/scr_test_runtime scripts/scr_param.pm examples/Makefile examples/makefile.examples doc/Makefile"
+                                                                                                                                                                                                                                                                                                                                                                        ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile man/scr.1 man/scr_index.1 man/scr_halt.1 man/scr_postrun.1 man/scr_prerun.1 man/scr_srun.1 scripts/Makefile scripts/common/Makefile scripts/common/scr_cntl_dir scripts/common/scr_check_node scripts/common/scr_glob_hosts scripts/common/scr_postrun scripts/common/scr_prerun scripts/common/scr_test_datemanip scripts/common/scr_test_runtime scripts/common/scr_param.pm scripts/TLCC/Makefile scripts/TLCC/scr_run scripts/TLCC/scr_env scripts/TLCC/scr_halt scripts/TLCC/scr_list_down_nodes scripts/TLCC/scr_scavenge scripts/TLCC/scr_inspect scripts/cray_xt/Makefile scripts/cray_xt/scr_run scripts/cray_xt/scr_env scripts/cray_xt/scr_halt scripts/cray_xt/scr_list_down_nodes scripts/cray_xt/scr_scavenge scripts/cray_xt/scr_inspect examples/Makefile examples/makefile.examples doc/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -21035,20 +21159,29 @@ do
   "man/scr_prerun.1" ) CONFIG_FILES="$CONFIG_FILES man/scr_prerun.1" ;;
   "man/scr_srun.1" ) CONFIG_FILES="$CONFIG_FILES man/scr_srun.1" ;;
   "scripts/Makefile" ) CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
-  "scripts/scr_cntl_dir" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_cntl_dir" ;;
-  "scripts/scr_check_node" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_check_node" ;;
-  "scripts/scr_env" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_env" ;;
-  "scripts/scr_inspect" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_inspect" ;;
-  "scripts/scr_scavenge" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_scavenge" ;;
-  "scripts/scr_glob_hosts" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_glob_hosts" ;;
-  "scripts/scr_halt" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_halt" ;;
-  "scripts/scr_list_down_nodes" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_list_down_nodes" ;;
-  "scripts/scr_postrun" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_postrun" ;;
-  "scripts/scr_prerun" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_prerun" ;;
-  "scripts/scr_srun" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_srun" ;;
-  "scripts/scr_test_datemanip" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_test_datemanip" ;;
-  "scripts/scr_test_runtime" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_test_runtime" ;;
-  "scripts/scr_param.pm" ) CONFIG_FILES="$CONFIG_FILES scripts/scr_param.pm" ;;
+  "scripts/common/Makefile" ) CONFIG_FILES="$CONFIG_FILES scripts/common/Makefile" ;;
+  "scripts/common/scr_cntl_dir" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_cntl_dir" ;;
+  "scripts/common/scr_check_node" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_check_node" ;;
+  "scripts/common/scr_glob_hosts" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_glob_hosts" ;;
+  "scripts/common/scr_postrun" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_postrun" ;;
+  "scripts/common/scr_prerun" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_prerun" ;;
+  "scripts/common/scr_test_datemanip" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_test_datemanip" ;;
+  "scripts/common/scr_test_runtime" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_test_runtime" ;;
+  "scripts/common/scr_param.pm" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_param.pm" ;;
+  "scripts/TLCC/Makefile" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/Makefile" ;;
+  "scripts/TLCC/scr_run" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_run" ;;
+  "scripts/TLCC/scr_env" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_env" ;;
+  "scripts/TLCC/scr_halt" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_halt" ;;
+  "scripts/TLCC/scr_list_down_nodes" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_list_down_nodes" ;;
+  "scripts/TLCC/scr_scavenge" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_scavenge" ;;
+  "scripts/TLCC/scr_inspect" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_inspect" ;;
+  "scripts/cray_xt/Makefile" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/Makefile" ;;
+  "scripts/cray_xt/scr_run" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_run" ;;
+  "scripts/cray_xt/scr_env" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_env" ;;
+  "scripts/cray_xt/scr_halt" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_halt" ;;
+  "scripts/cray_xt/scr_list_down_nodes" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_list_down_nodes" ;;
+  "scripts/cray_xt/scr_scavenge" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_scavenge" ;;
+  "scripts/cray_xt/scr_inspect" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_inspect" ;;
   "examples/Makefile" ) CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
   "examples/makefile.examples" ) CONFIG_FILES="$CONFIG_FILES examples/makefile.examples" ;;
   "doc/Makefile" ) CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
@@ -21212,6 +21345,7 @@ s,@GCS_LIBS@,$GCS_LIBS,;t t
 s,@MYSQL_CPPFLAGS@,$MYSQL_CPPFLAGS,;t t
 s,@MYSQL_LDFLAGS@,$MYSQL_LDFLAGS,;t t
 s,@MYSQL_LIBS@,$MYSQL_LIBS,;t t
+s,@MACHINE_NAME@,$MACHINE_NAME,;t t
 s,@build@,$build,;t t
 s,@build_cpu@,$build_cpu,;t t
 s,@build_vendor@,$build_vendor,;t t
