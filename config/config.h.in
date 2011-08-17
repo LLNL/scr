@@ -42,9 +42,6 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Specifies the name of the machine */
-#undef MACHINE_NAME
-
 /* Define the project alias string (name-ver or name-ver-rel). */
 #undef META_ALIAS
 
@@ -101,6 +98,18 @@
 
 /* Specifies full path and file name to SCR config file */
 #undef SCR_CONFIG_FILE
+
+/* Define for CRAY_XT machine type. */
+#undef SCR_CRAY_XT
+
+/* Specify the type of machine. */
+#undef SCR_MACHINE_NAME
+
+/* Specify the type of machine. */
+#undef SCR_MACHINE_TYPE
+
+/* Define for TLCC machine type. */
+#undef SCR_TLCC
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

@@ -73,6 +73,7 @@ char* scr_env_jobid()
 
   /* read $SLURM_JOBID environment variable for jobid string */
   char* value;
+#if SCR_MACHINE_TYPE == TLCC
   if ((value = getenv("SLURM_JOBID")) != NULL) {
     jobid = strdup(value);
     if (jobid == NULL) {
@@ -81,6 +82,16 @@ char* scr_env_jobid()
       );
     }
   }
+#elif SCR_MACHINE_TYPE == CRAY_XT
+  if ((value = getenv("PBS_JOBID")) != NULL) {
+    jobid = strdup(value);
+    if (jobid == NULL) {
+      scr_err(-1, "Failed to allocate memory to record jobid (%s) @ %s:%d",
+              value, __FILE__, __LINE__
+      );
+    }
+  }
+#endif
 
   return jobid;
 }
