@@ -7288,6 +7288,7 @@ AC_SUBST([am__untar])
 ]) # _AM_PROG_TAR
 
 m4_include([m4/lx_find_mpi.m4])
+m4_include([m4/x_ac_byteswap.m4])
 m4_include([m4/x_ac_config_scr.m4])
 m4_include([m4/x_ac_expand_install_dirs.m4])
 m4_include([m4/x_ac_gcs.m4])

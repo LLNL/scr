@@ -12,6 +12,7 @@
 #ifndef SCR_IO_H
 #define SCR_IO_H
 
+#include <config.h>
 #include <stdarg.h>
 #include <sys/types.h>
 
@@ -24,14 +25,29 @@
 
 /* adds byte swapping routines */
 #include "endian.h"
+
+#ifdef HAVE_BYTESWAP_H
 #include "byteswap.h"
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#else
+#include "scr_byteswap.h"
+#endif
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN 
+#ifdef HAVE_BYTESWAP_H
 # define scr_ntoh16(x) bswap_16(x)
 # define scr_ntoh32(x) bswap_32(x)
 # define scr_ntoh64(x) bswap_64(x)
 # define scr_hton16(x) bswap_16(x)
 # define scr_hton32(x) bswap_32(x)
 # define scr_hton64(x) bswap_64(x)
+#else
+# define scr_ntoh16(x) scr_bswap_16(x)
+# define scr_ntoh32(x) scr_bswap_32(x)
+# define scr_ntoh64(x) scr_bswap_64(x)
+# define scr_hton16(x) scr_bswap_16(x)
+# define scr_hton32(x) scr_bswap_32(x)
+# define scr_hton64(x) scr_bswap_64(x)
+#endif
 #else
 # define scr_ntoh16(x) (x)
 # define scr_ntoh32(x) (x)

@@ -45,6 +45,7 @@ DIST_COMMON = README $(am__configure_deps) $(dist_pkgdata_DATA) \
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/lx_find_mpi.m4 \
+	$(top_srcdir)/m4/x_ac_byteswap.m4 \
 	$(top_srcdir)/m4/x_ac_config_scr.m4 \
 	$(top_srcdir)/m4/x_ac_expand_install_dirs.m4 \
 	$(top_srcdir)/m4/x_ac_gcs.m4 $(top_srcdir)/m4/x_ac_machine.m4 \
