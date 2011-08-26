@@ -6,7 +6,7 @@ AC_DEFUN([X_AC_MACHINE], [
   machine_name=""
   AC_ARG_WITH(
     [machine-name],
-    AS_HELP_STRING(--with-machine-name=NAME,Specify the type of the machine. See documentation for valid values, default=TLCC),
+    AS_HELP_STRING([--with-machine-name=NAME,Specify the type of the machine. See documentation for valid values, default=TLCC]),
     [MACHINE_NAME="$withval"],
     [MACHINE_NAME="TLCC"])
   AC_MSG_RESULT([machine type is... $MACHINE_NAME])

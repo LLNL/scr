@@ -12,6 +12,8 @@
 /* This implements the scr_err.h interface, but for serial jobs,
  * like the SCR utilities. */
 
+#include <config.h>
+
 #include "scr_env.h"
 #include "scr_err.h"
 
@@ -73,7 +75,7 @@ char* scr_env_jobid()
 
   /* read $SLURM_JOBID environment variable for jobid string */
   char* value;
-#if SCR_MACHINE_TYPE == TLCC
+#if SCR_MACHINE_TYPE == SCR_TLCC
   if ((value = getenv("SLURM_JOBID")) != NULL) {
     jobid = strdup(value);
     if (jobid == NULL) {
@@ -82,7 +84,7 @@ char* scr_env_jobid()
       );
     }
   }
-#elif SCR_MACHINE_TYPE == CRAY_XT
+#elif SCR_MACHINE_TYPE == SCR_CRAY_XT
   if ((value = getenv("PBS_JOBID")) != NULL) {
     jobid = strdup(value);
     if (jobid == NULL) {
