@@ -35,6 +35,7 @@ while getopts "p:" flag ; do
   esac
 done
 
+pardir=$PARDIR
 # check that we have the parallel file system prefix directory
 if [ "$PARDIR" == "" ] ; then
   print_usage
