@@ -105,11 +105,7 @@ Define common hash key strings
 
 /* the rest of these hash keys are only used in memory or in files
  * that live for the life of the job, thus backwards compatibility is not needed */
-#define SCR_FLUSH_KEY_FILE      ("FILE")
-#define SCR_FLUSH_KEY_META      ("META")
-#define SCR_FLUSH_KEY_PATH      ("PATH")
-#define SCR_FLUSH_KEY_DATASET   ("DATASET")
-
+#define SCR_FLUSH_KEY_DATASET  ("DATASET")
 #define SCR_FLUSH_KEY_LOCATION ("LOCATION")
 #define SCR_FLUSH_KEY_LOCATION_CACHE    ("CACHE")
 #define SCR_FLUSH_KEY_LOCATION_PFS      ("PFS")
@@ -120,9 +116,12 @@ Define common hash key strings
 #define SCR_FILEMAP_KEY_PARTNER ("PARTNER")
 
 /* transfer file keys */
-#define SCR_TRANSFER_KEY_FILES   ("FILES")
-#define SCR_TRANSFER_KEY_BW      ("BW")
-#define SCR_TRANSFER_KEY_PERCENT ("PERCENT")
+#define SCR_TRANSFER_KEY_FILES       ("FILES")
+#define SCR_TRANSFER_KEY_DESTINATION ("DESTINATION")
+#define SCR_TRANSFER_KEY_SIZE        ("SIZE")
+#define SCR_TRANSFER_KEY_WRITTEN     ("WRITTEN")
+#define SCR_TRANSFER_KEY_BW          ("BW")
+#define SCR_TRANSFER_KEY_PERCENT     ("PERCENT")
 
 #define SCR_TRANSFER_KEY_COMMAND ("COMMAND")
 #define SCR_TRANSFER_KEY_COMMAND_RUN  ("RUN")

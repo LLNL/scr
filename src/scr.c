@@ -345,33 +345,6 @@ static int scr_set_partners(MPI_Comm comm, int dist,
 
 /*
 =========================================
-Configuration file
-=========================================
-*/
-
-/* read parameters from config file and fill in hash (parallel) */
-int scr_config_read(const char* file, scr_hash* hash)
-{
-  int rc = SCR_FAILURE;
-
-  /* only rank 0 reads the file */
-  if (scr_my_rank_world == 0) {
-    rc = scr_config_read_serial(file, hash);
-  }
-
-  /* broadcast whether rank 0 read the file ok */
-  MPI_Bcast(&rc, 1, MPI_INT, 0, scr_comm_world);
-
-  /* if rank 0 read the file, broadcast the hash */
-  if (rc == SCR_SUCCESS) {
-    rc = scr_hash_bcast(hash, 0, scr_comm_world);
-  }
-
-  return rc;
-}
-
-/*
-=========================================
 Redundancy descriptor functions
 =========================================
 */
@@ -857,136 +830,12 @@ static int scr_reddesc_free_list()
 
 /*
 =========================================
-Checkpoint functions
+Meta data functions
 =========================================
 */
 
-/*
-  GOALS: 
-    - support different number of processes per node on
-      a restart
-    - support multiple files per rank per checkpoint
-    - support multiple checkpoints at different cache levels
-*/
-
-/* searches through the cache descriptors and returns the size of the cache whose BASE
- * matches the specified base */
-static int scr_cachedesc_size(const char* target)
-{
-  /* iterate over each of our cache descriptors */
-  scr_hash* index = scr_hash_get(scr_cachedesc_hash, SCR_CONFIG_KEY_CACHEDESC);
-  scr_hash_elem* elem;
-  for (elem = scr_hash_elem_first(index);
-       elem != NULL;
-       elem = scr_hash_elem_next(elem))
-  {
-    /* get a reference to the hash for the current descriptor */
-    scr_hash* h = scr_hash_elem_hash(elem);
-
-    /* get the BASE value for this descriptor */
-    char* base;
-    if (scr_hash_util_get_str(h, SCR_CONFIG_KEY_BASE, &base) == SCR_SUCCESS) {
-      /* if the BASE is set, and if it matches the specified base, lookup and return the size */
-      if (strcmp(base, target) == 0) {
-        int size;
-        if (scr_hash_util_get_int(h, SCR_CONFIG_KEY_SIZE, &size) == SCR_SUCCESS) {
-          return size;
-        }
-
-        /* found the base, but couldn't find the size, so return a size of 0 */
-        return 0;
-      }
-    }
-  }
-
-  /* couldn't find the specified base, so return a size of 0 */
-  return 0;
-}
-
-/* returns name of the cache directory for a given redundancy descriptor and dataset id */
-static int scr_cache_dir_get(const struct scr_reddesc* c, int id, char* dir)
-{
-  /* fatal error if c or c->directory is not set */
-  if (c == NULL || c->directory == NULL) {
-    scr_abort(-1, "NULL redundancy descriptor or NULL dataset directory @ %s:%d",
-            __FILE__, __LINE__
-    );
-  }
-
-  /* now build the checkpoint directory name */
-  sprintf(dir, "%s/dataset.%d", c->directory, id);
-  return SCR_SUCCESS;
-}
-
-/* create a cache directory given a redundancy descriptor and dataset id,
- * waits for all tasks on the same node before returning */
-static int scr_cache_dir_create(const struct scr_reddesc* c, int id)
-{
-  int rc = SCR_SUCCESS;
-
-  /* have the master rank on each node create the directory */
-  if (scr_my_rank_local == 0) {
-    /* get the name of the checkpoint directory for the given id */
-    char dir[SCR_MAX_FILENAME];
-    scr_cache_dir_get(c, id, dir);
-
-    /* create the directory */
-    scr_dbg(2, "Creating dataset directory: %s", dir);
-    rc = scr_mkdir(dir, S_IRWXU);
-
-    /* check that we created the directory successfully, fatal error if not */
-    if (rc != SCR_SUCCESS) {
-      scr_abort(-1, "Failed to create dataset directory, aborting @ %s:%d",
-                __FILE__, __LINE__
-      );
-    }
-  }
-
-  /* force all tasks on the same node to wait to ensure the directory is ready before returning */
-  MPI_Barrier(scr_comm_local);
-
-  return SCR_SUCCESS;
-}
-
-/* remove a cache directory given a redundancy descriptor and dataset id,
- * waits for all tasks on the same node before removing */
-static int scr_cache_dir_delete(const char* prefix, int id)
-{
-  /* force all tasks on the same node to wait before we delete the directory */
-  MPI_Barrier(scr_comm_local);
-
-  /* have the master rank on each node remove the directory */
-  if (scr_my_rank_local == 0) {
-    char dir[SCR_MAX_FILENAME];
-    sprintf(dir, "%s/dataset.%d", prefix, id);
-    scr_dbg(2, "Removing dataset directory: %s", dir);
-    rmdir(dir);
-  }
-
-  return SCR_SUCCESS;
-}
-
-/* removes entries in flush file for given dataset id */
-static int scr_flush_file_dataset_remove(int id)
-{
-  /* only rank 0 needs to write the file */
-  if (scr_my_rank_world == 0) {
-    /* read the flush file into hash */
-    scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
-
-    /* delete this dataset id from the flush file */
-    scr_hash_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-
-    /* write the hash back to the flush file */
-    scr_hash_write(scr_flush_file, hash);
-
-    /* delete the hash */
-    scr_hash_delete(hash);
-  }
-  return SCR_SUCCESS;
-}
-
+/* compute and store crc32 value for specified file in given dataset and rank,
+ * check against current value if one is set */
 static int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
 {
   /* compute crc for the file */
@@ -1032,151 +881,8 @@ static int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
   return rc;
 }
 
-/* remove all files associated with specified dataset */
-static int scr_cache_delete(scr_filemap* map, int id)
-{
-  /* print a debug messages */
-  if (scr_my_rank_world == 0) {
-    scr_dbg(1, "Deleting dataset %d from cache", id);
-  }
-
-  /* for each file of each rank we have for this dataset, delete the file */
-  scr_hash_elem* rank_elem;
-  for (rank_elem = scr_filemap_first_rank_by_dataset(map, id);
-       rank_elem != NULL;
-       rank_elem = scr_hash_elem_next(rank_elem))
-  {
-    /* get the rank id */
-    int rank = scr_hash_elem_key_int(rank_elem);
-
-    scr_hash_elem* file_elem;
-    for (file_elem = scr_filemap_first_file(map, id, rank);
-         file_elem != NULL;
-         file_elem = scr_hash_elem_next(file_elem))
-    {
-      /* get the filename */
-      char* file = scr_hash_elem_key(file_elem); 
-
-      /* check file's crc value (monitor that cache hardware isn't corrupting files on us) */
-      if (scr_crc_on_delete) {
-        /* TODO: if corruption, need to log */
-        if (scr_compute_crc(map, id, rank, file) != SCR_SUCCESS) {
-          scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
-                  file, __FILE__, __LINE__
-          );
-        }
-      }
-
-      /* delete the file */
-      unlink(file);
-    }
-  }
-
-  /* remove the cache directory for this dataset */
-  char* dir = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
-  if (dir != NULL) {
-    /* remove the dataset directory from cache */
-    scr_cache_dir_delete(dir, id);
-    free(dir);
-  } else {
-    /* TODO: abort! */
-  }
-
-  /* delete any entry in the flush file for this dataset */
-  scr_flush_file_dataset_remove(id);
-
-  /* TODO: remove data from transfer file for this dataset */
-
-  /* remove this dataset from the filemap, and write new filemap to disk */
-  scr_filemap_remove_dataset(map, id);
-  scr_filemap_write(scr_map_file, map);
-
-  return SCR_SUCCESS;
-}
-
-/* each process passes in an ordered list of dataset ids along with a current index,
- * this function identifies the next smallest id across all processes and returns
- * this id in current, it also updates index on processes as appropriate */
-static int scr_next_dataset(int ndsets, const int* dsets, int* index, int* current)
-{
-  int dset_index = *index;
-
-  /* get the next dataset we have in our list */
-  int id = -1;
-  if (dset_index < ndsets) {
-    id = dsets[dset_index];
-  }
-
-  /* find the maximum dataset id across all ranks */
-  int current_id;
-  MPI_Allreduce(&id, &current_id, 1, MPI_INT, MPI_MAX, scr_comm_world);
-
-  /* if any process has any dataset, identify the smallest */
-  if (current_id != -1) {
-    /* now find the minimum dataset id (that's not -1) */
-    if (id == -1) {
-      /* if we don't have a dataset, set our id to the max to avoid
-       * picking -1 as the minimum */
-      id = current_id;
-    }
-    MPI_Allreduce(&id, &current_id, 1, MPI_INT, MPI_MIN, scr_comm_world);
-
-    /* if the current id matches our id, increment our index for the next iteration */
-    if (current_id == id) {
-      dset_index++;
-    }
-  }
-
-  /* update caller's current index value and the dataset id we settled on */
-  *index   = dset_index;
-  *current = current_id;
-
-  return SCR_SUCCESS;
-}
-
-/* remove all files recorded in filemap and the filemap itself */
-static int scr_cache_purge(scr_filemap* map)
-{
-  /* TODO: put dataset selection logic into a function */
-
-  /* get the list of datasets we have in our cache */
-  int ndsets;
-  int* dsets;
-  scr_filemap_list_datasets(map, &ndsets, &dsets);
-
-  /* TODO: also attempt to recover datasets which we were in the middle of flushing */
-  int current_id;
-  int dset_index = 0;
-  do {
-    /* get the smallest index across all processes (returned in current_id),
-     * this also updates our dset_index value if appropriate */
-    scr_next_dataset(ndsets, dsets, &dset_index, &current_id);
-    
-    /* if we found a dataset, delete it */
-    if (current_id != -1) {
-      /* remove this dataset from all tasks */
-      scr_cache_delete(map, current_id);
-    }
-  } while (current_id != -1);
-
-  /* now delete the filemap itself */
-  unlink(scr_map_file);
-
-  /* TODO: want to clear the map object here? */
-
-  /* TODO: want to delete the master map file? */
-
-  /* free our list of dataset ids */
-  if (dsets != NULL) {
-    free(dsets);
-    dsets = NULL;
-  }
-
-  return 1;
-}
-
 /* checks whether specifed file exists, is readable, and is complete */
-static int scr_bool_have_file(scr_filemap* map, int dset, int rank, const char* file, int ranks)
+static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* file, int ranks)
 {
   /* if no filename is given return false */
   if (file == NULL || strcmp(file,"") == 0) {
@@ -1302,7 +1008,7 @@ static int scr_bool_have_file(scr_filemap* map, int dset, int rank, const char* 
 }
 
 /* check whether we have all files for a given rank of a given dataset */
-static int scr_bool_have_files(scr_filemap* map, int id, int rank)
+static int scr_bool_have_files(const scr_filemap* map, int id, int rank)
 {
   /* check whether we have any files for the specified rank */
   if (! scr_filemap_have_rank_by_dataset(map, id, rank)) {
@@ -1333,6 +1039,439 @@ static int scr_bool_have_files(scr_filemap* map, int id, int rank)
   }
 
   /* if we make it here, we have all of our files */
+  return 1;
+}
+
+/*
+=========================================
+Flush file functions
+=========================================
+*/
+
+/* returns true if the given dataset id needs to be flushed */
+static int scr_bool_need_flush(int id)
+{
+  int need_flush = 0;
+
+  /* just have rank 0 read the file */
+  if (scr_my_rank_world == 0) {
+    /* read the flush file */
+    scr_hash* hash = scr_hash_new();
+    scr_hash_read(scr_flush_file, hash);
+
+    /* if we have the dataset in cache, but not on the parallel file system,
+     * then it needs to be flushed */
+    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
+    scr_hash* in_cache = scr_hash_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
+    scr_hash* in_pfs   = scr_hash_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_PFS);
+    if (in_cache != NULL && in_pfs == NULL) {
+      need_flush = 1;
+    }
+
+    /* free the hash object */
+    scr_hash_delete(hash);
+  }
+  MPI_Bcast(&need_flush, 1, MPI_INT, 0, scr_comm_world);
+
+  return need_flush;
+}
+
+/* checks whether the specified dataset id is currently being flushed */
+static int scr_bool_is_flushing(int id)
+{
+  /* assume we are not flushing this checkpoint */
+  int is_flushing = 0;
+
+  /* only rank 0 tests the file */
+  if (scr_my_rank_world == 0) {
+    /* read flush file into hash */
+    scr_hash* hash = scr_hash_new();
+    scr_hash_read(scr_flush_file, hash);
+
+    /* attempt to look up the FLUSHING state for this checkpoint */
+    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
+    scr_hash* flushing_hash = scr_hash_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_FLUSHING);
+    if (flushing_hash != NULL) {
+      is_flushing = 1;
+    }
+
+    /* delete the hash */
+    scr_hash_delete(hash);
+  }
+
+  /* need every task to agree that this checkpoint is not being flushed */
+  if (! scr_alltrue(is_flushing == 0)) {
+    is_flushing = 1;
+  }
+  return is_flushing;
+}
+
+/* removes entries in flush file for given dataset id */
+static int scr_flush_file_dataset_remove(int id)
+{
+  /* only rank 0 needs to write the file */
+  if (scr_my_rank_world == 0) {
+    /* read the flush file into hash */
+    scr_hash* hash = scr_hash_new();
+    scr_hash_read(scr_flush_file, hash);
+
+    /* delete this dataset id from the flush file */
+    scr_hash_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
+
+    /* write the hash back to the flush file */
+    scr_hash_write(scr_flush_file, hash);
+
+    /* delete the hash */
+    scr_hash_delete(hash);
+  }
+  return SCR_SUCCESS;
+}
+
+/* adds a location for the specified dataset id to the flush file */
+static int scr_flush_file_location_set(int id, const char* location)
+{
+  /* only rank 0 updates the file */
+  if (scr_my_rank_world == 0) {
+    /* read the flush file into hash */
+    scr_hash* hash = scr_hash_new();
+    scr_hash_read(scr_flush_file, hash);
+
+    /* set the location for this dataset */
+    scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
+    scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
+
+    /* write the hash back to the flush file */
+    scr_hash_write(scr_flush_file, hash);
+
+    /* delete the hash */
+    scr_hash_delete(hash);
+  }
+  return SCR_SUCCESS;
+}
+
+/* returns SCR_SUCCESS if specified dataset id is at specified location */
+static int scr_flush_file_location_test(int id, const char* location)
+{
+  /* only rank 0 checks the status, bcasts the results to everyone else */
+  int at_location = 0;
+  if (scr_my_rank_world == 0) {
+    /* read the flush file into hash */
+    scr_hash* hash = scr_hash_new();
+    scr_hash_read(scr_flush_file, hash);
+
+    /* check the location for this dataset */
+    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
+    scr_hash* value     = scr_hash_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
+    if (value != NULL) {
+      at_location = 1;
+    }
+
+    /* delete the hash */
+    scr_hash_delete(hash);
+  }
+  MPI_Bcast(&at_location, 1, MPI_INT, 0, scr_comm_world);
+
+  if (! at_location) {
+    return SCR_FAILURE;
+  }
+  return SCR_SUCCESS;
+}
+
+/* removes a location for the specified dataset id from the flush file */
+static int scr_flush_file_location_unset(int id, const char* location)
+{
+  /* only rank 0 updates the file */
+  if (scr_my_rank_world == 0) {
+    /* read the flush file into hash */
+    scr_hash* hash = scr_hash_new();
+    scr_hash_read(scr_flush_file, hash);
+
+    /* unset the location for this dataset */
+    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
+    scr_hash_unset_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
+
+    /* write the hash back to the flush file */
+    scr_hash_write(scr_flush_file, hash);
+
+    /* delete the hash */
+    scr_hash_delete(hash);
+  }
+  return SCR_SUCCESS;
+}
+
+/*
+=========================================
+Dataset cache functions
+=========================================
+*/
+
+/* searches through the cache descriptors and returns the size of the cache whose BASE
+ * matches the specified base */
+static int scr_cachedesc_size(const char* target)
+{
+  /* iterate over each of our cache descriptors */
+  scr_hash* index = scr_hash_get(scr_cachedesc_hash, SCR_CONFIG_KEY_CACHEDESC);
+  scr_hash_elem* elem;
+  for (elem = scr_hash_elem_first(index);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* get a reference to the hash for the current descriptor */
+    scr_hash* h = scr_hash_elem_hash(elem);
+
+    /* get the BASE value for this descriptor */
+    char* base;
+    if (scr_hash_util_get_str(h, SCR_CONFIG_KEY_BASE, &base) == SCR_SUCCESS) {
+      /* if the BASE is set, and if it matches the specified base, lookup and return the size */
+      if (strcmp(base, target) == 0) {
+        int size;
+        if (scr_hash_util_get_int(h, SCR_CONFIG_KEY_SIZE, &size) == SCR_SUCCESS) {
+          return size;
+        }
+
+        /* found the base, but couldn't find the size, so return a size of 0 */
+        return 0;
+      }
+    }
+  }
+
+  /* couldn't find the specified base, so return a size of 0 */
+  return 0;
+}
+
+/* returns name of the cache directory for a given redundancy descriptor and dataset id */
+static int scr_cache_dir_get(const struct scr_reddesc* c, int id, char* dir)
+{
+  /* fatal error if c or c->directory is not set */
+  if (c == NULL || c->directory == NULL) {
+    scr_abort(-1, "NULL redundancy descriptor or NULL dataset directory @ %s:%d",
+            __FILE__, __LINE__
+    );
+  }
+
+  /* now build the checkpoint directory name */
+  sprintf(dir, "%s/dataset.%d", c->directory, id);
+  return SCR_SUCCESS;
+}
+
+/* create a cache directory given a redundancy descriptor and dataset id,
+ * waits for all tasks on the same node before returning */
+static int scr_cache_dir_create(const struct scr_reddesc* c, int id)
+{
+  int rc = SCR_SUCCESS;
+
+  /* have the master rank on each node create the directory */
+  if (scr_my_rank_local == 0) {
+    /* get the name of the checkpoint directory for the given id */
+    char dir[SCR_MAX_FILENAME];
+    scr_cache_dir_get(c, id, dir);
+
+    /* create the directory */
+    scr_dbg(2, "Creating dataset directory: %s", dir);
+    rc = scr_mkdir(dir, S_IRWXU);
+
+    /* check that we created the directory successfully, fatal error if not */
+    if (rc != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to create dataset directory, aborting @ %s:%d",
+                __FILE__, __LINE__
+      );
+    }
+  }
+
+  /* force all tasks on the same node to wait to ensure the directory is ready before returning */
+  MPI_Barrier(scr_comm_local);
+
+  return SCR_SUCCESS;
+}
+
+/* remove a cache directory given a redundancy descriptor and dataset id,
+ * waits for all tasks on the same node before removing */
+static int scr_cache_dir_delete(const char* prefix, int id)
+{
+  /* force all tasks on the same node to wait before we delete the directory */
+  MPI_Barrier(scr_comm_local);
+
+  /* have the master rank on each node remove the directory */
+  if (scr_my_rank_local == 0) {
+    char dir[SCR_MAX_FILENAME];
+    sprintf(dir, "%s/dataset.%d", prefix, id);
+    scr_dbg(2, "Removing dataset directory: %s", dir);
+    rmdir(dir);
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* remove all files associated with specified dataset */
+static int scr_cache_delete(scr_filemap* map, int id)
+{
+  /* print a debug messages */
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "Deleting dataset %d from cache", id);
+  }
+
+  /* for each file of each rank we have for this dataset, delete the file */
+  scr_hash_elem* rank_elem;
+  for (rank_elem = scr_filemap_first_rank_by_dataset(map, id);
+       rank_elem != NULL;
+       rank_elem = scr_hash_elem_next(rank_elem))
+  {
+    /* get the rank id */
+    int rank = scr_hash_elem_key_int(rank_elem);
+
+    scr_hash_elem* file_elem;
+    for (file_elem = scr_filemap_first_file(map, id, rank);
+         file_elem != NULL;
+         file_elem = scr_hash_elem_next(file_elem))
+    {
+      /* get the filename */
+      char* file = scr_hash_elem_key(file_elem); 
+
+      /* check file's crc value (monitor that cache hardware isn't corrupting files on us) */
+      if (scr_crc_on_delete) {
+        /* TODO: if corruption, need to log */
+        if (scr_compute_crc(map, id, rank, file) != SCR_SUCCESS) {
+          scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
+                  file, __FILE__, __LINE__
+          );
+        }
+      }
+
+      /* delete the file */
+      unlink(file);
+    }
+  }
+
+  /* remove the cache directory for this dataset */
+  char* dir = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
+  if (dir != NULL) {
+    /* remove the dataset directory from cache */
+    scr_cache_dir_delete(dir, id);
+    free(dir);
+  } else {
+    /* TODO: abort! */
+  }
+
+  /* delete any entry in the flush file for this dataset */
+  scr_flush_file_dataset_remove(id);
+
+  /* TODO: remove data from transfer file for this dataset */
+
+  /* remove this dataset from the filemap, and write new filemap to disk */
+  scr_filemap_remove_dataset(map, id);
+  scr_filemap_write(scr_map_file, map);
+
+  return SCR_SUCCESS;
+}
+
+/* each process passes in an ordered list of dataset ids along with a current index,
+ * this function identifies the next smallest id across all processes and returns
+ * this id in current, it also updates index on processes as appropriate */
+static int scr_next_dataset(int ndsets, const int* dsets, int* index, int* current)
+{
+  int dset_index = *index;
+
+  /* get the next dataset we have in our list */
+  int id = -1;
+  if (dset_index < ndsets) {
+    id = dsets[dset_index];
+  }
+
+  /* find the maximum dataset id across all ranks */
+  int current_id;
+  MPI_Allreduce(&id, &current_id, 1, MPI_INT, MPI_MAX, scr_comm_world);
+
+  /* if any process has any dataset, identify the smallest */
+  if (current_id != -1) {
+    /* now find the minimum dataset id (that's not -1) */
+    if (id == -1) {
+      /* if we don't have a dataset, set our id to the max to avoid
+       * picking -1 as the minimum */
+      id = current_id;
+    }
+    MPI_Allreduce(&id, &current_id, 1, MPI_INT, MPI_MIN, scr_comm_world);
+
+    /* if the current id matches our id, increment our index for the next iteration */
+    if (current_id == id) {
+      dset_index++;
+    }
+  }
+
+  /* update caller's current index value and the dataset id we settled on */
+  *index   = dset_index;
+  *current = current_id;
+
+  return SCR_SUCCESS;
+}
+
+/* given a filemap, a dataset, and a rank, unlink those files and remove them from the map */
+static int scr_unlink_rank(scr_filemap* map, int id, int rank)
+{
+  /* delete each file and remove its metadata file */
+  scr_hash_elem* file_elem;
+  for (file_elem = scr_filemap_first_file(map, id, rank);
+       file_elem != NULL;
+       file_elem = scr_hash_elem_next(file_elem))
+  {
+    char* file = scr_hash_elem_key(file_elem);
+    if (file != NULL) {
+      scr_dbg(2, "Delete file Dataset %d, Rank %d, File %s", id, rank, file);
+
+      /* delete the file */
+      unlink(file);
+
+      /* remove the file from the map */
+      scr_filemap_remove_file(map, id, rank, file);
+    }
+  }
+
+  /* unset the expected number of files for this rank */
+  scr_filemap_unset_expected_files(map, id, rank);
+
+  /* write the new filemap to disk */
+  scr_filemap_write(scr_map_file, map);
+
+  return SCR_SUCCESS;
+}
+
+/* remove all files recorded in filemap and the filemap itself */
+static int scr_cache_purge(scr_filemap* map)
+{
+  /* TODO: put dataset selection logic into a function */
+
+  /* get the list of datasets we have in our cache */
+  int ndsets;
+  int* dsets;
+  scr_filemap_list_datasets(map, &ndsets, &dsets);
+
+  /* TODO: also attempt to recover datasets which we were in the middle of flushing */
+  int current_id;
+  int dset_index = 0;
+  do {
+    /* get the smallest index across all processes (returned in current_id),
+     * this also updates our dset_index value if appropriate */
+    scr_next_dataset(ndsets, dsets, &dset_index, &current_id);
+    
+    /* if we found a dataset, delete it */
+    if (current_id != -1) {
+      /* remove this dataset from all tasks */
+      scr_cache_delete(map, current_id);
+    }
+  } while (current_id != -1);
+
+  /* now delete the filemap itself */
+  unlink(scr_map_file);
+
+  /* TODO: want to clear the map object here? */
+
+  /* TODO: want to delete the master map file? */
+
+  /* free our list of dataset ids */
+  if (dsets != NULL) {
+    free(dsets);
+    dsets = NULL;
+  }
+
   return 1;
 }
 
@@ -1453,7 +1592,7 @@ static int scr_cache_clean(scr_filemap* map)
 }
 
 /* returns true iff each file in the filemap can be read */
-static int scr_cache_check_files(scr_filemap* map, int id)
+static int scr_cache_check_files(const scr_filemap* map, int id)
 {
   /* for each file of each rank for specified dataset id */
   int failed_read = 0;
@@ -2381,11 +2520,12 @@ int scr_copy_files(scr_filemap* map, const struct scr_reddesc* c, int id, double
 
 /*
 =========================================
-Flush and fetch functions
+Summary file functions
 =========================================
 */
 
-/* read in the summary file from dir assuming file is using version 4 format or earlier, convert to version 5 hash */
+/* read in the summary file from dir assuming file is using version 4 format or earlier,
+ * convert to version 5 hash */
 static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
 {
   /* check that we have a pointer to a hash */
@@ -2566,7 +2706,8 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
     }
   }
 
-  /* we've read in all of the records, now set the values for the complete field and the number of ranks field */
+  /* we've read in all of the records, now set the values for the complete field
+   * and the number of ranks field */
   if (ckpt_hash != NULL) {
     scr_hash_set_kv_int(ckpt_hash, SCR_SUMMARY_5_KEY_COMPLETE, all_complete);
     scr_hash_set_kv_int(ckpt_hash, SCR_SUMMARY_5_KEY_RANKS, all_ranks);
@@ -2868,226 +3009,11 @@ static int scr_summary_write(const char* dir, const scr_dataset* dataset, int al
   return SCR_SUCCESS;
 }
 
-/* write out the summary file to dir */
-static int scr_summary_write_old(const char* dir, int checkpoint_id, int all_complete, scr_hash* data)
-{
-  return SCR_FAILURE;
-}
-
-/* returns true if the given dataset id needs to be flushed */
-static int scr_bool_need_flush(int id)
-{
-  int need_flush = 0;
-
-  /* just have rank 0 read the file */
-  if (scr_my_rank_world == 0) {
-    /* read the flush file */
-    scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
-
-    /* if we have the dataset in cache, but not on the parallel file system,
-     * then it needs to be flushed */
-    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-    scr_hash* in_cache = scr_hash_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
-    scr_hash* in_pfs   = scr_hash_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_PFS);
-    if (in_cache != NULL && in_pfs == NULL) {
-      need_flush = 1;
-    }
-
-    /* free the hash object */
-    scr_hash_delete(hash);
-  }
-  MPI_Bcast(&need_flush, 1, MPI_INT, 0, scr_comm_world);
-
-  return need_flush;
-}
-
-/* adds a location for the specified dataset id to the flush file */
-static int scr_flush_file_location_set(int id, const char* location)
-{
-  /* only rank 0 updates the file */
-  if (scr_my_rank_world == 0) {
-    /* read the flush file into hash */
-    scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
-
-    /* set the location for this dataset */
-    scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-    scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
-
-    /* write the hash back to the flush file */
-    scr_hash_write(scr_flush_file, hash);
-
-    /* delete the hash */
-    scr_hash_delete(hash);
-  }
-  return SCR_SUCCESS;
-}
-
-/* returns SCR_SUCCESS if specified dataset id is at specified location */
-static int scr_flush_file_location_test(int id, const char* location)
-{
-  /* only rank 0 checks the status, bcasts the results to everyone else */
-  int at_location = 0;
-  if (scr_my_rank_world == 0) {
-    /* read the flush file into hash */
-    scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
-
-    /* check the location for this dataset */
-    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-    scr_hash* value     = scr_hash_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
-    if (value != NULL) {
-      at_location = 1;
-    }
-
-    /* delete the hash */
-    scr_hash_delete(hash);
-  }
-  MPI_Bcast(&at_location, 1, MPI_INT, 0, scr_comm_world);
-
-  if (! at_location) {
-    return SCR_FAILURE;
-  }
-  return SCR_SUCCESS;
-}
-
-/* removes a location for the specified dataset id from the flush file */
-static int scr_flush_file_location_unset(int id, const char* location)
-{
-  /* only rank 0 updates the file */
-  if (scr_my_rank_world == 0) {
-    /* read the flush file into hash */
-    scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
-
-    /* unset the location for this dataset */
-    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-    scr_hash_unset_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
-
-    /* write the hash back to the flush file */
-    scr_hash_write(scr_flush_file, hash);
-
-    /* delete the hash */
-    scr_hash_delete(hash);
-  }
-  return SCR_SUCCESS;
-}
-
-/* remove any dataset ids from flush file which are not in cache,
- * and add any datasets in cache that are not in the flush file */
-static int scr_flush_file_rebuild(const scr_filemap* map)
-{
-  if (scr_my_rank_world == 0) {
-    /* read the flush file */
-    scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
-
-    /* get list of dataset ids in flush file */
-    int flush_ndsets;
-    int* flush_dsets;
-    scr_hash* flush_dsets_hash = scr_hash_get(hash, SCR_FLUSH_KEY_DATASET);
-    scr_hash_list_int(flush_dsets_hash, &flush_ndsets, &flush_dsets);
-
-    /* get list of dataset ids in cache */
-    int cache_ndsets;
-    int* cache_dsets;
-    scr_filemap_list_datasets(map, &cache_ndsets, &cache_dsets);
-
-    int flush_index = 0;
-    int cache_index = 0;
-    while (flush_index < flush_ndsets && cache_index < cache_ndsets) {
-      /* get next smallest index from flush file and cache */
-      int flush_dset = flush_dsets[flush_index];
-      int cache_dset = cache_dsets[cache_index];
-
-      if (flush_dset < cache_dset) {
-        /* dataset exists in flush file but not in cache,
-         * delete it from the flush file */
-        scr_hash_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, flush_dset);
-        flush_index++;
-      } else if (cache_dset < flush_dset) {
-        /* dataset exists in cache but not flush file,
-         * add it to the flush file */
-        scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, cache_dset);
-        scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
-        cache_index++;
-      } else {
-        /* dataset exists in cache and the flush file,
-         * ensure that it is listed as being in the cache */
-        scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, cache_dset);
-        scr_hash_unset_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
-        scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
-        flush_index++;
-        cache_index++;
-      }
-    }
-    while (flush_index < flush_ndsets) {
-      /* dataset exists in flush file but not in cache,
-       * delete it from the flush file */
-      int flush_dset = flush_dsets[flush_index];
-      scr_hash_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, flush_dset);
-      flush_index++;
-    }
-    while (cache_index < cache_ndsets) {
-      /* dataset exists in cache but not flush file,
-       * add it to the flush file */
-      int cache_dset = cache_dsets[cache_index];
-      scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, cache_dset);
-      scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
-      cache_index++;
-    }
-
-    /* free our list of cache dataset ids */
-    if (cache_dsets != NULL) {
-      free(cache_dsets);
-      cache_dsets = NULL;
-    }
-
-    /* free our list of flush file dataset ids */
-    if (flush_dsets != NULL) {
-      free(flush_dsets);
-      flush_dsets = NULL;
-    }
-
-    /* write the hash back to the flush file */
-    scr_hash_write(scr_flush_file, hash);
-
-    /* delete the hash */
-    scr_hash_delete(hash);
-  }
-  return SCR_SUCCESS;
-}
-
-/* checks whether the specified dataset id is currently being flushed */
-static int scr_bool_is_flushing(int id)
-{
-  /* assume we are not flushing this checkpoint */
-  int is_flushing = 0;
-
-  /* only rank 0 tests the file */
-  if (scr_my_rank_world == 0) {
-    /* read flush file into hash */
-    scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
-
-    /* attempt to look up the FLUSHING state for this checkpoint */
-    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-    scr_hash* flushing_hash = scr_hash_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_FLUSHING);
-    if (flushing_hash != NULL) {
-      is_flushing = 1;
-    }
-
-    /* delete the hash */
-    scr_hash_delete(hash);
-  }
-
-  /* need every task to agree that this checkpoint is not being flushed */
-  if (! scr_alltrue(is_flushing == 0)) {
-    is_flushing = 1;
-  }
-  return is_flushing;
-}
+/*
+=========================================
+Fetch functions
+=========================================
+*/
 
 /* fetch file name in meta from dir and build new full path in newfile,
  * return whether operation succeeded */
@@ -3888,6 +3814,144 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
   return rc;
 }
 
+/* attempt to fetch most recent checkpoint from prefix directory into cache */
+static int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
+{
+  /* we only return success if we successfully fetch a checkpoint */
+  int rc = SCR_FAILURE;
+
+  double time_start, time_end, time_diff;
+
+  /* start timer */
+  if (scr_my_rank_world == 0) {
+    time_start = MPI_Wtime();
+  }
+
+  /* build the filename for the current symlink */
+  char scr_current[SCR_MAX_FILENAME];
+  scr_build_path(scr_current, sizeof(scr_current), scr_par_prefix, SCR_CURRENT_LINK);
+
+  /* have rank 0 read the index file */
+  scr_hash* index_hash = NULL;
+  int read_index_file = 0;
+  if (scr_my_rank_world == 0) {
+    /* create an empty hash to store our index */
+    index_hash = scr_hash_new();
+
+    /* read the index file */
+    if (scr_index_read(scr_par_prefix, index_hash) == SCR_SUCCESS) {
+      /* remember that we read the index file ok, so we know we can write to it later
+       * this way we don't overwrite an existing index file just because the read happened to fail */
+      read_index_file = 1;
+    }
+  }
+
+  /* now start fetching, we keep trying until we exhaust all valid checkpoints */
+  char target[SCR_MAX_FILENAME];
+  char fetch_dir[SCR_MAX_FILENAME];
+  int current_checkpoint_id = -1;
+  int continue_fetching = 1;
+  while (continue_fetching) {
+    /* initialize our target and fetch directory values to empty strings */
+    strcpy(target, "");
+    strcpy(fetch_dir, "");
+
+    /* rank 0 determines the directory to fetch from */
+    if (scr_my_rank_world == 0) {
+      /* read the target of the current symlink if there is one */
+      if (access(scr_current, R_OK) == 0) {
+        int target_len = readlink(scr_current, target, sizeof(target)-1);
+        if (target_len >= 0) {
+          target[target_len] = '\0';
+        }
+      }
+
+      /* if we read the index file, lookup the checkpoint id */
+      if (read_index_file) {
+        int next_checkpoint_id = -1;
+        if (strcmp(target, "") != 0) {
+          /* we have a subdirectory name, lookup the checkpoint id corresponding to this directory */
+          scr_index_get_id_by_dir(index_hash, target, &next_checkpoint_id);
+        } else {
+          /* otherwise, just get the most recent complete checkpoint
+           * (that's older than the current id) */
+          scr_index_get_most_recent_complete(index_hash, current_checkpoint_id, &next_checkpoint_id, target);
+        }
+        current_checkpoint_id = next_checkpoint_id;
+
+        /* TODODSET: need to verify that dataset is really a checkpoint and keep searching if not */
+      }
+
+      /* if we have a subdirectory (target) name, build the full fetch directory */
+      if (strcmp(target, "") != 0) {
+        /* record that we're attempting a fetch of this checkpoint */
+        *fetch_attempted = 1;
+        if (read_index_file && current_checkpoint_id != -1) {
+          scr_index_mark_fetched(index_hash, current_checkpoint_id, target);
+          scr_index_write(scr_par_prefix, index_hash);
+        }
+
+        /* we have a subdirectory, now build the full path */
+        scr_build_path(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
+      }
+    }
+
+    /* now attempt to fetch the checkpoint */
+    int dset_id, ckpt_id;
+    rc = scr_fetch_files(map, fetch_dir, &dset_id, &ckpt_id);
+    if (rc == SCR_SUCCESS) {
+      /* set the dataset and checkpoint ids */
+      scr_dataset_id = dset_id;
+      scr_checkpoint_id = ckpt_id;
+
+      /* we succeeded in fetching this checkpoint, set current to point to it, and stop fetching */
+      if (scr_my_rank_world == 0) {
+        symlink(target, scr_current);
+      }
+      continue_fetching = 0;
+    } else {
+      /* fetch failed, delete the current symlink */
+      unlink(scr_current);
+
+      /* if we had a fetch directory, mark it as failed so we don't try it again */
+      if (strcmp(fetch_dir, "") != 0) {
+        if (scr_my_rank_world == 0) {
+          if (read_index_file && current_checkpoint_id != -1 && strcmp(target, "") != 0) {
+            scr_index_mark_failed(index_hash, current_checkpoint_id, target);
+            scr_index_write(scr_par_prefix, index_hash);
+          }
+        }
+      } else {
+        /* we ran out of valid checkpoints in the index file, bail out of the loop */
+        continue_fetching = 0;
+      }
+    }
+  }
+
+  /* delete the index hash */
+  if (scr_my_rank_world == 0) {
+    scr_hash_delete(index_hash);
+  }
+
+  /* broadcast whether we actually attempted to fetch anything (only rank 0 knows) */
+  MPI_Bcast(fetch_attempted, 1, MPI_INT, 0, scr_comm_world);
+
+  /* stop timer for fetch */
+  if (scr_my_rank_world == 0) {
+    time_end = MPI_Wtime();
+    time_diff = time_end - time_start;
+    scr_dbg(1, "scr_fetch_files: return code %d, %f secs", rc, time_diff);
+  }
+
+  return rc;
+}
+
+/*
+=========================================
+Common flush functions
+=========================================
+*/
+
 /* returns true if the named file needs to be flushed, 0 otherwise */
 static int scr_bool_flush_file(const scr_filemap* map, int dset, int rank, const char* file)
 {
@@ -3909,8 +3973,9 @@ static int scr_bool_flush_file(const scr_filemap* map, int dset, int rank, const
   return flush;
 }
 
-/* fills in hash with a list of filenames and associated meta data that should be flushed for specified dataset id */
-static int scr_flush_build_list(scr_filemap* map, int id, scr_hash* file_list)
+/* fills in hash with a list of filenames and associated meta data
+ * that should be flushed for specified dataset id */
+static int scr_flush_build_list(const scr_filemap* map, int id, scr_hash* file_list)
 {
   int rc = SCR_SUCCESS;
 
@@ -3939,8 +4004,8 @@ static int scr_flush_build_list(scr_filemap* map, int id, scr_hash* file_list)
 
       /* if we need to flush this file, add it to the list and attach its meta data */
       if (flush) {
-        scr_hash* file_hash = scr_hash_set_kv(file_list, SCR_FLUSH_KEY_FILE, file);
-        scr_hash* meta_hash = scr_hash_set(file_hash, SCR_FLUSH_KEY_META, meta);
+        scr_hash* file_hash = scr_hash_set_kv(file_list, SCR_KEY_FILE, file);
+        scr_hash* meta_hash = scr_hash_set(file_hash, SCR_KEY_META, meta);
         meta = NULL;
       }
     } else {
@@ -4038,61 +4103,6 @@ static int scr_flush_dir_create(const scr_dataset* dataset, char* dir, int n)
   return SCR_SUCCESS;
 }
 
-/* create and return the name of a subdirectory under the prefix directory for the specified checkpoint id */
-static int scr_flush_dir_create_old(int checkpoint_id, char* dir)
-{
-  /* have rank 0 create the checkpoint directory */
-  int dirsize = 0;
-  if (scr_my_rank_world == 0) {
-    /* get the current time */
-    time_t now;
-    now = time(NULL);
-
-    /* format timestamp */
-    char timestamp[SCR_MAX_FILENAME];
-    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H:%M:%S", localtime(&now));
-
-    /* build the directory name */
-    char dirname[SCR_MAX_FILENAME];
-    sprintf(dirname, "scr.%s.%s.%d", timestamp, scr_jobid, checkpoint_id);
-
-    /* add the directory to our index file, and record the flush timestamp */
-    scr_hash* index_hash = scr_hash_new();
-    scr_index_read(scr_par_prefix, index_hash);
-    scr_index_add_dir(index_hash, checkpoint_id, dirname);
-    scr_index_mark_flushed(index_hash, checkpoint_id, dirname);
-    scr_index_write(scr_par_prefix, index_hash);
-    scr_hash_delete(index_hash);
-
-    /* create the directory, set dir to an empty string if mkdir fails */
-    sprintf(dir, "%s/%s", scr_par_prefix, dirname);
-    if (scr_mkdir(dir, S_IRWXU) != SCR_SUCCESS) {
-      /* failed to create the directory */
-      scr_err("Failed to make checkpoint directory mkdir(%s) %m errno=%d @ %s:%d",
-              dir, errno, __FILE__, __LINE__
-      );
-
-      /* set dir to an empty string to indicate failure */
-      strcpy(dir, "");
-    }
-
-    /* compute the size of the directory string, including the terminating NULL character */
-    dirsize = strlen(dir) + 1;
-  }
-
-  /* broadcast the directory name from rank 0 */
-  MPI_Bcast(&dirsize, 1, MPI_INT, 0, scr_comm_world);
-  MPI_Bcast(dir, dirsize, MPI_CHAR, 0, scr_comm_world);
-
-  /* check whether directory was created ok, and bail out if not */
-  if (strcmp(dir, "") == 0) {
-    return SCR_FAILURE;
-  }
-
-  /* otherwise, the directory was created, and we're good to go */
-  return SCR_SUCCESS;
-}
-
 /* create all directories needed for file list */
 static int scr_flush_create_dirs(const scr_hash* file_list)
 {
@@ -4114,14 +4124,14 @@ static int scr_flush_create_dirs(const scr_hash* file_list)
     /* lookup directory from meta data for each file */
     int i = 0;
     scr_hash_elem* elem = NULL;
-    scr_hash* files = scr_hash_get(file_list, SCR_FLUSH_KEY_FILE);
+    scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
     for (elem = scr_hash_elem_first(files);
          elem != NULL;
          elem = scr_hash_elem_next(elem))
     {
       /* get meta data for this file */
       scr_hash* hash = scr_hash_elem_hash(elem);
-      scr_meta* meta = scr_hash_get(hash, SCR_FLUSH_KEY_META);
+      scr_meta* meta = scr_hash_get(hash, SCR_KEY_META);
 
       dirs[i] = NULL;
       char* dir;
@@ -4180,20 +4190,21 @@ static int scr_flush_create_dirs(const scr_hash* file_list)
 
     /* add the flush directory to each file in the list */
     scr_hash_elem* elem = NULL;
-    scr_hash* files = scr_hash_get(file_list, SCR_FLUSH_KEY_FILE);
+    scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
     for (elem = scr_hash_elem_first(files);
          elem != NULL;
          elem = scr_hash_elem_next(elem))
     {
       /* get meta data for this file */
       scr_hash* hash = scr_hash_elem_hash(elem);
-      scr_hash_util_set_str(hash, SCR_FLUSH_KEY_PATH, dir);
+      scr_hash_util_set_str(hash, SCR_KEY_PATH, dir);
     }
 
     return SCR_SUCCESS;
   }
 }
 
+/* given a dataset and a container id, construct full path to container file */
 static int scr_container_construct_name(const scr_dataset* dataset, int id, char* file, int len)
 {
   /* check that we have a dataset and a buffer to write the name to */
@@ -4231,14 +4242,14 @@ static int scr_flush_identify_containers(scr_hash* file_list)
   /* compute total number of bytes we'll flush on this process */
   unsigned long my_bytes = 0;
   scr_hash_elem* elem = NULL;
-  scr_hash* files = scr_hash_get(file_list, SCR_FLUSH_KEY_FILE);
+  scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
   for (elem = scr_hash_elem_first(files);
        elem != NULL;
        elem = scr_hash_elem_next(elem))
   {
     /* get meta data for this file */
     scr_hash* hash = scr_hash_elem_hash(elem);
-    scr_meta* meta = scr_hash_get(hash, SCR_FLUSH_KEY_META);
+    scr_meta* meta = scr_hash_get(hash, SCR_KEY_META);
 
     /* get filesize from meta data */
     unsigned long filesize;
@@ -4281,7 +4292,7 @@ static int scr_flush_identify_containers(scr_hash* file_list)
   {
     /* get meta data for this file */
     scr_hash* hash = scr_hash_elem_hash(elem);
-    scr_meta* meta = scr_hash_get(hash, SCR_FLUSH_KEY_META);
+    scr_meta* meta = scr_hash_get(hash, SCR_KEY_META);
 
     /* get filesize from meta data */
     unsigned long filesize;
@@ -4338,6 +4349,913 @@ static int scr_flush_identify_containers(scr_hash* file_list)
   }
   return SCR_SUCCESS;
 }
+
+/* create container files
+ * could do different things here depending on the file system, for example:
+ *   Lustre - have first process writing to container create it
+ *   GPFS   - gather container names to rank 0 and have it create them all */
+static int scr_flush_create_containers(const scr_hash* file_list)
+{
+  int success = SCR_SUCCESS;
+
+  /* here, we look at each segment a process writes,
+   * and the process which writes data to offset 0 is responsible for creating the container */
+
+  /* get the hash of containers */
+  scr_hash* containers = scr_hash_get(file_list, SCR_SUMMARY_6_KEY_CONTAINER);
+
+  /* iterate over each of our files */
+  scr_hash_elem* file_elem;
+  scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
+  for (file_elem = scr_hash_elem_first(files);
+       file_elem != NULL;
+       file_elem = scr_hash_elem_next(file_elem))
+  {
+    /* get the hash for this file */
+    scr_hash* hash = scr_hash_elem_hash(file_elem);
+
+    /* iterate over the segments for this file */
+    scr_hash_elem* segment_elem;
+    scr_hash* segments = scr_hash_get(hash, SCR_SUMMARY_6_KEY_SEGMENT);
+    for (segment_elem = scr_hash_elem_first(segments);
+         segment_elem != NULL;
+         segment_elem = scr_hash_elem_next(segment_elem))
+    {
+      /* get the hash for this segment */
+      scr_hash* segment = scr_hash_elem_hash(segment_elem);
+
+      /* lookup the container details for this segment */
+      char* name;
+      unsigned long size, offset, length;
+      if (scr_container_get_name_size_offset_length(segment, containers, &name, &size, &offset, &length) == SCR_SUCCESS) {
+        /* if we write something to offset 0 of this container,
+         * we are responsible for creating the file */
+        if (offset == 0 && length > 0) {
+          /* open the file with create and truncate options, then just immediately close it */
+          int fd = scr_open(name, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+          if (fd < 0) {
+            /* the create failed */
+            scr_err("Opening file for writing: scr_open(%s) errno=%d %m @ %s:%d",
+                    name, errno, __FILE__, __LINE__
+            );
+            success = SCR_FAILURE;
+          } else {
+            /* the create succeeded, now just close the file */
+            scr_close(name, fd);
+          }
+        }
+      } else {
+        /* failed to read container details from segment hash, consider this an error */
+        success = SCR_FAILURE;
+      }
+    }
+  }
+
+  /* determine whether all processes successfully created their containers */
+  if (scr_alltrue((success == SCR_SUCCESS))) {
+    return SCR_SUCCESS;
+  }
+  return SCR_FAILURE;
+}
+
+/* write summary file for flush */
+static int scr_flush_summary(const scr_hash* file_list, scr_hash* data)
+{
+  int flushed = SCR_SUCCESS;
+
+  /* TODO: current method is a flat tree with rank 0 as the root,
+   * need a more scalable algorithm */
+
+  /* flow control the send among processes, and gather meta data to rank 0 */
+  if (scr_my_rank_world == 0) {
+    /* now, have a sliding window of w processes send simultaneously */
+    int w = scr_flush_width;
+    if (w > (scr_ranks_world - 1)) {
+      w = scr_ranks_world - 1;
+    }
+
+    /* allocate MPI_Request arrays and an array of ints */
+    int*         ranks    = (int*)         malloc(w * sizeof(int));
+    int*         flags    = (int*)         malloc(w * sizeof(int));
+    MPI_Request* req_recv = (MPI_Request*) malloc(w * sizeof(MPI_Request));
+    MPI_Request* req_send = (MPI_Request*) malloc(w * sizeof(MPI_Request));
+    MPI_Status status;
+
+    int i = 1;
+    int outstanding = 0;
+    int index = 0;
+    while (i < scr_ranks_world || outstanding > 0) {
+      /* issue up to w outstanding sends and receives */
+      while (i < scr_ranks_world && outstanding < w) {
+        /* record which rank we assign to this slot */
+        ranks[index] = i;
+
+        /* post a receive for the response message we'll get back when rank i is done */
+        MPI_Irecv(&flags[index], 1, MPI_INT, i, 0, scr_comm_world, &req_recv[index]);
+
+        /* post a send to tell rank i to start */
+        MPI_Isend(&flushed, 1, MPI_INT, i, 0, scr_comm_world, &req_send[index]);
+
+        /* update the number of outstanding requests */
+        i++;
+        outstanding++;
+        index++;
+      }
+
+      /* wait to hear back from any rank */
+      MPI_Waitany(w, req_recv, &index, &status);
+
+      /* someone responded, the send to this rank should also be done, so complete it */
+      MPI_Wait(&req_send[index], &status);
+
+      /* receive the meta data from this rank */
+      scr_hash* incoming_hash = scr_hash_new();
+      scr_hash_recv(incoming_hash, ranks[index], scr_comm_world);
+      scr_hash_merge(data, incoming_hash);
+      scr_hash_delete(incoming_hash);
+
+      /* one less request outstanding now */
+      outstanding--;
+    }
+
+    /* free the MPI_Request arrays */
+    if (req_send != NULL) {
+      free(req_send);
+      req_send = NULL;
+    }
+    if (req_recv != NULL) {
+      free(req_recv);
+      req_recv = NULL;
+    }
+    if (flags != NULL) {
+      free(flags);
+      flags = NULL;
+    }
+    if (ranks != NULL) {
+      free(ranks);
+      ranks = NULL;
+    }
+  } else {
+    /* receive signal to start */
+    int start = 0;
+    MPI_Status status;
+    MPI_Recv(&start, 1, MPI_INT, 0, 0, scr_comm_world, &status);
+
+    /* flush each of my files and fill in meta data structures */
+    if (start != SCR_SUCCESS) {
+      flushed = SCR_FAILURE;
+    }
+
+    /* send message to rank 0 to report that we're done */
+    MPI_Send(&flushed, 1, MPI_INT, 0, 0, scr_comm_world);
+
+    /* would be better to do this as a reduction-type of operation */
+    scr_hash_send(data, 0, scr_comm_world);
+  }
+
+  /* write out the summary file */
+  if (scr_my_rank_world == 0) {
+    /* determine whether flush was complete */
+    int complete = 1;
+    if (flushed != SCR_SUCCESS) {
+      complete = 0;
+    }
+
+    /* now write out summary file */
+    scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
+    if (scr_summary_write(scr_par_prefix, dataset, complete, data) != SCR_SUCCESS) {
+      flushed = SCR_FAILURE;
+    }
+  }
+
+  /* determine whether everyone wrote their files ok */
+  if (scr_alltrue((flushed == SCR_SUCCESS))) {
+    return SCR_SUCCESS;
+  }
+  return SCR_FAILURE;
+}
+
+/* given a filemap and a dataset id, prepare and return a list of files to be flushed,
+ * also create corresponding directories and container files */
+static int scr_flush_prepare(const scr_filemap* map, int id, scr_hash* file_list)
+{
+  /* check that we have all of our files */
+  int have_files = 1;
+  if (scr_cache_check_files(map, id) != SCR_SUCCESS) {
+    scr_err("Missing one or more files for dataset %d @ %s:%d",
+            id, __FILE__, __LINE__
+    );
+    have_files = 0;
+  }
+  if (! scr_alltrue(have_files)) {
+    if (scr_my_rank_world == 0) {
+      scr_err("One or more processes are missing files for dataset %d @ %s:%d",
+              id, __FILE__, __LINE__
+      );
+    }
+    return SCR_FAILURE;
+  }
+
+  /* build the list of files to flush, which includes meta data for each one */
+  if (scr_flush_build_list(map, id, file_list) != SCR_SUCCESS) {
+    scr_err("Failed to get list of files for dataset %d @ %s:%d",
+            id, __FILE__, __LINE__
+    );
+    MPI_Abort(scr_comm_world, 0);
+  }
+
+  /* identify containers for our files */
+  if (scr_use_containers) {
+    if (scr_flush_identify_containers(file_list) != SCR_SUCCESS) {
+      scr_err("Failed to identify containers for dataset %d @ %s:%d",
+              id, __FILE__, __LINE__
+      );
+      MPI_Abort(scr_comm_world, 0);
+    }
+  }
+
+  /* create directories for flush */
+  if (scr_flush_create_dirs(file_list) != SCR_SUCCESS) {
+    /* TODO: delete the directories that we just created above? */
+    if (scr_my_rank_world == 0) {
+      scr_err("Failed to create flush directories for dataset %d @ %s:%d",
+              id, __FILE__, __LINE__
+      );
+    }
+    return SCR_FAILURE;
+  }
+
+  /* create container files */
+  if (scr_use_containers) {
+    if (scr_flush_create_containers(file_list) != SCR_SUCCESS) {
+      /* TODO: delete the directories that we just created above?
+       * and the partial set of files we just created here? */
+      scr_err("Failed to create container files for dataset %d @ %s:%d",
+              id, __FILE__, __LINE__
+      );
+      return SCR_FAILURE;
+    }
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* given a dataset id that has been flushed, the list provided by scr_flush_prepare,
+ * and data to include in the summary file, complete the flush by writing the summary file */
+static int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
+{
+  int flushed = SCR_SUCCESS;
+
+  /* write summary file */
+  if (scr_flush_summary(file_list, data) != SCR_SUCCESS) {
+    flushed = SCR_FAILURE;
+  }
+
+  /* create current symlink */
+  double total_bytes = 0.0;
+  if (scr_my_rank_world == 0) {
+    if (flushed == SCR_SUCCESS) {
+      /* get the dataset of this flush */
+      scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
+
+      /* get the number of bytes in the dataset */
+      unsigned long dataset_bytes;
+      if (scr_dataset_get_size(dataset, &dataset_bytes) == SCR_SUCCESS) {
+        total_bytes = (double) dataset_bytes;
+      }
+
+      /* read the name of the dataset and update the current symlink */
+      char* dataset_name;
+      if (scr_dataset_get_name(dataset, &dataset_name) == SCR_SUCCESS) {
+        /* build path to current symlink */
+        char current[SCR_MAX_FILENAME];
+        scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
+
+        /* if current exists, unlink it */
+        if (access(current, F_OK) == 0) {
+          unlink(current);
+        }
+
+        /* create new current to point to new directory */
+        symlink(dataset_name, current);
+      }
+    }
+  }
+
+  /* have rank 0 broadcast whether the entire flush succeeded,
+   * including summary file and symlink update */
+  MPI_Bcast(&flushed, 1, MPI_INT, 0, scr_comm_world);
+
+  /* mark this dataset as flushed to the parallel file system */
+  if (flushed == SCR_SUCCESS) {
+    scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_PFS);
+  }
+
+  return flushed;
+}
+
+/*
+=========================================
+Asynchronous flush functions
+=========================================
+*/
+
+static int       scr_flush_async_in_progress = 0;  /* tracks whether an async flush is currently underway */
+static int       scr_flush_async_dataset_id = -1;  /* tracks the id of the checkpoint being flushed */
+static time_t    scr_flush_async_timestamp_start;  /* records the time the async flush started */
+static double    scr_flush_async_time_start;       /* records the time the async flush started */
+static scr_hash* scr_flush_async_file_list = NULL; /* tracks list of files written with flush */
+static scr_hash* scr_flush_async_hash = NULL;      /* tracks list of files written with flush */
+static double    scr_flush_async_bytes = 0.0;      /* records the total number of bytes to be flushed */
+static int       scr_flush_async_num_files = 0;    /* records the number of files this process must flush */
+
+/* given a hash, test whether the files in that hash have completed their flush */
+static int scr_flush_async_file_test(const scr_hash* hash, double* bytes)
+{
+  /* initialize bytes to 0 */
+  *bytes = 0.0;
+
+  /* get the FILES hash */
+  scr_hash* files_hash = scr_hash_get(hash, SCR_TRANSFER_KEY_FILES);
+  if (files_hash == NULL) {
+    /* can't tell whether this flush has completed */
+    return SCR_FAILURE;
+  }
+
+  /* assume we're done, look for a file that says we're not */
+  int transfer_complete = 1;
+
+  /* for each file, check whether the WRITTEN field matches the SIZE field,
+   * which indicates the file has completed its transfer */
+  scr_hash_elem* elem;
+  for (elem = scr_hash_elem_first(files_hash);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* get the file name */
+    char* file = scr_hash_elem_key(elem);
+
+    /* get the hash for this file */
+    scr_hash* file_hash = scr_hash_elem_hash(elem);
+    if (file_hash == NULL) {
+      transfer_complete = 0;
+      continue;
+    }
+
+    /* lookup the values for the size and bytes written */
+    unsigned long size, written;
+    if (scr_hash_util_get_bytecount(file_hash, "SIZE",    &size)    != SCR_SUCCESS ||
+        scr_hash_util_get_bytecount(file_hash, "WRITTEN", &written) != SCR_SUCCESS)
+    {
+      transfer_complete = 0;
+      continue;
+    }
+  
+    /* check whether the number of bytes written is less than the filesize */
+    if (written < size) {
+      transfer_complete = 0;
+    }
+
+    /* add up number of bytes written */
+    *bytes += (double) written;
+  }
+
+  /* return our decision */
+  if (transfer_complete) {
+    return SCR_SUCCESS;
+  }
+  return SCR_FAILURE;
+}
+
+/* dequeues files listed in hash2 from hash1 */
+static int scr_flush_async_file_dequeue(scr_hash* hash1, scr_hash* hash2)
+{
+  /* for each file listed in hash2, remove it from hash1 */
+  scr_hash* file_hash = scr_hash_get(hash2, SCR_TRANSFER_KEY_FILES);
+  if (file_hash != NULL) {
+    scr_hash_elem* elem;
+    for (elem = scr_hash_elem_first(file_hash);
+         elem != NULL;
+         elem = scr_hash_elem_next(elem))
+    {
+      /* get the filename, and dequeue it */
+      char* file = scr_hash_elem_key(elem);
+      scr_hash_unset_kv(hash1, SCR_TRANSFER_KEY_FILES, file);
+    }
+  }
+  return SCR_SUCCESS;
+}
+
+/* writes the specified command to the transfer file */
+static int scr_flush_async_command_set(char* command)
+{
+  /* have the master on each node write this command to the file */
+  if (scr_my_rank_local == 0) {
+    /* get a hash to store file data */
+    scr_hash* hash = scr_hash_new();
+
+    /* read the file */
+    int fd = -1;
+    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
+
+    /* set the command */
+    scr_hash_util_set_str(hash, SCR_TRANSFER_KEY_COMMAND, command);
+
+    /* write the hash back */
+    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+
+    /* delete the hash */
+    scr_hash_delete(hash);
+  }
+  return SCR_SUCCESS;
+}
+
+/* waits until all transfer processes are in the specified state */
+static int scr_flush_async_state_wait(char* state)
+{
+  /* wait until each process matches the state */
+  int all_valid = 0;
+  while (! all_valid) {
+    /* assume we match the specified state */
+    int valid = 1;
+
+    /* have the master on each node check the state in the transfer file */
+    if (scr_my_rank_local == 0) {
+      /* get a hash to store file data */
+      scr_hash* hash = scr_hash_new();
+
+      /* open transfer file with lock */
+      scr_hash_read_with_lock(scr_transfer_file, hash);
+
+      /* check for the specified state */
+      scr_hash* state_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_STATE, state);
+      if (state_hash == NULL) {
+        valid = 0;
+      }
+
+      /* delete the hash */
+      scr_hash_delete(hash);
+    }
+
+    /* check whether everyone is at the specified state */
+    if (scr_alltrue(valid)) {
+      all_valid = 1;
+    }
+
+    /* if we're not there yet, sleep for sometime and they try again */
+    if (! all_valid) {
+      usleep(10*1000*1000);
+    }
+  }
+  return SCR_SUCCESS;
+}
+
+/* removes all files from the transfer file */
+static int scr_flush_async_file_clear_all()
+{
+  /* have the master on each node clear the FILES field */
+  if (scr_my_rank_local == 0) {
+    /* get a hash to store file data */
+    scr_hash* hash = scr_hash_new();
+
+    /* read the file */
+    int fd = -1;
+    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
+
+    /* clear the FILES entry */
+    scr_hash_unset(hash, SCR_TRANSFER_KEY_FILES);
+
+    /* write the hash back */
+    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+
+    /* delete the hash */
+    scr_hash_delete(hash);
+  }
+  return SCR_SUCCESS;
+}
+
+/* stop an ongoing asynchronous flush for a specified checkpoint */
+static int scr_flush_async_stop()
+{
+  /* if user has disabled flush, return failure */
+  if (scr_flush <= 0) {
+    return SCR_FAILURE;
+  }
+
+  /* this may take a while, so tell user what we're doing */
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "scr_flush_async_stop_all: Stopping flush");
+  }
+
+  /* write stop command to transfer file */
+  scr_flush_async_command_set(SCR_TRANSFER_KEY_COMMAND_STOP);
+
+  /* wait until all tasks know the transfer is stopped */
+  scr_flush_async_state_wait(SCR_TRANSFER_KEY_STATE_STOP);
+
+  /* remove the files list from the transfer file */
+  scr_flush_async_file_clear_all();
+
+  /* remove FLUSHING state from flush file */
+  scr_flush_async_in_progress = 0;
+  /*
+  scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
+  */
+
+  /* clear internal flush_async variables to indicate there is no flush */
+  if (scr_flush_async_hash != NULL) {
+    scr_hash_delete(scr_flush_async_hash);
+  }
+  if (scr_flush_async_file_list != NULL) {
+    scr_hash_delete(scr_flush_async_file_list);
+  }
+
+  /* make sure all processes have made it this far before we leave */
+  MPI_Barrier(scr_comm_world);
+  return SCR_SUCCESS;
+}
+
+/* start an asynchronous flush from cache to parallel file system under SCR_PREFIX */
+static int scr_flush_async_start(scr_filemap* map, int id)
+{
+  /* if user has disabled flush, return failure */
+  if (scr_flush <= 0) {
+    return SCR_FAILURE;
+  }
+
+  /* if we don't need a flush, return right away with success */
+  if (! scr_bool_need_flush(id)) {
+    return SCR_SUCCESS;
+  }
+
+  /* if scr_par_prefix is not set, return right away with an error */
+  if (strcmp(scr_par_prefix, "") == 0) {
+    return SCR_FAILURE;
+  }
+
+  /* this may take a while, so tell user what we're doing */
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "scr_flush_async_start: Initiating flush of dataset %d", id);
+  }
+
+  /* make sure all processes make it this far before progressing */
+  MPI_Barrier(scr_comm_world);
+
+  /* start timer */
+  if (scr_my_rank_world == 0) {
+    scr_flush_async_timestamp_start = scr_log_seconds();
+    scr_flush_async_time_start = MPI_Wtime();
+
+    /* log the start of the flush */
+    if (scr_log_enable) {
+      scr_log_event("ASYNC FLUSH STARTED", NULL, &id, &scr_flush_async_timestamp_start, NULL);
+    }
+  }
+
+  /* mark that we've started a flush */
+  scr_flush_async_in_progress = 1;
+  scr_flush_async_dataset_id = id;
+  scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
+
+  /* get list of files to flush and create directories */
+  scr_flush_async_file_list = scr_hash_new();
+  if (scr_flush_prepare(map, id, scr_flush_async_file_list) != SCR_SUCCESS) {
+    if (scr_my_rank_world == 0) {
+      scr_err("scr_flush_async_start: Failed to prepare flush @ %s:%d",
+              __FILE__, __LINE__
+      );
+      if (scr_log_enable) {
+        double time_end = MPI_Wtime();
+        double time_diff = time_end - scr_flush_async_time_start;
+        time_t now = scr_log_seconds();
+        scr_log_event("ASYNC FLUSH FAILED", "Failed to prepare flush", &id, &now, &time_diff);
+      }
+    }
+    scr_hash_delete(scr_flush_async_file_list);
+    scr_flush_async_file_list = NULL;
+    return SCR_FAILURE;
+  }
+
+  /* add each of my files to the transfer file list */
+  scr_flush_async_hash = scr_hash_new();
+  scr_flush_async_num_files = 0;
+  double my_bytes = 0.0;
+  scr_hash_elem* elem;
+  scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
+  for (elem = scr_hash_elem_first(files);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* get the filename */
+    char* file = scr_hash_elem_key(elem);
+
+    /* get the hash for this file */
+    scr_hash* file_hash = scr_hash_elem_hash(elem);
+
+    /* get directory to flush file to */
+    char* dest_dir;
+    if (scr_hash_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) != SCR_SUCCESS) {
+      continue;
+    }
+
+    /* get meta data for file */
+    scr_meta* meta = scr_hash_get(file_hash, SCR_KEY_META);
+
+    /* get the file size */
+    unsigned long filesize = 0;
+    if (scr_meta_get_filesize(meta, &filesize) != SCR_SUCCESS) {
+      continue;
+    }
+    my_bytes += (double) filesize;
+
+    /* break file into path and name components */
+    char path[SCR_MAX_FILENAME];
+    char name[SCR_MAX_FILENAME];
+    scr_split_path(file, path, name);
+
+    /* create dest_file using dest_dir and name */
+    char dest_file[SCR_MAX_FILENAME];
+    scr_build_path(dest_file, sizeof(dest_file), dest_dir, name);
+
+    /* add this file to the hash, and add its filesize to the number of bytes written */
+    scr_hash* transfer_file_hash = scr_hash_set_kv(scr_flush_async_hash, SCR_TRANSFER_KEY_FILES, file);
+    if (file_hash != NULL) {
+      scr_hash_util_set_str(transfer_file_hash, SCR_TRANSFER_KEY_DESTINATION, dest_file);
+      scr_hash_util_set_bytecount(transfer_file_hash, SCR_TRANSFER_KEY_SIZE,    filesize);
+      scr_hash_util_set_bytecount(transfer_file_hash, SCR_TRANSFER_KEY_WRITTEN, 0);
+    }
+ 
+    /* add this file to our total count */
+    scr_flush_async_num_files++;
+  }
+
+  /* have master on each node write the transfer file, everyone else sends data to him */
+  if (scr_my_rank_local == 0) {
+    /* receive hash data from other processes on the same node and merge with our data */
+    int i;
+    for (i=1; i < scr_ranks_local; i++) {
+      scr_hash* h = scr_hash_new();
+      scr_hash_recv(h, i, scr_comm_local);
+      scr_hash_merge(scr_flush_async_hash, h);
+      scr_hash_delete(h);
+    }
+
+    /* get a hash to store file data */
+    scr_hash* hash = scr_hash_new();
+
+    /* open transfer file with lock */
+    int fd = -1;
+    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
+
+    /* merge our data to the file data */
+    scr_hash_merge(hash, scr_flush_async_hash);
+
+    /* set BW if it's not already set */
+    double bw;
+    if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_BW, &bw) != SCR_SUCCESS) {
+      bw = (double) scr_flush_async_bw / (double) scr_ranks_level;
+      scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_BW, bw);
+    }
+
+    /* set PERCENT if it's not already set */
+    double percent;
+    if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_PERCENT, &percent) != SCR_SUCCESS) {
+      scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_PERCENT, scr_flush_async_percent);
+    }
+
+    /* set the RUN command */
+    scr_hash_util_set_str(hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_RUN);
+
+    /* unset the DONE flag */
+    scr_hash_unset_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
+
+    /* close the transfer file and release the lock */
+    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+
+    /* delete the hash */
+    scr_hash_delete(hash);
+  } else {
+    /* send our transfer hash data to the master on this node */
+    scr_hash_send(scr_flush_async_hash, 0, scr_comm_local);
+  }
+
+  /* get the total number of bytes to write */
+  scr_flush_async_bytes = 0.0;
+  MPI_Allreduce(&my_bytes, &scr_flush_async_bytes, 1, MPI_DOUBLE, MPI_SUM, scr_comm_world);
+
+  /* TODO: start transfer thread / process */
+
+  /* make sure all processes have started before we leave */
+  MPI_Barrier(scr_comm_world);
+
+  return SCR_SUCCESS;
+}
+
+/* check whether the flush from cache to parallel file system has completed */
+static int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
+{
+  /* initialize bytes to 0 */
+  *bytes = 0.0;
+
+  /* if user has disabled flush, return failure */
+  if (scr_flush <= 0) {
+    return SCR_FAILURE;
+  }
+
+  /* assume the transfer is complete */
+  int transfer_complete = 1;
+
+  /* have master on each node check whether the flush is complete */
+  double bytes_written = 0.0;
+  if (scr_my_rank_local == 0) {
+    /* create a hash to hold the transfer file data */
+    scr_hash* hash = scr_hash_new();
+
+    /* read transfer file with lock */
+    if (scr_hash_read_with_lock(scr_transfer_file, hash) == SCR_SUCCESS) {
+      /* test each file listed in the transfer hash */
+      if (scr_flush_async_file_test(hash, &bytes_written) != SCR_SUCCESS) {
+        transfer_complete = 0;
+      }
+    } else {
+      /* failed to read the transfer file, can't determine whether the flush is complete */
+      transfer_complete = 0;
+    }
+
+    /* free the hash */
+    scr_hash_delete(hash);
+  }
+
+  /* compute the total number of bytes written */
+  MPI_Allreduce(&bytes_written, bytes, 1, MPI_DOUBLE, MPI_SUM, scr_comm_world);
+
+  /* determine whether the transfer is complete on all tasks */
+  if (scr_alltrue(transfer_complete)) {
+    return SCR_SUCCESS;
+  }
+  return SCR_FAILURE;
+}
+
+/* complete the flush from cache to parallel file system */
+static int scr_flush_async_complete(scr_filemap* map, int id)
+{
+  int flushed = SCR_SUCCESS;
+
+  /* if user has disabled flush, return failure */
+  if (scr_flush <= 0) {
+    return SCR_FAILURE;
+  }
+
+  /* TODO: have master tell each rank on node whether its files were written successfully */
+
+  /* allocate structure to hold metadata info */
+  scr_hash* data = scr_hash_new();
+
+  /* create a summary file entry for our rank */
+  scr_hash* rank2file_hash = scr_hash_new();
+  scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, scr_my_rank_world);
+  scr_hash_set(data, SCR_SUMMARY_6_KEY_RANK2FILE, rank2file_hash);
+
+  /* fill in metadata info for the files this process flushed */
+  scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
+  scr_hash_elem* elem = NULL;
+  for (elem = scr_hash_elem_first(files);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* get the filename */
+    char* file = scr_hash_elem_key(elem);
+
+    /* get the hash for this file */
+    scr_hash* hash = scr_hash_elem_hash(elem);
+
+    /* record the filename in the hash, and get reference to a hash for this file */
+    char path[SCR_MAX_FILENAME];
+    char name[SCR_MAX_FILENAME];
+    scr_split_path(file, path, name);
+    scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
+
+    /* TODO: check that this file was written successfully */
+
+    /* get meta data for this file */
+    scr_meta* meta = scr_hash_get(hash, SCR_KEY_META);
+
+    /* successfully flushed this file, record the filesize */
+    unsigned long filesize = 0;
+    if (scr_meta_get_filesize(meta, &filesize) == SCR_SUCCESS) {
+      scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, filesize);
+    }
+
+    /* record the crc32 if one was computed */
+    uLong flush_crc32;
+    if (scr_meta_get_crc32(meta, &flush_crc32) == SCR_SUCCESS) {
+      scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, flush_crc32);
+    }
+  }
+
+  /* write summary file and update current symlink */
+  if (scr_flush_complete(id, scr_flush_async_file_list, data) != SCR_SUCCESS) {
+    flushed = SCR_FAILURE;
+  }
+
+  /* have master on each node remove files from the transfer file */
+  if (scr_my_rank_local == 0) {
+    /* get a hash to read from the file */
+    scr_hash* transfer_hash = scr_hash_new();
+
+    /* lock the transfer file, open it, and read it into the hash */
+    int fd = -1;
+    scr_hash_lock_open_read(scr_transfer_file, &fd, transfer_hash);
+
+    /* remove files from the list */
+    scr_flush_async_file_dequeue(transfer_hash, scr_flush_async_hash);
+
+    /* set the STOP command */
+    scr_hash_util_set_str(transfer_hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_STOP);
+
+    /* write the hash back to the file */
+    scr_hash_write_close_unlock(scr_transfer_file, &fd, transfer_hash);
+
+    /* delete the hash */
+    scr_hash_delete(transfer_hash);
+  }
+
+  /* mark that we've stopped the flush */
+  scr_flush_async_in_progress = 0;
+  scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
+
+  /* free data structures */
+  scr_hash_delete(data);
+
+  /* free the file list for this checkpoint */
+  scr_hash_delete(scr_flush_async_hash);
+  scr_hash_delete(scr_flush_async_file_list);
+  scr_flush_async_hash      = NULL;
+  scr_flush_async_file_list = NULL;
+
+  /* stop timer, compute bandwidth, and report performance */
+  if (scr_my_rank_world == 0) {
+    double time_end = MPI_Wtime();
+    double time_diff = time_end - scr_flush_async_time_start;
+    double bw = scr_flush_async_bytes / (1024.0 * 1024.0 * time_diff);
+    scr_dbg(1, "scr_flush_async_complete: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
+            time_diff, scr_flush_async_bytes, bw, bw/scr_ranks_world
+    );
+
+    /* log messages about flush */
+    if (flushed == SCR_SUCCESS) {
+      /* the flush worked, print a debug message */
+      scr_dbg(1, "scr_flush_async_complete: Flush of dataset %d succeeded", id);
+
+      /* log details of flush */
+      if (scr_log_enable) {
+        time_t now = scr_log_seconds();
+        scr_log_event("ASYNC FLUSH SUCCEEDED", NULL, &id, &now, &time_diff);
+      }
+    } else {
+      /* the flush failed, this is more serious so print an error message */
+      scr_err("scr_flush_async_complete: Flush failed");
+
+      /* log details of flush */
+      if (scr_log_enable) {
+        time_t now = scr_log_seconds();
+        scr_log_event("ASYNC FLUSH FAILED", NULL, &id, &now, &time_diff);
+      }
+    }
+  }
+
+  return flushed;
+}
+
+/* wait until the checkpoint currently being flushed completes */
+static int scr_flush_async_wait(scr_filemap* map)
+{
+  if (scr_flush_async_in_progress) {
+    while (scr_bool_is_flushing(scr_flush_async_dataset_id)) {
+      /* test whether the flush has completed, and if so complete the flush */
+      double bytes = 0.0;
+      if (scr_flush_async_test(map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {
+        /* complete the flush */
+        scr_flush_async_complete(map, scr_flush_async_dataset_id);
+      } else {
+        /* otherwise, sleep to get out of the way */
+        if (scr_my_rank_world == 0) {
+          scr_dbg(1, "Flush of checkpoint %d is %d%% complete",
+                  scr_flush_async_dataset_id, (int) (bytes / scr_flush_async_bytes * 100.0)
+          );
+        }
+        usleep(10*1000*1000);
+      }
+    }
+  }
+  return SCR_SUCCESS;
+}
+
+/*
+=========================================
+Synchronous flush functions
+=========================================
+*/
 
 /* flushes file named in src_file to dst_dir and fills in meta based on flush,
  * returns success of flush */
@@ -4414,981 +5332,8 @@ static int scr_flush_a_file(const char* file, const char* dir, scr_meta* meta)
   return flushed;
 }
 
-static int    scr_flush_async_in_progress = 0;       /* tracks whether an async flush is currently underway */
-static int    scr_flush_async_checkpoint_id = -1;    /* tracks the id of the checkpoint being flushed */
-static time_t scr_flush_async_timestamp_start;       /* records the time the async flush started */
-static double scr_flush_async_time_start;            /* records the time the async flush started */
-static char   scr_flush_async_dir[SCR_MAX_FILENAME]; /* records the directory the async flush is writing to */
-static scr_hash* scr_flush_async_hash = NULL; /* tracks list of files written with flush */
-static double scr_flush_async_bytes = 0.0;           /* records the total number of bytes to be flushed */
-static int    scr_flush_async_num_files = 0;         /* records the number of files this process must flush */
-
-/* queues file to flushed to dst_dir in hash, returns size of file in bytes */
-static int scr_flush_async_file_enqueue(scr_hash* hash, const char* file, const char* dst_dir, double* bytes)
-{
-#if 0
-  /* start with 0 bytes written for this file */
-  *bytes = 0.0;
-
-  /* break file into path and name components */
-  char path[SCR_MAX_FILENAME];
-  char name[SCR_MAX_FILENAME];
-  scr_split_path(file, path, name);
-
-  /* create dest_file using dest_dir and name */
-  char dest_file[SCR_MAX_FILENAME];
-  scr_build_path(dest_file, sizeof(dest_file), dst_dir, name);
-
-  /* look up the filesize of the file */
-  unsigned long filesize = scr_filesize(file);
-
-  /* add this file to the hash, and add its filesize to the number of bytes written */
-  scr_hash* file_hash = scr_hash_set_kv(hash, SCR_TRANSFER_KEY_FILES, file);
-  if (file_hash != NULL) {
-    scr_hash_util_set_str(file_hash, "DESTINATION", dest_file);
-    scr_hash_util_set_bytecount(file_hash, "SIZE",    filesize);
-    scr_hash_util_set_bytecount(file_hash, "WRITTEN", 0);
-  }
-  *bytes += (double) filesize;
- 
-  /* get meta data file name for file */
-  char metafile[SCR_MAX_FILENAME];
-  scr_meta_name(metafile, file);
-
-  /* look up the filesize of the metafile */
-  unsigned long metasize = scr_filesize(metafile);
-
-  /* break file into path and name components */
-  char metapath[SCR_MAX_FILENAME];
-  char metaname[SCR_MAX_FILENAME];
-  scr_split_path(metafile, metapath, metaname);
-
-  /* create dest_file using dest_dir and name */
-  char dest_metafile[SCR_MAX_FILENAME];
-  scr_build_path(dest_metafile, sizeof(dest_metafile), dst_dir, metaname);
-
-  /* add the metafile to the transfer hash, and add its filesize to the number of bytes written */
-  file_hash = scr_hash_set_kv(hash, SCR_TRANSFER_KEY_FILES, metafile);
-  if (file_hash != NULL) {
-    scr_hash_util_set_str(file_hash, "DESTINATION", dest_metafile);
-    scr_hash_util_set_bytecount(file_hash, "SIZE",    metasize);
-    scr_hash_util_set_bytecount(file_hash, "WRITTEN", 0);
-  }
-  *bytes += (double) metasize;
-#endif
- 
-  return SCR_SUCCESS;
-}
-
-/* given a hash, test whether the files in that hash have completed their flush */
-static int scr_flush_async_file_test(const scr_hash* hash, double* bytes)
-{
-#if 0
-  /* initialize bytes to 0 */
-  *bytes = 0.0;
-
-  /* get the FILES hash */
-  scr_hash* files_hash = scr_hash_get(hash, SCR_TRANSFER_KEY_FILES);
-  if (files_hash == NULL) {
-    /* can't tell whether this flush has completed */
-    return SCR_FAILURE;
-  }
-
-  /* assume we're done, look for a file that says we're not */
-  int transfer_complete = 1;
-
-  /* for each file, check whether the WRITTEN field matches the SIZE field,
-   * which indicates the file has completed its transfer */
-  scr_hash_elem* elem;
-  for (elem = scr_hash_elem_first(files_hash);
-       elem != NULL;
-       elem = scr_hash_elem_next(elem))
-  {
-    /* get the file name */
-    char* file = scr_hash_elem_key(elem);
-
-    /* get the hash for this file */
-    scr_hash* file_hash = scr_hash_elem_hash(elem);
-    if (file_hash == NULL) {
-      transfer_complete = 0;
-      continue;
-    }
-
-    /* check whether this file is complete */
-    /* lookup the strings for the size and bytes written */
-    char* size    = scr_hash_elem_get_first_val(file_hash, "SIZE");
-    char* written = scr_hash_elem_get_first_val(file_hash, "WRITTEN");
-    if (size == NULL || written == NULL) {
-      transfer_complete = 0;
-      continue;
-    }
-  
-    /* convert the size and bytes written strings to numbers */
-    off_t size_count    = strtoul(size,    NULL, 0);
-    off_t written_count = strtoul(written, NULL, 0);
-    if (written_count < size_count) {
-      transfer_complete = 0;
-    }
-
-    /* add up number of bytes written */
-    *bytes += (double) written_count;
-  }
-
-  /* return our decision */
-  if (transfer_complete) {
-    return SCR_SUCCESS;
-  }
-  return SCR_FAILURE;
-#endif
-  return SCR_SUCCESS;
-}
-
-/* dequeues files listed in hash2 from hash1 */
-static int scr_flush_async_file_dequeue(scr_hash* hash1, scr_hash* hash2)
-{
-#if 0
-  /* for each file listed in hash2, remove it from hash1 */
-  scr_hash* file_hash = scr_hash_get(hash2, SCR_TRANSFER_KEY_FILES);
-  if (file_hash != NULL) {
-    scr_hash_elem* elem;
-    for (elem = scr_hash_elem_first(file_hash);
-         elem != NULL;
-         elem = scr_hash_elem_next(elem))
-    {
-      /* get the filename, and dequeue it */
-      char* file = scr_hash_elem_key(elem);
-      scr_hash_unset_kv(hash1, SCR_TRANSFER_KEY_FILES, file);
-
-      /* get meta data file name for file, and dequeue it */
-      char metafile[SCR_MAX_FILENAME];
-      scr_meta_name(metafile, file);
-      scr_hash_unset_kv(hash1, SCR_TRANSFER_KEY_FILES, metafile);
-    }
-  }
-#endif
-  return SCR_SUCCESS;
-}
-
-/* start an asynchronous flush from cache to parallel file system under SCR_PREFIX */
-static int scr_flush_async_start(scr_filemap* map, int id)
-{
-#if 0
-  int tmp_rc;
-
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
-    return SCR_FAILURE;
-  }
-
-  /* if we don't need a flush, return right away with success */
-  if (! scr_bool_need_flush(id)) {
-    return SCR_SUCCESS;
-  }
-
-  /* if scr_par_prefix is not set, return right away with an error */
-  if (strcmp(scr_par_prefix, "") == 0) {
-    return SCR_FAILURE;
-  }
-
-  /* this may take a while, so tell user what we're doing */
-  if (scr_my_rank_world == 0) {
-    scr_dbg(1, "scr_flush_async_start: Initiating flush of dataset %d", id);
-  }
-
-  /* make sure all processes make it this far before progressing */
-  MPI_Barrier(scr_comm_world);
-
-  /* start timer */
-  if (scr_my_rank_world == 0) {
-    scr_flush_async_timestamp_start = scr_log_seconds();
-    scr_flush_async_time_start = MPI_Wtime();
-
-    /* log the start of the flush */
-    if (scr_log_enable) {
-      scr_log_event("ASYNC FLUSH STARTED", NULL, &id, &scr_flush_async_timestamp_start, NULL);
-    }
-  }
-
-  /* mark that we've started a flush */
-  scr_flush_async_in_progress = 1;
-  scr_flush_async_checkpoint_id = id;
-  scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
-
-  /* get a new hash to record our file list */
-  scr_flush_async_hash = scr_hash_new();
-  scr_flush_async_num_files = 0;
-  scr_flush_async_bytes = 0.0;
-
-  /* read in the filemap to get the dataset file names */
-  int have_files = 1;
-  if (have_files && (scr_cache_check_files(map, id) != SCR_SUCCESS)) {
-    scr_err("scr_flush_async_start: One or more files is missing @ %s:%d", __FILE__, __LINE__);
-    have_files = 0;
-  }
-  if (!scr_alltrue(have_files)) {
-    if (scr_my_rank_world == 0) {
-      scr_err("scr_flush_async_start: One or more processes are missing their files @ %s:%d",
-              __FILE__, __LINE__
-      );
-      if (scr_log_enable) {
-        double time_end = MPI_Wtime();
-        double time_diff = time_end - scr_flush_async_time_start;
-        time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH FAILED", "Missing files in cache", &id, &now, &time_diff);
-      }
-    }
-
-    /* TODO: could lead to a memory leak in scr_flush_async_hash */
-
-    return SCR_FAILURE;
-  }
-
-  /* create the dataset directory */
-  if (scr_flush_dir_create_old(id, scr_flush_async_dir) != SCR_SUCCESS) {
-    if (scr_my_rank_world == 0) {
-      scr_err("scr_flush_async_start: Failed to create dataset directory @ %s:%d",
-              __FILE__, __LINE__
-      );
-      if (scr_log_enable) {
-        double time_end = MPI_Wtime();
-        double time_diff = time_end - scr_flush_async_time_start;
-        time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH FAILED", "Failed to create directory", &id, &now, &time_diff);
-      }
-    }
-
-    /* TODO: could lead to a memory leak in scr_flush_async_hash */
-
-    return SCR_FAILURE;
-  }
-  if (scr_my_rank_world == 0) {
-    scr_dbg(1, "scr_flush_async_start: Flushing to %s", scr_flush_async_dir);
-  }
-
-  /* add each of my files to the transfer file list */
-  double my_bytes = 0.0;
-  scr_hash_elem* elem;
-  for (elem = scr_filemap_first_file(map, id, scr_my_rank_world);
-       elem != NULL;
-       elem = scr_hash_elem_next(elem))
-  {
-    /* get the filename */
-    char* file = scr_hash_elem_key(elem);
-
-    /* enqueue this file, and add its byte count to the total */
-    if (scr_bool_flush_file(map, id, scr_my_rank_world, file)) {
-      double file_bytes = 0.0;
-      scr_flush_async_file_enqueue(scr_flush_async_hash, file, scr_flush_async_dir, &file_bytes);
-      my_bytes += file_bytes;
-      scr_flush_async_num_files++;
-    }
-  }
-
-  /* have master on each node write the transfer file, everyone else sends data to him */
-  if (scr_my_rank_local == 0) {
-    /* receive hash data from other processes on the same node and merge with our data */
-    int i;
-    for (i=1; i < scr_ranks_local; i++) {
-      scr_hash* h = scr_hash_new();
-      scr_hash_recv(h, i, scr_comm_local);
-      scr_hash_merge(scr_flush_async_hash, h);
-      scr_hash_delete(h);
-    }
-
-    /* get a hash to store file data */
-    scr_hash* hash = scr_hash_new();
-
-    /* open transfer file with lock */
-    int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
-
-    /* merge our data to the file data */
-    scr_hash_merge(hash, scr_flush_async_hash);
-
-    char* value = NULL;
-
-    /* set BW if it's not already set */
-    value = scr_hash_elem_get_first_val(hash, SCR_TRANSFER_KEY_BW);
-    if (value == NULL) {
-      double bw = (double) scr_flush_async_bw / (double) scr_ranks_level;
-      scr_hash_unset(hash, SCR_TRANSFER_KEY_BW);
-      scr_hash_setf(hash, NULL, "%s %f", SCR_TRANSFER_KEY_BW, bw);
-    }
-
-    /* set PERCENT if it's not already set */
-    value = scr_hash_elem_get_first_val(hash, SCR_TRANSFER_KEY_PERCENT);
-    if (value == NULL) {
-      scr_hash_unset(hash, SCR_TRANSFER_KEY_PERCENT);
-      scr_hash_setf(hash, NULL, "%s %f", SCR_TRANSFER_KEY_PERCENT, scr_flush_async_percent);
-    }
-
-    /* set the RUN command */
-    scr_hash_unset(hash, SCR_TRANSFER_KEY_COMMAND);
-    scr_hash_set_kv(hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_RUN);
-
-    /* unset the DONE flag */
-    scr_hash_unset_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
-
-    /* close the transfer file and release the lock */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
-
-    /* delete the hash */
-    scr_hash_delete(hash);
-  } else {
-    /* send our transfer hash data to the master on this node */
-    scr_hash_send(scr_flush_async_hash, 0, scr_comm_local);
-  }
-
-  /* get the total number of bytes to write */
-  MPI_Allreduce(&my_bytes, &scr_flush_async_bytes, 1, MPI_DOUBLE, MPI_SUM, scr_comm_world);
-
-  /* TODO: start transfer thread / process */
-
-  /* make sure all processes have started before we leave */
-  MPI_Barrier(scr_comm_world);
-#endif
-  return SCR_SUCCESS;
-}
-
-/* writes the specified command to the transfer file */
-static int scr_flush_async_command_set(char* command)
-{
-#if 0
-  /* have the master on each node write this command to the file */
-  if (scr_my_rank_local == 0) {
-    /* get a hash to store file data */
-    scr_hash* hash = scr_hash_new();
-
-    /* read the file */
-    int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
-
-    /* set the command */
-    scr_hash_unset(hash, SCR_TRANSFER_KEY_COMMAND);
-    scr_hash_set_kv(hash, SCR_TRANSFER_KEY_COMMAND, command);
-
-    /* write the hash back */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
-
-    /* delete the hash */
-    scr_hash_delete(hash);
-  }
-#endif
-  return SCR_SUCCESS;
-}
-
-/* waits until all transfer processes are in the specified state */
-static int scr_flush_async_state_wait(char* state)
-{
-#if 0
-  /* wait until each process matches the state */
-  int all_valid = 0;
-  while (!all_valid) {
-    /* assume we match the asked state */
-    int valid = 1;
-
-    /* have the master on each node check the state in the transfer file */
-    if (scr_my_rank_local == 0) {
-      /* get a hash to store file data */
-      scr_hash* hash = scr_hash_new();
-
-      /* open transfer file with lock */
-      scr_hash_read_with_lock(scr_transfer_file, hash);
-
-      /* check for the specified state */
-      scr_hash* state_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_STATE, state);
-      if (state_hash == NULL) {
-        valid = 0;
-      }
-
-      /* delete the hash */
-      scr_hash_delete(hash);
-    }
-
-    /* check whether everyone is at the specified state */
-    if (scr_alltrue(valid)) {
-      all_valid = 1;
-    }
-
-    /* if we're not there yet, sleep for sometime and they try again */
-    if (!all_valid) {
-      usleep(10*1000*1000);
-    }
-  }
-#endif
-  return SCR_SUCCESS;
-}
-
-/* removes all files from the transfer file */
-static int scr_flush_async_file_clear_all()
-{
-#if 0
-  /* have the master on each node clear the FILES field */
-  if (scr_my_rank_local == 0) {
-    /* get a hash to store file data */
-    scr_hash* hash = scr_hash_new();
-
-    /* read the file */
-    int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
-
-    /* clear the FILES entry */
-    scr_hash_unset(hash, SCR_TRANSFER_KEY_FILES);
-
-    /* write the hash back */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
-
-    /* delete the hash */
-    scr_hash_delete(hash);
-  }
-#endif
-  return SCR_SUCCESS;
-}
-
-/* stop an ongoing asynchronous flush for a specified checkpoint */
-static int scr_flush_async_stop()
-{
-#if 0
-  int tmp_rc;
-
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
-    return SCR_FAILURE;
-  }
-
-  /* this may take a while, so tell user what we're doing */
-  if (scr_my_rank_world == 0) {
-    scr_dbg(1, "scr_flush_async_stop_all: Stopping flush");
-  }
-
-  /* write stop command to transfer file */
-  scr_flush_async_command_set(SCR_TRANSFER_KEY_COMMAND_STOP);
-
-  /* wait until all tasks know the transfer is stopped */
-  scr_flush_async_state_wait(SCR_TRANSFER_KEY_STATE_STOP);
-
-  /* remove the files list from the transfer file */
-  scr_flush_async_file_clear_all();
-
-  /* remove FLUSHING state from flush file */
-  scr_flush_async_in_progress = 0;
-  /*
-  scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
-  */
-
-  /* clear internal flush_async variables to indicate there is no flush */
-  if (scr_flush_async_hash != NULL) {
-    scr_hash_delete(scr_flush_async_hash);
-  }
-
-  /* make sure all processes have made it this far before we leave */
-  MPI_Barrier(scr_comm_world);
-#endif
-  return SCR_SUCCESS;
-}
-
-/* check whether the flush from cache to parallel file system has completed */
-static int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
-{
-#if 0
-  /* initialize bytes to 0 */
-  *bytes = 0.0;
-
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
-    return SCR_FAILURE;
-  }
-
-  /* test that all of our files for this dataset are still here */
-  int have_files = 1;
-  if (have_files && (scr_cache_check_files(map, id) != SCR_SUCCESS)) {
-    scr_err("scr_flush_async_test: One or more files is missing @ %s:%d", __FILE__, __LINE__);
-    have_files = 0;
-  }
-  if (!scr_alltrue(have_files)) {
-    if (scr_my_rank_world == 0) {
-      scr_err("scr_flush_async_test: One or more processes are missing their files @ %s:%d",
-              __FILE__, __LINE__
-      );
-      if (scr_log_enable) {
-        double time_end = MPI_Wtime();
-        double time_diff = time_end - scr_flush_async_time_start;
-        time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH TEST FAILED", "Missing files in cache", &id, &now, &time_diff);
-      }
-    }
-    return SCR_FAILURE;
-  }
-
-  /* assume the transfer is complete */
-  int transfer_complete = 1;
-
-  /* have master on each node check whether the flush is complete */
-  double bytes_written = 0.0;
-  if (scr_my_rank_local == 0) {
-    /* create a hash to hold the transfer file data */
-    scr_hash* hash = scr_hash_new();
-
-    /* read transfer file with lock */
-    if (scr_hash_read_with_lock(scr_transfer_file, hash) == SCR_SUCCESS) {
-      /* test each file listed in the transfer hash */
-      if (scr_flush_async_file_test(hash, &bytes_written) != SCR_SUCCESS) {
-        transfer_complete = 0;
-      }
-    } else {
-      /* failed to read the transfer file, can't determine whether the flush is complete */
-      transfer_complete = 0;
-    }
-
-    /* free the hash */
-    scr_hash_delete(hash);
-  }
-
-  /* compute the total number of bytes written */
-  MPI_Allreduce(&bytes_written, bytes, 1, MPI_DOUBLE, MPI_SUM, scr_comm_world);
-
-  /* determine whether the transfer is complete on all tasks */
-  if (scr_alltrue(transfer_complete)) {
-    return SCR_SUCCESS;
-  }
-  return SCR_FAILURE;
-#endif
-  return SCR_SUCCESS;
-}
-
-/* complete the flush from cache to parallel file system has completed */
-static int scr_flush_async_complete(scr_filemap* map, int id)
-{
-#if 0
-  int tmp_rc;
-  int i;
-
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
-    return SCR_FAILURE;
-  }
-
-  /* check that all processes still have all of their files */
-  int have_files = 1;
-  if (scr_cache_check_files(map, id) != SCR_SUCCESS) {
-    scr_err("scr_flush_async_complete: One or more files is missing @ %s:%d", __FILE__, __LINE__);
-    have_files = 0;
-  }
-  if (! scr_alltrue(have_files)) {
-    if (scr_my_rank_world == 0) {
-      scr_err("scr_flush_async_complete: One or more processes are missing their files @ %s:%d",
-              __FILE__, __LINE__
-      );
-      if (scr_log_enable) {
-        double time_end = MPI_Wtime();
-        double time_diff = time_end - scr_flush_async_time_start;
-        time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH COMPLETE FAILED", "Missing files in cache", &id, &now, &time_diff);
-      }
-    }
-    return SCR_FAILURE;
-  }
-
-  /* TODO: have master tell each rank on node whether its files were written successfully */
-
-  /* allocate structure to hold metadata info */
-  scr_hash* data = scr_hash_new();
-  if (data == NULL) {
-    scr_err("scr_flush_async_complete: Failed to malloc data structure to write out summary file @ file %s:%d",
-            __FILE__, __LINE__
-    );
-    MPI_Abort(scr_comm_world, 0);
-  }
-
-  /* set our rank */
-  scr_hash* rank_hash = scr_hash_set_kv_int(data, SCR_SUMMARY_6_KEY_RANK, scr_my_rank_world);
-
-  /* fill in metadata info for the files this process flushed */
-  double total_bytes = 0.0;
-  scr_hash_elem* elem = NULL;
-  for (elem = scr_filemap_first_file(map, id, scr_my_rank_world);
-       elem != NULL;
-       elem = scr_hash_elem_next(elem))
-  {
-    /* get the filename */
-    char* file = scr_hash_elem_key(elem);
-
-    /* if we flushed this file, read its metadata info */
-    if (scr_bool_flush_file(map, id, scr_my_rank_world, file)) {
-      /* record the filename in the hash, and get reference to a hash for this file */
-      char path[SCR_MAX_FILENAME];
-      char name[SCR_MAX_FILENAME];
-      scr_split_path(file, path, name);
-      scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
-
-      /* read meta data for this file */
-      scr_hash* flush_meta = scr_hash_new();
-      scr_meta_read(file, flush_meta);
-
-      /* TODO: check that this file was written successfully */
-
-      /* successfully flushed this file, record the filesize */
-      unsigned long flush_filesize = 0;
-      if (scr_meta_get_filesize(flush_meta, &flush_filesize) == SCR_SUCCESS) {
-        scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, flush_filesize);
-        total_bytes += (double) flush_filesize;
-      }
-
-      /* record the crc32 if one was computed */
-      uLong flush_crc32;
-      if (scr_meta_get_crc32(flush_meta, &flush_crc32) == SCR_SUCCESS) {
-        scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, flush_crc32);
-      }
-
-      /* delete our temporary meta data object */
-      scr_hash_delete(flush_meta);
-    }
-  }
-
-  /* gather metadata info from all tasks for all files to rank 0 */
-  int flushed = SCR_SUCCESS;
-  if (scr_my_rank_world == 0) {
-    /* flow control with a sliding window of w processes */
-    int w = scr_flush_width;
-    if (w > scr_ranks_world-1) {
-      w = scr_ranks_world-1;
-    }
-
-    /* allocate MPI_Request arrays and an array of ints */
-    int*         ranks    = (int*)         malloc(w * sizeof(int));
-    double*      bytes    = (double*)      malloc(w * sizeof(double));
-    MPI_Request* req_recv = (MPI_Request*) malloc(w * sizeof(MPI_Request));
-    MPI_Request* req_send = (MPI_Request*) malloc(w * sizeof(MPI_Request));
-    MPI_Status status;
-
-    i = 1;
-    int outstanding = 0;
-    int index = 0;
-    while (i < scr_ranks_world || outstanding > 0) {
-      /* issue up to w outstanding sends and receives */
-      while (i < scr_ranks_world && outstanding < w) {
-        /* record which rank we assign to this slot */
-        ranks[index] = i;
-
-        /* post a receive for the response message we'll get back when rank i is done */
-        MPI_Irecv(&bytes[index], 1, MPI_DOUBLE, i, 0, scr_comm_world, &req_recv[index]);
-
-        /* post a send to tell rank i to start */
-        int start = 1;
-        MPI_Isend(&start, 1, MPI_INT, i, 0, scr_comm_world, &req_send[index]);
-
-        /* update the number of outstanding requests */
-        i++;
-        outstanding++;
-        index++;
-      }
-
-      /* wait to hear back from any rank */
-      MPI_Waitany(w, req_recv, &index, &status);
-
-      /* once we hear back from a rank, the send to that rank should also be done, so complete it */
-      MPI_Wait(&req_send[index], &status);
-
-      /* receive the meta data from this rank */
-      scr_hash* incoming_hash = scr_hash_new();
-      scr_hash_recv(incoming_hash, ranks[index], scr_comm_world);
-      scr_hash_merge(data, incoming_hash);
-      scr_hash_delete(incoming_hash);
-
-      /* add the number of bytes written by this rank */
-      total_bytes += bytes[index];
-
-      /* one less request outstanding now */
-      outstanding--;
-    }
-
-    /* free the MPI_Request arrays */
-    if (req_send != NULL) {
-      free(req_send);
-      req_send = NULL;
-    }
-    if (req_recv != NULL) {
-      free(req_recv);
-      req_recv = NULL;
-    }
-    if (bytes != NULL) {
-      free(bytes);
-      bytes = NULL;
-    }
-    if (ranks != NULL) {
-      free(ranks);
-      ranks = NULL;
-    }
-  } else {
-    /* receive signal to start */
-    int start = 0;
-    MPI_Status status;
-    MPI_Recv(&start, 1, MPI_INT, 0, 0, scr_comm_world, &status);
-
-    /* flush each of my files and fill in meta data structures */
-    scr_hash_elem* elem = NULL;
-    for (elem = scr_filemap_first_file(map, id, scr_my_rank_world);
-         elem != NULL;
-         elem = scr_hash_elem_next(elem))
-    {
-      /* get the filename */
-      char* file = scr_hash_elem_key(elem);
-
-      /* flush this file if needed */
-      if (scr_bool_flush_file(map, id, scr_my_rank_world, file)) {
-        /* record the filename in the hash, and get reference to a hash for this file */
-        char path[SCR_MAX_FILENAME];
-        char name[SCR_MAX_FILENAME];
-        scr_split_path(file, path, name);
-        scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
-
-        /* read meta data for this file */
-        scr_hash* flush_meta = scr_hash_new();
-        scr_meta_read(file, flush_meta);
-
-        /* TODO: check that this file was written successfully */
-
-        /* successfully flushed this file, record the filesize */
-        unsigned long flush_filesize = 0;
-        if (scr_meta_get_filesize(flush_meta, &flush_filesize) == SCR_SUCCESS) {
-          scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, flush_filesize);
-          total_bytes += (double) flush_filesize;
-        }
-
-        /* record the crc32 if one was computed */
-        uLong flush_crc32;
-        if (scr_meta_get_crc32(flush_meta, &flush_crc32) == SCR_SUCCESS) {
-          scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, flush_crc32);
-        }
-
-        /* delete our temporary meta data object */
-        scr_hash_delete(flush_meta);
-      }
-    }
-
-    /* send total bytes to rank 0 */
-    MPI_Send(&total_bytes, 1, MPI_DOUBLE, 0, 0, scr_comm_world);
-
-    /* would be better to do this as a reduction-type of operation */
-    scr_hash_send(data, 0, scr_comm_world);
-  }
-
-  /* determine whether everyone wrote their files ok */
-  int all_success = scr_alltrue((flushed == SCR_SUCCESS));
-
-  if (scr_my_rank_world == 0) {
-    if (all_success) {
-      /* everyone wrote their files ok, now write out summary file */
-      int wrote_summary = scr_summary_write_old(scr_flush_async_dir, id, all_success, data);
-      if (wrote_summary != SCR_SUCCESS) {
-        flushed = SCR_FAILURE;
-      }
-
-      /* if we also wrote the summary file ok, update the current symlink */
-      if (flushed == SCR_SUCCESS) {
-        /* TODO: update 'flushed' depending on symlink update */
-
-        /* build path to current symlink */
-        char current[SCR_MAX_FILENAME];
-        scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
-
-        /* if current exists, unlink it */
-        if (access(current, F_OK) == 0) {
-          unlink(current);
-        }
-
-        /* create new current to point to new directory */
-        char target_path[SCR_MAX_FILENAME];
-        char target_name[SCR_MAX_FILENAME];
-        scr_split_path(scr_flush_async_dir, target_path, target_name);
-        symlink(target_name, current);
-      } else {
-        /* someone failed to write a file */
-        flushed = SCR_FAILURE;
-      }
-    }
-  }
-
-  /* have rank 0 broadcast whether the entire flush succeeded, including summary file and symlink update */
-  MPI_Bcast(&flushed, 1, MPI_INT, 0, scr_comm_world);
-
-  /* mark set as flushed to the parallel file system */
-  if (flushed == SCR_SUCCESS) {
-    scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_PFS);
-  }
-
-  /* mark that we've stopped the flush */
-  scr_flush_async_in_progress = 0;
-  scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
-
-  /* have master on each node remove files from the transfer file */
-  if (scr_my_rank_local == 0) {
-    /* get a hash to read from the file */
-    scr_hash* transfer_hash = scr_hash_new();
-
-    /* lock the transfer file, open it, and read it into the hash */
-    int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, transfer_hash);
-
-    /* remove files from the list */
-    scr_flush_async_file_dequeue(transfer_hash, scr_flush_async_hash);
-
-    /* set the STOP command */
-    scr_hash_unset(transfer_hash, SCR_TRANSFER_KEY_COMMAND);
-    scr_hash_set_kv(transfer_hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_STOP);
-
-    /* write the hash back to the file */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, transfer_hash);
-
-    /* delete the hash */
-    scr_hash_delete(transfer_hash);
-  }
-
-  /* free the file list for this checkpoint */
-  scr_hash_delete(scr_flush_async_hash);
-
-  /* free data structures */
-  scr_hash_delete(data);
-
-  /* stop timer, compute bandwidth, and report performance */
-  if (scr_my_rank_world == 0) {
-    double time_end = MPI_Wtime();
-    double time_diff = time_end - scr_flush_async_time_start;
-    double bw = scr_flush_async_bytes / (1024.0 * 1024.0 * time_diff);
-    scr_dbg(1, "scr_flush_async_complete: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-            time_diff, scr_flush_async_bytes, bw, bw/scr_ranks_world
-    );
-
-    /* log messages about flush */
-    if (flushed == SCR_SUCCESS) {
-      /* the flush worked, print a debug message */
-      scr_dbg(1, "scr_flush_async_complete: Flush of checkpoint %d succeeded", id);
-
-      /* log details of flush */
-      if (scr_log_enable) {
-        time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH SUCCEEDED", scr_flush_async_dir, &id, &now, &time_diff);
-
-        /* lookup the checkpoint directory for this checkpoint */
-        char* ckpt_dir = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
-        scr_log_transfer("ASYNC FLUSH", ckpt_dir, scr_flush_async_dir, &id,
-                         &scr_flush_async_timestamp_start, &time_diff, &scr_flush_async_bytes
-        );
-        if (ckpt_dir != NULL) {
-          free(ckpt_dir);
-        }
-      }
-    } else {
-      /* the flush failed, this is more serious so print an error message */
-      scr_err("scr_flush_async_complete: Flush failed");
-
-      /* log details of flush */
-      if (scr_log_enable) {
-        time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH FAILED", scr_flush_async_dir, &id, &now, &time_diff);
-      }
-    }
-  }
-
-  return flushed;
-#endif
-  return SCR_SUCCESS;
-}
-
-/* wait until the checkpoint currently being flushed completes */
-static int scr_flush_async_wait(scr_filemap* map)
-{
-#if 0
-  if (scr_flush_async_in_progress) {
-    while (scr_bool_is_flushing(scr_flush_async_checkpoint_id)) {
-      /* test whether the flush has completed, and if so complete the flush */
-      double bytes = 0.0;
-      if (scr_flush_async_test(map, scr_flush_async_checkpoint_id, &bytes) == SCR_SUCCESS) {
-        /* complete the flush */
-        scr_flush_async_complete(map, scr_flush_async_checkpoint_id);
-      } else {
-        /* otherwise, sleep to get out of the way */
-        if (scr_my_rank_world == 0) {
-          scr_dbg(1, "Flush of checkpoint %d is %d%% complete",
-                  scr_flush_async_checkpoint_id, (int) (bytes / scr_flush_async_bytes * 100.0)
-          );
-        }
-        usleep(10*1000*1000);
-      }
-    }
-  }
-#endif
-  return SCR_SUCCESS;
-}
-
-/* create container files
- * could do different things here depending on the file system, for example:
- *   Lustre - have first process writing to container create it
- *   GPFS   - gather container names to rank 0 and have it create them all */
-static int scr_flush_create_containers(const scr_hash* file_list)
-{
-  int success = SCR_SUCCESS;
-
-  /* here, we look at each segment a process writes,
-   * and the process which writes data to offset 0 is responsible for creating the container */
-
-  /* get the hash of containers */
-  scr_hash* containers = scr_hash_get(file_list, SCR_SUMMARY_6_KEY_CONTAINER);
-
-  /* iterate over each of our files */
-  scr_hash_elem* file_elem;
-  scr_hash* files = scr_hash_get(file_list, SCR_FLUSH_KEY_FILE);
-  for (file_elem = scr_hash_elem_first(files);
-       file_elem != NULL;
-       file_elem = scr_hash_elem_next(file_elem))
-  {
-    /* get the hash for this file */
-    scr_hash* hash = scr_hash_elem_hash(file_elem);
-
-    /* iterate over the segments for this file */
-    scr_hash_elem* segment_elem;
-    scr_hash* segments = scr_hash_get(hash, SCR_SUMMARY_6_KEY_SEGMENT);
-    for (segment_elem = scr_hash_elem_first(segments);
-         segment_elem != NULL;
-         segment_elem = scr_hash_elem_next(segment_elem))
-    {
-      /* get the hash for this segment */
-      scr_hash* segment = scr_hash_elem_hash(segment_elem);
-
-      /* lookup the container details for this segment */
-      char* name;
-      unsigned long size, offset, length;
-      if (scr_container_get_name_size_offset_length(segment, containers, &name, &size, &offset, &length) == SCR_SUCCESS) {
-        /* if we write something to offset 0 of this container,
-         * we are responsible for creating the file */
-        if (offset == 0 && length > 0) {
-          /* open the file with create and truncate options, then just immediately close it */
-          int fd = scr_open(name, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-          if (fd < 0) {
-            /* the create failed */
-            scr_err("Opening file for writing: scr_open(%s) errno=%d %m @ %s:%d",
-                    name, errno, __FILE__, __LINE__
-            );
-            success = SCR_FAILURE;
-          } else {
-            /* the create succeeded, now just close the file */
-            scr_close(name, fd);
-          }
-        }
-      } else {
-        /* failed to read container details from segment hash, consider this an error */
-        success = SCR_FAILURE;
-      }
-    }
-  }
-
-  /* determine whether all processes successfully created their containers */
-  if (scr_alltrue((success == SCR_SUCCESS))) {
-    return SCR_SUCCESS;
-  }
-  return SCR_FAILURE;
-}
-
+/* given a filename, its meta data, its list of segments, and list of destination containers,
+ * copy file to container files */
 static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_hash* segments, const scr_hash* containers)
 {
   /* check that we got something for a source file */
@@ -5795,129 +5740,10 @@ static int scr_flush_data(scr_hash* file_list, scr_hash* data)
   return SCR_FAILURE;
 }
 
-/* write summary file for flush */
-static int scr_flush_summary(const scr_hash* file_list, scr_hash* data)
-{
-  int flushed = SCR_SUCCESS;
-
-  /* TODO: current method is a flat tree with rank 0 as the root,
-   * need a more scalable algorithm */
-
-  /* flow control the send among processes, and gather meta data to rank 0 */
-  if (scr_my_rank_world == 0) {
-    /* now, have a sliding window of w processes send simultaneously */
-    int w = scr_flush_width;
-    if (w > (scr_ranks_world - 1)) {
-      w = scr_ranks_world - 1;
-    }
-
-    /* allocate MPI_Request arrays and an array of ints */
-    int*         ranks    = (int*)         malloc(w * sizeof(int));
-    int*         flags    = (int*)         malloc(w * sizeof(int));
-    MPI_Request* req_recv = (MPI_Request*) malloc(w * sizeof(MPI_Request));
-    MPI_Request* req_send = (MPI_Request*) malloc(w * sizeof(MPI_Request));
-    MPI_Status status;
-
-    int i = 1;
-    int outstanding = 0;
-    int index = 0;
-    while (i < scr_ranks_world || outstanding > 0) {
-      /* issue up to w outstanding sends and receives */
-      while (i < scr_ranks_world && outstanding < w) {
-        /* record which rank we assign to this slot */
-        ranks[index] = i;
-
-        /* post a receive for the response message we'll get back when rank i is done */
-        MPI_Irecv(&flags[index], 1, MPI_INT, i, 0, scr_comm_world, &req_recv[index]);
-
-        /* post a send to tell rank i to start */
-        MPI_Isend(&flushed, 1, MPI_INT, i, 0, scr_comm_world, &req_send[index]);
-
-        /* update the number of outstanding requests */
-        i++;
-        outstanding++;
-        index++;
-      }
-
-      /* wait to hear back from any rank */
-      MPI_Waitany(w, req_recv, &index, &status);
-
-      /* someone responded, the send to this rank should also be done, so complete it */
-      MPI_Wait(&req_send[index], &status);
-
-      /* receive the meta data from this rank */
-      scr_hash* incoming_hash = scr_hash_new();
-      scr_hash_recv(incoming_hash, ranks[index], scr_comm_world);
-      scr_hash_merge(data, incoming_hash);
-      scr_hash_delete(incoming_hash);
-
-      /* one less request outstanding now */
-      outstanding--;
-    }
-
-    /* free the MPI_Request arrays */
-    if (req_send != NULL) {
-      free(req_send);
-      req_send = NULL;
-    }
-    if (req_recv != NULL) {
-      free(req_recv);
-      req_recv = NULL;
-    }
-    if (flags != NULL) {
-      free(flags);
-      flags = NULL;
-    }
-    if (ranks != NULL) {
-      free(ranks);
-      ranks = NULL;
-    }
-  } else {
-    /* receive signal to start */
-    int start = 0;
-    MPI_Status status;
-    MPI_Recv(&start, 1, MPI_INT, 0, 0, scr_comm_world, &status);
-
-    /* flush each of my files and fill in meta data structures */
-    if (start != SCR_SUCCESS) {
-      flushed = SCR_FAILURE;
-    }
-
-    /* send message to rank 0 to report that we're done */
-    MPI_Send(&flushed, 1, MPI_INT, 0, 0, scr_comm_world);
-
-    /* would be better to do this as a reduction-type of operation */
-    scr_hash_send(data, 0, scr_comm_world);
-  }
-
-  /* write out the summary file */
-  if (scr_my_rank_world == 0) {
-    /* determine whether flush was complete */
-    int complete = 1;
-    if (flushed != SCR_SUCCESS) {
-      complete = 0;
-    }
-
-    /* now write out summary file */
-    scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
-    if (scr_summary_write(scr_par_prefix, dataset, complete, data) != SCR_SUCCESS) {
-      flushed = SCR_FAILURE;
-    }
-  }
-
-  /* determine whether everyone wrote their files ok */
-  if (scr_alltrue((flushed == SCR_SUCCESS))) {
-    return SCR_SUCCESS;
-  }
-  return SCR_FAILURE;
-}
-
 /* flush files from cache to parallel file system under SCR_PREFIX */
-static int scr_cache_flush(scr_filemap* map, int id)
+static int scr_flush_sync(scr_filemap* map, int id)
 {
   int flushed = SCR_SUCCESS;
-  int i;
-  int tmp_rc;
 
   /* if user has disabled flush, return failure */
   if (scr_flush <= 0) {
@@ -5950,33 +5776,6 @@ static int scr_cache_flush(scr_filemap* map, int id)
     time_start = MPI_Wtime();
   }
 
-  /* log the flush start */
-  if (scr_my_rank_world == 0) {
-    if (scr_log_enable) {
-      time_t now = scr_log_seconds();
-      scr_log_event("FLUSH STARTED", NULL, &id, &now, NULL);
-    }
-  }
-
-  /* check that we have all of our files */
-  int have_files = 1;
-  if (scr_cache_check_files(map, id) != SCR_SUCCESS) {
-    scr_err("One or more files is missing @ %s:%d", __FILE__, __LINE__);
-    have_files = 0;
-  }
-  if (! scr_alltrue(have_files)) {
-    if (scr_my_rank_world == 0) {
-      scr_err("One or more processes are missing their files @ %s:%d", __FILE__, __LINE__);
-      if (scr_log_enable) {
-        double time_end = MPI_Wtime();
-        double time_diff = time_end - time_start;
-        time_t now = scr_log_seconds();
-        scr_log_event("FLUSH FAILED", "Missing files in cache", &id, &now, &time_diff);
-      }
-    }
-    return SCR_FAILURE;
-  }
-
   /* if we are flushing something asynchronously, wait on it */
   if (scr_flush_async_in_progress) {
     scr_flush_async_wait(map);
@@ -5988,72 +5787,33 @@ static int scr_cache_flush(scr_filemap* map, int id)
     }
   }
 
-  /* allocate a fresh hash to hold the list of files we'll be flushing */
+  /* log the flush start */
+  if (scr_my_rank_world == 0) {
+    if (scr_log_enable) {
+      time_t now = scr_log_seconds();
+      scr_log_event("FLUSH STARTED", NULL, &id, &now, NULL);
+    }
+  }
+
+  /* get list of files to flush, identify containers,
+   * create directories, and create container files */
   scr_hash* file_list = scr_hash_new();
-  if (file_list == NULL) {
-    scr_err("Failed to allocate file list hash @ %s:%d",
-            __FILE__, __LINE__
-    );
-    MPI_Abort(scr_comm_world, 0);
-  }
-
-  /* build the list of files to flush, which includes meta data for each one */
-  if (scr_flush_build_list(map, id, file_list) != SCR_SUCCESS) {
-    scr_err("Failed to get list of files @ %s:%d",
-            __FILE__, __LINE__
-    );
-    MPI_Abort(scr_comm_world, 0);
-  }
-
-  /* identify containers for our files */
-  if (scr_use_containers) {
-    scr_flush_identify_containers(file_list);
-  }
-
-  /* create directories for flush */
-  if (scr_flush_create_dirs(file_list) != SCR_SUCCESS) {
-    if (scr_my_rank_world == 0) {
-      scr_err("Failed to create flush directories @ %s:%d", __FILE__, __LINE__);
-      if (scr_log_enable) {
-        double time_end = MPI_Wtime();
-        double time_diff = time_end - time_start;
-        time_t now = scr_log_seconds();
-        scr_log_event("FLUSH FAILED", "Failed to create directory", &id, &now, &time_diff);
-      }
-    }
-    scr_hash_delete(file_list);
-    return SCR_FAILURE;
-  }
-
-  /* create container files */
-  if (scr_use_containers) {
-    if (scr_flush_create_containers(file_list) != SCR_SUCCESS) {
-      /* TODO: delete the directories that we just created above? */
-      scr_hash_delete(file_list);
-      return SCR_FAILURE;
-    }
-  }
-
-  /* allocate structure to hold summary file info */
-  scr_hash* data = scr_hash_new();
-  if (data == NULL) {
-    scr_err("Failed to malloc data structure to write out summary file @ %s:%d",
-            __FILE__, __LINE__
-    );
-    MPI_Abort(scr_comm_world, 0);
+  if (scr_flush_prepare(map, id, file_list) != SCR_SUCCESS) {
+    flushed = SCR_FAILURE;
   }
 
   /* write the data out to files */
+  scr_hash* data = scr_hash_new();
   if (scr_flush_data(file_list, data) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 
-  /* write summary file */
-  if (scr_flush_summary(file_list, data) != SCR_SUCCESS) {
+  /* write summary file and create current symlink */
+  if (scr_flush_complete(id, file_list, data) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 
-  /* create current symlink */
+  /* get number of bytes for this dataset */
   double total_bytes = 0.0;
   if (scr_my_rank_world == 0) {
     if (flushed == SCR_SUCCESS) {
@@ -6067,34 +5827,9 @@ static int scr_cache_flush(scr_filemap* map, int id)
         total_bytes = (double) dataset_bytes;
       }
 
-      /* read the name of the dataset and update the current symlink */
-      char* dataset_name;
-      if (scr_dataset_get_name(dataset, &dataset_name) == SCR_SUCCESS) {
-        /* build path to current symlink */
-        char current[SCR_MAX_FILENAME];
-        scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
-
-        /* if current exists, unlink it */
-        if (access(current, F_OK) == 0) {
-          unlink(current);
-        }
-
-        /* create new current to point to new directory */
-        symlink(dataset_name, current);
-      }
-
       /* delete the dataset object */
       scr_dataset_delete(dataset);
     }
-  }
-
-  /* have rank 0 broadcast whether the entire flush succeeded,
-   * including summary file and symlink update */
-  MPI_Bcast(&flushed, 1, MPI_INT, 0, scr_comm_world);
-
-  /* mark this dataset as flushed to the parallel file system */
-  if (flushed == SCR_SUCCESS) {
-    scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_PFS);
   }
 
   /* free data structures */
@@ -6107,30 +5842,23 @@ static int scr_cache_flush(scr_filemap* map, int id)
     double time_end = MPI_Wtime();
     double time_diff = time_end - time_start;
     double bw = total_bytes / (1024.0 * 1024.0 * time_diff);
-    scr_dbg(1, "scr_cache_flush: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
+    scr_dbg(1, "scr_flush_sync: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
             time_diff, total_bytes, bw, bw/scr_ranks_world
     );
 
     /* log messages about flush */
     if (flushed == SCR_SUCCESS) {
       /* the flush worked, print a debug message */
-      scr_dbg(1, "scr_cache_flush: Flush of dataset %d succeeded", id);
+      scr_dbg(1, "scr_flush_sync: Flush of dataset %d succeeded", id);
 
       /* log details of flush */
       if (scr_log_enable) {
         time_t now = scr_log_seconds();
         scr_log_event("FLUSH SUCCEEDED", NULL, &id, &now, &time_diff);
-
-        /* lookup the redundancy descriptor for this checkpoint */
-        char* ckpt_dir = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
-        scr_log_transfer("FLUSH", ckpt_dir, NULL, &id, &timestamp_start, &time_diff, &total_bytes);
-        if (ckpt_dir != NULL) {
-          free(ckpt_dir);
-        }
       }
     } else {
       /* the flush failed, this is more serious so print an error message */
-      scr_err("scr_cache_flush: Flush of dataset %d failed", id);
+      scr_err("scr_flush_sync: Flush of dataset %d failed", id);
 
       /* log details of flush */
       if (scr_log_enable) {
@@ -6141,32 +5869,6 @@ static int scr_cache_flush(scr_filemap* map, int id)
   }
 
   return flushed;
-}
-
-/* check whether a flush is needed, and execute flush if so */
-static int scr_check_flush(scr_filemap* map)
-{
-  /* check whether user has flush enabled */
-  if (scr_flush > 0) {
-    /* every scr_flush checkpoints, flush the checkpoint set */
-    if (scr_checkpoint_id > 0 && scr_checkpoint_id % scr_flush == 0) {
-      if (scr_flush_async) {
-        /* check that we don't start an async flush if one is already in progress */
-        if (scr_flush_async_in_progress) {
-          /* we need to flush the current checkpoint, however, another flush is ongoing,
-           * so wait for this other flush to complete before starting the next one */
-          scr_flush_async_wait(map);
-        }
-
-        /* start an async flush on the current checkpoint id */
-        scr_flush_async_start(map, scr_checkpoint_id);
-      } else {
-        /* synchronously flush the current checkpoint */
-        scr_cache_flush(map, scr_checkpoint_id);
-      }
-    }
-  }
-  return SCR_SUCCESS;
 }
 
 /*
@@ -6308,7 +6010,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
   if (need_to_halt && halt_cond == SCR_TEST_AND_HALT) {
     /* handle any async flush */
     if (scr_flush_async_in_progress) {
-      if (scr_flush_async_checkpoint_id == scr_checkpoint_id) {
+      if (scr_flush_async_dataset_id == scr_dataset_id) {
         /* we're going to sync flush this same checkpoint below, so kill it */
         scr_flush_async_stop(scr_map);
       } else {
@@ -6320,7 +6022,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     /* TODO: need to flush any output sets and the latest checkpoint set */
 
     /* flush files if needed */
-    scr_cache_flush(scr_map, scr_checkpoint_id);
+    scr_flush_sync(scr_map, scr_checkpoint_id);
 
     /* sync up tasks before exiting (don't want tasks to exit so early that
      * runtime kills others after timeout) */
@@ -6842,36 +6544,6 @@ static int scr_attempt_rebuild_xor(scr_filemap* map, const struct scr_reddesc* c
     }
     return SCR_FAILURE;
   }
-
-  return SCR_SUCCESS;
-}
-
-/* given a filemap, a dataset, and a rank, unlink those files and remove them from the map */
-static int scr_unlink_rank(scr_filemap* map, int id, int rank)
-{
-  /* delete each file and remove its metadata file */
-  scr_hash_elem* file_elem;
-  for (file_elem = scr_filemap_first_file(map, id, rank);
-       file_elem != NULL;
-       file_elem = scr_hash_elem_next(file_elem))
-  {
-    char* file = scr_hash_elem_key(file_elem);
-    if (file != NULL) {
-      scr_dbg(2, "Delete file Dataset %d, Rank %d, File %s", id, rank, file);
-
-      /* delete the file */
-      unlink(file);
-
-      /* remove the file from the map */
-      scr_filemap_remove_file(map, id, rank, file);
-    }
-  }
-
-  /* unset the expected number of files for this rank */
-  scr_filemap_unset_expected_files(map, id, rank);
-
-  /* write the new filemap to disk */
-  scr_filemap_write(scr_map_file, map);
 
   return SCR_SUCCESS;
 }
@@ -7814,136 +7486,121 @@ static int scr_cache_rebuild(scr_filemap* map)
   return rc;
 }
 
-/* attempt to fetch most recent checkpoint from prefix directory into cache */
-static int scr_cache_fetch(scr_filemap* map, int* fetch_attempted)
+/* remove any dataset ids from flush file which are not in cache,
+ * and add any datasets in cache that are not in the flush file */
+static int scr_flush_file_rebuild(const scr_filemap* map)
 {
-  /* we only return success if we successfully fetch a checkpoint */
-  int rc = SCR_FAILURE;
-
-  double time_start, time_end, time_diff;
-
-  /* start timer */
   if (scr_my_rank_world == 0) {
-    time_start = MPI_Wtime();
-  }
+    /* read the flush file */
+    scr_hash* hash = scr_hash_new();
+    scr_hash_read(scr_flush_file, hash);
 
-  /* build the filename for the current symlink */
-  char scr_current[SCR_MAX_FILENAME];
-  scr_build_path(scr_current, sizeof(scr_current), scr_par_prefix, SCR_CURRENT_LINK);
+    /* get list of dataset ids in flush file */
+    int flush_ndsets;
+    int* flush_dsets;
+    scr_hash* flush_dsets_hash = scr_hash_get(hash, SCR_FLUSH_KEY_DATASET);
+    scr_hash_list_int(flush_dsets_hash, &flush_ndsets, &flush_dsets);
 
-  /* have rank 0 read the index file */
-  scr_hash* index_hash = NULL;
-  int read_index_file = 0;
-  if (scr_my_rank_world == 0) {
-    /* create an empty hash to store our index */
-    index_hash = scr_hash_new();
+    /* get list of dataset ids in cache */
+    int cache_ndsets;
+    int* cache_dsets;
+    scr_filemap_list_datasets(map, &cache_ndsets, &cache_dsets);
 
-    /* read the index file */
-    if (scr_index_read(scr_par_prefix, index_hash) == SCR_SUCCESS) {
-      /* remember that we read the index file ok, so we know we can write to it later
-       * this way we don't overwrite an existing index file just because the read happened to fail */
-      read_index_file = 1;
-    }
-  }
+    int flush_index = 0;
+    int cache_index = 0;
+    while (flush_index < flush_ndsets && cache_index < cache_ndsets) {
+      /* get next smallest index from flush file and cache */
+      int flush_dset = flush_dsets[flush_index];
+      int cache_dset = cache_dsets[cache_index];
 
-  /* now start fetching, we keep trying until we exhaust all valid checkpoints */
-  char target[SCR_MAX_FILENAME];
-  char fetch_dir[SCR_MAX_FILENAME];
-  int current_checkpoint_id = -1;
-  int continue_fetching = 1;
-  while (continue_fetching) {
-    /* initialize our target and fetch directory values to empty strings */
-    strcpy(target, "");
-    strcpy(fetch_dir, "");
-
-    /* rank 0 determines the directory to fetch from */
-    if (scr_my_rank_world == 0) {
-      /* read the target of the current symlink if there is one */
-      if (access(scr_current, R_OK) == 0) {
-        int target_len = readlink(scr_current, target, sizeof(target)-1);
-        if (target_len >= 0) {
-          target[target_len] = '\0';
-        }
-      }
-
-      /* if we read the index file, lookup the checkpoint id */
-      if (read_index_file) {
-        int next_checkpoint_id = -1;
-        if (strcmp(target, "") != 0) {
-          /* we have a subdirectory name, lookup the checkpoint id corresponding to this directory */
-          scr_index_get_id_by_dir(index_hash, target, &next_checkpoint_id);
-        } else {
-          /* otherwise, just get the most recent complete checkpoint
-           * (that's older than the current id) */
-          scr_index_get_most_recent_complete(index_hash, current_checkpoint_id, &next_checkpoint_id, target);
-        }
-        current_checkpoint_id = next_checkpoint_id;
-
-        /* TODODSET: need to verify that dataset is really a checkpoint and keep searching if not */
-      }
-
-      /* if we have a subdirectory (target) name, build the full fetch directory */
-      if (strcmp(target, "") != 0) {
-        /* record that we're attempting a fetch of this checkpoint */
-        *fetch_attempted = 1;
-        if (read_index_file && current_checkpoint_id != -1) {
-          scr_index_mark_fetched(index_hash, current_checkpoint_id, target);
-          scr_index_write(scr_par_prefix, index_hash);
-        }
-
-        /* we have a subdirectory, now build the full path */
-        scr_build_path(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
-      }
-    }
-
-    /* now attempt to fetch the checkpoint */
-    int dset_id, ckpt_id;
-    rc = scr_fetch_files(map, fetch_dir, &dset_id, &ckpt_id);
-    if (rc == SCR_SUCCESS) {
-      /* set the dataset and checkpoint ids */
-      scr_dataset_id = dset_id;
-      scr_checkpoint_id = ckpt_id;
-
-      /* we succeeded in fetching this checkpoint, set current to point to it, and stop fetching */
-      if (scr_my_rank_world == 0) {
-        symlink(target, scr_current);
-      }
-      continue_fetching = 0;
-    } else {
-      /* fetch failed, delete the current symlink */
-      unlink(scr_current);
-
-      /* if we had a fetch directory, mark it as failed so we don't try it again */
-      if (strcmp(fetch_dir, "") != 0) {
-        if (scr_my_rank_world == 0) {
-          if (read_index_file && current_checkpoint_id != -1 && strcmp(target, "") != 0) {
-            scr_index_mark_failed(index_hash, current_checkpoint_id, target);
-            scr_index_write(scr_par_prefix, index_hash);
-          }
-        }
+      if (flush_dset < cache_dset) {
+        /* dataset exists in flush file but not in cache,
+         * delete it from the flush file */
+        scr_hash_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, flush_dset);
+        flush_index++;
+      } else if (cache_dset < flush_dset) {
+        /* dataset exists in cache but not flush file,
+         * add it to the flush file */
+        scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, cache_dset);
+        scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
+        cache_index++;
       } else {
-        /* we ran out of valid checkpoints in the index file, bail out of the loop */
-        continue_fetching = 0;
+        /* dataset exists in cache and the flush file,
+         * ensure that it is listed as being in the cache */
+        scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, cache_dset);
+        scr_hash_unset_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
+        scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
+        flush_index++;
+        cache_index++;
+      }
+    }
+    while (flush_index < flush_ndsets) {
+      /* dataset exists in flush file but not in cache,
+       * delete it from the flush file */
+      int flush_dset = flush_dsets[flush_index];
+      scr_hash_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, flush_dset);
+      flush_index++;
+    }
+    while (cache_index < cache_ndsets) {
+      /* dataset exists in cache but not flush file,
+       * add it to the flush file */
+      int cache_dset = cache_dsets[cache_index];
+      scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, cache_dset);
+      scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
+      cache_index++;
+    }
+
+    /* free our list of cache dataset ids */
+    if (cache_dsets != NULL) {
+      free(cache_dsets);
+      cache_dsets = NULL;
+    }
+
+    /* free our list of flush file dataset ids */
+    if (flush_dsets != NULL) {
+      free(flush_dsets);
+      flush_dsets = NULL;
+    }
+
+    /* write the hash back to the flush file */
+    scr_hash_write(scr_flush_file, hash);
+
+    /* delete the hash */
+    scr_hash_delete(hash);
+  }
+  return SCR_SUCCESS;
+}
+
+/*
+=========================================
+Utility functions
+=========================================
+*/
+
+/* check whether a flush is needed, and execute flush if so */
+static int scr_check_flush(scr_filemap* map)
+{
+  /* check whether user has flush enabled */
+  if (scr_flush > 0) {
+    /* every scr_flush checkpoints, flush the checkpoint set */
+    if (scr_checkpoint_id > 0 && scr_checkpoint_id % scr_flush == 0) {
+      if (scr_flush_async) {
+        /* check that we don't start an async flush if one is already in progress */
+        if (scr_flush_async_in_progress) {
+          /* we need to flush the current checkpoint, however, another flush is ongoing,
+           * so wait for this other flush to complete before starting the next one */
+          scr_flush_async_wait(map);
+        }
+
+        /* start an async flush on the current checkpoint id */
+        scr_flush_async_start(map, scr_checkpoint_id);
+      } else {
+        /* synchronously flush the current checkpoint */
+        scr_flush_sync(map, scr_checkpoint_id);
       }
     }
   }
-
-  /* delete the index hash */
-  if (scr_my_rank_world == 0) {
-    scr_hash_delete(index_hash);
-  }
-
-  /* broadcast whether we actually attempted to fetch anything (only rank 0 knows) */
-  MPI_Bcast(fetch_attempted, 1, MPI_INT, 0, scr_comm_world);
-
-  /* stop timer for fetch */
-  if (scr_my_rank_world == 0) {
-    time_end = MPI_Wtime();
-    time_diff = time_end - time_start;
-    scr_dbg(1, "scr_fetch_files: return code %d, %f secs", rc, time_diff);
-  }
-
-  return rc;
+  return SCR_SUCCESS;
 }
 
 /* given a dataset id and a filename, return the full path to the file which the user should write to */
@@ -7979,6 +7636,33 @@ static int scr_route_file(const struct scr_reddesc* c, int id, const char* file,
   }
 
   return SCR_SUCCESS;
+}
+
+/*
+=========================================
+Configuration parameters
+=========================================
+*/
+
+/* read parameters from config file and fill in hash (parallel) */
+int scr_config_read(const char* file, scr_hash* hash)
+{
+  int rc = SCR_FAILURE;
+
+  /* only rank 0 reads the file */
+  if (scr_my_rank_world == 0) {
+    rc = scr_config_read_serial(file, hash);
+  }
+
+  /* broadcast whether rank 0 read the file ok */
+  MPI_Bcast(&rc, 1, MPI_INT, 0, scr_comm_world);
+
+  /* if rank 0 read the file, broadcast the hash */
+  if (rc == SCR_SUCCESS) {
+    rc = scr_hash_bcast(hash, 0, scr_comm_world);
+  }
+
+  return rc;
 }
 
 /* read in environment variables */
@@ -8261,6 +7945,15 @@ static int scr_get_params()
 
   if ((value = scr_param_get("SCR_USE_CONTAINERS")) != NULL) {
     scr_use_containers = atoi(value);
+
+    /* we don't yet support containers with the async flush,
+     * need to change transfer file format for this */
+    if (scr_flush_async && scr_use_containers) {
+      scr_warn("Async flush does not yet support containers, disabling containers @ %s:%d",
+               __FILE__, __LINE__
+      );
+      scr_use_containers = 0;
+    }
   }
 
   if ((value = scr_param_get("SCR_CONTAINER_SIZE")) != NULL) {
@@ -8660,7 +8353,7 @@ int SCR_Init()
 
       if (scr_flush_on_restart) {
         /* always flush on restart if scr_flush_on_restart is set */
-        scr_cache_flush(scr_map, scr_checkpoint_id);
+        scr_flush_sync(scr_map, scr_checkpoint_id);
       } else {
         /* otherwise, flush only if we need to flush */
         scr_check_flush(scr_map);
@@ -8684,7 +8377,7 @@ int SCR_Init()
   int fetch_attempted = 0;
   if (rc != SCR_SUCCESS && scr_fetch) {
     /* sets scr_dataset_id and scr_checkpoint_id upon success */
-    rc = scr_cache_fetch(scr_map, &fetch_attempted);
+    rc = scr_fetch_sync(scr_map, &fetch_attempted);
   }
 
   /* TODO: there is some risk here of cleaning the cache when we shouldn't if given a badly placed nodeset
@@ -8754,7 +8447,7 @@ int SCR_Finalize()
 
   /* handle any async flush */
   if (scr_flush_async_in_progress) {
-    if (scr_flush_async_checkpoint_id == scr_checkpoint_id) {
+    if (scr_flush_async_dataset_id == scr_dataset_id) {
       /* we're going to sync flush this same checkpoint below, so kill it */
       scr_flush_async_stop();
     } else {
@@ -8765,7 +8458,7 @@ int SCR_Finalize()
 
   /* flush checkpoint set if we need to */
   if (scr_bool_need_flush(scr_checkpoint_id)) {
-    scr_cache_flush(scr_map, scr_checkpoint_id);
+    scr_flush_sync(scr_map, scr_checkpoint_id);
   }
 
   /* disconnect from database */
@@ -9283,14 +8976,14 @@ int SCR_Complete_checkpoint(int valid)
   /* if we have an async flush ongoing, take this chance to check whether it's completed */
   if (scr_flush_async_in_progress) {
     double bytes = 0.0;
-    if (scr_flush_async_test(scr_map, scr_flush_async_checkpoint_id, &bytes) == SCR_SUCCESS) {
+    if (scr_flush_async_test(scr_map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {
       /* async flush has finished, go ahead and complete it */
-      scr_flush_async_complete(scr_map, scr_flush_async_checkpoint_id);
+      scr_flush_async_complete(scr_map, scr_flush_async_dataset_id);
     } else {
       /* not done yet, just print a progress message to the screen */
       if (scr_my_rank_world == 0) {
-        scr_dbg(1, "Flush of checkpoint %d is %d%% complete",
-                scr_flush_async_checkpoint_id, (int) (bytes / scr_flush_async_bytes * 100.0)
+        scr_dbg(1, "Flush of dataset %d is %d%% complete",
+                scr_flush_async_dataset_id, (int) (bytes / scr_flush_async_bytes * 100.0)
         );
       }
     }

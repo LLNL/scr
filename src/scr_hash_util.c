@@ -111,6 +111,21 @@ int scr_hash_util_set_int64(scr_hash* hash, const char* key, int64_t value)
   return SCR_SUCCESS;
 }
 
+int scr_hash_util_set_double(scr_hash* hash, const char* key, double value)
+{
+  /* first, unset any current setting */
+  scr_hash_unset(hash, key);
+
+  /* then set the new value */
+  scr_hash* hash2 = scr_hash_setf(hash, NULL, "%s %f", key, value);
+
+  /* if there wasn't a hash, return failure */
+  if (hash2 == NULL) {
+    return SCR_FAILURE;
+  }
+  return SCR_SUCCESS;
+}
+
 int scr_hash_util_get_bytecount(const scr_hash* hash, const char* key, unsigned long* val)
 {
   int rc = SCR_FAILURE;
@@ -194,6 +209,24 @@ int scr_hash_util_get_int64(const scr_hash* hash, const char* key, int64_t* val)
     /* convert the key string */
     *val = (int64_t) strtoll(val_str, NULL, 0);
     rc = SCR_SUCCESS;
+  }
+
+  return rc;
+}
+
+int scr_hash_util_get_double(const scr_hash* hash, const char* key, double* val)
+{
+  int rc = SCR_FAILURE;
+
+  /* check whether this key is even set */
+  char* val_str = scr_hash_get_val(hash, key);
+  if (val_str != NULL) {
+    /* convert the key string */
+    double val_tmp;
+    if (scr_atod(val_str, &val_tmp) == SCR_SUCCESS) {
+      *val = val_tmp;
+      rc = SCR_SUCCESS;
+    }
   }
 
   return rc;

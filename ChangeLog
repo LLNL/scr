@@ -1,3 +1,12 @@
+2011-08-31 Adam Moody <moody20@llnl.gov>
+
+	* scr_hash_util.h/c : Added scr_hash_set/get_double.
+
+	* scr_transfer.c : Only bother writing to the transfer file if we
+	  successfully opened it.
+
+	* scr.c : Added code to support async flush in 1.1-8.
+
 2011-08-03 Adam Moody <moody20@llnl.gov>
 
 	* : Recording meta data in filemap and summary files instead of separate

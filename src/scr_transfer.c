@@ -24,6 +24,7 @@
 #include "scr_err.h"
 #include "scr_util.h"
 #include "scr_hash.h"
+#include "scr_hash_util.h"
 #include "scr_param.h"
 
 #include <stdio.h>
@@ -122,23 +123,20 @@ int need_transfer(scr_hash* files, char* src, char** dst, off_t* position, off_t
   }
 
   /* extract the values for file size, bytes written, and destination */
-  char* size    = scr_hash_elem_get_first_val(file_hash, "SIZE");
-  char* written = scr_hash_elem_get_first_val(file_hash, "WRITTEN");
-  char* dest    = scr_hash_elem_get_first_val(file_hash, "DESTINATION");
-
-  /* if the bytes written value is less than the file size,
-   * we've got a valid file */
-  if (size != NULL && written != NULL) {
-    /* convert the file size and bytes written strings to numbers */
-    off_t size_count    = strtoul(size,    NULL, 0);
-    off_t written_count = strtoul(written, NULL, 0);
-
-    if (written_count < size_count) {
+  unsigned long size, written;
+  char* dest;
+  if (scr_hash_util_get_bytecount(file_hash, SCR_TRANSFER_KEY_SIZE, &size) == SCR_SUCCESS &&
+      scr_hash_util_get_bytecount(file_hash, SCR_TRANSFER_KEY_WRITTEN, &written) == SCR_SUCCESS &&
+      scr_hash_util_get_str(file_hash, SCR_TRANSFER_KEY_DESTINATION, &dest) == SCR_SUCCESS)
+  {
+    /* if the bytes written value is less than the file size,
+     * we've got a valid file */
+    if (written < size) {
       /* got our file, fill in output parameters */
       *dst = strdup(dest);
       /* TODO: check for error */
-      *position = written_count;
-      *filesize = size_count;
+      *position = (off_t) written;
+      *filesize = (off_t) size;
       return SCR_SUCCESS;
     }
   }
@@ -314,21 +312,20 @@ int set_transfer_file_state(char* s, int done)
   /* get a hash to store file data */
   scr_hash* hash = scr_hash_new();
 
-  /* read the file */
+  /* attempt to read the file transfer file */
   int fd = -1;
-  scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
+  if (scr_hash_lock_open_read(scr_transfer_file, &fd, hash) == SCR_SUCCESS) {
+    /* set the state */
+    scr_hash_util_set_str(hash, SCR_TRANSFER_KEY_STATE, s);
 
-  /* set the state */
-  scr_hash_unset(hash, SCR_TRANSFER_KEY_STATE);
-  scr_hash_set_kv(hash, SCR_TRANSFER_KEY_STATE, s);
+    /* set the flag if we're done */
+    if (done) {
+      scr_hash_set_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
+    }
 
-  if (done) {
-    /* set the flag */
-    scr_hash_set_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
+    /* write the hash back to the file */
+    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
   }
-
-  /* write the hash back */
-  scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
 
   /* delete the hash */
   scr_hash_delete(hash);
@@ -343,22 +340,22 @@ int update_transfer_file(char* src, char* dst, off_t position)
   /* create a hash to store data from file */
   scr_hash* hash = scr_hash_new();
 
-  /* open transfer file with lock */
+  /* attempt to open transfer file with lock,
+   * if we fail to open the file, don't bother writing to it */
   int fd = -1;
-  scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
-
-  /* search for the source file, and update the bytes written if found */
-  if (src != NULL) {
-    scr_hash* file_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_FILES, src);
-    if (file_hash != NULL) {
-      /* update the bytes written field */
-      scr_hash_unset(file_hash, "WRITTEN");
-      scr_hash_setf(file_hash, NULL, "%s %lu", "WRITTEN", position);
+  if (scr_hash_lock_open_read(scr_transfer_file, &fd, hash) == SCR_SUCCESS) {
+    /* search for the source file, and update the bytes written if found */
+    if (src != NULL) {
+      scr_hash* file_hash = scr_hash_get_kv(hash, SCR_TRANSFER_KEY_FILES, src);
+      if (file_hash != NULL) {
+        /* update the bytes written field */
+        scr_hash_util_set_bytecount(file_hash, "WRITTEN", (uint64_t) position);
+      }
     }
-  }
 
-  /* close the transfer file and release the lock */
-  scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+    /* close the transfer file and release the lock */
+    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+  }
 
   /* free the hash */
   scr_hash_delete(hash);
@@ -425,7 +422,7 @@ int main (int argc, char *argv[])
   /* record the name of the transfer file */
   scr_transfer_file = strdup(argv[1]);
   if (scr_transfer_file == NULL) {
-    scr_err("Copying transfer file name @ %s:%d",
+    scr_err("scr_transfer: Copying transfer file name @ %s:%d",
             __FILE__, __LINE__
     );
     return 1;
@@ -457,7 +454,7 @@ int main (int argc, char *argv[])
   size_t bufsize = scr_file_buf_size;
   char* buf = malloc(bufsize);
   if (buf == NULL) {
-    scr_err("Failed to allocate %llu bytes for file copy buffer @ %s:%d",
+    scr_err("scr_transfer: Failed to allocate %llu bytes for file copy buffer @ %s:%d",
             (unsigned long long) bufsize, __FILE__, __LINE__
     );
     return 1;

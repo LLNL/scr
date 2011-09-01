@@ -73,9 +73,9 @@ char* scr_env_jobid()
 {
   char* jobid = NULL;
 
-  /* read $SLURM_JOBID environment variable for jobid string */
   char* value;
 #if SCR_MACHINE_TYPE == SCR_TLCC
+  /* read $SLURM_JOBID environment variable for jobid string */
   if ((value = getenv("SLURM_JOBID")) != NULL) {
     jobid = strdup(value);
     if (jobid == NULL) {
@@ -85,6 +85,7 @@ char* scr_env_jobid()
     }
   }
 #elif SCR_MACHINE_TYPE == SCR_CRAY_XT
+  /* read $PBS_JOBID environment variable for jobid string */
   if ((value = getenv("PBS_JOBID")) != NULL) {
     jobid = strdup(value);
     if (jobid == NULL) {

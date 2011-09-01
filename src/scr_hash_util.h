@@ -34,6 +34,8 @@ int scr_hash_util_set_str(scr_hash* hash, const char* key, const char* value);
 
 int scr_hash_util_set_int64(scr_hash* hash, const char* key, int64_t value);
 
+int scr_hash_util_set_double(scr_hash* hash, const char* key, double value);
+
 /* the get functions all return SCR_FAILURE if any of the following hold:
  *   the input hash or the key is NULL
  *   the hash has no entry for the specified key
@@ -52,5 +54,7 @@ int scr_hash_util_get_unsigned_long(const scr_hash* hash, const char* key, unsig
 int scr_hash_util_get_str(const scr_hash* hash, const char* key, char** value);
 
 int scr_hash_util_get_int64(const scr_hash* hash, const char* key, int64_t* value);
+
+int scr_hash_util_get_double(const scr_hash* hash, const char* key, double* value);
 
 #endif
