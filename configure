@@ -463,7 +463,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS META_NAME META_VERSION META_RELEASE META_ALIAS META_DATE META_AUTHOR META_LT_CURRENT META_LT_REVISION META_LT_AGE X_PREFIX X_EXEC_PREFIX X_BINDIR X_SBINDIR X_LIBEXECDIR X_DATADIR X_SYSCONFDIR X_SHAREDSTATEDIR X_LOCALSTATEDIR X_LIBDIR X_INCLUDEDIR X_OLDINCLUDEDIR X_INFODIR X_MANDIR INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE MPICC MPI_CFLAGS MPI_CLDFLAGS YOGRT_CPPFLAGS YOGRT_LDFLAGS YOGRT_LIBS GCS_CFLAGS GCS_LDFLAGS GCS_LIBS MYSQL_CPPFLAGS MYSQL_LDFLAGS MYSQL_LIBS MACHINE_NAME CPP EGREP build build_cpu build_vendor build_os host host_cpu host_vendor host_os SED LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL PDSH_EXE DSHBAK_EXE PERL SCR_CACHE_BASE SCR_CNTL_BASE SCR_CONFIG_FILE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS META_NAME META_VERSION META_RELEASE META_ALIAS META_DATE META_AUTHOR META_LT_CURRENT META_LT_REVISION META_LT_AGE X_PREFIX X_EXEC_PREFIX X_BINDIR X_SBINDIR X_LIBEXECDIR X_DATADIR X_SYSCONFDIR X_SHAREDSTATEDIR X_LOCALSTATEDIR X_LIBDIR X_INCLUDEDIR X_OLDINCLUDEDIR X_INFODIR X_MANDIR INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE MPICC MPI_CFLAGS MPI_CLDFLAGS YOGRT_CPPFLAGS YOGRT_LDFLAGS YOGRT_LIBS GCS_CFLAGS GCS_LDFLAGS GCS_LIBS MYSQL_CPPFLAGS MYSQL_LDFLAGS MYSQL_LIBS MACHINE_NAME CPP EGREP MOAB_CPPFLAGS MOAB_CFLAGS MOAB_LDFLAGS MOAB_RPATH build build_cpu build_vendor build_os host host_cpu host_vendor host_os SED LN_S ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL PDSH_EXE DSHBAK_EXE PERL SCR_CACHE_BASE SCR_CNTL_BASE SCR_CONFIG_FILE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1041,6 +1041,7 @@ Optional Packages:
   --with-mysql            Link to mysql client library
   --with-machine-name=NAME
   --with-scr-byteswap     Use SCR's byteswap.h, default=no
+  --with-moab=prefix      Add the compile and link search paths for moab
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-pic              try to use only PIC/non-PIC objects [default=use
                           both]
@@ -5021,6 +5022,262 @@ fi
 
 
 
+
+  # basic checks that the include and library files exist at the given prefix
+  # after running this:
+  # MOAB_PREFIX will equal prefix
+  # MOAB_CPPFLAGS will be -I$MOAB_PREFIX/include
+  # MOAB_LDFLAGS will be -L$MOAB_PREFIX/lib -lcmoab -lmoab -lmoabdb -lsqlite3 -lpthread -ldl -lm -lmcom -lminit
+  # MOAB_RPATH will be  -R $MOAB_PREFIX/lib
+  # have_moab will be yes or no, depending
+
+# Check whether --with-moab or --without-moab was given.
+if test "${with_moab+set}" = set; then
+  withval="$with_moab"
+   MOAB_PREFIX="$withval"
+      want_moab=yes
+
+  MOAB_CPPFLAGS="-I$MOAB_PREFIX/include"
+  LX_HEADER_SUBST_OLD_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$MOAB_CPPFLAGS $CPPFLAGS"
+
+  if test "${ac_cv_header_mapi_h+set}" = set; then
+  echo "$as_me:$LINENO: checking for mapi.h" >&5
+echo $ECHO_N "checking for mapi.h... $ECHO_C" >&6
+if test "${ac_cv_header_mapi_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+fi
+echo "$as_me:$LINENO: result: $ac_cv_header_mapi_h" >&5
+echo "${ECHO_T}$ac_cv_header_mapi_h" >&6
+else
+  # Is the header compilable?
+echo "$as_me:$LINENO: checking mapi.h usability" >&5
+echo $ECHO_N "checking mapi.h usability... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <mapi.h>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_header_compiler=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_header_compiler=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+echo "${ECHO_T}$ac_header_compiler" >&6
+
+# Is the header present?
+echo "$as_me:$LINENO: checking mapi.h presence" >&5
+echo $ECHO_N "checking mapi.h presence... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <mapi.h>
+_ACEOF
+if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
+  (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null; then
+  if test -s conftest.err; then
+    ac_cpp_err=$ac_c_preproc_warn_flag
+    ac_cpp_err=$ac_cpp_err$ac_c_werror_flag
+  else
+    ac_cpp_err=
+  fi
+else
+  ac_cpp_err=yes
+fi
+if test -z "$ac_cpp_err"; then
+  ac_header_preproc=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+echo "${ECHO_T}$ac_header_preproc" >&6
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
+  yes:no: )
+    { echo "$as_me:$LINENO: WARNING: mapi.h: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: mapi.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: mapi.h: proceeding with the compiler's result" >&5
+echo "$as_me: WARNING: mapi.h: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { echo "$as_me:$LINENO: WARNING: mapi.h: present but cannot be compiled" >&5
+echo "$as_me: WARNING: mapi.h: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: mapi.h:     check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: mapi.h:     check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: mapi.h: see the Autoconf documentation" >&5
+echo "$as_me: WARNING: mapi.h: see the Autoconf documentation" >&2;}
+    { echo "$as_me:$LINENO: WARNING: mapi.h:     section \"Present But Cannot Be Compiled\"" >&5
+echo "$as_me: WARNING: mapi.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { echo "$as_me:$LINENO: WARNING: mapi.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: mapi.h: proceeding with the preprocessor's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: mapi.h: in the future, the compiler will take precedence" >&5
+echo "$as_me: WARNING: mapi.h: in the future, the compiler will take precedence" >&2;}
+    (
+      cat <<\_ASBOX
+## ------------------------------------------ ##
+## Report this to the AC_PACKAGE_NAME lists.  ##
+## ------------------------------------------ ##
+_ASBOX
+    ) |
+      sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+echo "$as_me:$LINENO: checking for mapi.h" >&5
+echo $ECHO_N "checking for mapi.h... $ECHO_C" >&6
+if test "${ac_cv_header_mapi_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_cv_header_mapi_h=$ac_header_preproc
+fi
+echo "$as_me:$LINENO: result: $ac_cv_header_mapi_h" >&5
+echo "${ECHO_T}$ac_cv_header_mapi_h" >&6
+
+fi
+if test $ac_cv_header_mapi_h = yes; then
+  have_moab=yes
+else
+  { echo "$as_me:$LINENO: Couldn't find mapi.h." >&5
+echo "$as_me: Couldn't find mapi.h." >&6;}
+                   have_moab=no
+fi
+
+
+
+  CPPFLAGS="$LX_HEADER_SUBST_OLD_CPPFLAGS"
+
+      echo "$as_me:$LINENO: checking for MOAB libraries" >&5
+echo $ECHO_N "checking for MOAB libraries... $ECHO_C" >&6
+
+    LX_SAFE_LINK_IFELSE_OLD_CFLAGS="$CFLAGS"
+    LX_SAFE_LINK_IFELSE_OLD_LDFLAGS="$LDFLAGS"
+    LX_SAFE_LINK_IFELSE_OLD_LIBS="$LIBS"
+    CFLAGS="$CFLAGS -I$MOAB_PREFIX/include"
+    LDFLAGS="$LDFLAGS -L$MOAB_PREFIX/lib -lcmoab -lmoab -lmoabdb -lsqlite3 -lpthread -ldl -lm -lmcom -lminit"
+    LIBS="$LIBS -lcmoab -lmoab -lmoabdb -lsqlite3 -lpthread -ldl -lm -lmcom -lminit"
+    cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <mapi.h>
+int
+main ()
+{
+long int Time; int status = MCCJobGetRemainingTime(0,0,&Time,0);
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  have_moab=yes
+                            MOAB_LDFLAGS="-L$MOAB_PREFIX/lib -lcmoab -lmoab -lmoabdb -lsqlite3 -lpthread -ldl -lm -lmcom -lminit"
+                            MOAB_CFLAGS=-I$MOAB_PREFIX/include
+                            MOAB_CXXFLAGS=-I$MOAB_PREFIX/include
+                            MOAB_RPATH=-L$MOAB_PREFIX/lib
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+have_moab=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+    CFLAGS=$LX_SAFE_LINK_IFELSE_OLD_CFLAGS
+    LDFLAGS=$LX_SAFE_LINK_IFELSE_OLD_LDFLAGS
+    LIBS=$LX_SAFE_LINK_IFELSE_OLD_LIBS
+
+
+
+
+fi;
+
+  if test $want_moab == yes; then
+    if test $have_moab != no; then
+      echo "$as_me:$LINENO: result: Yes, we have MOAB libraries" >&5
+echo "${ECHO_T}Yes, we have MOAB libraries" >&6
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_MOAB 1
+_ACEOF
+
+
+
+
+
+    else
+      echo "$as_me:$LINENO: result: No, unable to find MOAB libraries" >&5
+echo "${ECHO_T}No, unable to find MOAB libraries" >&6
+    fi
+  fi
+
+
 ##
 # enable libtool
 ##
@@ -5630,7 +5887,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5633 "configure"' > conftest.$ac_ext
+  echo '#line 5890 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -6756,7 +7013,7 @@ fi
 
 
 # Provide some information about the compiler.
-echo "$as_me:6759:" \
+echo "$as_me:7016:" \
      "checking for Fortran 77 compiler version" >&5
 ac_compiler=`set X $ac_compile; echo $2`
 { (eval echo "$as_me:$LINENO: \"$ac_compiler --version </dev/null >&5\"") >&5
@@ -7819,11 +8076,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7822: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8079: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7826: \$? = $ac_status" >&5
+   echo "$as_me:8083: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8087,11 +8344,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8090: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8347: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8094: \$? = $ac_status" >&5
+   echo "$as_me:8351: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8191,11 +8448,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8194: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8451: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8198: \$? = $ac_status" >&5
+   echo "$as_me:8455: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -9660,7 +9917,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 9663 "configure"' > conftest.$ac_ext
+    echo '#line 9920 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -10557,7 +10814,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10560 "configure"
+#line 10817 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10657,7 +10914,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10660 "configure"
+#line 10917 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13000,11 +13257,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13003: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13260: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:13007: \$? = $ac_status" >&5
+   echo "$as_me:13264: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -13104,11 +13361,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13107: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13364: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:13111: \$? = $ac_status" >&5
+   echo "$as_me:13368: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -13640,7 +13897,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 13643 "configure"' > conftest.$ac_ext
+    echo '#line 13900 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -14698,11 +14955,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14701: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14958: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14705: \$? = $ac_status" >&5
+   echo "$as_me:14962: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14802,11 +15059,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14805: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15062: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14809: \$? = $ac_status" >&5
+   echo "$as_me:15066: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -16251,7 +16508,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 16254 "configure"' > conftest.$ac_ext
+    echo '#line 16511 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -17029,11 +17286,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17032: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17289: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:17036: \$? = $ac_status" >&5
+   echo "$as_me:17293: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17297,11 +17554,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17300: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17557: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:17304: \$? = $ac_status" >&5
+   echo "$as_me:17561: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17401,11 +17658,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17404: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17661: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17408: \$? = $ac_status" >&5
+   echo "$as_me:17665: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -18870,7 +19127,7 @@ linux*)
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 18873 "configure"' > conftest.$ac_ext
+    echo '#line 19130 "configure"' > conftest.$ac_ext
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -21545,6 +21802,10 @@ s,@MYSQL_LIBS@,$MYSQL_LIBS,;t t
 s,@MACHINE_NAME@,$MACHINE_NAME,;t t
 s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
+s,@MOAB_CPPFLAGS@,$MOAB_CPPFLAGS,;t t
+s,@MOAB_CFLAGS@,$MOAB_CFLAGS,;t t
+s,@MOAB_LDFLAGS@,$MOAB_LDFLAGS,;t t
+s,@MOAB_RPATH@,$MOAB_RPATH,;t t
 s,@build@,$build,;t t
 s,@build_cpu@,$build_cpu,;t t
 s,@build_vendor@,$build_vendor,;t t

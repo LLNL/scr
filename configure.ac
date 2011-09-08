@@ -33,6 +33,7 @@ X_AC_GCS
 X_AC_MYSQL
 X_AC_MACHINE
 X_AC_BYTESWAP
+X_AC_MOAB
 
 ##
 # enable libtool

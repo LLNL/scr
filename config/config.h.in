@@ -21,6 +21,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Define to 1 if you have a valid installation of MOAB */
+#undef HAVE_MOAB
+
 /* Define to 1 if you have MPI libs and headers. */
 #undef HAVE_MPI
 
