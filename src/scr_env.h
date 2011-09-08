@@ -20,7 +20,7 @@ machine-dependent information.
 */
 
 /* returns the number of seconds remaining in the time allocation */
-int scr_env_seconds_remaining();
+long int scr_env_seconds_remaining();
 
 /* allocate and return a string containing the current username */
 char* scr_env_username();

@@ -5924,10 +5924,10 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
     /* if halt secs enabled, check the remaining time */
     if (halt_seconds > 0) {
-      int remaining = scr_env_seconds_remaining();
+      long int remaining = scr_env_seconds_remaining();
       if (remaining >= 0 && remaining <= halt_seconds) {
         if (halt_cond == SCR_TEST_AND_HALT) {
-          scr_dbg(0, "Job exiting: Reached time limit: (seconds remaining = %d) <= (SCR_HALT_SECONDS = %d).",
+          scr_dbg(0, "Job exiting: Reached time limit: (seconds remaining = %ld) <= (SCR_HALT_SECONDS = %d).",
                   remaining, halt_seconds
           );
           scr_halt("TIME_LIMIT");

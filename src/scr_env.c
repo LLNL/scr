@@ -33,10 +33,10 @@ machine-dependent information.
 */
 
 /* returns the number of seconds remaining in the time allocation */
-int scr_env_seconds_remaining()
+long int scr_env_seconds_remaining()
 {
   /* returning a negative number tells the caller this functionality is disabled */
-  int secs = -1;
+  long int secs = -1;
 
   /* call libyogrt if we have it */
   #ifdef HAVE_LIBYOGRT
