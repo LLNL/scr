@@ -88,8 +88,10 @@ my $cmd = undef;
 
 # gather files via pdsh
 my $filemap = "$cntldir/filemap.scrinfo";
-$cmd = "aprun -n 1 -L %h $bindir/scr_inspect_cache $filemap";
-`$pdsh -Rexec -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
+#$cmd = "aprun -n 1 -L %h $bindir/scr_inspect_cache $filemap";
+#`$pdsh -Rexec -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
+# for some reason pdsh with "$cmd" doesn't work... pdsh 2-1.8 perl v5.10.0
+`$pdsh -Rexec -f 256 -S -w '$upnodes'  aprun -n 1 -L %h $bindir/scr_inspect_cache $filemap  >$output 2>$error`;
 
 # scan output file for list of partners and failed copies
 my %groups = ();

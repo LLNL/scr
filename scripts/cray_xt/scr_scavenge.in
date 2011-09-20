@@ -146,10 +146,15 @@ my $cmd = undef;
 
 # gather files via pdsh
 my $partner_flag = "";
-$cmd = "aprun -n 1 -L %h $bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $current --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced";
+#$cmd = "aprun -n 1 -L %h $bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $current --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced";
+#print "$prog: ", scalar(localtime), "\n";
+#print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' \"$cmd\" >$output 2>$error\n";
+             #`$pdsh -Rexec -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
+
+# for some reason pdsh with "$cmd" doesn't work... pdsh 2-1.8 perl v5.10.0
 print "$prog: ", scalar(localtime), "\n";
-print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' \"$cmd\" >$output 2>$error\n";
-             `$pdsh -Rexec -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
+print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' aprun -n 1 -L %h $bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $current --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced >$output 2>$error\n";
+             `$pdsh -Rexec -f 256 -S -w '$upnodes'  aprun -n 1 -L %h $bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $current --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced  >$output 2>$error`;
 
 # print pdsh output to screen
 if ($conf{verbose}) {
@@ -277,10 +282,15 @@ if (@copy_failed > 0 or @pdsh_failed > 0) {
     $new_upnodes = scr_hostlist::compress(@partners);
   }
   $partner_flag = "--partner";
-  $cmd = aprun -n 1 -L %h "$bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $current --buf $buf_size $crc_flag $partner_flag $container_flag $new_downnodes_spaced";
+  #$cmd = aprun -n 1 -L %h "$bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $current --buf $buf_size $crc_flag $partner_flag $container_flag $new_downnodes_spaced";
   if ($new_upnodes ne "") {
-    print "$prog: $pdsh -Rexec -f 256 -S -w '$new_upnodes' \"$cmd\" >$output2 2>$error2\n";
-                 `$pdsh -Rexec -f 256 -S -w '$new_upnodes'  "$cmd"  >$output2 2>$error2`;
+    #print "$prog: $pdsh -Rexec -f 256 -S -w '$new_upnodes' \"$cmd\" >$output2 2>$error2\n";
+                 #`$pdsh -Rexec -f 256 -S -w '$new_upnodes'  "$cmd"  >$output2 2>$error2`;
+    # for some reason pdsh with "$cmd" doesn't work... pdsh 2-1.8 perl v5.10.0
+    #print "$prog: $pdsh -Rexec -f 256 -S -w '$new_upnodes' \"$cmd\" >$output2 2>$error2\n";
+                 #`$pdsh -Rexec -f 256 -S -w '$new_upnodes'  "$cmd"  >$output2 2>$error2`;
+    print "$prog: $pdsh -Rexec -f 256 -S -w '$new_upnodes'  aprun -n 1 -L %h $bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $current --buf $buf_size $crc_flag $partner_flag $container_flag $new_downnodes_spaced >$output2 2>$error2\n";
+                 `$pdsh -Rexec -f 256 -S -w '$new_upnodes'   aprun -n 1 -L %h $bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $current --buf $buf_size $crc_flag $partner_flag $container_flag $new_downnodes_spaced >$output2 2>$error2`;
 
     # print pdsh output to screen
     if ($conf{verbose}) {
