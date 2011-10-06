@@ -69,6 +69,10 @@ int scr_open(const char* file, int flags, ...);
 /* close file with an fsync */
 int scr_close(const char* file, int fd);
 
+int scr_read_lock(const char* file, int fd);
+int scr_write_lock(const char* file, int fd);
+int scr_unlock(const char* file, int fd);
+
 /* opens specified file and waits on for an exclusive lock before returning the file descriptor */
 int scr_open_with_lock(const char* file, int flags, mode_t mode);
 

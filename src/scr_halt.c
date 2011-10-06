@@ -45,19 +45,11 @@ int scr_halt_read(const char* file, scr_hash* hash)
   }
 
   /* acquire a file lock before reading */
-  /* since the file is opened for reading, use a shared lock
-   * (AIX flock man page seems to imply this requirement) */
-   struct flock lck;
-    lck.l_type = F_RDLCK;
-    lck.l_whence = 0;
-    lck.l_start = 0L;
-    lck.l_len = 0L; //locking the entire file
-
-  if(fcntl(fd, F_SETLK, &lck) < 0){
-    scr_err("Failed to acquire file lock on %s: fnctl(%d, %d) errno=%d %m @ %s:%d",
-            file, fd, F_RDLCK, errno, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
+  /* since the file is opened for reading, use a shared lock */
+  int ret =  scr_read_lock(file, fd);
+  if (ret != SCR_SUCCESS){
+     scr_close(file,fd);
+     return ret;
   }
 
 
@@ -65,17 +57,7 @@ int scr_halt_read(const char* file, scr_hash* hash)
   scr_hash_read_fd(file, fd, hash);
 
   /* release the file lock */
-    lck.l_type = F_UNLCK;
-    lck.l_whence = 0;
-    lck.l_start = 0L;
-    lck.l_len = 0L; //unlocking the entire file
-
-  if(fcntl(fd, F_SETLK, &lck) < 0){
-    scr_err("Failed to release file lock on %s: fnctl(%d, %d) errno=%d %m @ %s:%d",
-            file, fd, F_UNLCK, errno, __FILE__, __LINE__
-    );
-  }
-
+  scr_unlock(file, fd);
 
   /* close file */
   scr_close(file, fd);
@@ -106,28 +88,12 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
     return SCR_FAILURE;
   }
 
-  /* acquire an exclusive file lock before read/modify/write */
-    struct flock lck;
-    lck.l_type = F_WRLCK;
-    lck.l_whence = 0;
-    lck.l_start = 0L;
-    lck.l_len = 0L; //locking the entire file
-
-  if(fcntl(fd, F_SETLK, &lck) < 0){
-    scr_err("Failed to acquire file lock on %s: fnctl(%d, %d) errno=%d %m @ %s:%d",
-            file, fd, F_WRLCK, errno, __FILE__, __LINE__
-    );
-    if (errno == EBADF)
-      printf("EBADF\n");
-    if (errno == EINTR)
-      printf("EINTR\n");
-    if (errno == EINVAL)
-      printf("EINVAL\n");
-    if (errno == ENOLCK)
-      printf("ENOLCK\n");
-    if (errno == EWOULDBLOCK)
-      printf("EWOULDLOCK\n");
-    return SCR_FAILURE;
+  /* acquire a file lock before read/modify/write */
+  int ret =  scr_read_lock(file, fd);
+  if (ret != SCR_SUCCESS){
+    scr_close(file,fd);
+    umask(old_mode);
+    return ret;
   }
 
   /* get a new blank hash to read in file */
@@ -135,6 +101,7 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
 
   /* read in the file data */
   scr_hash_read_fd(file, fd, file_hash);
+
 
   /* if the file already existed before we opened it, override our current settings with its values */
   if (exists) {
@@ -188,18 +155,7 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
   }
 
   /* release the file lock */
-    lck.l_type = F_UNLCK;
-    lck.l_whence = 0;
-    lck.l_start = 0L;
-    lck.l_len = 0L; //unlocking the entire file
-
-  if(fcntl(fd, F_SETLK, &lck) < 0){
-    scr_err("Failed to release file lock on %s: fnctl(%d, %d) errno=%d %m @ %s:%d",
-            file, fd, F_UNLCK, errno, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
+  scr_unlock(file, fd);
 
   /* close file */
   scr_close(file, fd);

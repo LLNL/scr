@@ -32,6 +32,7 @@ X_AC_YOGRT
 X_AC_GCS
 X_AC_MYSQL
 X_AC_MACHINE
+X_AC_FILELOCK
 X_AC_BYTESWAP
 X_AC_MOAB
 
@@ -84,8 +85,8 @@ AC_CONFIG_FILES([ \
   scripts/common/scr_cntl_dir \
   scripts/common/scr_check_node \
   scripts/common/scr_glob_hosts \
-  scripts/common/scr_postrun \
   scripts/common/scr_prerun \
+  scripts/common/scr_postrun \
   scripts/common/scr_test_datemanip \
   scripts/common/scr_test_runtime \
   scripts/common/scr_param.pm \

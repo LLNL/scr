@@ -197,13 +197,11 @@ int scr_halt_sync_and_set(const char* file, struct arglist* args, scr_hash* data
   }
 
   /* acquire an exclusive file lock before reading */
-  if (flock(fd, LOCK_EX) != 0) {
-    scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %m @ %s:%d",
-            file, fd, LOCK_EX, errno, __FILE__, __LINE__
-    );
-    /* restore the normal file mask */
-    umask(old_mode);
-    return SCR_FAILURE;
+  int ret = scr_write_lock(file,fd);
+  if (ret != SCR_SUCCESS){
+     scr_close(file,fd);
+     umask(old_mode);
+     return ret;
   }
 
   /* read in the current data from the file */
@@ -257,13 +255,11 @@ int scr_halt_sync_and_set(const char* file, struct arglist* args, scr_hash* data
   }
 
   /* release the file lock */
-  if (flock(fd, LOCK_UN) != 0) {
-    scr_err("Failed to release file lock on %s: flock(%d, %d) errno=%d %m @ %s:%d",
-            file, fd, LOCK_UN, errno, __FILE__, __LINE__
-    );
-    /* restore the normal file mask */
-    umask(old_mode);
-    return SCR_FAILURE;
+  ret = scr_unlock(file, fd);
+  if (ret != SCR_SUCCESS){
+     scr_close(file,fd);
+     umask(old_mode);
+     return ret;
   }
 
   /* close file */
