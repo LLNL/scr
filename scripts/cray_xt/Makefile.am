@@ -6,4 +6,6 @@ dist_bin_SCRIPTS = \
 	scr_list_down_nodes \
 	scr_halt 
 
+install-exec-hook:
+	cp -p $(DESTDIR)$(bindir)/scr_run $(DESTDIR)$(bindir)/scr_aprun
 

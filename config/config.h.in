@@ -120,6 +120,12 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* We should use flock for locking files */
+#undef USE_FLOCK
+
+/* We should use fnctl for locking files */
+#undef USE_FNCTL
+
 /* Version number of package */
 #undef VERSION
 

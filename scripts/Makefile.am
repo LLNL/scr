@@ -16,3 +16,5 @@ dist_bin_SCRIPTS = \
 
 dist_pkgdata_DATA = common/scr_param.pm common/scr_hostlist.pm
 
+install-exec-local:
+	rm -f $(DESTDIR)$(bindir)/scr_run
