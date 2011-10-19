@@ -34,7 +34,7 @@
 int print_usage()
 {
   printf("\n");
-  printf("  Usage:  %s --dir <dir> [--needflush <id> | --latest]\n", PROG);
+  printf("  Usage:  %s --dir <dir> [--needflush <id> | --latest | --location <id>]\n", PROG);
   printf("\n");
   exit(1);
 }
@@ -43,17 +43,21 @@ struct arglist {
   char* dir;      /* direcotry containing flush file */
   int need_flush; /* check whether a certain dataset id needs to be flushed */
   int latest;     /* return the id of the latest (most recent) dataset in cache */
+  int location;     /* return the location of dataset with specified id in cache */
 };
 
 int process_args(int argc, char **argv, struct arglist* args)
 {
   int dset;
+  int loc_dset;
+  int opCount = 0;
 
   /* define our options */
   static struct option long_options[] = {
     {"dir",       required_argument, NULL, 'd'},
     {"needflush", required_argument, NULL, 'n'},
     {"latest",    no_argument,       NULL, 'l'},
+    {"location",    required_argument,       NULL, 'L'},
     {"help",      no_argument,       NULL, 'h'},
     {0, 0, 0, 0}
   };
@@ -62,13 +66,14 @@ int process_args(int argc, char **argv, struct arglist* args)
   args->dir        = NULL;
   args->need_flush = -1;
   args->latest     = 0;
+  args->location = -1;
 
   /* loop through and process all options */
   int c;
   do {
     /* read in our next option */
     int option_index = 0;
-    c = getopt_long(argc, argv, "d:n:lh", long_options, &option_index);
+    c = getopt_long(argc, argv, "d:n:lL:h", long_options, &option_index);
     switch (c) {
       case 'd':
         /* directory containing flush file */
@@ -81,10 +86,21 @@ int process_args(int argc, char **argv, struct arglist* args)
           return 0;
         }
         args->need_flush = dset;
+        ++opCount;
         break;
       case 'l':
         /* return the id of the latest (most recent) dataset in cache */
         args->latest = 1;
+        ++opCount;
+        break;
+      case 'L':
+        /* check whether specified dataset id needs to be flushed */
+        loc_dset = atoi(optarg);
+        if (loc_dset <= 0) {
+          return 0;
+        }
+        args->location = loc_dset;
+        ++opCount;
         break;
       case 'h':
         /* print help message and exit */
@@ -104,6 +120,10 @@ int process_args(int argc, char **argv, struct arglist* args)
   /* check that we got a directory name */
   if (args->dir == NULL) {
     scr_err("%s: Must specify directory containing flush file via '--dir <dir>'", PROG);
+    return 0;
+  }
+  if (opCount > 1){
+    scr_err("%s: Must specify only a single operation per invocation, e.g. not both --location and --needflush'", PROG);
     return 0;
   }
 
@@ -169,6 +189,31 @@ int main (int argc, char *argv[])
          * so return success to indicate that we do need to flush it */
         rc = 0;
       }
+    }
+    goto cleanup;
+  }
+
+  if (args.location != -1){
+    /* report the location of the specified data set */
+    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.location);
+    if (dset_hash != NULL) {
+      /* now check for the location marker */
+      scr_hash* location_hash = scr_hash_get(dset_hash, SCR_FLUSH_KEY_LOCATION);
+      if (location_hash != NULL){
+         rc = 0;
+         scr_hash_elem* loc_elem = scr_hash_elem_first(location_hash);
+         if (loc_elem != NULL){
+            //if  the location exists in the file, print it
+            char* loc = scr_hash_elem_key(loc_elem);
+            if(loc != NULL)
+               printf("%s\n",loc);
+         }
+         else{
+            // if there is no location information for some reason, print none
+            printf("NONE\n");
+         }
+      }
+      // if specified dataset is not found, we return error in rc (1)
     }
     goto cleanup;
   }
