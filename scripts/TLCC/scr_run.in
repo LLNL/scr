@@ -204,7 +204,7 @@ while [ 1 ] ; do
 
   # TODO: this assumes srun is running where rank 0 runs
   # is there a halt condition instructing us to stop?
-  $bindir/scr_retries_halt;
+  $bindir/scr_retries_halt --dir $prefix;
   if [ $? == 0 ] ; then
     echo "$prog: Halt condition detected, ending run."
     break
@@ -214,7 +214,7 @@ while [ 1 ] ; do
   sleep 60
 
   # check for halt condition again after sleep
-  $bindir/scr_retries_halt;
+  $bindir/scr_retries_halt --dir $prefix;
   if [ $? == 0 ] ; then
     echo "$prog: Halt condition detected, ending run."
     break
@@ -223,7 +223,7 @@ done
 
 # stop scr_transfer processes before we attempt to scavenge
 if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-  $bindir/scr_halt --immediate
+  $bindir/scr_halt  --dir $prefix --immediate
 fi
 
 # make a record of time postsrun is started
