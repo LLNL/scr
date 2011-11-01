@@ -5793,6 +5793,18 @@ static int scr_flush_sync(scr_filemap* map, int id)
       time_t now = scr_log_seconds();
       scr_log_event("FLUSH STARTED", NULL, &id, &now, NULL);
     }
+
+    /* mark in the flush file that we are flushing the dataset */
+    scr_hash* hash = scr_hash_new();
+    scr_hash_read(scr_flush_file, hash);
+
+      /* change state for this checkpoint to SYNC_FLUSHING*/
+    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
+    scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_SYNC_FLUSHING);
+    scr_hash_write(scr_flush_file, hash);
+    //scr_hash_print(hash, 3);
+    scr_hash_delete(hash);
+
   }
 
   /* get list of files to flush, identify containers,
@@ -5845,6 +5857,17 @@ static int scr_flush_sync(scr_filemap* map, int id)
     scr_dbg(1, "scr_flush_sync: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
             time_diff, total_bytes, bw, bw/scr_ranks_world
     );
+    /* mark in the flush file that we are done flushing the dataset */
+    scr_hash* hash = scr_hash_new();
+    scr_hash_read(scr_flush_file, hash);
+
+      /* remove the  SYNC_FLUSHING state for this checkpoint */
+    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
+    scr_hash_unset_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_SYNC_FLUSHING);
+    scr_hash_write(scr_flush_file, hash);
+    //scr_hash_print(hash, 3);
+    scr_hash_delete(hash);
+
 
     /* log messages about flush */
     if (flushed == SCR_SUCCESS) {
