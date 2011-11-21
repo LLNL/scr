@@ -1,4 +1,4 @@
-SUBDIRS = common cray_xt TLCC 
+SUBDIRS = common $(MACHINE_NAME)
 dist_bin_SCRIPTS = \
 	common/scr_cntl_dir \
 	common/scr_check_node \
