@@ -61,13 +61,19 @@ if [ -z "$SCR_PREFIX" ] ; then
 fi
 prefix=$SCR_PREFIX
 
-# check that this script is running on a node in the job's allocated nodeset
-script_node=`hostname`
-intersection=`$bindir/scr_glob_hosts -i $script_node:$SCR_NODELIST`
-if [ -z "$intersection" ] ; then
-  echo "$prog: ERROR: scr_run is executing on $script_node, which is not part of the job's nodeset $SCR_NODELIST."
-  exit 1
+use_scr_watchdog=0
+if [ "$SCR_WATCHDOG" == "1" ] ; then
+  use_scr_watchdog=1
 fi
+
+# normally we would check that this script is running on a node in the job's 
+# allocated nodeset, but on crays, this script runs on MOM node
+script_node=`hostname`
+#intersection=`$bindir/scr_glob_hosts -i $script_node:$SCR_NODELIST`
+#if [ -z "$intersection" ] ; then
+  #echo "$prog: ERROR: scr_run is executing on $script_node, which is not part of the job's nodeset $SCR_NODELIST."
+  #exit 1
+#fi
 
 # get the control directory
 cntldir=`$bindir/scr_cntl_dir`
@@ -91,6 +97,7 @@ if [ $? -ne 0 ] ; then
   exit 1
 fi
 
+
 # start background scr_transfer processes (1 per node) if async flush is enabled
 if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
   nnodes=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
@@ -100,6 +107,12 @@ if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
   # 0 terminates)
   aprun -n${nnodes} -N 1 $bindir/scr_transfer $cntldir/transfer.scrinfo &
 fi
+
+# start script to periodically query the time remaining in the job and write the 
+# value to the halt file
+# get its PID so we can kill it at exit time
+$bindir/scr_check_time_remaining &
+check_time_pid=$!
 
 # enter the run loop
 down_nodes=""
@@ -186,12 +199,44 @@ while [ 1 ] ; do
   start_secs=`date +%s`
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
   if [ -n "$SCR_CHECKPOINT_PATTERN" ] ; then export LD_PRELOAD="$libdir/libscr_interpose.so" ; fi
+ 
+
   #original srun command to emulate
   #srun --nodelist $script_node $exclude "$@"
   # aprun doesn't appear to have an equivalent to --exclude
   # on cray_xt, batch script doesn't run on the same node as rank 0 (service node)
-  upnodes=`$bindir/scr_glob_hosts -m $SCR_NODELIST:$down_nodes`
-  aprun -L $upnodes "$@"
+  upnodes=""
+  if [ -n "$down_nodes" ]; then
+     upnodes=`$bindir/scr_glob_hosts -m $SCR_NODELIST:$down_nodes`
+  else
+     upnodes=$SCR_NODELIST
+  fi
+  # strip off the brackets around the node names because aprun doesn't like them
+  tmpupnodes=${upnodes%]}
+  tmpupnodes=${tmpupnodes:1}
+  
+  if [ $use_scr_watchdog -eq 0 ]; then
+     aprun -L $tmpupnodes "$@"
+  else
+    echo "$prog: Attempting to start watchdog process."
+    # need to get apid of the aprun command
+     aprun -L $tmpupnodes "$@" &
+     aprun_pid=$!;
+     sleep 10; # sleep a bit to wait for the job to show up in apstat
+     echo "$bindir/scr_get_jobstep_id $aprun_pid";
+     apid=`$bindir/scr_get_jobstep_id $aprun_pid`;
+     # then start the watchdog  if we got a valid apid
+     if [ $apid != "-1" ]; then
+         $bindir/scr_watchdog --dir $prefix --jobStepId $apid &
+         watchdog_pid=$!
+         echo "$prog: Started watchdog process with PID $watchdog_pid."
+     else
+        echo "$prog: ERROR: Unable to start scr_watchdog because couldn't get apid of jobstep."
+        watchdog_pid=-1;
+     fi
+     wait $aprun_pid;
+  fi
+
   if [ -n "$SCR_CHECKPOINT_PATTERN" ] ; then unset LD_PRELOAD ; fi
   end_secs=`date +%s`
   run_secs=$(($end_secs - $start_secs))
@@ -232,7 +277,7 @@ done
 
 # stop scr_transfer processes before we attempt to scavenge 
 if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-  $bindir/scr_halt --dir $prefix --immediate
+  $bindir/scr_halt --immediate
 fi
 
 # make a record of time postaprun is started
@@ -243,6 +288,16 @@ echo "$prog: postrun: $timestamp"
 $bindir/scr_postrun -p $prefix
 if [ $? -ne 0 ] ; then
   echo "$prog: ERROR: Command failed: scr_postrun -p $prefix"
+fi
+
+# kill the check time remaining program
+echo "$prog: kill -n KILL $check_time_pid";
+kill -n KILL $check_time_pid;
+
+# kill the watchdog process if it is running
+if [ $use_scr_watchdog -eq 1 ] && [ $watchdog_pid -ne -1 ]; then
+  echo "$kill -n KILL $watchdog_pid";
+  kill -n KILL $watchdog_pid;
 fi
 
 # make a record of end time

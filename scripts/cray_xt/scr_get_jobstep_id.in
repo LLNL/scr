@@ -1,0 +1,43 @@
+#!/usr/bin/env perl
+
+# This script attempts to get the job step id for the aprun command with  
+# the PID supplied on the command line.
+# The script first calls apstat to get the job information.
+# Then it checks the output to find the apid that was launched with the aprun
+# command with pid PID.
+# This script returns the job step id on success and -1 on failure.
+
+
+my $pid=$ARGV[0];
+my $cmd="apstat -avv";
+
+my @output=`$cmd`;
+my $nid=substr(`cat /proc/cray_xt/nid`,0,-1);
+
+my $currApid=-1; # the return value will be -1 if not found
+
+foreach my $line (@output){
+  my @fields = split /\s+/, $line;
+  #print "@fields\n";
+  if (@fields[0] =~ m/^Ap\[/ ){
+    $currApid=substr(@fields[2],0,-1); # remove trailing comma
+    #print "$currApid\n";
+  }
+  elsif (@fields[1] =~ m/^Originator:/){
+     #did we find the apid that corresponds to the pid?
+     # also check to see if it was launched from this MOM node in case two
+     # happen to have the same pid
+     my $thisnid =substr(@fields[5],0,-1);
+     if ($thisnid eq $nid and @fields[7] eq $pid){
+        last;
+     }
+     else{
+        $currApid=-1;
+     }
+  }
+}
+
+print "$currApid\n";
+
+exit 0;
+

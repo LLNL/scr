@@ -1,0 +1,119 @@
+#!/usr/bin/perl -w
+use strict;
+use lib '@X_DATADIR@/scr';
+use scr_param;
+use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+
+# This is a generic utility for detecting when an application that uses
+# SCR is hung. It periodically checks the flush file to see if checkpointing
+# activity has occurred since the last time it checked. If too much time
+# passes without activity, it kills the job
+
+my $bindir = "@X_BINDIR@";
+my $prog = "scr_watchdog";
+my $scr_flush_file = "scr_flush_file";
+
+
+# lookup timeout values from environment
+my $param = undef;
+if (defined $ENV{SCR_CONF_FILE}) {
+  $param = new scr_param($ENV{SCR_CONF_FILE});
+} else {
+  $param = new scr_param();
+}
+
+my $timeout = undef;
+my $timeout_pfs = undef;
+
+
+# we have two timeout variables now, one for the length of time to wait under
+# "normal" circumstances and one for the length of time to wait if writing
+# to the parallel file system
+my $param_timeout = $param->get("SCR_WATCHDOG_TIMEOUT");
+if (defined $param_timeout) {
+  $timeout= $param_timeout;
+}
+
+my $param_timeout_pfs = $param->get("SCR_WATCHDOG_TIMEOUT_PFS");
+if (defined $param_timeout_pfs) {
+  $timeout_pfs= $param_timeout_pfs;
+  }
+
+# TODO: What to do if timeouts are not set? die? should we set default values?
+# for now die with error message
+
+my $start_time = time();
+
+sub print_usage
+{
+  print "\n";
+  print "  Usage:  $prog [--dir <prefixDir>] [--jobStepId <jobStepId>\n";
+  print "\n";
+  exit 1;
+}
+
+# read in command line arguments
+my %conf = ();
+$conf{prefixdir}  = undef;
+$conf{jobstepid}   = undef;
+my $rc = GetOptions (
+   "dir|d=s"  => \$conf{prefixdir},
+   "jobStepId|j=s"      => \$conf{jobstepid},
+);
+if (not $rc) {
+  print_usage();
+}
+
+# check that we have a  dir and apid
+if ( not defined $conf{jobstepid} or
+    not defined $conf{prefixdir} )
+{
+  print_usage();
+}
+if ( not defined $timeout or not defined $timeout_pfs){
+  print "Necessary environment variables not set: SCR_HANG_TIMEOUT and SCR_HANG_TIMEOUT_PFS\n";
+  exit 1;
+}
+
+my $prefix= "$conf{prefixdir}";
+my $jobstepid= "$conf{jobstepid}";
+
+
+# loop periodically checking the flush file for activity
+my $lastCheckpoint=0;
+my $lastCheckpointLoc="";
+
+my $getLatestCmd = "scr_flush_file --dir $prefix -l";
+my $getLatestLocCmd = "scr_flush_file --dir $prefix -L";
+
+my $killCmd = "scr_kill_jobstep --jobStepId $jobstepid";
+
+my $timeToSleep = $timeout;
+
+while (1){
+   sleep int($timeToSleep);
+   #print "was sleeping, now awake\n";
+   my $latest = `$getLatestCmd`;
+   #print "latest was $latest\n";
+   my $latestLoc = `$getLatestLocCmd $latest`;
+   #print "latestLoc was $latestLoc\n";
+   if ($latest eq $lastCheckpoint){
+     if ($latestLoc eq $lastCheckpointLoc) {
+           #print "time to kill\n";
+           last;
+     }
+   }
+   $lastCheckpoint = $latest;
+   $lastCheckpointLoc = $latestLoc;
+   if ($latestLoc eq "SYNC_FLUSHING"){
+       $timeToSleep = $timeout_pfs;
+   }
+   else{
+       $timeToSleep = $timeout;
+   }
+}
+
+`$killCmd`;
+exit 0;
+
+

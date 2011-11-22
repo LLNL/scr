@@ -61,6 +61,11 @@ if [ -z "$SCR_PREFIX" ] ; then
 fi
 prefix=$SCR_PREFIX
 
+use_scr_watchdog=0
+if [ "$SCR_WATCHDOG" == "1" ] ; then
+  use_scr_watchdog=1
+fi
+
 # check that this script is running on a node in the job's allocated nodeset
 script_node=`hostname`
 intersection=`$bindir/scr_glob_hosts -i $script_node:$SCR_NODELIST`
@@ -182,7 +187,30 @@ while [ 1 ] ; do
   start_secs=`date +%s`
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
   if [ -n "$SCR_CHECKPOINT_PATTERN" ] ; then export LD_PRELOAD="$libdir/libscr_interpose.so" ; fi
-  srun --nodelist $script_node $exclude "$@"
+
+  if [ $use_scr_watchdog -eq 0 ]; then
+     srun --nodelist $script_node $exclude "$@"
+  else
+    echo "$prog: Attempting to start watchdog process."
+     # need to get job step id of the srun command
+     srun --nodelist $script_node $exclude "$@" &
+     srun_pid=$!;
+     sleep 10; # sleep a bit to wait for the job to show up in squeue 
+     echo "$bindir/scr_get_jobstep_id $srun_pid";
+     jobstepid=`$bindir/scr_get_jobstep_id $srun_pid`;
+     # then start the watchdog  if we got a valid job step id 
+     if [ $jobstepid != "-1" ]; then
+         $bindir/scr_watchdog --dir $prefix --jobStepId $jobstepid &
+         watchdog_pid=$!;
+         echo "$prog: Started watchdog process with PID $watchdog_pid."
+     else
+        echo "$prog: ERROR: Unable to start scr_watchdog because couldn't get job step id."
+        watchdog_pid=-1;
+     fi
+     wait $srun_pid;
+  fi
+
+
   if [ -n "$SCR_CHECKPOINT_PATTERN" ] ; then unset LD_PRELOAD ; fi
   end_secs=`date +%s`
   run_secs=$(($end_secs - $start_secs))
@@ -235,6 +263,13 @@ $bindir/scr_postrun -p $prefix
 if [ $? -ne 0 ] ; then
   echo "$prog: ERROR: Command failed: scr_postrun -p $prefix"
 fi
+
+# kill the watchdog process if it is running
+if [ $use_scr_watchdog -eq 1 ] && [ $watchdog_pid -ne -1 ]; then
+  echo "$kill -n KILL $watchdog_pid";
+  kill -n KILL $watchdog_pid;
+fi
+
 
 # make a record of end time
 timestamp=`date`

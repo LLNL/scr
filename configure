@@ -21077,7 +21077,7 @@ _ACEOF
 ##
 # Epilogue.
 ##
-                                                                                                                                                                                                                                                                                                                                                                        ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile man/scr.1 man/scr_index.1 man/scr_halt.1 man/scr_postrun.1 man/scr_prerun.1 man/scr_srun.1 scripts/Makefile scripts/common/Makefile scripts/common/scr_cntl_dir scripts/common/scr_check_node scripts/common/scr_glob_hosts scripts/common/scr_prerun scripts/common/scr_postrun scripts/common/scr_test_datemanip scripts/common/scr_test_runtime scripts/common/scr_param.pm scripts/TLCC/Makefile scripts/TLCC/scr_run scripts/TLCC/scr_env scripts/TLCC/scr_halt scripts/TLCC/scr_list_down_nodes scripts/TLCC/scr_scavenge scripts/TLCC/scr_inspect scripts/cray_xt/Makefile scripts/cray_xt/scr_run scripts/cray_xt/scr_env scripts/cray_xt/scr_halt scripts/cray_xt/scr_list_down_nodes scripts/cray_xt/scr_scavenge scripts/cray_xt/scr_inspect examples/Makefile examples/makefile.examples doc/Makefile"
+                                                                                                                                                                                                                                                                                                                                                                                                                          ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile man/scr.1 man/scr_index.1 man/scr_halt.1 man/scr_postrun.1 man/scr_prerun.1 man/scr_srun.1 scripts/Makefile scripts/common/Makefile scripts/common/scr_cntl_dir scripts/common/scr_check_node scripts/common/scr_glob_hosts scripts/common/scr_prerun scripts/common/scr_postrun scripts/common/scr_test_datemanip scripts/common/scr_test_runtime scripts/common/scr_param.pm scripts/common/scr_watchdog scripts/TLCC/Makefile scripts/TLCC/scr_run scripts/TLCC/scr_env scripts/TLCC/scr_halt scripts/TLCC/scr_list_down_nodes scripts/TLCC/scr_scavenge scripts/TLCC/scr_inspect scripts/TLCC/scr_kill_jobstep scripts/TLCC/scr_get_jobstep_id scripts/cray_xt/Makefile scripts/cray_xt/scr_run scripts/cray_xt/scr_env scripts/cray_xt/scr_halt scripts/cray_xt/scr_list_down_nodes scripts/cray_xt/scr_scavenge scripts/cray_xt/scr_inspect scripts/cray_xt/scr_kill_jobstep scripts/cray_xt/scr_get_jobstep_id examples/Makefile examples/makefile.examples doc/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -21654,6 +21654,7 @@ do
   "scripts/common/scr_test_datemanip" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_test_datemanip" ;;
   "scripts/common/scr_test_runtime" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_test_runtime" ;;
   "scripts/common/scr_param.pm" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_param.pm" ;;
+  "scripts/common/scr_watchdog" ) CONFIG_FILES="$CONFIG_FILES scripts/common/scr_watchdog" ;;
   "scripts/TLCC/Makefile" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/Makefile" ;;
   "scripts/TLCC/scr_run" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_run" ;;
   "scripts/TLCC/scr_env" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_env" ;;
@@ -21661,6 +21662,8 @@ do
   "scripts/TLCC/scr_list_down_nodes" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_list_down_nodes" ;;
   "scripts/TLCC/scr_scavenge" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_scavenge" ;;
   "scripts/TLCC/scr_inspect" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_inspect" ;;
+  "scripts/TLCC/scr_kill_jobstep" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_kill_jobstep" ;;
+  "scripts/TLCC/scr_get_jobstep_id" ) CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_get_jobstep_id" ;;
   "scripts/cray_xt/Makefile" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/Makefile" ;;
   "scripts/cray_xt/scr_run" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_run" ;;
   "scripts/cray_xt/scr_env" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_env" ;;
@@ -21668,6 +21671,8 @@ do
   "scripts/cray_xt/scr_list_down_nodes" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_list_down_nodes" ;;
   "scripts/cray_xt/scr_scavenge" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_scavenge" ;;
   "scripts/cray_xt/scr_inspect" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_inspect" ;;
+  "scripts/cray_xt/scr_kill_jobstep" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_kill_jobstep" ;;
+  "scripts/cray_xt/scr_get_jobstep_id" ) CONFIG_FILES="$CONFIG_FILES scripts/cray_xt/scr_get_jobstep_id" ;;
   "examples/Makefile" ) CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
   "examples/makefile.examples" ) CONFIG_FILES="$CONFIG_FILES examples/makefile.examples" ;;
   "doc/Makefile" ) CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;

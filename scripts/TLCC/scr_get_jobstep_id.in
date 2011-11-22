@@ -1,0 +1,53 @@
+#!/usr/bin/env perl
+
+# This script attempts to get the job step id for the last srun command that 
+# was launched. The argument to this script is the PID of the srun command.
+# The script first calls squeue to get the job steps for this job.
+# It assumes that the highest numbered job step is the right one (meaning the
+# last one that was started).
+# Then it checks to see if the srun command with PID is still running. The idea
+# here is that if the srun command died, then the job step with the highest number
+# is for some other srun command and not the one we are looking for. 
+# This script returns the job step id on success and -1 on failure.
+
+my $pid=$ARGV[0];
+my $user=`scr_env -u`;
+chomp($user);
+my $jobid=`scr_env -j`;
+chomp($jobid);
+# get job steps for this user and job, order by decreasing job step
+# so first one should be the one we are looking for
+# -h means print no header, so just the data in this order:
+# STEPID         NAME PARTITION     USER      TIME NODELIST
+my $cmd="squeue -h -s -u $user -j $jobid -S \"-i\"";
+
+my @output=`$cmd`;
+
+my $currjobid=-1; # the return value will be -1 if not found
+
+
+foreach my $line (@output){
+  my @fields = split /\s+/, $line;
+  #print "@fields[0]\n";
+  my @jobidparts=split /\./, $fields[0];
+  #print "@jobidparts\n";
+  # the first item is the job step id
+  # if it is JOBID.0, then it is the allocation ID and we don't want that
+  # if it's not 0, then assume it's the one we're looking for
+  if ($jobidparts[1] ne "0" ){
+     my $checkPIDcmd="ps h -p $pid";
+     my $psOutput=`$checkPIDcmd`;
+     $psOutput=~ s/^\s+//;
+     my @psparts= split /\s+/, $psOutput;
+     if($psparts[0] eq $pid){
+        $currjobid=$fields[0];
+        last;
+     }
+    
+  }
+}
+
+print "$currjobid\n";
+
+exit 0;
+
