@@ -26,6 +26,9 @@
 #include <unistd.h>
 #include <getopt.h>
 
+/* gettimeofday */
+#include <sys/time.h>
+
 #define PROG ("scr_retries_halt")
 #define NAME ("halt.scr")
 #define NEED_HALT (0)
@@ -45,8 +48,6 @@ struct arglist {
 
 int process_args(int argc, char **argv, struct arglist* args)
 {
-  int ckpt;
-
   /* define our options */
   static struct option long_options[] = {
     {"dir",       required_argument, NULL, 'd'},

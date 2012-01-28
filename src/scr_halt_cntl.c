@@ -325,7 +325,6 @@ int main (int argc, char *argv[])
 
   /* print the current settings */
   time_t secs;
-  scr_hash* key = NULL;
   char* value = NULL;
   printf("Halt file settings for %s:\n", args.file);
   int have_one = 0;

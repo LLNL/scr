@@ -516,7 +516,6 @@ int main(int argc, char* argv[])
 
   /* compute, check, and store crc values with files */
   for (j=0; j < num_files[0]; j++) {
-    scr_meta* meta = scr_hash_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
     if (scr_compute_crc(map, dset_id, my_rank, full_files[j]) != SCR_SUCCESS) {
       /* the crc check failed, so delete the file */
       unlink(full_files[j]);

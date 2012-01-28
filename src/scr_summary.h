@@ -9,13 +9,16 @@
  * Please also read this file: LICENSE.TXT.
 */
 
-#ifndef SCR_CONFIG_H
-#define SCR_CONFIG_H
+#ifndef SCR_SUMMARY_H
+#define SCR_SUMMARY_H
 
 #include "scr_hash.h"
+#include "scr_dataset.h"
 
-int scr_config_read(const char* file, scr_hash* hash);
+/* read in the summary file from dir */
+int scr_summary_read(const char* dir, scr_hash* summary_hash);
 
-int scr_config_read_serial(const char* file, scr_hash* hash);
+/* write out the summary file to dir */
+int scr_summary_write(const char* dir, const scr_dataset* dataset, int all_complete, scr_hash* data);
 
 #endif

@@ -102,7 +102,7 @@ int scr_index_add_dir(scr_hash* index, int id, const char* name)
 {
   /* set the directory */
   scr_hash* dset_hash = scr_hash_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
+  scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
 
   /* add entry to directory index (maps directory name to dataset id) */
   scr_index_set_directory(index, name, id);
@@ -232,7 +232,7 @@ int scr_index_get_complete(scr_hash* index, int id, const char* name, int* compl
   /* get the value of the COMPLETE key */
   scr_hash* dset_hash = scr_hash_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
   scr_hash* dir_hash  = scr_hash_get_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
-  scr_hash* comp_hash = scr_hash_get(dir_hash, SCR_INDEX_1_KEY_COMPLETE);
+  scr_hash_get(dir_hash, SCR_INDEX_1_KEY_COMPLETE);
   int complete_tmp;
   if (scr_hash_util_get_int(dir_hash, SCR_INDEX_1_KEY_COMPLETE, &complete_tmp) == SCR_SUCCESS) {
     *complete = complete_tmp;

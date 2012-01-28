@@ -11,17 +11,26 @@ include_HEADERS = \
 # headers that should not be installed into /include
 noinst_HEADERS = \
 	scr_conf.h \
+	scr_globals.h \
 	scr_err.h \
 	scr_io.h \
 	scr_util.h \
 	scr_hash.h \
 	scr_hash_util.h \
 	scr_hash_mpi.h \
+	scr_flush_file_mpi.h \
 	tv_data_display.h \
 	scr_filemap.h \
 	scr_index_api.h \
 	scr_meta.h \
 	scr_dataset.h \
+	scr_reddesc.h \
+	scr_summary.h \
+	scr_cache.h \
+	scr_fetch.h \
+	scr_flush.h \
+	scr_flush_sync.h \
+	scr_flush_async.h \
 	scr_config.h \
 	scr_param.h \
 	scr_env.h \
@@ -33,8 +42,8 @@ lib_LTLIBRARIES = \
 	libscr_base.la \
 	libscr_cmds.la \
 	libscr.la \
-	libscrf.la \
-	libscr_interpose.la
+	libscrf.la 
+#	libscr_interpose.la
 
 CMDS_INCLUDES = \
 	$(DEFS) \
@@ -81,7 +90,16 @@ INCLUDES = \
 
 # source files that are used by libraries (include MPI)
 libscr_la_SOURCES = \
+	scr_err_mpi.c \
 	scr_hash_mpi.c \
+	scr_flush_file_mpi.c \
+	scr_reddesc.c \
+	scr_summary.c \
+	scr_cache.c \
+	scr_fetch.c \
+	scr_flush.c \
+	scr_flush_sync.c \
+	scr_flush_async.c \
 	scr.c
 libscr_la_CFLAGS = $(INCLUDES) $(GCS_CFLAGS) $(MPI_CFLAGS)
 libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(GCS_LDFLAGS) $(GCS_LIBS) $(MPI_CLDFLAGS) libscr_base.la
@@ -94,10 +112,10 @@ libscrf_la_CFLAGS = $(INCLUDES) $(MPI_CFLAGS)
 libscrf_la_LIBADD = libscr.la
 libscrf_la_LDFLAGS = -avoid-version
 
-libscr_interpose_la_SOURCES = scr_interpose.c
-libscr_interpose_la_CFLAGS = $(INCLUDES) $(MPI_CFLAGS)
-libscr_interpose_la_LIBADD = libscr.la
-libscr_interpose_la_LDFLAGS = -avoid-version
+#libscr_interpose_la_SOURCES = scr_interpose.c
+#libscr_interpose_la_CFLAGS = $(INCLUDES) $(MPI_CFLAGS)
+#libscr_interpose_la_LIBADD = libscr.la
+#libscr_interpose_la_LDFLAGS = -avoid-version
 
 bin_PROGRAMS = \
 	scr_inspect_cache \

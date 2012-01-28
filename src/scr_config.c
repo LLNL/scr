@@ -30,6 +30,9 @@
 #include <stdarg.h>
 #include <errno.h>
 
+/* toupper */
+#include <ctype.h>
+
 /* read in whitespace until we hit a non-whitespace character */
 static int scr_config_read_whitespace(FILE* fs, const char* file, int linenum, int* n_external, char* c_external)
 {

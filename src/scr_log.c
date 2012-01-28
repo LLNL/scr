@@ -408,7 +408,7 @@ int scr_mysql_log_event(const char* type, const char* note, const int* ckpt, con
     " INTO `events`"
     " (`id`,`job_id`,`type_id`,`checkpoint_id`,`start`,`time`,`note`)"
     " VALUES"
-    " (NULL, %d, %d, %s, %s, %s, %s)"
+    " (NULL, %lu, %d, %s, %s, %s, %s)"
     " ;",
     scr_db_jobid, type_id, qckpt, qstart, qsecs, qnote
   );
@@ -504,7 +504,7 @@ int scr_mysql_log_transfer(const char* type, const char* from, const char* to, c
     " INTO `transfers`"
     " (`id`,`job_id`,`type_id`,`checkpoint_id`,`start`,`end`,`time`,`bytes`,`bw`,`from`,`to`)"
     " VALUES"
-    " (NULL, %d, %d, %s, %s, %s, %s, %s, %s, %s, %s)"
+    " (NULL, %lu, %d, %s, %s, %s, %s, %s, %s, %s, %s)"
     " ;",
     scr_db_jobid, type_id, qckpt, qstart, qend, qsecs, qbytes, qbw, qfrom, qto
   );

@@ -9,13 +9,12 @@
  * Please also read this file: LICENSE.TXT.
 */
 
-#ifndef SCR_CONFIG_H
-#define SCR_CONFIG_H
+#ifndef SCR_FLUSH_SYNC_H
+#define SCR_FLUSH_SYNC_H
 
-#include "scr_hash.h"
+#include "scr_filemap.h"
 
-int scr_config_read(const char* file, scr_hash* hash);
-
-int scr_config_read_serial(const char* file, scr_hash* hash);
+/* flush files from cache to parallel file system under SCR_PREFIX */
+int scr_flush_sync(scr_filemap* map, int id);
 
 #endif

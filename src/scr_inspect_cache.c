@@ -162,9 +162,6 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
 
 int main(int argc, char* argv[])
 {
-  int i, j;
-  int index = 1;
-
   /* print usage if not enough arguments were given */
   if (argc < 2) {
     printf("Usage: scr_inspect_cache <cntldir>\n");

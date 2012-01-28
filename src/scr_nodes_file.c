@@ -39,8 +39,6 @@ struct arglist {
 
 int process_args(int argc, char **argv, struct arglist* args)
 {
-  int ckpt;
-
   /* define our options */
   static struct option long_options[] = {
     {"dir",       required_argument, NULL, 'd'},

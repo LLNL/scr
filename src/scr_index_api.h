@@ -11,8 +11,8 @@
 
 /* Implements an interface to read and write index files. */
 
-#ifndef SCR_HALT_H
-#define SCR_HALT_H
+#ifndef SCR_INDEX_API_H
+#define SCR_INDEX_API_H
 
 #include <stdio.h>
 #include "scr_hash.h"

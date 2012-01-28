@@ -39,6 +39,12 @@
 /* compute crc32 */
 #include <zlib.h>
 
+/* flock */
+#include <sys/file.h>
+
+/* gettimeofday */
+#include <sys/time.h>
+
 /*
 =========================================
 open/lock/close/read/write functions
@@ -698,7 +704,10 @@ int scr_build_path (char* buf, size_t size, const char* path, const char* file)
   int nwrite = 0;
   if ((path == NULL || strcmp(path, "") == 0) && (file == NULL || strcmp(file, "") == 0)) {
     /* empty path and file, just write an empty string to file */
-    nwrite = snprintf(buf, size, "");
+    nwrite = 1;
+    if (size > 0) {
+      *buf = '\0';
+    }
   } else if (path == NULL || strcmp(path, "") == 0) {
     /* empty path, just return file */
     nwrite = snprintf(buf, size, "%s", file);

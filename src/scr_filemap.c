@@ -123,7 +123,7 @@ static scr_hash* scr_filemap_set_rd(scr_filemap* map, int dset, int rank)
 
   /* set DSET/RANK index */
   scr_hash* d  = scr_hash_set_kv_int(map, SCR_FILEMAP_KEY_DSET, dset);
-  scr_hash* dr = scr_hash_set_kv_int(d,   SCR_FILEMAP_KEY_RANK, rank);
+                 scr_hash_set_kv_int(d,   SCR_FILEMAP_KEY_RANK, rank);
 
   return rd;
 }

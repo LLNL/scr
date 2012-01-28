@@ -14,6 +14,7 @@
 #include "scr.h"
 #include "scr_hash.h"
 #include "scr_hash_util.h"
+#include "scr_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>

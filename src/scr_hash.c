@@ -15,8 +15,10 @@
  * indexed by string, and so on. */
 
 #include "scr.h"
+#include "scr_err.h"
 #include "scr_hash.h"
 #include "scr_io.h"
+#include "scr_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -381,7 +383,7 @@ scr_hash* scr_hash_getf(const scr_hash* hash, const char* format, ...)
     return NULL;
   }
 
-  scr_hash* h = hash;
+  const scr_hash* h = hash;
 
   /* make a copy of the format specifier, since strtok will clobber it */
   char* format_copy = strdup(format);
@@ -473,7 +475,7 @@ scr_hash* scr_hash_getf(const scr_hash* hash, const char* format, ...)
   }
 
   /* return the hash we found */
-  return h;
+  return (scr_hash*) h;
 }
 
 /* sort strings in ascending order */
