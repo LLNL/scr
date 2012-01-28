@@ -210,6 +210,33 @@ int find_file(scr_hash* hash, char** src, char** dst, off_t* position, off_t* fi
   return SCR_SUCCESS;
 }
 
+/* writes the specified command to the transfer file */
+int set_transfer_file_state(char* s, int done)
+{
+  /* get a hash to store file data */
+  scr_hash* hash = scr_hash_new();
+
+  /* attempt to read the file transfer file */
+  int fd = -1;
+  if (scr_hash_lock_open_read(scr_transfer_file, &fd, hash) == SCR_SUCCESS) {
+    /* set the state */
+    scr_hash_util_set_str(hash, SCR_TRANSFER_KEY_STATE, s);
+
+    /* set the flag if we're done */
+    if (done) {
+      scr_hash_set_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
+    }
+
+    /* write the hash back to the file */
+    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+  }
+
+  /* delete the hash */
+  scr_hash_delete(hash);
+
+  return SCR_SUCCESS;
+}
+
 /* read the transfer file and set our global variables to match */
 scr_hash* read_transfer_file()
 {
@@ -304,33 +331,6 @@ scr_hash* read_transfer_file()
   }
 
   return hash;
-}
-
-/* writes the specified command to the transfer file */
-int set_transfer_file_state(char* s, int done)
-{
-  /* get a hash to store file data */
-  scr_hash* hash = scr_hash_new();
-
-  /* attempt to read the file transfer file */
-  int fd = -1;
-  if (scr_hash_lock_open_read(scr_transfer_file, &fd, hash) == SCR_SUCCESS) {
-    /* set the state */
-    scr_hash_util_set_str(hash, SCR_TRANSFER_KEY_STATE, s);
-
-    /* set the flag if we're done */
-    if (done) {
-      scr_hash_set_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
-    }
-
-    /* write the hash back to the file */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
-  }
-
-  /* delete the hash */
-  scr_hash_delete(hash);
-
-  return SCR_SUCCESS;
 }
 
 /* given src and dst, find the matching entry in the transfer file and

@@ -5,7 +5,7 @@ $TV /g/g0/${USER}/packages/scr-dist/install/bin/scr_rebuild_xor -a 4 1 2_of_4_in
 
 # build the dist tarball
 setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-gcs=/usr/global/tools/gcs"
-setenv CFLAGS "-g -O0"
+setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
 setenv scrversion "scr-1.1-8"
 cd ~/packages/scr
 make distclean

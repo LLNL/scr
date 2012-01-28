@@ -450,3 +450,211 @@ int scr_cache_check_files(const scr_filemap* map, int id)
   }
   return SCR_SUCCESS;
 }
+
+/* compute and store crc32 value for specified file in given dataset and rank,
+ * check against current value if one is set */
+int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
+{
+  /* compute crc for the file */
+  uLong crc_file;
+  if (scr_crc32(file, &crc_file) != SCR_SUCCESS) {
+    scr_err("Failed to compute crc for file %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* allocate a new meta data object */
+  scr_meta* meta = scr_meta_new();
+  if (meta == NULL) {
+    scr_abort(-1, "Failed to allocate meta data object @ %s:%d",
+              __FILE__, __LINE__
+    );
+  }
+
+  /* read meta data from filemap */
+  if (scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
+    return SCR_FAILURE;
+  }
+
+  int rc = SCR_SUCCESS;
+
+  /* read crc value from meta data */
+  uLong crc_meta;
+  if (scr_meta_get_crc32(meta, &crc_meta) == SCR_SUCCESS) {
+    /* check that the values are the same */
+    if (crc_file != crc_meta) {
+      rc = SCR_FAILURE;
+    }
+  } else {
+    /* record crc in filemap */
+    scr_meta_set_crc32(meta, crc_file);
+    scr_filemap_set_meta(map, id, rank, file, meta);
+  }
+
+  /* free our meta data object */
+  scr_meta_delete(meta);
+
+  return rc;
+}
+
+/* checks whether specifed file exists, is readable, and is complete */
+int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* file, int ranks)
+{
+  /* if no filename is given return false */
+  if (file == NULL || strcmp(file,"") == 0) {
+    scr_dbg(2, "File name is null or the empty string @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return 0;
+  }
+
+  /* check that we can read the file */
+  if (access(file, R_OK) < 0) {
+    scr_dbg(2, "Do not have read access to file: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    return 0;
+  }
+
+  /* allocate object to read meta data into */
+  scr_meta* meta = scr_meta_new();
+
+  /* check that we can read meta file for the file */
+  if (scr_filemap_get_meta(map, dset, rank, file, meta) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read meta data for file: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
+    return 0;
+  }
+
+  /* check that the file is complete */
+  if (scr_meta_is_complete(meta) != SCR_SUCCESS) {
+    scr_dbg(2, "File is marked as incomplete: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
+    return 0;
+  }
+
+  /* TODODSET: enable check for correct dataset / checkpoint id */
+
+#if 0
+  /* check that the file really belongs to the checkpoint id we think it does */
+  int meta_dset = -1;
+  if (scr_meta_get_dataset(meta, &meta_dset) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read dataset field in meta data: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
+    return 0;
+  }
+  if (dset != meta_dset) {
+    scr_dbg(2, "File's dataset ID (%d) does not match id in meta data file (%d) for %s @ %s:%d",
+            dset, meta_dset, file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
+    return 0;
+  }
+#endif
+
+#if 0
+  /* check that the file really belongs to the rank we think it does */
+  int meta_rank = -1;
+  if (scr_meta_get_rank(meta, &meta_rank) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read rank field in meta data: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
+    return 0;
+  }
+  if (rank != meta_rank) {
+    scr_dbg(2, "File's rank (%d) does not match rank in meta data (%d) for %s @ %s:%d",
+            rank, meta_rank, file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
+    return 0;
+  }
+#endif
+
+#if 0
+  /* check that the file really belongs to the rank we think it does */
+  int meta_ranks = -1;
+  if (scr_meta_get_ranks(meta, &meta_ranks) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read ranks field in meta data: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
+    return 0;
+  }
+  if (ranks != meta_ranks) {
+    scr_dbg(2, "File's ranks (%d) does not match ranks in meta data file (%d) for %s @ %s:%d",
+            ranks, meta_ranks, file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
+    return 0;
+  }
+#endif
+
+  /* check that the file size matches */
+  unsigned long size = scr_filesize(file);
+  unsigned long meta_size = 0;
+  if (scr_meta_get_filesize(meta, &meta_size) != SCR_SUCCESS) {
+    scr_dbg(2, "Failed to read filesize field in meta data: %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
+    return 0;
+  }
+  if (size != meta_size) {
+    scr_dbg(2, "Filesize is incorrect, currently %lu, expected %lu for %s @ %s:%d",
+            size, meta_size, file, __FILE__, __LINE__
+    );
+    scr_meta_delete(meta);
+    return 0;
+  }
+
+  /* TODO: check that crc32 match if set (this would be expensive) */
+
+  /* free meta data object */
+  scr_meta_delete(meta);
+
+  /* if we made it here, assume the file is good */
+  return 1;
+}
+
+/* check whether we have all files for a given rank of a given dataset */
+int scr_bool_have_files(const scr_filemap* map, int id, int rank)
+{
+  /* check whether we have any files for the specified rank */
+  if (! scr_filemap_have_rank_by_dataset(map, id, rank)) {
+    return 0;
+  }
+
+  /* check whether we have all of the files we should */
+  int expected_files = scr_filemap_get_expected_files(map, id, rank);
+  int num_files = scr_filemap_num_files(map, id, rank);
+  if (num_files != expected_files) {
+    return 0;
+  }
+
+  /* check the integrity of each of the files */
+  int missing_a_file = 0;
+  scr_hash_elem* file_elem;
+  for (file_elem = scr_filemap_first_file(map, id, rank);
+       file_elem != NULL;
+       file_elem = scr_hash_elem_next(file_elem))
+  {
+    char* file = scr_hash_elem_key(file_elem);
+    if (! scr_bool_have_file(map, id, rank, file, scr_ranks_world)) {
+      missing_a_file = 1;
+    }
+  }
+  if (missing_a_file) {
+    return 0;
+  }
+
+  /* if we make it here, we have all of our files */
+  return 1;
+}

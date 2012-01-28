@@ -771,14 +771,14 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
 
   /* apply redundancy scheme */
   double bytes_copied = 0.0;
-  int rc = scr_copy_files(map, c, id, &bytes_copied);
+  int rc = scr_reddesc_apply(map, c, id, &bytes_copied);
   if (rc == SCR_SUCCESS) {
     /* record dataset and checkpoint ids */
     *dataset_id = id;
     *checkpoint_id = ckpt_id;
 
     /* update our flush file to indicate this checkpoint is in cache as well as the parallel file system */
-    /* TODO: should we place SCR_FLUSH_KEY_LOCATION_PFS before scr_copy_files? */
+    /* TODO: should we place SCR_FLUSH_KEY_LOCATION_PFS before scr_reddesc_apply? */
     scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_CACHE);
     scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_PFS);
     scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);

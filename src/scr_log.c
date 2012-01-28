@@ -640,7 +640,8 @@ int scr_mysql_register_job(const char* username, const char* jobname, unsigned l
   /* didn't find the job, so we need to insert a new record into the db */
 
   /* translate unix seconds since epoch into mysql datetime field */
-  char* qsecs = scr_mysql_quote_seconds(&start);
+  time_t start_time_t = (time_t) start;
+  char* qsecs = scr_mysql_quote_seconds(&start_time_t);
 
   /* check that we got valid strings for each of our parameters */
   if (qsecs == NULL) {

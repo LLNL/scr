@@ -97,11 +97,14 @@ libscr_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) libscr_base.la
 am_libscr_la_OBJECTS = libscr_la-scr_err_mpi.lo \
-	libscr_la-scr_hash_mpi.lo libscr_la-scr_flush_file_mpi.lo \
-	libscr_la-scr_reddesc.lo libscr_la-scr_summary.lo \
-	libscr_la-scr_cache.lo libscr_la-scr_fetch.lo \
-	libscr_la-scr_flush.lo libscr_la-scr_flush_sync.lo \
-	libscr_la-scr_flush_async.lo libscr_la-scr.lo
+	libscr_la-scr_util_mpi.lo libscr_la-scr_hash_mpi.lo \
+	libscr_la-scr_flush_file_mpi.lo libscr_la-scr_reddesc.lo \
+	libscr_la-scr_reddesc_apply.lo \
+	libscr_la-scr_reddesc_recover.lo libscr_la-scr_summary.lo \
+	libscr_la-scr_cache.lo libscr_la-scr_cache_rebuild.lo \
+	libscr_la-scr_fetch.lo libscr_la-scr_flush.lo \
+	libscr_la-scr_flush_sync.lo libscr_la-scr_flush_async.lo \
+	libscr_la-scr.lo
 libscr_la_OBJECTS = $(am_libscr_la_OBJECTS)
 libscr_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libscr_la_CFLAGS) \
@@ -432,6 +435,7 @@ noinst_HEADERS = \
 	scr_err.h \
 	scr_io.h \
 	scr_util.h \
+	scr_util_mpi.h \
 	scr_hash.h \
 	scr_hash_util.h \
 	scr_hash_mpi.h \
@@ -442,8 +446,11 @@ noinst_HEADERS = \
 	scr_meta.h \
 	scr_dataset.h \
 	scr_reddesc.h \
+	scr_reddesc_apply.h \
+	scr_reddesc_recover.h \
 	scr_summary.h \
 	scr_cache.h \
+	scr_cache_rebuild.h \
 	scr_fetch.h \
 	scr_flush.h \
 	scr_flush_sync.h \
@@ -511,11 +518,15 @@ INCLUDES = \
 # source files that are used by libraries (include MPI)
 libscr_la_SOURCES = \
 	scr_err_mpi.c \
+	scr_util_mpi.c \
 	scr_hash_mpi.c \
 	scr_flush_file_mpi.c \
 	scr_reddesc.c \
+	scr_reddesc_apply.c \
+	scr_reddesc_recover.c \
 	scr_summary.c \
 	scr_cache.c \
+	scr_cache_rebuild.c \
 	scr_fetch.c \
 	scr_flush.c \
 	scr_flush_sync.c \
@@ -750,6 +761,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_cmds_la-scr_err_serial.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_cache.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_cache_rebuild.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_err_mpi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_fetch.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_flush.Plo@am__quote@
@@ -758,7 +770,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_flush_sync.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_hash_mpi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_reddesc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_reddesc_apply.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_reddesc_recover.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_summary.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_util_mpi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscrf_la-scrf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_copy-scr_copy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scr_crc32-scr_crc32.Po@am__quote@
@@ -802,6 +817,13 @@ libscr_la-scr_err_mpi.lo: scr_err_mpi.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_err_mpi.lo `test -f 'scr_err_mpi.c' || echo '$(srcdir)/'`scr_err_mpi.c
 
+libscr_la-scr_util_mpi.lo: scr_util_mpi.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_util_mpi.lo -MD -MP -MF $(DEPDIR)/libscr_la-scr_util_mpi.Tpo -c -o libscr_la-scr_util_mpi.lo `test -f 'scr_util_mpi.c' || echo '$(srcdir)/'`scr_util_mpi.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libscr_la-scr_util_mpi.Tpo $(DEPDIR)/libscr_la-scr_util_mpi.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_util_mpi.c' object='libscr_la-scr_util_mpi.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_util_mpi.lo `test -f 'scr_util_mpi.c' || echo '$(srcdir)/'`scr_util_mpi.c
+
 libscr_la-scr_hash_mpi.lo: scr_hash_mpi.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_hash_mpi.lo -MD -MP -MF $(DEPDIR)/libscr_la-scr_hash_mpi.Tpo -c -o libscr_la-scr_hash_mpi.lo `test -f 'scr_hash_mpi.c' || echo '$(srcdir)/'`scr_hash_mpi.c
 @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libscr_la-scr_hash_mpi.Tpo $(DEPDIR)/libscr_la-scr_hash_mpi.Plo
@@ -823,6 +845,20 @@ libscr_la-scr_reddesc.lo: scr_reddesc.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_reddesc.lo `test -f 'scr_reddesc.c' || echo '$(srcdir)/'`scr_reddesc.c
 
+libscr_la-scr_reddesc_apply.lo: scr_reddesc_apply.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_reddesc_apply.lo -MD -MP -MF $(DEPDIR)/libscr_la-scr_reddesc_apply.Tpo -c -o libscr_la-scr_reddesc_apply.lo `test -f 'scr_reddesc_apply.c' || echo '$(srcdir)/'`scr_reddesc_apply.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libscr_la-scr_reddesc_apply.Tpo $(DEPDIR)/libscr_la-scr_reddesc_apply.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_reddesc_apply.c' object='libscr_la-scr_reddesc_apply.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_reddesc_apply.lo `test -f 'scr_reddesc_apply.c' || echo '$(srcdir)/'`scr_reddesc_apply.c
+
+libscr_la-scr_reddesc_recover.lo: scr_reddesc_recover.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_reddesc_recover.lo -MD -MP -MF $(DEPDIR)/libscr_la-scr_reddesc_recover.Tpo -c -o libscr_la-scr_reddesc_recover.lo `test -f 'scr_reddesc_recover.c' || echo '$(srcdir)/'`scr_reddesc_recover.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libscr_la-scr_reddesc_recover.Tpo $(DEPDIR)/libscr_la-scr_reddesc_recover.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_reddesc_recover.c' object='libscr_la-scr_reddesc_recover.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_reddesc_recover.lo `test -f 'scr_reddesc_recover.c' || echo '$(srcdir)/'`scr_reddesc_recover.c
+
 libscr_la-scr_summary.lo: scr_summary.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_summary.lo -MD -MP -MF $(DEPDIR)/libscr_la-scr_summary.Tpo -c -o libscr_la-scr_summary.lo `test -f 'scr_summary.c' || echo '$(srcdir)/'`scr_summary.c
 @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libscr_la-scr_summary.Tpo $(DEPDIR)/libscr_la-scr_summary.Plo
@@ -836,6 +872,13 @@ libscr_la-scr_cache.lo: scr_cache.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_cache.c' object='libscr_la-scr_cache.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_cache.lo `test -f 'scr_cache.c' || echo '$(srcdir)/'`scr_cache.c
+
+libscr_la-scr_cache_rebuild.lo: scr_cache_rebuild.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_cache_rebuild.lo -MD -MP -MF $(DEPDIR)/libscr_la-scr_cache_rebuild.Tpo -c -o libscr_la-scr_cache_rebuild.lo `test -f 'scr_cache_rebuild.c' || echo '$(srcdir)/'`scr_cache_rebuild.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libscr_la-scr_cache_rebuild.Tpo $(DEPDIR)/libscr_la-scr_cache_rebuild.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_cache_rebuild.c' object='libscr_la-scr_cache_rebuild.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_cache_rebuild.lo `test -f 'scr_cache_rebuild.c' || echo '$(srcdir)/'`scr_cache_rebuild.c
 
 libscr_la-scr_fetch.lo: scr_fetch.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_fetch.lo -MD -MP -MF $(DEPDIR)/libscr_la-scr_fetch.Tpo -c -o libscr_la-scr_fetch.lo `test -f 'scr_fetch.c' || echo '$(srcdir)/'`scr_fetch.c

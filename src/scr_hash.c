@@ -1170,7 +1170,7 @@ int scr_hash_write(const char* file, const scr_hash* hash)
 ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
 {
   ssize_t nread;
-  ssize_t size = 0;
+  size_t size = 0;
 
   /* check that we have a hash, a file name, and a file descriptor */
   if (file == NULL || fd < 0 || hash == NULL) {
@@ -1523,6 +1523,7 @@ int scr_hash_print(const scr_hash* hash, int indent)
   return SCR_SUCCESS;
 }
 
+#ifndef HIDE_TV
 /*
 =========================================
 Pretty print for TotalView debug window
@@ -1586,3 +1587,4 @@ static int TV_ttf_display_type(const scr_hash* hash)
 
   return TV_ttf_format_ok;
 }
+#endif /* HIDE_TV */

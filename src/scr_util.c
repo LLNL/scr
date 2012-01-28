@@ -215,6 +215,7 @@ void scr_align_free(void* buf)
 /*sprintfs a formatted string into an newly allocated string */
 char* scr_strdupf()
 {
+  return NULL;
 }
 
 /* returns the current linux timestamp */

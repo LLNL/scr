@@ -47,4 +47,14 @@ int scr_cache_clean(scr_filemap* map);
 /* returns true iff each file in the filemap can be read */
 int scr_cache_check_files(const scr_filemap* map, int id);
 
+/* checks whether specifed file exists, is readable, and is complete */
+int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* file, int ranks);
+
+/* compute and store crc32 value for specified file in given dataset and rank,
+ * check against current value if one is set */
+int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file);
+
+/* check whether we have all files for a given rank of a given dataset */
+int scr_bool_have_files(const scr_filemap* map, int id, int rank);
+
 #endif

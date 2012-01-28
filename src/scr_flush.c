@@ -22,7 +22,7 @@ Common flush functions
 */
 
 /* returns true if the named file needs to be flushed, 0 otherwise */
-static int scr_bool_flush_file(const scr_filemap* map, int dset, int rank, const char* file)
+int scr_bool_flush_file(const scr_filemap* map, int dset, int rank, const char* file)
 {
   /* assume we need to flush this file */
   int flush = 1;

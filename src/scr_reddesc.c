@@ -134,8 +134,8 @@ int scr_reddesc_store_to_hash(const struct scr_reddesc* c, scr_hash* hash)
 
   /* set the TYPE key */
   switch (c->copy_type) {
-  case SCR_COPY_LOCAL:
-    scr_hash_set_kv(hash, SCR_CONFIG_KEY_TYPE, "LOCAL");
+  case SCR_COPY_SINGLE:
+    scr_hash_set_kv(hash, SCR_CONFIG_KEY_TYPE, "SINGLE");
     break;
   case SCR_COPY_PARTNER:
     scr_hash_set_kv(hash, SCR_CONFIG_KEY_TYPE, "PARTNER");
@@ -252,8 +252,8 @@ int scr_reddesc_create_from_hash(struct scr_reddesc* c, int index, const scr_has
   /* read the checkpoint type from the hash, and build our checkpoint communicator */
   value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_TYPE);
   if (value != NULL) {
-    if (strcasecmp(value, "LOCAL") == 0) {
-      c->copy_type = SCR_COPY_LOCAL;
+    if (strcasecmp(value, "SINGLE") == 0) {
+      c->copy_type = SCR_COPY_SINGLE;
     } else if (strcasecmp(value, "PARTNER") == 0) {
       c->copy_type = SCR_COPY_PARTNER;
     } else if (strcasecmp(value, "XOR") == 0) {
@@ -267,18 +267,18 @@ int scr_reddesc_create_from_hash(struct scr_reddesc* c, int index, const scr_has
       }
     }
 
-    /* CONVENIENCE: if all ranks are on the same node, change checkpoint type to LOCAL,
+    /* CONVENIENCE: if all ranks are on the same node, change checkpoint type to SINGLE,
      * we do this so single-node jobs can run without requiring the user to change the copy type */
     if (scr_ranks_local == scr_ranks_world) {
       if (scr_my_rank_world == 0) {
-        if (c->copy_type != SCR_COPY_LOCAL) {
+        if (c->copy_type != SCR_COPY_SINGLE) {
           /* print a warning if we changed things on the user */
-          scr_warn("Forcing copy type to LOCAL in redundancy descriptor %d @ %s:%d",
+          scr_warn("Forcing copy type to SINGLE in redundancy descriptor %d @ %s:%d",
                   c->index, __FILE__, __LINE__
           );
         }
       }
-      c->copy_type = SCR_COPY_LOCAL;
+      c->copy_type = SCR_COPY_SINGLE;
     }
 
     /* build the checkpoint communicator */
@@ -293,7 +293,7 @@ int scr_reddesc_create_from_hash(struct scr_reddesc* c, int index, const scr_has
       /* otherwise, build the communicator based on the copy type and other parameters */
       int rel_rank, mod_rank, split_id;
       switch (c->copy_type) {
-      case SCR_COPY_LOCAL:
+      case SCR_COPY_SINGLE:
         /* not going to communicate with anyone, so just dup COMM_SELF */
         MPI_Comm_dup(MPI_COMM_SELF, &c->comm);
         break;
@@ -323,7 +323,7 @@ int scr_reddesc_create_from_hash(struct scr_reddesc* c, int index, const scr_has
     int group_master = (c->my_rank == 0) ? 1 : 0;
     MPI_Allreduce(&group_master, &c->groups, 1, MPI_INT, MPI_SUM, scr_comm_world);
 
-    /* find left and right-hand-side partners (LOCAL needs no partner nodes) */
+    /* find left and right-hand-side partners (SINGLE needs no partner nodes) */
     if (c->copy_type == SCR_COPY_PARTNER) {
       scr_set_partners(c->comm, c->hop_distance,
           &c->lhs_rank, &c->lhs_rank_world, c->lhs_hostname,
@@ -336,7 +336,7 @@ int scr_reddesc_create_from_hash(struct scr_reddesc* c, int index, const scr_has
       );
     }
 
-    /* check that we have a valid partner node (LOCAL needs no partner nodes) */
+    /* check that we have a valid partner node (SINGLE needs no partner nodes) */
     if (c->copy_type == SCR_COPY_PARTNER || c->copy_type == SCR_COPY_XOR) {
       if (strcmp(c->lhs_hostname, "") == 0 ||
           strcmp(c->rhs_hostname, "") == 0 ||
