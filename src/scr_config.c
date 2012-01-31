@@ -189,7 +189,7 @@ static int scr_config_read_line(FILE* fs, const char* file, int linenum, int* n_
 }
 
 /* read parameters from config file and fill in hash */
-int scr_config_read_serial(const char* file, scr_hash* hash)
+int scr_config_read_common(const char* file, scr_hash* hash)
 {
   /* check whether we can read the file */
   if (access(file, R_OK) < 0) {

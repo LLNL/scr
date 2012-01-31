@@ -53,6 +53,6 @@ int scr_swap_files(
 );
 
 /* apply redundancy scheme to file and return number of bytes copied in bytes parameter */
-int scr_reddesc_apply(scr_filemap* map, const struct scr_reddesc* c, int id, double* bytes);
+int scr_reddesc_apply(scr_filemap* map, const scr_reddesc* c, int id, double* bytes);
 
 #endif

@@ -25,7 +25,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
   scr_hash* send_hash = scr_hash_new();
 
   /* if i'm the master on this node, read in all filemaps */
-  if (scr_my_rank_local == 0) {
+  if (scr_storedesc_cntl->rank == 0) {
     /* create an empty filemap */
     scr_filemap* all_map = scr_filemap_new();
 
@@ -65,17 +65,17 @@ int scr_scatter_filemaps(scr_filemap* my_map)
     }
 
     /* get global rank of each rank on this node */
-    int* ranks = (int*) malloc(scr_ranks_local * sizeof(int));
+    int* ranks = (int*) malloc(scr_storedesc_cntl->ranks * sizeof(int));
     if (ranks == NULL) {
       scr_abort(-1,"Failed to allocate memory to record local rank list @ %s:%d",
          __FILE__, __LINE__
       );
     }
-    MPI_Gather(&scr_my_rank_world, 1, MPI_INT, ranks, 1, MPI_INT, 0, scr_comm_local);
+    MPI_Gather(&scr_my_rank_world, 1, MPI_INT, ranks, 1, MPI_INT, 0, scr_storedesc_cntl->comm);
 
     /* for each rank on this node, send them their own file data if we have it */
     int i;
-    for (i=0; i < scr_ranks_local; i++) {
+    for (i=0; i < scr_storedesc_cntl->ranks; i++) {
       int rank = ranks[i];
       if (scr_filemap_have_rank(all_map, rank)) {
         /* extract the filemap for this rank */
@@ -99,10 +99,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
     }
 
     /* free our rank list */
-    if (ranks != NULL) {
-      free(ranks);
-      ranks = NULL;
-    }
+    scr_free(&ranks);
 
     /* now just round robin the remainder across the set (load balancing) */
     int num;
@@ -111,8 +108,8 @@ int scr_scatter_filemaps(scr_filemap* my_map)
 
     int j = 0;
     while (j < num) {
-      /* pick a rank in scr_ranks_local to send to */
-      i = j % scr_ranks_local;
+      /* pick a rank in to send to */
+      i = j % scr_storedesc_cntl->ranks;
 
       /* extract the filemap for this rank */
       scr_filemap* tmp_map = scr_filemap_extract_rank(all_map, remaining_ranks[j]);
@@ -134,10 +131,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
       j++;
     }
 
-    if (remaining_ranks != NULL) {
-      free(remaining_ranks);
-      remaining_ranks = NULL;
-    }
+    scr_free(&remaining_ranks);
 
     /* delete the filemap */
     scr_filemap_delete(all_map);
@@ -145,7 +139,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
     /* write out the new master filemap */
     hash = scr_hash_new();
     char file[SCR_MAX_FILENAME];
-    for (i=0; i < scr_ranks_local; i++) {
+    for (i=0; i < scr_storedesc_cntl->ranks; i++) {
       sprintf(file, "%s/filemap_%d.scrinfo", scr_cntl_prefix, i);
       scr_hash_set_kv(hash, "Filemap", file);
     }
@@ -153,12 +147,12 @@ int scr_scatter_filemaps(scr_filemap* my_map)
     scr_hash_delete(hash);
   } else {
     /* send our global rank to the master */
-    MPI_Gather(&scr_my_rank_world, 1, MPI_INT, NULL, 1, MPI_INT, 0, scr_comm_local);
+    MPI_Gather(&scr_my_rank_world, 1, MPI_INT, NULL, 1, MPI_INT, 0, scr_storedesc_cntl->comm);
   }
 
   /* receive our filemap from master */
   scr_hash* recv_hash = scr_hash_new();
-  scr_hash_exchange(send_hash, recv_hash, scr_comm_local);
+  scr_hash_exchange(send_hash, recv_hash, scr_storedesc_cntl->comm);
 
   /* merge map sent from master into our map */
   scr_hash* map_from_master = scr_hash_getf(recv_hash, "%d", 0);
@@ -222,10 +216,7 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
   }
 
   /* free off our list of ranks */
-  if (ranks != NULL) {
-    free(ranks);
-    ranks = NULL;
-  }
+  scr_free(&ranks);
 
   /* check that we didn't find an invalid rank on any process */
   if (! scr_alltrue(invalid_rank_found == 0)) {
@@ -266,7 +257,7 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
 }
 
 /* this transfers redundancy descriptors for the given dataset id */
-static int scr_distribute_reddescs(scr_filemap* map, int id, struct scr_reddesc* c)
+static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* c)
 {
   int i;
 
@@ -305,10 +296,7 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, struct scr_reddesc*
   }
 
   /* free off our list of ranks */
-  if (ranks != NULL) {
-    free(ranks);
-    ranks = NULL;
-  }
+  scr_free(&ranks);
 
   /* check that we didn't find an invalid rank on any process */
   if (! scr_alltrue(invalid_rank_found == 0)) {
@@ -351,7 +339,7 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, struct scr_reddesc*
 }
 
 /* this moves all files in the cache to make them accessible to new rank mapping */
-static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, int id)
+static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
 {
   int i, round;
   int rc = SCR_SUCCESS;
@@ -388,10 +376,7 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
 
   /* check that we didn't find an invalid rank on any process */
   if (! scr_alltrue(invalid_rank_found == 0)) {
-    if (ranks != NULL) {
-      free(ranks);
-      ranks = NULL;
-    }
+    scr_free(&ranks);
     return SCR_FAILURE;
   }
 
@@ -454,10 +439,7 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
   scr_hash_delete(send_hash);
 
   /* free off our list of ranks */
-  if (ranks != NULL) {
-    free(ranks);
-    ranks = NULL;
-  }
+  scr_free(&ranks);
 
   /* for some redundancy schemes, we know at this point whether we can recover all files */
   int can_get_files = (retrieve_rank != -1);
@@ -581,10 +563,7 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
       }
 
       /* free the list of filename pointers */
-      if (files != NULL) {
-        free(files);
-        files = NULL;
-      }
+      scr_free(&files);
     } else {
       /* if we have files for this round, but the correspdonding rank doesn't need them, delete the files */
       if (round < nranks && send_rank == MPI_PROC_NULL) {
@@ -711,10 +690,7 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
         }
 
         /* free our file list */
-        if (files != NULL) {
-          free(files);
-          files = NULL;
-        }
+        scr_free(&files);
       }
     }
   }
@@ -726,14 +702,8 @@ static int scr_distribute_files(scr_filemap* map, const struct scr_reddesc* c, i
     scr_unlink_rank(map, id, dst_rank);
   }
 
-  if (send_flag_by_round != NULL) {
-    free(send_flag_by_round);
-    send_flag_by_round = NULL;
-  }
-  if (have_rank_by_round != NULL) {
-    free(have_rank_by_round);
-    have_rank_by_round = NULL;
-  }
+  scr_free(&send_flag_by_round);
+  scr_free(&have_rank_by_round);
 
   /* write out new filemap and free the memory resources */
   scr_filemap_write(scr_map_file, map);
@@ -801,7 +771,7 @@ int scr_cache_rebuild(scr_filemap* map)
       int rebuild_succeeded = 0;
       if (scr_distribute_datasets(map, current_id) == SCR_SUCCESS) {
         /* distribute redundancy descriptor for this dataset */
-        struct scr_reddesc c;
+        scr_reddesc c;
         if (scr_distribute_reddescs(map, current_id, &c) == SCR_SUCCESS) {
           /* create a directory for this dataset */
           scr_cache_dir_create(&c, current_id);
@@ -897,10 +867,7 @@ int scr_cache_rebuild(scr_filemap* map)
   }
 
   /* free our list of dataset ids */
-  if (dsets != NULL) {
-    free(dsets);
-    dsets = NULL;
-  }
+  scr_free(&dsets);
 
   return rc;
 }
@@ -970,16 +937,10 @@ int scr_flush_file_rebuild(const scr_filemap* map)
     }
 
     /* free our list of cache dataset ids */
-    if (cache_dsets != NULL) {
-      free(cache_dsets);
-      cache_dsets = NULL;
-    }
+    scr_free(&cache_dsets);
 
     /* free our list of flush file dataset ids */
-    if (flush_dsets != NULL) {
-      free(flush_dsets);
-      flush_dsets = NULL;
-    }
+    scr_free(&flush_dsets);
 
     /* write the hash back to the flush file */
     scr_hash_write(scr_flush_file, hash);

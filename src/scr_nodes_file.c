@@ -15,6 +15,7 @@
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
+#include "scr_util.h"
 #include "scr_hash.h"
 
 #include <stdio.h>
@@ -114,7 +115,7 @@ int main (int argc, char *argv[])
     scr_err("%s: Flush file name is too long (need %d bytes, %d byte buffer) @ %s:%d",
             PROG, n, filelen, __FILE__, __LINE__
     );
-    free(file);
+    scr_free(&file);
     return 1;
   }
 
@@ -144,10 +145,7 @@ cleanup:
   scr_hash_delete(hash);
 
   /* free off our file name storage */
-  if (file != NULL) {
-    free(file);
-    file = NULL;
-  }
+  scr_free(&file);
 
   /* return appropriate exit code */
   return rc;

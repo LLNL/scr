@@ -56,7 +56,7 @@ static int scr_bool_have_xor_file(scr_filemap* map, int checkpoint_id, char* xor
 
 /* given a filemap, a redundancy descriptor, a dataset id, and a failed rank in my xor set,
  * rebuild files and add them to the filemap */
-static int scr_reddesc_recover_xor(scr_filemap* map, const struct scr_reddesc* c, int id, int root)
+static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int id, int root)
 {
   int rc = SCR_SUCCESS;
   int i;
@@ -439,34 +439,24 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const struct scr_reddesc* c
   }
 
   /* free the buffers */
-  scr_align_free(recv_buf);
-  scr_align_free(send_buf);
-  if (filesizes != NULL) {
-    free(filesizes);
-    filesizes = NULL;
-  }
+  scr_align_free(&recv_buf);
+  scr_align_free(&send_buf);
+  scr_free(&filesizes);
   if (filenames != NULL) {
     /* free each of the filenames we strdup'd */
     for (i=0; i < num_files; i++) {
-      if (filenames[i] != NULL) {
-        free(filenames[i]);
-        filenames[i] = NULL;
-      }
+      scr_free(&filenames[i]);
     }
-    free(filenames);
-    filenames = NULL;
+    scr_free(&filenames);
   }
-  if (fds != NULL) {
-    free(fds);
-    fds = NULL;
-  }
+  scr_free(&fds);
   scr_hash_delete(header);
 
   return rc;
 }
 
 /* given a dataset id, check whether files can be rebuilt via xor and execute the rebuild if needed */
-static int scr_reddesc_recover_xor_attempt(scr_filemap* map, const struct scr_reddesc* c, int id)
+static int scr_reddesc_recover_xor_attempt(scr_filemap* map, const scr_reddesc* c, int id)
 {
   /* check whether we have our files */
   int have_my_files = scr_bool_have_files(map, id, scr_my_rank_world);
@@ -526,7 +516,7 @@ static int scr_reddesc_recover_xor_attempt(scr_filemap* map, const struct scr_re
 
 /* rebuilds files for specified dataset id using specified redundancy descriptor,
  * adds them to filemap, and returns SCR_SUCCESS if all processes succeeded */
-int scr_reddesc_recover(scr_filemap* map, const struct scr_reddesc* c, int id)
+int scr_reddesc_recover(scr_filemap* map, const scr_reddesc* c, int id)
 {
   int rc = SCR_SUCCESS;
 

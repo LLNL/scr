@@ -14,6 +14,7 @@
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
+#include "scr_util.h"
 #include "scr_halt.h"
 
 #include <stdio.h>
@@ -123,7 +124,7 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
     if (save_reason != NULL) {
       scr_hash_unset(hash, SCR_HALT_KEY_EXIT_REASON);
       scr_hash_set_kv(hash, SCR_HALT_KEY_EXIT_REASON, save_reason);
-      free(save_reason);
+      scr_free(&save_reason);
       save_reason = NULL;
     }
   }

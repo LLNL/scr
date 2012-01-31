@@ -16,6 +16,7 @@
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
+#include "scr_util.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -50,7 +51,7 @@ int main(int argc, char* argv[])
   printf("%lx\n", (unsigned long) crc);
 
   /* free off the string we strdup'ed at the start */
-  free(filename);
+  scr_free(&filename);
 
   return 0;
 }

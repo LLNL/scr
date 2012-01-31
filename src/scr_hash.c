@@ -66,17 +66,14 @@ static int scr_hash_elem_delete(scr_hash_elem* elem)
 {
   if (elem != NULL) {
     /* free the key which was strdup'ed */
-    if (elem->key != NULL) {
-      free(elem->key);
-      elem->key = NULL;
-    }
+    scr_free(&(elem->key));
 
     /* free the hash */
     scr_hash_delete(elem->hash);
     elem->hash = NULL;
 
     /* finally, free the element structure itself */
-    free(elem);
+    scr_free(&elem);
   } 
   return SCR_SUCCESS;
 }
@@ -104,7 +101,7 @@ int scr_hash_delete(scr_hash* hash)
       LIST_REMOVE(elem, pointers);
       scr_hash_elem_delete(elem);
     }
-    free(hash);
+    scr_free(&hash);
   }
   return SCR_SUCCESS;
 }
@@ -291,9 +288,7 @@ scr_hash* scr_hash_setf(scr_hash* hash, scr_hash* hash_value, const char* format
   }
 
   /* free our copy of the format specifier */
-  if (format_copy != NULL) {
-    free(format_copy);
-  }
+  scr_free(&format_copy);
 
   /* make a copy of the format specifier, since strtok will clobber it */
   format_copy = strdup(format);
@@ -367,9 +362,7 @@ scr_hash* scr_hash_setf(scr_hash* hash, scr_hash* hash_value, const char* format
   va_end(args);
 
   /* free our copy of the format specifier */
-  if (format_copy != NULL) {
-    free(format_copy);
-  }
+  scr_free(&format_copy);
 
   /* return the hash we found */
   return h;
@@ -407,9 +400,7 @@ scr_hash* scr_hash_getf(const scr_hash* hash, const char* format, ...)
   }
 
   /* free our copy of the format specifier */
-  if (format_copy != NULL) {
-    free(format_copy);
-  }
+  scr_free(&format_copy);
 
   /* make a copy of the format specifier, since strtok will clobber it */
   format_copy = strdup(format);
@@ -470,9 +461,7 @@ scr_hash* scr_hash_getf(const scr_hash* hash, const char* format, ...)
   va_end(args);
 
   /* free our copy of the format specifier */
-  if (format_copy != NULL) {
-    free(format_copy);
-  }
+  scr_free(&format_copy);
 
   /* return the hash we found */
   return (scr_hash*) h;
@@ -552,10 +541,7 @@ int scr_hash_sort(scr_hash* hash, int direction)
   }
 
   /* free the list */
-  if (list != NULL) {
-    free(list);
-    list = NULL;
-  }
+  scr_free(&list);
 
   return SCR_SUCCESS;
 }
@@ -608,10 +594,7 @@ int scr_hash_sort_int(scr_hash* hash, int direction)
   }
 
   /* free the list */
-  if (list != NULL) {
-    free(list);
-    list = NULL;
-  }
+  scr_free(&list);
 
   return SCR_SUCCESS;
 }
@@ -1122,8 +1105,7 @@ ssize_t scr_hash_write_fd(const char* file, int fd, const scr_hash* hash)
   nwrite = scr_write_attempt(file, fd, buf, size);
 
   /* free the pack buffer */
-  free(buf);
-  buf = NULL;
+  scr_free(&buf);
 
   /* if we didn't write all of the bytes, return an error */
   if (nwrite != size) {
@@ -1253,7 +1235,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
       scr_err("Failed to read file %s @ %s:%d",
               file, __FILE__, __LINE__
       );
-      free(buf);
+      scr_free(&buf);
       scr_hash_delete(tmp_hash);
       return -1;
     }
@@ -1278,7 +1260,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
       scr_err("CRC32 mismatch detected in %s @ %s:%d",
               file, __FILE__, __LINE__
       );
-      free(buf);
+      scr_free(&buf);
       scr_hash_delete(tmp_hash);
       return -1;
     }
@@ -1292,8 +1274,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
   scr_hash_delete(tmp_hash);
 
   /* free the buffer holding the file contents */
-  free(buf);
-  buf = NULL;
+  scr_free(&buf);
 
   return filesize;
 }

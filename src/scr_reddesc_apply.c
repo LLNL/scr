@@ -196,14 +196,8 @@ static int scr_swap_files_copy(
   }
 
   /* free the MPI buffers */
-  if (have_incoming) {
-    scr_align_free(buf_recv);
-    buf_recv = NULL;
-  }
-  if (have_outgoing) {
-    scr_align_free(buf_send);
-    buf_send = NULL;
-  }
+  scr_align_free(&buf_recv);
+  scr_align_free(&buf_send);
 
   return rc;
 }
@@ -366,14 +360,8 @@ static int scr_swap_files_move(
   }
 
   /* free the MPI buffers */
-  if (have_incoming) {
-    scr_align_free(buf_recv);
-    buf_recv = NULL;
-  }
-  if (have_outgoing) {
-    scr_align_free(buf_send);
-    buf_send = NULL;
-  }
+  scr_align_free(&buf_recv);
+  scr_align_free(&buf_send);
 
   return rc;
 }
@@ -474,7 +462,7 @@ int scr_swap_files(
 }
 
 /* copy files to a partner node */
-static int scr_reddesc_apply_partner(scr_filemap* map, const struct scr_reddesc* c, int id)
+static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int id)
 {
   int rc = SCR_SUCCESS;
 
@@ -562,10 +550,7 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const struct scr_reddesc*
   scr_filemap_write(scr_map_file, map);
 
   /* free our list of files */
-  if (files != NULL) {
-    free(files);
-    files = NULL;
-  }
+  scr_free(&files);
 
   return rc;
 }
@@ -609,7 +594,7 @@ static int scr_reddesc_apply_xor_header_set_ranks(scr_hash* header, MPI_Comm com
 }
 
 /* apply XOR redundancy scheme to dataset files */
-static int scr_reddesc_apply_xor(scr_filemap* map, const struct scr_reddesc* c, int id)
+static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
 {
   int rc = SCR_SUCCESS;
   int i;
@@ -819,21 +804,12 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const struct scr_reddesc* c, 
   }
 
   /* free the buffers */
-  if (filesizes != NULL) {
-    free(filesizes);
-    filesizes = NULL;
-  }
-  if (filenames != NULL) {
-    /* in this case, we don't free each name, since we copied the pointer to the string in the filemap */
-    free(filenames);
-    filenames = NULL;
-  }
-  if (fds != NULL) {
-    free(fds);
-    fds = NULL;
-  }
-  scr_align_free(send_buf);
-  scr_align_free(recv_buf);
+  scr_free(&filesizes);
+  /* in this case, we don't free each name, since we copied the pointer to the string in the filemap */
+  scr_free(&filenames);
+  scr_free(&fds);
+  scr_align_free(&send_buf);
+  scr_align_free(&recv_buf);
 
   /* TODO: need to check for errors */
   /* write meta file for xor chunk */
@@ -859,7 +835,7 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const struct scr_reddesc* c, 
 }
 
 /* apply redundancy scheme to file and return number of bytes copied in bytes parameter */
-int scr_reddesc_apply(scr_filemap* map, const struct scr_reddesc* c, int id, double* bytes)
+int scr_reddesc_apply(scr_filemap* map, const scr_reddesc* c, int id, double* bytes)
 {
   /* initialize to 0 */
   *bytes = 0.0;

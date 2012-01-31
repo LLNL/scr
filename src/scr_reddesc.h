@@ -20,10 +20,11 @@ Define redundancy descriptor structure
 =========================================
 */
 
-struct scr_reddesc {
+typedef struct {
   int      enabled;           /* flag indicating whether this descriptor is active */
   int      index;             /* each descriptor is indexed starting from 0 */
   int      interval;          /* how often to apply this descriptor, pick largest such that interval evenly divides checkpoint id */
+  int      store_index;       /* index into scr_storedesc for storage descriptor */
   char*    base;              /* base cache directory to use */
   char*    directory;         /* full directory base/dataset.id */
   int      copy_type;         /* redundancy scheme to apply */
@@ -40,7 +41,7 @@ struct scr_reddesc {
   int      rhs_rank;          /* rank which is one more (with wrap to lowest) within set */
   int      rhs_rank_world;    /* rank of rhs process in comm world */
   char     rhs_hostname[256]; /* hostname of rhs process */
-};
+} scr_reddesc;
 
 /*
 =========================================
@@ -48,22 +49,22 @@ Redundancy descriptor functions
 =========================================
 */
 
-/* initialize the specified redundancy descriptor struct */
-int scr_reddesc_init(struct scr_reddesc* c);
+/* initialize the specified redundancy descriptor */
+int scr_reddesc_init(scr_reddesc* c);
 
-/* free any memory associated with the specified redundancy descriptor struct */
-int scr_reddesc_free(struct scr_reddesc* c);
+/* free any memory associated with the specified redundancy descriptor */
+int scr_reddesc_free(scr_reddesc* c);
 
-/* given a checkpoint id and a list of redundancy descriptor structs,
+/* given a checkpoint id and a list of redundancy descriptors,
  * select and return a pointer to a descriptor for the specified checkpoint id */
-struct scr_reddesc* scr_reddesc_for_checkpoint(int id, int nckpts, struct scr_reddesc* ckpts);
+scr_reddesc* scr_reddesc_for_checkpoint(int id, int nckpts, scr_reddesc* ckpts);
 
-/* convert the specified redundancy descritpor struct into a corresponding hash */
-int scr_reddesc_store_to_hash(const struct scr_reddesc* c, scr_hash* hash);
+/* convert the specified redundancy descritpor into a corresponding hash */
+int scr_reddesc_store_to_hash(const scr_reddesc* c, scr_hash* hash);
 
 /* build a redundancy descriptor corresponding to the specified hash,
  * this function is collective, because it issues MPI calls */
-int scr_reddesc_create_from_hash(struct scr_reddesc* c, int index, const scr_hash* hash);
+int scr_reddesc_create_from_hash(scr_reddesc* c, int index, const scr_hash* hash);
 
 /* many times we just need the directory for the checkpoint,
  * it's overkill to create the whole descriptor each time */
@@ -77,12 +78,18 @@ char* scr_reddesc_base_from_filemap(scr_filemap* map, int ckpt, int rank);
  * it's overkill to create the whole descripter each time */
 char* scr_reddesc_dir_from_filemap(scr_filemap* map, int ckpt, int rank);
 
-/* build a redundancy descriptor struct from its corresponding hash stored in the filemap,
+/* build a redundancy descriptor from its corresponding hash stored in the filemap,
  * this function is collective */
-int scr_reddesc_create_from_filemap(scr_filemap* map, int id, int rank, struct scr_reddesc* c);
+int scr_reddesc_create_from_filemap(scr_filemap* map, int id, int rank, scr_reddesc* c);
 
-int scr_reddesc_create_list();
+/*
+=========================================
+Routines that operate on scr_reddescs array
+=========================================
+*/
 
-int scr_reddesc_free_list();
+int scr_reddescs_create();
+
+int scr_reddescs_free();
 
 #endif

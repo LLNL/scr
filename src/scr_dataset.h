@@ -46,7 +46,7 @@ Set field values
 int scr_dataset_set_id(scr_dataset* dataset, int id);
 
 /* sets the username of the dataset */
-int scr_dataset_set_user(scr_dataset* dataset, const char* user);
+int scr_dataset_set_username(scr_dataset* dataset, const char* user);
 
 /* sets the simulation name of the dataset */
 int scr_dataset_set_jobname(scr_dataset* dataset, const char* name);
@@ -85,7 +85,7 @@ Get field values
 int scr_dataset_get_id(const scr_dataset* dataset, int* id);
 
 /* gets username of dataset, returns SCR_SUCCESS if successful */
-int scr_dataset_get_user(const scr_dataset* dataset, char** name);
+int scr_dataset_get_username(const scr_dataset* dataset, char** name);
 
 /* gets simulation name of dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_jobname(const scr_dataset* dataset, char** name);

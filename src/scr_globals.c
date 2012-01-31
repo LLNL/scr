@@ -9,20 +9,13 @@
  * Please also read this file: LICENSE.TXT.
 */
 
+#include "scr_globals.h"
+
 /*
 =========================================
 Globals
 =========================================
 */
-
-#define SCR_TEST_AND_HALT (1)
-#define SCR_TEST_BUT_DONT_HALT (2)
-
-#define SCR_CURRENT_LINK "scr.current"
-
-/* copy file operation flags: copy file vs. move file */
-#define COPY_FILES 0
-#define MOVE_FILES 1
 
 /* There are three directories where SCR manages files: control, cache, and prefix.
  * 
@@ -123,49 +116,21 @@ double scr_time_compute_start;          /* records the start time of the current
 double scr_time_compute_end;            /* records the end time of the current compute phase */
 
 MPI_Comm scr_comm_world = MPI_COMM_NULL; /* dup of MPI_COMM_WORLD */
-MPI_Comm scr_comm_local = MPI_COMM_NULL; /* contains all tasks local to the same node */
-MPI_Comm scr_comm_level = MPI_COMM_NULL; /* contains tasks across all nodes at the same local rank level */
-
 int scr_ranks_world = 0; /* number of ranks in the job */
-int scr_ranks_local = 0; /* number of ranks on my node */
-int scr_ranks_level = 0; /* number of ranks at my level (i.e., processes with same local rank across nodes) */
-
 int  scr_my_rank_world = MPI_PROC_NULL;  /* my rank in world */
-int  scr_my_rank_local = MPI_PROC_NULL;  /* my local rank on my node */
-int  scr_my_rank_level = MPI_PROC_NULL;  /* my rank in processes at my level */
 
 char scr_my_hostname[256] = "";
 
-scr_hash* scr_cachedesc_hash = NULL;
+scr_hash* scr_groupdesc_hash = NULL;
+scr_hash* scr_storedesc_hash = NULL;
 scr_hash* scr_reddesc_hash   = NULL;
 
-/*
-=========================================
-Define redundancy descriptor structure
-=========================================
-*/
+int scr_nstoredescs = 0;
+scr_storedesc* scr_storedescs = NULL;
+scr_storedesc* scr_storedesc_cntl = NULL;
 
-struct scr_reddesc {
-  int      enabled;           /* flag indicating whether this descriptor is active */
-  int      index;             /* each descriptor is indexed starting from 0 */
-  int      interval;          /* how often to apply this descriptor, pick largest such that interval evenly divides checkpoint id */
-  char*    base;              /* base cache directory to use */
-  char*    directory;         /* full directory base/dataset.id */
-  int      copy_type;         /* redundancy scheme to apply */
-  int      hop_distance;      /* hop distance associated with redundancy scheme */
-  int      set_size;          /* set size of redundancy scheme */
-  MPI_Comm comm;              /* communicator holding procs for this scheme */
-  int      groups;            /* number of redundancy sets */
-  int      group_id;          /* unique id assigned to this redundancy set */
-  int      ranks;             /* number of ranks in this set */
-  int      my_rank;           /* caller's rank within its set */
-  int      lhs_rank;          /* rank which is one less (with wrap to highest) within set */
-  int      lhs_rank_world;    /* rank of lhs process in comm world */
-  char     lhs_hostname[256]; /* hostname of lhs process */
-  int      rhs_rank;          /* rank which is one more (with wrap to lowest) within set */
-  int      rhs_rank_world;    /* rank of rhs process in comm world */
-  char     rhs_hostname[256]; /* hostname of rhs process */
-};
+int scr_ngroupdescs = 0;
+scr_groupdesc* scr_groupdescs = NULL;
 
 int scr_nreddescs = 0;                   /* number of redundancy descriptors in scr_reddescs list */
-struct scr_reddesc* scr_reddescs = NULL; /* pointer to list of redundancy descriptors */
+scr_reddesc* scr_reddescs = NULL; /* pointer to list of redundancy descriptors */

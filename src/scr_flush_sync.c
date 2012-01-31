@@ -261,10 +261,7 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
   }
 
   /* free buffer */
-  if (buf != NULL) {
-    free(buf);
-    buf = NULL;
-  }
+  scr_free(&buf);
 
   /* verify / set crc value */
   if (rc == SCR_SUCCESS) {
@@ -464,14 +461,8 @@ static int scr_flush_data(scr_hash* file_list, scr_hash* data)
     }
 
     /* free the MPI_Request arrays */
-    if (req != NULL) {
-      free(req);
-      req = NULL;
-    }
-    if (flags != NULL) {
-      free(flags);
-      flags = NULL;
-    }
+    scr_free(&req);
+    scr_free(&flags);
   } else {
     /* receive signal to start */
     int start = 0;

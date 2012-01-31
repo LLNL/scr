@@ -17,6 +17,6 @@
 
 /* rebuilds files for specified dataset id using specified redundancy descriptor,
  * adds them to filemap, and returns SCR_SUCCESS if all processes succeeded */
-int scr_reddesc_recover(scr_filemap* map, const struct scr_reddesc* c, int id);
+int scr_reddesc_recover(scr_filemap* map, const scr_reddesc* c, int id);
 
 #endif

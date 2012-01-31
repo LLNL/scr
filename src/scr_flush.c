@@ -228,14 +228,8 @@ static int scr_flush_create_dirs(const scr_hash* file_list)
     }
 
     /* free buffers */
-    if (leaders != NULL) {
-      free(leaders);
-      leaders = NULL;
-    }
-    if (dirs != NULL) {
-      free(dirs);
-      dirs = NULL;
-    }
+    scr_free(&leaders);
+    scr_free(&dirs);
 
     /* TODO: need to track directory names in summary file so we can delete them later */
 
@@ -302,6 +296,12 @@ static int scr_flush_identify_containers(scr_hash* file_list)
 {
   int rc = SCR_SUCCESS;
 
+  /* get the group descriptor for processes on the same node */
+  const scr_groupdesc* d = scr_groupdescs_from_name(SCR_GROUP_NODE);
+  if (d == NULL) {
+    return SCR_FAILURE;
+  }
+
   /* get the maximum container size */
   unsigned long container_size = scr_container_size;
 
@@ -336,21 +336,21 @@ static int scr_flush_identify_containers(scr_hash* file_list)
 
   /* compute total number of bytes we need to write on the node */
   unsigned long local_bytes;
-  MPI_Reduce(&my_bytes, &local_bytes, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, scr_comm_local);
+  MPI_Reduce(&my_bytes, &local_bytes, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, d->comm);
 
   /* compute offset for each node */
   unsigned long local_offset = 0;
-  if (scr_my_rank_local == 0) {
-    MPI_Scan(&local_bytes, &local_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_level);
+  if (d->rank == 0) {
+    MPI_Scan(&local_bytes, &local_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, d->comm_across);
     local_offset -= local_bytes;
   }
 
   /* compute offset for each process,
-   * note that local_offset == 0 for all procs on the node except for scr_my_rank_local == 0,
+   * note that local_offset == 0 for all procs on the node except for rank == 0,
    * which contains the offset for the node */
   unsigned long my_offset = 0;
   local_offset += my_bytes;
-  MPI_Scan(&local_offset, &my_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_local);
+  MPI_Scan(&local_offset, &my_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, d->comm);
   my_offset -= my_bytes;
 
   /* compute offset for each file on this process */
@@ -548,22 +548,10 @@ static int scr_flush_summary(const scr_hash* file_list, scr_hash* data)
     }
 
     /* free the MPI_Request arrays */
-    if (req_send != NULL) {
-      free(req_send);
-      req_send = NULL;
-    }
-    if (req_recv != NULL) {
-      free(req_recv);
-      req_recv = NULL;
-    }
-    if (flags != NULL) {
-      free(flags);
-      flags = NULL;
-    }
-    if (ranks != NULL) {
-      free(ranks);
-      ranks = NULL;
-    }
+    scr_free(&req_send);
+    scr_free(&req_recv);
+    scr_free(&flags);
+    scr_free(&ranks);
   } else {
     /* receive signal to start */
     int start = 0;

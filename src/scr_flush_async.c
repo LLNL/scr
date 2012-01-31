@@ -101,7 +101,7 @@ static int scr_flush_async_file_dequeue(scr_hash* hash1, scr_hash* hash2)
 static int scr_flush_async_command_set(char* command)
 {
   /* have the master on each node write this command to the file */
-  if (scr_my_rank_local == 0) {
+  if (scr_storedesc_cntl->rank == 0) {
     /* get a hash to store file data */
     scr_hash* hash = scr_hash_new();
 
@@ -131,7 +131,7 @@ static int scr_flush_async_state_wait(char* state)
     int valid = 1;
 
     /* have the master on each node check the state in the transfer file */
-    if (scr_my_rank_local == 0) {
+    if (scr_storedesc_cntl->rank == 0) {
       /* get a hash to store file data */
       scr_hash* hash = scr_hash_new();
 
@@ -165,7 +165,7 @@ static int scr_flush_async_state_wait(char* state)
 static int scr_flush_async_file_clear_all()
 {
   /* have the master on each node clear the FILES field */
-  if (scr_my_rank_local == 0) {
+  if (scr_storedesc_cntl->rank == 0) {
     /* get a hash to store file data */
     scr_hash* hash = scr_hash_new();
 
@@ -341,12 +341,12 @@ int scr_flush_async_start(scr_filemap* map, int id)
   }
 
   /* have master on each node write the transfer file, everyone else sends data to him */
-  if (scr_my_rank_local == 0) {
+  if (scr_storedesc_cntl->rank == 0) {
     /* receive hash data from other processes on the same node and merge with our data */
     int i;
-    for (i=1; i < scr_ranks_local; i++) {
+    for (i=1; i < scr_storedesc_cntl->ranks; i++) {
       scr_hash* h = scr_hash_new();
-      scr_hash_recv(h, i, scr_comm_local);
+      scr_hash_recv(h, i, scr_storedesc_cntl->comm);
       scr_hash_merge(scr_flush_async_hash, h);
       scr_hash_delete(h);
     }
@@ -362,10 +362,15 @@ int scr_flush_async_start(scr_filemap* map, int id)
     scr_hash_merge(hash, scr_flush_async_hash);
 
     /* set BW if it's not already set */
-    double bw;
-    if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_BW, &bw) != SCR_SUCCESS) {
-      bw = (double) scr_flush_async_bw / (double) scr_ranks_level;
-      scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_BW, bw);
+    const scr_groupdesc* groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
+    if (groupdesc != NULL) {
+      /* somewhat hacky way to determine number of nodes and therefore number of writers */
+      int writers = groupdesc->ranks_across;
+      double bw;
+      if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_BW, &bw) != SCR_SUCCESS) {
+        bw = (double) scr_flush_async_bw / (double) writers;
+        scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_BW, bw);
+      }
     }
 
     /* set PERCENT if it's not already set */
@@ -387,7 +392,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
     scr_hash_delete(hash);
   } else {
     /* send our transfer hash data to the master on this node */
-    scr_hash_send(scr_flush_async_hash, 0, scr_comm_local);
+    scr_hash_send(scr_flush_async_hash, 0, scr_storedesc_cntl->comm);
   }
 
   /* get the total number of bytes to write */
@@ -418,7 +423,7 @@ int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
 
   /* have master on each node check whether the flush is complete */
   double bytes_written = 0.0;
-  if (scr_my_rank_local == 0) {
+  if (scr_storedesc_cntl->rank == 0) {
     /* create a hash to hold the transfer file data */
     scr_hash* hash = scr_hash_new();
 
@@ -510,7 +515,7 @@ int scr_flush_async_complete(scr_filemap* map, int id)
   }
 
   /* have master on each node remove files from the transfer file */
-  if (scr_my_rank_local == 0) {
+  if (scr_storedesc_cntl->rank == 0) {
     /* get a hash to read from the file */
     scr_hash* transfer_hash = scr_hash_new();
 

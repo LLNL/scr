@@ -287,10 +287,7 @@ static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_
   }
 
   /* free buffer */
-  if (buf != NULL) {
-    free(buf);
-    buf = NULL;
-  }
+  scr_free(&buf);
 
   /* verify crc value */
   if (rc == SCR_SUCCESS) {
@@ -599,14 +596,8 @@ static int scr_fetch_data(const scr_hash* file_list, const char* ckpt_dir, scr_f
     }
 
     /* free the MPI_Request arrays */
-    if (req != NULL) {
-      free(req);
-      req = NULL;
-    }
-    if (flags != NULL) {
-      free(flags);
-      flags = NULL;
-    }
+    scr_free(&req);
+    scr_free(&flags);
   } else {
     /* wait for start signal from rank 0 */
     MPI_Status status;
@@ -723,7 +714,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
   scr_cache_delete(map, id);
 
   /* get the redundancy descriptor for this id */
-  struct scr_reddesc* c = scr_reddesc_for_checkpoint(ckpt_id, scr_nreddescs, scr_reddescs);
+  scr_reddesc* c = scr_reddesc_for_checkpoint(ckpt_id, scr_nreddescs, scr_reddescs);
 
   /* store our redundancy descriptor hash in the filemap */
   scr_hash* my_desc_hash = scr_hash_new();

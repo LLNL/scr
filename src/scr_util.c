@@ -157,6 +157,23 @@ int scr_abtoull(char* str, unsigned long long* val)
   return SCR_SUCCESS;
 }
 
+/* caller really passes in a void**, but we define it as just void* to avoid printing
+ * a bunch of warnings */
+void scr_free(void* p)
+{
+  /* verify that we got a valid pointer to a pointer */
+  if (p != NULL) {
+    /* free memory if there is any */
+    void* ptr = *(void**)p;
+    if (ptr != NULL) {
+      free(ptr);
+    }
+
+    /* set caller's pointer to NULL */
+    *(void**)p = NULL;
+  }
+}
+
 /* allocates a block of memory and aligns it to specified alignment */
 void* scr_align_malloc(size_t size, size_t align)
 {
@@ -198,9 +215,9 @@ void* scr_align_malloc(size_t size, size_t align)
 }
 
 /* frees a blocked allocated with a call to scr_align_malloc */
-void scr_align_free(void* buf)
+void scr_align_free(void* p)
 {
-  free(buf);
+  scr_free(p);
 
 #if 0
   /* first lookup the starting address from the bytes immediately before the buffer */

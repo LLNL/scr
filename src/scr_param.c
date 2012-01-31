@@ -39,7 +39,7 @@ static int scr_param_ref_count = 0;
 /* name of system configuration file we should read */
 static char scr_config_file[SCR_MAX_FILENAME] = SCR_CONFIG_FILE;
 
-/* this data structure holds variables names which we can't not lookup in environment */
+/* this data structure holds variables names which we can't lookup in environment */
 static scr_hash* scr_no_user_hash = NULL;
 
 /* this data structure will hold values read from the user config file */
@@ -48,7 +48,7 @@ static scr_hash* scr_user_hash = NULL;
 /* this data structure will hold values read from the system config file */
 static scr_hash* scr_system_hash = NULL;
 
-/* searchs for name and returns a character pointer to its value if set,
+/* searches for name and returns a character pointer to its value if set,
  * returns NULL if not found */
 char* scr_param_get(char* name)
 {

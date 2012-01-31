@@ -25,6 +25,8 @@ noinst_HEADERS = \
 	scr_index_api.h \
 	scr_meta.h \
 	scr_dataset.h \
+	scr_storedesc.h \
+	scr_groupdesc.h \
 	scr_reddesc.h \
 	scr_reddesc_apply.h \
 	scr_reddesc_recover.h \
@@ -94,10 +96,14 @@ INCLUDES = \
 
 # source files that are used by libraries (include MPI)
 libscr_la_SOURCES = \
+	scr_globals.c \
 	scr_err_mpi.c \
+	scr_config_mpi.c \
 	scr_util_mpi.c \
 	scr_hash_mpi.c \
 	scr_flush_file_mpi.c \
+	scr_storedesc.c \
+	scr_groupdesc.c \
 	scr_reddesc.c \
 	scr_reddesc_apply.c \
 	scr_reddesc_recover.c \

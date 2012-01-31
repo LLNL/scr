@@ -17,66 +17,35 @@ Dataset cache functions
 =========================================
 */
 
-/* searches through the cache descriptors and returns the size of the cache whose BASE
- * matches the specified base */
-int scr_cachedesc_size(const char* target)
-{
-  /* iterate over each of our cache descriptors */
-  scr_hash* index = scr_hash_get(scr_cachedesc_hash, SCR_CONFIG_KEY_CACHEDESC);
-  scr_hash_elem* elem;
-  for (elem = scr_hash_elem_first(index);
-       elem != NULL;
-       elem = scr_hash_elem_next(elem))
-  {
-    /* get a reference to the hash for the current descriptor */
-    scr_hash* h = scr_hash_elem_hash(elem);
-
-    /* get the BASE value for this descriptor */
-    char* base;
-    if (scr_hash_util_get_str(h, SCR_CONFIG_KEY_BASE, &base) == SCR_SUCCESS) {
-      /* if the BASE is set, and if it matches the specified base, lookup and return the size */
-      if (strcmp(base, target) == 0) {
-        int size;
-        if (scr_hash_util_get_int(h, SCR_CONFIG_KEY_SIZE, &size) == SCR_SUCCESS) {
-          return size;
-        }
-
-        /* found the base, but couldn't find the size, so return a size of 0 */
-        return 0;
-      }
-    }
-  }
-
-  /* couldn't find the specified base, so return a size of 0 */
-  return 0;
-}
-
 /* returns name of the cache directory for a given redundancy descriptor and dataset id */
-int scr_cache_dir_get(const struct scr_reddesc* c, int id, char* dir)
+int scr_cache_dir_get(const scr_reddesc* red, int id, char* dir)
 {
   /* fatal error if c or c->directory is not set */
-  if (c == NULL || c->directory == NULL) {
+  if (red == NULL || red->directory == NULL) {
     scr_abort(-1, "NULL redundancy descriptor or NULL dataset directory @ %s:%d",
             __FILE__, __LINE__
     );
   }
 
   /* now build the checkpoint directory name */
-  sprintf(dir, "%s/dataset.%d", c->directory, id);
+  sprintf(dir, "%s/dataset.%d", red->directory, id);
   return SCR_SUCCESS;
 }
 
 /* create a cache directory given a redundancy descriptor and dataset id,
  * waits for all tasks on the same node before returning */
-int scr_cache_dir_create(const struct scr_reddesc* c, int id)
+int scr_cache_dir_create(const scr_reddesc* red, int id)
 {
   int rc = SCR_SUCCESS;
 
+  /* get the index into scr_storedescs for this redundancy descriptor */
+  int store_index = red->store_index;
+
   /* have the master rank on each node create the directory */
-  if (scr_my_rank_local == 0) {
+  if (scr_storedescs[store_index].rank == 0) {
     /* get the name of the checkpoint directory for the given id */
     char dir[SCR_MAX_FILENAME];
-    scr_cache_dir_get(c, id, dir);
+    scr_cache_dir_get(red, id, dir);
 
     /* create the directory */
     scr_dbg(2, "Creating dataset directory: %s", dir);
@@ -91,25 +60,7 @@ int scr_cache_dir_create(const struct scr_reddesc* c, int id)
   }
 
   /* force all tasks on the same node to wait to ensure the directory is ready before returning */
-  MPI_Barrier(scr_comm_local);
-
-  return SCR_SUCCESS;
-}
-
-/* remove a cache directory given a redundancy descriptor and dataset id,
- * waits for all tasks on the same node before removing */
-static int scr_cache_dir_delete(const char* prefix, int id)
-{
-  /* force all tasks on the same node to wait before we delete the directory */
-  MPI_Barrier(scr_comm_local);
-
-  /* have the master rank on each node remove the directory */
-  if (scr_my_rank_local == 0) {
-    char dir[SCR_MAX_FILENAME];
-    sprintf(dir, "%s/dataset.%d", prefix, id);
-    scr_dbg(2, "Removing dataset directory: %s", dir);
-    rmdir(dir);
-  }
+  MPI_Barrier(scr_storedescs[store_index].comm);
 
   return SCR_SUCCESS;
 }
@@ -155,14 +106,23 @@ int scr_cache_delete(scr_filemap* map, int id)
   }
 
   /* remove the cache directory for this dataset */
-  char* dir = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
-  if (dir != NULL) {
+  char* base = scr_reddesc_base_from_filemap(map, id, scr_my_rank_world);
+  char* dir  = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
+  int store_index = scr_storedescs_index_from_base(base);
+  if (store_index >= 0 && dir != NULL) {
+    /* force all tasks on the same device to wait before we delete the directory */
+    MPI_Barrier(scr_storedescs[store_index].comm);
+
     /* remove the dataset directory from cache */
-    scr_cache_dir_delete(dir, id);
-    free(dir);
+    if (scr_storedescs[store_index].rank == 0) {
+      scr_dbg(2, "Removing dataset directory: %s", dir);
+      rmdir(dir);
+    }
   } else {
     /* TODO: abort! */
   }
+  scr_free(&dir);
+  scr_free(&base);
 
   /* delete any entry in the flush file for this dataset */
   scr_flush_file_dataset_remove(id);
@@ -279,10 +239,7 @@ int scr_cache_purge(scr_filemap* map)
   /* TODO: want to delete the master map file? */
 
   /* free our list of dataset ids */
-  if (dsets != NULL) {
-    free(dsets);
-    dsets = NULL;
-  }
+  scr_free(&dsets);
 
   return 1;
 }
@@ -451,53 +408,6 @@ int scr_cache_check_files(const scr_filemap* map, int id)
   return SCR_SUCCESS;
 }
 
-/* compute and store crc32 value for specified file in given dataset and rank,
- * check against current value if one is set */
-int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
-{
-  /* compute crc for the file */
-  uLong crc_file;
-  if (scr_crc32(file, &crc_file) != SCR_SUCCESS) {
-    scr_err("Failed to compute crc for file %s @ %s:%d",
-            file, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* allocate a new meta data object */
-  scr_meta* meta = scr_meta_new();
-  if (meta == NULL) {
-    scr_abort(-1, "Failed to allocate meta data object @ %s:%d",
-              __FILE__, __LINE__
-    );
-  }
-
-  /* read meta data from filemap */
-  if (scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  int rc = SCR_SUCCESS;
-
-  /* read crc value from meta data */
-  uLong crc_meta;
-  if (scr_meta_get_crc32(meta, &crc_meta) == SCR_SUCCESS) {
-    /* check that the values are the same */
-    if (crc_file != crc_meta) {
-      rc = SCR_FAILURE;
-    }
-  } else {
-    /* record crc in filemap */
-    scr_meta_set_crc32(meta, crc_file);
-    scr_filemap_set_meta(map, id, rank, file, meta);
-  }
-
-  /* free our meta data object */
-  scr_meta_delete(meta);
-
-  return rc;
-}
-
 /* checks whether specifed file exists, is readable, and is complete */
 int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* file, int ranks)
 {
@@ -658,3 +568,52 @@ int scr_bool_have_files(const scr_filemap* map, int id, int rank)
   /* if we make it here, we have all of our files */
   return 1;
 }
+
+/* compute and store crc32 value for specified file in given dataset and rank,
+ * check against current value if one is set */
+int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
+{
+  /* compute crc for the file */
+  uLong crc_file;
+  if (scr_crc32(file, &crc_file) != SCR_SUCCESS) {
+    scr_err("Failed to compute crc for file %s @ %s:%d",
+            file, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* allocate a new meta data object */
+  scr_meta* meta = scr_meta_new();
+  if (meta == NULL) {
+    scr_abort(-1, "Failed to allocate meta data object @ %s:%d",
+              __FILE__, __LINE__
+    );
+  }
+
+  /* read meta data from filemap */
+  if (scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
+    return SCR_FAILURE;
+  }
+
+  int rc = SCR_SUCCESS;
+
+  /* read crc value from meta data */
+  uLong crc_meta;
+  if (scr_meta_get_crc32(meta, &crc_meta) == SCR_SUCCESS) {
+    /* check that the values are the same */
+    if (crc_file != crc_meta) {
+      rc = SCR_FAILURE;
+    }
+  } else {
+    /* record crc in filemap */
+    scr_meta_set_crc32(meta, crc_file);
+    scr_filemap_set_meta(map, id, rank, file, meta);
+  }
+
+  /* free our meta data object */
+  scr_meta_delete(meta);
+
+  return rc;
+}
+
+

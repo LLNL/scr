@@ -15,16 +15,12 @@
 #include "scr_reddesc.h"
 #include "scr_filemap.h"
 
-/* searches through the cache descriptors and returns the size of the cache whose BASE
- * matches the specified base */
-int scr_cachedesc_size(const char* target);
-
 /* returns name of the cache directory for a given redundancy descriptor and dataset id */
-int scr_cache_dir_get(const struct scr_reddesc* c, int id, char* dir);
+int scr_cache_dir_get(const scr_reddesc* c, int id, char* dir);
 
 /* create a cache directory given a redundancy descriptor and dataset id,
  * waits for all tasks on the same node before returning */
-int scr_cache_dir_create(const struct scr_reddesc* c, int id);
+int scr_cache_dir_create(const scr_reddesc* c, int id);
 
 /* remove all files associated with specified dataset */
 int scr_cache_delete(scr_filemap* map, int id);
@@ -50,11 +46,11 @@ int scr_cache_check_files(const scr_filemap* map, int id);
 /* checks whether specifed file exists, is readable, and is complete */
 int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* file, int ranks);
 
+/* check whether we have all files for a given rank of a given dataset */
+int scr_bool_have_files(const scr_filemap* map, int id, int rank);
+
 /* compute and store crc32 value for specified file in given dataset and rank,
  * check against current value if one is set */
 int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file);
-
-/* check whether we have all files for a given rank of a given dataset */
-int scr_bool_have_files(const scr_filemap* map, int id, int rank);
 
 #endif

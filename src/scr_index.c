@@ -361,10 +361,7 @@ int scr_fork_rebuilds(const char* dir, scr_hash* cmds)
   }
 
   /* free the pid array */
-  if (pids != NULL) {
-    free(pids);
-    pids = NULL;
-  }
+  scr_free(&pids);
 
   return rc;
 }
@@ -1028,24 +1025,21 @@ int scr_scan_files(const char* dir, scr_hash* scan)
               value = strndup(name_tmp + pmatch[1].rm_so, (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so));
               if (value != NULL) {
                 xor_rank = atoi(value);
-                free(value);
-                value = NULL;
+                scr_free(&value);
               }
 
               /* get the size of the xor set */
               value = strndup(name_tmp + pmatch[2].rm_so, (size_t)(pmatch[2].rm_eo - pmatch[2].rm_so));
               if (value != NULL) {
                 xor_ranks = atoi(value);
-                free(value);
-                value = NULL;
+                scr_free(&value);
               }
 
               /* get the id of the xor set */
               value = strndup(name_tmp + pmatch[3].rm_so, (size_t)(pmatch[3].rm_eo - pmatch[3].rm_so));
               if (value != NULL) {
                 xor_setid = atoi(value);
-                free(value);
-                value = NULL;
+                scr_free(&value);
               }
 
               /* add the XOR file entries into our scan hash */
@@ -1477,16 +1471,8 @@ struct arglist {
 /* free any memory allocation during get_args */
 int free_args(struct arglist* args)
 {
-  if (args->prefix != NULL) {
-    free(args->prefix);
-    args->prefix = NULL;
-  }
-
-  if (args->dir != NULL) {
-    free(args->dir);
-    args->dir = NULL;
-  }
-
+  scr_free(&(args->prefix));
+  scr_free(&(args->dir));
   return SCR_SUCCESS;
 }
 

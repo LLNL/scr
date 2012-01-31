@@ -17,6 +17,7 @@
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
+#include "scr_util.h"
 #include "scr_hash.h"
 #include "scr_hash_mpi.h"
 
@@ -230,10 +231,7 @@ static int sparse_exchangev_malloc_brucks(
     }
 
     /* free the sort array */
-    if (sort_list != NULL) {
-      free(sort_list);
-      sort_list = NULL;
-    }
+    scr_free(&sort_list);
   }
 
   /* now run through Bruck's index algorithm to exchange data */
@@ -308,10 +306,7 @@ static int sparse_exchangev_malloc_brucks(
     }
 
     /* free the temporary send buffer */
-    if (tmp_send != NULL) {
-      free(tmp_send);
-      tmp_send = NULL;
-    }
+    scr_free(&tmp_send);
 
     /* allocate space to merge received data with our data */
     void* new_data = malloc(tmp_data_size + tmp_recv_size);
@@ -423,16 +418,10 @@ static int sparse_exchangev_malloc_brucks(
     }
 
     /* we've merged our receive data, so free the receive buffer */
-    if (tmp_recv != NULL) {
-      free(tmp_recv);
-      tmp_recv = NULL;
-    }
+    scr_free(&tmp_recv);
 
     /* free our current buffer and assign the pointer to the newly merged buffer */
-    if (tmp_data != NULL) {
-      free(tmp_data);
-      tmp_data = NULL;
-    }
+    scr_free(&tmp_data);
     tmp_data      = new_data;
     tmp_data_size = new_data_size;
     new_data      = NULL;
@@ -512,10 +501,7 @@ static int sparse_exchangev_malloc_brucks(
   }
 
   /* free off the result buffer */
-  if (tmp_data != NULL) {
-    free(tmp_data);
-    tmp_data = NULL;
-  }
+  scr_free(&tmp_data);
 
   return rc;
 }
@@ -543,8 +529,7 @@ int scr_hash_send(const scr_hash* hash, int rank, MPI_Comm comm)
       /* pack the hash, send it, and free our buffer */
       scr_hash_pack(buf, hash);
       MPI_Send(buf, size, MPI_BYTE, rank, 0, comm);
-      free(buf);
-      buf = NULL;
+      scr_free(&buf);
     } else {
       scr_abort(-1, "scr_hash_send: Failed to malloc buffer to pack hash @ %s:%d",
               __FILE__, __LINE__
@@ -579,8 +564,7 @@ int scr_hash_recv(scr_hash* hash, int rank, MPI_Comm comm)
       /* receive the hash, unpack it, and free our buffer */
       MPI_Recv(buf, size, MPI_BYTE, rank, 0, comm, &status);
       scr_hash_unpack(buf, hash);
-      free(buf);
-      buf = NULL;
+      scr_free(&buf);
     } else {
       scr_abort(-1, "scr_hash_recv: Failed to malloc buffer to receive hash @ %s:%d",
               __FILE__, __LINE__
@@ -659,14 +643,8 @@ int scr_hash_sendrecv(const scr_hash* hash_send, int rank_send,
   }
 
   /* free the pack buffers */
-  if (buf_recv != NULL) {
-    free(buf_recv);
-    buf_recv = NULL;
-  }
-  if (buf_send != NULL) {
-    free(buf_send);
-    buf_send = NULL;
-  }
+  scr_free(&buf_recv);
+  scr_free(&buf_send);
 
   return rc;
 }
@@ -694,8 +672,7 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
         /* pack the hash, broadcast it, and free our buffer */
         scr_hash_pack(buf, hash);
         MPI_Bcast(buf, size, MPI_BYTE, root, comm);
-        free(buf);
-        buf = NULL;
+        scr_free(&buf);
       } else {
         scr_abort(-1, "scr_hash_bcast: Failed to malloc buffer to pack hash @ %s:%d",
                 __FILE__, __LINE__
@@ -718,8 +695,7 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
         /* receive the hash, unpack it, and free our buffer */
         MPI_Bcast(buf, size, MPI_BYTE, root, comm);
         scr_hash_unpack(buf, hash);
-        free(buf);
-        buf = NULL;
+        scr_free(&buf);
       } else {
         scr_abort(-1, "scr_hash_bcast: Failed to malloc buffer to receive hash @ %s:%d",
                 __FILE__, __LINE__
@@ -853,20 +829,11 @@ int scr_hash_exchange(const scr_hash* hash_send, scr_hash* hash_recv, MPI_Comm c
   }
 
   /* free memory allocated in call to sparse_exchange */
-  if (recv_malloc != NULL) {
-    free(recv_malloc);
-    recv_malloc = NULL;
-  }
+  scr_free(&recv_malloc);
 
   /* free off our internal data structures */
-  if (send_buf != NULL) {
-    free(send_buf);
-    send_buf = NULL;
-  }
-  if (scratch != NULL) {
-    free(scratch);
-    scratch = NULL;
-  }
+  scr_free(&send_buf);
+  scr_free(&scratch);
 
   return SCR_SUCCESS;
 }

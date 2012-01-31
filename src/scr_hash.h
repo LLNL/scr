@@ -138,7 +138,11 @@ Define common hash key strings
 #define SCR_TRANSFER_KEY_FLAG_DONE ("DONE")
 
 /* ckpt config file keys */
+#define SCR_CONFIG_KEY_GROUPDESC  ("GROUPDESC")
+#define SCR_CONFIG_KEY_STOREDESC  ("STOREDESC")
 #define SCR_CONFIG_KEY_CACHEDESC  ("CACHEDESC")
+#define SCR_CONFIG_KEY_COUNT      ("COUNT")
+#define SCR_CONFIG_KEY_NAME       ("NAME")
 #define SCR_CONFIG_KEY_BASE       ("BASE")
 #define SCR_CONFIG_KEY_SIZE       ("SIZE")
 

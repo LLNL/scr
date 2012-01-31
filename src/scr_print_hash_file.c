@@ -14,6 +14,7 @@
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
+#include "scr_util.h"
 #include "scr_hash.h"
 
 #include <stdlib.h>
@@ -55,7 +56,7 @@ int main(int argc, char* argv[])
     scr_hash_delete(hash);
 
     /* free our strdup'd filename */
-    free(filename);
+    scr_free(&filename);
   } else {
     scr_err("Could not copy filename from command line @ %s:%d",
             __FILE__, __LINE__

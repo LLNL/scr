@@ -14,6 +14,7 @@
 #include "scr.h"
 #include "scr_err.h"
 #include "scr_io.h"
+#include "scr_util.h"
 #include "scr_meta.h"
 #include "scr_hash.h"
 #include "scr_filemap.h"
@@ -271,10 +272,7 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (scr_master_map_file != NULL) {
-    free(scr_master_map_file);
-    scr_master_map_file = NULL;
-  }
+  scr_free(&scr_master_map_file);
 
   return 0;
 }

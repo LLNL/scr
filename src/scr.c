@@ -11,28 +11,16 @@
 
 #include "scr_globals.h"
 
-#ifdef HAVE_LIBGCS
-#include "gcs.h"
-#endif /* HAVE_LIBGCS */
-
-/*
-=========================================
-Globals
-=========================================
-*/
-
-#define SCR_TEST_AND_HALT (1)
-#define SCR_TEST_BUT_DONT_HALT (2)
-
-#define SCR_CURRENT_LINK "scr.current"
-
 /*
 =========================================
 Halt logic
 =========================================
 */
 
-/* writes a halt file to indicate that the SCR should exit job at first opportunity */
+#define SCR_TEST_AND_HALT (1)
+#define SCR_TEST_BUT_DONT_HALT (2)
+
+/* writes entry to halt file to indicate that SCR should exit job at first opportunity */
 static int scr_halt(const char* reason)
 {
   /* copy in reason if one was given */
@@ -49,7 +37,8 @@ static int scr_halt(const char* reason)
   scr_log_halt(reason, ckpt);
 
   /* and write out the halt file */
-  return scr_halt_sync_and_decrement(scr_halt_file, scr_halt_hash, 0);
+  int rc = scr_halt_sync_and_decrement(scr_halt_file, scr_halt_hash, 0);
+  return rc;
 }
 
 /* check whether we should halt the job */
@@ -102,10 +91,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
           scr_dbg(0, "Job exiting: Reason: %s.", tmp_reason);
           scr_halt(tmp_reason);
         }
-        if (tmp_reason != NULL) {
-          free(tmp_reason);
-          tmp_reason = NULL;
-        }
+        scr_free(&tmp_reason);
         need_to_halt = 1;
       }
     }
@@ -223,7 +209,7 @@ static int scr_check_flush(scr_filemap* map)
 }
 
 /* given a dataset id and a filename, return the full path to the file which the user should write to */
-static int scr_route_file(const struct scr_reddesc* c, int id, const char* file, char* newfile, int n)
+static int scr_route_file(const scr_reddesc* c, int id, const char* file, char* newfile, int n)
 {
   /* check that we got a file and newfile to write to */
   if (file == NULL || strcmp(file, "") == 0 || newfile == NULL) {
@@ -262,27 +248,6 @@ static int scr_route_file(const struct scr_reddesc* c, int id, const char* file,
 Configuration parameters
 =========================================
 */
-
-/* read parameters from config file and fill in hash (parallel) */
-int scr_config_read(const char* file, scr_hash* hash)
-{
-  int rc = SCR_FAILURE;
-
-  /* only rank 0 reads the file */
-  if (scr_my_rank_world == 0) {
-    rc = scr_config_read_serial(file, hash);
-  }
-
-  /* broadcast whether rank 0 read the file ok */
-  MPI_Bcast(&rc, 1, MPI_INT, 0, scr_comm_world);
-
-  /* if rank 0 read the file, broadcast the hash */
-  if (rc == SCR_SUCCESS) {
-    rc = scr_hash_bcast(hash, 0, scr_comm_world);
-  }
-
-  return rc;
-}
 
 /* read in environment variables */
 static int scr_get_params()
@@ -395,16 +360,23 @@ static int scr_get_params()
     scr_cache_size = atoi(value);
   }
 
-  /* fill in a hash of cache descriptors */
-  scr_cachedesc_hash = scr_hash_new();
-  tmp = scr_param_get_hash(SCR_CONFIG_KEY_CACHEDESC);
+  /* fill in a hash of store descriptors */
+  scr_storedesc_hash = scr_hash_new();
+  tmp = scr_param_get_hash(SCR_CONFIG_KEY_STOREDESC);
   if (tmp != NULL) {
-    scr_hash_set(scr_cachedesc_hash, SCR_CONFIG_KEY_CACHEDESC, tmp);
+    scr_hash_set(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, tmp);
   } else {
-    /* fill in info for one CACHE type */
-    tmp = scr_hash_set_kv(scr_cachedesc_hash, SCR_CONFIG_KEY_CACHEDESC, "0");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE, scr_cache_base);
-    scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_SIZE, scr_cache_size);
+    /* fill in info for one STORE type */
+    tmp = scr_hash_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, "0");
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,  scr_cache_base);
+    scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, scr_cache_size);
+  }
+  
+  /* fill in a hash of group descriptors */
+  scr_groupdesc_hash = scr_hash_new();
+  tmp = scr_param_get_hash(SCR_CONFIG_KEY_GROUPDESC);
+  if (tmp != NULL) {
+    scr_hash_set(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, tmp);
   }
   
   /* select copy method */
@@ -558,10 +530,12 @@ static int scr_get_params()
     scr_crc_on_delete = atoi(value);
   }
 
+  /* whether to create user-specified directories when flushing to file system */
   if ((value = scr_param_get("SCR_PRESERVE_USER_DIRECTORIES")) != NULL) {
     scr_preserve_user_directories = atoi(value);
   }
 
+  /* wether to store files in containers when flushing to file system */
   if ((value = scr_param_get("SCR_USE_CONTAINERS")) != NULL) {
     scr_use_containers = atoi(value);
 
@@ -575,6 +549,7 @@ static int scr_get_params()
     }
   }
 
+  /* number of bytes to store per container */
   if ((value = scr_param_get("SCR_CONTAINER_SIZE")) != NULL) {
     if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
       scr_container_size = (unsigned long) ull;
@@ -701,88 +676,31 @@ int SCR_Init()
   /* check that some required parameters are set */
   if (scr_username == NULL || scr_jobid == NULL) {
     scr_abort(-1,
-              "Jobid or username is not set; you may need to manually set SCR_JOB_ID or SCR_USER_NAME @ %s:%d",
+              "Jobid or username is not set; set SCR_JOB_ID or SCR_USER_NAME @ %s:%d",
               __FILE__, __LINE__
     );
   }
 
-  /* create a scr_comm_local communicator to hold all tasks on the same node */
-#ifdef HAVE_LIBGCS
-  /* determine the length of the maximum hostname (including terminating NULL character),
-   * and check that our own buffer is at least as big */
-  int my_hostname_len = strlen(scr_my_hostname) + 1;
-  int max_hostname_len = 0;
-  MPI_Allreduce(&my_hostname_len, &max_hostname_len, 1, MPI_INT, MPI_MAX, scr_comm_world);
-  if (max_hostname_len > sizeof(scr_my_hostname)) {
-    scr_err("Hostname is too long on some process @ %s:%d",
-            __FILE__, __LINE__
-    );
-    MPI_Abort(scr_comm_world, 0);
-  }
-
-  /* split ranks based on hostname */
-  GCS_Comm_splitv(
-      scr_comm_world,
-      scr_my_hostname, max_hostname_len, GCS_CMP_STR,
-      NULL,            0,                GCS_CMP_IGNORE,
-      &scr_comm_local
-  );
-#else /* HAVE_LIBGCS */
-  /* TODO: maybe a better way to identify processes on the same node?
-   * TODO: could improve scalability here using a parallel sort and prefix scan
-   * TODO: need something to work on systems with IPv6
-   * Assumes: same int(IP) ==> same node 
-   *   1. Get IP address as integer data type
-   *   2. Allgather IP addresses from all processes
-   *   3. Set color id to process with highest rank having the same IP */
-
-  /* get IP address as integer data type */
-  struct hostent *hostent;
-  hostent = gethostbyname(scr_my_hostname);
-  if (hostent == NULL) {
-    scr_err("Fetching host information: gethostbyname(%s) @ %s:%d",
-            scr_my_hostname, __FILE__, __LINE__
-    );
-    MPI_Abort(scr_comm_world, 0);
-  }
-  int host_id = (int) ((struct in_addr *) hostent->h_addr_list[0])->s_addr;
-
-  /* gather all host_id values */
-  int* host_ids = (int*) malloc(scr_ranks_world * sizeof(int));
-  if (host_ids == NULL) {
-    scr_err("Can't allocate memory to determine which processes are on the same node @ %s:%d",
-            __FILE__, __LINE__
-    );
-    MPI_Abort(scr_comm_world, 0);
-  }
-  MPI_Allgather(&host_id, 1, MPI_INT, host_ids, 1, MPI_INT, scr_comm_world);
-
-  /* set host_index to the highest rank having the same host_id as we do */
-  int host_index = 0;
-  for (i=0; i < scr_ranks_world; i++) {
-    if (host_ids[i] == host_id) {
-      host_index = i;
+  /* setup group descriptors */
+  if (scr_groupdescs_create() != SCR_SUCCESS) {
+    if (scr_my_rank_world == 0) {
+      scr_err("Failed to prepare one or more group descriptors @ %s:%d",
+              __FILE__, __LINE__
+      );
     }
   }
-  free(host_ids);
 
-  /* finally create the communicator holding all ranks on the same node */
-  MPI_Comm_split(scr_comm_world, host_index, scr_my_rank_world, &scr_comm_local);
-#endif /* HAVE_LIBGCS */
+  /* setup store descriptors (refers to group descriptors) */
+  if (scr_storedescs_create() != SCR_SUCCESS) {
+    if (scr_my_rank_world == 0) {
+      scr_err("Failed to prepare one or more store descriptors @ %s:%d",
+              __FILE__, __LINE__
+      );
+    }
+  }
 
-  /* find our position in the local communicator */
-  MPI_Comm_rank(scr_comm_local, &scr_my_rank_local);
-  MPI_Comm_size(scr_comm_local, &scr_ranks_local);
-
-  /* Based on my local rank, create communicators consisting of all tasks at same local rank level */
-  MPI_Comm_split(scr_comm_world, scr_my_rank_local, scr_my_rank_world, &scr_comm_level);
-
-  /* find our position in the level communicator */
-  MPI_Comm_rank(scr_comm_level, &scr_my_rank_level);
-  MPI_Comm_size(scr_comm_level, &scr_ranks_level);
-
-  /* setup redundancy descriptors */
-  if (scr_reddesc_create_list() != SCR_SUCCESS) {
+  /* setup redundancy descriptors (refers to store descriptors) */
+  if (scr_reddescs_create() != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
       scr_err("Failed to prepare one or more redundancy descriptors @ %s:%d",
               __FILE__, __LINE__
@@ -837,8 +755,8 @@ int SCR_Init()
   }
   sprintf(scr_cntl_prefix, "%s/%s/scr.%s", scr_cntl_base, scr_username, scr_jobid);
 
-  /* the master on each node creates the control directory */
-  if (scr_my_rank_local == 0) {
+  /* the master of each storage device creates the control directory */
+  if (scr_storedesc_cntl->rank == 0) {
     scr_dbg(2, "Creating control directory: %s", scr_cntl_prefix);
     if (scr_mkdir(scr_cntl_prefix, S_IRWXU | S_IRWXG) != SCR_SUCCESS) {
       scr_abort(-1, "Failed to create control directory: %s @ %s:%d",
@@ -856,10 +774,11 @@ int SCR_Init()
   /* TODO: should we check for access and required space in cache directory at this point? */
 
   /* create the cache directories */
-  if (scr_my_rank_local == 0) {
-    for (i=0; i < scr_nreddescs; i++) {
-      /* TODO: if checkpoints can be enabled at run time, we'll need to create them all up front */
-      if (scr_reddescs[i].enabled) {
+  for (i=0; i < scr_nreddescs; i++) {
+    /* TODO: if checkpoints can be enabled at run time, we'll need to create them all up front */
+    if (scr_reddescs[i].enabled) {
+      int store_index = scr_reddescs[i].store_index;
+      if (scr_storedescs[store_index].rank == 0) {
         scr_dbg(2, "Creating cache directory: %s", scr_reddescs[i].directory);
         if (scr_mkdir(scr_reddescs[i].directory, S_IRWXU | S_IRWXG) != SCR_SUCCESS) {
           scr_abort(-1, "Failed to create cache directory: %s @ %s:%d",
@@ -872,8 +791,8 @@ int SCR_Init()
 
   /* TODO: should we check for access and required space in cache directore at this point? */
 
-  /* ensure that the control and checkpoint directories are ready on our node */
-  MPI_Barrier(scr_comm_local);
+  /* ensure that the control and checkpoint directories are ready */
+  MPI_Barrier(scr_comm_world);
 
   /* place the halt, flush, and nodes files in the prefix directory */
   scr_build_path(scr_halt_file,  sizeof(scr_halt_file),  scr_par_prefix, "halt.scr");
@@ -881,25 +800,29 @@ int SCR_Init()
   scr_build_path(scr_nodes_file, sizeof(scr_nodes_file), scr_par_prefix, "nodes.scr");
 
   /* build the file names using the control directory prefix */
-  sprintf(scr_map_file,        "%s/filemap_%d.scrinfo", scr_cntl_prefix, scr_my_rank_local);
+  sprintf(scr_map_file,        "%s/filemap_%d.scrinfo", scr_cntl_prefix, scr_storedesc_cntl->rank);
   sprintf(scr_master_map_file, "%s/filemap.scrinfo",    scr_cntl_prefix);
   sprintf(scr_transfer_file,   "%s/transfer.scrinfo",   scr_cntl_prefix);
 
   /* TODO: continue draining a checkpoint if one is in progress from the previous run,
    * for now, just delete the transfer file so we'll start over from scratch */
-  if (scr_my_rank_local == 0) {
+  if (scr_storedesc_cntl->rank == 0) {
     unlink(scr_transfer_file);
   }
 
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
   /* record the number of nodes being used in this job to the nodes file */
-  int num_nodes = 0;
-  MPI_Allreduce(&scr_ranks_level, &num_nodes, 1, MPI_INT, MPI_MAX, scr_comm_world);
-  if (scr_my_rank_world == 0) {
-    scr_hash* nodes_hash = scr_hash_new();
-    scr_hash_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);
-    scr_hash_write(scr_nodes_file, nodes_hash);
-    scr_hash_delete(nodes_hash);
+  scr_groupdesc* groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
+  if (groupdesc != NULL) {
+    int num_nodes = 0;
+    int ranks_across_nodes = groupdesc->ranks;
+    MPI_Allreduce(&ranks_across_nodes, &num_nodes, 1, MPI_INT, MPI_MAX, scr_comm_world);
+    if (scr_my_rank_world == 0) {
+      scr_hash* nodes_hash = scr_hash_new();
+      scr_hash_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);
+      scr_hash_write(scr_nodes_file, nodes_hash);
+      scr_hash_delete(nodes_hash);
+    }
   }
 
   /* initialize halt info before calling scr_bool_check_halt_and_decrement
@@ -1084,43 +1007,29 @@ int SCR_Finalize()
   }
 
   /* free off the memory allocated for our redundancy descriptors */
-  scr_reddesc_free_list();
+  scr_storedescs_free();
+  scr_groupdescs_free();
+  scr_reddescs_free();
 
   /* delete the cache descriptor and redundancy descriptor hashes */
-  scr_hash_delete(scr_cachedesc_hash);
+  scr_hash_delete(scr_storedesc_hash);
+  scr_hash_delete(scr_groupdesc_hash);
   scr_hash_delete(scr_reddesc_hash);
 
   /* free off our global filemap object */
   scr_filemap_delete(scr_map);
 
   /* free off the library's communicators */
-  MPI_Comm_free(&scr_comm_level);
-  MPI_Comm_free(&scr_comm_local);
   MPI_Comm_free(&scr_comm_world);
 
   /* free memory allocated for variables */
-  if (scr_username) {
-    free(scr_username);
-    scr_username = NULL;
-  }
-  if (scr_jobid) {
-    free(scr_jobid);
-    scr_jobid    = NULL;
-  }
-  if (scr_jobname) {
-    free(scr_jobname);
-    scr_jobname  = NULL;
-  }
-  if (scr_clustername) {
-    free(scr_clustername);
-    scr_clustername  = NULL;
-  }
+  scr_free(&scr_username);
+  scr_free(&scr_jobid);
+  scr_free(&scr_jobname);
+  scr_free(&scr_clustername);
 
   /* free off the memory we allocated for our cntl prefix */
-  if (scr_cntl_prefix != NULL) {
-    free(scr_cntl_prefix);
-    scr_cntl_prefix = NULL;
-  }
+  scr_free(&scr_cntl_prefix);
 
   /* we're no longer in an initialized state */
   scr_initialized = 0;
@@ -1258,7 +1167,7 @@ int SCR_Start_checkpoint()
   scr_checkpoint_id++;
 
   /* get the redundancy descriptor for this checkpoint id */
-  struct scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
+  scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
 
   /* start the clock to record how long it takes to checkpoint */
   if (scr_my_rank_world == 0) {
@@ -1277,7 +1186,11 @@ int SCR_Start_checkpoint()
   scr_filemap_list_datasets(scr_map, &ndsets, &dsets);
 
   /* lookup the number of checkpoints we're allowed to keep in the base for this checkpoint */
-  int size = scr_cachedesc_size(c->base);
+  int size = 0;
+  int store_index = scr_storedescs_index_from_base(c->base);
+  if (store_index >= 0) {
+    size = scr_storedescs[store_index].max_count;
+  }
 
   int i;
   char* base = NULL;
@@ -1293,7 +1206,7 @@ int SCR_Start_checkpoint()
       if (strcmp(base, c->base) == 0) {
         nckpts_base++;
       }
-      free(base);
+      scr_free(&base);
     }
   }
 
@@ -1314,7 +1227,7 @@ int SCR_Start_checkpoint()
           flushing = dsets[i];
         }
       }
-      free(base);
+      scr_free(&base);
     }
   }
 
@@ -1332,10 +1245,7 @@ int SCR_Start_checkpoint()
   }
 
   /* free the list of datasets */
-  if (dsets != NULL) {
-    free(dsets);
-    dsets = NULL;
-  }
+  scr_free(&dsets);
 
   /* rank 0 builds dataset object and broadcasts it out to other ranks */
   scr_dataset* dataset = scr_dataset_new();
@@ -1349,7 +1259,7 @@ int SCR_Start_checkpoint()
     scr_dataset_set_id(dataset, scr_dataset_id);
     scr_dataset_set_name(dataset, dataset_name);
     scr_dataset_set_created(dataset, dataset_time);
-    scr_dataset_set_user(dataset, scr_username);
+    scr_dataset_set_username(dataset, scr_username);
     if (scr_jobname != NULL) {
       scr_dataset_set_jobname(dataset, scr_jobname);
     }
@@ -1398,7 +1308,7 @@ int SCR_Route_file(const char* file, char* newfile)
   }
 
   /* get the redundancy descriptor for the current checkpoint */
-  struct scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
+  scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
 
   /* route the file */
   int n = SCR_MAX_FILENAME;
@@ -1535,7 +1445,7 @@ int SCR_Complete_checkpoint(int valid)
 
   /* apply redundancy scheme */
   double bytes_copied = 0.0;
-  struct scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
+  scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
   int rc = scr_reddesc_apply(scr_map, c, scr_dataset_id, &bytes_copied);
 
   /* TODO: set size of dataset and complete flag */

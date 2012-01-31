@@ -15,6 +15,7 @@
 #include "scr.h"
 #include "scr_err.h"
 #include "scr_io.h"
+#include "scr_util.h"
 #include "scr_param.h"
 #include "scr_log.h"
 #include "scr_hash.h"
@@ -212,7 +213,7 @@ int scr_mysql_read_id(const char* table, const char* name, unsigned long* id)
   );
 
   /* free the strings as they are now encoded into the query */
-  if (qname) { free(qname); qname = NULL; }
+  scr_free(&qname);
 
   /* check that we were able to construct the query ok */
   if (n >= sizeof(query)) {
@@ -300,7 +301,7 @@ int scr_mysql_read_write_id(const char* table, const char* name, unsigned long* 
   );
 
   /* free the strings as they are now encoded into the query */
-  if (qname) { free(qname); qname = NULL; }
+  scr_free(&qname);
 
   /* check that we were able to construct the query ok */
   if (n >= sizeof(query)) {
@@ -414,10 +415,10 @@ int scr_mysql_log_event(const char* type, const char* note, const int* ckpt, con
   );
 
   /* free the strings as they are now encoded into the query */
-  if (qnote)    { free(qnote);    qnote    = NULL; }
-  if (qckpt)    { free(qckpt);    qckpt    = NULL; }
-  if (qstart)   { free(qstart);   qstart   = NULL; }
-  if (qsecs)    { free(qsecs);    qsecs    = NULL; }
+  scr_free(&qnote);
+  scr_free(&qckpt);
+  scr_free(&qstart);
+  scr_free(&qsecs);
 
   /* check that we were able to construct the query ok */
   if (n >= sizeof(query)) {
@@ -510,14 +511,14 @@ int scr_mysql_log_transfer(const char* type, const char* from, const char* to, c
   );
 
   /* free the strings as they are now encoded into the query */
-  if (qfrom)  { free(qfrom);  qfrom  = NULL; }
-  if (qto)    { free(qto);    qto    = NULL; }
-  if (qckpt)  { free(qckpt);  qckpt  = NULL; }
-  if (qstart) { free(qstart); qstart = NULL; }
-  if (qend)   { free(qend);   qend   = NULL; }
-  if (qsecs)  { free(qsecs);  qsecs  = NULL; }
-  if (qbytes) { free(qbytes); qbytes = NULL; }
-  if (qbw)    { free(qbw);    qbw    = NULL; }
+  scr_free(&qfrom);
+  scr_free(&qto);
+  scr_free(&qckpt);
+  scr_free(&qstart);
+  scr_free(&qend);
+  scr_free(&qsecs);
+  scr_free(&qbytes);
+  scr_free(&qbw);
 
   /* check that we were able to construct the query ok */
   if (n >= sizeof(query)) {
@@ -664,7 +665,7 @@ int scr_mysql_register_job(const char* username, const char* jobname, unsigned l
   );
 
   /* free the strings as they are now encoded into the query */
-  if (qsecs) { free(qsecs); qsecs = NULL; }
+  scr_free(&qsecs);
 
   /* check that we were able to construct the query ok */
   if (n >= sizeof(query)) {
@@ -767,10 +768,10 @@ int scr_log_finalize()
   }
 
   /* free memory */
-  if (scr_db_host)  { free(scr_db_host);  scr_db_host  = NULL; }
-  if (scr_db_user)  { free(scr_db_user);  scr_db_user  = NULL; }
-  if (scr_db_pass)  { free(scr_db_pass);  scr_db_pass  = NULL; }
-  if (scr_db_name)  { free(scr_db_name);  scr_db_name  = NULL; }
+  scr_free(&scr_db_host);
+  scr_free(&scr_db_user);
+  scr_free(&scr_db_pass);
+  scr_free(&scr_db_name);
 
   return SCR_SUCCESS;
 }

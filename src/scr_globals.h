@@ -66,6 +66,8 @@
 #include "scr_env.h"
 #include "scr_index_api.h"
 
+#include "scr_groupdesc.h"
+#include "scr_storedesc.h"
 #include "scr_reddesc.h"
 #include "scr_reddesc_apply.h"
 #include "scr_reddesc_recover.h"
@@ -92,6 +94,8 @@ Globals
 /* copy file operation flags: copy file vs. move file */
 #define COPY_FILES 0
 #define MOVE_FILES 1
+
+#define SCR_GROUP_NODE ("NODE")
 
 extern char scr_cntl_base[SCR_MAX_FILENAME];
 extern char scr_cache_base[SCR_MAX_FILENAME];
@@ -176,23 +180,23 @@ extern double scr_time_compute_start;          /* records the start time of the 
 extern double scr_time_compute_end;            /* records the end time of the current compute phase */
 
 extern MPI_Comm scr_comm_world; /* dup of MPI_COMM_WORLD */
-extern MPI_Comm scr_comm_local; /* contains all tasks local to the same node */
-extern MPI_Comm scr_comm_level; /* contains tasks across all nodes at the same local rank level */
-
 extern int scr_ranks_world; /* number of ranks in the job */
-extern int scr_ranks_local; /* number of ranks on my node */
-extern int scr_ranks_level; /* number of ranks at my level (i.e., processes with same local rank across nodes) */
-
 extern int  scr_my_rank_world;  /* my rank in world */
-extern int  scr_my_rank_local;  /* my local rank on my node */
-extern int  scr_my_rank_level;  /* my rank in processes at my level */
 
 extern char scr_my_hostname[256];
 
-extern scr_hash* scr_cachedesc_hash;
+extern scr_hash* scr_groupdesc_hash;
+extern scr_hash* scr_storedesc_hash;
 extern scr_hash* scr_reddesc_hash;
 
-extern int scr_nreddescs;                   /* number of redundancy descriptors in scr_reddescs list */
-extern struct scr_reddesc* scr_reddescs; /* pointer to list of redundancy descriptors */
+extern int scr_nstoredescs;
+extern scr_storedesc* scr_storedescs;
+extern scr_storedesc* scr_storedesc_cntl;
+
+extern int scr_ngroupdescs;
+extern scr_groupdesc* scr_groupdescs;
+
+extern int scr_nreddescs;         /* number of redundancy descriptors in scr_reddescs list */
+extern scr_reddesc* scr_reddescs; /* pointer to list of redundancy descriptors */
 
 #endif
