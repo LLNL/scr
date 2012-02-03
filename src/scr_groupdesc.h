@@ -44,12 +44,6 @@ int scr_groupdesc_init(scr_groupdesc* group);
 /* free any memory associated with the specified redundancy descriptor */
 int scr_groupdesc_free(scr_groupdesc* group);
 
-/* build a group descriptor of all procs on the same node */
-int scr_groupdesc_create_node(scr_groupdesc* d, int index);
-
-/* build a group descriptor corresponding to the specified hash */
-int scr_groupdesc_create_from_hash(scr_groupdesc* d, int index, const scr_hash* hash);
-
 /*
 =========================================
 Routines that operate on scr_groupdescs array

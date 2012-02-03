@@ -71,34 +71,95 @@ int scr_groupdesc_free(scr_groupdesc* d)
   return SCR_SUCCESS;
 }
 
-/* build a group descriptor of all procs on the same node */
-int scr_groupdesc_create_node(scr_groupdesc* d, int index)
+/* split processes into groups who have matching strings */
+static int scr_split_by_string(const char* str, MPI_Comm* comm)
 {
-  d->enabled = 1;
-  d->index   = index;
-  d->name    = strdup(SCR_GROUP_NODE);
+  /* determine the length of the maximum string (including terminating NULL character) */
+  int str_len = strlen(str) + 1;
+  int max_len;
+  MPI_Allreduce(&str_len, &max_len, 1, MPI_INT, MPI_MAX, scr_comm_world);
 
-#ifdef HAVE_LIBGCS
-  /* determine the length of the maximum hostname (including terminating NULL character),
-   * and check that our own buffer is at least as big */
-  int my_hostname_len = strlen(scr_my_hostname) + 1;
-  int max_hostname_len = 0;
-  MPI_Allreduce(&my_hostname_len, &max_hostname_len, 1, MPI_INT, MPI_MAX, scr_comm_world);
-  if (max_hostname_len > sizeof(scr_my_hostname)) {
-    scr_err("Hostname is too long on some process @ %s:%d",
-            __FILE__, __LINE__
-    );
-    MPI_Abort(scr_comm_world, 0);
+  /* allocate a buffer and copy our string to it */
+  char* tmp_str = NULL;
+  if (max_len > 0) {
+    tmp_str = (char*) malloc(max_len);
+    strcpy(tmp_str, str);
   }
 
-  /* split ranks based on hostname */
+#ifdef HAVE_LIBGCS
+  /* split ranks based on string */
   GCS_Comm_splitv(
-      scr_comm_world,
-      scr_my_hostname, max_hostname_len, GCS_CMP_STR,
-      NULL,            0,                GCS_CMP_IGNORE,
-      &d->comm
+    scr_comm_world,
+    tmp_str, max_len, GCS_CMP_STR,
+    NULL,    0,       GCS_CMP_IGNORE,
+    comm
   );
 #else /* HAVE_LIBGCS */
+  /* allocate buffer to receive string from each process */
+  char* buf = NULL;
+  if (max_len > 0) {
+    buf = (char*) malloc(max_len * scr_ranks_world);
+  }
+
+  /* receive all strings */
+  MPI_Allgather(tmp_str, max_len, MPI_CHAR, buf, max_len, MPI_CHAR, scr_comm_world);
+
+  /* search through strings until we find one that matches our own */
+  int index = 0;
+  char* current = buf;
+  while (index < scr_ranks_world) {
+    /* compare string from rank index to our own, break if we find a match */
+    if (strcmp(current, tmp_str) == 0) {
+      break;
+    }
+
+    /* advance to string from next process */
+    current += max_len;
+    index++;
+  }
+
+  /* split comm world into subcommunicators based on the index of the first match */
+  MPI_Comm_split(scr_comm_world, index, 0, comm);
+
+  /* free our temporary buffer of all strings */
+  scr_free(&buf);
+#endif
+
+  /* free temporary copy of string */
+  scr_free(&tmp_str);
+
+  return SCR_SUCCESS;
+}
+
+/* build a group descriptor of all procs on the same node */
+int scr_groupdesc_create_by_str(scr_groupdesc* d, int index, const char* key, const char* value)
+{
+  /* initialize the descriptor */
+  scr_groupdesc_init(d);
+
+  /* enable descriptor, record its index, and copy its name */
+  d->enabled = 1;
+  d->index   = index;
+  d->name    = strdup(key);
+
+  /* get communicator of all tasks with same value */
+  scr_split_by_string(value, &d->comm);
+
+  /* find our position in the group communicator */
+  MPI_Comm_rank(d->comm, &d->rank);
+  MPI_Comm_size(d->comm, &d->ranks);
+
+  /* Based on my group rank, create communicators consisting of all tasks at same group rank level */
+  MPI_Comm_split(scr_comm_world, d->rank, scr_my_rank_world, &d->comm_across);
+
+  /* find our position in the communicator */
+  MPI_Comm_rank(d->comm_across, &d->rank_across);
+  MPI_Comm_size(d->comm_across, &d->ranks_across);
+
+  return SCR_SUCCESS;
+}
+
+#if 0
   /* TODO: maybe a better way to identify processes on the same node?
    * TODO: could improve scalability here using a parallel sort and prefix scan
    * TODO: need something to work on systems with IPv6
@@ -139,87 +200,7 @@ int scr_groupdesc_create_node(scr_groupdesc* d, int index)
 
   /* finally create the communicator holding all ranks on the same node */
   MPI_Comm_split(scr_comm_world, host_index, scr_my_rank_world, &d->comm);
-#endif /* HAVE_LIBGCS */
-
-  /* find our position in the local communicator */
-  MPI_Comm_rank(d->comm, &d->rank);
-  MPI_Comm_size(d->comm, &d->ranks);
-
-  /* Based on my group rank, create communicators consisting of all tasks at same group rank level */
-  MPI_Comm_split(scr_comm_world, d->rank, scr_my_rank_world, &d->comm_across);
-
-  /* find our position in the communicator */
-  MPI_Comm_rank(d->comm_across, &d->rank_across);
-  MPI_Comm_size(d->comm_across, &d->ranks_across);
-
-  return SCR_SUCCESS;
-}
-
-/* build a group descriptor corresponding to the specified hash */
-int scr_groupdesc_create_from_hash(scr_groupdesc* d, int index, const scr_hash* hash)
-{
-  int rc = SCR_SUCCESS;
-
-  /* check that we got a valid descriptor */
-  if (d == NULL) {
-    scr_err("No group descriptor to fill from hash @ %s:%d",
-            __FILE__, __LINE__
-    );
-    rc = SCR_FAILURE;
-  }
-
-  /* check that we got a valid pointer to a hash */
-  if (hash == NULL) {
-    scr_err("No hash specified to build group descriptor from @ %s:%d",
-            __FILE__, __LINE__
-    );
-    rc = SCR_FAILURE;
-  }
-
-  /* check that everyone made it this far */
-  if (! scr_alltrue(rc == SCR_SUCCESS)) {
-    if (d != NULL) {
-      d->enabled = 0;
-    }
-    return SCR_FAILURE;
-  }
-
-  /* initialize the descriptor */
-  scr_groupdesc_init(d);
-
-  char* value = NULL;
-
-  /* enable / disable the descriptor */
-  d->enabled = 1;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_ENABLED);
-  if (value != NULL) {
-    d->enabled = atoi(value);
-  }
-
-  /* index of the descriptor */
-  d->index = index;
-
-  /* set the name */
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_NAME);
-  if (value != NULL) {
-    d->name = strdup(value);
-  }
-
-  /* TODO: execute generalized comm split based on group name */
-  /* get communicator of ranks that can access this storage device */
-  MPI_Comm_dup(scr_comm_world, &d->comm);
-
-  /* get our rank and the number of ranks in this communicator */
-  MPI_Comm_rank(d->comm, &d->rank);
-  MPI_Comm_size(d->comm, &d->ranks);
-
-  /* if anyone has disabled this descriptor, everyone needs to */
-  if (! scr_alltrue(d->enabled)) {
-    d->enabled = 0;
-  }
-
-  return SCR_SUCCESS;
-}
+#endif
 
 /*
 =========================================
@@ -257,13 +238,19 @@ scr_groupdesc* scr_groupdescs_from_name(const char* name)
 
 int scr_groupdescs_create()
 {
-  /* set the number of group descriptors */
-  scr_ngroupdescs = 1;
-  scr_hash* tmp = scr_hash_get(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC);
-  if (tmp != NULL) {
-    /* include anything the user defines plus node */
-    scr_ngroupdescs += scr_hash_size(tmp);
-  }
+  int i;
+  int all_valid = 1;
+
+  /* get groups defined for our hostname */
+  scr_hash* groups = scr_hash_get_kv(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, scr_my_hostname);
+
+  /* set the number of group descriptors,
+   * we define one for all procs on the same node */
+  int num_groups = scr_hash_size(groups);
+  int count = num_groups + 1;
+
+  /* set our count to maximum count across all procs */
+  MPI_Allreduce(&count, &scr_ngroupdescs, 1, MPI_INT, MPI_MAX, scr_comm_world);
 
   /* allocate our group descriptors */
   if (scr_ngroupdescs > 0) {
@@ -271,18 +258,74 @@ int scr_groupdescs_create()
     /* TODO: check for errors */
   }
 
-  int all_valid = 1;
+  /* disable all group descriptors until we build each one */
+  for (i = 0; i < scr_ngroupdescs; i++) {
+    scr_groupdesc_init(&scr_groupdescs[i]);
+  }
 
   /* create group descriptor for all procs on the same node */
-  scr_groupdesc_create_node(&scr_groupdescs[0], 0);
+  int index = 0;
+  scr_groupdesc_create_by_str(&scr_groupdescs[index], index, SCR_GROUP_NODE, scr_my_hostname);
+  index++;
+
+  /* in order to form groups in the same order on all procs,
+   * we have rank 0 decide the order */
+
+  /* determine number of entries on rank 0 */
+  MPI_Bcast(&num_groups, 1, MPI_INT, 0, scr_comm_world);
 
   /* iterate over each of our hash entries filling in each corresponding descriptor */
-  int i;
-  for (i=1; i < scr_ngroupdescs; i++) {
-    /* get the info hash for this descriptor */
-    scr_hash* hash = scr_hash_get_kv_int(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, i);
-    if (scr_groupdesc_create_from_hash(&scr_groupdescs[i], i, hash) != SCR_SUCCESS) {
-      all_valid = 0;
+  int key_len;
+  char key_name[SCR_MAX_FILENAME];
+  char* value;
+  int have_match;
+  if (scr_my_rank_world == 0) {
+    scr_hash_elem* elem;
+    for (elem = scr_hash_elem_first(groups);
+         elem != NULL;
+         elem = scr_hash_elem_next(elem))
+    {
+      /* get key for this group */
+      char* key = scr_hash_elem_key(elem);
+
+      /* bcast length of key */
+      key_len = strlen(key) + 1;
+      MPI_Bcast(&key_len, 1, MPI_INT, 0, scr_comm_world);
+
+      /* bcast key name */
+      MPI_Bcast(key, key_len, MPI_CHAR, 0, scr_comm_world);
+
+      /* determine whether all procs have corresponding entry */
+      have_match = 1;
+      if (scr_hash_util_get_str(groups, key, &value) != SCR_SUCCESS) {
+        have_match = 0;
+      }
+      if (scr_alltrue(have_match)) {
+        /* create group */
+        scr_groupdesc_create_by_str(&scr_groupdescs[index], index, key, value);
+        index++;
+      } else {
+        /* TODO: print error */
+      }
+    }
+  } else {
+    for (i = 0; i < num_groups; i++) {
+      /* receive length of key */
+      MPI_Bcast(&key_len, 1, MPI_INT, 0, scr_comm_world);
+
+      /* receive key */
+      MPI_Bcast(key_name, key_len, MPI_CHAR, 0, scr_comm_world);
+
+      /* determine whether all procs have corresponding entry */
+      have_match = 1;
+      if (scr_hash_util_get_str(groups, key_name, &value) != SCR_SUCCESS) {
+        have_match = 0;
+      }
+      if (scr_alltrue(have_match)) {
+        /* create group */
+        scr_groupdesc_create_by_str(&scr_groupdescs[index], index, key_name, value);
+        index++;
+      }
     }
   }
 

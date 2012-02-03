@@ -28,6 +28,7 @@ typedef struct {
   char*    base;              /* base cache directory to use */
   char*    directory;         /* full directory base/dataset.id */
   int      copy_type;         /* redundancy scheme to apply */
+  char*    group_name;        /* name of process group */
   int      hop_distance;      /* hop distance associated with redundancy scheme */
   int      set_size;          /* set size of redundancy scheme */
   MPI_Comm comm;              /* communicator holding procs for this scheme */

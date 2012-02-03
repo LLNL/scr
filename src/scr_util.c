@@ -230,9 +230,31 @@ void scr_align_free(void* p)
 }
 
 /*sprintfs a formatted string into an newly allocated string */
-char* scr_strdupf()
+char* scr_strdupf(const char* format, ...)
 {
-  return NULL;
+  va_list args;
+  char* str = NULL;
+
+  /* check that we have a format string */
+  if (format == NULL) {
+    return NULL;
+  }
+
+  /* compute the size of the string we need to allocate */
+  va_start(args, format);
+  int size = vsnprintf(NULL, 0, format, args) + 1;
+  va_end(args);
+
+  /* allocate and print the string */
+  if (size > 0) {
+    str = (char*) malloc(size);
+
+    va_start(args, format);
+    vsnprintf(str, size, format, args);
+    va_end(args);
+  }
+
+  return str;
 }
 
 /* returns the current linux timestamp */

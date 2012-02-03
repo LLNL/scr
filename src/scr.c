@@ -23,10 +23,9 @@ Halt logic
 /* writes entry to halt file to indicate that SCR should exit job at first opportunity */
 static int scr_halt(const char* reason)
 {
-  /* copy in reason if one was given */
+  /* copy reason if one was given */
   if (reason != NULL) {
-    scr_hash_unset(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON);
-    scr_hash_set_kv(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON, reason);
+    scr_hash_util_set_str(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON, reason);
   }
 
   /* log the halt condition */
@@ -147,10 +146,14 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     }
   }
 
+  /* broadcast halt decision from rank 0 */
   MPI_Bcast(&need_to_halt, 1, MPI_INT, 0, scr_comm_world);
+
+  /* halt job if we need to, and flush latest checkpoint if needed */
   if (need_to_halt && halt_cond == SCR_TEST_AND_HALT) {
     /* handle any async flush */
     if (scr_flush_async_in_progress) {
+      /* there's an async flush ongoing, see which dataset is being flushed */
       if (scr_flush_async_dataset_id == scr_dataset_id) {
         /* we're going to sync flush this same checkpoint below, so kill it */
         scr_flush_async_stop(scr_map);
@@ -189,6 +192,7 @@ static int scr_check_flush(scr_filemap* map)
   if (scr_flush > 0) {
     /* every scr_flush checkpoints, flush the checkpoint set */
     if (scr_checkpoint_id > 0 && scr_checkpoint_id % scr_flush == 0) {
+      /* need to flush this checkpoint, determine whether to use async or sync flush */
       if (scr_flush_async) {
         /* check that we don't start an async flush if one is already in progress */
         if (scr_flush_async_in_progress) {
@@ -208,7 +212,8 @@ static int scr_check_flush(scr_filemap* map)
   return SCR_SUCCESS;
 }
 
-/* given a dataset id and a filename, return the full path to the file which the user should write to */
+/* given a dataset id and a filename,
+ * return the full path to the file which the caller should use to access the file */
 static int scr_route_file(const scr_reddesc* c, int id, const char* file, char* newfile, int n)
 {
   /* check that we got a file and newfile to write to */
@@ -360,6 +365,13 @@ static int scr_get_params()
     scr_cache_size = atoi(value);
   }
 
+  /* fill in a hash of group descriptors */
+  scr_groupdesc_hash = scr_hash_new();
+  tmp = scr_param_get_hash(SCR_CONFIG_KEY_GROUPDESC);
+  if (tmp != NULL) {
+    scr_hash_set(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, tmp);
+  }
+  
   /* fill in a hash of store descriptors */
   scr_storedesc_hash = scr_hash_new();
   tmp = scr_param_get_hash(SCR_CONFIG_KEY_STOREDESC);
@@ -370,13 +382,6 @@ static int scr_get_params()
     tmp = scr_hash_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, "0");
     scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,  scr_cache_base);
     scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, scr_cache_size);
-  }
-  
-  /* fill in a hash of group descriptors */
-  scr_groupdesc_hash = scr_hash_new();
-  tmp = scr_param_get_hash(SCR_CONFIG_KEY_GROUPDESC);
-  if (tmp != NULL) {
-    scr_hash_set(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, tmp);
   }
   
   /* select copy method */
@@ -434,7 +439,8 @@ static int scr_get_params()
     }
   }
 
-  /* if job has fewer than SCR_HALT_SECONDS remaining after completing a checkpoint, halt it */
+  /* if job has fewer than SCR_HALT_SECONDS remaining after completing a checkpoint,
+   * halt it */
   if ((value = scr_param_get("SCR_HALT_SECONDS")) != NULL) {
     scr_halt_seconds = atoi(value);
   }
@@ -444,7 +450,9 @@ static int scr_get_params()
     if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
       scr_mpi_buf_size = (size_t) ull;
     } else {
-      scr_err("Failed to read SCR_MPI_BUF_SIZE successfully @ %s:%d", __FILE__, __LINE__);
+      scr_err("Failed to read SCR_MPI_BUF_SIZE successfully @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
   }
 
@@ -493,16 +501,20 @@ static int scr_get_params()
     if (scr_atod(value, &d) == SCR_SUCCESS) {
       scr_flush_async_bw = d;
     } else {
-      scr_err("Failed to read SCR_FLUSH_ASYNC_BW successfully @ %s:%d", __FILE__, __LINE__);
+      scr_err("Failed to read SCR_FLUSH_ASYNC_BW successfully @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
   }
 
-  /* bandwidth limit imposed during async flush (in bytes/sec) */
+  /* runtime overhead limit imposed during async flush (in percentage) */
   if ((value = scr_param_get("SCR_FLUSH_ASYNC_PERCENT")) != NULL) {
     if (scr_atod(value, &d) == SCR_SUCCESS) {
       scr_flush_async_percent = d;
     } else {
-      scr_err("Failed to read SCR_FLUSH_ASYNC_PERCENT successfully @ %s:%d", __FILE__, __LINE__);
+      scr_err("Failed to read SCR_FLUSH_ASYNC_PERCENT successfully @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
   }
 
@@ -511,11 +523,13 @@ static int scr_get_params()
     if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
       scr_file_buf_size = (size_t) ull;
     } else {
-      scr_err("Failed to read SCR_FILE_BUF_SIZE successfully @ %s:%d", __FILE__, __LINE__);
+      scr_err("Failed to read SCR_FILE_BUF_SIZE successfully @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
   }
 
-  /* specify whether to compute CRC on redundancy copy */
+  /* specify whether to compute CRC when applying redundancy scheme */
   if ((value = scr_param_get("SCR_CRC_ON_COPY")) != NULL) {
     scr_crc_on_copy = atoi(value);
   }
@@ -525,7 +539,7 @@ static int scr_get_params()
     scr_crc_on_flush = atoi(value);
   }
 
-  /* specify whether to compute and check CRC when deleting a file */
+  /* specify whether to compute and check CRC when deleting files from cache */
   if ((value = scr_param_get("SCR_CRC_ON_DELETE")) != NULL) {
     scr_crc_on_delete = atoi(value);
   }
@@ -554,11 +568,14 @@ static int scr_get_params()
     if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
       scr_container_size = (unsigned long) ull;
     } else {
-      scr_err("Failed to read SCR_CONTAINER_SIZE successfully @ %s:%d", __FILE__, __LINE__);
+      scr_err("Failed to read SCR_CONTAINER_SIZE successfully @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
   }
 
-  /* override default checkpoint interval (number of times to call Need_checkpoint between checkpoints) */
+  /* override default checkpoint interval
+   * (number of times to call Need_checkpoint between checkpoints) */
   if ((value = scr_param_get("SCR_CHECKPOINT_INTERVAL")) != NULL) {
     scr_checkpoint_interval = atoi(value);
   }
@@ -573,7 +590,9 @@ static int scr_get_params()
     if (scr_atod(value, &d) == SCR_SUCCESS) {
       scr_checkpoint_overhead = d;
     } else {
-      scr_err("Failed to read SCR_CHECKPOINT_OVERHEAD successfully @ %s:%d", __FILE__, __LINE__);
+      scr_err("Failed to read SCR_CHECKPOINT_OVERHEAD successfully @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
   }
 
@@ -582,9 +601,8 @@ static int scr_get_params()
     strcpy(scr_par_prefix, value);
   }
 
-  /* if user didn't set with SCR_PREFIX, pick up the current working directory as a default */
-  /* TODO: wonder whether this convenience will cause more problems than its worth?
-   * may lead to writing large checkpoint file sets to the executable directory, which may not be a parallel file system */
+  /* if user didn't set with SCR_PREFIX,
+   * pick up the current working directory as a default */
   if (strcmp(scr_par_prefix, "") == 0) {
     if (getcwd(scr_par_prefix, sizeof(scr_par_prefix)) == NULL) {
       scr_abort(-1, "Problem reading current working directory (getcwd() errno=%d %m) @ %s:%d",
@@ -638,16 +656,14 @@ int SCR_Init()
    * we must at least create scr_comm_world and call scr_get_params() */
 
   /* create a context for the library */
-  MPI_Comm_dup(MPI_COMM_WORLD, &scr_comm_world);
-
-  /* find our rank and the size of our world */
+  MPI_Comm_dup(MPI_COMM_WORLD,  &scr_comm_world);
   MPI_Comm_rank(scr_comm_world, &scr_my_rank_world);
   MPI_Comm_size(scr_comm_world, &scr_ranks_world);
 
   /* get my hostname (used in debug and error messages) */
   if (gethostname(scr_my_hostname, sizeof(scr_my_hostname)) != 0) {
     scr_err("Call to gethostname failed @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     MPI_Abort(scr_comm_world, 0);
   }
@@ -656,7 +672,7 @@ int SCR_Init()
   scr_page_size = getpagesize();
   if (scr_page_size <= 0) {
     scr_err("Call to getpagesize failed @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     MPI_Abort(scr_comm_world, 0);
   }
@@ -669,15 +685,13 @@ int SCR_Init()
     /* we dup'd comm_world to broadcast parameters in scr_get_params,
      * need to free it here */
     MPI_Comm_free(&scr_comm_world);
-
     return SCR_FAILURE;
   }
 
   /* check that some required parameters are set */
   if (scr_username == NULL || scr_jobid == NULL) {
-    scr_abort(-1,
-              "Jobid or username is not set; set SCR_JOB_ID or SCR_USER_NAME @ %s:%d",
-              __FILE__, __LINE__
+    scr_abort(-1, "Jobid or username is not set; set SCR_JOB_ID or SCR_USER_NAME @ %s:%d",
+      __FILE__, __LINE__
     );
   }
 
@@ -685,7 +699,7 @@ int SCR_Init()
   if (scr_groupdescs_create() != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
       scr_err("Failed to prepare one or more group descriptors @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
   }
@@ -694,7 +708,7 @@ int SCR_Init()
   if (scr_storedescs_create() != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
       scr_err("Failed to prepare one or more store descriptors @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
   }
@@ -703,12 +717,13 @@ int SCR_Init()
   if (scr_reddescs_create() != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
       scr_err("Failed to prepare one or more redundancy descriptors @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
   }
 
-  /* check that we have an enabled redundancy descriptor with interval of one */
+  /* check that we have an enabled redundancy descriptor with interval of one,
+   * this is necessary so a reddesc is defined for every checkpoint */
   int found_one = 0;
   for (i=0; i < scr_nreddescs; i++) {
     /* check that we have at least one descriptor enabled with an interval of one */
@@ -719,7 +734,7 @@ int SCR_Init()
   if (!found_one) {
     if (scr_my_rank_world == 0) {
       scr_abort(-1, "Failed to find an enabled redundancy descriptor with interval 1 @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
   }
@@ -733,37 +748,35 @@ int SCR_Init()
         scr_log_run(job_start);
       } else {
         scr_err("Failed to log job for username %s and jobname %s, disabling logging @ %s:%d",
-                scr_username, scr_jobname, __FILE__, __LINE__
+          scr_username, scr_jobname, __FILE__, __LINE__
         );
         scr_log_enable = 0;
       }
     } else {
       scr_err("Failed to read username or jobname from environment, disabling logging @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
       scr_log_enable = 0;
     }
   }
 
   /* build the control directory name: CNTL_BASE/username/scr.jobid */
-  int cntldir_str_len = strlen(scr_cntl_base) + 1 + strlen(scr_username) + strlen("/scr.") + strlen(scr_jobid);
-  scr_cntl_prefix = (char*) malloc(cntldir_str_len + 1);
+  scr_cntl_prefix = scr_strdupf("%s/%s/scr.%s", scr_cntl_base, scr_username, scr_jobid);
   if (scr_cntl_prefix == NULL) {
     scr_abort(-1, "Failed to allocate buffer to store control prefix @ %s:%d",
-              __FILE__, __LINE__
+      __FILE__, __LINE__
     );
   }
-  sprintf(scr_cntl_prefix, "%s/%s/scr.%s", scr_cntl_base, scr_username, scr_jobid);
 
   /* the master of each storage device creates the control directory */
   if (scr_storedesc_cntl->rank == 0) {
     scr_dbg(2, "Creating control directory: %s", scr_cntl_prefix);
     if (scr_mkdir(scr_cntl_prefix, S_IRWXU | S_IRWXG) != SCR_SUCCESS) {
       scr_abort(-1, "Failed to create control directory: %s @ %s:%d",
-              scr_cntl_prefix, __FILE__, __LINE__
+        scr_cntl_prefix, __FILE__, __LINE__
       );
     }
-    /* TODO: open permissions to control directory so other users (admins) can halt the job? */
+    /* TODO: open permissions to control directory so others (admins) can halt the job? */
     /*
     mode_t mode = umask(0000);
     scr_mkdir(scr_cntl_prefix, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -775,14 +788,15 @@ int SCR_Init()
 
   /* create the cache directories */
   for (i=0; i < scr_nreddescs; i++) {
-    /* TODO: if checkpoints can be enabled at run time, we'll need to create them all up front */
+    /* TODO: if checkpoints can be enabled at run time,
+     * we'll need to create them all up front */
     if (scr_reddescs[i].enabled) {
       int store_index = scr_reddescs[i].store_index;
       if (scr_storedescs[store_index].rank == 0) {
         scr_dbg(2, "Creating cache directory: %s", scr_reddescs[i].directory);
         if (scr_mkdir(scr_reddescs[i].directory, S_IRWXU | S_IRWXG) != SCR_SUCCESS) {
           scr_abort(-1, "Failed to create cache directory: %s @ %s:%d",
-                    scr_reddescs[i].directory, __FILE__, __LINE__
+            scr_reddescs[i].directory, __FILE__, __LINE__
           );
         }
       }
@@ -815,7 +829,7 @@ int SCR_Init()
   scr_groupdesc* groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
   if (groupdesc != NULL) {
     int num_nodes = 0;
-    int ranks_across_nodes = groupdesc->ranks;
+    int ranks_across_nodes = groupdesc->ranks_across;
     MPI_Allreduce(&ranks_across_nodes, &num_nodes, 1, MPI_INT, MPI_MAX, scr_comm_world);
     if (scr_my_rank_world == 0) {
       scr_hash* nodes_hash = scr_hash_new();
@@ -841,7 +855,7 @@ int SCR_Init()
   /* now all processes are initialized (be careful when moving this line up or down) */
   scr_initialized = 1;
 
-  /* since we may be shuffling files around, stop any ongoing async flush */
+  /* since we shuffle files around below, stop any ongoing async flush */
   if (scr_flush_async) {
     scr_flush_async_stop();
   }
@@ -863,11 +877,12 @@ int SCR_Init()
     if (scr_my_rank_world == 0) {
       scr_halt("SCR_INIT_FAILED");
       scr_abort(-1, "SCR_PREFIX must be set to use SCR_FETCH or SCR_FLUSH @ %s:%d"
-                __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
 
-    /* rank 0 will abort above, but we don't want other processes to continue past this point */
+    /* rank 0 will abort above, but we don't want other processes to
+     * continue past this point */
     MPI_Barrier(scr_comm_world);
   }
 
@@ -875,7 +890,8 @@ int SCR_Init()
   scr_map = scr_filemap_new();
 
   /* master on each node reads all filemaps and distributes them to other ranks
-   * on the node, if any */
+   * on the node, we take this step in case the number of ranks on this node
+   * has changed since the last run */
   scr_scatter_filemaps(scr_map);
 
   /* attempt to distribute files for a restart */
@@ -887,10 +903,11 @@ int SCR_Init()
     /* if distribute succeeds, check whether we should flush on restart */
     if (rc == SCR_SUCCESS) {
       /* since the flush file is not deleted between job allocations,
-       * we need to rebuild it based on what's currently in cache data,
+       * we need to rebuild it based on what's currently in cache,
        * if the rebuild failed, we'll delete the flush file after purging the cache below */
       scr_flush_file_rebuild(scr_map);
 
+      /* check whether we need to flush data */
       if (scr_flush_on_restart) {
         /* always flush on restart if scr_flush_on_restart is set */
         scr_flush_sync(scr_map, scr_checkpoint_id);
@@ -901,10 +918,13 @@ int SCR_Init()
     }
   }
 
-  /* TODO: there is some risk here of cleaning the cache when we shouldn't if given a badly placed nodeset
-   * for a restart job step within an allocation with lots of spares. */
-  /* if the distribute fails, or if the code must restart from the parallel file system, clear the cache */
+  /* TODO: there is some risk here of cleaning the cache when we shouldn't
+   * if given a badly placed nodeset for a restart job step within an
+   * allocation with lots of spares. */
+  /* if the distribute fails, or if the code must restart from the parallel
+   * file system, clear the cache */
   if (rc != SCR_SUCCESS || scr_global_restart) {
+    /* clear the cache of all files */
     scr_cache_purge(scr_map);
     scr_dataset_id    = 0;
     scr_checkpoint_id = 0;
@@ -920,10 +940,12 @@ int SCR_Init()
     rc = scr_fetch_sync(scr_map, &fetch_attempted);
   }
 
-  /* TODO: there is some risk here of cleaning the cache when we shouldn't if given a badly placed nodeset
-     for a restart job step within an allocation with lots of spares. */
+  /* TODO: there is some risk here of cleaning the cache when we shouldn't
+   * if given a badly placed nodeset for a restart job step within an
+   * allocation with lots of spares. */
   /* if the fetch fails, lets clear the cache */
   if (rc != SCR_SUCCESS) {
+    /* clear the cache of all files */
     scr_cache_purge(scr_map);
     scr_dataset_id    = 0;
     scr_checkpoint_id = 0;
@@ -931,14 +953,17 @@ int SCR_Init()
 
   /* both the distribute and the fetch failed */
   if (rc != SCR_SUCCESS) {
-    /* if a fetch was attempted but we failed, print a warning */
+    /* if a fetch was attempted but failed, print a warning */
     if (scr_my_rank_world == 0 && fetch_attempted) {
-      scr_err("Failed to fetch checkpoint set into cache @ %s:%d", __FILE__, __LINE__);
+      scr_err("Failed to fetch checkpoint set into cache @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
     rc = SCR_SUCCESS;
   }
 
-  /* sync everyone before returning to ensure that subsequent calls to SCR functions are valid */
+  /* sync everyone before returning to ensure that subsequent
+   * calls to SCR functions are valid */
   MPI_Barrier(scr_comm_world);
 
   /* start the clocks for measuring the compute time and time of last checkpoint */
@@ -1006,12 +1031,12 @@ int SCR_Finalize()
     scr_log_finalize();
   }
 
-  /* free off the memory allocated for our redundancy descriptors */
+  /* free off the memory allocated for our descriptors */
   scr_storedescs_free();
   scr_groupdescs_free();
   scr_reddescs_free();
 
-  /* delete the cache descriptor and redundancy descriptor hashes */
+  /* delete the descriptor hashes */
   scr_hash_delete(scr_storedesc_hash);
   scr_hash_delete(scr_groupdesc_hash);
   scr_hash_delete(scr_reddesc_hash);
@@ -1049,7 +1074,9 @@ int SCR_Need_checkpoint(int* flag)
   /* say no if not initialized */
   if (! scr_initialized) {
     *flag = 0;
-    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
     return SCR_FAILURE;
   }
 
@@ -1059,7 +1086,8 @@ int SCR_Need_checkpoint(int* flag)
   /* assume we don't need to checkpoint */
   *flag = 0;
 
-  /* check whether a halt condition is active (don't halt, just be sure to return 1 in this case) */
+  /* check whether a halt condition is active (don't halt,
+   * just be sure to return 1 in this case) */
   if (!*flag && scr_bool_check_halt_and_decrement(SCR_TEST_BUT_DONT_HALT, 0)) {
     *flag = 1;
   }
@@ -1082,15 +1110,19 @@ int SCR_Need_checkpoint(int* flag)
       }
     }
 
-    /* check whether we can afford to checkpoint based on the max allowed checkpoint overhead, if set */
+    /* check whether we can afford to checkpoint based on the max allowed
+     * checkpoint overhead, if set */
     if (!*flag && scr_checkpoint_overhead > 0) {
-      /* TODO: could init the cost estimate via environment variable or stats from previous run */
+      /* TODO: could init the cost estimate via environment variable or
+       * stats from previous run */
       if (scr_time_checkpoint_count == 0) {
-        /* if we haven't taken a checkpoint, we need to take one in order to get a cost estimate */
+        /* if we haven't taken a checkpoint, we need to take one in order
+         * to get a cost estimate */
         *flag = 1;
       } else if (scr_time_checkpoint_count > 0) {
-        /* based on average time of checkpoint, current time, and time that last checkpoint ended,
-         * determine overhead of checkpoint if we took one right now */
+        /* based on average time of checkpoint, current time, and time
+         * that last checkpoint ended, determine overhead of checkpoint
+         * if we took one right now */
         double now = MPI_Wtime();
         double avg_cost = scr_time_checkpoint_total / (double) scr_time_checkpoint_count;
         double percent_cost = avg_cost / (now - scr_time_checkpoint_end + avg_cost) * 100.0;
@@ -1129,15 +1161,16 @@ int SCR_Start_checkpoint()
   
   /* bail out if not initialized -- will get bad results */
   if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
     return SCR_FAILURE;
   }
 
   /* bail out if user called Start_checkpoint twice without Complete_checkpoint in between */
   if (scr_in_output) {
-    scr_abort(-1,
-            "SCR_Complete_checkpoint must be called before SCR_Start_checkpoint is called again @ %s:%d",
-            __FILE__, __LINE__
+    scr_abort(-1, "SCR_Complete_checkpoint must be called before SCR_Start_checkpoint is called again @ %s:%d",
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1185,7 +1218,8 @@ int SCR_Start_checkpoint()
   int* dsets = NULL;
   scr_filemap_list_datasets(scr_map, &ndsets, &dsets);
 
-  /* lookup the number of checkpoints we're allowed to keep in the base for this checkpoint */
+  /* lookup the number of checkpoints we're allowed to keep in
+   * the base for this checkpoint */
   int size = 0;
   int store_index = scr_storedescs_index_from_base(c->base);
   if (store_index >= 0) {
@@ -1200,7 +1234,7 @@ int SCR_Start_checkpoint()
   for (i=0; i < ndsets; i++) {
     /* TODODSET: need to check whether this dataset is really a checkpoint */
 
-    /* if this checkpoint is not currently flushing, delete it */
+    /* get base for this checkpoint and increase count if it matches the target base */
     base = scr_reddesc_base_from_filemap(scr_map, dsets[i], scr_my_rank_world);
     if (base != NULL) {
       if (strcmp(base, c->base) == 0) {
@@ -1239,7 +1273,7 @@ int SCR_Start_checkpoint()
     /* wait for this checkpoint to complete its flush */
     scr_flush_async_wait(scr_map);
 
-    /* alright, this checkpoint is no longer flushing, so we can delete it now and continue on */
+    /* now checkpoint is no longer flushing, we can delete it and continue on */
     scr_cache_delete(scr_map, flushing);
     nckpts_base--;
   }
@@ -1268,7 +1302,6 @@ int SCR_Start_checkpoint()
       scr_dataset_set_cluster(dataset, scr_clustername);
     }
     scr_dataset_set_ckpt(dataset, scr_checkpoint_id);
-    /* TODO: record machine (cluster) name */
   }
   scr_hash_bcast(dataset, 0, scr_comm_world);
   scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
@@ -1303,7 +1336,9 @@ int SCR_Route_file(const char* file, char* newfile)
   
   /* bail out if not initialized -- will get bad results */
   if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
     return SCR_FAILURE;
   }
 
@@ -1348,7 +1383,7 @@ int SCR_Route_file(const char* file, char* newfile)
       scr_meta_set_origname(meta, name);
     } else {
       scr_err("Failed to build absolute path to %s @ %s:%d",
-              file, __FILE__, __LINE__
+        file, __FILE__, __LINE__
       );
     }
 
@@ -1380,15 +1415,16 @@ int SCR_Complete_checkpoint(int valid)
 
   /* bail out if not initialized -- will get bad results */
   if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
     return SCR_FAILURE;
   }
 
   /* bail out if there is no active call to Start_checkpoint */
   if (! scr_in_output) {
-    scr_abort(-1,
-            "SCR_Start_checkpoint must be called before SCR_Complete_checkpoint @ %s:%d",
-            __FILE__, __LINE__
+    scr_abort(-1, "SCR_Start_checkpoint must be called before SCR_Complete_checkpoint @ %s:%d",
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1459,7 +1495,7 @@ int SCR_Complete_checkpoint(int valid)
     double cost = scr_time_checkpoint_end - scr_time_checkpoint_start;
     if (cost < 0) {
       scr_err("Checkpoint end time (%f) is less than start time (%f) @ %s:%d",
-              scr_time_checkpoint_end, scr_time_checkpoint_start, __FILE__, __LINE__
+        scr_time_checkpoint_end, scr_time_checkpoint_start, __FILE__, __LINE__
       );
       cost = 0;
     }
@@ -1477,13 +1513,13 @@ int SCR_Complete_checkpoint(int valid)
       char dir[SCR_MAX_FILENAME];
       scr_cache_dir_get(c, scr_dataset_id, dir);
       scr_log_transfer("CHECKPOINT", c->base, dir, &scr_checkpoint_id,
-                       &scr_timestamp_checkpoint_start, &cost, &bytes_copied
+        &scr_timestamp_checkpoint_start, &cost, &bytes_copied
       );
     }
 
     /* print out a debug message with the result of the copy */
     scr_dbg(1, "Completed checkpoint %d with return code %d",
-            scr_checkpoint_id, rc
+      scr_checkpoint_id, rc
     );
   }
 
@@ -1510,7 +1546,7 @@ int SCR_Complete_checkpoint(int valid)
       /* not done yet, just print a progress message to the screen */
       if (scr_my_rank_world == 0) {
         scr_dbg(1, "Flush of dataset %d is %d%% complete",
-                scr_flush_async_dataset_id, (int) (bytes / scr_flush_async_bytes * 100.0)
+          scr_flush_async_dataset_id, (int) (bytes / scr_flush_async_bytes * 100.0)
         );
       }
     }

@@ -1,3 +1,7 @@
+2012-02-01 Adam Moody <moody20@llnl.gov>
+
+	* scr_util.c : Added scr_strdupf.
+
 2012-01-31 Adam Moody <moody20@llnl.gov>
 
 	* : split scr.c into component files and moved global variables to scr_globals.c
