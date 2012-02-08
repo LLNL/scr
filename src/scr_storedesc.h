@@ -23,8 +23,8 @@ Define store descriptor structure
 typedef struct {
   int      enabled;   /* flag indicating whether this descriptor is active */
   int      index;     /* each descriptor is indexed starting from 0 */
+  char*    name;      /* name of store */
   int      max_count; /* maximum number of datasets to be stored in device */
-  char*    base;      /* base directory holding storage */
   MPI_Comm comm;      /* communicator of processes that can access storage */
   int      rank;      /* local rank of process in communicator */
   int      ranks;     /* number of ranks in communicator */
@@ -42,11 +42,14 @@ int scr_storedesc_init(scr_storedesc* store);
 /* free any memory associated with the specified redundancy descriptor */
 int scr_storedesc_free(scr_storedesc* store);
 
-/* duplicate a store descriptor */
-int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in);
-
 /* build a store descriptor corresponding to the specified hash */
 int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* hash);
+
+/* create specified directory on store */
+int scr_storedesc_dir_create(const scr_storedesc* s, const char* dir);
+
+/* delete specified directory on store */
+int scr_storedesc_dir_delete(const scr_storedesc* s, const char* dir);
 
 /*
 =========================================
@@ -54,9 +57,11 @@ Routines that operate on scr_storedescs array
 =========================================
 */
 
-int scr_storedescs_index_from_base(const char* base);
+/* lookup index in scr_storedescs given a target name,
+ * returns -1 if not found */
+int scr_storedescs_index_from_name(const char* name);
 
-/* fill in scr_storedescs array */
+/* fill in scr_storedescs array from scr_storedescs_hash */
 int scr_storedescs_create();
 
 /* free scr_storedescs array */

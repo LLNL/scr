@@ -17,18 +17,28 @@ Dataset cache functions
 =========================================
 */
 
-/* returns name of the cache directory for a given redundancy descriptor and dataset id */
+static char* scr_cache_dir_build(const char* path, int id)
+{
+  char* dir = scr_strdupf("%s/dataset.%d", path, id);
+  return dir;
+}
+
+/* returns name of the cache directory for a given redundancy descriptor
+ * and dataset id */
 int scr_cache_dir_get(const scr_reddesc* red, int id, char* dir)
 {
   /* fatal error if c or c->directory is not set */
   if (red == NULL || red->directory == NULL) {
     scr_abort(-1, "NULL redundancy descriptor or NULL dataset directory @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
   }
 
   /* now build the checkpoint directory name */
-  sprintf(dir, "%s/dataset.%d", red->directory, id);
+  char* tmp = scr_cache_dir_build(red->directory, id);
+  strcpy(dir, tmp);
+  scr_free(&tmp);
+
   return SCR_SUCCESS;
 }
 
@@ -38,31 +48,29 @@ int scr_cache_dir_create(const scr_reddesc* red, int id)
 {
   int rc = SCR_SUCCESS;
 
-  /* get the index into scr_storedescs for this redundancy descriptor */
-  int store_index = red->store_index;
-
-  /* have the master rank on each node create the directory */
-  if (scr_storedescs[store_index].rank == 0) {
+  /* get store descriptor for this redudancy descriptor */
+  scr_storedesc* store = scr_reddesc_get_store(red);
+  if (store != NULL) {
     /* get the name of the checkpoint directory for the given id */
     char dir[SCR_MAX_FILENAME];
     scr_cache_dir_get(red, id, dir);
 
-    /* create the directory */
-    scr_dbg(2, "Creating dataset directory: %s", dir);
-    rc = scr_mkdir(dir, S_IRWXU);
-
-    /* check that we created the directory successfully, fatal error if not */
-    if (rc != SCR_SUCCESS) {
+    /* create directory on store */
+    if (scr_storedesc_dir_create(store, dir) != SCR_SUCCESS)
+    {
+      /* check that we created the directory successfully,
+       * fatal error if not */
       scr_abort(-1, "Failed to create dataset directory, aborting @ %s:%d",
-                __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
+  } else {
+    scr_abort(-1, "Invalid store descriptor @ %s:%d",
+      __FILE__, __LINE__
+    );
   }
 
-  /* force all tasks on the same node to wait to ensure the directory is ready before returning */
-  MPI_Barrier(scr_storedescs[store_index].comm);
-
-  return SCR_SUCCESS;
+  return rc;
 }
 
 /* remove all files associated with specified dataset */
@@ -90,12 +98,13 @@ int scr_cache_delete(scr_filemap* map, int id)
       /* get the filename */
       char* file = scr_hash_elem_key(file_elem); 
 
-      /* check file's crc value (monitor that cache hardware isn't corrupting files on us) */
+      /* check file's crc value (monitor that cache hardware isn't corrupting
+       * files on us) */
       if (scr_crc_on_delete) {
         /* TODO: if corruption, need to log */
         if (scr_compute_crc(map, id, rank, file) != SCR_SUCCESS) {
           scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
-                  file, __FILE__, __LINE__
+            file, __FILE__, __LINE__
           );
         }
       }
@@ -108,16 +117,21 @@ int scr_cache_delete(scr_filemap* map, int id)
   /* remove the cache directory for this dataset */
   char* base = scr_reddesc_base_from_filemap(map, id, scr_my_rank_world);
   char* dir  = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
-  int store_index = scr_storedescs_index_from_base(base);
-  if (store_index >= 0 && dir != NULL) {
-    /* force all tasks on the same device to wait before we delete the directory */
-    MPI_Barrier(scr_storedescs[store_index].comm);
+  int store_index = scr_storedescs_index_from_name(base);
+  if (store_index >= 0 && store_index < scr_nstoredescs && dir != NULL) {
+    /* build name of dataset directory */
+    char* dataset_dir = scr_cache_dir_build(dir, id);
 
     /* remove the dataset directory from cache */
-    if (scr_storedescs[store_index].rank == 0) {
-      scr_dbg(2, "Removing dataset directory: %s", dir);
-      rmdir(dir);
+    scr_storedesc* store = &scr_storedescs[store_index];
+    if (scr_storedesc_dir_delete(store, dataset_dir) != SCR_SUCCESS) {
+      scr_err("Failed to remove dataset directory: %s @ %s:%d",
+        dataset_dir, __FILE__, __LINE__
+      );
     }
+
+    /* free off dataset directory string */
+    scr_free(&dataset_dir);
   } else {
     /* TODO: abort! */
   }
@@ -136,9 +150,10 @@ int scr_cache_delete(scr_filemap* map, int id)
   return SCR_SUCCESS;
 }
 
-/* each process passes in an ordered list of dataset ids along with a current index,
- * this function identifies the next smallest id across all processes and returns
- * this id in current, it also updates index on processes as appropriate */
+/* each process passes in an ordered list of dataset ids along with a current
+ * index, this function identifies the next smallest id across all processes
+ * and returns this id in current, it also updates index on processes as
+ * appropriate */
 int scr_next_dataset(int ndsets, const int* dsets, int* index, int* current)
 {
   int dset_index = *index;
@@ -163,7 +178,8 @@ int scr_next_dataset(int ndsets, const int* dsets, int* index, int* current)
     }
     MPI_Allreduce(&id, &current_id, 1, MPI_INT, MPI_MIN, scr_comm_world);
 
-    /* if the current id matches our id, increment our index for the next iteration */
+    /* if the current id matches our id, increment our index for the next
+     * iteration */
     if (current_id == id) {
       dset_index++;
     }
@@ -176,7 +192,8 @@ int scr_next_dataset(int ndsets, const int* dsets, int* index, int* current)
   return SCR_SUCCESS;
 }
 
-/* given a filemap, a dataset, and a rank, unlink those files and remove them from the map */
+/* given a filemap, a dataset, and a rank, unlink those files and remove
+ * them from the map */
 int scr_unlink_rank(scr_filemap* map, int id, int rank)
 {
   /* delete each file and remove its metadata file */
@@ -216,7 +233,8 @@ int scr_cache_purge(scr_filemap* map)
   int* dsets;
   scr_filemap_list_datasets(map, &ndsets, &dsets);
 
-  /* TODO: also attempt to recover datasets which we were in the middle of flushing */
+  /* TODO: also attempt to recover datasets which we were in the
+   * middle of flushing */
   int current_id;
   int dset_index = 0;
   do {
@@ -285,7 +303,7 @@ int scr_cache_clean(scr_filemap* map)
         if (! scr_bool_have_file(map, dset, rank, file, scr_ranks_world)) {
             missing_file = 1;
             scr_dbg(1, "File is unreadable or incomplete: Dataset %d, Rank %d, File: %s",
-                    dset, rank, file
+              dset, rank, file
             );
         }
       }
@@ -311,12 +329,14 @@ int scr_cache_clean(scr_filemap* map)
         missing_file = 1;
       }
 
-      /* if we have all the files, set the expected file number in the keep_map */
+      /* if we have all the files, set the expected file number in the
+       * keep_map */
       if (! missing_file) {
         scr_filemap_set_expected_files(keep_map, dset, rank, expected_files);
       }
 
-      /* second time through, either add all files to keep_map or delete them all */
+      /* second time through, either add all files to keep_map or delete
+       * them all */
       for (file_elem = scr_filemap_first_file(map, dset, rank);
            file_elem != NULL;
            file_elem = scr_hash_elem_next(file_elem))
@@ -329,7 +349,7 @@ int scr_cache_clean(scr_filemap* map)
         if (missing_file) {
           /* inform user on what we're doing */
           scr_dbg(1, "Deleting file: Dataset %d, Rank %d, File: %s",
-                  dset, rank, file
+            dset, rank, file
           );
 
           /* delete the file */
@@ -349,7 +369,8 @@ int scr_cache_clean(scr_filemap* map)
     }
   }
 
-  /* clear our current map, merge the keep_map into it, and write the map to disk */
+  /* clear our current map, merge the keep_map into it,
+   * and write the map to disk */
   scr_filemap_clear(map);
   scr_filemap_merge(map, keep_map);
   scr_filemap_write(scr_map_file, map);
@@ -414,7 +435,7 @@ int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* f
   /* if no filename is given return false */
   if (file == NULL || strcmp(file,"") == 0) {
     scr_dbg(2, "File name is null or the empty string @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return 0;
   }
@@ -422,7 +443,7 @@ int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* f
   /* check that we can read the file */
   if (access(file, R_OK) < 0) {
     scr_dbg(2, "Do not have read access to file: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     return 0;
   }
@@ -433,7 +454,7 @@ int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* f
   /* check that we can read meta file for the file */
   if (scr_filemap_get_meta(map, dset, rank, file, meta) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read meta data for file: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     scr_meta_delete(meta);
     return 0;
@@ -442,7 +463,7 @@ int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* f
   /* check that the file is complete */
   if (scr_meta_is_complete(meta) != SCR_SUCCESS) {
     scr_dbg(2, "File is marked as incomplete: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     scr_meta_delete(meta);
     return 0;
@@ -512,14 +533,14 @@ int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* f
   unsigned long meta_size = 0;
   if (scr_meta_get_filesize(meta, &meta_size) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read filesize field in meta data: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     scr_meta_delete(meta);
     return 0;
   }
   if (size != meta_size) {
     scr_dbg(2, "Filesize is incorrect, currently %lu, expected %lu for %s @ %s:%d",
-            size, meta_size, file, __FILE__, __LINE__
+      size, meta_size, file, __FILE__, __LINE__
     );
     scr_meta_delete(meta);
     return 0;
@@ -577,7 +598,7 @@ int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
   uLong crc_file;
   if (scr_crc32(file, &crc_file) != SCR_SUCCESS) {
     scr_err("Failed to compute crc for file %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -586,7 +607,7 @@ int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
   scr_meta* meta = scr_meta_new();
   if (meta == NULL) {
     scr_abort(-1, "Failed to allocate meta data object @ %s:%d",
-              __FILE__, __LINE__
+      __FILE__, __LINE__
     );
   }
 
@@ -615,5 +636,3 @@ int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
 
   return rc;
 }
-
-

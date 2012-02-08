@@ -45,9 +45,6 @@ int scr_groupdesc_init(scr_groupdesc* d)
   d->comm         = MPI_COMM_NULL;
   d->rank         = MPI_PROC_NULL;
   d->ranks        = 0;
-  d->comm_across  = MPI_COMM_NULL;
-  d->rank_across  = MPI_PROC_NULL;
-  d->ranks_across = 0;
 
   return SCR_SUCCESS;
 }
@@ -63,18 +60,14 @@ int scr_groupdesc_free(scr_groupdesc* d)
     MPI_Comm_free(&d->comm);
   }
 
-  /* free the communicator we created */
-  if (d->comm_across != MPI_COMM_NULL) {
-    MPI_Comm_free(&d->comm_across);
-  }
-
   return SCR_SUCCESS;
 }
 
 /* split processes into groups who have matching strings */
 static int scr_split_by_string(const char* str, MPI_Comm* comm)
 {
-  /* determine the length of the maximum string (including terminating NULL character) */
+  /* determine the length of the maximum string
+   * (including terminating NULL character) */
   int str_len = strlen(str) + 1;
   int max_len;
   MPI_Allreduce(&str_len, &max_len, 1, MPI_INT, MPI_MAX, scr_comm_world);
@@ -102,7 +95,9 @@ static int scr_split_by_string(const char* str, MPI_Comm* comm)
   }
 
   /* receive all strings */
-  MPI_Allgather(tmp_str, max_len, MPI_CHAR, buf, max_len, MPI_CHAR, scr_comm_world);
+  MPI_Allgather(
+    tmp_str, max_len, MPI_CHAR, buf, max_len, MPI_CHAR, scr_comm_world
+  );
 
   /* search through strings until we find one that matches our own */
   int index = 0;
@@ -118,7 +113,8 @@ static int scr_split_by_string(const char* str, MPI_Comm* comm)
     index++;
   }
 
-  /* split comm world into subcommunicators based on the index of the first match */
+  /* split comm world into subcommunicators based on the index of
+   * the first match */
   MPI_Comm_split(scr_comm_world, index, 0, comm);
 
   /* free our temporary buffer of all strings */
@@ -132,7 +128,8 @@ static int scr_split_by_string(const char* str, MPI_Comm* comm)
 }
 
 /* build a group descriptor of all procs on the same node */
-int scr_groupdesc_create_by_str(scr_groupdesc* d, int index, const char* key, const char* value)
+int scr_groupdesc_create_by_str(
+  scr_groupdesc* d, int index, const char* key, const char* value)
 {
   /* initialize the descriptor */
   scr_groupdesc_init(d);
@@ -149,58 +146,8 @@ int scr_groupdesc_create_by_str(scr_groupdesc* d, int index, const char* key, co
   MPI_Comm_rank(d->comm, &d->rank);
   MPI_Comm_size(d->comm, &d->ranks);
 
-  /* Based on my group rank, create communicators consisting of all tasks at same group rank level */
-  MPI_Comm_split(scr_comm_world, d->rank, scr_my_rank_world, &d->comm_across);
-
-  /* find our position in the communicator */
-  MPI_Comm_rank(d->comm_across, &d->rank_across);
-  MPI_Comm_size(d->comm_across, &d->ranks_across);
-
   return SCR_SUCCESS;
 }
-
-#if 0
-  /* TODO: maybe a better way to identify processes on the same node?
-   * TODO: could improve scalability here using a parallel sort and prefix scan
-   * TODO: need something to work on systems with IPv6
-   * Assumes: same int(IP) ==> same node 
-   *   1. Get IP address as integer data type
-   *   2. Allgather IP addresses from all processes
-   *   3. Set color id to process with highest rank having the same IP */
-
-  /* get IP address as integer data type */
-  struct hostent *hostent;
-  hostent = gethostbyname(scr_my_hostname);
-  if (hostent == NULL) {
-    scr_err("Fetching host information: gethostbyname(%s) @ %s:%d",
-            scr_my_hostname, __FILE__, __LINE__
-    );
-    MPI_Abort(scr_comm_world, 0);
-  }
-  int host_id = (int) ((struct in_addr *) hostent->h_addr_list[0])->s_addr;
-
-  /* gather all host_id values */
-  int* host_ids = (int*) malloc(scr_ranks_world * sizeof(int));
-  if (host_ids == NULL) {
-    scr_err("Can't allocate memory to determine which processes are on the same node @ %s:%d",
-            __FILE__, __LINE__
-    );
-    MPI_Abort(scr_comm_world, 0);
-  }
-  MPI_Allgather(&host_id, 1, MPI_INT, host_ids, 1, MPI_INT, scr_comm_world);
-
-  /* set host_index to the highest rank having the same host_id as we do */
-  int host_index = 0;
-  for (i=0; i < scr_ranks_world; i++) {
-    if (host_ids[i] == host_id) {
-      host_index = i;
-    }
-  }
-  scr_free(&host_ids);
-
-  /* finally create the communicator holding all ranks on the same node */
-  MPI_Comm_split(scr_comm_world, host_index, scr_my_rank_world, &d->comm);
-#endif
 
 /*
 =========================================
@@ -208,17 +155,23 @@ Routines that operate on scr_groupdescs array
 =========================================
 */
 
+/* given a group name, return its index within scr_groupdescs array,
+ * returns -1 if not found */
 int scr_groupdescs_index_from_name(const char* name)
 {
+  /* assume we won't find the target name */
   int index = -1;
 
+  /* check that we got a name to lookup */
   if (name == NULL) {
     return index;
   }
 
+  /* iterate through our group descriptors until we find a match */
   int i;
   for (i = 0; i < scr_ngroupdescs; i++) {
     if (strcmp(name, scr_groupdescs[i].name) == 0) {
+      /* found a match, record its index and break */
       index = i;
       break;
     }
@@ -227,6 +180,8 @@ int scr_groupdescs_index_from_name(const char* name)
   return index;
 }
 
+/* given a group name, return pointer to groupdesc struct within
+ * scr_groupdescs array, returns NULL if not found */
 scr_groupdesc* scr_groupdescs_from_name(const char* name)
 {
   int index = scr_groupdescs_index_from_name(name);
@@ -236,13 +191,16 @@ scr_groupdesc* scr_groupdescs_from_name(const char* name)
   return &scr_groupdescs[index];
 }
 
+/* fill in scr_groupdescs array from scr_groupdescs_hash */
 int scr_groupdescs_create()
 {
   int i;
   int all_valid = 1;
 
   /* get groups defined for our hostname */
-  scr_hash* groups = scr_hash_get_kv(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, scr_my_hostname);
+  scr_hash* groups = scr_hash_get_kv(
+    scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, scr_my_hostname
+  );
 
   /* set the number of group descriptors,
    * we define one for all procs on the same node */
@@ -336,6 +294,7 @@ int scr_groupdescs_create()
   return SCR_SUCCESS;
 }
 
+/* free scr_groupdescs array */
 int scr_groupdescs_free()
 {
   /* iterate over and free each of our group descriptors */

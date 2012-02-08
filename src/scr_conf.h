@@ -30,6 +30,8 @@
 #define SCR_COPY_XOR     (4)
 #define SCR_COPY_FILE    (8)
 
+#define SCR_GROUP_NODE "NODE"
+
 /* whether SCR is enabled by default */
 #ifndef SCR_ENABLE
 #define SCR_ENABLE (1)
@@ -85,8 +87,8 @@
 #endif
 
 /* default hop distance */
-#ifndef SCR_HOP_DISTANCE
-#define SCR_HOP_DISTANCE (1)
+#ifndef SCR_GROUP
+#define SCR_GROUP (SCR_GROUP_NODE)
 #endif
 
 /* =========================================================================

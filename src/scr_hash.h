@@ -145,6 +145,7 @@ Define common hash key strings
 #define SCR_CONFIG_KEY_NAME       ("NAME")
 #define SCR_CONFIG_KEY_BASE       ("BASE")
 #define SCR_CONFIG_KEY_SIZE       ("SIZE")
+#define SCR_CONFIG_KEY_GROUP      ("GROUP")
 
 #define SCR_CONFIG_KEY_CKPTDESC   ("CKPTDESC")
 #define SCR_CONFIG_KEY_ENABLED    ("ENABLED")
@@ -152,8 +153,8 @@ Define common hash key strings
 #define SCR_CONFIG_KEY_INTERVAL   ("INTERVAL")
 #define SCR_CONFIG_KEY_DIRECTORY  ("DIRECTORY")
 #define SCR_CONFIG_KEY_TYPE       ("TYPE")
-#define SCR_CONFIG_KEY_HOP_DISTANCE ("HOP_DISTANCE")
-#define SCR_CONFIG_KEY_SET_SIZE     ("SET_SIZE")
+#define SCR_CONFIG_KEY_FAIL_GROUP ("FAIL_GROUP")
+#define SCR_CONFIG_KEY_SET_SIZE   ("SET_SIZE")
 #define SCR_CONFIG_KEY_GROUPS     ("GROUPS")
 #define SCR_CONFIG_KEY_GROUP_ID   ("GROUP_ID")
 #define SCR_CONFIG_KEY_GROUP_SIZE ("GROUP_SIZE")

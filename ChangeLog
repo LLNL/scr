@@ -1,3 +1,12 @@
+2012-02-07 Adam Moody <moody20@llnl.gov>
+
+	* scr_param.c : Added hash to return pointers to values returned from
+	getenv, return those values directly caused seg faults on cray
+	systems.
+
+	* scr_globals.c : Removed scr_hop_distance, added, scr_group, scr_comm_node,
+	and scr_comm_node_across.
+
 2012-02-01 Adam Moody <moody20@llnl.gov>
 
 	* scr_util.c : Added scr_strdupf.

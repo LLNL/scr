@@ -17,10 +17,14 @@ Distribute and file rebuild functions
 =========================================
 */
 
-/* since on a restart we may end up with more or fewer ranks on a node than the previous run,
- * rely on the master to read in and distribute the filemap to other ranks on the node */
+/* since on a restart we may end up with more or fewer ranks on a node than the
+ * previous run, rely on the master to read in and distribute the filemap to
+ * other ranks on the node */
 int scr_scatter_filemaps(scr_filemap* my_map)
 {
+  /* TODO: if the control directory is on a device shared by lots of procs,
+   * we should read and distribute this data in a more scalable way */
+
   /* allocate empty send hash */
   scr_hash* send_hash = scr_hash_new();
 
@@ -52,6 +56,9 @@ int scr_scatter_filemaps(scr_filemap* my_map)
       /* delete filemap */
       scr_filemap_delete(tmp_map);
 
+      /* TODO: note that if we fail after unlinking this file but before
+       * writing out the new file, we'll lose information */
+
       /* delete the file */
       unlink(file);
     }
@@ -64,16 +71,19 @@ int scr_scatter_filemaps(scr_filemap* my_map)
       scr_filemap_write(scr_map_file, all_map);
     }
 
-    /* get global rank of each rank on this node */
+    /* get global rank of each rank */
     int* ranks = (int*) malloc(scr_storedesc_cntl->ranks * sizeof(int));
     if (ranks == NULL) {
       scr_abort(-1,"Failed to allocate memory to record local rank list @ %s:%d",
          __FILE__, __LINE__
       );
     }
-    MPI_Gather(&scr_my_rank_world, 1, MPI_INT, ranks, 1, MPI_INT, 0, scr_storedesc_cntl->comm);
+    MPI_Gather(
+      &scr_my_rank_world, 1, MPI_INT, ranks, 1, MPI_INT,
+      0, scr_storedesc_cntl->comm
+    );
 
-    /* for each rank on this node, send them their own file data if we have it */
+    /* for each rank, send them their own file data if we have it */
     int i;
     for (i=0; i < scr_storedesc_cntl->ranks; i++) {
       int rank = ranks[i];
@@ -147,7 +157,10 @@ int scr_scatter_filemaps(scr_filemap* my_map)
     scr_hash_delete(hash);
   } else {
     /* send our global rank to the master */
-    MPI_Gather(&scr_my_rank_world, 1, MPI_INT, NULL, 1, MPI_INT, 0, scr_storedesc_cntl->comm);
+    MPI_Gather(
+      &scr_my_rank_world, 1, MPI_INT, NULL, 1, MPI_INT,
+      0, scr_storedesc_cntl->comm
+    );
   }
 
   /* receive our filemap from master */
@@ -185,7 +198,8 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
   int* ranks = NULL;
   scr_filemap_list_ranks_by_dataset(map, id, &nranks, &ranks);
 
-  /* for each rank we have files for, check whether we also have its dataset descriptor */
+  /* for each rank we have files for,
+   * check whether we also have its dataset descriptor */
   int invalid_rank_found = 0;
   int have_dset = 0;
   for (i=0; i < nranks; i++) {
@@ -195,7 +209,7 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
     /* check that the rank is within range */
     if (rank < 0 || rank >= scr_ranks_world) {
       scr_err("Invalid rank id %d in world of %d @ %s:%d",
-         rank, scr_ranks_world, __FILE__, __LINE__
+        rank, scr_ranks_world, __FILE__, __LINE__
       );
       invalid_rank_found = 1;
     }
@@ -204,7 +218,8 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
     scr_hash* desc = scr_hash_new();
     scr_filemap_get_dataset(map, id, rank, desc);
 
-    /* if this descriptor has entries, add it to our send hash, delete the hash otherwise */
+    /* if this descriptor has entries, add it to our send hash,
+     * delete the hash otherwise */
     if (scr_hash_size(desc) > 0) {
       have_dset = 1;
       scr_hash_merge(send_hash, desc);
@@ -248,7 +263,8 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
   scr_filemap_set_dataset(map, id, scr_my_rank_world, send_hash);
   scr_filemap_write(scr_map_file, map);
 
-  /* TODO: at this point, we could delete descriptors for other ranks for this checkpoint */
+  /* TODO: at this point, we could delete descriptors for other
+   * ranks for this checkpoint */
 
   /* free off our send hash */
   scr_hash_delete(send_hash);
@@ -257,7 +273,7 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
 }
 
 /* this transfers redundancy descriptors for the given dataset id */
-static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* c)
+static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* red)
 {
   int i;
 
@@ -269,7 +285,8 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* c)
   int* ranks = NULL;
   scr_filemap_list_ranks_by_dataset(map, id, &nranks, &ranks);
 
-  /* for each rank we have files for, check whether we also have its redundancy descriptor */
+  /* for each rank we have files for, check whether we also have
+   * its redundancy descriptor */
   int invalid_rank_found = 0;
   for (i=0; i < nranks; i++) {
     /* get the rank id */
@@ -278,7 +295,7 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* c)
     /* check that the rank is within range */
     if (rank < 0 || rank >= scr_ranks_world) {
       scr_err("Invalid rank id %d in world of %d @ %s:%d",
-         rank, scr_ranks_world, __FILE__, __LINE__
+        rank, scr_ranks_world, __FILE__, __LINE__
       );
       invalid_rank_found = 1;
     }
@@ -287,7 +304,8 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* c)
     scr_hash* desc = scr_hash_new();
     scr_filemap_get_desc(map, id, rank, desc);
 
-    /* if this descriptor has entries, add it to our send hash, delete the hash otherwise */
+    /* if this descriptor has entries, add it to our send hash,
+     * delete the hash otherwise */
     if (scr_hash_size(desc) > 0) {
       scr_hash_setf(send_hash, desc, "%d", rank);
     } else {
@@ -314,11 +332,14 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* c)
   if (! scr_alltrue(num_desc > 0)) {
     scr_hash_delete(recv_hash);
     scr_hash_delete(send_hash);
-    scr_dbg(2, "Cannot find process that has my redundancy descriptor @ %s:%d", __FILE__, __LINE__);
+    scr_dbg(2, "Cannot find process that has my redundancy descriptor @ %s:%d",
+      __FILE__, __LINE__
+    );
     return SCR_FAILURE;
   }
 
-  /* just go with the first redundancy descriptor in our list -- they should all be the same */
+  /* just go with the first redundancy descriptor in our list,
+   * they should all be the same */
   scr_hash_elem* desc_elem = scr_hash_elem_first(recv_hash);
   scr_hash* desc_hash = scr_hash_elem_hash(desc_elem);
 
@@ -326,10 +347,11 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* c)
   scr_filemap_set_desc(map, id, scr_my_rank_world, desc_hash);
   scr_filemap_write(scr_map_file, map);
 
-  /* TODO: at this point, we could delete descriptors for other ranks for this checkpoint */
+  /* TODO: at this point, we could delete descriptors for other
+   * ranks for this checkpoint */
 
-  /* read our redundancy descriptor from the map */
-  scr_reddesc_create_from_filemap(map, id, scr_my_rank_world, c);
+  /* create our redundancy descriptor struct from the map */
+  scr_reddesc_create_from_filemap(map, id, scr_my_rank_world, red);
 
   /* free off our send and receive hashes */
   scr_hash_delete(recv_hash);
@@ -338,8 +360,9 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* c)
   return SCR_SUCCESS;
 }
 
-/* this moves all files in the cache to make them accessible to new rank mapping */
-static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
+/* this moves all files in the cache to make them accessible
+ * to new rank mapping */
+static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id)
 {
   int i, round;
   int rc = SCR_SUCCESS;
@@ -352,9 +375,10 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
   int* ranks = NULL;
   scr_filemap_list_ranks_by_dataset(map, id, &nranks, &ranks);
 
-  /* walk backwards through the list of ranks, and set our start index to the rank which
-   * is the first rank that is equal to or higher than our own rank -- when we assign round
-   * ids below, this offsetting helps distribute the load */
+  /* walk backwards through the list of ranks, and set our start index
+   * to the rank which is the first rank that is equal to or higher
+   * than our own rank -- when we assign round ids below, this offsetting
+   * helps distribute the load */
   int start_index = 0;
   int invalid_rank_found = 0;
   for (i = nranks-1; i >= 0; i--) {
@@ -368,7 +392,7 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
     /* while we're at it, check that the rank is within range */
     if (rank < 0 || rank >= scr_ranks_world) {
       scr_err("Invalid rank id %d in world of %d @ %s:%d",
-         rank, scr_ranks_world, __FILE__, __LINE__
+        rank, scr_ranks_world, __FILE__, __LINE__
       );
       invalid_rank_found = 1;
     }
@@ -385,11 +409,12 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
   int* send_flag_by_round = (int*) malloc(sizeof(int) * nranks);
   if (have_rank_by_round == NULL || send_flag_by_round == NULL) {
     scr_abort(-1,"Failed to allocate memory to record rank id by round @ %s:%d",
-       __FILE__, __LINE__
+      __FILE__, __LINE__
     );
   }
 
-  /* check that we have all of the files for each rank, and determine the round we can send them */
+  /* check that we have all of the files for each rank,
+   * and determine the round we can send them */
   scr_hash* send_hash = scr_hash_new();
   scr_hash* recv_hash = scr_hash_new();
   for (round = 0; round < nranks; round++) {
@@ -403,7 +428,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
     /* assume we won't be sending to this rank in this round */
     send_flag_by_round[round] = 0;
 
-    /* if we have files for this rank, specify the round we can send those files in */
+    /* if we have files for this rank, specify the round we can
+     * send those files in */
     if (scr_bool_have_files(map, id, rank)) {
       scr_hash_setf(send_hash, NULL, "%d %d", rank, round);
     }
@@ -441,19 +467,24 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
   /* free off our list of ranks */
   scr_free(&ranks);
 
-  /* for some redundancy schemes, we know at this point whether we can recover all files */
+  /* for some redundancy schemes, we know at this point whether we
+   * can recover all files */
   int can_get_files = (retrieve_rank != -1);
-  if (c->copy_type != SCR_COPY_XOR && !scr_alltrue(can_get_files)) {
+  if (red->copy_type != SCR_COPY_XOR && !scr_alltrue(can_get_files)) {
     /* print a debug message indicating which rank is missing files */
     if (! can_get_files) {
-      scr_dbg(2, "Cannot find process that has my checkpoint files @ %s:%d", __FILE__, __LINE__);
+      scr_dbg(2, "Cannot find process that has my checkpoint files @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
     return SCR_FAILURE;
   }
 
   /* get the maximum retrieve round */
   int max_rounds = 0;
-  MPI_Allreduce(&retrieve_round, &max_rounds, 1, MPI_INT, MPI_MAX, scr_comm_world);
+  MPI_Allreduce(
+    &retrieve_round, &max_rounds, 1, MPI_INT, MPI_MAX, scr_comm_world
+  );
 
   /* tell destination which round we'll take our files in */
   send_hash = scr_hash_new();
@@ -488,7 +519,7 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
 
   /* get the path for this dataset */
   char dir[SCR_MAX_FILENAME];
-  scr_cache_dir_get(c, id, dir);
+  scr_cache_dir_get(red, id, dir);
 
   /* run through rounds and exchange files */
   for (round = 0; round <= max_rounds; round++) {
@@ -500,7 +531,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
 
     /* check whether I can potentially send to anyone in this round */
     if (round < nranks) {
-      /* have someone's files, check whether they are asking for them this round */
+      /* have someone's files, check whether they are asking
+       * for them this round */
       if (send_flag_by_round[round]) {
         /* need to send files this round, remember to whom and how many */
         int dst_rank = have_rank_by_round[round];
@@ -514,7 +546,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
       recv_rank = retrieve_rank;
     }
 
-    /* TODO: another special case is to just move files if the processes are on the same node */
+    /* TODO: another special case is to just move files if the
+     * processes are on the same node */
 
     /* if i'm sending to myself, just move (rename) each file */
     if (send_rank == scr_my_rank_world) {
@@ -549,9 +582,10 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
           scr_dbg(2, "Round %d: rename(%s, %s)", round, file, newfile);
           tmp_rc = rename(file, newfile);
           if (tmp_rc != 0) {
-            /* TODO: to cross mount points, if tmp_rc == EXDEV, open new file, copy, and delete orig */
+            /* TODO: to cross mount points, if tmp_rc == EXDEV,
+             * open new file, copy, and delete orig */
             scr_err("Moving checkpoint file: rename(%s, %s) %m errno=%d @ %s:%d",
-                    file, newfile, errno, __FILE__, __LINE__
+              file, newfile, errno, __FILE__, __LINE__
             );
             rc = SCR_FAILURE;
           }
@@ -565,7 +599,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
       /* free the list of filename pointers */
       scr_free(&files);
     } else {
-      /* if we have files for this round, but the correspdonding rank doesn't need them, delete the files */
+      /* if we have files for this round, but the correspdonding
+       * rank doesn't need them, delete the files */
       if (round < nranks && send_rank == MPI_PROC_NULL) {
         int dst_rank = have_rank_by_round[round];
         scr_unlink_rank(map, id, dst_rank);
@@ -583,28 +618,37 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
           have_incoming = 1;
         }
 
-        /* first, determine how many files I will be receiving and tell how many I will be sending */
+        /* first, determine how many files I will be receiving and
+         * tell how many I will be sending */
         MPI_Request request[2];
         MPI_Status  status[2];
         int num_req = 0;
         if (have_incoming) {
-          MPI_Irecv(&recv_num, 1, MPI_INT, recv_rank, 0, scr_comm_world, &request[num_req]);
+          MPI_Irecv(
+            &recv_num, 1, MPI_INT, recv_rank, 0,
+            scr_comm_world, &request[num_req]
+          );
           num_req++;
         }
         if (have_outgoing) {
-          MPI_Isend(&send_num, 1, MPI_INT, send_rank, 0, scr_comm_world, &request[num_req]);
+          MPI_Isend(
+            &send_num, 1, MPI_INT, send_rank, 0,
+            scr_comm_world, &request[num_req]
+          );
           num_req++;
         }
         if (num_req > 0) {
           MPI_Waitall(num_req, request, status);
         }
 
-        /* record how many files I will receive (need to distinguish between 0 files and not knowing) */
+        /* record how many files I will receive (need to distinguish
+         * between 0 files and not knowing) */
         if (have_incoming) {
           scr_filemap_set_expected_files(map, id, scr_my_rank_world, recv_num);
         }
 
-        /* turn off send or receive flags if the file count is 0, nothing else to do */
+        /* turn off send or receive flags if the file count is 0,
+         * nothing else to do */
         if (send_num == 0) {
           have_outgoing = 0;
           send_rank = MPI_PROC_NULL;
@@ -634,11 +678,13 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
 
           /* exhange file names with partners */
           char file_partner[SCR_MAX_FILENAME];
-          scr_swap_file_names(file, send_rank, file_partner, sizeof(file_partner), recv_rank,
-                              dir, scr_comm_world
+          scr_swap_file_names(
+            file, send_rank, file_partner, sizeof(file_partner), recv_rank,
+            dir, scr_comm_world
           );
 
-          /* if we'll receive a file, record the name of our file in the filemap and write it to disk */
+          /* if we'll receive a file, record the name of our file
+           * in the filemap and write it to disk */
           scr_meta* recv_meta = NULL;
           if (recv_rank != MPI_PROC_NULL) {
             recv_meta = scr_meta_new();
@@ -648,8 +694,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
 
           /* either sending or receiving a file this round, since we move files,
            * it will be deleted or overwritten */
-          if (scr_swap_files(MOVE_FILES, file, send_meta, send_rank, file_partner, recv_meta, recv_rank, scr_comm_world)
-                != SCR_SUCCESS)
+          if (scr_swap_files(MOVE_FILES, file, send_meta, send_rank,
+              file_partner, recv_meta, recv_rank, scr_comm_world) != SCR_SUCCESS)
           {
             scr_err("Swapping files: %s to %d, %s from %d @ %s:%d",
                     file, send_rank, file_partner, recv_rank, __FILE__, __LINE__
@@ -657,7 +703,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
             rc = SCR_FAILURE;
           }
 
-          /* if we received a file, record its meta data and decrement our receive count */
+          /* if we received a file, record its meta data and decrement
+           * our receive count */
           if (have_incoming) {
             /* record meta data for the file we received */
             scr_filemap_set_meta(map, id, scr_my_rank_world, file_partner, recv_meta);
@@ -671,7 +718,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
             }
           }
 
-          /* if we sent a file, remove it from the filemap and decrement our send count */
+          /* if we sent a file, remove it from the filemap and decrement
+           * our send count */
           if (have_outgoing) {
             /* remove file from the filemap */
             scr_filemap_remove_file(map, id, send_rank, file);
@@ -711,10 +759,11 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* c, int id)
   /* clean out any incomplete files */
   scr_cache_clean(map);
 
-  /* TODO: if the exchange or redundancy rebuild failed, we should also delete any *good* files we received */
+  /* TODO: if the exchange or redundancy rebuild failed,
+   * we should also delete any *good* files we received */
 
-  /* return whether distribute succeeded, it does not ensure we have all of our files,
-   * only that the transfer completed without failure */
+  /* return whether distribute succeeded, it does not ensure we have
+   * all of our files, only that the transfer completed without failure */
   return rc;
 }
 
@@ -732,7 +781,8 @@ int scr_cache_rebuild(scr_filemap* map)
     time_start = MPI_Wtime();
   }
 
-  /* we set this variable to 1 if we actually try to distribute files for a restart */
+  /* we set this variable to 1 if we actually try to distribute
+   * files for a restart */
   int distribute_attempted = 0;
 
   /* clean any incomplete files from our cache */
@@ -745,7 +795,8 @@ int scr_cache_rebuild(scr_filemap* map)
 
   /* TODO: put dataset selection logic into a function */
 
-  /* TODO: also attempt to recover datasets which we were in the middle of flushing */
+  /* TODO: also attempt to recover datasets which we were in the
+   * middle of flushing */
   int current_id;
   int dset_index = 0;
   do {
@@ -771,16 +822,16 @@ int scr_cache_rebuild(scr_filemap* map)
       int rebuild_succeeded = 0;
       if (scr_distribute_datasets(map, current_id) == SCR_SUCCESS) {
         /* distribute redundancy descriptor for this dataset */
-        scr_reddesc c;
-        if (scr_distribute_reddescs(map, current_id, &c) == SCR_SUCCESS) {
+        scr_reddesc reddesc;
+        if (scr_distribute_reddescs(map, current_id, &reddesc) == SCR_SUCCESS) {
           /* create a directory for this dataset */
-          scr_cache_dir_create(&c, current_id);
+          scr_cache_dir_create(&reddesc, current_id);
 
           /* distribute the files for this dataset */
-          scr_distribute_files(map, &c, current_id);
+          scr_distribute_files(map, &reddesc, current_id);
 
           /* rebuild files for this dataset */
-          int tmp_rc = scr_reddesc_recover(map, &c, current_id);
+          int tmp_rc = scr_reddesc_recover(map, &reddesc, current_id);
           if (tmp_rc == SCR_SUCCESS) {
             /* rebuild succeeded */
             rebuild_succeeded = 1;
@@ -802,18 +853,19 @@ int scr_cache_rebuild(scr_filemap* map)
             /* update our flush file to indicate this dataset is in cache */
             scr_flush_file_location_set(current_id, SCR_FLUSH_KEY_LOCATION_CACHE);
 
-            /* TODO: if storing flush file in control directory on each node, if we find
-             * any process that has marked the dataset as flushed, marked it as flushed
-             * in every flush file */
+            /* TODO: if storing flush file in control directory on each node,
+             * if we find any process that has marked the dataset as flushed,
+             * marked it as flushed in every flush file */
 
-            /* TODO: would like to restore flushing status to datasets that were in the middle of a flush,
-             * but we need to better manage the transfer file to do this, so for now just forget about flushing
-             * this dataset */
+            /* TODO: would like to restore flushing status to datasets that
+             * were in the middle of a flush, but we need to better manage
+             * the transfer file to do this, so for now just forget about
+             * flushing this dataset */
             scr_flush_file_location_unset(current_id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
           }
 
           /* free redundancy descriptor */
-          scr_reddesc_free(&c);
+          scr_reddesc_free(&reddesc);
         }
       }
 
@@ -851,7 +903,7 @@ int scr_cache_rebuild(scr_filemap* map)
     if (distribute_attempted) {
       if (rc == SCR_SUCCESS) {
         scr_dbg(1, "Scalable restart succeeded for checkpoint %d, took %f secs",
-                scr_checkpoint_id, time_diff
+          scr_checkpoint_id, time_diff
         );
         if (scr_log_enable) {
           scr_log_event("RESTART SUCCEEDED", NULL, &scr_checkpoint_id, &time_t_start, &time_diff);

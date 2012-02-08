@@ -402,9 +402,11 @@ static int scr_get_params()
     scr_set_size = atoi(value);
   }
 
-  /* number of nodes between partners */
-  if ((value = scr_param_get("SCR_HOP_DISTANCE")) != NULL) {
-    scr_hop_distance = atoi(value);
+  /* specify the group name to protect failures */
+  if ((value = scr_param_get("SCR_GROUP")) != NULL) {
+    scr_group = strdup(value);
+  } else {
+    scr_group = strdup(SCR_GROUP);
   }
 
   /* fill in a hash of redundancy descriptors */
@@ -412,21 +414,21 @@ static int scr_get_params()
   if (scr_copy_type == SCR_COPY_SINGLE) {
     /* fill in info for one SINGLE checkpoint */
     tmp = scr_hash_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,         scr_cache_base);
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,         "SINGLE");
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,     scr_cache_base);
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "SINGLE");
   } else if (scr_copy_type == SCR_COPY_PARTNER) {
     /* fill in info for one PARTNER checkpoint */
     tmp = scr_hash_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,         scr_cache_base);
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,         "PARTNER");
-    scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_HOP_DISTANCE, scr_hop_distance);
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,     scr_cache_base);
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "PARTNER");
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_GROUP,    scr_group);
   } else if (scr_copy_type == SCR_COPY_XOR) {
     /* fill in info for one XOR checkpoint */
     tmp = scr_hash_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,         scr_cache_base);
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,         "XOR");
-    scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_HOP_DISTANCE, scr_hop_distance);
-    scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_SET_SIZE,     scr_set_size);
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,     scr_cache_base);
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "XOR");
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_GROUP,    scr_group);
+    scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_SET_SIZE, scr_set_size);
   } else {
     /* read info from our configuration files */
     tmp = scr_param_get_hash(SCR_CONFIG_KEY_CKPTDESC);
@@ -739,6 +741,24 @@ int SCR_Init()
     }
   }
 
+  /* if we're using containers we need two other communicators during each flush,
+   * one contains all procs on each node, and one contains all procs that have the
+   * same rank per node */
+  scr_groupdesc* groupdesc_node = scr_groupdescs_from_name(SCR_GROUP_NODE);
+  if (groupdesc_node != NULL) {
+    /* just dup the communicator from the NODE group */
+    MPI_Comm_dup(groupdesc_node->comm, &scr_comm_node);
+
+    /* then split comm_world by our rank within this comm */
+    int rank_node;
+    MPI_Comm_rank(scr_comm_node, &rank_node);
+    MPI_Comm_split(scr_comm_world, rank_node, scr_my_rank_world, &scr_comm_node_across);
+  } else {
+    scr_err("Failed to create communicator for procs on each node @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* register this job in the logging database */
   if (scr_my_rank_world == 0 && scr_log_enable) {
     if (scr_username != NULL && scr_jobname != NULL) {
@@ -769,19 +789,12 @@ int SCR_Init()
   }
 
   /* the master of each storage device creates the control directory */
-  if (scr_storedesc_cntl->rank == 0) {
-    scr_dbg(2, "Creating control directory: %s", scr_cntl_prefix);
-    if (scr_mkdir(scr_cntl_prefix, S_IRWXU | S_IRWXG) != SCR_SUCCESS) {
-      scr_abort(-1, "Failed to create control directory: %s @ %s:%d",
-        scr_cntl_prefix, __FILE__, __LINE__
-      );
-    }
-    /* TODO: open permissions to control directory so others (admins) can halt the job? */
-    /*
-    mode_t mode = umask(0000);
-    scr_mkdir(scr_cntl_prefix, S_IRWXU | S_IRWXG | S_IRWXO);
-    umask(mode);
-    */
+  if (scr_storedesc_dir_create(scr_storedesc_cntl, scr_cntl_prefix)
+      != SCR_SUCCESS)
+  {
+    scr_abort(-1, "Failed to create control directory: %s @ %s:%d",
+      scr_cntl_prefix, __FILE__, __LINE__
+    );
   }
 
   /* TODO: should we check for access and required space in cache directory at this point? */
@@ -790,15 +803,21 @@ int SCR_Init()
   for (i=0; i < scr_nreddescs; i++) {
     /* TODO: if checkpoints can be enabled at run time,
      * we'll need to create them all up front */
-    if (scr_reddescs[i].enabled) {
-      int store_index = scr_reddescs[i].store_index;
-      if (scr_storedescs[store_index].rank == 0) {
-        scr_dbg(2, "Creating cache directory: %s", scr_reddescs[i].directory);
-        if (scr_mkdir(scr_reddescs[i].directory, S_IRWXU | S_IRWXG) != SCR_SUCCESS) {
+    scr_reddesc* reddesc = &scr_reddescs[i];
+    if (reddesc->enabled) {
+      scr_storedesc* store = scr_reddesc_get_store(reddesc);
+      if (store != NULL) {
+        if (scr_storedesc_dir_create(store, reddesc->directory)
+            != SCR_SUCCESS)
+        {
           scr_abort(-1, "Failed to create cache directory: %s @ %s:%d",
-            scr_reddescs[i].directory, __FILE__, __LINE__
+            reddesc->directory, __FILE__, __LINE__
           );
         }
+      } else {
+        scr_abort(-1, "Invalid store for redundancy descriptor @ %s:%d",
+          __FILE__, __LINE__
+        );
       }
     }
   }
@@ -814,9 +833,11 @@ int SCR_Init()
   scr_build_path(scr_nodes_file, sizeof(scr_nodes_file), scr_par_prefix, "nodes.scr");
 
   /* build the file names using the control directory prefix */
-  sprintf(scr_map_file,        "%s/filemap_%d.scrinfo", scr_cntl_prefix, scr_storedesc_cntl->rank);
-  sprintf(scr_master_map_file, "%s/filemap.scrinfo",    scr_cntl_prefix);
-  sprintf(scr_transfer_file,   "%s/transfer.scrinfo",   scr_cntl_prefix);
+  scr_map_file = scr_strdupf("%s/filemap_%d.scrinfo",
+    scr_cntl_prefix, scr_storedesc_cntl->rank
+  );
+  scr_master_map_file = scr_strdupf("%s/filemap.scrinfo",  scr_cntl_prefix);
+  scr_transfer_file   = scr_strdupf("%s/transfer.scrinfo", scr_cntl_prefix);
 
   /* TODO: continue draining a checkpoint if one is in progress from the previous run,
    * for now, just delete the transfer file so we'll start over from scratch */
@@ -826,17 +847,16 @@ int SCR_Init()
 
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
   /* record the number of nodes being used in this job to the nodes file */
-  scr_groupdesc* groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
-  if (groupdesc != NULL) {
-    int num_nodes = 0;
-    int ranks_across_nodes = groupdesc->ranks_across;
-    MPI_Allreduce(&ranks_across_nodes, &num_nodes, 1, MPI_INT, MPI_MAX, scr_comm_world);
-    if (scr_my_rank_world == 0) {
-      scr_hash* nodes_hash = scr_hash_new();
-      scr_hash_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);
-      scr_hash_write(scr_nodes_file, nodes_hash);
-      scr_hash_delete(nodes_hash);
-    }
+  int ranks_across;
+  MPI_Comm_size(scr_comm_node_across, &ranks_across);
+
+  int num_nodes;
+  MPI_Allreduce(&ranks_across, &num_nodes, 1, MPI_INT, MPI_MAX, scr_comm_world);
+  if (scr_my_rank_world == 0) {
+    scr_hash* nodes_hash = scr_hash_new();
+    scr_hash_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);
+    scr_hash_write(scr_nodes_file, nodes_hash);
+    scr_hash_delete(nodes_hash);
   }
 
   /* initialize halt info before calling scr_bool_check_halt_and_decrement
@@ -1045,15 +1065,25 @@ int SCR_Finalize()
   scr_filemap_delete(scr_map);
 
   /* free off the library's communicators */
-  MPI_Comm_free(&scr_comm_world);
+  if (scr_comm_node_across != MPI_COMM_NULL) {
+    MPI_Comm_free(&scr_comm_node_across);
+  }
+  if (scr_comm_node != MPI_COMM_NULL) {
+    MPI_Comm_free(&scr_comm_node);
+  }
+  if (scr_comm_world != MPI_COMM_NULL) {
+    MPI_Comm_free(&scr_comm_world);
+  }
 
   /* free memory allocated for variables */
   scr_free(&scr_username);
   scr_free(&scr_jobid);
   scr_free(&scr_jobname);
   scr_free(&scr_clustername);
-
-  /* free off the memory we allocated for our cntl prefix */
+  scr_free(&scr_group);
+  scr_free(&scr_transfer_file);
+  scr_free(&scr_master_map_file);
+  scr_free(&scr_map_file);
   scr_free(&scr_cntl_prefix);
 
   /* we're no longer in an initialized state */
@@ -1221,7 +1251,7 @@ int SCR_Start_checkpoint()
   /* lookup the number of checkpoints we're allowed to keep in
    * the base for this checkpoint */
   int size = 0;
-  int store_index = scr_storedescs_index_from_base(c->base);
+  int store_index = scr_storedescs_index_from_name(c->base);
   if (store_index >= 0) {
     size = scr_storedescs[store_index].max_count;
   }

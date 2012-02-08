@@ -217,6 +217,7 @@ static int scr_flush_create_dirs(const scr_hash* file_list)
     /* select leaders */
     GCS_Select_leaders_strings((void*) dirs, count, leaders, scr_comm_world);
 
+    /* TODO: may need flow control here */
     /* have leaders issue mkdir */
     int success = 1;
     for (i = 0; i < count; i++) {
@@ -296,11 +297,9 @@ static int scr_flush_identify_containers(scr_hash* file_list)
 {
   int rc = SCR_SUCCESS;
 
-  /* get the group descriptor for processes on the same node */
-  const scr_groupdesc* d = scr_groupdescs_from_name(SCR_GROUP_NODE);
-  if (d == NULL) {
-    return SCR_FAILURE;
-  }
+  /* get our rank on the node */
+  int rank_node;
+  MPI_Comm_rank(scr_comm_node, &rank_node);
 
   /* get the maximum container size */
   unsigned long container_size = scr_container_size;
@@ -336,12 +335,12 @@ static int scr_flush_identify_containers(scr_hash* file_list)
 
   /* compute total number of bytes we need to write on the node */
   unsigned long local_bytes;
-  MPI_Reduce(&my_bytes, &local_bytes, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, d->comm);
+  MPI_Reduce(&my_bytes, &local_bytes, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, scr_comm_node);
 
   /* compute offset for each node */
   unsigned long local_offset = 0;
-  if (d->rank == 0) {
-    MPI_Scan(&local_bytes, &local_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, d->comm_across);
+  if (rank_node == 0) {
+    MPI_Scan(&local_bytes, &local_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_node_across);
     local_offset -= local_bytes;
   }
 
@@ -350,7 +349,7 @@ static int scr_flush_identify_containers(scr_hash* file_list)
    * which contains the offset for the node */
   unsigned long my_offset = 0;
   local_offset += my_bytes;
-  MPI_Scan(&local_offset, &my_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, d->comm);
+  MPI_Scan(&local_offset, &my_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_node);
   my_offset -= my_bytes;
 
   /* compute offset for each file on this process */

@@ -27,9 +27,6 @@ typedef struct {
   MPI_Comm comm;         /* communicator of processes in same group */
   int      rank;         /* local rank of process in communicator */
   int      ranks;        /* number of ranks in communicator */
-  MPI_Comm comm_across;  /* communicator of processes across groups */
-  int      rank_across;  /* local rank of process in communicator */
-  int      ranks_across; /* number of ranks in communicator */
 } scr_groupdesc;
 
 /*
@@ -50,11 +47,15 @@ Routines that operate on scr_groupdescs array
 =========================================
 */
 
+/* given a group name, return its index within scr_groupdescs array,
+ * returns -1 if not found */
 int scr_groupdescs_index_from_name(const char* name);
 
+/* given a group name, return pointer to groupdesc struct within
+ * scr_groupdescs array, returns NULL if not found */
 scr_groupdesc* scr_groupdescs_from_name(const char* name);
 
-/* fill in scr_groupdescs array */
+/* fill in scr_groupdescs array from scr_groupdescs_hash */
 int scr_groupdescs_create();
 
 /* free scr_groupdescs array */

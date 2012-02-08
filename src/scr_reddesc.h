@@ -23,13 +23,13 @@ Define redundancy descriptor structure
 typedef struct {
   int      enabled;           /* flag indicating whether this descriptor is active */
   int      index;             /* each descriptor is indexed starting from 0 */
-  int      interval;          /* how often to apply this descriptor, pick largest such that interval evenly divides checkpoint id */
+  int      interval;          /* how often to apply this descriptor, pick largest such
+                               * that interval evenly divides checkpoint id */
   int      store_index;       /* index into scr_storedesc for storage descriptor */
+  int      group_index;       /* index into scr_groupdesc for failure group */
   char*    base;              /* base cache directory to use */
   char*    directory;         /* full directory base/dataset.id */
   int      copy_type;         /* redundancy scheme to apply */
-  char*    group_name;        /* name of process group */
-  int      hop_distance;      /* hop distance associated with redundancy scheme */
   int      set_size;          /* set size of redundancy scheme */
   MPI_Comm comm;              /* communicator holding procs for this scheme */
   int      groups;            /* number of redundancy sets */
@@ -57,31 +57,37 @@ int scr_reddesc_init(scr_reddesc* c);
 int scr_reddesc_free(scr_reddesc* c);
 
 /* given a checkpoint id and a list of redundancy descriptors,
- * select and return a pointer to a descriptor for the specified checkpoint id */
+ * select and return a pointer to a descriptor for the 
+ * specified checkpoint id */
 scr_reddesc* scr_reddesc_for_checkpoint(int id, int nckpts, scr_reddesc* ckpts);
 
 /* convert the specified redundancy descritpor into a corresponding hash */
 int scr_reddesc_store_to_hash(const scr_reddesc* c, scr_hash* hash);
 
 /* build a redundancy descriptor corresponding to the specified hash,
- * this function is collective, because it issues MPI calls */
+ * this function is collective */
 int scr_reddesc_create_from_hash(scr_reddesc* c, int index, const scr_hash* hash);
 
-/* many times we just need the directory for the checkpoint,
- * it's overkill to create the whole descriptor each time */
+/* build a redundancy descriptor from its corresponding hash stored
+ * in the filemap, this function is collective */
+int scr_reddesc_create_from_filemap(scr_filemap* map, int id, int rank, scr_reddesc* c);
+
+/* many times we just need a string value from the descriptor
+ * stored in the filemap, it's overkill to create the whole
+ * descriptor each time, returns a newly allocated string */
 char* scr_reddesc_val_from_filemap(scr_filemap* map, int ckpt, int rank, char* name);
 
-/* many times we just need the directory for the checkpoint,
- * it's overkill to create the whole descripter each time */
+/* read base directory from descriptor stored in filemap,
+ * returns a newly allocated string */
 char* scr_reddesc_base_from_filemap(scr_filemap* map, int ckpt, int rank);
 
-/* many times we just need the directory for the checkpoint,
- * it's overkill to create the whole descripter each time */
+/* read directory from descriptor stored in filemap,
+ * returns a newly allocated string */
 char* scr_reddesc_dir_from_filemap(scr_filemap* map, int ckpt, int rank);
 
-/* build a redundancy descriptor from its corresponding hash stored in the filemap,
- * this function is collective */
-int scr_reddesc_create_from_filemap(scr_filemap* map, int id, int rank, scr_reddesc* c);
+/* return pointer to store descriptor associated with redundancy
+ * descriptor, returns NULL if reddesc or storedesc is not enabled */
+scr_storedesc* scr_reddesc_get_store(const scr_reddesc* desc);
 
 /*
 =========================================
@@ -89,8 +95,10 @@ Routines that operate on scr_reddescs array
 =========================================
 */
 
+/* create scr_reddescs array from scr_reddescs_hash */
 int scr_reddescs_create();
 
+/* free scr_reddescs array */
 int scr_reddescs_free();
 
 #endif

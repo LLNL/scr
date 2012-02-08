@@ -37,8 +37,8 @@ int scr_storedesc_init(scr_storedesc* s)
   /* initialize the descriptor */
   s->enabled   =  0;
   s->index     = -1;
+  s->name      = NULL;
   s->max_count = 0;
-  s->base      = NULL;
   s->comm      = MPI_COMM_NULL;
   s->rank      = MPI_PROC_NULL;
   s->ranks     = 0;
@@ -50,7 +50,7 @@ int scr_storedesc_init(scr_storedesc* s)
 int scr_storedesc_free(scr_storedesc* s)
 {
   /* free the strings we strdup'd */
-  scr_free(&s->base);
+  scr_free(&s->name);
 
   /* free the communicator we created */
   if (s->comm != MPI_COMM_NULL) {
@@ -60,7 +60,8 @@ int scr_storedesc_free(scr_storedesc* s)
   return SCR_SUCCESS;
 }
 
-int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
+/* make full copy of a store descriptor */
+static int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
 {
   /* check that we got valid store descriptors */
   if (out == NULL || in == NULL) {
@@ -73,8 +74,8 @@ int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
   /* duplicate values from input descriptor */
   out->enabled   = in->enabled;
   out->index     = in->index;
+  out->name      = strdup(in->name);
   out->max_count = in->max_count;
-  out->base      = strdup(in->base);
   MPI_Comm_dup(in->comm, &out->comm);
   out->rank      = in->rank;
   out->ranks     = in->ranks;
@@ -91,7 +92,7 @@ int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* 
   /* check that we got a valid descriptor */
   if (s == NULL) {
     scr_err("No store descriptor to fill from hash @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     rc = SCR_FAILURE;
   }
@@ -99,7 +100,7 @@ int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* 
   /* check that we got a valid pointer to a hash */
   if (hash == NULL) {
     scr_err("No hash specified to build store descriptor from @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     rc = SCR_FAILURE;
   }
@@ -126,9 +127,11 @@ int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* 
 
   /* index of the descriptor */
   s->index = index;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_INDEX);
+
+  /* set the base directory */
+  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_BASE);
   if (value != NULL) {
-    s->index = atoi(value);
+    s->name = strdup(value);
   }
 
   /* set the max count, default to scr_cache_size unless specified otherwise */
@@ -136,12 +139,6 @@ int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* 
   value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_COUNT);
   if (value != NULL) {
     s->max_count = atoi(value);
-  }
-
-  /* set the base directory */
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_BASE);
-  if (value != NULL) {
-    s->base = strdup(value);
   }
 
   /* TODO: use FGFS eventually, for now we assume node-local storage */
@@ -165,23 +162,91 @@ int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* 
   return SCR_SUCCESS;
 }
 
+/* create specified directory on store */
+int scr_storedesc_dir_create(const scr_storedesc* store, const char* dir)
+{
+  /* verify that we have a valid store descriptor and directory name */
+  if (store == NULL || dir == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* return with failure if this store is disabled */
+  if (! store->enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* rank 0 creates the directory */
+  int rc = SCR_SUCCESS;
+  if (store->rank == 0) {
+    scr_dbg(2, "Creating directory: %s", dir);
+    rc = scr_mkdir(dir, S_IRWXU | S_IRWXG);
+  }
+
+  /* broadcast return code from rank zero to other ranks */
+  MPI_Bcast(&rc, 1, MPI_INT, 0, store->comm);
+
+  return rc;
+}
+
+/* delete specified directory from store */
+int scr_storedesc_dir_delete(const scr_storedesc* store, const char* dir)
+{
+  /* verify that we have a valid store descriptor and directory name */
+  if (store == NULL || dir == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* return with failure if this store is disabled */
+  if (! store->enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* barrier to ensure all procs are ready before we delete */
+  MPI_Barrier(store->comm);
+
+  /* rank 0 deletes the directory */
+  int rc = SCR_SUCCESS;
+  if (store->rank == 0) {
+    /* delete directory */
+    int tmp_rc = rmdir(dir);
+    if (tmp_rc != 0) {
+      /* whoops, something failed when we tried to delete our directory */
+      rc = SCR_FAILURE;
+      scr_err("Error deleting directory: %s (rmdir returned %d %m) %s:%d",
+        dir, tmp_rc, __FILE__, __LINE__
+      );
+    }
+  }
+
+  /* broadcast return code from rank zero to other ranks */
+  MPI_Bcast(&rc, 1, MPI_INT, 0, store->comm);
+
+  return rc;
+}
+
 /*
 =========================================
 Routines that operate on scr_storedescs array
 =========================================
 */
 
-int scr_storedescs_index_from_base(const char* base)
+/* lookup index in scr_storedescs given a target name,
+ * returns -1 if not found */
+int scr_storedescs_index_from_name(const char* name)
 {
+  /* assume we won't find a match */
   int index = -1;
 
-  if (base == NULL) {
+  /* check that we're given a name */
+  if (name == NULL) {
     return index;
   }
 
+  /* search through the scr_storedescs looking for a match */
   int i;
   for (i = 0; i < scr_nstoredescs; i++) {
-    if (strcmp(base, scr_storedescs[i].base) == 0) {
+    if (strcmp(name, scr_storedescs[i].name) == 0) {
+      /* found a match, record its index, and break */
       index = i;
       break;
     }
@@ -190,6 +255,7 @@ int scr_storedescs_index_from_base(const char* base)
   return index;
 }
 
+/* fill in scr_storedescs array from scr_storedescs_hash */
 int scr_storedescs_create()
 {
   /* set the number of store descriptors */
@@ -207,7 +273,8 @@ int scr_storedescs_create()
 
   int all_valid = 1;
 
-  /* iterate over each of our hash entries filling in each corresponding descriptor */
+  /* iterate over each of our hash entries filling in each
+   * corresponding descriptor */
   int i;
   for (i=0; i < scr_nstoredescs; i++) {
     /* get the info hash for this descriptor */
@@ -219,12 +286,12 @@ int scr_storedescs_create()
 
   /* create store descriptor for control directory */
   scr_storedesc_cntl = (scr_storedesc*) malloc(sizeof(scr_storedesc));
-  int index = scr_storedescs_index_from_base(scr_cntl_base);
+  int index = scr_storedescs_index_from_name(scr_cntl_base);
   if (scr_storedesc_cntl != NULL && index >= 0) {
     scr_storedesc_copy(scr_storedesc_cntl, &scr_storedescs[index]);
   } else {
     scr_abort(-1, "Failed to create store descriptor for control directory @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
   }
   
@@ -235,6 +302,7 @@ int scr_storedescs_create()
   return SCR_SUCCESS;
 }
 
+/* free scr_storedescs array */
 int scr_storedescs_free()
 {
   /* iterate over and free each of our store descriptors */
@@ -244,6 +312,8 @@ int scr_storedescs_free()
       scr_storedesc_free(&scr_storedescs[i]);
     }
   }
+
+  /* free descriptor for control directory */
   scr_storedesc_free(scr_storedesc_cntl);
 
   /* set the count back to zero */

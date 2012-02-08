@@ -362,15 +362,13 @@ int scr_flush_async_start(scr_filemap* map, int id)
     scr_hash_merge(hash, scr_flush_async_hash);
 
     /* set BW if it's not already set */
-    const scr_groupdesc* groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
-    if (groupdesc != NULL) {
-      /* somewhat hacky way to determine number of nodes and therefore number of writers */
-      int writers = groupdesc->ranks_across;
-      double bw;
-      if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_BW, &bw) != SCR_SUCCESS) {
-        bw = (double) scr_flush_async_bw / (double) writers;
-        scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_BW, bw);
-      }
+    /* TODO: somewhat hacky way to determine number of nodes and therefore number of writers */
+    int writers;
+    MPI_Comm_size(scr_comm_node_across, &writers);
+    double bw;
+    if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_BW, &bw) != SCR_SUCCESS) {
+      bw = (double) scr_flush_async_bw / (double) writers;
+      scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_BW, bw);
     }
 
     /* set PERCENT if it's not already set */

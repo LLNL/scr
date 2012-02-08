@@ -86,27 +86,18 @@ Globals
 =========================================
 */
 
-#define SCR_TEST_AND_HALT (1)
-#define SCR_TEST_BUT_DONT_HALT (2)
-
 #define SCR_CURRENT_LINK "scr.current"
 
-/* copy file operation flags: copy file vs. move file */
-#define COPY_FILES 0
-#define MOVE_FILES 1
+extern char scr_cntl_base[SCR_MAX_FILENAME];  /* base directory for control directory */
+extern char scr_cache_base[SCR_MAX_FILENAME]; /* base directory for cache directory */
 
-#define SCR_GROUP_NODE ("NODE")
-
-extern char scr_cntl_base[SCR_MAX_FILENAME];
-extern char scr_cache_base[SCR_MAX_FILENAME];
-
-extern char* scr_cntl_prefix;
-extern char scr_par_prefix[SCR_MAX_FILENAME];
+extern char* scr_cntl_prefix;                 /* path of control directory (adds to base directory) */
+extern char scr_par_prefix[SCR_MAX_FILENAME]; /* path of SCR_PREFIX directory on PFS */
 
 /* these files live in the control directory */
-extern char scr_master_map_file[SCR_MAX_FILENAME];
-extern char scr_map_file[SCR_MAX_FILENAME];
-extern char scr_transfer_file[SCR_MAX_FILENAME];
+extern char* scr_master_map_file;
+extern char* scr_map_file;
+extern char* scr_transfer_file;
 
 /* we keep the halt, flush, and nodes files in the prefix directory
  * so that the batch script and / or external commands can access them */
@@ -114,28 +105,29 @@ extern char scr_halt_file[SCR_MAX_FILENAME];
 extern char scr_flush_file[SCR_MAX_FILENAME];
 extern char scr_nodes_file[SCR_MAX_FILENAME];
 
-extern scr_filemap* scr_map;
-extern scr_hash* scr_halt_hash;
+extern scr_filemap* scr_map;    /* memory cache of filemap contents */
+extern scr_hash* scr_halt_hash; /* memory cache of halt file contents */
 
-extern char* scr_username;       /* username of owner for running job */
+extern char* scr_username;    /* username of owner for running job */
 extern char* scr_jobid;       /* unique job id string of current job */
-extern char* scr_jobname;       /* jobname string, used to tie different runs together */
-extern char* scr_clustername;       /* name of cluster running job */
-extern int scr_dataset_id;          /* keeps track of the dataset id */
-extern int scr_checkpoint_id;          /* keeps track of the checkpoint id */
-extern int scr_in_output ;         /* flag tracks whether we are between start and complete calls */
-extern int scr_initialized;          /* indicates whether the library has been initialized */
-extern int scr_enabled; /* indicates whether the library is enabled */
-extern int scr_debug;  /* set debug verbosity */
-extern int scr_log_enable; /* whether to log SCR events */
+extern char* scr_jobname;     /* jobname string, used to tie different runs together */
+extern char* scr_clustername; /* name of cluster job is running on */
+extern int scr_dataset_id;    /* keeps track of the current dataset id */
+extern int scr_checkpoint_id; /* keeps track of the current checkpoint id */
+extern int scr_in_output ;    /* flag tracks whether we are between start and complete calls */
+extern int scr_initialized;   /* indicates whether the library has been initialized */
+extern int scr_enabled;       /* indicates whether the library is enabled */
+extern int scr_debug;         /* set debug verbosity */
+extern int scr_log_enable;    /* whether to log SCR events */
+extern int scr_page_size;     /* records block size for aligning MPI and file buffers */
 
-extern int scr_page_size; /* records block size for aligning MPI and file buffers */
+extern int scr_cache_size;    /* number of checkpoints to keep in cache at one time */
+extern int scr_copy_type;     /* select which redundancy algorithm to use */
+extern char* scr_group;       /* name of process group likely to fail */
+extern int scr_set_size;      /* specify number of tasks in xor set */
 
-extern int scr_cache_size;       /* set number of checkpoints to keep at one time */
-extern int scr_copy_type;        /* select which redundancy algorithm to use */
-extern int scr_hop_distance;     /* number of nodes away to choose parnter */
-extern int scr_set_size;         /* specify number of tasks in xor set */
-extern size_t scr_mpi_buf_size;     /* set MPI buffer size to chunk file transfer */
+extern size_t scr_mpi_buf_size;  /* set MPI buffer size to chunk file transfer */
+extern size_t scr_file_buf_size; /* set buffer size to chunk file copies to/from parallel file system */
 
 extern int scr_halt_seconds; /* secs remaining in allocation before job should be halted */
 
@@ -147,54 +139,55 @@ extern int scr_flush_width;      /* specify number of processes to write files s
 extern int scr_flush_on_restart; /* specify whether to flush cache on restart */
 extern int scr_global_restart;   /* set if code must be restarted from parallel file system */
 
-extern int scr_flush_async;      /* whether to use asynchronous flush */
-extern double scr_flush_async_bw;  /* bandwidth limit imposed during async flush */
+extern int scr_flush_async;             /* whether to use asynchronous flush */
+extern double scr_flush_async_bw;       /* bandwidth limit imposed during async flush */
 extern double scr_flush_async_percent;  /* runtime limit imposed during async flush */
 extern int scr_flush_async_in_progress; /* tracks whether an async flush is currently underway */
 extern int scr_flush_async_dataset_id;  /* tracks the id of the checkpoint being flushed */
-extern double scr_flush_async_bytes;      /* records the total number of bytes to be flushed */
-
-extern size_t scr_file_buf_size;    /* set buffer size to chunk file copies to/from parallel file system */
+extern double scr_flush_async_bytes;    /* records the total number of bytes to be flushed */
 
 extern int scr_crc_on_copy;   /* whether to enable crc32 checks during scr_swap_files() */
 extern int scr_crc_on_flush;  /* whether to enable crc32 checks during flush and fetch */
 extern int scr_crc_on_delete; /* whether to enable crc32 checks when deleting checkpoints */
 
-extern int scr_preserve_user_directories;
-extern int scr_use_containers;
-extern unsigned long scr_container_size;
+extern int scr_preserve_user_directories; /* whether to preserve user-defined directories during flush */
+extern int scr_use_containers;            /* whether to fetch from / flush to container files */
+extern unsigned long scr_container_size;  /* max number of bytes to store in a container */
 
-extern int    scr_checkpoint_interval; /* times to call Need_checkpoint between checkpoints */
-extern int    scr_checkpoint_seconds;  /* min number of seconds between checkpoints */
-extern double scr_checkpoint_overhead; /* max allowed overhead for checkpointing */
-extern int    scr_need_checkpoint_count;   /* tracks the number of times Need_checkpoint has been called */
+extern int    scr_checkpoint_interval;   /* times to call Need_checkpoint between checkpoints */
+extern int    scr_checkpoint_seconds;    /* min number of seconds between checkpoints */
+extern double scr_checkpoint_overhead;   /* max allowed overhead for checkpointing */
+extern int    scr_need_checkpoint_count; /* tracks the number of times Need_checkpoint has been called */
 extern double scr_time_checkpoint_total; /* keeps a running total of the time spent to checkpoint */
-extern int    scr_time_checkpoint_count;   /* keeps a running count of the number of checkpoints taken */
+extern int    scr_time_checkpoint_count; /* keeps a running count of the number of checkpoints taken */
 
-extern time_t scr_timestamp_checkpoint_start;  /* record timestamp of start of checkpoint */
-extern double scr_time_checkpoint_start;       /* records the start time of the current checkpoint */
-extern double scr_time_checkpoint_end;         /* records the end time of the current checkpoint */
+extern time_t scr_timestamp_checkpoint_start; /* record timestamp of start of checkpoint */
+extern double scr_time_checkpoint_start;      /* records the start time of the current checkpoint */
+extern double scr_time_checkpoint_end;        /* records the end time of the current checkpoint */
 
-extern time_t scr_timestamp_compute_start;     /* record timestamp of start of compute phase */
-extern double scr_time_compute_start;          /* records the start time of the current compute phase */
-extern double scr_time_compute_end;            /* records the end time of the current compute phase */
+extern time_t scr_timestamp_compute_start;    /* record timestamp of start of compute phase */
+extern double scr_time_compute_start;         /* records the start time of the current compute phase */
+extern double scr_time_compute_end;           /* records the end time of the current compute phase */
 
-extern MPI_Comm scr_comm_world; /* dup of MPI_COMM_WORLD */
-extern int scr_ranks_world; /* number of ranks in the job */
-extern int  scr_my_rank_world;  /* my rank in world */
+extern char scr_my_hostname[256]; /* hostname of local process */
 
-extern char scr_my_hostname[256];
+extern MPI_Comm scr_comm_world;   /* dup of MPI_COMM_WORLD */
+extern int scr_ranks_world;       /* number of ranks in the job */
+extern int  scr_my_rank_world;    /* my rank in world */
 
-extern scr_hash* scr_groupdesc_hash;
-extern scr_hash* scr_storedesc_hash;
-extern scr_hash* scr_reddesc_hash;
+extern MPI_Comm scr_comm_node;        /* communicator of all tasks on the same node */
+extern MPI_Comm scr_comm_node_across; /* communicator of tasks with same rank on each node */
 
-extern int scr_nstoredescs;
-extern scr_storedesc* scr_storedescs;
-extern scr_storedesc* scr_storedesc_cntl;
+extern scr_hash* scr_groupdesc_hash; /* hash defining group descriptors to be used */
+extern scr_hash* scr_storedesc_hash; /* hash defining store descriptors to be used */
+extern scr_hash* scr_reddesc_hash;   /* hash defining redudancy descriptors to be used */
 
-extern int scr_ngroupdescs;
-extern scr_groupdesc* scr_groupdescs;
+extern int scr_ngroupdescs;           /* number of descriptors in scr_groupdescs */
+extern scr_groupdesc* scr_groupdescs; /* group descriptor structs */
+
+extern int scr_nstoredescs;               /* number of descriptors in scr_storedescs */
+extern scr_storedesc* scr_storedescs;     /* store descriptor structs */
+extern scr_storedesc* scr_storedesc_cntl; /* store descriptor struct for control directory */
 
 extern int scr_nreddescs;         /* number of redundancy descriptors in scr_reddescs list */
 extern scr_reddesc* scr_reddescs; /* pointer to list of redundancy descriptors */
