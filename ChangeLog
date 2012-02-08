@@ -1,3 +1,8 @@
+2012-02-08 Adam Moody <moody20@llnl.gov>
+
+	* m4/x_ac_expand_install_dirs.m4 : Fix to address datarootdir variable
+	added from autoconf 2.59 to 2.63.
+
 2012-02-07 Adam Moody <moody20@llnl.gov>
 
 	* scr_param.c : Added hash to return pointers to values returned from

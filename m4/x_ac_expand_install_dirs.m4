@@ -44,7 +44,11 @@ AC_DEFUN([X_AC_EXPAND_INSTALL_DIRS], [
     [Expansion of the "libexecdir" installation directory.])
   AC_SUBST([X_LIBEXECDIR])
 
-  eval X_DATADIR="$datadir"
+# ATM: $datadir was not expanding ${preifx} properly
+#  eval X_DATADIR="$datadir"
+#  eval X_DATADIR="$datarootdir"
+  tmp_datadir=`eval echo $datadir`
+  eval X_DATADIR="$tmp_datadir"
   AC_DEFINE_UNQUOTED([X_DATADIR], ["$X_DATADIR"],
     [Expansion of the "datadir" installation directory.])
   AC_SUBST([X_DATADIR])
@@ -79,12 +83,18 @@ AC_DEFUN([X_AC_EXPAND_INSTALL_DIRS], [
     [Expansion of the "oldincludedir" installation directory.])
   AC_SUBST([X_OLDINCLUDEDIR])
 
-  eval X_INFODIR="$infodir"
+# ATM: $infodir was not expanding ${preifx} properly
+#  eval X_INFODIR="$infodir"
+  tmp_infodir=`eval echo $infodir`
+  eval X_INFODIR="$tmp_infodir"
   AC_DEFINE_UNQUOTED([X_INFODIR], ["$X_INFODIR"],
     [Expansion of the "infodir" installation directory.])
   AC_SUBST([X_INFODIR])
 
-  eval X_MANDIR="$mandir"
+# ATM: $mandir was not expanding ${preifx} properly
+#  eval X_MANDIR="$mandir"
+  tmp_mandir=`eval echo $mandir`
+  eval X_MANDIR="$tmp_mandir"
   AC_DEFINE_UNQUOTED([X_MANDIR], ["$X_MANDIR"],
     [Expansion of the "mandir" installation directory.])
   AC_SUBST([X_MANDIR])
