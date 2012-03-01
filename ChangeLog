@@ -1,3 +1,11 @@
+2012-02-29 Adam Moody <moody20@llnl.gov>
+
+	* scr_util_mpi.c : Added some functions to send/recv strings via MPI.
+
+	* scr_reddesc.c : Step through redundancy descriptor hashes by name
+	as determined by rank 0 (no longer need to number CKPTDESC in
+	sequential order).
+
 2012-02-08 Adam Moody <moody20@llnl.gov>
 
 	* m4/x_ac_expand_install_dirs.m4 : Fix to address datarootdir variable

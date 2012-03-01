@@ -233,8 +233,6 @@ int scr_groupdescs_create()
   MPI_Bcast(&num_groups, 1, MPI_INT, 0, scr_comm_world);
 
   /* iterate over each of our hash entries filling in each corresponding descriptor */
-  int key_len;
-  char key_name[SCR_MAX_FILENAME];
   char* value;
   int have_match;
   if (scr_my_rank_world == 0) {
@@ -246,12 +244,8 @@ int scr_groupdescs_create()
       /* get key for this group */
       char* key = scr_hash_elem_key(elem);
 
-      /* bcast length of key */
-      key_len = strlen(key) + 1;
-      MPI_Bcast(&key_len, 1, MPI_INT, 0, scr_comm_world);
-
       /* bcast key name */
-      MPI_Bcast(key, key_len, MPI_CHAR, 0, scr_comm_world);
+      scr_str_bcast(&key, 0, scr_comm_world);
 
       /* determine whether all procs have corresponding entry */
       have_match = 1;
@@ -268,22 +262,23 @@ int scr_groupdescs_create()
     }
   } else {
     for (i = 0; i < num_groups; i++) {
-      /* receive length of key */
-      MPI_Bcast(&key_len, 1, MPI_INT, 0, scr_comm_world);
-
-      /* receive key */
-      MPI_Bcast(key_name, key_len, MPI_CHAR, 0, scr_comm_world);
+      /* bcast key name */
+      char* key;
+      scr_str_bcast(&key, 0, scr_comm_world);
 
       /* determine whether all procs have corresponding entry */
       have_match = 1;
-      if (scr_hash_util_get_str(groups, key_name, &value) != SCR_SUCCESS) {
+      if (scr_hash_util_get_str(groups, key, &value) != SCR_SUCCESS) {
         have_match = 0;
       }
       if (scr_alltrue(have_match)) {
         /* create group */
-        scr_groupdesc_create_by_str(&scr_groupdescs[index], index, key_name, value);
+        scr_groupdesc_create_by_str(&scr_groupdescs[index], index, key, value);
         index++;
       }
+
+      /* free the key name */
+      scr_free(&key);
     }
   }
 

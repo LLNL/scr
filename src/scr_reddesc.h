@@ -21,27 +21,27 @@ Define redundancy descriptor structure
 */
 
 typedef struct {
-  int      enabled;           /* flag indicating whether this descriptor is active */
-  int      index;             /* each descriptor is indexed starting from 0 */
-  int      interval;          /* how often to apply this descriptor, pick largest such
-                               * that interval evenly divides checkpoint id */
-  int      store_index;       /* index into scr_storedesc for storage descriptor */
-  int      group_index;       /* index into scr_groupdesc for failure group */
-  char*    base;              /* base cache directory to use */
-  char*    directory;         /* full directory base/dataset.id */
-  int      copy_type;         /* redundancy scheme to apply */
-  int      set_size;          /* set size of redundancy scheme */
-  MPI_Comm comm;              /* communicator holding procs for this scheme */
-  int      groups;            /* number of redundancy sets */
-  int      group_id;          /* unique id assigned to this redundancy set */
-  int      ranks;             /* number of ranks in this set */
-  int      my_rank;           /* caller's rank within its set */
-  int      lhs_rank;          /* rank which is one less (with wrap to highest) within set */
-  int      lhs_rank_world;    /* rank of lhs process in comm world */
-  char     lhs_hostname[256]; /* hostname of lhs process */
-  int      rhs_rank;          /* rank which is one more (with wrap to lowest) within set */
-  int      rhs_rank_world;    /* rank of rhs process in comm world */
-  char     rhs_hostname[256]; /* hostname of rhs process */
+  int      enabled;        /* flag indicating whether this descriptor is active */
+  int      index;          /* each descriptor is indexed starting from 0 */
+  int      interval;       /* how often to apply this descriptor, pick largest such
+                            * that interval evenly divides checkpoint id */
+  int      store_index;    /* index into scr_storedesc for storage descriptor */
+  int      group_index;    /* index into scr_groupdesc for failure group */
+  char*    base;           /* base cache directory to use */
+  char*    directory;      /* full directory base/dataset.id */
+  int      copy_type;      /* redundancy scheme to apply */
+  int      set_size;       /* set size of redundancy scheme */
+  MPI_Comm comm;           /* communicator holding procs for this scheme */
+  int      groups;         /* number of redundancy sets */
+  int      group_id;       /* unique id assigned to this redundancy set */
+  int      ranks;          /* number of ranks in this set */
+  int      my_rank;        /* caller's rank within its set */
+  int      lhs_rank;       /* rank which is one less (with wrap to highest) within set */
+  int      lhs_rank_world; /* rank of lhs process in comm world */
+  char*    lhs_hostname;   /* hostname of lhs process */
+  int      rhs_rank;       /* rank which is one more (with wrap to lowest) within set */
+  int      rhs_rank_world; /* rank of rhs process in comm world */
+  char*    rhs_hostname;   /* hostname of rhs process */
 } scr_reddesc;
 
 /*

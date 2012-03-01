@@ -35,6 +35,9 @@ int scr_swap_file_names(
       strcmp(file_send, "") != 0)
   {
     have_outgoing = 1;
+  } else {
+    /* nothing to send, make sure to use PROC_NULL in sendrecv call */
+    rank_send = MPI_PROC_NULL;
   }
 
   /* determine whether we are expecting to receive a file */
@@ -44,24 +47,15 @@ int scr_swap_file_names(
       strcmp(dir_recv, "") != 0)
   {
     have_incoming = 1;
+  } else {
+    /* nothing to recv, make sure to use PROC_NULL in sendrecv call */
+    rank_recv = MPI_PROC_NULL;
   }
 
-  /* exchange file names with partners */
-  char file_recv_orig[SCR_MAX_FILENAME] = "";
-  int num_req = 0;;
-  MPI_Request request[2];
-  MPI_Status  status[2];
-  if (have_incoming) {
-    MPI_Irecv(file_recv_orig, SCR_MAX_FILENAME, MPI_CHAR, rank_recv, 0, comm, &request[num_req]);
-    num_req++;
-  }
-  if (have_outgoing) {
-    MPI_Isend((char*)file_send, strlen(file_send)+1, MPI_CHAR, rank_send, 0, comm, &request[num_req]);
-    num_req++;
-  }
-  if (num_req > 0) {
-    MPI_Waitall(num_req, request, status);
-  }
+  /* exchange file names with partners, note that we initialize
+   * file_recv_orig to NULL in case we recv from MPI_PROC_NULL */
+  char* file_recv_orig = NULL;
+  scr_str_sendrecv(file_send, rank_send, &file_recv_orig, rank_recv, comm);
 
   /* define the path to store our partner's file */
   if (have_incoming) {
@@ -70,6 +64,9 @@ int scr_swap_file_names(
     char name[SCR_MAX_FILENAME] = "";
     scr_split_path(file_recv_orig, path, name);
     scr_build_path(file_recv, size_recv, dir_recv, name);
+
+    /* free the file name we received */
+    scr_free(&file_recv_orig);
   }
 
   return rc;

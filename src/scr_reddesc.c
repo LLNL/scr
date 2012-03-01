@@ -51,10 +51,10 @@ int scr_reddesc_init(scr_reddesc* d)
   d->my_rank        = MPI_PROC_NULL;
   d->lhs_rank       = MPI_PROC_NULL;
   d->lhs_rank_world = MPI_PROC_NULL;
-  strcpy(d->lhs_hostname, "");
+  d->lhs_hostname   = NULL;
   d->rhs_rank       = MPI_PROC_NULL;
   d->rhs_rank_world = MPI_PROC_NULL;
-  strcpy(d->rhs_hostname, "");
+  d->rhs_hostname   = NULL;
 
   return SCR_SUCCESS;
 }
@@ -65,6 +65,10 @@ int scr_reddesc_free(scr_reddesc* d)
   /* free the strings we strdup'd */
   scr_free(&d->base);
   scr_free(&d->directory);
+
+  /* free strings that we received */
+  scr_free(&d->lhs_hostname);
+  scr_free(&d->rhs_hostname);
 
   /* free the communicator we created */
   if (d->comm != MPI_COMM_NULL) {
@@ -343,6 +347,7 @@ int scr_reddesc_create_from_hash(
   value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_TYPE);
   if (value != NULL) {
     if (scr_reddesc_type_int_from_str(value, &d->copy_type) != SCR_SUCCESS) {
+      /* don't recognize copy type, disable this descriptor */
       d->enabled = 0;
       if (scr_my_rank_world == 0) {
         scr_warn("Unknown copy type %s in redundancy descriptor %d, disabling checkpoint @ %s:%d",
@@ -444,21 +449,23 @@ int scr_reddesc_create_from_hash(
     if (d->copy_type == SCR_COPY_PARTNER) {
       scr_set_partners(
         d->comm, 1,
-        &d->lhs_rank, &d->lhs_rank_world, d->lhs_hostname,
-        &d->rhs_rank, &d->rhs_rank_world, d->rhs_hostname
+        &d->lhs_rank, &d->lhs_rank_world, &d->lhs_hostname,
+        &d->rhs_rank, &d->rhs_rank_world, &d->rhs_hostname
       );
     } else if (d->copy_type == SCR_COPY_XOR) {
       scr_set_partners(
         d->comm, 1,
-        &d->lhs_rank, &d->lhs_rank_world, d->lhs_hostname,
-        &d->rhs_rank, &d->rhs_rank_world, d->rhs_hostname
+        &d->lhs_rank, &d->lhs_rank_world, &d->lhs_hostname,
+        &d->rhs_rank, &d->rhs_rank_world, &d->rhs_hostname
       );
     }
 
     /* check that we have a valid partner node
      * (SINGLE needs no partner nodes) */
     if (d->copy_type == SCR_COPY_PARTNER || d->copy_type == SCR_COPY_XOR) {
-      if (strcmp(d->lhs_hostname, "") == 0 ||
+      if (d->lhs_hostname == NULL ||
+          d->rhs_hostname == NULL ||
+          strcmp(d->lhs_hostname, "") == 0 ||
           strcmp(d->rhs_hostname, "") == 0 ||
           strcmp(d->lhs_hostname, scr_my_hostname) == 0 ||
           strcmp(d->rhs_hostname, scr_my_hostname) == 0)
@@ -624,21 +631,23 @@ int scr_reddesc_restore_from_hash(
   if (d->copy_type == SCR_COPY_PARTNER) {
     scr_set_partners(
       d->comm, 1,
-      &d->lhs_rank, &d->lhs_rank_world, d->lhs_hostname,
-      &d->rhs_rank, &d->rhs_rank_world, d->rhs_hostname
+      &d->lhs_rank, &d->lhs_rank_world, &d->lhs_hostname,
+      &d->rhs_rank, &d->rhs_rank_world, &d->rhs_hostname
     );
   } else if (d->copy_type == SCR_COPY_XOR) {
     scr_set_partners(
       d->comm, 1,
-      &d->lhs_rank, &d->lhs_rank_world, d->lhs_hostname,
-      &d->rhs_rank, &d->rhs_rank_world, d->rhs_hostname
+      &d->lhs_rank, &d->lhs_rank_world, &d->lhs_hostname,
+      &d->rhs_rank, &d->rhs_rank_world, &d->rhs_hostname
     );
   }
 
   /* check that we have a valid partner node
    * (SINGLE needs no partner nodes) */
   if (d->copy_type == SCR_COPY_PARTNER || d->copy_type == SCR_COPY_XOR) {
-    if (strcmp(d->lhs_hostname, "") == 0 ||
+    if (d->lhs_hostname == NULL ||
+        d->rhs_hostname == NULL ||
+        strcmp(d->lhs_hostname, "") == 0 ||
         strcmp(d->rhs_hostname, "") == 0 ||
         strcmp(d->lhs_hostname, scr_my_hostname) == 0 ||
         strcmp(d->rhs_hostname, scr_my_hostname) == 0)
@@ -796,9 +805,9 @@ int scr_reddescs_create()
 {
   /* set the number of redundancy descriptors */
   scr_nreddescs = 0;
-  scr_hash* tmp = scr_hash_get(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC);
-  if (tmp != NULL) {
-    scr_nreddescs = scr_hash_size(tmp);
+  scr_hash* descs = scr_hash_get(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC);
+  if (descs != NULL) {
+    scr_nreddescs = scr_hash_size(descs);
   }
 
   /* allocate our redundancy descriptors */
@@ -807,21 +816,69 @@ int scr_reddescs_create()
     /* TODO: check for errors */
   }
 
+  /* flag to indicate whether we successfully build all redundancy
+   * descriptors */
   int all_valid = 1;
 
   /* iterate over each of our hash entries filling in each
    * corresponding descriptor */
-  int i;
-  for (i=0; i < scr_nreddescs; i++) {
-    /* get the info hash for this descriptor */
-    scr_hash* hash = scr_hash_get_kv_int(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, i);
-    if (scr_reddesc_create_from_hash(&scr_reddescs[i], i, hash) != SCR_SUCCESS) {
-      all_valid = 0;
+  int index = 0;
+  if (scr_my_rank_world == 0) {
+    /* have rank 0 determine the order in which we'll create the descriptors */
+    scr_hash_elem* elem;
+    for (elem = scr_hash_elem_first(descs);
+         elem != NULL;
+         elem = scr_hash_elem_next(elem))
+    {
+      /* get key for this group */
+      char* key = scr_hash_elem_key(elem);
+
+      /* bcast key name */
+      scr_str_bcast(&key, 0, scr_comm_world);
+
+      /* get the info hash for this descriptor */
+      scr_hash* hash = scr_hash_get(descs, key);
+
+      /* create descriptor */
+      if (scr_reddesc_create_from_hash(&scr_reddescs[index], index, hash)
+          != SCR_SUCCESS)
+      {
+        scr_err("Failed to set up %s=%s @ %s:%f",
+          SCR_CONFIG_KEY_CKPTDESC, key, __FILE__, __LINE__
+        );
+        all_valid = 0;
+      }
+
+      /* advance to our next descriptor */
+      index++;
+    }
+  } else {
+    int i;
+    for (i = 0; i < scr_nreddescs; i++) {
+      /* receive key */
+      char* key;
+      scr_str_bcast(&key, 0, scr_comm_world);
+
+      /* get the info hash for this descriptor */
+      scr_hash* hash = scr_hash_get(descs, key);
+
+      /* create descriptor */
+      if (scr_reddesc_create_from_hash(&scr_reddescs[index], index, hash)
+          != SCR_SUCCESS)
+      {
+        all_valid = 0;
+      }
+
+      /* free key name */
+      scr_free(&key);
+
+      /* advance to our next descriptor */
+      index++;
     }
   }
 
   /* determine whether everyone found a valid redundancy descriptor */
-  if (!all_valid) {
+  if (! all_valid) {
     return SCR_FAILURE;
   }
   return SCR_SUCCESS;
