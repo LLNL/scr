@@ -625,9 +625,12 @@ int scr_file_exists(const char* file)
 {
   /* check whether the file exists */
   if (access(file, F_OK) < 0) {
+    /* TODO: would be nice to print a message here, but
+     *       functions calling this expect it to be quiet
     scr_dbg(2, "File does not exist: %s errno=%d %m @ file %s:%d",
             file, errno, __FILE__, __LINE__
     );
+    */
     return SCR_FAILURE;
   }
   return SCR_SUCCESS;
@@ -638,9 +641,12 @@ int scr_file_is_readable(const char* file)
 {
   /* check whether the file can be read */
   if (access(file, R_OK) < 0) {
+    /* TODO: would be nice to print a message here, but
+     *       functions calling this expect it to be quiet
     scr_dbg(2, "File not readable: %s errno=%d %m @ file %s:%d",
             file, errno, __FILE__, __LINE__
     );
+    */
     return SCR_FAILURE;
   }
   return SCR_SUCCESS;
@@ -651,9 +657,12 @@ int scr_file_is_writeable(const char* file)
 {
   /* check whether the file can be read */
   if (access(file, W_OK) < 0) {
+    /* TODO: would be nice to print a message here, but
+     *       functions calling this expect it to be quiet
     scr_dbg(2, "File not writeable: %s errno=%d %m @ file %s:%d",
             file, errno, __FILE__, __LINE__
     );
+    */
     return SCR_FAILURE;
   }
   return SCR_SUCCESS;
@@ -825,7 +834,7 @@ int scr_mkdir(const char* dir, mode_t mode)
 int scr_rmdir(const char* dir)
 {
   /* delete directory */
-  int rc = scr_rmdir(dir);
+  int rc = rmdir(dir);
   if (rc < 0) {
     /* whoops, something failed when we tried to delete our directory */
     scr_err("Error deleting directory: %s (rmdir returned %d %m) @ %s:%d",
