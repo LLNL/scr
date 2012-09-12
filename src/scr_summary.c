@@ -37,7 +37,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
 
   /* check whether we can read the file before we actually try,
    * we take this step to avoid printing an error in scr_hash_read */
-  if (access(summary_file, R_OK) < 0) {
+  if (scr_file_is_readable(summary_file) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -304,7 +304,7 @@ static int scr_summary_read_v5(const char* dir, scr_hash* summary_hash)
 
   /* check whether we can read the file before we actually try,
    * we take this step to avoid printing an error in scr_hash_read */
-  if (access(summary_file, R_OK) < 0) {
+  if (scr_file_is_readable(summary_file) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -339,7 +339,7 @@ static int scr_summary_read_v6(const char* dir, scr_hash* summary_hash)
 
   /* check whether we can read the file before we actually try,
    * we take this step to avoid printing an error in scr_hash_read */
-  if (access(summary_file, R_OK) < 0) {
+  if (scr_file_is_readable(summary_file) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 

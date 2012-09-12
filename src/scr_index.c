@@ -959,7 +959,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
           }
 
           /* check that the file size matches */
-          unsigned long size = scr_filesize(full_filename);
+          unsigned long size = scr_file_size(full_filename);
           if (meta_filesize != size) {
             scr_err("File is %lu bytes but expected to be %lu bytes: %s @ %s:%d",
                     size, meta_filesize, full_filename, __FILE__, __LINE__

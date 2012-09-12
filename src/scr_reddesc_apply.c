@@ -241,7 +241,7 @@ static int scr_swap_files_move(
   int fd = -1;
   if (have_outgoing) {
     /* we'll overwrite our send file (or just read it if there is no incoming) */
-    filesize_send = scr_filesize(file_send);
+    filesize_send = scr_file_size(file_send);
     fd = scr_open(file_send, O_RDWR);
     if (fd < 0) {
       /* TODO: skip writes and return error? */
@@ -338,7 +338,7 @@ static int scr_swap_files_move(
   } else if (have_outgoing) {
     /* only sent a file; close it, delete it, and remove its completion marker */
     scr_close(file_send, fd);
-    unlink(file_send);
+    scr_file_unlink(file_send);
   } else if (have_incoming) {
     /* only received a file; just need to close it */
     scr_close(file_recv, fd);
@@ -429,7 +429,7 @@ int scr_swap_files(
   /* mark received file as complete */
   if (have_incoming) {
     /* check that our written file is the correct size */
-    unsigned long filesize_wrote = scr_filesize(file_recv);
+    unsigned long filesize_wrote = scr_file_size(file_recv);
     if (scr_meta_check_filesize(meta_recv, filesize_wrote) != SCR_SUCCESS) {
       scr_err("Received file does not match expected size %s @ %s:%d",
               file_recv, __FILE__, __LINE__
@@ -660,7 +660,7 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
     filenames[file_count] = scr_hash_elem_key(file_elem);
 
     /* get the filesize of this file and add the byte count to the total */
-    filesizes[file_count] = scr_filesize(filenames[file_count]);
+    filesizes[file_count] = scr_file_size(filenames[file_count]);
     my_bytes += filesizes[file_count];
 
     /* read the meta data for this file and insert it into the current_files hash */
@@ -810,7 +810,7 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
 
   /* TODO: need to check for errors */
   /* write meta file for xor chunk */
-  unsigned long my_chunk_file_size = scr_filesize(my_chunk_file);
+  unsigned long my_chunk_file_size = scr_file_size(my_chunk_file);
   scr_meta* meta = scr_meta_new();
   scr_meta_set_filename(meta, my_chunk_file);
   scr_meta_set_filetype(meta, SCR_META_FILE_XOR);
@@ -855,7 +855,7 @@ int scr_reddesc_apply(scr_filemap* map, const scr_reddesc* c, int id, double* by
     }
 
     /* add up the number of bytes on our way through */
-    my_bytes += (double) scr_filesize(file);
+    my_bytes += (double) scr_file_size(file);
 
     /* if crc_on_copy is set, compute crc and update meta file (PARTNER does this during the copy) */
     if (scr_crc_on_copy && c->copy_type != SCR_COPY_PARTNER) {

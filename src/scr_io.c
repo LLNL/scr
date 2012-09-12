@@ -605,7 +605,7 @@ int scr_write_pad_n(int n, char** files, int* fds,
 }
 
 /* given a filename, return number of bytes in file */
-unsigned long scr_filesize(const char* file)
+unsigned long scr_file_size(const char* file)
 {
   /* get file size in bytes */
   unsigned long bytes = 0;
@@ -620,11 +620,52 @@ unsigned long scr_filesize(const char* file)
   return bytes;
 }
 
-/* tests whether the file exists */
+/* tests whether the file or directory exists */
 int scr_file_exists(const char* file)
 {
-  /* to test, check whether the file can be read */
+  /* check whether the file exists */
+  if (access(file, F_OK) < 0) {
+    scr_dbg(2, "File does not exist: %s errno=%d %m @ file %s:%d",
+            file, errno, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+  return SCR_SUCCESS;
+}
+
+/* tests whether the file or directory is readable */
+int scr_file_is_readable(const char* file)
+{
+  /* check whether the file can be read */
   if (access(file, R_OK) < 0) {
+    scr_dbg(2, "File not readable: %s errno=%d %m @ file %s:%d",
+            file, errno, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+  return SCR_SUCCESS;
+}
+
+/* tests whether the file or directory is writeable */
+int scr_file_is_writeable(const char* file)
+{
+  /* check whether the file can be read */
+  if (access(file, W_OK) < 0) {
+    scr_dbg(2, "File not writeable: %s errno=%d %m @ file %s:%d",
+            file, errno, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+  return SCR_SUCCESS;
+}
+
+/* delete a file */
+int scr_file_unlink(const char* file)
+{
+  if (unlink(file) != 0) {
+    scr_dbg(2, "Failed to delete file: %s errno=%d %m @ file %s:%d",
+            file, errno, __FILE__, __LINE__
+    );
     return SCR_FAILURE;
   }
   return SCR_SUCCESS;
@@ -644,7 +685,7 @@ int scr_crc32(const char* filename, uLong* crc)
   /* open the file for reading */
   int fd = scr_open(filename, O_RDONLY);
   if (fd < 0) {
-    scr_dbg(1, "Failed to open file to compute crc: %s @ file %s:%d",
+    scr_dbg(1, "Failed to open file to compute crc: %s errno=%d @ file %s:%d",
             filename, errno, __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -778,6 +819,21 @@ int scr_mkdir(const char* dir, mode_t mode)
   scr_free(&dircopy);
   scr_free(&path);
   return rc;
+}
+
+/* remove directory */
+int scr_rmdir(const char* dir)
+{
+  /* delete directory */
+  int rc = scr_rmdir(dir);
+  if (rc < 0) {
+    /* whoops, something failed when we tried to delete our directory */
+    scr_err("Error deleting directory: %s (rmdir returned %d %m) @ %s:%d",
+      dir, rc, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+  return SCR_SUCCESS;
 }
 
 /* write current working directory to buf */
@@ -1048,7 +1104,7 @@ int scr_compress_in_place(const char* file_src, const char* file_dst, unsigned l
   }
 
   /* get the size of the file */
-  unsigned long filesize = scr_filesize(file_src);
+  unsigned long filesize = scr_file_size(file_src);
 
   /* determine the number of blocks that we'll write */
   unsigned long num_blocks = filesize / block_size;
@@ -1326,7 +1382,7 @@ int scr_compress(const char* file_src, const char* file_dst, unsigned long block
   }
 
   /* get the size of the file */
-  unsigned long filesize = scr_filesize(file_src);
+  unsigned long filesize = scr_file_size(file_src);
 
   /* determine the number of blocks that we'll write */
   unsigned long num_blocks = filesize / block_size;

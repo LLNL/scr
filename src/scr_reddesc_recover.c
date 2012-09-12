@@ -419,7 +419,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     }
 
     /* create meta data for chunk and complete it */
-    unsigned long full_chunk_filesize = scr_filesize(full_chunk_filename);
+    unsigned long full_chunk_filesize = scr_file_size(full_chunk_filename);
     scr_meta* meta_chunk = scr_meta_new();
     scr_meta_set_filename(meta_chunk, full_chunk_filename);
     scr_meta_set_filetype(meta_chunk, SCR_META_FILE_XOR);

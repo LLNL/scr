@@ -60,7 +60,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
        * writing out the new file, we'll lose information */
 
       /* delete the file */
-      unlink(file);
+      scr_file_unlink(file);
     }
 
     /* free the hash object */

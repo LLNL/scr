@@ -58,7 +58,7 @@ static int scr_flush_a_file(const char* file, const char* dir, scr_meta* meta)
         /* detected a crc mismatch during the copy */
 
         /* TODO: unlink the copied file */
-        /* unlink(my_flushed_file); */
+        /* scr_file_unlink(my_flushed_file); */
 
         /* mark the file as invalid */
         scr_meta_set_complete(meta, 0);

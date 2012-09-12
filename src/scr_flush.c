@@ -141,8 +141,8 @@ static int scr_flush_dir_create(const scr_dataset* dataset, char* dir, int n)
             scr_dbg(1, "Flushing to %s", dir);
           } else {
             /* failed to create the directory */
-            scr_err("Failed to make checkpoint directory mkdir(%s) %m errno=%d @ %s:%d",
-                    dir, errno, __FILE__, __LINE__
+            scr_err("Failed to make checkpoint directory mkdir(%s) @ %s:%d",
+                    dir, __FILE__, __LINE__
             );
 
             /* set dir to an empty string to indicate failure */
@@ -688,8 +688,8 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
         scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
 
         /* if current exists, unlink it */
-        if (access(current, F_OK) == 0) {
-          unlink(current);
+        if (scr_file_exists(current) == SCR_SUCCESS) {
+          scr_file_unlink(current);
         }
 
         /* create new current to point to new directory */

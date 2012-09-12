@@ -17,19 +17,34 @@ Fetch functions
 =========================================
 */
 
-/* fetch file name in meta from dir and build new full path in newfile,
+/* Overview of fetch process:
+ *   1) Read index file from prefix directory
+ *   2) Find most recent complete checkpoint in index file (that we've not marked as bad)
+ *   3) Exit with failure if no checkpoints remain
+ *   4) Read and scatter summary file information for this checkpoint
+ *   5) Copy files from checkpoint directory to cache
+ *        - Flow control from rank 0 via sliding window
+ *        - File data may exist as physical file on parallel file system or
+ *          be encapsulated in a "container" (physical file that contains
+ *          bytes for one or more application files)
+ *        - Optionally check CRC32 values as files are read in
+ *   6) If successful, stop, otherwise mark this checkpoint as bad and repeat #2
+ */
+
+/* for file name listed in meta, fetch that file from src_dir and store
+ * a copy in dst_dir, record full path to copy in newfile, and
  * return whether operation succeeded */
-static int scr_fetch_a_file(
+static int scr_fetch_file(
   const char* src_dir, const scr_meta* meta, const char* dst_dir,
   char* newfile, size_t newfile_size)
 {
-  int success = SCR_SUCCESS;
+  int rc = SCR_SUCCESS;
 
   /* get the filename from the meta data */
   char* meta_filename;
   if (scr_meta_get_filename(meta, &meta_filename) != SCR_SUCCESS) {
     scr_err("Failed to read filename from meta data @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -38,7 +53,7 @@ static int scr_fetch_a_file(
   char filename[SCR_MAX_FILENAME];
   if (scr_build_path(filename, sizeof(filename), src_dir, meta_filename) != SCR_SUCCESS) {
     scr_err("Failed to build full file name of target file for fetch @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -49,19 +64,16 @@ static int scr_fetch_a_file(
   if (scr_crc_on_flush) {
     crc_p = &crc;
   }
-  success = scr_copy_to(filename, dst_dir, scr_file_buf_size, newfile, newfile_size, crc_p);
+  rc = scr_copy_to(filename, dst_dir, scr_file_buf_size, newfile, newfile_size, crc_p);
 
   /* check that crc matches crc stored in meta */
   uLong meta_crc;
   if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
-    if (success == SCR_SUCCESS && scr_crc_on_flush && crc != meta_crc) {
-      success = SCR_FAILURE;
+    if (rc == SCR_SUCCESS && scr_crc_on_flush && crc != meta_crc) {
+      rc = SCR_FAILURE;
       scr_err("CRC32 mismatch detected when fetching file from %s to %s @ %s:%d",
-              filename, newfile, __FILE__, __LINE__
+        filename, newfile, __FILE__, __LINE__
       );
-
-      /* delete the file -- it's corrupted */
-      unlink(newfile);
 
       /* TODO: would be good to log this, but right now only rank 0 can write log entries */
       /*
@@ -73,15 +85,19 @@ static int scr_fetch_a_file(
     }
   }
 
-  return success;
+  return rc;
 }
 
+/* extract container name, size, offset, and length values
+ * for container that holds the specified segment */
 int scr_container_get_name_size_offset_length(
   const scr_hash* segment, const scr_hash* containers,
   char** name, unsigned long* size, unsigned long* offset, unsigned long* length)
 {
   /* check that our parameters are valid */
-  if (segment == NULL || containers == NULL || name == NULL || size == NULL || offset == NULL || length == NULL) {
+  if (segment == NULL || containers == NULL ||
+      name == NULL || size == NULL || offset == NULL || length == NULL)
+  {
     return SCR_FAILURE;
   }
 
@@ -120,8 +136,8 @@ int scr_container_get_name_size_offset_length(
   return SCR_SUCCESS;
 }
 
-/* fetch file name in meta from dir and build new full path in newfile,
- * return whether operation succeeded */
+/* fetch file in meta from its list of segments and containers and
+ * write it to specified file name, return whether operation succeeded */
 static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_hash* segments, const scr_hash* containers)
 {
   unsigned long buf_size = scr_file_buf_size;
@@ -129,7 +145,7 @@ static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_
   /* check that we got something for a source file */
   if (file == NULL || strcmp(file, "") == 0) {
     scr_err("Invalid source file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -137,7 +153,7 @@ static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_
   /* check that our other arguments are valid */
   if (meta == NULL || segments == NULL || containers == NULL) {
     scr_err("Invalid metadata, segments, or container @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -146,7 +162,7 @@ static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_
   int fd_src = scr_open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
   if (fd_src < 0) {
     scr_err("Opening file to copy: scr_open(%s) errno=%d %m @ %s:%d",
-            file, errno, __FILE__, __LINE__
+      file, errno, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -158,11 +174,12 @@ static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_
   */
   posix_fadvise(fd_src, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
 
+  /* TODO: align this buffer */
   /* allocate buffer to read in file chunks */
   char* buf = (char*) malloc(buf_size);
   if (buf == NULL) {
     scr_err("Allocating memory: malloc(%llu) errno=%d %m @ %s:%d",
-            buf_size, errno, __FILE__, __LINE__
+      buf_size, errno, __FILE__, __LINE__
     );
     scr_close(file, fd_src);
     return SCR_FAILURE;
@@ -193,7 +210,7 @@ static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_
       &container_name, &container_size, &container_offset, &segment_length) != SCR_SUCCESS)
     {
       scr_err("Failed to get segment offset and length @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
       break;
@@ -203,7 +220,7 @@ static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_
     int fd_container = scr_open(container_name, O_RDONLY);
     if (fd_container < 0) {
       scr_err("Opening file for reading: scr_open(%s) errno=%d %m @ %s:%d",
-              container_name, errno, __FILE__, __LINE__
+        container_name, errno, __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
       break;
@@ -221,7 +238,7 @@ static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_
     if (lseek(fd_container, pos, SEEK_SET) == (off_t)-1) {
       /* our seek failed, return an error */
       scr_err("Failed to seek to byte %lu in %s @ %s:%d",
-              pos, container_name, __FILE__, __LINE__
+        pos, container_name, __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
       break;
@@ -297,7 +314,7 @@ static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_
         /* if a crc is already set in the meta data, check that we computed the same value */
         if (crc != crc2) {
           scr_err("CRC32 mismatch detected when fetching file %s @ %s:%d",
-                  file, __FILE__, __LINE__
+            file, __FILE__, __LINE__
           );
           rc = SCR_FAILURE;
         }
@@ -324,7 +341,7 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
   scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
   scr_dataset_get_id(dataset, &id);
 
-  /* get pointer to containers hash and copy into summary info if one exists */
+  /* get pointer to containers hash */
   scr_hash* containers = scr_hash_get(file_list, SCR_SUMMARY_6_KEY_CONTAINER);
 
   /* now iterate through the file list and fetch each file */
@@ -342,8 +359,8 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
 
     /* check whether we are supposed to fetch this file */
     /* TODO: this is a hacky way to avoid reading a redundancy file back in
-     * assuming that it's an original file, which breaks our redundancy computation
-     * due to a name conflict on the file names */
+     * under the assumption that it's an original file, which breaks our
+     * redundancy computation due to a name conflict on the file names */
     scr_hash_elem* no_fetch_hash = scr_hash_elem_get(hash, SCR_SUMMARY_6_KEY_NOFETCH);
     if (no_fetch_hash != NULL) {
       continue;
@@ -361,7 +378,8 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
     char newfile[SCR_MAX_FILENAME];
     scr_build_path(newfile, sizeof(newfile), dir, name);
       
-    /* add the file to our filemap and write it to disk before creating the file */
+    /* add the file to our filemap and write it to disk before creating the file,
+     * this way we have a record that it may exist before we actually start to fetch it */
     scr_filemap_add_file(map, id, scr_my_rank_world, newfile);
     scr_filemap_write(scr_map_file, map);
 
@@ -369,7 +387,7 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
     unsigned long filesize = 0;
     if (scr_hash_util_get_unsigned_long(hash, SCR_KEY_SIZE, &filesize) != SCR_SUCCESS) {
       scr_err("Failed to read file size from summary data @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
       break;
@@ -414,7 +432,7 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
       /* fetch native file, lookup directory for this file */
       char* from_dir;
       if (scr_hash_util_get_str(hash, SCR_KEY_PATH, &from_dir) == SCR_SUCCESS) {
-        if (scr_fetch_a_file(from_dir, meta, dir, newfile, sizeof(newfile)) != SCR_SUCCESS) {
+        if (scr_fetch_file(from_dir, meta, dir, newfile, sizeof(newfile)) != SCR_SUCCESS) {
           /* failed to fetch file, mark it as incomplete */
           scr_meta_set_complete(meta, 0);
           rc = SCR_FAILURE;
@@ -445,7 +463,8 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
 /* read contents of summary file */
 static int scr_fetch_summary(const char* dir, scr_hash* file_list)
 {
-  int fetched = SCR_FAILURE;
+  /* assume that we won't succeed in our fetch attempt */
+  int rc = SCR_FAILURE;
 
   /* get a new hash to read summary data into */
   scr_hash* summary_hash = scr_hash_new();
@@ -453,19 +472,21 @@ static int scr_fetch_summary(const char* dir, scr_hash* file_list)
   /* have rank 0 read summary file, if it exists */
   if (scr_my_rank_world == 0) {
     /* check that we can access the directory */
-    if (access(dir, R_OK) == 0) {
+    if (scr_file_is_readable(dir) == SCR_SUCCESS) {
       /* read data from the summary file */
-      fetched = scr_summary_read(dir, summary_hash);
+      rc = scr_summary_read(dir, summary_hash);
     } else {
-      scr_err("Failed to access directory %s @ %s:%d", dir, __FILE__, __LINE__);
+      scr_err("Failed to access directory %s @ %s:%d",
+        dir, __FILE__, __LINE__
+      );
     }
   }
 
   /* broadcast success code from rank 0 */
-  MPI_Bcast(&fetched, 1, MPI_INT, 0, scr_comm_world);
+  MPI_Bcast(&rc, 1, MPI_INT, 0, scr_comm_world);
 
   /* scatter data from summary file to other ranks */
-  if (fetched == SCR_SUCCESS) {
+  if (rc == SCR_SUCCESS) {
     /* broadcast the dataset information */
     scr_hash* dataset_hash = scr_hash_new();
     if (scr_my_rank_world == 0) {
@@ -487,9 +508,9 @@ static int scr_fetch_summary(const char* dir, scr_hash* file_list)
     scr_hash_bcast(container_hash, 0, scr_comm_world);
     if (scr_hash_size(container_hash) > 0) {
       scr_hash_set(file_list, SCR_SUMMARY_6_KEY_CONTAINER, container_hash);
+    } else {
+      scr_hash_delete(container_hash);
     }
-
-    scr_hash_elem* elem;
 
     /* scatter out file information for each rank */
     scr_hash* send_hash = NULL;
@@ -501,6 +522,7 @@ static int scr_fetch_summary(const char* dir, scr_hash* file_list)
     scr_hash_exchange(send_hash, recv_hash, scr_comm_world);
 
     /* iterate over the ranks that sent data to us, and set up our list of files */
+    scr_hash_elem* elem;
     for (elem = scr_hash_elem_first(recv_hash);
          elem != NULL;
          elem = scr_hash_elem_next(elem))
@@ -531,17 +553,18 @@ static int scr_fetch_summary(const char* dir, scr_hash* file_list)
   /* delete the summary hash object */
   scr_hash_delete(summary_hash);
 
-  return fetched;
+  return rc;
 }
 
-static int scr_fetch_data(const scr_hash* file_list, const char* ckpt_dir, scr_filemap* map)
+/* fetch files specified in file_list into specified dir and update filemap */
+static int scr_fetch_data(const scr_hash* file_list, const char* dir, scr_filemap* map)
 {
   int success = SCR_SUCCESS;
 
-  /* flow control rate of file reads from rank 0 by scattering file names to processes */
+  /* flow control rate of file reads from rank 0 */
   if (scr_my_rank_world == 0) {
-    /* fetch these files into the checkpoint directory */
-    if (scr_fetch_files_list(file_list, ckpt_dir, map) != SCR_SUCCESS) {
+    /* fetch these files into the directory */
+    if (scr_fetch_files_list(file_list, dir, map) != SCR_SUCCESS) {
       success = SCR_FAILURE;
     }
 
@@ -557,10 +580,11 @@ static int scr_fetch_data(const scr_hash* file_list, const char* ckpt_dir, scr_f
     MPI_Status status;
     if (flags == NULL || req == NULL) {
       scr_abort(-1, "Failed to allocate memory for flow control @ %s:%d",
-                __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
 
+    /* execute our flow control window */
     int outstanding = 0;
     int index = 0;
     int i = 1;
@@ -605,8 +629,8 @@ static int scr_fetch_data(const scr_hash* file_list, const char* ckpt_dir, scr_f
 
     /* if rank 0 hasn't seen a failure, try to read in our files */
     if (success == SCR_SUCCESS) {
-      /* fetch these files into the checkpoint directory */
-      if (scr_fetch_files_list(file_list, ckpt_dir, map) != SCR_SUCCESS) {
+      /* fetch these files into the directory */
+      if (scr_fetch_files_list(file_list, dir, map) != SCR_SUCCESS) {
         success = SCR_FAILURE;
       }
     }
@@ -704,7 +728,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
   if (scr_dataset_get_ckpt(dataset, &ckpt_id) != SCR_SUCCESS) {
     /* eventually, we'll support reading of non-checkpoint datasets, but we don't yet */
     scr_err("Failed to read checkpoint id from dataset @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     scr_hash_delete(file_list);
     return SCR_FAILURE;
@@ -748,7 +772,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
 
     if (scr_my_rank_world == 0) {
       scr_dbg(1, "One or more processes failed to read its files @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
       if (scr_log_enable) {
         double time_end = MPI_Wtime();
@@ -785,7 +809,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
     double time_diff = time_end - time_start;
     double bw = total_bytes / (1024.0 * 1024.0 * time_diff);
     scr_dbg(1, "scr_fetch_files: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-            time_diff, total_bytes, bw, bw/scr_ranks_world
+      time_diff, total_bytes, bw, bw/scr_ranks_world
     );
 
     /* log data on the fetch to the database */
@@ -800,7 +824,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
       char cache_dir[SCR_MAX_FILENAME];
       scr_cache_dir_get(c, id, cache_dir);
       scr_log_transfer("FETCH", fetch_dir, cache_dir, &id,
-                       &timestamp_start, &time_diff, &total_bytes
+        &timestamp_start, &time_diff, &total_bytes
       );
     }
   }
@@ -808,7 +832,9 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
   return rc;
 }
 
-/* attempt to fetch most recent checkpoint from prefix directory into cache */
+/* attempt to fetch most recent checkpoint from prefix directory into cache,
+ * fills in map if successful and sets fetch_attempted to 1 if any fetch is attempted,
+ * returns SCR_SUCCESS if successful */
 int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
 {
   /* we only return success if we successfully fetch a checkpoint */
@@ -853,7 +879,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
     /* rank 0 determines the directory to fetch from */
     if (scr_my_rank_world == 0) {
       /* read the target of the current symlink if there is one */
-      if (access(scr_current, R_OK) == 0) {
+      if (scr_file_is_readable(scr_current) == SCR_SUCCESS) {
         int target_len = readlink(scr_current, target, sizeof(target)-1);
         if (target_len >= 0) {
           target[target_len] = '\0';
@@ -878,7 +904,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
 
       /* if we have a subdirectory (target) name, build the full fetch directory */
       if (strcmp(target, "") != 0) {
-        /* record that we're attempting a fetch of this checkpoint */
+        /* record that we're attempting a fetch of this checkpoint in the index file */
         *fetch_attempted = 1;
         if (read_index_file && current_checkpoint_id != -1) {
           scr_index_mark_fetched(index_hash, current_checkpoint_id, target);
@@ -905,9 +931,9 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
       continue_fetching = 0;
     } else {
       /* fetch failed, delete the current symlink */
-      unlink(scr_current);
+      scr_file_unlink(scr_current);
 
-      /* if we had a fetch directory, mark it as failed so we don't try it again */
+      /* if we had a fetch directory, mark it as failed in the index file so we don't try it again */
       if (strcmp(fetch_dir, "") != 0) {
         if (scr_my_rank_world == 0) {
           if (read_index_file && current_checkpoint_id != -1 && strcmp(target, "") != 0) {

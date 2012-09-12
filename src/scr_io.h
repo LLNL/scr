@@ -107,10 +107,19 @@ int scr_write_pad_n(int n, char** files, int* fds,
                     char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes);
 
 /* given a filename, return number of bytes in file */
-unsigned long scr_filesize(const char* file);
+unsigned long scr_file_size(const char* file);
 
-/* tests whether the file exists */
+/* tests whether the file or directory exists */
 int scr_file_exists(const char* file);
+
+/* tests whether the file or directory is readable */
+int scr_file_is_readable(const char* file);
+
+/* tests whether the file or directory is writeable */
+int scr_file_is_writeable(const char* file);
+
+/* delete a file */
+int scr_file_unlink(const char* file);
 
 /* opens, reads, and computes the crc32 value for the given filename */
 int scr_crc32(const char* filename, uLong* crc);
@@ -130,6 +139,9 @@ int scr_build_path (char* buf, size_t size, const char* path, const char* file);
 
 /* recursively create directory and subdirectories */
 int scr_mkdir(const char* dir, mode_t mode);
+
+/* remove directory */
+int scr_rmdir(const char* dir);
 
 /* write current working directory to buf */
 int scr_cwd(char* buf, size_t size);

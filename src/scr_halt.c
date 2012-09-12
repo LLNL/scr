@@ -30,8 +30,8 @@
 /* given the name of a halt file, read it and fill in hash */
 int scr_halt_read(const char* file, scr_hash* hash)
 {
-  /* check whether halt file even exists */
-  if (scr_file_exists(file) != SCR_SUCCESS) {
+  /* check whether we can read the halt file */
+  if (scr_file_is_readable(file) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 

@@ -1288,7 +1288,7 @@ int scr_hash_read(const char* file, scr_hash* hash)
   }
 
   /* can't read file, return error (special case so as not to print error message below) */
-  if (access(file, R_OK) < 0) {
+  if (scr_file_is_readable(file) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 

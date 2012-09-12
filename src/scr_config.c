@@ -228,7 +228,7 @@ static int scr_config_read_line(
 int scr_config_read_common(const char* file, scr_hash* hash)
 {
   /* check whether we can read the file */
-  if (access(file, R_OK) < 0) {
+  if (scr_file_is_readable(file) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 

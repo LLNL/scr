@@ -51,7 +51,7 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
   }
 
   /* check that we can read the file */
-  if (access(file, R_OK) < 0) {
+  if (scr_file_is_readable(file) != SCR_SUCCESS) {
     scr_dbg(2, "Do not have read access to file: %s @ %s:%d",
             file, __FILE__, __LINE__
     );
@@ -136,7 +136,7 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
 #endif
 
   /* check that the file size matches (use strtol while reading data) */
-  unsigned long size = scr_filesize(file);
+  unsigned long size = scr_file_size(file);
   unsigned long meta_size = 0;
   if (scr_meta_get_filesize(meta, &meta_size) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read filesize field in meta data: %s @ %s:%d",

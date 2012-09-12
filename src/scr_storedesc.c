@@ -208,12 +208,11 @@ int scr_storedesc_dir_delete(const scr_storedesc* store, const char* dir)
   int rc = SCR_SUCCESS;
   if (store->rank == 0) {
     /* delete directory */
-    int tmp_rc = rmdir(dir);
-    if (tmp_rc != 0) {
+    if (scr_rmdir(dir) != SCR_SUCCESS) {
       /* whoops, something failed when we tried to delete our directory */
       rc = SCR_FAILURE;
-      scr_err("Error deleting directory: %s (rmdir returned %d %m) %s:%d",
-        dir, tmp_rc, __FILE__, __LINE__
+      scr_err("Error deleting directory: %s @ %s:%d",
+        dir, __FILE__, __LINE__
       );
     }
   }

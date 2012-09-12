@@ -455,19 +455,19 @@ int main(int argc, char* argv[])
   /* if the write failed, delete the files we just wrote, and return an error */
   if (rc != 0) {
     for (j=0; j < num_files[0]; j++) {
-      unlink(full_files[j]);
+      scr_file_unlink(full_files[j]);
     }
-    unlink(xor_files[0]);
+    scr_file_unlink(xor_files[0]);
     return 1;
   }
 
   /* check that filesizes are correct */
   unsigned long filesize;
   for (j=0; j < num_files[0]; j++) {
-    filesize = scr_filesize(full_files[j]);
+    filesize = scr_file_size(full_files[j]);
     if (filesize != full_filesizes[j]) {
       /* the filesize check failed, so delete the file */
-      unlink(full_files[j]);
+      scr_file_unlink(full_files[j]);
 
       /* mark the file as incomplete */
       scr_meta* meta = scr_hash_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
@@ -499,7 +499,7 @@ int main(int argc, char* argv[])
 
   /* write meta data for xor file and add it to the filemap */
   scr_filemap_add_file(map, dset_id, my_rank, xor_files[0]);
-  unsigned long full_chunk_filesize = scr_filesize(xor_files[0]);
+  unsigned long full_chunk_filesize = scr_file_size(xor_files[0]);
   int missing_complete = 1;
   scr_meta* meta_chunk = scr_meta_new();
   scr_meta_set_filename(meta_chunk, xor_files[0]);
@@ -518,13 +518,13 @@ int main(int argc, char* argv[])
   for (j=0; j < num_files[0]; j++) {
     if (scr_compute_crc(map, dset_id, my_rank, full_files[j]) != SCR_SUCCESS) {
       /* the crc check failed, so delete the file */
-      unlink(full_files[j]);
+      scr_file_unlink(full_files[j]);
       rc = 1;
     }
   }
   if (scr_compute_crc(map, dset_id, my_rank, xor_files[0]) != SCR_SUCCESS) {
     /* the crc check failed, so delete the file */
-    unlink(xor_files[0]);
+    scr_file_unlink(xor_files[0]);
     rc = 1;
   }
 

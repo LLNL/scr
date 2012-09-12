@@ -183,7 +183,7 @@ static int scr_bool_have_file(const scr_filemap* map, int id, int rank, const ch
   }
 
   /* check that we can read the file */
-  if (access(file, R_OK) < 0) {
+  if (scr_file_is_readable(file) != SCR_SUCCESS) {
     scr_dbg(2, "%s: Do not have read access to file: %s", PROG, file);
     return 0;
   }
@@ -226,7 +226,7 @@ static int scr_bool_have_file(const scr_filemap* map, int id, int rank, const ch
 #endif
 
   /* check that the file size matches (use strtol while reading data) */
-  unsigned long size = scr_filesize(file);
+  unsigned long size = scr_file_size(file);
   if (valid && scr_meta_check_filesize(meta, size) != SCR_SUCCESS) {
     scr_dbg(2, "%s: Filesize is incorrect, currently %lu for %s",
             PROG, size, file
@@ -438,7 +438,7 @@ int main (int argc, char *argv[])
               /* detected a crc mismatch during the copy */
 
               /* TODO: unlink the copied file */
-              /* unlink(dst); */
+              /* scr_file_unlink(dst); */
 
               /* mark the file as invalid */
               scr_meta_set_complete(meta, 0);

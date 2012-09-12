@@ -842,7 +842,7 @@ int SCR_Init()
   /* TODO: continue draining a checkpoint if one is in progress from the previous run,
    * for now, just delete the transfer file so we'll start over from scratch */
   if (scr_storedesc_cntl->rank == 0) {
-    unlink(scr_transfer_file);
+    scr_file_unlink(scr_transfer_file);
   }
 
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
@@ -1427,7 +1427,7 @@ int SCR_Route_file(const char* file, char* newfile)
     scr_meta_delete(meta);
   } else {
     /* if we can't read the file, return an error */
-    if (access(newfile, R_OK) < 0) {
+    if (scr_file_is_readable(newfile) != SCR_SUCCESS) {
       return SCR_FAILURE;
     }
   }
@@ -1471,7 +1471,7 @@ int SCR_Complete_checkpoint(int valid)
     my_counts[0]++;
 
     /* get size of this file */
-    unsigned long filesize = scr_filesize(file);
+    unsigned long filesize = scr_file_size(file);
     my_counts[1] += filesize;
 
     /* fill in filesize and complete flag in the meta data for the file */

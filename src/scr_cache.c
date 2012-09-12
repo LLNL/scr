@@ -110,7 +110,7 @@ int scr_cache_delete(scr_filemap* map, int id)
       }
 
       /* delete the file */
-      unlink(file);
+      scr_file_unlink(file);
     }
   }
 
@@ -207,7 +207,7 @@ int scr_unlink_rank(scr_filemap* map, int id, int rank)
       scr_dbg(2, "Delete file Dataset %d, Rank %d, File %s", id, rank, file);
 
       /* delete the file */
-      unlink(file);
+      scr_file_unlink(file);
 
       /* remove the file from the map */
       scr_filemap_remove_file(map, id, rank, file);
@@ -250,7 +250,7 @@ int scr_cache_purge(scr_filemap* map)
   } while (current_id != -1);
 
   /* now delete the filemap itself */
-  unlink(scr_map_file);
+  scr_file_unlink(scr_map_file);
 
   /* TODO: want to clear the map object here? */
 
@@ -353,7 +353,7 @@ int scr_cache_clean(scr_filemap* map)
           );
 
           /* delete the file */
-          unlink(file);
+          scr_file_unlink(file);
         } else {
           /* keep this file */
           scr_filemap_add_file(keep_map, dset, rank, file);
@@ -403,7 +403,7 @@ int scr_cache_check_files(const scr_filemap* map, int id)
       char* file = scr_hash_elem_key(file_elem);
 
       /* check that we can read the file */
-      if (access(file, R_OK) < 0) {
+      if (scr_file_is_readable(file) != SCR_SUCCESS) {
         failed_read = 1;
       }
 
@@ -441,7 +441,7 @@ int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* f
   }
 
   /* check that we can read the file */
-  if (access(file, R_OK) < 0) {
+  if (scr_file_is_readable(file) != SCR_SUCCESS) {
     scr_dbg(2, "Do not have read access to file: %s @ %s:%d",
       file, __FILE__, __LINE__
     );
@@ -529,7 +529,7 @@ int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* f
 #endif
 
   /* check that the file size matches */
-  unsigned long size = scr_filesize(file);
+  unsigned long size = scr_file_size(file);
   unsigned long meta_size = 0;
   if (scr_meta_get_filesize(meta, &meta_size) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read filesize field in meta data: %s @ %s:%d",
