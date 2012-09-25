@@ -103,7 +103,8 @@ static int scr_split_by_string(const char* str, MPI_Comm* comm)
   int index = 0;
   char* current = buf;
   while (index < scr_ranks_world) {
-    /* compare string from rank index to our own, break if we find a match */
+    /* compare string from rank index to our own,
+     * break if we find a match */
     if (strcmp(current, tmp_str) == 0) {
       break;
     }
@@ -127,7 +128,7 @@ static int scr_split_by_string(const char* str, MPI_Comm* comm)
   return SCR_SUCCESS;
 }
 
-/* build a group descriptor of all procs on the same node */
+/* build a group descriptor of all procs having the same value */
 int scr_groupdesc_create_by_str(
   scr_groupdesc* d, int index, const char* key, const char* value)
 {
@@ -208,7 +209,9 @@ int scr_groupdescs_create()
   int count = num_groups + 1;
 
   /* set our count to maximum count across all procs */
-  MPI_Allreduce(&count, &scr_ngroupdescs, 1, MPI_INT, MPI_MAX, scr_comm_world);
+  MPI_Allreduce(
+    &count, &scr_ngroupdescs, 1, MPI_INT, MPI_MAX, scr_comm_world
+  );
 
   /* allocate our group descriptors */
   if (scr_ngroupdescs > 0) {
@@ -223,7 +226,9 @@ int scr_groupdescs_create()
 
   /* create group descriptor for all procs on the same node */
   int index = 0;
-  scr_groupdesc_create_by_str(&scr_groupdescs[index], index, SCR_GROUP_NODE, scr_my_hostname);
+  scr_groupdesc_create_by_str(
+    &scr_groupdescs[index], index, SCR_GROUP_NODE, scr_my_hostname
+  );
   index++;
 
   /* in order to form groups in the same order on all procs,
@@ -232,7 +237,8 @@ int scr_groupdescs_create()
   /* determine number of entries on rank 0 */
   MPI_Bcast(&num_groups, 1, MPI_INT, 0, scr_comm_world);
 
-  /* iterate over each of our hash entries filling in each corresponding descriptor */
+  /* iterate over each of our hash entries filling in each
+   * corresponding descriptor */
   char* value;
   int have_match;
   if (scr_my_rank_world == 0) {
@@ -254,7 +260,9 @@ int scr_groupdescs_create()
       }
       if (scr_alltrue(have_match)) {
         /* create group */
-        scr_groupdesc_create_by_str(&scr_groupdescs[index], index, key, value);
+        scr_groupdesc_create_by_str(
+          &scr_groupdescs[index], index, key, value
+        );
         index++;
       } else {
         /* TODO: print error */
@@ -273,7 +281,9 @@ int scr_groupdescs_create()
       }
       if (scr_alltrue(have_match)) {
         /* create group */
-        scr_groupdesc_create_by_str(&scr_groupdescs[index], index, key, value);
+        scr_groupdesc_create_by_str(
+          &scr_groupdescs[index], index, key, value
+        );
         index++;
       }
 

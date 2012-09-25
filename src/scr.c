@@ -214,7 +214,7 @@ static int scr_check_flush(scr_filemap* map)
 
 /* given a dataset id and a filename,
  * return the full path to the file which the caller should use to access the file */
-static int scr_route_file(const scr_reddesc* c, int id, const char* file, char* newfile, int n)
+static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, char* newfile, int n)
 {
   /* check that we got a file and newfile to write to */
   if (file == NULL || strcmp(file, "") == 0 || newfile == NULL) {
@@ -235,7 +235,7 @@ static int scr_route_file(const scr_reddesc* c, int id, const char* file, char* 
 
   /* lookup the checkpoint directory */
   char dir[SCR_MAX_FILENAME];
-  scr_cache_dir_get(c, id, dir);
+  scr_cache_dir_get(reddesc, id, dir);
 
   /* build the composed name */
   if (scr_build_path(newfile, n, dir, name) != SCR_SUCCESS) {
@@ -780,6 +780,8 @@ int SCR_Init()
     }
   }
 
+  /* TODO MEMFS: mount storage for control directory */
+
   /* build the control directory name: CNTL_BASE/username/scr.jobid */
   scr_cntl_prefix = scr_strdupf("%s/%s/scr.%s", scr_cntl_base, scr_username, scr_jobid);
   if (scr_cntl_prefix == NULL) {
@@ -788,7 +790,7 @@ int SCR_Init()
     );
   }
 
-  /* the master of each storage device creates the control directory */
+  /* create the control directory */
   if (scr_storedesc_dir_create(scr_storedesc_cntl, scr_cntl_prefix)
       != SCR_SUCCESS)
   {
@@ -807,6 +809,8 @@ int SCR_Init()
     if (reddesc->enabled) {
       scr_storedesc* store = scr_reddesc_get_store(reddesc);
       if (store != NULL) {
+        /* TODO MEMFS: mount storage for cache directory */
+
         if (scr_storedesc_dir_create(store, reddesc->directory)
             != SCR_SUCCESS)
         {
@@ -991,13 +995,13 @@ int SCR_Init()
     /* set the checkpoint end time, we use this time in Need_checkpoint */
     scr_time_checkpoint_end = MPI_Wtime();
 
-    /* start the clocks for measuring the compute time */
-    scr_timestamp_compute_start = scr_log_seconds();
-    scr_time_compute_start = MPI_Wtime();
+    /* start the clock for measuring the compute time */
+    scr_time_compute_start = scr_time_checkpoint_end;
 
     /* log the start time of this compute phase */
     if (scr_log_enable) {
       int compute_id = scr_checkpoint_id + 1;
+      scr_timestamp_compute_start = scr_log_seconds();
       scr_log_event("COMPUTE STARTED", NULL, &compute_id, &scr_timestamp_compute_start, NULL);
     }
   }
@@ -1050,6 +1054,8 @@ int SCR_Finalize()
   if (scr_my_rank_world == 0 && scr_log_enable) {
     scr_log_finalize();
   }
+
+  /* TODO MEMFS: unmount storage */
 
   /* free off the memory allocated for our descriptors */
   scr_storedescs_free();
@@ -1230,16 +1236,16 @@ int SCR_Start_checkpoint()
   scr_checkpoint_id++;
 
   /* get the redundancy descriptor for this checkpoint id */
-  scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
+  scr_reddesc* reddesc = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
 
   /* start the clock to record how long it takes to checkpoint */
   if (scr_my_rank_world == 0) {
-    scr_timestamp_checkpoint_start = scr_log_seconds();
     scr_time_checkpoint_start = MPI_Wtime();
 
     /* log the start of this checkpoint phase */
     if (scr_log_enable) {
-      scr_log_event("CHECKPOINT STARTED", c->base, &scr_checkpoint_id, &scr_timestamp_checkpoint_start, NULL);
+      scr_timestamp_checkpoint_start = scr_log_seconds();
+      scr_log_event("CHECKPOINT STARTED", reddesc->base, &scr_checkpoint_id, &scr_timestamp_checkpoint_start, NULL);
     }
   }
 
@@ -1251,7 +1257,7 @@ int SCR_Start_checkpoint()
   /* lookup the number of checkpoints we're allowed to keep in
    * the base for this checkpoint */
   int size = 0;
-  int store_index = scr_storedescs_index_from_name(c->base);
+  int store_index = scr_storedescs_index_from_name(reddesc->base);
   if (store_index >= 0) {
     size = scr_storedescs[store_index].max_count;
   }
@@ -1267,7 +1273,7 @@ int SCR_Start_checkpoint()
     /* get base for this checkpoint and increase count if it matches the target base */
     base = scr_reddesc_base_from_filemap(scr_map, dsets[i], scr_my_rank_world);
     if (base != NULL) {
-      if (strcmp(base, c->base) == 0) {
+      if (strcmp(base, reddesc->base) == 0) {
         nckpts_base++;
       }
       scr_free(&base);
@@ -1281,7 +1287,7 @@ int SCR_Start_checkpoint()
 
     base = scr_reddesc_base_from_filemap(scr_map, dsets[i], scr_my_rank_world);
     if (base != NULL) {
-      if (strcmp(base, c->base) == 0) {
+      if (strcmp(base, reddesc->base) == 0) {
         if (! scr_bool_is_flushing(dsets[i])) {
           /* this checkpoint is in our base, and it's not being flushed, so delete it */
           scr_cache_delete(scr_map, dsets[i]);
@@ -1340,13 +1346,13 @@ int SCR_Start_checkpoint()
   /* store the redundancy descriptor in the filemap, so if we die before completing
    * the checkpoint, we'll have a record of the new directory we're about to create */
   scr_hash* my_desc_hash = scr_hash_new();
-  scr_reddesc_store_to_hash(c, my_desc_hash);
+  scr_reddesc_store_to_hash(reddesc, my_desc_hash);
   scr_filemap_set_desc(scr_map, scr_dataset_id, scr_my_rank_world, my_desc_hash);
   scr_filemap_write(scr_map_file, scr_map);
   scr_hash_delete(my_desc_hash);
 
   /* make directory in cache to store files for this checkpoint */
-  scr_cache_dir_create(c, scr_dataset_id);
+  scr_cache_dir_create(reddesc, scr_dataset_id);
 
   /* print a debug message to indicate we've started the checkpoint */
   if (scr_my_rank_world == 0) {
@@ -1373,11 +1379,11 @@ int SCR_Route_file(const char* file, char* newfile)
   }
 
   /* get the redundancy descriptor for the current checkpoint */
-  scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
+  scr_reddesc* reddesc = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
 
   /* route the file */
   int n = SCR_MAX_FILENAME;
-  if (scr_route_file(c, scr_dataset_id, file, newfile, n) != SCR_SUCCESS) {
+  if (scr_route_file(reddesc, scr_dataset_id, file, newfile, n) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -1511,8 +1517,8 @@ int SCR_Complete_checkpoint(int valid)
 
   /* apply redundancy scheme */
   double bytes_copied = 0.0;
-  scr_reddesc* c = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
-  int rc = scr_reddesc_apply(scr_map, c, scr_dataset_id, &bytes_copied);
+  scr_reddesc* reddesc = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
+  int rc = scr_reddesc_apply(scr_map, reddesc, scr_dataset_id, &bytes_copied);
 
   /* TODO: set size of dataset and complete flag */
 
@@ -1537,12 +1543,12 @@ int SCR_Complete_checkpoint(int valid)
       /* log the end of this checkpoint phase */
       double time_diff = scr_time_checkpoint_end - scr_time_checkpoint_start;
       time_t now = scr_log_seconds();
-      scr_log_event("CHECKPOINT COMPLETED", c->base, &scr_checkpoint_id, &now, &time_diff);
+      scr_log_event("CHECKPOINT COMPLETED", reddesc->base, &scr_checkpoint_id, &now, &time_diff);
 
       /* log the transfer details */
       char dir[SCR_MAX_FILENAME];
-      scr_cache_dir_get(c, scr_dataset_id, dir);
-      scr_log_transfer("CHECKPOINT", c->base, dir, &scr_checkpoint_id,
+      scr_cache_dir_get(reddesc, scr_dataset_id, dir);
+      scr_log_transfer("CHECKPOINT", reddesc->base, dir, &scr_checkpoint_id,
         &scr_timestamp_checkpoint_start, &cost, &bytes_copied
       );
     }
@@ -1590,12 +1596,12 @@ int SCR_Complete_checkpoint(int valid)
 
   /* start the clock for measuring the compute time */
   if (scr_my_rank_world == 0) {
-    scr_timestamp_compute_start = scr_log_seconds();
     scr_time_compute_start = MPI_Wtime();
 
     /* log the start time of this compute phase */
     if (scr_log_enable) {
       int compute_id = scr_checkpoint_id + 1;
+      scr_timestamp_compute_start = scr_log_seconds();
       scr_log_event("COMPUTE STARTED", NULL, &compute_id, &scr_timestamp_compute_start, NULL);
     }
   }

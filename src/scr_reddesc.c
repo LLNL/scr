@@ -59,7 +59,8 @@ int scr_reddesc_init(scr_reddesc* d)
   return SCR_SUCCESS;
 }
 
-/* free any memory associated with the specified redundancy descriptor */
+/* free any memory associated with the specified redundancy
+ * descriptor */
 int scr_reddesc_free(scr_reddesc* d)
 {
   /* free the strings we strdup'd */
@@ -80,7 +81,10 @@ int scr_reddesc_free(scr_reddesc* d)
 
 /* given a checkpoint id and a list of redundancy descriptors,
  * select and return a pointer to a descriptor for the specified id */
-scr_reddesc* scr_reddesc_for_checkpoint(int id, int ndescs, scr_reddesc* descs)
+scr_reddesc* scr_reddesc_for_checkpoint(
+  int id,
+  int ndescs,
+  scr_reddesc* descs)
 {
   scr_reddesc* d = NULL;
 
@@ -102,10 +106,12 @@ scr_reddesc* scr_reddesc_for_checkpoint(int id, int ndescs, scr_reddesc* descs)
   return d;
 }
 
-/* convert the specified redundancy descritpor into a corresponding hash */
+/* convert the specified redundancy descritpor into a corresponding
+ * hash */
 int scr_reddesc_store_to_hash(const scr_reddesc* d, scr_hash* hash)
 {
-  /* check that we got a valid pointer to a redundancy descriptor and a hash */
+  /* check that we got a valid pointer to a redundancy descriptor and
+   * a hash */
   if (d == NULL || hash == NULL) {
     return SCR_FAILURE;
   }
@@ -116,14 +122,17 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, scr_hash* hash)
   /* set the ENABLED key */
   scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_ENABLED, d->enabled);
 
-  /* we don't set the INDEX because this is dependent on runtime environment */
+  /* we don't set the INDEX because this is dependent on runtime
+   * environment */
 
   /* set the INTERVAL key */
   scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_INTERVAL, d->interval);
 
-  /* we don't set STORE_INDEX because this is dependent on runtime environment */
+  /* we don't set STORE_INDEX because this is dependent on runtime
+   * environment */
 
-  /* we don't set GROUP_INDEX because this is dependent on runtime environment */
+  /* we don't set GROUP_INDEX because this is dependent on runtime
+   * environment */
 
   /* set the BASE key */
   if (d->base != NULL) {
@@ -148,7 +157,8 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, scr_hash* hash)
     break;
   }
 
-  /* we don't set the COMM because this is dependent on runtime environment */
+  /* we don't set the COMM because this is dependent on runtime
+   * environment */
 
   /* set the SIZE */
   scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_SET_SIZE,   d->set_size);
@@ -172,7 +182,8 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, scr_hash* hash)
 static int scr_reddesc_group_id(
   int rank, int ranks, int minsize, int* group_id)
 {
-  /* compute maximum number of full minsize groups we can fit within ranks */
+  /* compute maximum number of full minsize groups we can fit within
+   * ranks */
   int groups = ranks / minsize;
 
   /* compute number of ranks left over */
@@ -186,12 +197,13 @@ static int scr_reddesc_group_id(
     size = minsize + add_to_each_group;
   }
 
-  /* compute remaining ranks assuming we have groups of the new base size */
+  /* compute remaining ranks assuming we have groups of the new base
+   * size */
   int remainder = ranks % size;
 
-  /* for each remainder rank, we increase the lower groups by a size of one,
-   * so that we end up with remainder groups of size+1 followed by
-   * (groups - remainder) of size */
+  /* for each remainder rank, we increase the lower groups by a size
+   * of one, so that we end up with remainder groups of size+1 followed
+   * by (groups - remainder) of size */
 
   /* cutoff is the first rank for which all groups are exactly size */
   int cutoff = remainder * (size + 1);
@@ -213,8 +225,8 @@ static int scr_reddesc_group_id(
 static int scr_reddesc_split_across(
   MPI_Comm comm_parent, MPI_Comm comm_group, MPI_Comm* comm_across)
 {
-  /* TODO: this works well if each comm has about the same number of procs,
-   * but we need something better to handle unbalanced groups */
+  /* TODO: this works well if each comm has about the same number of
+   * procs, but we need something better to handle unbalanced groups */
 
   /* get rank of this process within parent communicator */
   int rank_parent;
@@ -346,7 +358,8 @@ int scr_reddesc_create_from_hash(
    * and build our checkpoint communicator */
   value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_TYPE);
   if (value != NULL) {
-    if (scr_reddesc_type_int_from_str(value, &d->copy_type) != SCR_SUCCESS) {
+    if (scr_reddesc_type_int_from_str(value, &d->copy_type) != SCR_SUCCESS)
+    {
       /* don't recognize copy type, disable this descriptor */
       d->enabled = 0;
       if (scr_my_rank_world == 0) {
@@ -417,7 +430,9 @@ int scr_reddesc_create_from_hash(
         );
 
         /* split communicator into groups */
-        MPI_Comm_split(comm_across, split_id, scr_my_rank_world, &d->comm);
+        MPI_Comm_split(
+          comm_across, split_id, scr_my_rank_world, &d->comm
+        );
 
         /* free the temporary communicator */
         MPI_Comm_free(&comm_across);
@@ -445,7 +460,8 @@ int scr_reddesc_create_from_hash(
       &group_master, &d->groups, 1, MPI_INT, MPI_SUM, scr_comm_world
     );
 
-    /* find left and right-hand-side partners (SINGLE needs no partner nodes) */
+    /* find left and right-hand-side partners (SINGLE needs no partner
+     * nodes) */
     if (d->copy_type == SCR_COPY_PARTNER) {
       scr_set_partners(
         d->comm, 1,
@@ -462,7 +478,9 @@ int scr_reddesc_create_from_hash(
 
     /* check that we have a valid partner node
      * (SINGLE needs no partner nodes) */
-    if (d->copy_type == SCR_COPY_PARTNER || d->copy_type == SCR_COPY_XOR) {
+    if (d->copy_type == SCR_COPY_PARTNER ||
+        d->copy_type == SCR_COPY_XOR)
+    {
       if (d->lhs_hostname == NULL ||
           d->rhs_hostname == NULL ||
           strcmp(d->lhs_hostname, "") == 0 ||
@@ -627,7 +645,8 @@ int scr_reddesc_restore_from_hash(
     &group_master, &d->groups, 1, MPI_INT, MPI_SUM, scr_comm_world
   );
 
-  /* find left and right-hand-side partners (SINGLE needs no partner nodes) */
+  /* find left and right-hand-side partners (SINGLE needs no partner
+   * nodes) */
   if (d->copy_type == SCR_COPY_PARTNER) {
     scr_set_partners(
       d->comm, 1,
@@ -696,7 +715,8 @@ char* scr_reddesc_val_from_filemap(
     return NULL;
   }
 
-  /* copy the directory from the redundancy descriptor hash, if it's set */
+  /* copy the directory from the redundancy descriptor hash, if it's
+   * set */
   char* dup = NULL;
   char* val;
   if (scr_hash_util_get_str(desc, name, &val) == SCR_SUCCESS) {
@@ -734,7 +754,8 @@ char* scr_reddesc_dir_from_filemap(scr_filemap* map, int ckpt, int rank)
 int scr_reddesc_create_from_filemap(
   scr_filemap* map, int id, int rank, scr_reddesc* d)
 {
-  /* check that we have a pointer to a map and a redundancy descriptor */
+  /* check that we have a pointer to a map and a redundancy
+   * descriptor */
   if (map == NULL || d == NULL) {
     return SCR_FAILURE;
   }
@@ -824,7 +845,8 @@ int scr_reddescs_create()
    * corresponding descriptor */
   int index = 0;
   if (scr_my_rank_world == 0) {
-    /* have rank 0 determine the order in which we'll create the descriptors */
+    /* have rank 0 determine the order in which we'll create the
+     * descriptors */
     scr_hash_elem* elem;
     for (elem = scr_hash_elem_first(descs);
          elem != NULL;

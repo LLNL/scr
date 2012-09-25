@@ -35,10 +35,10 @@ Group descriptor functions
 =========================================
 */
 
-/* initialize the specified redundancy descriptor */
+/* initialize the specified group descriptor */
 int scr_groupdesc_init(scr_groupdesc* group);
 
-/* free any memory associated with the specified redundancy descriptor */
+/* free any memory associated with the specified group descriptor */
 int scr_groupdesc_free(scr_groupdesc* group);
 
 /*

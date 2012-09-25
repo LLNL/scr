@@ -39,6 +39,7 @@ int scr_storedesc_init(scr_storedesc* s)
   s->index     = -1;
   s->name      = NULL;
   s->max_count = 0;
+  s->can_mkdir = 0;
   s->comm      = MPI_COMM_NULL;
   s->rank      = MPI_PROC_NULL;
   s->ranks     = 0;
@@ -76,6 +77,7 @@ static int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
   out->index     = in->index;
   out->name      = strdup(in->name);
   out->max_count = in->max_count;
+  out->can_mkdir = in->can_mkdir;
   MPI_Comm_dup(in->comm, &out->comm);
   out->rank      = in->rank;
   out->ranks     = in->ranks;
@@ -83,7 +85,7 @@ static int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
   return SCR_SUCCESS;
 }
 
-/* build a redundancy descriptor corresponding to the specified hash,
+/* build a store descriptor corresponding to the specified hash,
  * this function is collective, because it issues MPI calls */
 int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* hash)
 {
@@ -141,6 +143,13 @@ int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* 
     s->max_count = atoi(value);
   }
 
+  /* assume we can call mkdir/rmdir on this store unless told otherwise */
+  s->can_mkdir = 1;
+  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_MKDIR);
+  if (value != NULL) {
+    s->can_mkdir = atoi(value);
+  }
+
   /* TODO: use FGFS eventually, for now we assume node-local storage */
   /* get communicator of ranks that can access this storage device */
   const scr_groupdesc* groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
@@ -177,7 +186,7 @@ int scr_storedesc_dir_create(const scr_storedesc* store, const char* dir)
 
   /* rank 0 creates the directory */
   int rc = SCR_SUCCESS;
-  if (store->rank == 0) {
+  if (store->rank == 0 && store->can_mkdir) {
     scr_dbg(2, "Creating directory: %s", dir);
     rc = scr_mkdir(dir, S_IRWXU | S_IRWXG);
   }
@@ -206,7 +215,7 @@ int scr_storedesc_dir_delete(const scr_storedesc* store, const char* dir)
 
   /* rank 0 deletes the directory */
   int rc = SCR_SUCCESS;
-  if (store->rank == 0) {
+  if (store->rank == 0 && store->can_mkdir) {
     /* delete directory */
     if (scr_rmdir(dir) != SCR_SUCCESS) {
       /* whoops, something failed when we tried to delete our directory */

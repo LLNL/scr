@@ -53,37 +53,51 @@ Redundancy descriptor functions
 /* initialize the specified redundancy descriptor */
 int scr_reddesc_init(scr_reddesc* c);
 
-/* free any memory associated with the specified redundancy descriptor */
+/* free any memory associated with the specified redundancy
+ * descriptor */
 int scr_reddesc_free(scr_reddesc* c);
 
 /* given a checkpoint id and a list of redundancy descriptors,
  * select and return a pointer to a descriptor for the 
  * specified checkpoint id */
-scr_reddesc* scr_reddesc_for_checkpoint(int id, int nckpts, scr_reddesc* ckpts);
+scr_reddesc* scr_reddesc_for_checkpoint(
+  int id, int nckpts, scr_reddesc* ckpts
+);
 
-/* convert the specified redundancy descritpor into a corresponding hash */
+/* convert the specified redundancy descritpor into a corresponding
+ * hash */
 int scr_reddesc_store_to_hash(const scr_reddesc* c, scr_hash* hash);
 
 /* build a redundancy descriptor corresponding to the specified hash,
  * this function is collective */
-int scr_reddesc_create_from_hash(scr_reddesc* c, int index, const scr_hash* hash);
+int scr_reddesc_create_from_hash(
+  scr_reddesc* c, int index, const scr_hash* hash
+);
 
 /* build a redundancy descriptor from its corresponding hash stored
  * in the filemap, this function is collective */
-int scr_reddesc_create_from_filemap(scr_filemap* map, int id, int rank, scr_reddesc* c);
+int scr_reddesc_create_from_filemap(
+  scr_filemap* map, int id, int rank, scr_reddesc* c
+);
 
 /* many times we just need a string value from the descriptor
  * stored in the filemap, it's overkill to create the whole
  * descriptor each time, returns a newly allocated string */
-char* scr_reddesc_val_from_filemap(scr_filemap* map, int ckpt, int rank, char* name);
+char* scr_reddesc_val_from_filemap(
+  scr_filemap* map, int ckpt, int rank, char* name
+);
 
 /* read base directory from descriptor stored in filemap,
  * returns a newly allocated string */
-char* scr_reddesc_base_from_filemap(scr_filemap* map, int ckpt, int rank);
+char* scr_reddesc_base_from_filemap(
+  scr_filemap* map, int ckpt, int rank
+);
 
 /* read directory from descriptor stored in filemap,
  * returns a newly allocated string */
-char* scr_reddesc_dir_from_filemap(scr_filemap* map, int ckpt, int rank);
+char* scr_reddesc_dir_from_filemap(
+  scr_filemap* map, int ckpt, int rank
+);
 
 /* return pointer to store descriptor associated with redundancy
  * descriptor, returns NULL if reddesc or storedesc is not enabled */

@@ -159,6 +159,7 @@ Define common hash key strings
 #define SCR_CONFIG_KEY_GROUP_ID   ("GROUP_ID")
 #define SCR_CONFIG_KEY_GROUP_SIZE ("GROUP_SIZE")
 #define SCR_CONFIG_KEY_GROUP_RANK ("GROUP_RANK")
+#define SCR_CONFIG_KEY_MKDIR      ("MKDIR")
 
 #define SCR_DATASET_KEY_ID       ("ID")
 #define SCR_DATASET_KEY_USER     ("USER")

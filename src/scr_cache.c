@@ -17,13 +17,15 @@ Dataset cache functions
 =========================================
 */
 
+/* allocates and returns a string representing the dataset directory
+ * given a path and dataset id */
 static char* scr_cache_dir_build(const char* path, int id)
 {
   char* dir = scr_strdupf("%s/dataset.%d", path, id);
   return dir;
 }
 
-/* returns name of the cache directory for a given redundancy descriptor
+/* returns name of the dataset directory for a given redundancy descriptor
  * and dataset id */
 int scr_cache_dir_get(const scr_reddesc* red, int id, char* dir)
 {
@@ -34,7 +36,7 @@ int scr_cache_dir_get(const scr_reddesc* red, int id, char* dir)
     );
   }
 
-  /* now build the checkpoint directory name */
+  /* build the dataset directory name */
   char* tmp = scr_cache_dir_build(red->directory, id);
   strcpy(dir, tmp);
   scr_free(&tmp);
@@ -42,7 +44,7 @@ int scr_cache_dir_get(const scr_reddesc* red, int id, char* dir)
   return SCR_SUCCESS;
 }
 
-/* create a cache directory given a redundancy descriptor and dataset id,
+/* create a dataset directory given a redundancy descriptor and dataset id,
  * waits for all tasks on the same node before returning */
 int scr_cache_dir_create(const scr_reddesc* red, int id)
 {
@@ -51,7 +53,7 @@ int scr_cache_dir_create(const scr_reddesc* red, int id)
   /* get store descriptor for this redudancy descriptor */
   scr_storedesc* store = scr_reddesc_get_store(red);
   if (store != NULL) {
-    /* get the name of the checkpoint directory for the given id */
+    /* get the name of the dataset directory for the given id */
     char dir[SCR_MAX_FILENAME];
     scr_cache_dir_get(red, id, dir);
 
@@ -302,7 +304,7 @@ int scr_cache_clean(scr_filemap* map)
         /* check whether we have it */
         if (! scr_bool_have_file(map, dset, rank, file, scr_ranks_world)) {
             missing_file = 1;
-            scr_dbg(1, "File is unreadable or incomplete: Dataset %d, Rank %d, File: %s",
+            scr_dbg(2, "File is unreadable or incomplete: Dataset %d, Rank %d, File: %s",
               dset, rank, file
             );
         }
@@ -348,7 +350,7 @@ int scr_cache_clean(scr_filemap* map)
          * otherwise add them all to the keep_map */
         if (missing_file) {
           /* inform user on what we're doing */
-          scr_dbg(1, "Deleting file: Dataset %d, Rank %d, File: %s",
+          scr_dbg(2, "Deleting file: Dataset %d, Rank %d, File: %s",
             dset, rank, file
           );
 

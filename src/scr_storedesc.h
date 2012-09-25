@@ -25,6 +25,7 @@ typedef struct {
   int      index;     /* each descriptor is indexed starting from 0 */
   char*    name;      /* name of store */
   int      max_count; /* maximum number of datasets to be stored in device */
+  int      can_mkdir; /* flag indicating whether mkdir/rmdir work */
   MPI_Comm comm;      /* communicator of processes that can access storage */
   int      rank;      /* local rank of process in communicator */
   int      ranks;     /* number of ranks in communicator */
@@ -36,14 +37,16 @@ Store descriptor functions
 =========================================
 */
 
-/* initialize the specified redundancy descriptor */
+/* initialize the specified store descriptor */
 int scr_storedesc_init(scr_storedesc* store);
 
-/* free any memory associated with the specified redundancy descriptor */
+/* free any memory associated with the specified store descriptor */
 int scr_storedesc_free(scr_storedesc* store);
 
 /* build a store descriptor corresponding to the specified hash */
-int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* hash);
+int scr_storedesc_create_from_hash(
+  scr_storedesc* s, int index, const scr_hash* hash
+);
 
 /* create specified directory on store */
 int scr_storedesc_dir_create(const scr_storedesc* s, const char* dir);

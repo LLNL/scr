@@ -46,6 +46,8 @@ int scr_scatter_filemaps(scr_filemap* my_map)
       /* get the filename of this filemap */
       char* file = scr_hash_elem_key(elem);
 
+      /* TODO MEMFS: mount storage for each filemap */
+
       /* read in the filemap */
       scr_filemap* tmp_map = scr_filemap_new();
       scr_filemap_read(file, tmp_map);
