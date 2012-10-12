@@ -882,6 +882,11 @@ int scr_cache_rebuild(scr_filemap* map)
           }
         }
 
+        /* TODO: there is a bug here, since scr_cache_delete needs to read
+         * the redundancy descriptor from the filemap in order to delete the
+         * cache directory, but we may have failed to distribute the reddescs
+         * above so not every task has one */
+
         /* rebuild failed, delete this dataset from cache */
         scr_cache_delete(map, current_id);
       } else {

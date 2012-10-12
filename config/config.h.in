@@ -12,8 +12,8 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `gcs' library (-lgcs). */
-#undef HAVE_LIBGCS
+/* Define to 1 if you have the `dtcmp' library (-ldtcmp). */
+#undef HAVE_LIBDTCMP
 
 /* Define if libmysql is available */
 #undef HAVE_LIBMYSQLCLIENT
@@ -103,6 +103,9 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* Define for BG/Q machine type. */
+#undef SCR_BGQ
+
 /* Specifies default base path for SCR cache directory */
 #undef SCR_CACHE_BASE
 
@@ -115,6 +118,15 @@
 /* Define for CRAY_XT machine type. */
 #undef SCR_CRAY_XT
 
+/* We should use flock for locking files */
+#undef SCR_FILE_LOCK_USE_FLOCK
+
+/* We should use fcntl for locking files */
+#undef SCR_FILE_LOCK_USE_FNCTL
+
+/* Do not attempt to lock files */
+#undef SCR_FILE_LOCK_USE_NONE
+
 /* Specify the type of machine. */
 #undef SCR_MACHINE_NAME
 
@@ -126,12 +138,6 @@
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
-
-/* We should use flock for locking files */
-#undef USE_FLOCK
-
-/* We should use fnctl for locking files */
-#undef USE_FNCTL
 
 /* Version number of package */
 #undef VERSION

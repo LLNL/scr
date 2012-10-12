@@ -197,11 +197,11 @@ int scr_halt_sync_and_set(const char* file, struct arglist* args, scr_hash* data
   }
 
   /* acquire an exclusive file lock before reading */
-  int ret = scr_write_lock(file,fd);
-  if (ret != SCR_SUCCESS){
-     scr_close(file,fd);
-     umask(old_mode);
-     return ret;
+  int ret = scr_file_lock_write(file,fd);
+  if (ret != SCR_SUCCESS) {
+    scr_close(file,fd);
+    umask(old_mode);
+    return ret;
   }
 
   /* read in the current data from the file */
@@ -255,11 +255,11 @@ int scr_halt_sync_and_set(const char* file, struct arglist* args, scr_hash* data
   }
 
   /* release the file lock */
-  ret = scr_unlock(file, fd);
-  if (ret != SCR_SUCCESS){
-     scr_close(file,fd);
-     umask(old_mode);
-     return ret;
+  ret = scr_file_unlock(file, fd);
+  if (ret != SCR_SUCCESS) {
+    scr_close(file,fd);
+    umask(old_mode);
+    return ret;
   }
 
   /* close file */

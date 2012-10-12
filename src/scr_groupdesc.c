@@ -17,9 +17,9 @@
 
 #include "scr_globals.h"
 
-#ifdef HAVE_LIBGCS
-#include "gcs.h"
-#endif /* HAVE_LIBGCS */
+#ifdef HAVE_LIBDTCMP
+#include "dtcmp.h"
+#endif /* HAVE_LIBDTCMP */
 
 /*
 =========================================
@@ -66,6 +66,19 @@ int scr_groupdesc_free(scr_groupdesc* d)
 /* split processes into groups who have matching strings */
 static int scr_split_by_string(const char* str, MPI_Comm* comm)
 {
+#ifdef HAVE_LIBDTCMP
+  /* rank strings across all procs */
+  uint64_t groups, group_id, group_ranks, group_rank;
+  DTCMP_Rank_strings(
+    1, &str, &groups, &group_id, &group_ranks, &group_rank,
+    DTCMP_FLAG_NONE, scr_comm_world
+  );
+
+  /* now split comm by our group and rank within our group */
+  int color = (int) group_id;
+  int key   = (int) group_rank;
+  MPI_Comm_split(scr_comm_world, color, key, comm);
+#else /* HAVE_LIBDTCMP */
   /* determine the length of the maximum string
    * (including terminating NULL character) */
   int str_len = strlen(str) + 1;
@@ -79,15 +92,6 @@ static int scr_split_by_string(const char* str, MPI_Comm* comm)
     strcpy(tmp_str, str);
   }
 
-#ifdef HAVE_LIBGCS
-  /* split ranks based on string */
-  GCS_Comm_splitv(
-    scr_comm_world,
-    tmp_str, max_len, GCS_CMP_STR,
-    NULL,    0,       GCS_CMP_IGNORE,
-    comm
-  );
-#else /* HAVE_LIBGCS */
   /* allocate buffer to receive string from each process */
   char* buf = NULL;
   if (max_len > 0) {
@@ -120,10 +124,10 @@ static int scr_split_by_string(const char* str, MPI_Comm* comm)
 
   /* free our temporary buffer of all strings */
   scr_free(&buf);
-#endif
 
   /* free temporary copy of string */
   scr_free(&tmp_str);
+#endif
 
   return SCR_SUCCESS;
 }

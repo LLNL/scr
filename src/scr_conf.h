@@ -73,7 +73,7 @@
 
 /* default cache size (max number of checkpoints to keep in cache) */
 #ifndef SCR_CACHE_SIZE
-#define SCR_CACHE_SIZE (2)
+#define SCR_CACHE_SIZE (1)
 #endif
 
 /* default redundancy scheme */

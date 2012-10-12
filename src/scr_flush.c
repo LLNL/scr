@@ -11,9 +11,9 @@
 
 #include "scr_globals.h"
 
-#ifdef HAVE_LIBGCS
-#include "gcs.h"
-#endif /* HAVE_LIBGCS */
+#ifdef HAVE_LIBDTCMP
+#include "dtcmp.h"
+#endif /* HAVE_LIBDTCMP */
 
 /*
 =========================================
@@ -177,16 +177,20 @@ static int scr_flush_create_dirs(const scr_hash* file_list)
 {
   /* TODO: if preserving user-defined directories, we need to create the directories here */
   if (scr_preserve_user_directories) {
-#ifdef HAVE_LIBGCS
+#ifdef HAVE_LIBDTCMP
     /* count the number of files that we need to flush */
     int count = scr_hash_size(file_list);
 
     /* allocate buffers to hold the directory needed for each file */
-    char** dirs = NULL;
-    int* leaders = NULL;
+    const char** dirs     = NULL;
+    uint64_t* group_id    = NULL;
+    uint64_t* group_ranks = NULL;
+    uint64_t* group_rank  = NULL;
     if (count > 0) {
-      dirs    = (char**) malloc(sizeof(char*) * count);
-      leaders = (int*)   malloc(sizeof(int)   * count);
+      dirs        = (const char**) malloc(sizeof(const char*) * count);
+      group_id    = (uint64_t*)    malloc(sizeof(uint64_t)    * count);
+      group_ranks = (uint64_t*)    malloc(sizeof(uint64_t)    * count);
+      group_rank  = (uint64_t*)    malloc(sizeof(uint64_t)    * count);
       /* TODO: check for allocation error */
     }
 
@@ -215,13 +219,17 @@ static int scr_flush_create_dirs(const scr_hash* file_list)
     }
 
     /* select leaders */
-    GCS_Select_leaders_strings((void*) dirs, count, leaders, scr_comm_world);
+    uint64_t groups;
+    DTCMP_Rankv_strings(
+      count, dirs, &groups, group_id, group_ranks, group_rank,
+      DTCMP_FLAG_NONE, scr_comm_world
+    );
 
     /* TODO: may need flow control here */
     /* have leaders issue mkdir */
     int success = 1;
     for (i = 0; i < count; i++) {
-      if (leaders[i]) {
+      if (group_rank[i] == 0) {
         if (scr_mkdir(dirs[i], S_IRWXU) != SCR_SUCCESS) {
           success = 0;
         }
@@ -229,7 +237,9 @@ static int scr_flush_create_dirs(const scr_hash* file_list)
     }
 
     /* free buffers */
-    scr_free(&leaders);
+    scr_free(&group_id);
+    scr_free(&group_ranks);
+    scr_free(&group_rank);
     scr_free(&dirs);
 
     /* TODO: need to track directory names in summary file so we can delete them later */
@@ -239,7 +249,7 @@ static int scr_flush_create_dirs(const scr_hash* file_list)
       return SCR_FAILURE;
     }
     return SCR_SUCCESS;
-#else
+#else /* HAVE_LIBDTCMP */
     return SCR_FAILURE;
 #endif
   } else {

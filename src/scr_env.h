@@ -28,6 +28,9 @@ char* scr_env_username();
 /* allocate and return a string containing the current job id */
 char* scr_env_jobid();
 
+/* allocate and return a string containing the node name */
+char* scr_env_nodename();
+
 /* read cluster name of current job */
 char* scr_env_cluster();
 

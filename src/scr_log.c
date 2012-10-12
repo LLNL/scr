@@ -55,7 +55,9 @@ static MYSQL scr_mysql;
 #endif
 
 static unsigned long scr_db_jobid = 0;       /* caches the jobid for the current job */
+#ifdef HAVE_LIBMYSQLCLIENT
 static scr_hash* scr_db_types = NULL; /* caches type string to type id lookups */
+#endif
 
 /* connects to the SCR log database */
 int scr_mysql_connect()

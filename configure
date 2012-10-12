@@ -830,9 +830,9 @@ MACHINE_NAME
 MYSQL_LIBS
 MYSQL_LDFLAGS
 MYSQL_CPPFLAGS
-GCS_LIBS
-GCS_LDFLAGS
-GCS_CFLAGS
+DTCMP_LIBS
+DTCMP_LDFLAGS
+DTCMP_CFLAGS
 YOGRT_LIBS
 YOGRT_LDFLAGS
 YOGRT_CPPFLAGS
@@ -943,7 +943,7 @@ ac_user_opts='
 enable_option_checking
 enable_dependency_tracking
 with_yogrt
-with_gcs
+with_dtcmp
 with_mysql
 with_machine_name
 with_file_lock
@@ -1609,12 +1609,14 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-yogrt=PATH       Enable libyogrt and optionally specify path
-  --with-gcs=PATH         Specify libgcs path
+  --with-dtcmp=PATH       Specify libdtcmp path
   --with-mysql            Link to mysql client library
-  --with-machine-name=NAME,Specify the type of the machine. See documentation for valid values, default=TLCC
-
-  --with-file-lock=NAME,Specify which type of file locking to use. See documentation for valid values, default=flock
-
+  --with-machine-name=NAME
+                          Specify the type of the machine: TLCC, cray_xt, BGQ.
+                          See documentation for valid values, default=TLCC
+  --with-file-lock=NAME   Specify which type of file locking to use: flock,
+                          fcntl, none. See documentation for valid values,
+                          default=flock
   --with-scr-byteswap     Use SCR's byteswap.h, default=no
   --with-moab=prefix      Add the compile and link search paths for moab
   --with-pic              try to use only PIC/non-PIC objects [default=use
@@ -4667,55 +4669,56 @@ $as_echo "$as_me: error: unable to locate libyogrt installation" >&2;}
 
 
 
+#X_AC_GCS
 
 
-  _x_ac_gcs_dirs="/usr /opt/freeware"
-  _x_ac_gcs_libs="lib64 lib"
+  _x_ac_dtcmp_dirs="/usr /opt/freeware"
+  _x_ac_dtcmp_libs="lib64 lib"
 
 
-# Check whether --with-gcs was given.
-if test "${with_gcs+set}" = set; then
-  withval=$with_gcs; _x_ac_gcs_dirs="$withval"
-     with_gcs=yes
+# Check whether --with-dtcmp was given.
+if test "${with_dtcmp+set}" = set; then
+  withval=$with_dtcmp; _x_ac_dtcmp_dirs="$withval"
+     with_dtcmp=yes
 else
-  _x_ac_gcs_dirs=no
-     with_gcs=no
+  _x_ac_dtcmp_dirs=no
+     with_dtcmp=no
 
 fi
 
 
-  if test "x$_x_ac_gcs_dirs" = xno ; then
-    # user explicitly wants to disable libgcs support
-    GCS_CFLAGS=""
-    GCS_LDFLAGS=""
-    GCS_LIBS=""
+  if test "x$_x_ac_dtcmp_dirs" = xno ; then
+    # user explicitly wants to disable libdtcmp support
+    DTCMP_CFLAGS=""
+    DTCMP_LDFLAGS=""
+    DTCMP_LIBS=""
     # TODO: would be nice to print some message here to record in the config log
   else
-    # user wants libgcs enabled, so let's define it in the source code
+    # user wants libdtcmp enabled, so let's define it in the source code
 
 cat >>confdefs.h <<\_ACEOF
-#define HAVE_LIBGCS 1
+#define HAVE_LIBDTCMP 1
 _ACEOF
 
 
     # now let's locate the install location
     found=no
 
-    # check for libgcs in a system default location if:
-    #   --with-gcs or --without-gcs is not specified
-    #   --with-gcs=yes is specified
-    #   --with-gcs is specified
-    if test "$with_gcs" = check || \
-       test "x$_x_ac_gcs_dirs" = xyes || \
-       test "x$_x_ac_gcs_dirs" = "x" ; then
+    # check for libdtcmp in a system default location if:
+    #   --with-dtcmp or --without-dtcmp is not specified
+    #   --with-dtcmp=yes is specified
+    #   --with-dtcmp is specified
+    if test "$with_dtcmp" = check || \
+       test "x$_x_ac_dtcmp_dirs" = xyes || \
+       test "x$_x_ac_dtcmp_dirs" = "x" ; then
 
-{ $as_echo "$as_me:$LINENO: checking for GCS_Comm_split in -lgcs" >&5
-$as_echo_n "checking for GCS_Comm_split in -lgcs... " >&6; }
-if test "${ac_cv_lib_gcs_GCS_Comm_split+set}" = set; then
+{ $as_echo "$as_me:$LINENO: checking for DTCMP_Rank_strings in -ldtcmp" >&5
+$as_echo_n "checking for DTCMP_Rank_strings in -ldtcmp... " >&6; }
+if test "${ac_cv_lib_dtcmp_DTCMP_Rank_strings+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lgcs  $LIBS"
+LIBS="-ldtcmp  $LIBS"
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -4729,11 +4732,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char GCS_Comm_split ();
+char DTCMP_Rank_strings ();
 int
 main ()
 {
-return GCS_Comm_split ();
+return DTCMP_Rank_strings ();
   ;
   return 0;
 }
@@ -4759,12 +4762,12 @@ $as_echo "$ac_try_echo") >&5
 	 test "$cross_compiling" = yes ||
 	 $as_test_x conftest$ac_exeext
        }; then
-  ac_cv_lib_gcs_GCS_Comm_split=yes
+  ac_cv_lib_dtcmp_DTCMP_Rank_strings=yes
 else
   $as_echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	ac_cv_lib_gcs_GCS_Comm_split=no
+	ac_cv_lib_dtcmp_DTCMP_Rank_strings=no
 fi
 
 rm -rf conftest.dSYM
@@ -4772,44 +4775,44 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib_gcs_GCS_Comm_split" >&5
-$as_echo "$ac_cv_lib_gcs_GCS_Comm_split" >&6; }
-if test "x$ac_cv_lib_gcs_GCS_Comm_split" = x""yes; then
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib_dtcmp_DTCMP_Rank_strings" >&5
+$as_echo "$ac_cv_lib_dtcmp_DTCMP_Rank_strings" >&6; }
+if test "x$ac_cv_lib_dtcmp_DTCMP_Rank_strings" = x""yes; then
   cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBGCS 1
+#define HAVE_LIBDTCMP 1
 _ACEOF
 
-  LIBS="-lgcs $LIBS"
+  LIBS="-ldtcmp $LIBS"
 
 fi
 
 
       # if we found it, set the build flags
-      if test "$ac_cv_lib_gcs_GCS_Comm_split" = yes; then
+      if test "$ac_cv_lib_dtcmp_DTCMP_Rank_strings" = yes; then
         found=yes
-        GCS_CFLAGS=""
-        GCS_LDFLAGS=""
-        GCS_LIBS="-lgcs"
+        DTCMP_CFLAGS=""
+        DTCMP_LDFLAGS=""
+        DTCMP_LIBS="-ldtcmp"
       fi
     fi
 
-    # if we have not already found it, check the gcs_dirs
+    # if we have not already found it, check the dtcmp_dirs
     if test "$found" = no; then
-      { $as_echo "$as_me:$LINENO: checking for libgcs installation" >&5
-$as_echo_n "checking for libgcs installation... " >&6; }
-if test "${x_ac_cv_gcs_dir+set}" = set; then
+      { $as_echo "$as_me:$LINENO: checking for libdtcmp installation" >&5
+$as_echo_n "checking for libdtcmp installation... " >&6; }
+if test "${x_ac_cv_dtcmp_dir+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
 
-          for d in $_x_ac_gcs_dirs; do
+          for d in $_x_ac_dtcmp_dirs; do
             test -d "$d" || continue
             test -d "$d/include" || continue
-            test -f "$d/include/gcs.h" || continue
-            for bit in $_x_ac_gcs_libs; do
+            test -f "$d/include/dtcmp.h" || continue
+            for bit in $_x_ac_dtcmp_libs; do
               test -d "$d/$bit" || continue
 
-              _x_ac_gcs_libs_save="$LIBS"
-              LIBS="-L$d/$bit -lgcs $LIBS $MPI_CLDFLAGS"
+              _x_ac_dtcmp_libs_save="$LIBS"
+              LIBS="-L$d/$bit -ldtcmp $LIBS $MPI_CLDFLAGS"
               cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -4823,11 +4826,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char GCS_Comm_split ();
+char DTCMP_Rank_strings ();
 int
 main ()
 {
-return GCS_Comm_split ();
+return DTCMP_Rank_strings ();
   ;
   return 0;
 }
@@ -4853,7 +4856,7 @@ $as_echo "$ac_try_echo") >&5
 	 test "$cross_compiling" = yes ||
 	 $as_test_x conftest$ac_exeext
        }; then
-  x_ac_cv_gcs_dir=$d
+  x_ac_cv_dtcmp_dir=$d
 else
   $as_echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
@@ -4864,29 +4867,29 @@ fi
 rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
-              LIBS="$_x_ac_gcs_libs_save"
-              test -n "$x_ac_cv_gcs_dir" && break
+              LIBS="$_x_ac_dtcmp_libs_save"
+              test -n "$x_ac_cv_dtcmp_dir" && break
             done
-            test -n "$x_ac_cv_gcs_dir" && break
+            test -n "$x_ac_cv_dtcmp_dir" && break
           done
 
 fi
-{ $as_echo "$as_me:$LINENO: result: $x_ac_cv_gcs_dir" >&5
-$as_echo "$x_ac_cv_gcs_dir" >&6; }
+{ $as_echo "$as_me:$LINENO: result: $x_ac_cv_dtcmp_dir" >&5
+$as_echo "$x_ac_cv_dtcmp_dir" >&6; }
 
       # if we found it, set the build flags
-      if test -n "$x_ac_cv_gcs_dir"; then
+      if test -n "$x_ac_cv_dtcmp_dir"; then
         found=yes
-        GCS_CFLAGS="-I$x_ac_cv_gcs_dir/include"
-        GCS_LDFLAGS="-L$x_ac_cv_gcs_dir/$bit"
-        GCS_LIBS="-lgcs"
+        DTCMP_CFLAGS="-I$x_ac_cv_dtcmp_dir/include"
+        DTCMP_LDFLAGS="-L$x_ac_cv_dtcmp_dir/$bit"
+        DTCMP_LIBS="-ldtcmp"
       fi
     fi
 
-    # if we failed to find libgcs, throw an error
+    # if we failed to find libdtcmp, throw an error
     if test "$found" = no ; then
-      { { $as_echo "$as_me:$LINENO: error: unable to locate libgcs installation" >&5
-$as_echo "$as_me: error: unable to locate libgcs installation" >&2;}
+      { { $as_echo "$as_me:$LINENO: error: unable to locate libdtcmp installation" >&5
+$as_echo "$as_me: error: unable to locate libdtcmp installation" >&2;}
    { (exit 1); exit 1; }; }
     fi
   fi
@@ -5044,12 +5047,16 @@ $as_echo "machine type is... $MACHINE_NAME" >&6; }
 
   scr_tlcc="0"
   scr_cray_xt="1"
+  scr_bgq="2"
   scr_machine_int="10"
   if test "$MACHINE_NAME" == "TLCC"; then
    scr_machine_int=$scr_tlcc
   fi
   if test "$MACHINE_NAME" == "cray_xt"; then
    scr_machine_int=$scr_cray_xt
+  fi
+  if test "$MACHINE_NAME" == "BGQ"; then
+   scr_machine_int=$scr_bgq
   fi
 
 cat >>confdefs.h <<_ACEOF
@@ -5059,6 +5066,11 @@ _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define SCR_CRAY_XT $scr_cray_xt
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define SCR_BGQ $scr_bgq
 _ACEOF
 
 
@@ -5090,18 +5102,24 @@ $as_echo "file lock type is... $FILELOCK_NAME" >&6; }
   if test "$FILELOCK_NAME" == "flock"; then
 
 cat >>confdefs.h <<\_ACEOF
-#define USE_FLOCK 1
+#define SCR_FILE_LOCK_USE_FLOCK 1
 _ACEOF
 
   fi
-  if test "$FILELOCK_NAME" == "fnctl"; then
+  if test "$FILELOCK_NAME" == "fcntl"; then
 
 cat >>confdefs.h <<\_ACEOF
-#define USE_FNCTL 1
+#define SCR_FILE_LOCK_USE_FNCTL 1
 _ACEOF
 
   fi
+  if test "$FILELOCK_NAME" == "none"; then
 
+cat >>confdefs.h <<\_ACEOF
+#define SCR_FILE_LOCK_USE_NONE 1
+_ACEOF
+
+  fi
 
 
 ac_ext=c
@@ -6705,13 +6723,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:6708: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:6726: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:6711: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:6729: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:6714: output\"" >&5)
+  (eval echo "\"\$as_me:6732: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -7916,7 +7934,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 7919 "configure"' > conftest.$ac_ext
+  echo '#line 7937 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -9285,11 +9303,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:9288: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:9306: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:9292: \$? = $ac_status" >&5
+   echo "$as_me:9310: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -9624,11 +9642,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:9627: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:9645: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:9631: \$? = $ac_status" >&5
+   echo "$as_me:9649: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -9729,11 +9747,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:9732: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:9750: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:9736: \$? = $ac_status" >&5
+   echo "$as_me:9754: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -9784,11 +9802,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:9787: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:9805: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:9791: \$? = $ac_status" >&5
+   echo "$as_me:9809: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -12587,7 +12605,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 12590 "configure"
+#line 12608 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12683,7 +12701,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 12686 "configure"
+#line 12704 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13840,7 +13858,7 @@ _ACEOF
 #  examples/makefile.examples \
 #  doc/Makefile \
 #])
-ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile man/scr.1 man/scr_index.1 man/scr_halt.1 man/scr_postrun.1 man/scr_prerun.1 man/scr_srun.1 scripts/Makefile scripts/common/Makefile scripts/common/scr_cntl_dir scripts/common/scr_check_node scripts/common/scr_glob_hosts scripts/common/scr_prerun scripts/common/scr_postrun scripts/common/scr_test_datemanip scripts/common/scr_test_runtime scripts/common/scr_param.pm scripts/common/scr_watchdog scripts/TLCC/Makefile scripts/TLCC/scr_run scripts/TLCC/scr_env scripts/TLCC/scr_halt scripts/TLCC/scr_list_down_nodes scripts/TLCC/scr_scavenge scripts/TLCC/scr_inspect scripts/TLCC/scr_kill_jobstep scripts/TLCC/scr_get_jobstep_id examples/Makefile examples/makefile.examples doc/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile man/Makefile man/scr.1 man/scr_index.1 man/scr_halt.1 man/scr_postrun.1 man/scr_prerun.1 man/scr_srun.1 scripts/Makefile scripts/common/Makefile scripts/common/scr_cntl_dir scripts/common/scr_check_node scripts/common/scr_glob_hosts scripts/common/scr_prerun scripts/common/scr_postrun scripts/common/scr_test_datemanip scripts/common/scr_test_runtime scripts/common/scr_param.pm scripts/common/scr_watchdog scripts/$MACHINE_NAME/Makefile scripts/$MACHINE_NAME/scr_run scripts/$MACHINE_NAME/scr_env scripts/$MACHINE_NAME/scr_halt scripts/$MACHINE_NAME/scr_list_down_nodes scripts/$MACHINE_NAME/scr_scavenge scripts/$MACHINE_NAME/scr_inspect scripts/$MACHINE_NAME/scr_kill_jobstep scripts/$MACHINE_NAME/scr_get_jobstep_id examples/Makefile examples/makefile.examples doc/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -14748,15 +14766,15 @@ do
     "scripts/common/scr_test_runtime") CONFIG_FILES="$CONFIG_FILES scripts/common/scr_test_runtime" ;;
     "scripts/common/scr_param.pm") CONFIG_FILES="$CONFIG_FILES scripts/common/scr_param.pm" ;;
     "scripts/common/scr_watchdog") CONFIG_FILES="$CONFIG_FILES scripts/common/scr_watchdog" ;;
-    "scripts/TLCC/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/TLCC/Makefile" ;;
-    "scripts/TLCC/scr_run") CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_run" ;;
-    "scripts/TLCC/scr_env") CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_env" ;;
-    "scripts/TLCC/scr_halt") CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_halt" ;;
-    "scripts/TLCC/scr_list_down_nodes") CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_list_down_nodes" ;;
-    "scripts/TLCC/scr_scavenge") CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_scavenge" ;;
-    "scripts/TLCC/scr_inspect") CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_inspect" ;;
-    "scripts/TLCC/scr_kill_jobstep") CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_kill_jobstep" ;;
-    "scripts/TLCC/scr_get_jobstep_id") CONFIG_FILES="$CONFIG_FILES scripts/TLCC/scr_get_jobstep_id" ;;
+    "scripts/$MACHINE_NAME/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/$MACHINE_NAME/Makefile" ;;
+    "scripts/$MACHINE_NAME/scr_run") CONFIG_FILES="$CONFIG_FILES scripts/$MACHINE_NAME/scr_run" ;;
+    "scripts/$MACHINE_NAME/scr_env") CONFIG_FILES="$CONFIG_FILES scripts/$MACHINE_NAME/scr_env" ;;
+    "scripts/$MACHINE_NAME/scr_halt") CONFIG_FILES="$CONFIG_FILES scripts/$MACHINE_NAME/scr_halt" ;;
+    "scripts/$MACHINE_NAME/scr_list_down_nodes") CONFIG_FILES="$CONFIG_FILES scripts/$MACHINE_NAME/scr_list_down_nodes" ;;
+    "scripts/$MACHINE_NAME/scr_scavenge") CONFIG_FILES="$CONFIG_FILES scripts/$MACHINE_NAME/scr_scavenge" ;;
+    "scripts/$MACHINE_NAME/scr_inspect") CONFIG_FILES="$CONFIG_FILES scripts/$MACHINE_NAME/scr_inspect" ;;
+    "scripts/$MACHINE_NAME/scr_kill_jobstep") CONFIG_FILES="$CONFIG_FILES scripts/$MACHINE_NAME/scr_kill_jobstep" ;;
+    "scripts/$MACHINE_NAME/scr_get_jobstep_id") CONFIG_FILES="$CONFIG_FILES scripts/$MACHINE_NAME/scr_get_jobstep_id" ;;
     "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
     "examples/makefile.examples") CONFIG_FILES="$CONFIG_FILES examples/makefile.examples" ;;
     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;

@@ -115,8 +115,8 @@ libscr_la_SOURCES = \
 	scr_flush_sync.c \
 	scr_flush_async.c \
 	scr.c
-libscr_la_CFLAGS = $(INCLUDES) $(GCS_CFLAGS) $(MPI_CFLAGS)
-libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(GCS_LDFLAGS) $(GCS_LIBS) $(MPI_CLDFLAGS) libscr_base.la
+libscr_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(MPI_CFLAGS)
+libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) libscr_base.la
 #(avoids numbers at end of library name)
 libscr_la_LDFLAGS = -avoid-version
 #libscr_la_LDFLAGS = -rpath $(DESTDIR)$(libdir)

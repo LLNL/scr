@@ -46,8 +46,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/lx_safe_link_ifelse.m4 \
 	$(top_srcdir)/m4/x_ac_byteswap.m4 \
 	$(top_srcdir)/m4/x_ac_config_scr.m4 \
+	$(top_srcdir)/m4/x_ac_dtcmp.m4 \
 	$(top_srcdir)/m4/x_ac_expand_install_dirs.m4 \
-	$(top_srcdir)/m4/x_ac_filelock.m4 $(top_srcdir)/m4/x_ac_gcs.m4 \
+	$(top_srcdir)/m4/x_ac_filelock.m4 \
 	$(top_srcdir)/m4/x_ac_machine.m4 $(top_srcdir)/m4/x_ac_meta.m4 \
 	$(top_srcdir)/m4/x_ac_moab.m4 $(top_srcdir)/m4/x_ac_mysql.m4 \
 	$(top_srcdir)/m4/x_ac_prog_pdsh.m4 \
@@ -102,6 +103,9 @@ DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DSHBAK_EXE = @DSHBAK_EXE@
 DSYMUTIL = @DSYMUTIL@
+DTCMP_CFLAGS = @DTCMP_CFLAGS@
+DTCMP_LDFLAGS = @DTCMP_LDFLAGS@
+DTCMP_LIBS = @DTCMP_LIBS@
 DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
@@ -109,9 +113,6 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
-GCS_CFLAGS = @GCS_CFLAGS@
-GCS_LDFLAGS = @GCS_LDFLAGS@
-GCS_LIBS = @GCS_LIBS@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@

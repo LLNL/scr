@@ -169,7 +169,7 @@ extern time_t scr_timestamp_compute_start;    /* record timestamp of start of co
 extern double scr_time_compute_start;         /* records the start time of the current compute phase */
 extern double scr_time_compute_end;           /* records the end time of the current compute phase */
 
-extern char scr_my_hostname[256]; /* hostname of local process */
+extern char* scr_my_hostname; /* hostname of local process */
 
 extern MPI_Comm scr_comm_world;   /* dup of MPI_COMM_WORLD */
 extern int scr_ranks_world;       /* number of ranks in the job */

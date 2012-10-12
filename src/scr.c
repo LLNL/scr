@@ -663,8 +663,9 @@ int SCR_Init()
   MPI_Comm_size(scr_comm_world, &scr_ranks_world);
 
   /* get my hostname (used in debug and error messages) */
-  if (gethostname(scr_my_hostname, sizeof(scr_my_hostname)) != 0) {
-    scr_err("Call to gethostname failed @ %s:%d",
+  scr_my_hostname = scr_env_nodename();
+  if (scr_my_hostname == NULL) {
+    scr_err("Failed to get hostname @ %s:%d",
       __FILE__, __LINE__
     );
     MPI_Abort(scr_comm_world, 0);
@@ -1091,6 +1092,7 @@ int SCR_Finalize()
   scr_free(&scr_master_map_file);
   scr_free(&scr_map_file);
   scr_free(&scr_cntl_prefix);
+  scr_free(&scr_my_hostname);
 
   /* we're no longer in an initialized state */
   scr_initialized = 0;

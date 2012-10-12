@@ -29,7 +29,8 @@ AM_PROG_CC_C_O
 #X_AC_PROG_MPICC
 LX_FIND_MPI
 X_AC_YOGRT
-X_AC_GCS
+#X_AC_GCS
+X_AC_DTCMP
 X_AC_MYSQL
 X_AC_MACHINE
 X_AC_FILELOCK
@@ -134,15 +135,15 @@ AC_CONFIG_FILES([ \
   scripts/common/scr_test_runtime \
   scripts/common/scr_param.pm \
   scripts/common/scr_watchdog \
-  scripts/TLCC/Makefile \
-  scripts/TLCC/scr_run \
-  scripts/TLCC/scr_env \
-  scripts/TLCC/scr_halt \
-  scripts/TLCC/scr_list_down_nodes \
-  scripts/TLCC/scr_scavenge \
-  scripts/TLCC/scr_inspect \
-  scripts/TLCC/scr_kill_jobstep \
-  scripts/TLCC/scr_get_jobstep_id \
+  scripts/$MACHINE_NAME/Makefile \
+  scripts/$MACHINE_NAME/scr_run \
+  scripts/$MACHINE_NAME/scr_env \
+  scripts/$MACHINE_NAME/scr_halt \
+  scripts/$MACHINE_NAME/scr_list_down_nodes \
+  scripts/$MACHINE_NAME/scr_scavenge \
+  scripts/$MACHINE_NAME/scr_inspect \
+  scripts/$MACHINE_NAME/scr_kill_jobstep \
+  scripts/$MACHINE_NAME/scr_get_jobstep_id \
   examples/Makefile \
   examples/makefile.examples \
   doc/Makefile \

@@ -98,89 +98,91 @@ int scr_open(const char* file, int flags, ...)
   return fd;
 }
 
-int scr_read_lock(const char* file, int fd){
+int scr_file_lock_read(const char* file, int fd)
+{
+  #ifdef SCR_FILE_LOCK_USE_FLOCK
+    if (flock(fd, LOCK_SH) != 0) {
+      scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %m @ %s:%d",
+              file, fd, LOCK_SH, errno, __FILE__, __LINE__
+      );
+      return SCR_FAILURE;
+    }
+  #endif
 
-#ifdef USE_FLOCK
-  if (flock(fd, LOCK_SH) != 0) {
-    scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %m @ %s:%d",
-            file, fd, LOCK_SH, errno, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-#endif
-
-#ifdef USE_FCNTL
+  #ifdef SCR_FILE_LOCK_USE_FCNTL
     struct flock lck;
     lck.l_type = F_RDLCK;
     lck.l_whence = 0;
     lck.l_start = 0L;
     lck.l_len = 0L; //locking the entire file
 
-    if(fcntl(fd, F_SETLK, &lck) < 0){
+    if(fcntl(fd, F_SETLK, &lck) < 0) {
       scr_err("Failed to acquire file read lock on %s: fnctl(%d, %d) errno=%d %m @ %s:%d",
-              file, fd, F_RDLCK, errno, __FILE__, __LINE__);
+              file, fd, F_RDLCK, errno, __FILE__, __LINE__
+      );
       return SCR_FAILURE;
     }
-#endif
+  #endif
 
-   return SCR_SUCCESS;
-
+  return SCR_SUCCESS;
 }
 
-int scr_write_lock(const char* file, int fd){
-#ifdef USE_FLOCK
-  if (flock(fd, LOCK_EX) != 0) {
-    scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %m @ %s:%d",
-            file, fd, LOCK_EX, errno, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-#endif
+int scr_file_lock_write(const char* file, int fd)
+{
+  #ifdef SCR_FILE_LOCK_USE_FLOCK
+    if (flock(fd, LOCK_EX) != 0) {
+      scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %m @ %s:%d",
+              file, fd, LOCK_EX, errno, __FILE__, __LINE__
+      );
+      return SCR_FAILURE;
+    }
+  #endif
 
-#ifdef USE_FCNTL
+  #ifdef SCR_FILE_LOCK_USE_FCNTL
     struct flock lck;
     lck.l_type = F_WRLCK;
     lck.l_whence = 0;
     lck.l_start = 0L;
     lck.l_len = 0L; //locking the entire file
 
-    if(fcntl(fd, F_SETLK, &lck) < 0){
+    if(fcntl(fd, F_SETLK, &lck) < 0) {
       scr_err("Failed to acquire file read lock on %s: fnctl(%d, %d) errno=%d %m @ %s:%d",
-              file, fd, F_WRLCK, errno, __FILE__, __LINE__);
+              file, fd, F_WRLCK, errno, __FILE__, __LINE__
+      );
       return SCR_FAILURE;
     }
-#endif
+  #endif
 
-   return SCR_SUCCESS;
+  return SCR_SUCCESS;
 }
 
-int scr_unlock(const char* file, int fd){
-#ifdef USE_FLOCK
-  if (flock(fd, LOCK_UN) != 0) {
-    scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %m @ %s:%d",
-            file, fd, LOCK_UN, errno, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-#endif
+int scr_file_unlock(const char* file, int fd)
+{
+  #ifdef SCR_FILE_LOCK_USE_FLOCK
+    if (flock(fd, LOCK_UN) != 0) {
+      scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %m @ %s:%d",
+              file, fd, LOCK_UN, errno, __FILE__, __LINE__
+      );
+      return SCR_FAILURE;
+    }
+  #endif
 
-#ifdef USE_FCNTL
+  #ifdef SCR_FILE_LOCK_USE_FCNTL
     struct flock lck;
     lck.l_type = F_UNLCK;
     lck.l_whence = 0;
     lck.l_start = 0L;
     lck.l_len = 0L; //locking the entire file
 
-    if(fcntl(fd, F_SETLK, &lck) < 0){
+    if(fcntl(fd, F_SETLK, &lck) < 0) {
       scr_err("Failed to acquire file read lock on %s: fnctl(%d, %d) errno=%d %m @ %s:%d",
-              file, fd, F_UNLCK, errno, __FILE__, __LINE__);
+              file, fd, F_UNLCK, errno, __FILE__, __LINE__
+      );
       return SCR_FAILURE;
     }
-#endif
+  #endif
 
-   return SCR_SUCCESS;
-
-
+  return SCR_SUCCESS;
 }
 
 
@@ -188,7 +190,12 @@ int scr_unlock(const char* file, int fd){
 int scr_close(const char* file, int fd)
 {
   /* fsync first */
-  fsync(fd);
+  if (fsync(fd) < 0) {
+    /* print warning that fsync failed */
+    scr_dbg(2, "Failed to fsync file descriptor: %s errno=%d %m @ file %s:%d",
+            file, errno, __FILE__, __LINE__
+    );
+  }
 
   /* now close the file */
   if (close(fd) != 0) {
@@ -215,10 +222,10 @@ int scr_open_with_lock(const char* file, int flags, mode_t mode)
   }
 
   /* acquire an exclusive file lock */
-  int ret = scr_write_lock(file, fd);
-  if (ret != SCR_SUCCESS){
-     close(fd);
-     return ret;
+  int ret = scr_file_lock_write(file, fd);
+  if (ret != SCR_SUCCESS) {
+    close(fd);
+    return ret;
   }
      
   /* return the opened file descriptor */
@@ -229,10 +236,10 @@ int scr_open_with_lock(const char* file, int flags, mode_t mode)
 int scr_close_with_unlock(const char* file, int fd)
 {
   /* release the file lock */
- 
-  int ret = scr_unlock(file, fd);
-  if (ret != SCR_SUCCESS)
-     return ret;
+  int ret = scr_file_unlock(file, fd);
+  if (ret != SCR_SUCCESS) {
+    return ret;
+  }
 
   /* close the file */
   return scr_close(file, fd);

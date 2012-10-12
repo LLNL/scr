@@ -47,18 +47,17 @@ int scr_halt_read(const char* file, scr_hash* hash)
 
   /* acquire a file lock before reading */
   /* since the file is opened for reading, use a shared lock */
-  int ret =  scr_read_lock(file, fd);
-  if (ret != SCR_SUCCESS){
-     scr_close(file,fd);
-     return ret;
+  int ret = scr_file_lock_read(file, fd);
+  if (ret != SCR_SUCCESS) {
+    scr_close(file,fd);
+    return ret;
   }
-
 
   /* read in the hash */
   scr_hash_read_fd(file, fd, hash);
 
   /* release the file lock */
-  scr_unlock(file, fd);
+  scr_file_unlock(file, fd);
 
   /* close file */
   scr_close(file, fd);
@@ -90,8 +89,8 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
   }
 
   /* acquire a file lock before read/modify/write */
-  int ret =  scr_read_lock(file, fd);
-  if (ret != SCR_SUCCESS){
+  int ret = scr_file_lock_read(file, fd);
+  if (ret != SCR_SUCCESS) {
     scr_close(file,fd);
     umask(old_mode);
     return ret;
@@ -156,7 +155,7 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
   }
 
   /* release the file lock */
-  scr_unlock(file, fd);
+  scr_file_unlock(file, fd);
 
   /* close file */
   scr_close(file, fd);

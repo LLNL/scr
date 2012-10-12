@@ -116,6 +116,9 @@ int scr_cache_delete(scr_filemap* map, int id)
     }
   }
 
+  /* TODO: due to bug in scr_cache_rebuild, we need to pull the dataset directory
+   * from somewhere other than the redundancy descriptor, which may not be defined */
+
   /* remove the cache directory for this dataset */
   char* base = scr_reddesc_base_from_filemap(map, id, scr_my_rank_world);
   char* dir  = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
