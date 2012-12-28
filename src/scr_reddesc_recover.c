@@ -71,6 +71,9 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
   char** filenames = NULL;
   unsigned long* filesizes = NULL;
 
+  /* get pointer to XOR state structure */
+  scr_reddesc_xor* state = (scr_reddesc_xor*) c->copy_state;
+
   /* allocate hash object to read in (or receive) the header of the XOR file */
   scr_hash* header = scr_hash_new();
 
@@ -166,19 +169,19 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     }
 
     /* if failed rank is to my left, i have the meta for his files, send him the header */
-    if (root == c->lhs_rank) {
-      scr_hash_send(header, c->lhs_rank, c->comm);
+    if (root == state->lhs_rank) {
+      scr_hash_send(header, state->lhs_rank, c->comm);
     }
 
     /* if failed rank is to my right, send him my file info so he can write his XOR header */
-    if (root == c->rhs_rank) {
-      scr_hash_send(current_hash, c->rhs_rank, c->comm);
+    if (root == state->rhs_rank) {
+      scr_hash_send(current_hash, state->rhs_rank, c->comm);
     }
   } else {
     /* receive the header from right-side partner;
      * includes number of files and meta data for my files, as well as, 
      * the checkpoint id and the chunk size */
-    scr_hash_recv(header, c->rhs_rank, c->comm);
+    scr_hash_recv(header, state->rhs_rank, c->comm);
 
     /* rename PARTNER to CURRENT in our header */
     current_hash = scr_hash_new();
@@ -191,7 +194,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     /* receive number of files our left-side partner has and allocate an array of
      * meta structures to store info */
     scr_hash* partner_hash = scr_hash_new();
-    scr_hash_recv(partner_hash, c->lhs_rank, c->comm);
+    scr_hash_recv(partner_hash, state->lhs_rank, c->comm);
     scr_hash_set(header, SCR_KEY_COPY_XOR_PARTNER, partner_hash);
 
     /* get the number of files */
@@ -211,7 +214,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       }
     }
 
-    /* set chunk filename of form:  <xor_rank+1>_of_<xorset_size>_in_<level_partion>x<xorset_size>.xor */
+    /* set chunk filename of form:  <xor_rank+1>_of_<xor_groupsize>_in_<xor_groupid>.xor */
     char dir[SCR_MAX_FILENAME];
     scr_cache_dir_get(c, id, dir);
     sprintf(full_chunk_filename, "%s/%d_of_%d_in_%d.xor", dir, c->my_rank+1, c->ranks, c->group_id);
@@ -343,19 +346,19 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
         }
 
         /* if not start of pipeline, receive data from left and xor with my own */
-        if (root != c->lhs_rank) {
+        if (root != state->lhs_rank) {
           int i;
-          MPI_Recv(recv_buf, count, MPI_BYTE, c->lhs_rank, 0, c->comm, &status[0]);
+          MPI_Recv(recv_buf, count, MPI_BYTE, state->lhs_rank, 0, c->comm, &status[0]);
           for (i = 0; i < count; i++) {
             send_buf[i] ^= recv_buf[i];
           }
         }
 
         /* send data to right-side partner */
-        MPI_Send(send_buf, count, MPI_BYTE, c->rhs_rank, 0, c->comm);
+        MPI_Send(send_buf, count, MPI_BYTE, state->rhs_rank, 0, c->comm);
       } else {
         /* root of rebuild, just receive incoming chunks and write them out */
-        MPI_Recv(recv_buf, count, MPI_BYTE, c->lhs_rank, 0, c->comm, &status[0]);
+        MPI_Recv(recv_buf, count, MPI_BYTE, state->lhs_rank, 0, c->comm, &status[0]);
 
         /* if this is not my xor chunk, write data to normal file, otherwise write to my xor chunk */
         if (chunk_id != c->my_rank) {

@@ -26,9 +26,9 @@
 #endif /* HAVE_LIBYOGRT */
 
 #if SCR_MACHINE_TYPE == SCR_BGQ
-#include "firmware/include/personality.h"    // Personality_t
-#include "spi/include/kernel/location.h"     // Kernel_GetPersonality
-#include "hwi/include/common/uci.h"          // bg_decodeComputeCardCoreOnNodeBoardUCI 
+#include "firmware/include/personality.h" /* Personality_t */
+#include "spi/include/kernel/location.h"  /* Kernel_GetPersonality */
+#include "hwi/include/common/uci.h"       /* bg_decodeComputeCardCoreOnNodeBoardUCI */
 #endif
 
 /*

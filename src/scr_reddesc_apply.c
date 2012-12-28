@@ -463,6 +463,9 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
 {
   int rc = SCR_SUCCESS;
 
+  /* get pointer to partner state structure */
+  scr_reddesc_partner* state = (scr_reddesc_partner*) c->copy_state;
+
   /* get a list of our files */
   int numfiles = 0;
   char** files = NULL;
@@ -472,20 +475,20 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
   MPI_Status status;
   int send_num = numfiles;
   int recv_num = 0;
-  MPI_Sendrecv(&send_num, 1, MPI_INT, c->rhs_rank, 0, &recv_num, 1, MPI_INT, c->lhs_rank, 0, c->comm, &status);
+  MPI_Sendrecv(&send_num, 1, MPI_INT, state->rhs_rank, 0, &recv_num, 1, MPI_INT, state->lhs_rank, 0, c->comm, &status);
 
   /* record how many files our partner will send */
-  scr_filemap_set_expected_files(map, id, c->lhs_rank_world, recv_num);
+  scr_filemap_set_expected_files(map, id, state->lhs_rank_world, recv_num);
 
   /* remember which node our partner is on (needed for drain) */
-  scr_filemap_set_tag(map, id, c->lhs_rank_world, SCR_FILEMAP_KEY_PARTNER, c->lhs_hostname);
+  scr_filemap_set_tag(map, id, state->lhs_rank_world, SCR_FILEMAP_KEY_PARTNER, state->lhs_hostname);
 
   /* record partner's redundancy descriptor hash */
   scr_hash* lhs_desc_hash = scr_hash_new();
   scr_hash* my_desc_hash  = scr_hash_new();
   scr_reddesc_store_to_hash(c, my_desc_hash);
-  scr_hash_sendrecv(my_desc_hash, c->rhs_rank, lhs_desc_hash, c->lhs_rank, c->comm);
-  scr_filemap_set_desc(map, id, c->lhs_rank_world, lhs_desc_hash);
+  scr_hash_sendrecv(my_desc_hash, state->rhs_rank, lhs_desc_hash, state->lhs_rank, c->comm);
+  scr_filemap_set_desc(map, id, state->lhs_rank_world, lhs_desc_hash);
   scr_hash_delete(my_desc_hash);
   scr_hash_delete(lhs_desc_hash);
 
@@ -507,13 +510,13 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
     if (send_num > 0) {
       int i = numfiles - send_num;
       file = files[i];
-      send_rank = c->rhs_rank;
+      send_rank = state->rhs_rank;
       send_num--;
     }
 
     /* if we have a file left to receive, get the rank */
     if (recv_num > 0) {
-      recv_rank = c->lhs_rank;
+      recv_rank = state->lhs_rank;
       recv_num--;
     }
 
@@ -523,7 +526,7 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
 
     /* if we'll receive a file, record the name of our partner's file in the filemap */
     if (recv_rank != MPI_PROC_NULL) {
-      scr_filemap_add_file(map, id, c->lhs_rank_world, file_partner);
+      scr_filemap_add_file(map, id, state->lhs_rank_world, file_partner);
       scr_filemap_write(scr_map_file, map);
     }
 
@@ -536,7 +539,7 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
     if (scr_swap_files(COPY_FILES, file, send_meta, send_rank, file_partner, recv_meta, recv_rank, c->comm) != SCR_SUCCESS) {
       rc = SCR_FAILURE;
     }
-    scr_filemap_set_meta(map, id, c->lhs_rank_world, file_partner, recv_meta);
+    scr_filemap_set_meta(map, id, state->lhs_rank_world, file_partner, recv_meta);
 
     /* free meta data for these files */
     scr_meta_delete(recv_meta);
@@ -552,49 +555,14 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
   return rc;
 }
 
-/* set the ranks array in the header */
-static int scr_reddesc_apply_xor_header_set_ranks(scr_hash* header, MPI_Comm comm, MPI_Comm comm_world)
-{
-  scr_hash_unset(header, SCR_KEY_COPY_XOR_RANKS);
-  scr_hash_unset(header, SCR_KEY_COPY_XOR_GROUP);
-
-  /* record the total number of ranks in comm_world */
-  int ranks_world;
-  MPI_Comm_size(comm_world, &ranks_world);
-  scr_hash_set_kv_int(header, SCR_KEY_COPY_XOR_RANKS, ranks_world);
-
-  /* create a new empty hash to track group info for this xor set */
-  scr_hash* hash = scr_hash_new();
-  scr_hash_set(header, SCR_KEY_COPY_XOR_GROUP, hash);
-
-  /* record the total number of ranks in the xor communicator */
-  int ranks_comm;
-  MPI_Comm_size(comm, &ranks_comm);
-  scr_hash_set_kv_int(hash, SCR_KEY_COPY_XOR_GROUP_RANKS, ranks_comm);
-
-  /* record mapping of rank in xor group to corresponding world rank */
-  int i, rank;
-  if (ranks_comm > 0) {
-    /* map ranks in comm to ranks in scr_comm_world */
-    MPI_Group group, group_world;
-    MPI_Comm_group(comm, &group);
-    MPI_Comm_group(comm_world, &group_world);
-    for (i=0; i < ranks_comm; i++) {
-      MPI_Group_translate_ranks(group, 1, &i, group_world, &rank);
-      scr_hash_setf(hash, NULL, "%s %d %d", SCR_KEY_COPY_XOR_GROUP_RANK, i, rank);
-    }
-    MPI_Group_free(&group);
-    MPI_Group_free(&group_world);
-  }
-
-  return SCR_SUCCESS;
-}
-
 /* apply XOR redundancy scheme to dataset files */
 static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
 {
   int rc = SCR_SUCCESS;
   int i;
+
+  /* get pointer to XOR state structure */
+  scr_reddesc_xor* state = (scr_reddesc_xor*) c->copy_state;
 
   /* allocate buffer to read a piece of my file */
   char* send_buf = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
@@ -632,15 +600,16 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
   scr_hash* lhs_desc_hash = scr_hash_new();
   scr_hash* my_desc_hash  = scr_hash_new();
   scr_reddesc_store_to_hash(c, my_desc_hash);
-  scr_hash_sendrecv(my_desc_hash, c->rhs_rank, lhs_desc_hash, c->lhs_rank, c->comm);
-  scr_filemap_set_desc(map, id, c->lhs_rank_world, lhs_desc_hash);
+  scr_hash_sendrecv(my_desc_hash, state->rhs_rank, lhs_desc_hash, state->lhs_rank, c->comm);
+  scr_filemap_set_desc(map, id, state->lhs_rank_world, lhs_desc_hash);
   scr_hash_delete(my_desc_hash);
   scr_hash_delete(lhs_desc_hash);
 
-  /* allocate a new xor file header hash, record the global ranks of the
-   * processes in our xor group, and record the dataset id */
+  /* allocate a new xor file header hash */
   scr_hash* header = scr_hash_new();
-  scr_reddesc_apply_xor_header_set_ranks(header, c->comm, scr_comm_world);
+
+  /* record the global ranks of the processes in our xor group */
+  scr_hash_merge(header, state->group_map);
 
   /* record dataset in header */
   scr_hash* dataset = scr_hash_new();
@@ -688,7 +657,7 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
 
   /* exchange file info with partners and add data to our header */
   scr_hash* partner_hash = scr_hash_new();
-  scr_hash_sendrecv(current_hash, c->rhs_rank, partner_hash, c->lhs_rank, c->comm);
+  scr_hash_sendrecv(current_hash, state->rhs_rank, partner_hash, state->lhs_rank, c->comm);
   scr_hash_set(header, SCR_KEY_COPY_XOR_CURRENT, current_hash);
   scr_hash_set(header, SCR_KEY_COPY_XOR_PARTNER, partner_hash);
 
@@ -776,8 +745,8 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
 
       if (chunk_id > 0) {
         /* not our chunk to write, forward it on and get the next */
-        MPI_Irecv(recv_buf, count, MPI_BYTE, c->lhs_rank, 0, c->comm, &request[0]);
-        MPI_Isend(send_buf, count, MPI_BYTE, c->rhs_rank, 0, c->comm, &request[1]);
+        MPI_Irecv(recv_buf, count, MPI_BYTE, state->lhs_rank, 0, c->comm, &request[0]);
+        MPI_Isend(send_buf, count, MPI_BYTE, state->rhs_rank, 0, c->comm, &request[1]);
         MPI_Waitall(2, request, status);
       } else {
         /* write send block to send chunk file */

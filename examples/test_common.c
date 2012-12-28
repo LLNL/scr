@@ -7,11 +7,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <string.h>
 #include "mpi.h"
-#include "scr.h"
-
-#include <time.h>
-#include <sys/time.h>
 
 /* reliable read from file descriptor (retries, if necessary, until hard error) */
 int reliable_read(int fd, void* buf, size_t size)
@@ -30,7 +27,9 @@ int reliable_read(int fd, void* buf, size_t size)
       return n;
     } else { /* (rc < 0) */
       /* got an error, check whether it was serious */
-      if(errno == EINTR || errno == EAGAIN) continue;
+      if (errno == EINTR || errno == EAGAIN) {
+        continue;
+      }
 
       /* something worth printing an error about */
       retries--;
@@ -38,16 +37,16 @@ int reliable_read(int fd, void* buf, size_t size)
         /* print an error and try again */
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         gethostname(host, sizeof(host));
-        printf("%d on %s: ERROR: Error reading: read(%d, %p, %ld) errno=%d %m @ %s:%d\n",
-                rank, host, fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
-               );
+        printf("%d on %s: ERROR: Error reading: read(%d, %p, %ld) errno=%d %s @ %s:%d\n",
+                rank, host, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
+        );
       } else {
         /* too many failed retries, give up */
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         gethostname(host, sizeof(host));
-        printf("%d on %s: ERROR: Giving up read: read(%d, %p, %ld) errno=%d %m @ %s:%d\n",
-                rank, host, fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
-               );
+        printf("%d on %s: ERROR: Giving up read: read(%d, %p, %ld) errno=%d %s @ %s:%d\n",
+                rank, host, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
+        );
         MPI_Abort(MPI_COMM_WORLD, 0);
       }
     }
@@ -73,11 +72,13 @@ int reliable_write(int fd, const void* buf, size_t size)
       gethostname(host, sizeof(host));
       printf("%d on %s: ERROR: Error writing: write(%d, %p, %ld) returned 0 @ %s:%d\n",
               rank, host, fd, (char*) buf + n, size - n, __FILE__, __LINE__
-             );
+      );
       MPI_Abort(MPI_COMM_WORLD, 0);
     } else { /* (rc < 0) */
       /* got an error, check whether it was serious */
-      if(errno == EINTR || errno == EAGAIN) continue;
+      if (errno == EINTR || errno == EAGAIN) {
+        continue;
+      }
 
       /* something worth printing an error about */
       retries--;
@@ -85,16 +86,16 @@ int reliable_write(int fd, const void* buf, size_t size)
         /* print an error and try again */
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         gethostname(host, sizeof(host));
-        printf("%d on %s: ERROR: Error writing: write(%d, %p, %ld) errno=%d %m @ %s:%d\n",
-                rank, host, fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
-               );
+        printf("%d on %s: ERROR: Error writing: write(%d, %p, %ld) errno=%d %s @ %s:%d\n",
+                rank, host, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
+        );
       } else {
         /* too many failed retries, give up */
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         gethostname(host, sizeof(host));
-        printf("%d on %s: ERROR: Giving up write: write(%d, %p, %ld) errno=%d %m @ %s:%d\n",
-                rank, host, fd, (char*) buf + n, size - n, errno, __FILE__, __LINE__
-               );
+        printf("%d on %s: ERROR: Giving up write: write(%d, %p, %ld) errno=%d %s @ %s:%d\n",
+                rank, host, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
+        );
         MPI_Abort(MPI_COMM_WORLD, 0);
       }
     }
@@ -121,7 +122,9 @@ int check_buffer(char* buf, size_t size, int rank, int ckpt)
   for(i=0; i < size; i++) {
     /*char c = 'a' + (rank+i) % 26;*/
     char c = (char) ((size_t)rank + i) % 256;
-    if (buf[i] != c)  { return 0; }
+    if (buf[i] != c)  {
+      return 0;
+    }
   }
   return 1;
 }
@@ -133,14 +136,18 @@ int write_checkpoint(int fd, int ckpt, char* buf, size_t size)
   int valid = 0;
 
   /* write the checkpoint id (application timestep) */
-  char ckpt_buf[6];
-  sprintf(ckpt_buf, "%06d", ckpt);
+  char ckpt_buf[7];
+  sprintf(ckpt_buf, "%6d", ckpt);
   rc = reliable_write(fd, ckpt_buf, sizeof(ckpt_buf));
-  if (rc < 0) { valid = 0; }
+  if (rc < 0) {
+    valid = 0;
+  }
 
   /* write the checkpoint data */
   rc = reliable_write(fd, buf, size);
-  if (rc < 0) { valid = 0; }
+  if (rc < 0) {
+    valid = 0;
+  }
 
   return valid;
 }
@@ -149,7 +156,7 @@ int write_checkpoint(int fd, int ckpt, char* buf, size_t size)
 int read_checkpoint(char* file, int* ckpt, char* buf, size_t size)
 {
   unsigned long n;
-  char ckpt_buf[6];
+  char ckpt_buf[7];
 
   int fd = open(file, O_RDONLY);
   if (fd > 0) {

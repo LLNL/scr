@@ -43,19 +43,174 @@ int scr_reddesc_init(scr_reddesc* d)
   d->base           = NULL;
   d->directory      = NULL;
   d->copy_type      = SCR_COPY_NULL;
-  d->set_size       = 0;
+  d->copy_state     = NULL;
   d->comm           = MPI_COMM_NULL;
   d->groups         =  0;
   d->group_id       = -1;
   d->ranks          =  0;
   d->my_rank        = MPI_PROC_NULL;
-  d->lhs_rank       = MPI_PROC_NULL;
-  d->lhs_rank_world = MPI_PROC_NULL;
-  d->lhs_hostname   = NULL;
-  d->rhs_rank       = MPI_PROC_NULL;
-  d->rhs_rank_world = MPI_PROC_NULL;
-  d->rhs_hostname   = NULL;
 
+  return SCR_SUCCESS;
+}
+
+/* given a redundancy descriptor with all top level fields filled in
+ * allocate and fill in structure for partner specific fields in copy_state */
+static int scr_reddesc_create_partner(scr_reddesc* d)
+{
+  int rc = SCR_SUCCESS;
+
+  /* allocate a new structure to hold partner state */
+  scr_reddesc_partner* state = (scr_reddesc_partner*) malloc(sizeof(scr_reddesc_partner));
+  /* TODO: check for errors */
+
+  /* attach structure to reddesc */
+  d->copy_state = (void*) state;
+
+  /* record group rank, world rank, and hostname of left and right partners */
+  scr_set_partners(
+    d->comm, 1,
+    &state->lhs_rank, &state->lhs_rank_world, &state->lhs_hostname,
+    &state->rhs_rank, &state->rhs_rank_world, &state->rhs_hostname
+  );
+
+  /* check that we got valid partners */
+  if (state->lhs_hostname == NULL ||
+      state->rhs_hostname == NULL ||
+      strcmp(state->lhs_hostname, "") == 0 ||
+      strcmp(state->rhs_hostname, "") == 0 ||
+      strcmp(state->lhs_hostname, scr_my_hostname) == 0 ||
+      strcmp(state->rhs_hostname, scr_my_hostname) == 0)
+  {
+    /* disable this descriptor */
+    d->enabled = 0;
+    scr_warn("Failed to find partner processes for redundancy descriptor %d, disabling checkpoint, too few nodes? @ %s:%d",
+      d->index, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  } else {
+    scr_dbg(2, "LHS partner: %s (%d)  -->  My name: %s (%d)  -->  RHS partner: %s (%d)",
+      state->lhs_hostname, state->lhs_rank_world,
+      scr_my_hostname, scr_my_rank_world,
+      state->rhs_hostname, state->rhs_rank_world
+    );
+  }
+
+  return rc;
+}
+
+/* given a redundancy descriptor with all top level fields filled in
+ * allocate and fill in structure for xor specific fields in copy_state */
+static int scr_reddesc_create_xor(scr_reddesc* d)
+{
+  int rc = SCR_SUCCESS;
+
+  /* allocate a new structure to hold XOR state */
+  scr_reddesc_xor* state = (scr_reddesc_xor*) malloc(sizeof(scr_reddesc_xor));
+  /* TODO: check for errors */
+
+  /* attach structure to reddesc */
+  d->copy_state = (void*) state;
+
+  /* allocate a new hash to store group mapping info */
+  scr_hash* header = scr_hash_new();
+
+  /* record the total number of ranks in scr_comm_world */
+  int ranks_world;
+  MPI_Comm_size(scr_comm_world, &ranks_world);
+  scr_hash_set_kv_int(header, SCR_KEY_COPY_XOR_RANKS, ranks_world);
+
+  /* create a new empty hash to track group info for this xor set */
+  scr_hash* hash = scr_hash_new();
+  scr_hash_set(header, SCR_KEY_COPY_XOR_GROUP, hash);
+
+  /* record the total number of ranks in the xor communicator */
+  int ranks_comm;
+  MPI_Comm_size(d->comm, &ranks_comm);
+  scr_hash_set_kv_int(hash, SCR_KEY_COPY_XOR_GROUP_RANKS, ranks_comm);
+
+  /* record mapping of rank in xor group to corresponding world rank */
+  if (ranks_comm > 0) {
+    /* allocate array to receive rank from each process */
+    int* ranklist = (int*) malloc(ranks_comm * sizeof(int));
+    /* TODO: check for errors */
+
+    /* gather rank values */
+    MPI_Allgather(&scr_my_rank_world, 1, MPI_INT, ranklist, 1, MPI_INT, d->comm);
+
+    /* map ranks in comm to ranks in scr_comm_world */
+    int i;
+    for (i=0; i < ranks_comm; i++) {
+      int rank = ranklist[i];
+      scr_hash_setf(hash, NULL, "%s %d %d", SCR_KEY_COPY_XOR_GROUP_RANK, i, rank);
+    }
+
+    /* free the temporary array */
+    scr_free(&ranklist);
+  }
+
+  /* record group mapping info in descriptor */
+  state->group_map = header; 
+
+  /* record group rank, world rank, and hostname of left and right partners */
+  scr_set_partners(
+    d->comm, 1,
+    &state->lhs_rank, &state->lhs_rank_world, &state->lhs_hostname,
+    &state->rhs_rank, &state->rhs_rank_world, &state->rhs_hostname
+  );
+
+  /* check that we got valid partners */
+  if (state->lhs_hostname == NULL ||
+      state->rhs_hostname == NULL ||
+      strcmp(state->lhs_hostname, "") == 0 ||
+      strcmp(state->rhs_hostname, "") == 0 ||
+      strcmp(state->lhs_hostname, scr_my_hostname) == 0 ||
+      strcmp(state->rhs_hostname, scr_my_hostname) == 0)
+  {
+    /* disable this descriptor */
+    d->enabled = 0;
+    scr_warn("Failed to find partner processes for redundancy descriptor %d, disabling checkpoint, too few nodes? @ %s:%d",
+      d->index, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  } else {
+    scr_dbg(2, "LHS partner: %s (%d)  -->  My name: %s (%d)  -->  RHS partner: %s (%d)",
+      state->lhs_hostname, state->lhs_rank_world,
+      scr_my_hostname, scr_my_rank_world,
+      state->rhs_hostname, state->rhs_rank_world
+    );
+  }
+
+  return rc;
+}
+
+static int scr_reddesc_free_partner(scr_reddesc* d)
+{
+  scr_reddesc_partner* state = (scr_reddesc_partner*) d->copy_state;
+  if (state != NULL) {
+    /* free strings that we received */
+    scr_free(&state->lhs_hostname);
+    scr_free(&state->rhs_hostname);
+
+    /* free the structure */
+    scr_free(&d->copy_state);
+  }
+  return SCR_SUCCESS;
+}
+
+static int scr_reddesc_free_xor(scr_reddesc* d)
+{
+  scr_reddesc_xor* state = (scr_reddesc_xor*) d->copy_state;
+  if (state != NULL) {
+    /* free the hash mapping group ranks to world ranks */
+    scr_hash_delete(state->group_map);
+
+    /* free strings that we received */
+    scr_free(&state->lhs_hostname);
+    scr_free(&state->rhs_hostname);
+
+    /* free the structure */
+    scr_free(&d->copy_state);
+  }
   return SCR_SUCCESS;
 }
 
@@ -63,13 +218,21 @@ int scr_reddesc_init(scr_reddesc* d)
  * descriptor */
 int scr_reddesc_free(scr_reddesc* d)
 {
+  /* free off copy type specific data */
+  switch (d->copy_type) {
+  case SCR_COPY_SINGLE:
+    break;
+  case SCR_COPY_PARTNER:
+    scr_reddesc_free_partner(d);
+    break;
+  case SCR_COPY_XOR:
+    scr_reddesc_free_xor(d);
+    break;
+  }
+
   /* free the strings we strdup'd */
   scr_free(&d->base);
   scr_free(&d->directory);
-
-  /* free strings that we received */
-  scr_free(&d->lhs_hostname);
-  scr_free(&d->rhs_hostname);
 
   /* free the communicator we created */
   if (d->comm != MPI_COMM_NULL) {
@@ -157,11 +320,11 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, scr_hash* hash)
     break;
   }
 
+  /* we don't set the LHS or RHS values because they are dependent on
+   * runtime environment */
+
   /* we don't set the COMM because this is dependent on runtime
    * environment */
-
-  /* set the SIZE */
-  scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_SET_SIZE,   d->set_size);
 
   /* set the GROUP_ID and GROUP_RANK keys, we use this info to rebuild
    * our communicator later */
@@ -170,9 +333,6 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, scr_hash* hash)
   scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_GROUP_SIZE, d->ranks);
   scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_GROUP_RANK, d->my_rank);
 
-  /* we don't set the LHS or RHS values because they are dependent on
-   * runtime environment */
-
   return SCR_SUCCESS;
 }
 
@@ -180,7 +340,10 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, scr_hash* hash)
  * divide the set as evenly as possible and return the
  * group id corresponding to our rank */
 static int scr_reddesc_group_id(
-  int rank, int ranks, int minsize, int* group_id)
+  int rank,
+  int ranks,
+  int minsize,
+  int* group_id)
 {
   /* compute maximum number of full minsize groups we can fit within
    * ranks */
@@ -223,7 +386,9 @@ static int scr_reddesc_group_id(
  * within the parent, split parent into other communicators consisting
  * of all procs with same rank within its group */
 static int scr_reddesc_split_across(
-  MPI_Comm comm_parent, MPI_Comm comm_group, MPI_Comm* comm_across)
+  MPI_Comm comm_parent,
+  MPI_Comm comm_group,
+  MPI_Comm* comm_across)
 {
   /* TODO: this works well if each comm has about the same number of
    * procs, but we need something better to handle unbalanced groups */
@@ -271,7 +436,9 @@ static int scr_reddesc_type_int_from_str(const char* value, int* type)
 /* build a redundancy descriptor corresponding to the specified hash,
  * this function is collective */
 int scr_reddesc_create_from_hash(
-  scr_reddesc* d, int index, const scr_hash* hash)
+  scr_reddesc* d,
+  int index,
+  const scr_hash* hash)
 {
   int rc = SCR_SUCCESS;
 
@@ -348,10 +515,10 @@ int scr_reddesc_create_from_hash(
   );
     
   /* set the xor set size */
-  d->set_size = scr_set_size;
+  int set_size = scr_set_size;
   value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_SET_SIZE);
   if (value != NULL) {
-    d->set_size = atoi(value);
+    set_size = atoi(value);
   }
 
   /* read the checkpoint type from the hash,
@@ -426,7 +593,7 @@ int scr_reddesc_create_from_hash(
 
         /* identify which group we're in */
         scr_reddesc_group_id(
-          rank_across, ranks_across, d->set_size, &split_id
+          rank_across, ranks_across, set_size, &split_id
         );
 
         /* split communicator into groups */
@@ -460,45 +627,16 @@ int scr_reddesc_create_from_hash(
       &group_master, &d->groups, 1, MPI_INT, MPI_SUM, scr_comm_world
     );
 
-    /* find left and right-hand-side partners (SINGLE needs no partner
-     * nodes) */
-    if (d->copy_type == SCR_COPY_PARTNER) {
-      scr_set_partners(
-        d->comm, 1,
-        &d->lhs_rank, &d->lhs_rank_world, &d->lhs_hostname,
-        &d->rhs_rank, &d->rhs_rank_world, &d->rhs_hostname
-      );
-    } else if (d->copy_type == SCR_COPY_XOR) {
-      scr_set_partners(
-        d->comm, 1,
-        &d->lhs_rank, &d->lhs_rank_world, &d->lhs_hostname,
-        &d->rhs_rank, &d->rhs_rank_world, &d->rhs_hostname
-      );
-    }
-
-    /* check that we have a valid partner node
-     * (SINGLE needs no partner nodes) */
-    if (d->copy_type == SCR_COPY_PARTNER ||
-        d->copy_type == SCR_COPY_XOR)
-    {
-      if (d->lhs_hostname == NULL ||
-          d->rhs_hostname == NULL ||
-          strcmp(d->lhs_hostname, "") == 0 ||
-          strcmp(d->rhs_hostname, "") == 0 ||
-          strcmp(d->lhs_hostname, scr_my_hostname) == 0 ||
-          strcmp(d->rhs_hostname, scr_my_hostname) == 0)
-      {
-        /* TODO: downshift to SINGLE if necessary */
-        d->enabled = 0;
-        scr_warn("Failed to find partner processes for redundancy descriptor %d, disabling checkpoint, too few nodes? @ %s:%d",
-          d->index, __FILE__, __LINE__
-        );
-      } else {
-        scr_dbg(2, "LHS partner: %s (%d)  -->  My name: %s (%d)  -->  RHS partner: %s (%d)",
-          d->lhs_hostname, d->lhs_rank_world, scr_my_hostname,
-          scr_my_rank_world, d->rhs_hostname, d->rhs_rank_world
-        );
-      }
+    /* fill in state struct depending on copy type */
+    switch (d->copy_type) {
+    case SCR_COPY_SINGLE:
+      break;
+    case SCR_COPY_PARTNER:
+      scr_reddesc_create_partner(d);
+      break;
+    case SCR_COPY_XOR:
+      scr_reddesc_create_xor(d);
+      break;
     }
 
     /* if anyone has disabled this checkpoint, everyone needs to */
@@ -511,9 +649,12 @@ int scr_reddesc_create_from_hash(
 }
 
 /* build a redundancy descriptor corresponding to the specified hash,
- * this function is collective */
+ * this function is collective, it differs from create_from_hash in
+ * that it uses group id and group rank values to restore a descriptor
+ * that was previously created */
 int scr_reddesc_restore_from_hash(
-  scr_reddesc* d, const scr_hash* hash)
+  scr_reddesc* d,
+  const scr_hash* hash)
 {
   int rc = SCR_SUCCESS;
 
@@ -594,13 +735,6 @@ int scr_reddesc_restore_from_hash(
     );
   }
     
-  /* set the xor set size */
-  d->set_size = scr_set_size;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_SET_SIZE);
-  if (value != NULL) {
-    d->set_size = atoi(value);
-  }
-
   /* read the checkpoint type from the hash,
    * and build our checkpoint communicator */
   value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_TYPE);
@@ -645,42 +779,16 @@ int scr_reddesc_restore_from_hash(
     &group_master, &d->groups, 1, MPI_INT, MPI_SUM, scr_comm_world
   );
 
-  /* find left and right-hand-side partners (SINGLE needs no partner
-   * nodes) */
-  if (d->copy_type == SCR_COPY_PARTNER) {
-    scr_set_partners(
-      d->comm, 1,
-      &d->lhs_rank, &d->lhs_rank_world, &d->lhs_hostname,
-      &d->rhs_rank, &d->rhs_rank_world, &d->rhs_hostname
-    );
-  } else if (d->copy_type == SCR_COPY_XOR) {
-    scr_set_partners(
-      d->comm, 1,
-      &d->lhs_rank, &d->lhs_rank_world, &d->lhs_hostname,
-      &d->rhs_rank, &d->rhs_rank_world, &d->rhs_hostname
-    );
-  }
-
-  /* check that we have a valid partner node
-   * (SINGLE needs no partner nodes) */
-  if (d->copy_type == SCR_COPY_PARTNER || d->copy_type == SCR_COPY_XOR) {
-    if (d->lhs_hostname == NULL ||
-        d->rhs_hostname == NULL ||
-        strcmp(d->lhs_hostname, "") == 0 ||
-        strcmp(d->rhs_hostname, "") == 0 ||
-        strcmp(d->lhs_hostname, scr_my_hostname) == 0 ||
-        strcmp(d->rhs_hostname, scr_my_hostname) == 0)
-    {
-      d->enabled = 0;
-      scr_warn("Failed to find partner processes for redundancy descriptor %d, disabling checkpoint, too few nodes? @ %s:%d",
-        d->index, __FILE__, __LINE__
-      );
-    } else {
-      scr_dbg(2, "LHS partner: %s (%d)  -->  My name: %s (%d)  -->  RHS partner: %s (%d)",
-        d->lhs_hostname, d->lhs_rank_world, scr_my_hostname,
-        scr_my_rank_world, d->rhs_hostname, d->rhs_rank_world
-      );
-    }
+  /* fill in state struct depending on copy type */
+  switch (d->copy_type) {
+  case SCR_COPY_SINGLE:
+    break;
+  case SCR_COPY_PARTNER:
+    scr_reddesc_create_partner(d);
+    break;
+  case SCR_COPY_XOR:
+    scr_reddesc_create_xor(d);
+    break;
   }
 
   /* if anyone has disabled this checkpoint, everyone needs to */
@@ -695,7 +803,10 @@ int scr_reddesc_restore_from_hash(
  * the filemap, it's overkill to create the whole descriptor each time,
  * returns a newly allocated string */
 char* scr_reddesc_val_from_filemap(
-  scr_filemap* map, int ckpt, int rank, char* name)
+  scr_filemap* map,
+  int ckpt,
+  int rank,
+  char* name)
 {
   /* check that we have a pointer to a map and a character buffer */
   if (map == NULL || name == NULL) {
@@ -752,7 +863,10 @@ char* scr_reddesc_dir_from_filemap(scr_filemap* map, int ckpt, int rank)
 /* build a redundancy descriptor from its corresponding hash
  * stored in the filemap, this function is collective */
 int scr_reddesc_create_from_filemap(
-  scr_filemap* map, int id, int rank, scr_reddesc* d)
+  scr_filemap* map,
+  int id,
+  int rank,
+  scr_reddesc* d)
 {
   /* check that we have a pointer to a map and a redundancy
    * descriptor */
