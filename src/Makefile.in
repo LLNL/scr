@@ -99,10 +99,10 @@ libscr_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) libscr_base.la
 am_libscr_la_OBJECTS = libscr_la-scr_globals.lo \
 	libscr_la-scr_err_mpi.lo libscr_la-scr_config_mpi.lo \
-	libscr_la-scr_util_mpi.lo libscr_la-scr_hash_mpi.lo \
-	libscr_la-scr_flush_file_mpi.lo libscr_la-scr_storedesc.lo \
-	libscr_la-scr_groupdesc.lo libscr_la-scr_reddesc.lo \
-	libscr_la-scr_reddesc_apply.lo \
+	libscr_la-scr_util_mpi.lo libscr_la-scr_split.lo \
+	libscr_la-scr_hash_mpi.lo libscr_la-scr_flush_file_mpi.lo \
+	libscr_la-scr_storedesc.lo libscr_la-scr_groupdesc.lo \
+	libscr_la-scr_reddesc.lo libscr_la-scr_reddesc_apply.lo \
 	libscr_la-scr_reddesc_recover.lo libscr_la-scr_summary.lo \
 	libscr_la-scr_cache.lo libscr_la-scr_cache_rebuild.lo \
 	libscr_la-scr_fetch.lo libscr_la-scr_flush.lo \
@@ -439,6 +439,7 @@ noinst_HEADERS = \
 	scr_io.h \
 	scr_util.h \
 	scr_util_mpi.h \
+	scr_split.h \
 	scr_hash.h \
 	scr_hash_util.h \
 	scr_hash_mpi.h \
@@ -526,6 +527,7 @@ libscr_la_SOURCES = \
 	scr_err_mpi.c \
 	scr_config_mpi.c \
 	scr_util_mpi.c \
+	scr_split.c \
 	scr_hash_mpi.c \
 	scr_flush_file_mpi.c \
 	scr_storedesc.c \
@@ -784,6 +786,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_reddesc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_reddesc_apply.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_reddesc_recover.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_split.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_storedesc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_summary.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_la-scr_util_mpi.Plo@am__quote@
@@ -850,6 +853,13 @@ libscr_la-scr_util_mpi.lo: scr_util_mpi.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_util_mpi.c' object='libscr_la-scr_util_mpi.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_util_mpi.lo `test -f 'scr_util_mpi.c' || echo '$(srcdir)/'`scr_util_mpi.c
+
+libscr_la-scr_split.lo: scr_split.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_split.lo -MD -MP -MF $(DEPDIR)/libscr_la-scr_split.Tpo -c -o libscr_la-scr_split.lo `test -f 'scr_split.c' || echo '$(srcdir)/'`scr_split.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libscr_la-scr_split.Tpo $(DEPDIR)/libscr_la-scr_split.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_split.c' object='libscr_la-scr_split.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -c -o libscr_la-scr_split.lo `test -f 'scr_split.c' || echo '$(srcdir)/'`scr_split.c
 
 libscr_la-scr_hash_mpi.lo: scr_hash_mpi.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_la_CFLAGS) $(CFLAGS) -MT libscr_la-scr_hash_mpi.lo -MD -MP -MF $(DEPDIR)/libscr_la-scr_hash_mpi.Tpo -c -o libscr_la-scr_hash_mpi.lo `test -f 'scr_hash_mpi.c' || echo '$(srcdir)/'`scr_hash_mpi.c

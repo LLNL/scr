@@ -79,54 +79,9 @@ static int scr_split_by_string(const char* str, MPI_Comm* comm)
   int key   = (int) group_rank;
   MPI_Comm_split(scr_comm_world, color, key, comm);
 #else /* HAVE_LIBDTCMP */
-  /* determine the length of the maximum string
-   * (including terminating NULL character) */
-  int str_len = strlen(str) + 1;
-  int max_len;
-  MPI_Allreduce(&str_len, &max_len, 1, MPI_INT, MPI_MAX, scr_comm_world);
-
-  /* allocate a buffer and copy our string to it */
-  char* tmp_str = NULL;
-  if (max_len > 0) {
-    tmp_str = (char*) malloc(max_len);
-    strcpy(tmp_str, str);
-  }
-
-  /* allocate buffer to receive string from each process */
-  char* buf = NULL;
-  if (max_len > 0) {
-    buf = (char*) malloc(max_len * scr_ranks_world);
-  }
-
-  /* receive all strings */
-  MPI_Allgather(
-    tmp_str, max_len, MPI_CHAR, buf, max_len, MPI_CHAR, scr_comm_world
-  );
-
-  /* search through strings until we find one that matches our own */
-  int index = 0;
-  char* current = buf;
-  while (index < scr_ranks_world) {
-    /* compare string from rank index to our own,
-     * break if we find a match */
-    if (strcmp(current, tmp_str) == 0) {
-      break;
-    }
-
-    /* advance to string from next process */
-    current += max_len;
-    index++;
-  }
-
-  /* split comm world into subcommunicators based on the index of
-   * the first match */
-  MPI_Comm_split(scr_comm_world, index, 0, comm);
-
-  /* free our temporary buffer of all strings */
-  scr_free(&buf);
-
-  /* free temporary copy of string */
-  scr_free(&tmp_str);
+  int groups, groupid;
+  scr_rank_str(scr_comm_world, str, &groups, &groupid);
+  MPI_Comm_split(scr_comm_world, groupid, 0, comm);
 #endif
 
   return SCR_SUCCESS;

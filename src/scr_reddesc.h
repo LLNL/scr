@@ -31,7 +31,6 @@ typedef struct {
   char*    directory;      /* full directory base/dataset.id */
   int      copy_type;      /* redundancy scheme to apply */
   void*    copy_state;     /* pointer to extra state depending on copy type */
-//  int      set_size;       /* set size of redundancy scheme */
   MPI_Comm comm;           /* communicator holding procs for this scheme */
   int      groups;         /* number of redundancy sets */
   int      group_id;       /* unique id assigned to this redundancy set */

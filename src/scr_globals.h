@@ -54,6 +54,7 @@
 #include "scr_io.h"
 #include "scr_util.h"
 #include "scr_util_mpi.h"
+#include "scr_split.h"
 #include "scr_meta.h"
 #include "scr_dataset.h"
 #include "scr_halt.h"

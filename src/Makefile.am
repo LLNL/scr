@@ -16,6 +16,7 @@ noinst_HEADERS = \
 	scr_io.h \
 	scr_util.h \
 	scr_util_mpi.h \
+	scr_split.h \
 	scr_hash.h \
 	scr_hash_util.h \
 	scr_hash_mpi.h \
@@ -100,6 +101,7 @@ libscr_la_SOURCES = \
 	scr_err_mpi.c \
 	scr_config_mpi.c \
 	scr_util_mpi.c \
+	scr_split.c \
 	scr_hash_mpi.c \
 	scr_flush_file_mpi.c \
 	scr_storedesc.c \

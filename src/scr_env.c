@@ -25,6 +25,10 @@
 #include "yogrt.h"
 #endif /* HAVE_LIBYOGRT */
 
+#if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT)
+#include <unistd.h> /* gethostname */
+#endif
+
 #if SCR_MACHINE_TYPE == SCR_BGQ
 #include "firmware/include/personality.h" /* Personality_t */
 #include "spi/include/kernel/location.h"  /* Kernel_GetPersonality */
