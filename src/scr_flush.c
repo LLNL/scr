@@ -118,7 +118,7 @@ static int scr_flush_build_list(const scr_filemap* map, int id, scr_hash* file_l
 }
 
 /* create all directories needed for file list */
-static int scr_flush_create_dirs(const scr_hash* file_list)
+static int scr_flush_create_dirs(scr_hash* file_list)
 {
   if (scr_preserve_user_directories) {
     /* preserving user-defined directories, create them here */
