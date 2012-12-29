@@ -16,6 +16,7 @@
 #include "scr_io.h"
 #include "scr_meta.h"
 #include "scr_err.h"
+#include "scr_util.h"
 #include "scr_filemap.h"
 #include "scr_dataset.h"
 

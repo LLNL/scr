@@ -437,27 +437,9 @@ int scr_summary_read(const char* dir, scr_hash* summary_hash)
 /* write out the summary file to dir */
 int scr_summary_write(const char* dir, const scr_dataset* dataset, int all_complete, scr_hash* data)
 {
-  /* get the dataset name */
-  char* name;
-  if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
-    scr_err("Failed to get dataset name for summary file @ %s:%d",
-            __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* build the dataset directory */
-  char dset_dir[SCR_MAX_FILENAME];
-  if (scr_build_path(dset_dir, sizeof(dset_dir), dir, name) != SCR_SUCCESS) {
-    scr_err("Failed to build full directory for summary file @ %s:%d",
-            __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
   /* build the summary filename */
   char file[SCR_MAX_FILENAME];
-  if (scr_build_path(file, sizeof(file), dset_dir, "summary.scr") != SCR_SUCCESS) {
+  if (scr_build_path(file, sizeof(file), dir, "summary.scr") != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file @ %s:%d",
             __FILE__, __LINE__
     );
@@ -491,13 +473,6 @@ int scr_summary_write(const char* dir, const scr_dataset* dataset, int all_compl
 
   /* free the hash object */
   scr_hash_delete(summary_hash);
-
-  /* mark the dataset as complete in the index file */
-  scr_hash* index_hash = scr_hash_new();
-  scr_index_read(scr_par_prefix, index_hash);
-  scr_index_set_dataset(index_hash, dataset, all_complete);
-  scr_index_write(scr_par_prefix, index_hash);
-  scr_hash_delete(index_hash);
 
   return SCR_SUCCESS;
 }

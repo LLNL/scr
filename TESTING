@@ -19,8 +19,10 @@ make distclean
 make dist
 
 # Linux build instructions
-setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
 setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=${HOME}/packages/dtcmp.git/install"
+
+setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
+setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql"
 setenv scrversion "scr-1.1-8"
 cd ~/packages/scr
 make distclean

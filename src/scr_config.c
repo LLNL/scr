@@ -28,6 +28,7 @@
 #include "scr_conf.h"
 #include "scr.h"
 #include "scr_err.h"
+#include "scr_util.h"
 #include "scr_io.h"
 #include "scr_hash.h"
 #include "scr_config.h"

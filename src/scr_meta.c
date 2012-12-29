@@ -12,6 +12,7 @@
 /* Implements an interface to read/write SCR meta data files. */
 
 #include "scr_err.h"
+#include "scr_util.h"
 #include "scr_io.h"
 #include "scr_meta.h"
 #include "scr_hash.h"

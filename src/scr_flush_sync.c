@@ -360,6 +360,8 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
         scr_hash_set_kv_int(file_hash, SCR_SUMMARY_6_KEY_COMPLETE, 0);
       }
     } else {
+      /* TODO: PRESERVE subtract top-level directory from file name */
+
       /* record the name of the file in the summary hash, and get reference to a hash for this file */
       char path[SCR_MAX_FILENAME];
       char name[SCR_MAX_FILENAME];
