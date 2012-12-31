@@ -23,6 +23,7 @@ int scr_atod(char* str, double* val);
 /* converts string like 10mb to unsigned long long integer value of 10*1024*1024 */
 int scr_abtoull(char* str, unsigned long long* val);
 
+
 /* pass address of pointer to be freed, frees memory if not NULL and sets pointer to NULL */
 void scr_free(void* ptr);
 
@@ -32,11 +33,16 @@ void* scr_align_malloc(size_t size, size_t align);
 /* frees a blocked allocated with a call to scr_align_malloc */
 void scr_align_free(void* buf);
 
+
 /*sprintfs a formatted string into an newly allocated string */
 char* scr_strdupf(const char* format, ...);
 
+
 /* returns the current linux timestamp (in microseconds) */
 int64_t scr_time_usecs();
+
+/* returns the current linux timestamp (secs + usecs since epoch) as a double */
+double scr_seconds();
 
 
 /* pack an unsigned 16 bit value to specified buffer in network order */

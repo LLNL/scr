@@ -177,13 +177,4 @@ int scr_compress(const char* file_src, const char* file_dst, unsigned long block
 /* uncompress the specified file and store as file_dst */
 int scr_uncompress(const char* file_src, const char* file_dst);
 
-/*
-=========================================
-Timing
-=========================================
-*/
-
-/* returns the current linux timestamp (secs + usecs since epoch) as a double */
-double scr_seconds();
-
 #endif
