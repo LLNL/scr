@@ -1008,16 +1008,15 @@ int scr_path_resolve(const char* str, char* newstr, size_t newstrlen)
   }
 
   /* TODO: what to do with things like lustre:/my/file? */
-  /* build absolute path, code below assumes string starts with a '/' */
-  char path[SCR_MAX_FILENAME];
-  if (scr_path_absolute(path, sizeof(path), str) != SCR_SUCCESS) {
+  /* require an absolute path, code below assumes string starts with a '/' */
+  if (str[0] != '/') {
     return SCR_FAILURE;
   }
 
   /* scan from left char by char and copy into newstr */
   size_t src = 0;
   size_t dst = 0;
-  while (path[src] != '\0') {
+  while (str[src] != '\0') {
     /* make sure we don't overrun the length of the new string */
     if (dst >= newstrlen) {
       /* TODO: intermediate representation could be too long but final
@@ -1027,26 +1026,27 @@ int scr_path_resolve(const char* str, char* newstr, size_t newstrlen)
     }
 
     /* copy character from path to newstr */
-    newstr[dst] = path[src];
+    char current = str[src];
+    newstr[dst] = current;
 
     /* while last char is slash */
-    while (path[src] == '/') {
+    while (str[src] == '/') {
       /* skip ahead until next char is not slash, this removes
        * consecutive slashes from path */
-      while (path[src+1] == '/') {
+      while (str[src+1] == '/') {
         src++;
       }
 
       /* if next character is '.', look for '.' and '..' */
-      char one_ahead = path[src+1];
+      char one_ahead = str[src+1];
       if (one_ahead == '.') {
-        char two_ahead = path[src+2];
+        char two_ahead = str[src+2];
         if (two_ahead == '/' || two_ahead == '\0') {
           /* next char is '/' or '\0', we have ref to current
            * directory as in "foo/./" or "foo/." so skip two chars */
           src += 2;
         } else if (two_ahead == '.') {
-          char three_ahead = path[src+3];
+          char three_ahead = str[src+3];
           if (three_ahead == '/' || three_ahead == '\0') {
             /* next char is '/' or '\0', pop off one component since
              * we found "foo/../" or foo/.." */
@@ -1061,15 +1061,15 @@ int scr_path_resolve(const char* str, char* newstr, size_t newstrlen)
               while (dst > 0 && newstr[dst] != '/') {
                 dst--;
               }
-            }
-
-            /* check that we'd didn't pop too far */
-            if (dst == 0) {
+            } else {
               /* we've tried to pop too far, as in "/.." */
               return SCR_FAILURE;
             }
           }
         }
+      } else {
+        /* slash is followed by some character other than a '.' */
+        break;
       }
     }
 
@@ -1077,13 +1077,13 @@ int scr_path_resolve(const char* str, char* newstr, size_t newstrlen)
     dst++;
 
     /* advance src pointer */
-    if (path[src] != '\0') {
+    if (str[src] != '\0') {
       src++;
     }
   }
 
   /* remove any trailing slash */
-  if (dst > 0 && newstr[dst-1] == '/') {
+  if (dst > 1 && newstr[dst-1] == '/') {
     dst--;
   }
 
