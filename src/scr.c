@@ -231,14 +231,14 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
   /* split user's filename into path and name components */
   char path[SCR_MAX_FILENAME];
   char name[SCR_MAX_FILENAME];
-  scr_split_path(file, path, name);
+  scr_path_split(file, path, name);
 
   /* lookup the checkpoint directory */
   char dir[SCR_MAX_FILENAME];
   scr_cache_dir_get(reddesc, id, dir);
 
   /* build the composed name */
-  if (scr_build_path(newfile, n, dir, name) != SCR_SUCCESS) {
+  if (scr_path_build(newfile, n, dir, name) != SCR_SUCCESS) {
     /* abort if the new name is longer than our buffer */
     scr_abort(-1, "file name (%s/%s) is longer than n (%d) @ %s:%d",
               dir, name, n, __FILE__, __LINE__
@@ -833,9 +833,9 @@ int SCR_Init()
   MPI_Barrier(scr_comm_world);
 
   /* place the halt, flush, and nodes files in the prefix directory */
-  scr_build_path(scr_halt_file,  sizeof(scr_halt_file),  scr_par_prefix, "halt.scr");
-  scr_build_path(scr_flush_file, sizeof(scr_flush_file), scr_par_prefix, "flush.scr");
-  scr_build_path(scr_nodes_file, sizeof(scr_nodes_file), scr_par_prefix, "nodes.scr");
+  scr_path_build(scr_halt_file,  sizeof(scr_halt_file),  scr_par_prefix, "halt.scr");
+  scr_path_build(scr_flush_file, sizeof(scr_flush_file), scr_par_prefix, "flush.scr");
+  scr_path_build(scr_nodes_file, sizeof(scr_nodes_file), scr_par_prefix, "nodes.scr");
 
   /* build the file names using the control directory prefix */
   scr_map_file = scr_strdupf("%s/filemap_%d.scrinfo",
@@ -1412,11 +1412,11 @@ int SCR_Route_file(const char* file, char* newfile)
 
     /* determine full path to original file and record it in the meta data */
     char path_file[SCR_MAX_FILENAME];
-    if (scr_build_absolute_path(path_file, sizeof(path_file), file) == SCR_SUCCESS) {
+    if (scr_path_absolute(path_file, sizeof(path_file), file) == SCR_SUCCESS) {
       /* store the full path and name of the original file */
       char path[SCR_MAX_FILENAME];
       char name[SCR_MAX_FILENAME];
-      scr_split_path(path_file, path, name);
+      scr_path_split(path_file, path, name);
       scr_meta_set_origpath(meta, path);
       scr_meta_set_origname(meta, name);
     } else {

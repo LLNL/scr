@@ -131,13 +131,6 @@ Directory functions
 =========================================
 */
 
-/* split path and filename from fullpath on the rightmost '/'
-   assumes all filename if no '/' is found */
-int scr_split_path (const char* file, char* path, char* filename);
-
-/* combine path and file into a full path in buf whose size is given in size */
-int scr_build_path (char* buf, size_t size, const char* path, const char* file);
-
 /* recursively create directory and subdirectories */
 int scr_mkdir(const char* dir, mode_t mode);
 
@@ -145,11 +138,34 @@ int scr_mkdir(const char* dir, mode_t mode);
 int scr_rmdir(const char* dir);
 
 /* write current working directory to buf */
-int scr_cwd(char* buf, size_t size);
+int scr_getcwd(char* buf, size_t size);
+
+/* split path and filename from fullpath on the rightmost '/'
+   assumes all filename if no '/' is found */
+int scr_path_split(const char* file, char* path, char* filename);
+
+/* combine path and file into a full path in buf whose size is given in size */
+int scr_path_build(char* buf, size_t size, const char* path, const char* file);
+
+/* returns the number of components (number of slashes + 1) */
+int scr_path_length(const char* str, int* length);
+
+/* returns the substring starting at the specified component index
+ * (0 through scr_path_length-1) and running for length components */
+int scr_path_slice(
+  const char* str,
+  int start,
+  int length,
+  char* substr,
+  size_t substrlen
+);
 
 /* given a file or directory name, construct the full path by prepending
  * the current working directory if needed */
-int scr_build_absolute_path(char* buf, size_t size, const char* file);
+int scr_path_absolute(char* buf, size_t size, const char* file);
+
+/* remove double slashes, trailing slash, '.', and '..' */
+int scr_path_resolve(const char* str, char* newstr, size_t newstrlen);
 
 /*
 =========================================

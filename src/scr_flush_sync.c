@@ -27,7 +27,7 @@ static int scr_flush_a_file(const char* file, const char* dir, scr_meta* meta)
   /* break file into path and name components */
   char path[SCR_MAX_FILENAME];
   char name[SCR_MAX_FILENAME];
-  scr_split_path(file, path, name);
+  scr_path_split(file, path, name);
 
   /* copy file */
   int crc_valid = 0;
@@ -328,7 +328,7 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
       /* add this file to the summary file */
       char path[SCR_MAX_FILENAME];
       char name[SCR_MAX_FILENAME];
-      scr_split_path(file, path, name);
+      scr_path_split(file, path, name);
       scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
 
       /* get segments hash for this file */
@@ -365,7 +365,7 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
       /* record the name of the file in the summary hash, and get reference to a hash for this file */
       char path[SCR_MAX_FILENAME];
       char name[SCR_MAX_FILENAME];
-      scr_split_path(file, path, name);
+      scr_path_split(file, path, name);
       scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
 
       /* get directory to flush file to */

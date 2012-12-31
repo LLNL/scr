@@ -47,7 +47,7 @@ int scr_index_read(const char* dir, scr_hash* index)
 {
   /* build the file name for the index file */
   char index_file[SCR_MAX_FILENAME];
-  if (scr_build_path(index_file, sizeof(index_file), dir, SCR_INDEX_FILENAME) != SCR_SUCCESS) {
+  if (scr_path_build(index_file, sizeof(index_file), dir, SCR_INDEX_FILENAME) != SCR_SUCCESS) {
     scr_err("Failed to build filename to read index file in dir %s @ %s:%d",
             dir, __FILE__, __LINE__
     );
@@ -68,7 +68,7 @@ int scr_index_write(const char* dir, scr_hash* index)
 {
   /* build the file name for the index file */
   char index_file[SCR_MAX_FILENAME];
-  if (scr_build_path(index_file, sizeof(index_file), dir, SCR_INDEX_FILENAME) != SCR_SUCCESS) {
+  if (scr_path_build(index_file, sizeof(index_file), dir, SCR_INDEX_FILENAME) != SCR_SUCCESS) {
     scr_err("Failed to build filename to write index file in dir %s @ %s:%d",
             dir, __FILE__, __LINE__
     );

@@ -804,9 +804,22 @@ int scr_rmdir(const char* dir)
   return SCR_SUCCESS;
 }
 
+/* write current working directory to buf */
+int scr_getcwd(char* buf, size_t size)
+{
+  int rc = SCR_SUCCESS;
+  if (getcwd(buf, size) == NULL) {
+    scr_abort(-1, "Problem reading current working directory (getcwd() errno=%d %m) @ %s:%d",
+              errno, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  }
+  return rc;
+}
+
 /* split path and filename from fullpath on the rightmost '/'
  * assumes all filename if no '/' is found */
-int scr_split_path (const char* file, char* path, char* filename)
+int scr_path_split(const char* file, char* path, char* filename)
 {
   /* dirname and basename may modify their arguments, so we need to make a copy. */
   char* pcopy = strdup(file);
@@ -821,7 +834,7 @@ int scr_split_path (const char* file, char* path, char* filename)
 }
 
 /* combine path and file into a fullpath in buf */
-int scr_build_path (char* buf, size_t size, const char* path, const char* file)
+int scr_path_build(char* buf, size_t size, const char* path, const char* file)
 {
   int nwrite = 0;
   if ((path == NULL || strcmp(path, "") == 0) && (file == NULL || strcmp(file, "") == 0)) {
@@ -948,22 +961,9 @@ int scr_path_slice(
   return SCR_FAILURE;
 }
 
-/* write current working directory to buf */
-int scr_getcwd(char* buf, size_t size)
-{
-  int rc = SCR_SUCCESS;
-  if (getcwd(buf, size) == NULL) {
-    scr_abort(-1, "Problem reading current working directory (getcwd() errno=%d %m) @ %s:%d",
-              errno, __FILE__, __LINE__
-    );
-    rc = SCR_FAILURE;
-  }
-  return rc;
-}
-
 /* given a file or directory name, construct the full path by prepending
  * the current working directory if needed */
-int scr_build_absolute_path(char* buf, size_t size, const char* file)
+int scr_path_absolute(char* buf, size_t size, const char* file)
 {
   /* check that we have valid buffers and a non-empty string */
   if (buf == NULL || file == NULL || strcmp(file, "") == 0) {
@@ -1010,7 +1010,7 @@ int scr_path_resolve(const char* str, char* newstr, size_t newstrlen)
   /* TODO: what to do with things like lustre:/my/file? */
   /* build absolute path, code below assumes string starts with a '/' */
   char path[SCR_MAX_FILENAME];
-  if (scr_build_absolute_path(path, sizeof(path), str) != SCR_SUCCESS) {
+  if (scr_path_absolute(path, sizeof(path), str) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -1135,10 +1135,10 @@ int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, ch
   /* split src_file into path and filename */
   char path[SCR_MAX_FILENAME];
   char name[SCR_MAX_FILENAME];
-  scr_split_path(src, path, name);
+  scr_path_split(src, path, name);
 
   /* create dest_file using dest_path and filename */
-  if (scr_build_path(dst, dst_size, dst_dir, name) != SCR_SUCCESS) {
+  if (scr_path_build(dst, dst_size, dst_dir, name) != SCR_SUCCESS) {
     scr_err("Failed to build full filename for destination file @ %s:%d",
             __FILE__, __LINE__
     );

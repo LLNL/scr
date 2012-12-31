@@ -62,8 +62,8 @@ int scr_swap_file_names(
     /* set full path to filename */
     char path[SCR_MAX_FILENAME] = "";
     char name[SCR_MAX_FILENAME] = "";
-    scr_split_path(file_recv_orig, path, name);
-    scr_build_path(file_recv, size_recv, dir_recv, name);
+    scr_path_split(file_recv_orig, path, name);
+    scr_path_build(file_recv, size_recv, dir_recv, name);
 
     /* free the file name we received */
     scr_free(&file_recv_orig);

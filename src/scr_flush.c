@@ -216,7 +216,7 @@ static int scr_flush_create_dirs(scr_hash* file_list)
       if (scr_dataset_get_name(dataset, &name) == SCR_SUCCESS) {
         /* build the directory name */
         char dir[SCR_MAX_FILENAME];
-        if (scr_build_path(dir, sizeof(dir), scr_par_prefix, name) == SCR_SUCCESS) {
+        if (scr_path_build(dir, sizeof(dir), scr_par_prefix, name) == SCR_SUCCESS) {
           /* record top level directory for flush */
           scr_hash_util_set_str(file_list, SCR_KEY_PATH, dir);
 
@@ -696,7 +696,7 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
       if (scr_dataset_get_name(dataset, &dataset_name) == SCR_SUCCESS) {
         /* build path to current symlink */
         char current[SCR_MAX_FILENAME];
-        scr_build_path(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
+        scr_path_build(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
 
         /* if current exists, unlink it */
         if (scr_file_exists(current) == SCR_SUCCESS) {

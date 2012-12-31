@@ -564,11 +564,11 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
         char* file = files[i];
         char path[SCR_MAX_FILENAME];
         char name[SCR_MAX_FILENAME];
-        scr_split_path(file, path, name);
+        scr_path_split(file, path, name);
 
         /* build the new filename */
         char newfile[SCR_MAX_FILENAME];
-        scr_build_path(newfile, sizeof(newfile), dir, name);
+        scr_path_build(newfile, sizeof(newfile), dir, name);
 
         /* if the new file name is different from the old name, rename it */
         if (strcmp(file, newfile) != 0) {

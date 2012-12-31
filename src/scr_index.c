@@ -205,7 +205,7 @@ int scr_summary_read(const char* dir, scr_hash* hash)
 {
   /* build the filename for the summary file */
   char summary_file[SCR_MAX_FILENAME];
-  if (scr_build_path(summary_file, sizeof(summary_file), dir, SCR_SUMMARY_FILENAME) != SCR_SUCCESS) {
+  if (scr_path_build(summary_file, sizeof(summary_file), dir, SCR_SUMMARY_FILENAME) != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file for directory %s @ %s:%d",
             dir, __FILE__, __LINE__
     );
@@ -230,7 +230,7 @@ int scr_summary_write(const char* dir, scr_hash* hash)
 {
   /* build the filename for the summary file */
   char summary_file[SCR_MAX_FILENAME];
-  if (scr_build_path(summary_file, sizeof(summary_file), dir, SCR_SUMMARY_FILENAME) != SCR_SUCCESS) {
+  if (scr_path_build(summary_file, sizeof(summary_file), dir, SCR_SUMMARY_FILENAME) != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file for directory %s @ %s:%d",
             dir, __FILE__, __LINE__
     );
@@ -765,7 +765,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
 
     /* build the full file name */
     char name_tmp[SCR_MAX_FILENAME];
-    if (scr_build_path(name_tmp, sizeof(name_tmp), dir, name) != SCR_SUCCESS) {
+    if (scr_path_build(name_tmp, sizeof(name_tmp), dir, name) != SCR_SUCCESS) {
       scr_err("Filename too long to copy into internal buffer: %s/%s @ %s:%d",
               dir, name, __FILE__, __LINE__
       );
@@ -846,7 +846,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
 
           /* build the full file name */
           char name_tmp[SCR_MAX_FILENAME];
-          if (scr_build_path(name_tmp, sizeof(name_tmp), dir, file_name) != SCR_SUCCESS) {
+          if (scr_path_build(name_tmp, sizeof(name_tmp), dir, file_name) != SCR_SUCCESS) {
             scr_err("Filename too long to copy into internal buffer: %s/%s @ %s:%d",
                     dir, file_name, __FILE__, __LINE__
             );
@@ -923,7 +923,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
 
           /* build the full path to the file named in the meta file */
           char full_filename[SCR_MAX_FILENAME];
-          if (scr_build_path(full_filename, sizeof(full_filename), dir, file_name) != SCR_SUCCESS) {
+          if (scr_path_build(full_filename, sizeof(full_filename), dir, file_name) != SCR_SUCCESS) {
             scr_err("Filename too long to copy into internal buffer: %s/%s @ %s:%d",
                     dir, file_name, __FILE__, __LINE__
             );
@@ -1395,7 +1395,7 @@ int index_add_dir (const char* prefix, const char* subdir)
 
     /* read summary file from the dataset directory */
     char dataset_dir[SCR_MAX_FILENAME];
-    scr_build_path(dataset_dir, sizeof(dataset_dir), prefix, subdir);
+    scr_path_build(dataset_dir, sizeof(dataset_dir), prefix, subdir);
     if (scr_summary_read(dataset_dir, summary) != SCR_SUCCESS) {
       /* if summary file is missing, attempt to build it */
       if (scr_summary_build(dataset_dir) == SCR_SUCCESS) {

@@ -51,7 +51,7 @@ static int scr_fetch_file(
 
   /* build full path to file */
   char filename[SCR_MAX_FILENAME];
-  if (scr_build_path(filename, sizeof(filename), src_dir, meta_filename) != SCR_SUCCESS) {
+  if (scr_path_build(filename, sizeof(filename), src_dir, meta_filename) != SCR_SUCCESS) {
     scr_err("Failed to build full file name of target file for fetch @ %s:%d",
       __FILE__, __LINE__
     );
@@ -372,11 +372,11 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
     /* split filename into path and name components */
     char path[SCR_MAX_FILENAME];
     char name[SCR_MAX_FILENAME];
-    scr_split_path(file, path, name);
+    scr_path_split(file, path, name);
 
     /* build the destination file name */
     char newfile[SCR_MAX_FILENAME];
-    scr_build_path(newfile, sizeof(newfile), dir, name);
+    scr_path_build(newfile, sizeof(newfile), dir, name);
       
     /* add the file to our filemap and write it to disk before creating the file,
      * this way we have a record that it may exist before we actually start to fetch it */
@@ -849,7 +849,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
 
   /* build the filename for the current symlink */
   char scr_current[SCR_MAX_FILENAME];
-  scr_build_path(scr_current, sizeof(scr_current), scr_par_prefix, SCR_CURRENT_LINK);
+  scr_path_build(scr_current, sizeof(scr_current), scr_par_prefix, SCR_CURRENT_LINK);
 
   /* have rank 0 read the index file */
   scr_hash* index_hash = NULL;
@@ -912,7 +912,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
         }
 
         /* we have a subdirectory, now build the full path */
-        scr_build_path(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
+        scr_path_build(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
       }
     }
 

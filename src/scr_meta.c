@@ -127,7 +127,7 @@ int scr_meta_set_filename(scr_meta* meta, const char* file)
   /* split file into path and name components */
   char path[SCR_MAX_FILENAME];
   char name[SCR_MAX_FILENAME];
-  scr_split_path(file, path, name);
+  scr_path_split(file, path, name);
 
   scr_hash_unset(meta, SCR_META_KEY_FILE);
   scr_hash_set_kv(meta, SCR_META_KEY_FILE, name);

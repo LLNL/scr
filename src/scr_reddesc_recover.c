@@ -119,7 +119,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     }
 
     /* get path from chunk file */
-    scr_split_path(full_chunk_filename, path, name);
+    scr_path_split(full_chunk_filename, path, name);
 
     /* open each of our files */
     for (i=0; i < num_files; i++) {
@@ -141,7 +141,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
 
       /* create full path to the file */
       char full_file[SCR_MAX_FILENAME];
-      scr_build_path(full_file, sizeof(full_file), path, filename);
+      scr_path_build(full_file, sizeof(full_file), path, filename);
 
       /* copy the full filename */
       filenames[i] = strdup(full_file);
@@ -220,7 +220,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     sprintf(full_chunk_filename, "%s/%d_of_%d_in_%d.xor", dir, c->my_rank+1, c->ranks, c->group_id);
 
     /* split file into path and name */
-    scr_split_path(full_chunk_filename, path, name);
+    scr_path_split(full_chunk_filename, path, name);
 
     /* record our chunk file and each of our files in the filemap before creating */
     scr_filemap_add_file(map, id, scr_my_rank_world, full_chunk_filename);
@@ -243,7 +243,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
 
       /* get the filename */
       char full_file[SCR_MAX_FILENAME];
-      scr_build_path(full_file, sizeof(full_file), path, filename);
+      scr_path_build(full_file, sizeof(full_file), path, filename);
 
       /* copy the filename */
       filenames[i] = strdup(full_file);

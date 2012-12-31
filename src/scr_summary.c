@@ -28,7 +28,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
 
   /* check whether we can read the summary file */
   char summary_file[SCR_MAX_FILENAME];
-  if (scr_build_path(summary_file, sizeof(summary_file), dir, "scr_summary.txt") != SCR_SUCCESS) {
+  if (scr_path_build(summary_file, sizeof(summary_file), dir, "scr_summary.txt") != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file @ %s:%d",
             __FILE__, __LINE__
     );
@@ -295,7 +295,7 @@ static int scr_summary_read_v5(const char* dir, scr_hash* summary_hash)
 
   /* build the filename for the summary file */
   char summary_file[SCR_MAX_FILENAME];
-  if (scr_build_path(summary_file, sizeof(summary_file), dir, "summary.scr") != SCR_SUCCESS) {
+  if (scr_path_build(summary_file, sizeof(summary_file), dir, "summary.scr") != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file @ %s:%d",
             __FILE__, __LINE__
     );
@@ -330,7 +330,7 @@ static int scr_summary_read_v6(const char* dir, scr_hash* summary_hash)
 
   /* build the filename for the summary file */
   char summary_file[SCR_MAX_FILENAME];
-  if (scr_build_path(summary_file, sizeof(summary_file), dir, "summary.scr") != SCR_SUCCESS) {
+  if (scr_path_build(summary_file, sizeof(summary_file), dir, "summary.scr") != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file @ %s:%d",
             __FILE__, __LINE__
     );
@@ -439,7 +439,7 @@ int scr_summary_write(const char* dir, const scr_dataset* dataset, int all_compl
 {
   /* build the summary filename */
   char file[SCR_MAX_FILENAME];
-  if (scr_build_path(file, sizeof(file), dir, "summary.scr") != SCR_SUCCESS) {
+  if (scr_path_build(file, sizeof(file), dir, "summary.scr") != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file @ %s:%d",
             __FILE__, __LINE__
     );

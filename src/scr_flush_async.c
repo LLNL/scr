@@ -322,11 +322,11 @@ int scr_flush_async_start(scr_filemap* map, int id)
     /* break file into path and name components */
     char path[SCR_MAX_FILENAME];
     char name[SCR_MAX_FILENAME];
-    scr_split_path(file, path, name);
+    scr_path_split(file, path, name);
 
     /* create dest_file using dest_dir and name */
     char dest_file[SCR_MAX_FILENAME];
-    scr_build_path(dest_file, sizeof(dest_file), dest_dir, name);
+    scr_path_build(dest_file, sizeof(dest_file), dest_dir, name);
 
     /* add this file to the hash, and add its filesize to the number of bytes written */
     scr_hash* transfer_file_hash = scr_hash_set_kv(scr_flush_async_hash, SCR_TRANSFER_KEY_FILES, file);
@@ -486,7 +486,7 @@ int scr_flush_async_complete(scr_filemap* map, int id)
     /* record the filename in the hash, and get reference to a hash for this file */
     char path[SCR_MAX_FILENAME];
     char name[SCR_MAX_FILENAME];
-    scr_split_path(file, path, name);
+    scr_path_split(file, path, name);
     scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
 
     /* TODO: check that this file was written successfully */
