@@ -115,8 +115,8 @@ libscr_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 libscr_base_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am_libscr_base_la_OBJECTS = libscr_base_la-scr_io.lo \
-	libscr_base_la-scr_util.lo libscr_base_la-scr_hash.lo \
-	libscr_base_la-scr_hash_util.lo \
+	libscr_base_la-scr_compress.lo libscr_base_la-scr_util.lo \
+	libscr_base_la-scr_hash.lo libscr_base_la-scr_hash_util.lo \
 	libscr_base_la-tv_data_display.lo \
 	libscr_base_la-scr_filemap.lo libscr_base_la-scr_index_api.lo \
 	libscr_base_la-scr_meta.lo libscr_base_la-scr_dataset.lo \
@@ -437,6 +437,7 @@ noinst_HEADERS = \
 	scr_globals.h \
 	scr_err.h \
 	scr_io.h \
+	scr_compress.h \
 	scr_util.h \
 	scr_util_mpi.h \
 	scr_split.h \
@@ -486,6 +487,7 @@ CMDS_INCLUDES = \
 # source files that are used by scr commands and runtime library
 libscr_base_la_SOURCES = \
 	scr_io.c \
+	scr_compress.c \
 	scr_util.c \
 	scr_hash.c \
 	scr_hash_util.c \
@@ -754,6 +756,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_base_la-scr_compress.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_base_la-scr_config.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_base_la-scr_dataset.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libscr_base_la-scr_env.Plo@am__quote@
@@ -972,6 +975,13 @@ libscr_base_la-scr_io.lo: scr_io.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_io.c' object='libscr_base_la-scr_io.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -c -o libscr_base_la-scr_io.lo `test -f 'scr_io.c' || echo '$(srcdir)/'`scr_io.c
+
+libscr_base_la-scr_compress.lo: scr_compress.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -MT libscr_base_la-scr_compress.lo -MD -MP -MF $(DEPDIR)/libscr_base_la-scr_compress.Tpo -c -o libscr_base_la-scr_compress.lo `test -f 'scr_compress.c' || echo '$(srcdir)/'`scr_compress.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libscr_base_la-scr_compress.Tpo $(DEPDIR)/libscr_base_la-scr_compress.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='scr_compress.c' object='libscr_base_la-scr_compress.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -c -o libscr_base_la-scr_compress.lo `test -f 'scr_compress.c' || echo '$(srcdir)/'`scr_compress.c
 
 libscr_base_la-scr_util.lo: scr_util.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libscr_base_la_CFLAGS) $(CFLAGS) -MT libscr_base_la-scr_util.lo -MD -MP -MF $(DEPDIR)/libscr_base_la-scr_util.Tpo -c -o libscr_base_la-scr_util.lo `test -f 'scr_util.c' || echo '$(srcdir)/'`scr_util.c
