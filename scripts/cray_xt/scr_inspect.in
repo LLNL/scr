@@ -99,7 +99,7 @@ my %groups = ();
 my %types = ();
 if (-r $output) {
   # open the file, exit with error if we can't
-  open(OUT, $output);
+  open(OUT, $output) or exit 1;
 
   # run through each line
   while (my $line = <OUT>) {
