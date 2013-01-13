@@ -76,11 +76,12 @@ if (defined $conf{nodeset_down}) {
 # format up and down node sets for pdsh command
 my $upnodes   = scr_hostlist::compress(@upnodes);
 
+# TODO: should check that .scr direcotry exists
 # build the output filenames
 my $pwd = `pwd`;
 chomp $pwd;
-my $output = "$pwd/$prog.pdsh.o" . $jobid;
-my $error  = "$pwd/$prog.pdsh.e" . $jobid;
+my $output = "$pwd/.scr/$prog.pdsh.o" . $jobid;
+my $error  = "$pwd/.scr/$prog.pdsh.e" . $jobid;
 unlink $output;
 unlink $error;
 
@@ -95,7 +96,10 @@ $cmd = "$bindir/scr_inspect_cache $filemap";
 my %groups = ();
 my %types = ();
 if (-r $output) {
-  open(OUT, $output);
+  # open the file, exit with error if we can't
+  open(OUT, $output) or exit 1;
+
+  # read through each line
   while (my $line = <OUT>) {
     chomp $line;
     if ($line =~ /DSET=(\d+) RANK=(\d+) TYPE=(\w+) GROUPS=(\d+) GROUP_ID=(\d+) GROUP_SIZE=(\d+) GROUP_RANK=(\d+)/) {
@@ -112,6 +116,8 @@ if (-r $output) {
       $types{$dset} = $type;
     }
   }
+
+  # close the file
   close(OUT);
 }
 
