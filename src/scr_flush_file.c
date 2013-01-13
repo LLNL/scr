@@ -158,8 +158,13 @@ int main (int argc, char *argv[])
   }
 
   /* build path to flush file */
-  char file[SCR_MAX_FILENAME];
-  scr_path_build(file, sizeof(file), args.dir, "flush.scr");
+  char* file = scr_strdupf("%s/.scr/%s", args.dir, "flush.scr");
+  if (file == NULL) {
+    scr_err("%s: Failed to allocate storage to store nodes file name @ %s:%d",
+      PROG, __FILE__, __LINE__
+    );
+    return 1;
+  }
 
   /* assume we'll fail */
   int rc = 1;
@@ -260,6 +265,9 @@ int main (int argc, char *argv[])
 cleanup:
   /* delete the hash holding the flush file data */
   scr_hash_delete(hash);
+
+  /* free off our file name storage */
+  scr_free(&file);
 
   /* return appropriate exit code */
   return rc;

@@ -59,7 +59,7 @@ setenv jobid `${scrbin}/scr_env --jobid`
 echo $jobid
 setenv downnode `${scrbin}/scr_glob_hosts -n 1 -h "$SLURM_NODELIST"`
 echo $downnode
-setenv prefix_files "flush.scr halt.scr nodes.scr"
+setenv prefix_files ".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 
 #setenv TV /usr/global/tools/totalview/v/totalview.8X.9.9-1/bin/totalview
 #setenv TV /usr/global/tools/totalview/v/totalview.8X.8.0-4/bin/totalview

@@ -36,8 +36,9 @@ Globals
 char scr_cntl_base[SCR_MAX_FILENAME]  = SCR_CNTL_BASE;  /* base directory for control directory */
 char scr_cache_base[SCR_MAX_FILENAME] = SCR_CACHE_BASE; /* base directory for cache directory */
 
-char* scr_cntl_prefix = NULL;           /* path of control directory (adds to base directory) */
-char scr_prefix[SCR_MAX_FILENAME] = ""; /* path of SCR_PREFIX directory on PFS */
+char* scr_cntl_prefix = NULL; /* path of control directory (adds to base directory) */
+char* scr_prefix      = NULL; /* path of SCR_PREFIX directory on PFS */
+char* scr_prefix_scr  = NULL; /* path of .scr subdir in SCR_PREFIX dir */
 
 /* these files live in the control directory */
 char* scr_master_map_file = NULL;

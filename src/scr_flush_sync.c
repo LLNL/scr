@@ -525,11 +525,6 @@ int scr_flush_sync(scr_filemap* map, int id)
     return SCR_SUCCESS;
   }
 
-  /* if scr_prefix is not set, return right away with an error */
-  if (strcmp(scr_prefix, "") == 0) {
-    return SCR_FAILURE;
-  }
-
   /* this may take a while, so tell user what we're doing */
   if (scr_my_rank_world == 0) {
     scr_dbg(1, "Initiating flush of dataset %d", id);

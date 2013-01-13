@@ -274,7 +274,7 @@ foreach my $dir (@dirs) {
 #  # build the name of the halt file
 #  my $cntldir = `$bindir/scr_cntl_dir --user $username --jobid $jobid`;
 #  chomp $cntldir;
-  my $halt_file = "$dir/halt.scr";
+  my $halt_file = "$dir/.scr/halt.scr";
 
   # TODO: Set halt file permissions so system admins can modify them
   my $halt_cmd = "";

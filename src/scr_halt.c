@@ -40,7 +40,7 @@ int scr_halt_read(const char* file, scr_hash* hash)
   int fd = scr_open(file, O_RDONLY);
   if (fd < 0) {
     scr_err("Opening file for read: scr_open(%s) errno=%d %m @ %s:%d",
-            file, errno, __FILE__, __LINE__
+      file, errno, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -81,7 +81,7 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
   int fd = scr_open(file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
   if (fd < 0) {
     scr_err("Opening file for write: scr_open(%s) errno=%d %m @ %s:%d",
-            file, errno, __FILE__, __LINE__
+      file, errno, __FILE__, __LINE__
     );
     /* restore the normal file mask */
     //umask(old_mode);
@@ -101,7 +101,6 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
 
   /* read in the file data */
   scr_hash_read_fd(file, fd, file_hash);
-
 
   /* if the file already existed before we opened it, override our current settings with its values */
   if (exists) {

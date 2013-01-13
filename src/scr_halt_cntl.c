@@ -190,7 +190,7 @@ int scr_halt_sync_and_set(const char* file, struct arglist* args, scr_hash* data
   int fd = scr_open(file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
   if (fd < 0) {
     scr_err("Opening file for write: scr_open(%s) errno=%d %m @ %s:%d",
-            file, errno, __FILE__, __LINE__
+      file, errno, __FILE__, __LINE__
     );
     /* restore the normal file mask */
     umask(old_mode);
@@ -277,7 +277,7 @@ int main (int argc, char *argv[])
 {
   /* process command line arguments */
   struct arglist args;
-  if (!processArgs(argc, argv, &args)) {
+  if (! processArgs(argc, argv, &args)) {
     return 1;
   }
 

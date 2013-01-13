@@ -605,17 +605,17 @@ static int scr_get_params()
 
   /* override default scr_prefix (parallel file system prefix) */
   if ((value = scr_param_get("SCR_PREFIX")) != NULL) {
-    strcpy(scr_prefix, value);
-  }
-
-  /* if user didn't set with SCR_PREFIX,
-   * pick up the current working directory as a default */
-  if (strcmp(scr_prefix, "") == 0) {
-    if (getcwd(scr_prefix, sizeof(scr_prefix)) == NULL) {
-      scr_abort(-1, "Problem reading current working directory (getcwd() errno=%d %m) @ %s:%d",
-              errno, __FILE__, __LINE__
+    scr_prefix = strdup(value);
+  } else {
+    /* if user didn't set with SCR_PREFIX,
+     * pick up the current working directory as a default */
+    char current_dir[SCR_MAX_FILENAME];
+    if (scr_getcwd(current_dir, sizeof(current_dir)) != SCR_SUCCESS) {
+      scr_abort(-1, "Problem reading current working directory @ %s:%d",
+        __FILE__, __LINE__
       );
     }
+    scr_prefix = strdup(current_dir);
   }
 
   /* connect to the SCR log database if enabled */
@@ -761,7 +761,7 @@ int SCR_Init()
       found_one = 1;
     }
   }
-  if (!found_one) {
+  if (! found_one) {
     if (scr_my_rank_world == 0) {
       scr_abort(-1, "Failed to find an enabled redundancy descriptor with interval 1 @ %s:%d",
         __FILE__, __LINE__
@@ -809,6 +809,33 @@ int SCR_Init()
   }
 
   /* TODO MEMFS: mount storage for control directory */
+
+  /* check that scr_prefix is set */
+  if (scr_prefix == NULL || strcmp(scr_prefix, "") == 0) {
+    if (scr_my_rank_world == 0) {
+      scr_halt("SCR_INIT_FAILED");
+      scr_abort(-1, "SCR_PREFIX must be set @ %s:%d"
+        __FILE__, __LINE__
+      );
+    }
+
+    /* rank 0 will abort above, but we don't want other processes to
+     * continue past this point */
+    MPI_Barrier(scr_comm_world);
+  }
+
+  /* define the path to the .scr subdir within the prefix dir */
+  scr_prefix_scr = scr_strdupf("%s/.scr", scr_prefix);
+
+  /* TODO: create store descriptor for prefix directory */
+  /* create the .scr subdirectory */
+  if (scr_my_rank_world == 0) {
+    if (scr_mkdir(scr_prefix_scr, S_IRWXU) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to create .scr subdirectory %s @ %s:%d",
+        scr_prefix_scr, __FILE__, __LINE__
+      );
+    }
+  }
 
   /* build the control directory name: CNTL_BASE/username/scr.jobid */
   scr_cntl_prefix = scr_strdupf("%s/%s/scr.%s", scr_cntl_base, scr_username, scr_jobid);
@@ -860,9 +887,9 @@ int SCR_Init()
   MPI_Barrier(scr_comm_world);
 
   /* place the halt, flush, and nodes files in the prefix directory */
-  scr_path_build(scr_halt_file,  sizeof(scr_halt_file),  scr_prefix, "halt.scr");
-  scr_path_build(scr_flush_file, sizeof(scr_flush_file), scr_prefix, "flush.scr");
-  scr_path_build(scr_nodes_file, sizeof(scr_nodes_file), scr_prefix, "nodes.scr");
+  scr_path_build(scr_halt_file,  sizeof(scr_halt_file),  scr_prefix_scr, "halt.scr");
+  scr_path_build(scr_flush_file, sizeof(scr_flush_file), scr_prefix_scr, "flush.scr");
+  scr_path_build(scr_nodes_file, sizeof(scr_nodes_file), scr_prefix_scr, "nodes.scr");
 
   /* build the file names using the control directory prefix */
   scr_map_file = scr_strdupf("%s/filemap_%d.scrinfo",
@@ -922,20 +949,6 @@ int SCR_Init()
   if (scr_global_restart) {
     scr_flush_on_restart = 1;
     scr_fetch = 0;
-  }
-
-  /* if scr_fetch or scr_flush is enabled, check that scr_prefix is set */
-  if ((scr_fetch != 0 || scr_flush > 0) && strcmp(scr_prefix, "") == 0) {
-    if (scr_my_rank_world == 0) {
-      scr_halt("SCR_INIT_FAILED");
-      scr_abort(-1, "SCR_PREFIX must be set to use SCR_FETCH or SCR_FLUSH @ %s:%d"
-        __FILE__, __LINE__
-      );
-    }
-
-    /* rank 0 will abort above, but we don't want other processes to
-     * continue past this point */
-    MPI_Barrier(scr_comm_world);
   }
 
   /* allocate a new global filemap object */
@@ -1040,7 +1053,7 @@ int SCR_Init()
 
 /* Close down and clean up */
 int SCR_Finalize()
-{ 
+{
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1119,6 +1132,8 @@ int SCR_Finalize()
   scr_free(&scr_master_map_file);
   scr_free(&scr_map_file);
   scr_free(&scr_cntl_prefix);
+  scr_free(&scr_prefix_scr);
+  scr_free(&scr_prefix);
   scr_free(&scr_my_hostname);
 
   /* we're no longer in an initialized state */

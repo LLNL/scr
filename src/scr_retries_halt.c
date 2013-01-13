@@ -14,6 +14,7 @@
 
 #include "scr.h"
 #include "scr_io.h"
+#include "scr_util.h"
 #include "scr_err.h"
 #include "scr_hash.h"
 #include "scr_param.h"
@@ -103,32 +104,14 @@ int main (int argc, char *argv[])
     return NEED_HALT;
   }
 
-  /* determine the number of bytes we need to hold the full name of the halt file */
-  int filelen = snprintf(NULL, 0, "%s/%s", args.dir, NAME);
-  filelen++; /* add one for the terminating NUL char */
-
   /* allocate space to store the filename */
-  char* file = NULL;
-  if (filelen > 0) {
-    file = (char*) malloc(filelen);
-  }
+  char* file = scr_strdupf("%s/.scr/%s", args.dir, NAME);
   if (file == NULL) {
     /* failed to allocate memory to hold halt file name, to be safe,
      * assume we need to halt */
     scr_err("%s: Failed to allocate storage to store halt file name @ %s:%d",
-            PROG, __FILE__, __LINE__
+      PROG, __FILE__, __LINE__
     );
-    return NEED_HALT;
-  }
-
-  /* build the full file name */
-  int n = snprintf(file, filelen, "%s/%s", args.dir, NAME);
-  if (n >= filelen) {
-    /* failed to write halt file name into buffer, to be safe, assume we need to halt */
-    scr_err("%s: Flush file name is too long (need %d bytes, %d byte buffer) @ %s:%d",
-            PROG, n, filelen, __FILE__, __LINE__
-    );
-    free(file);
     return NEED_HALT;
   }
 
@@ -207,7 +190,7 @@ int main (int argc, char *argv[])
       strftime(str_now,  sizeof(str_now),  "%c", localtime(&time_now));
       strftime(str_exit, sizeof(str_exit), "%c", localtime(&time_exit));
       printf("%s: HALT RUN: Current time (%s) is past ExitBefore-HaltSeconds time (%s).\n",
-             PROG, str_now, str_exit
+        PROG, str_now, str_exit
       );
       rc = NEED_HALT;
     }
@@ -234,10 +217,7 @@ cleanup:
   scr_hash_delete(scr_halt_hash);
 
   /* free off our file name storage */
-  if (file != NULL) {
-    free(file);
-    file = NULL;
-  }
+  scr_free(&file);
 
   /* return appropriate exit code */
   return rc;

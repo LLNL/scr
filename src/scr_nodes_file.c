@@ -89,33 +89,16 @@ int main (int argc, char *argv[])
 {
   /* process command line arguments */
   struct arglist args;
-  if (!process_args(argc, argv, &args)) {
-    return 1;
-  }
-
-  /* determine the number of bytes we need to hold the full name of the nodes file */
-  int filelen = snprintf(NULL, 0, "%s/nodes.scr", args.dir);
-  filelen++; /* add one for the terminating NUL char */
-
-  /* allocate space to store the filename */
-  char* file = NULL;
-  if (filelen > 0) {
-    file = (char*) malloc(filelen);
-  }
-  if (file == NULL) {
-    scr_err("%s: Failed to allocate storage to store nodes file name @ %s:%d",
-            PROG, __FILE__, __LINE__
-    );
+  if (! process_args(argc, argv, &args)) {
     return 1;
   }
 
   /* build the full file name */
-  int n = snprintf(file, filelen, "%s/nodes.scr", args.dir);
-  if (n >= filelen) {
-    scr_err("%s: Flush file name is too long (need %d bytes, %d byte buffer) @ %s:%d",
-            PROG, n, filelen, __FILE__, __LINE__
+  char* file = scr_strdupf("%s/.scr/nodes.scr", args.dir);
+  if (file == NULL) {
+    scr_err("%s: Failed to allocate storage to store nodes file name @ %s:%d",
+      PROG, __FILE__, __LINE__
     );
-    scr_free(&file);
     return 1;
   }
 

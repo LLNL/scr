@@ -66,8 +66,8 @@ mkdir -p ${pardir}/.scr
 # clear any existing flush or nodes files
 # NOTE: we *do not* clear the halt file, since the user may have
 # requested the job to halt
-rm -f ${pardir}/flush.scr
-rm -f ${pardir}/nodes.scr
+rm -f ${pardir}/.scr/flush.scr
+rm -f ${pardir}/.scr/nodes.scr
 
 # report timing info
 end_time=`date`
