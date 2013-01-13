@@ -30,7 +30,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
   char summary_file[SCR_MAX_FILENAME];
   if (scr_path_build(summary_file, sizeof(summary_file), dir, "scr_summary.txt") != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -45,7 +45,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
   FILE* fs = fopen(summary_file, "r");
   if (fs == NULL) {
     scr_err("Opening summary file for read: fopen(%s, \"r\") errno=%d %m @ %s:%d",
-            summary_file, errno, __FILE__, __LINE__
+      summary_file, errno, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -82,7 +82,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
   /* now we know how many records we'll be reading, so allocate space for them */
   if (num_records <= 0) {
     scr_err("No file records found in summary file %s, perhaps it is corrupt or incomplete @ %s:%d",
-            summary_file, __FILE__, __LINE__
+      summary_file, __FILE__, __LINE__
     );
     fclose(fs);
     return SCR_FAILURE;
@@ -127,14 +127,14 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
     /* check the return code returned from the read */
     if (n == EOF) {
       scr_err("Early EOF in summary file %s at line %d.  Only read %d of %d expected records @ %s:%d",
-              summary_file, linenum, i, num_records, __FILE__, __LINE__
+        summary_file, linenum, i, num_records, __FILE__, __LINE__
       );
       fclose(fs);
       scr_hash_unset_all(summary_hash);
       return SCR_FAILURE;
     } else if (n != expected_n) {
       scr_err("Invalid read of record %d in %s at line %d @ %s:%d",
-              i, summary_file, linenum, __FILE__, __LINE__
+        i, summary_file, linenum, __FILE__, __LINE__
       );
       fclose(fs);
       scr_hash_unset_all(summary_hash);
@@ -145,7 +145,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
     if (rank < 0 || rank >= scr_ranks_world) {
       bad_values = 1;
       scr_err("Invalid rank detected (%d) in a job with %d tasks in %s at line %d @ %s:%d",
-              rank, scr_my_rank_world, summary_file, linenum, __FILE__, __LINE__
+        rank, scr_my_rank_world, summary_file, linenum, __FILE__, __LINE__
       );
     }
 
@@ -181,7 +181,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
       } else {
         bad_values = 1;
         scr_err("Checkpoint id %d on record %d does not match expected checkpoint id %d in %s at line %d @ %s:%d",
-                checkpoint_id, i, all_checkpoint_id, summary_file, linenum, __FILE__, __LINE__
+          checkpoint_id, i, all_checkpoint_id, summary_file, linenum, __FILE__, __LINE__
         );
       }
     }
@@ -193,7 +193,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
       } else {
         bad_values = 1;
         scr_err("Number of ranks %d on record %d does not match expected number of ranks %d in %s at line %d @ %s:%d",
-                ranks, i, all_ranks, summary_file, linenum, __FILE__, __LINE__
+          ranks, i, all_ranks, summary_file, linenum, __FILE__, __LINE__
         );
       }
     }
@@ -228,7 +228,7 @@ static int scr_summary_check_v5(scr_hash* hash)
   if (scr_hash_util_get_int(hash, SCR_SUMMARY_KEY_VERSION, &version) != SCR_SUCCESS) {
     /* couldn't find version number */
     scr_err("Failed to read version number in summary file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -236,7 +236,7 @@ static int scr_summary_check_v5(scr_hash* hash)
   if (version != SCR_SUMMARY_FILE_VERSION_5) {
     /* invalid version number */
     scr_err("Found version number %d when %d was expected in summary file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -245,7 +245,7 @@ static int scr_summary_check_v5(scr_hash* hash)
   scr_hash* ckpt_hash = scr_hash_get(hash, SCR_SUMMARY_5_KEY_CKPT);
   if (scr_hash_size(ckpt_hash) != 1) {
     scr_err("More than one checkpoint found in summary file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -269,7 +269,7 @@ static int scr_summary_check_v5(scr_hash* hash)
   int ranks;
   if (scr_hash_util_get_int(ckpt, SCR_SUMMARY_5_KEY_RANKS, &ranks) != SCR_SUCCESS) {
     scr_err("Failed to read number of ranks in summary file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -277,7 +277,7 @@ static int scr_summary_check_v5(scr_hash* hash)
   /* check that the number of ranks matches the number we're currently running with */
   if (ranks != scr_ranks_world) {
     scr_err("Number of ranks %d that wrote checkpoint does not match current number of ranks %d @ %s:%d",
-            ranks, scr_ranks_world, __FILE__, __LINE__
+      ranks, scr_ranks_world, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -297,7 +297,7 @@ static int scr_summary_read_v5(const char* dir, scr_hash* summary_hash)
   char summary_file[SCR_MAX_FILENAME];
   if (scr_path_build(summary_file, sizeof(summary_file), dir, "summary.scr") != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -311,7 +311,7 @@ static int scr_summary_read_v5(const char* dir, scr_hash* summary_hash)
   /* read in the summary hash file */
   if (scr_hash_read(summary_file, summary_hash) != SCR_SUCCESS) {
     scr_err("Reading summary file %s @ %s:%d",
-            summary_file, __FILE__, __LINE__
+      summary_file, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -328,11 +328,20 @@ static int scr_summary_read_v6(const char* dir, scr_hash* summary_hash)
     return SCR_FAILURE;
   }
 
+  /* build the .scr subdirectory */
+  char dir_scr[SCR_MAX_FILENAME];
+  if (scr_path_build(dir_scr, sizeof(dir_scr), dir, ".scr") != SCR_SUCCESS) {
+    scr_err("Failed to build full name of .scr subdirectory @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
   /* build the filename for the summary file */
   char summary_file[SCR_MAX_FILENAME];
-  if (scr_path_build(summary_file, sizeof(summary_file), dir, "summary.scr") != SCR_SUCCESS) {
+  if (scr_path_build(summary_file, sizeof(summary_file), dir_scr, "summary.scr") != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -346,7 +355,7 @@ static int scr_summary_read_v6(const char* dir, scr_hash* summary_hash)
   /* read in the summary hash file */
   if (scr_hash_read(summary_file, summary_hash) != SCR_SUCCESS) {
     scr_err("Reading summary file %s @ %s:%d",
-            summary_file, __FILE__, __LINE__
+      summary_file, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -355,7 +364,7 @@ static int scr_summary_read_v6(const char* dir, scr_hash* summary_hash)
   int version;
   if (scr_hash_util_get_int(summary_hash, SCR_SUMMARY_KEY_VERSION, &version) != SCR_SUCCESS) {
     scr_err("Failed to read version from summary file %s @ %s:%d",
-            summary_file, __FILE__, __LINE__
+      summary_file, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -363,7 +372,7 @@ static int scr_summary_read_v6(const char* dir, scr_hash* summary_hash)
   /* check that the version number matches */
   if (version != SCR_SUMMARY_FILE_VERSION_6) {
     scr_err("Summary file %s is version %d instead of version %d @ %s:%d",
-            summary_file, version, SCR_SUMMARY_FILE_VERSION_6, __FILE__, __LINE__
+      summary_file, version, SCR_SUMMARY_FILE_VERSION_6, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -400,7 +409,7 @@ int scr_summary_read(const char* dir, scr_hash* summary_hash)
         /* we still failed, don't report an error here, just return failure,
          * the read functions will report errors as needed */
         scr_err("Reading summary file in %s @ %s:%d",
-                dir, __FILE__, __LINE__
+          dir, __FILE__, __LINE__
         );
         scr_hash_delete(summary_hash_v5);
         return SCR_FAILURE;
@@ -411,7 +420,7 @@ int scr_summary_read(const char* dir, scr_hash* summary_hash)
     if (scr_summary_check_v5(summary_hash_v5) != SCR_SUCCESS) {
       /* hash failed version 5 check */
       scr_err("Invalid version 5 summary file in %s @ %s:%d",
-              dir, __FILE__, __LINE__
+        dir, __FILE__, __LINE__
       );
       scr_hash_delete(summary_hash_v5);
       return SCR_FAILURE;
@@ -421,7 +430,7 @@ int scr_summary_read(const char* dir, scr_hash* summary_hash)
     if (scr_summary_convert_v5_to_v6(summary_hash_v5, summary_hash) != SCR_SUCCESS) {
       /* failed to convert version 5 hash into version 6 format */
       scr_err("Invalid version 5 summary file in %s @ %s:%d",
-              dir, __FILE__, __LINE__
+        dir, __FILE__, __LINE__
       );
       scr_hash_delete(summary_hash_v5);
       return SCR_FAILURE;
@@ -437,11 +446,20 @@ int scr_summary_read(const char* dir, scr_hash* summary_hash)
 /* write out the summary file to dir */
 int scr_summary_write(const char* dir, const scr_dataset* dataset, int all_complete, scr_hash* data)
 {
+  /* build the .scr subdirectory */
+  char dir_scr[SCR_MAX_FILENAME];
+  if (scr_path_build(dir_scr, sizeof(dir_scr), dir, ".scr") != SCR_SUCCESS) {
+    scr_err("Failed to build full name of .scr subdirectory @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
   /* build the summary filename */
   char file[SCR_MAX_FILENAME];
-  if (scr_path_build(file, sizeof(file), dir, "summary.scr") != SCR_SUCCESS) {
+  if (scr_path_build(file, sizeof(file), dir_scr, "summary.scr") != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }

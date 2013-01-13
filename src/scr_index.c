@@ -203,9 +203,18 @@ int scr_read_dir(const char* dir, scr_hash* hash)
 
 int scr_summary_read(const char* dir, scr_hash* hash)
 {
+  /* build the name of the .scr subdirectory */
+  char dir_scr[SCR_MAX_FILENAME];
+  if (scr_path_build(dir_scr, sizeof(dir_scr), dir, ".scr") != SCR_SUCCESS) {
+    scr_err("Failed to build name of .scr subdirectory for %s @ %s:%d",
+      dir, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
   /* build the filename for the summary file */
   char summary_file[SCR_MAX_FILENAME];
-  if (scr_path_build(summary_file, sizeof(summary_file), dir, SCR_SUMMARY_FILENAME) != SCR_SUCCESS) {
+  if (scr_path_build(summary_file, sizeof(summary_file), dir_scr, SCR_SUMMARY_FILENAME) != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file for directory %s @ %s:%d",
       dir, __FILE__, __LINE__
     );
@@ -228,9 +237,18 @@ int scr_summary_read(const char* dir, scr_hash* hash)
 
 int scr_summary_write(const char* dir, scr_hash* hash)
 {
+  /* build the name of the .scr subdirectory */
+  char dir_scr[SCR_MAX_FILENAME];
+  if (scr_path_build(dir_scr, sizeof(dir_scr), dir, ".scr") != SCR_SUCCESS) {
+    scr_err("Failed to build name of .scr subdirectory for %s @ %s:%d",
+      dir, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
   /* build the filename for the summary file */
   char summary_file[SCR_MAX_FILENAME];
-  if (scr_path_build(summary_file, sizeof(summary_file), dir, SCR_SUMMARY_FILENAME) != SCR_SUCCESS) {
+  if (scr_path_build(summary_file, sizeof(summary_file), dir_scr, SCR_SUMMARY_FILENAME) != SCR_SUCCESS) {
     scr_err("Failed to build full filename for summary file for directory %s @ %s:%d",
       dir, __FILE__, __LINE__
     );

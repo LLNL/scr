@@ -618,8 +618,18 @@ static int scr_flush_create_dirs(scr_hash* file_list)
       scr_dbg(1, "Flushing to %s", flushdir);
     } else {
       /* failed to create the directory */
-      scr_abort(-1, "Failed to make checkpoint directory mkdir(%s) @ %s:%d",
+      scr_abort(-1, "Failed to make dataset directory mkdir(%s) @ %s:%d",
         flushdir, __FILE__, __LINE__
+      );
+    }
+
+    /* create the .scr subdirectory */
+    char dir_scr[SCR_MAX_FILENAME];
+    scr_path_build(dir_scr, sizeof(dir_scr), flushdir, ".scr");
+    if (scr_mkdir(dir_scr, S_IRWXU) != SCR_SUCCESS) {
+      /* failed to create the directory */
+      scr_abort(-1, "Failed to make .scr subdirectory directory mkdir(%s) @ %s:%d",
+        dir_scr, __FILE__, __LINE__
       );
     }
   }

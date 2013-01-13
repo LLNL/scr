@@ -45,11 +45,20 @@
 /* read the index file from given directory and merge its contents into the given hash */
 int scr_index_read(const char* dir, scr_hash* index)
 {
+  /* create name of .scr subdirectory */
+  char dir_scr[SCR_MAX_FILENAME];
+  if (scr_path_build(dir_scr, sizeof(dir_scr), dir, ".scr") != SCR_SUCCESS) {
+    scr_err("Failed to build .scr subdirectory for dir %s @ %s:%d",
+      dir, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
   /* build the file name for the index file */
   char index_file[SCR_MAX_FILENAME];
-  if (scr_path_build(index_file, sizeof(index_file), dir, SCR_INDEX_FILENAME) != SCR_SUCCESS) {
+  if (scr_path_build(index_file, sizeof(index_file), dir_scr, SCR_INDEX_FILENAME) != SCR_SUCCESS) {
     scr_err("Failed to build filename to read index file in dir %s @ %s:%d",
-            dir, __FILE__, __LINE__
+      dir, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -66,11 +75,20 @@ int scr_index_read(const char* dir, scr_hash* index)
 /* overwrite the contents of the index file in given directory with given hash */
 int scr_index_write(const char* dir, scr_hash* index)
 {
+  /* create name of .scr subdirectory */
+  char dir_scr[SCR_MAX_FILENAME];
+  if (scr_path_build(dir_scr, sizeof(dir_scr), dir, ".scr") != SCR_SUCCESS) {
+    scr_err("Failed to build .scr subdirectory for dir %s @ %s:%d",
+      dir, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
   /* build the file name for the index file */
   char index_file[SCR_MAX_FILENAME];
-  if (scr_path_build(index_file, sizeof(index_file), dir, SCR_INDEX_FILENAME) != SCR_SUCCESS) {
+  if (scr_path_build(index_file, sizeof(index_file), dir_scr, SCR_INDEX_FILENAME) != SCR_SUCCESS) {
     scr_err("Failed to build filename to write index file in dir %s @ %s:%d",
-            dir, __FILE__, __LINE__
+      dir, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
