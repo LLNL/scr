@@ -82,10 +82,6 @@ if [ "$UPNODES" != "" ] ; then
     # we have a dataset, check whether it still needs to be flushed 
     $bindir/scr_flush_file --dir $pardir --needflush $latestid
     if [ $? -eq 0 ] ; then
-#      # get the jobid
-#      jobid=`$bindir/scr_env --jobid`
-#      # TODO: check that we got the jobid
-
       # get list of possible datasets
       dataset_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
       if [ $? -eq 0 ] ; then
