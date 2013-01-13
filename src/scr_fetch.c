@@ -862,7 +862,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
 
   /* build the filename for the current symlink */
   char scr_current[SCR_MAX_FILENAME];
-  scr_path_build(scr_current, sizeof(scr_current), scr_par_prefix, SCR_CURRENT_LINK);
+  scr_path_build(scr_current, sizeof(scr_current), scr_prefix, SCR_CURRENT_LINK);
 
   /* have rank 0 read the index file */
   scr_hash* index_hash = NULL;
@@ -872,7 +872,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
     index_hash = scr_hash_new();
 
     /* read the index file */
-    if (scr_index_read(scr_par_prefix, index_hash) == SCR_SUCCESS) {
+    if (scr_index_read(scr_prefix, index_hash) == SCR_SUCCESS) {
       /* remember that we read the index file ok, so we know we can write to it later
        * this way we don't overwrite an existing index file just because the read happened to fail */
       read_index_file = 1;
@@ -921,11 +921,11 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
         *fetch_attempted = 1;
         if (read_index_file && current_checkpoint_id != -1) {
           scr_index_mark_fetched(index_hash, current_checkpoint_id, target);
-          scr_index_write(scr_par_prefix, index_hash);
+          scr_index_write(scr_prefix, index_hash);
         }
 
         /* we have a subdirectory, now build the full path */
-        scr_path_build(fetch_dir, sizeof(fetch_dir), scr_par_prefix, target);
+        scr_path_build(fetch_dir, sizeof(fetch_dir), scr_prefix, target);
       }
     }
 
@@ -951,7 +951,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
         if (scr_my_rank_world == 0) {
           if (read_index_file && current_checkpoint_id != -1 && strcmp(target, "") != 0) {
             scr_index_mark_failed(index_hash, current_checkpoint_id, target);
-            scr_index_write(scr_par_prefix, index_hash);
+            scr_index_write(scr_prefix, index_hash);
           }
         }
       } else {

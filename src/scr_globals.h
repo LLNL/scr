@@ -92,8 +92,8 @@ Globals
 extern char scr_cntl_base[SCR_MAX_FILENAME];  /* base directory for control directory */
 extern char scr_cache_base[SCR_MAX_FILENAME]; /* base directory for cache directory */
 
-extern char* scr_cntl_prefix;                 /* path of control directory (adds to base directory) */
-extern char scr_par_prefix[SCR_MAX_FILENAME]; /* path of SCR_PREFIX directory on PFS */
+extern char* scr_cntl_prefix;             /* path of control directory (adds to base directory) */
+extern char scr_prefix[SCR_MAX_FILENAME]; /* path of SCR_PREFIX directory on PFS */
 
 /* these files live in the control directory */
 extern char* scr_master_map_file;

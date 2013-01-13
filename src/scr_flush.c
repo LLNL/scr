@@ -238,7 +238,7 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
 
         /* get top level subdirectory under prefix */
         char subdir[SCR_MAX_FILENAME];
-        if (scr_find_subdir(scr_par_prefix, dir, subdir, sizeof(subdir)) == SCR_SUCCESS) {
+        if (scr_find_subdir(scr_prefix, dir, subdir, sizeof(subdir)) == SCR_SUCCESS) {
           subdirs[i] = strdup(subdir);
         } else {
           /* dir may not be contained in prefix, or we otherwise
@@ -301,7 +301,7 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
 
     /* build full path to top level directory */
     char full_subdir[SCR_MAX_FILENAME];
-    scr_path_build(full_subdir, sizeof(full_subdir), scr_par_prefix, root_subdir);
+    scr_path_build(full_subdir, sizeof(full_subdir), scr_prefix, root_subdir);
 
     /* record top level directory for flush */
     scr_hash_util_set_str(file_list, SCR_KEY_PATH, full_subdir);
@@ -352,7 +352,7 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
 
     /* build the directory name */
     char dir[SCR_MAX_FILENAME];
-    if (scr_path_build(dir, sizeof(dir), scr_par_prefix, name) != SCR_SUCCESS) {
+    if (scr_path_build(dir, sizeof(dir), scr_prefix, name) != SCR_SUCCESS) {
       scr_abort(-1, "Failed to build path to flush directory @ %s:%d",
         __FILE__, __LINE__
       );
@@ -392,7 +392,7 @@ static int scr_container_construct_name(const scr_dataset* dataset, int id, char
   }
 
   /* build the name and check that it's not truncated */
-  int n = snprintf(file, len, "%s/%s/ctr.%d.scr", scr_par_prefix, name, id);
+  int n = snprintf(file, len, "%s/%s/ctr.%d.scr", scr_prefix, name, id);
   if (n >= len) {
     /* we truncated the container name */
     return SCR_FAILURE;
@@ -605,11 +605,11 @@ static int scr_flush_create_dirs(scr_hash* file_list)
 
     /* add the directory to our index file, and record the flush timestamp */
     scr_hash* index_hash = scr_hash_new();
-    scr_index_read(scr_par_prefix, index_hash);
+    scr_index_read(scr_prefix, index_hash);
     scr_index_set_dataset(index_hash, id, subdir, dataset, 0);
     scr_index_add_dir(index_hash, id, subdir);
     scr_index_mark_flushed(index_hash, id, subdir);
-    scr_index_write(scr_par_prefix, index_hash);
+    scr_index_write(scr_prefix, index_hash);
     scr_hash_delete(index_hash);
 
     /* create the directory */
@@ -941,10 +941,10 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
 
       /* get name of subdirectory holding dataset */
       char subdir[SCR_MAX_FILENAME];
-      if (scr_find_subdir(scr_par_prefix, summary_dir, subdir, sizeof(subdir)) == SCR_SUCCESS) {
+      if (scr_find_subdir(scr_prefix, summary_dir, subdir, sizeof(subdir)) == SCR_SUCCESS) {
         /* build path to current symlink */
         char current[SCR_MAX_FILENAME];
-        scr_path_build(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
+        scr_path_build(current, sizeof(current), scr_prefix, SCR_CURRENT_LINK);
 
         /* if current exists, unlink it */
         if (scr_file_exists(current) == SCR_SUCCESS) {
@@ -960,9 +960,9 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
       int id;
       if (scr_dataset_get_id(dataset, &id) == SCR_SUCCESS) {
         scr_hash* index_hash = scr_hash_new();
-        scr_index_read(scr_par_prefix, index_hash);
+        scr_index_read(scr_prefix, index_hash);
         scr_index_set_dataset(index_hash, id, subdir, dataset, complete);
-        scr_index_write(scr_par_prefix, index_hash);
+        scr_index_write(scr_prefix, index_hash);
         scr_hash_delete(index_hash);
       } else {
         scr_abort(-1, "Failed to read dataset id @ %s:%d",

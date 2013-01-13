@@ -603,15 +603,15 @@ static int scr_get_params()
     }
   }
 
-  /* override default scr_par_prefix (parallel file system prefix) */
+  /* override default scr_prefix (parallel file system prefix) */
   if ((value = scr_param_get("SCR_PREFIX")) != NULL) {
-    strcpy(scr_par_prefix, value);
+    strcpy(scr_prefix, value);
   }
 
   /* if user didn't set with SCR_PREFIX,
    * pick up the current working directory as a default */
-  if (strcmp(scr_par_prefix, "") == 0) {
-    if (getcwd(scr_par_prefix, sizeof(scr_par_prefix)) == NULL) {
+  if (strcmp(scr_prefix, "") == 0) {
+    if (getcwd(scr_prefix, sizeof(scr_prefix)) == NULL) {
       scr_abort(-1, "Problem reading current working directory (getcwd() errno=%d %m) @ %s:%d",
               errno, __FILE__, __LINE__
       );
@@ -860,9 +860,9 @@ int SCR_Init()
   MPI_Barrier(scr_comm_world);
 
   /* place the halt, flush, and nodes files in the prefix directory */
-  scr_path_build(scr_halt_file,  sizeof(scr_halt_file),  scr_par_prefix, "halt.scr");
-  scr_path_build(scr_flush_file, sizeof(scr_flush_file), scr_par_prefix, "flush.scr");
-  scr_path_build(scr_nodes_file, sizeof(scr_nodes_file), scr_par_prefix, "nodes.scr");
+  scr_path_build(scr_halt_file,  sizeof(scr_halt_file),  scr_prefix, "halt.scr");
+  scr_path_build(scr_flush_file, sizeof(scr_flush_file), scr_prefix, "flush.scr");
+  scr_path_build(scr_nodes_file, sizeof(scr_nodes_file), scr_prefix, "nodes.scr");
 
   /* build the file names using the control directory prefix */
   scr_map_file = scr_strdupf("%s/filemap_%d.scrinfo",
@@ -924,8 +924,8 @@ int SCR_Init()
     scr_fetch = 0;
   }
 
-  /* if scr_fetch or scr_flush is enabled, check that scr_par_prefix is set */
-  if ((scr_fetch != 0 || scr_flush > 0) && strcmp(scr_par_prefix, "") == 0) {
+  /* if scr_fetch or scr_flush is enabled, check that scr_prefix is set */
+  if ((scr_fetch != 0 || scr_flush > 0) && strcmp(scr_prefix, "") == 0) {
     if (scr_my_rank_world == 0) {
       scr_halt("SCR_INIT_FAILED");
       scr_abort(-1, "SCR_PREFIX must be set to use SCR_FETCH or SCR_FLUSH @ %s:%d"

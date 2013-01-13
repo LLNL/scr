@@ -239,8 +239,8 @@ int scr_flush_async_start(scr_filemap* map, int id)
     return SCR_SUCCESS;
   }
 
-  /* if scr_par_prefix is not set, return right away with an error */
-  if (strcmp(scr_par_prefix, "") == 0) {
+  /* if scr_prefix is not set, return right away with an error */
+  if (strcmp(scr_prefix, "") == 0) {
     return SCR_FAILURE;
   }
 
