@@ -9,13 +9,10 @@
  * Please also read this file: LICENSE.TXT.
 */
 
-/* This is a utility program that lets one list, set, and unset values
- * in the halt file.  It's a small C program which must run on the
- * same node where rank 0 runs -- it's coordinates access to the halt
- * file with rank 0 via flock(), which does not work across NFS.
- *
- * One will typically call some other script, which in turn identifies
- * the rank 0 node and issues a remote shell command to run this utility. */
+/* This is a utility program that runs on the compute node during a
+ * scavenge operation to copy files from cache to the prefix directory.
+ * It also creates filemap files so that other commands can identify
+ * these files. */
 
 #include "scr_conf.h"
 #include "scr.h"
@@ -43,19 +40,10 @@
 
 static char hostname[256] = "UNKNOWN_HOST";
 
-
-/* scr_copy <cntldir> <id> <dstdir> <buf_size> <crc_flag> <partner_flag> spaced down nodes*/
 int print_usage()
 {
-  /* here we don't print anything since this runs on each node, so it'd be noisy,
-   * just exit with a non-zero exit code */
-
-/*
-  printf("\n");
-  printf("  Usage:  %s --dir <cntl_dir> [--needflush <id> | --latest]\n", PROG);
-  printf("\n");
-*/
-
+  /* here we don't print anything since this runs on each node,
+   * so it'd be noisy, just exit with a non-zero exit code */
   exit(1);
 }
 
@@ -108,7 +96,9 @@ int process_args(int argc, char **argv, struct arglist* args)
         /* dataset id to flush */
         id = atoi(optarg);
         if (id <= 0) {
-          scr_err("%s: Dataset id must be positive '--id %s'", PROG, optarg);
+          scr_err("%s: Dataset id must be positive '--id %s'",
+            PROG, optarg
+          );
           return 0;
         }
         args->id = id;
@@ -120,7 +110,9 @@ int process_args(int argc, char **argv, struct arglist* args)
       case 'b':
         /* buffer size to copy file data to file system */
         if (scr_abtoull(optarg, &bytes) != SCR_SUCCESS) {
-          scr_err("%s: Invalid value for buffer size '--buf %s'", PROG, optarg);
+          scr_err("%s: Invalid value for buffer size '--buf %s'",
+            PROG, optarg
+          );
           return 0;
         }
         args->buf_size = (unsigned long) bytes;
@@ -147,26 +139,34 @@ int process_args(int argc, char **argv, struct arglist* args)
       default:
         if (c != -1) {
           /* missed an option */
-          scr_err("%s: Option '%s' specified but not processed", PROG, argv[option_index]);
+          scr_err("%s: Option '%s' specified but not processed",
+            PROG, argv[option_index]
+          );
         }
     }
   } while (c != -1);
 
   /* check that we got a directory name */
   if (args->cntldir == NULL) {
-    scr_err("%s: Must specify control directory via '--dir <cntl_dir>'", PROG);
+    scr_err("%s: Must specify control directory via '--dir <cntl_dir>'",
+      PROG
+    );
     return 0;
   }
 
   /* check that we got a dataset id */
   if (args->id <= 0) {
-    scr_err("%s: Must specify dataset id via '--id <id>'", PROG);
+    scr_err("%s: Must specify dataset id via '--id <id>'",
+      PROG
+    );
     return 0;
   }
 
   /* check that we got a destination directory */
   if (args->dstdir == NULL) {
-    scr_err("%s: Must specify destination directory via '--dstdir <dst_dir>'", PROG);
+    scr_err("%s: Must specify destination directory via '--dstdir <dst_dir>'",
+      PROG
+    );
     return 0;
   }
 
@@ -174,7 +174,11 @@ int process_args(int argc, char **argv, struct arglist* args)
 }
 
 /* checks whether specifed file exists, is readable, and is complete */
-static int scr_bool_have_file(const scr_filemap* map, int id, int rank, const char* file)
+static int scr_bool_have_file(
+  const scr_filemap* map,
+  int id,
+  int rank,
+  const char* file)
 {
   /* if no filename is given return false */
   if (file == NULL || strcmp(file,"") == 0) {
@@ -229,7 +233,7 @@ static int scr_bool_have_file(const scr_filemap* map, int id, int rank, const ch
   unsigned long size = scr_file_size(file);
   if (valid && scr_meta_check_filesize(meta, size) != SCR_SUCCESS) {
     scr_dbg(2, "%s: Filesize is incorrect, currently %lu for %s",
-            PROG, size, file
+      PROG, size, file
     );
     valid = 0;
   }
@@ -283,13 +287,13 @@ int main (int argc, char *argv[])
   /* get my hostname */
   if (gethostname(hostname, sizeof(hostname)) != 0) {
     scr_err("scr_copy: Call to gethostname failed @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     printf("scr_copy: UNKNOWN_HOST: Return code: 1\n");
     return 1;
   }
 
-  /* process command line arguments */
+  /* process command line arguments, remember index to first argument */
   struct arglist args;
   if (! process_args(argc, argv, &args)) {
     printf("scr_copy: %s: Return code: 1\n", hostname);
@@ -299,7 +303,10 @@ int main (int argc, char *argv[])
 
   /* build the name of the master filemap */
   char scr_master_map_file[SCR_MAX_FILENAME];
-  sprintf(scr_master_map_file, "%s/filemap.scrinfo", args.cntldir);
+  scr_path_build(
+    scr_master_map_file, sizeof(scr_master_map_file),
+    args.cntldir, "filemap.scrinfo"
+  );
 
   /* TODO: get list of partner nodes I have files for */
 
@@ -333,7 +340,21 @@ int main (int argc, char *argv[])
   /* check whether we have the specified dataset id */
   scr_hash_elem* rank_elem = scr_filemap_first_rank_by_dataset(map, args.id);
   if (rank_elem == NULL) {
-    printf("scr_copy: %s: Do not have any files for dataset id %d\n", hostname, args.id);
+    printf("scr_copy: %s: Do not have any files for dataset id %d\n",
+      hostname, args.id
+    );
+    printf("scr_copy: %s: Return code: 1\n", hostname);
+    scr_filemap_delete(map);
+    scr_hash_delete(hash);
+    return 1;
+  }
+
+  /* define the path to the .scr subdirectory */
+  char path_scr[SCR_MAX_FILENAME];
+  if (scr_path_build(path_scr, sizeof(path_scr), args.dstdir, ".scr") != SCR_SUCCESS) {
+    printf("scr_copy: %s: Failed to build path to scr directory for dataset id %d\n",
+      hostname, args.id
+    );
     printf("scr_copy: %s: Return code: 1\n", hostname);
     scr_filemap_delete(map);
     scr_hash_delete(hash);
@@ -342,16 +363,35 @@ int main (int argc, char *argv[])
 
   int rc = 0;
 
-  /* iterate over each file for each rank we have for this dataset */
+  /* iterate over each rank we have for this dataset */
   for (rank_elem = scr_filemap_first_rank_by_dataset(map, args.id);
        rank_elem != NULL;
        rank_elem = scr_hash_elem_next(rank_elem))
   {
+    /* get the rank number */
     int rank = scr_hash_elem_key_int(rank_elem);
 
-    char* partner = scr_filemap_get_tag(map, args.id, rank, SCR_FILEMAP_KEY_PARTNER);
+    /* lookup the scavenge descriptor for this rank */
+    scr_hash* flushdesc = scr_hash_new();
+    scr_filemap_get_flushdesc(map, args.id, rank, flushdesc);
 
-    /* if this rank is not a partner, and our partner only flag is set, skip this rank */
+    /* read hostname of partner */
+    char* partner = NULL;
+    scr_hash_util_get_str(flushdesc, SCR_SCAVENGE_KEY_PARTNER, &partner);
+
+    /* determine whether we're preserving user directories */
+    int preserve_dirs = 0;
+    scr_hash_util_get_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE, &preserve_dirs);
+
+    /* determine whether we're using containers */
+    int container = 0;
+    scr_hash_util_get_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, &container);
+
+    /* free the scavenge descriptor */
+    scr_hash_delete(flushdesc);
+
+    /* if this rank is not a partner, and our partner only flag is set,
+     * skip this rank */
     if (partner == NULL && args.partner_flag) {
       continue;
     }
@@ -379,7 +419,8 @@ int main (int argc, char *argv[])
       continue;
     }
 
-    /* allocate a rank filemap object and set the expected number of files */
+    /* allocate a rank filemap object and set expected number
+     * of files */
     scr_filemap* rank_map = scr_filemap_new();
     int num_files = scr_filemap_get_expected_files(map, args.id, rank);
     scr_filemap_set_expected_files(rank_map, args.id, rank, num_files);
@@ -390,16 +431,72 @@ int main (int argc, char *argv[])
     scr_filemap_set_dataset(rank_map, args.id, rank, dataset);
     scr_dataset_delete(dataset);
 
+    /* record whether we're preserving user directories or using containers */
+    scr_hash* rank_flushdesc = scr_hash_new();
+    scr_hash_util_set_int(rank_flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  preserve_dirs);
+    scr_hash_util_set_int(rank_flushdesc, SCR_SCAVENGE_KEY_CONTAINER, container);
+    scr_filemap_set_flushdesc(rank_map, args.id, rank, rank_flushdesc);
+    scr_hash_delete(rank_flushdesc);
+
+    /* step through each file we have for this rank */
     scr_hash_elem* file_elem = NULL;
     for (file_elem = scr_filemap_first_file(map, args.id, rank);
          file_elem != NULL;
          file_elem = scr_hash_elem_next(file_elem))
     {
-      /* get filename and check that we can read it */
+      /* get filename */
       char* file = scr_hash_elem_key(file_elem);
 
       /* check that we can read the file */
       if (scr_bool_have_file(map, args.id, rank, file)) {
+        /* read the meta data for this file */
+        scr_meta* meta = scr_meta_new();
+        scr_filemap_get_meta(map, args.id, rank, file, meta);
+
+        /* check whether file is application file or SCR file */
+        int user_file = 0;
+        if (scr_meta_check_filetype(meta, SCR_META_FILE_USER) == SCR_SUCCESS) {
+          user_file = 1;
+        }
+
+        /* get path to copy file */
+        char* path_file = NULL;
+        if (user_file) {
+          /* assume that we're not preserving directories and copy
+           * all files to top level dir */
+          path_file = args.dstdir;
+          if (preserve_dirs) {
+            /* we're preserving user directories, get original path */
+            if (scr_meta_get_origpath(meta, &path_file) != SCR_SUCCESS) {
+              printf("scr_copy: %s: Could not find original path for file %s in dataset id %d\n",
+                hostname, file, args.id
+              );
+              printf("scr_copy: %s: Return code: 1\n", hostname);
+              scr_meta_delete(meta);
+              scr_filemap_delete(map);
+              scr_hash_delete(hash);
+              return 1;
+            }
+
+            /* TODO: keep a cache of directory names that we've already created */
+
+            /* make directory to file */
+            if (scr_mkdir(path_file, S_IRWXU) != SCR_SUCCESS) {
+              printf("scr_copy: %s: Failed to create original path for file %s in dataset id %d\n",
+                hostname, file, args.id
+              );
+              printf("scr_copy: %s: Return code: 1\n", hostname);
+              scr_meta_delete(meta);
+              scr_filemap_delete(map);
+              scr_hash_delete(hash);
+              return 1;
+            }
+          }
+        } else {
+          /* scavenge SCR files to SCR directory */
+          path_file = path_scr;
+        }
+
         /* copy the file and optionally compute the crc during the copy */
         int crc_valid = 0;
         uLong crc = crc32(0L, Z_NULL, 0);
@@ -409,28 +506,28 @@ int main (int argc, char *argv[])
           crc_p = &crc;
         }
         char dst[SCR_MAX_FILENAME];
-        if (scr_copy_to(file, args.dstdir, args.buf_size, dst, sizeof(dst), crc_p) != SCR_SUCCESS) {
+        if (scr_copy_to(file, path_file, args.buf_size, dst, sizeof(dst), crc_p)
+          != SCR_SUCCESS)
+        {
           crc_valid = 0;
           rc = 1;
         }
 
-        /* read the meta data for this file */
-        scr_meta* meta = scr_meta_new();
-        scr_filemap_get_meta(map, args.id, rank, file, meta);
-
-        /* add this file to the rank_map */
-        char* meta_filename = NULL;
-        if (scr_meta_get_filename(meta, &meta_filename) != SCR_SUCCESS) {
-          scr_err("scr_copy: Failed to read filename from meta data for file %s when flushing to %s @ %s:%d",
-                  file, dst, __FILE__, __LINE__
+        /* compute relative path to file dir from dstdir */
+        char path_file_relative[SCR_MAX_FILENAME];
+        if (scr_path_relative(args.dstdir, dst, path_file_relative, sizeof(path_file_relative)) != SCR_SUCCESS) {
+          scr_err("scr_copy: Failed to get relative path to destination file %s when flushing to %s @ %s:%d",
+            file, dst, __FILE__, __LINE__
           );
           rc = 1;
           continue;
         }
-        scr_filemap_add_file(rank_map, args.id, rank, meta_filename);
 
-        /* if file has crc32, check it against the one computed during the copy,
-         * otherwise if crc_flag is set, record crc32 */
+        /* add this file to the rank_map */
+        scr_filemap_add_file(rank_map, args.id, rank, path_file_relative);
+
+        /* if file has crc32, check it against the one computed during
+         * the copy, otherwise if crc_flag is set, record crc32 */
         if (crc_valid) {
           uLong meta_crc;
           if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
@@ -445,10 +542,11 @@ int main (int argc, char *argv[])
 
               rc = 1;
               scr_err("scr_copy: CRC32 mismatch detected when flushing file %s to %s @ %s:%d",
-                      file, dst, __FILE__, __LINE__
+                file, dst, __FILE__, __LINE__
               );
 
-              /* TODO: would be good to log this, but right now only rank 0 can write log entries */
+              /* TODO: would be good to log this, but right now only
+               * rank 0 can write log entries */
               /*
               if (scr_log_enable) {
                 time_t now = scr_log_seconds();
@@ -457,28 +555,33 @@ int main (int argc, char *argv[])
               */
             }
           } else {
-            /* the crc was not already in the metafile, but we just computed it, so set it */
+            /* the crc was not already in the metafile, but we just
+             * computed it, so set it */
             scr_meta_set_crc32(meta, crc);
           }
         }
 
         /* record its meta data in the filemap */
-        scr_filemap_set_meta(rank_map, args.id, rank, meta_filename, meta);
+        scr_filemap_set_meta(rank_map, args.id, rank, path_file_relative, meta);
 
         /* free the meta data object */
         scr_meta_delete(meta);
       } else {
-        /* have_file failed, so there was some problem accessing the file */
+        /* have_file failed, so there was some problem accessing file */
         rc = 1;
         scr_err("scr_copy: File is unreadable or incomplete: CheckpointID %d, Rank %d, File: %s",
-                args.id, rank, file
+          args.id, rank, file
         );
       }
     }
 
     /* write out the rank filemap for scr_index */
+    char rank_str[SCR_MAX_FILENAME];
     char rank_filemap_name[SCR_MAX_FILENAME];
-    sprintf(rank_filemap_name, "%s/%d.scrfilemap", args.dstdir, rank);
+    sprintf(rank_str, "%d.scrfilemap", rank);
+    scr_path_build(
+      rank_filemap_name, sizeof(rank_filemap_name), path_scr, rank_str
+    );
     if (scr_filemap_write(rank_filemap_name, rank_map) != SCR_SUCCESS) {
       rc = 1;
     }
@@ -487,6 +590,7 @@ int main (int argc, char *argv[])
     scr_filemap_delete(rank_map);
   }
 
+  /* print our return code and exit */
   printf("scr_copy: %s: Return code: %d\n", hostname, rc);
   return rc;
 }

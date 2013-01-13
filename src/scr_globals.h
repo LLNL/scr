@@ -151,9 +151,9 @@ extern int scr_crc_on_copy;   /* whether to enable crc32 checks during scr_swap_
 extern int scr_crc_on_flush;  /* whether to enable crc32 checks during flush and fetch */
 extern int scr_crc_on_delete; /* whether to enable crc32 checks when deleting checkpoints */
 
-extern int scr_preserve_user_directories; /* whether to preserve user-defined directories during flush */
-extern int scr_use_containers;            /* whether to fetch from / flush to container files */
-extern unsigned long scr_container_size;  /* max number of bytes to store in a container */
+extern int scr_preserve_directories;     /* whether to preserve user-defined directories during flush */
+extern int scr_use_containers;           /* whether to fetch from / flush to container files */
+extern unsigned long scr_container_size; /* max number of bytes to store in a container */
 
 extern int    scr_checkpoint_interval;   /* times to call Need_checkpoint between checkpoints */
 extern int    scr_checkpoint_seconds;    /* min number of seconds between checkpoints */

@@ -971,26 +971,36 @@ int scr_path_absolute(char* buf, size_t size, const char* file)
   }
 
   int rc = SCR_SUCCESS;
+
+  /* get an absolute path in tmp_buf */
+  char tmp_buf[SCR_MAX_FILENAME];
   if (file[0] == '/') {
     /* the filename is already an absolute path, so just make a copy */
-    int n = strlen(file);
-    if ((n+1) <= size) {
-      strcpy(buf, file);
+    size_t file_len = strlen(file) + 1;
+    if (file_len <= sizeof(tmp_buf)) {
+      strcpy(tmp_buf, file);
     } else {
-      /* output buffer is too small */
+      /* tmp buffer is too small */
       rc = SCR_FAILURE;
     }
   } else {
     /* the path is not absolute, so prepend the current working directory */
     char cwd[SCR_MAX_FILENAME];
     if (scr_getcwd(cwd, sizeof(cwd)) == SCR_SUCCESS) {
-      int n = snprintf(buf, size, "%s/%s", cwd, file);
-      if (n < 0 || (n+1) > size) {
-        /* problem writing to buf */
+      if (scr_path_build(tmp_buf, sizeof(tmp_buf), cwd, file) != SCR_SUCCESS) {
+        /* problem concatenating cwd with file */
         rc = SCR_FAILURE;
       }
     } else {
       /* problem acquiring current working directory */
+      rc = SCR_FAILURE;
+    }
+  }
+
+  /* now we have an absolute path in tmp_buf,
+   * return a simplified version to caller */
+  if (rc == SCR_SUCCESS) {
+    if (scr_path_resolve(tmp_buf, buf, size) != SCR_SUCCESS) {
       rc = SCR_FAILURE;
     }
   }
@@ -1065,7 +1075,13 @@ int scr_path_resolve(const char* str, char* newstr, size_t newstrlen)
               /* we've tried to pop too far, as in "/.." */
               return SCR_FAILURE;
             }
+          } else {
+            /* '/..' is followed by some character other than a '/' or '\0' */
+            break;
           }
+        } else {
+          /* '/.' is followed by some character other than a '.', '/', or '\0' */
+          break;
         }
       } else {
         /* slash is followed by some character other than a '.' */
@@ -1091,6 +1107,64 @@ int scr_path_resolve(const char* str, char* newstr, size_t newstrlen)
   if (dst < newstrlen) {
     newstr[dst] = '\0';
   } else {
+    return SCR_FAILURE;
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* returns relative path pointing to dst starting from src */
+int scr_path_relative(const char* src, const char* dst, char* path, size_t path_size)
+{
+  /* check input parameters */
+  if (src == NULL || dst == NULL || path == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* resolve source path */
+  char src_resolve[SCR_MAX_FILENAME];
+  if (scr_path_resolve(src, src_resolve, sizeof(src_resolve)) != SCR_SUCCESS) {
+    return SCR_FAILURE;
+  }
+
+  /* resolve destination path */
+  char dst_resolve[SCR_MAX_FILENAME];
+  if (scr_path_resolve(dst, dst_resolve, sizeof(dst_resolve)) != SCR_SUCCESS) {
+    return SCR_FAILURE;
+  }
+
+  /* TODO: compute relative paths for arbitrary src and dst paths,
+   * for now we just support this if dst is child of src */
+
+  /* get number of chars in src */
+  size_t src_size = strlen(src);
+
+  /* ensure that dst is child of src */
+  if (strncmp(src_resolve, dst_resolve, src_size) != 0) {
+    return SCR_FAILURE;
+  }
+
+  /* get number of components in src directory */
+  int src_components;
+  if (scr_path_length(src_resolve, &src_components) != SCR_SUCCESS) {
+    return SCR_FAILURE;
+  }
+
+  /* get number of components in dst directory */
+  int dst_components;
+  if (scr_path_length(dst_resolve, &dst_components) != SCR_SUCCESS) {
+    return SCR_FAILURE;
+  }
+
+  /* check that number of dst components is greater than or equal to src */
+  if (dst_components < src_components) {
+    return SCR_FAILURE;
+  }
+
+  /* now strip src components from dst */
+  int start = src_components;
+  int remaining = dst_components - src_components;
+  if (scr_path_slice(dst_resolve, start, remaining, path, path_size) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 

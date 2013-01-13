@@ -291,6 +291,14 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
   /* assume we will succeed in this flush */
   int rc = SCR_SUCCESS;
 
+  /* lookup path to summary file */
+  char* summary_dir;
+  if (scr_hash_util_get_str(file_list, SCR_KEY_PATH, &summary_dir) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to get summary file directory from file list @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* create a summary file entry for our rank */
   scr_hash* rank2file_hash = scr_hash_new();
   scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, scr_my_rank_world);
@@ -323,7 +331,7 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
     /* if containers are defined, we flush the file to its containers,
      * otherwise we copy the file out as is */
     if (containers != NULL) {
-      /* TODO: get original filename here */
+      /* TODO: PRESERVE get original filename here */
 
       /* add this file to the summary file */
       char path[SCR_MAX_FILENAME];
@@ -360,43 +368,52 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
         scr_hash_set_kv_int(file_hash, SCR_SUMMARY_6_KEY_COMPLETE, 0);
       }
     } else {
-      /* TODO: PRESERVE subtract top-level directory from file name */
-
-      /* record the name of the file in the summary hash, and get reference to a hash for this file */
-      char path[SCR_MAX_FILENAME];
-      char name[SCR_MAX_FILENAME];
-      scr_path_split(file, path, name);
-      scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
-
       /* get directory to flush file to */
       char* dir;
       if (scr_hash_util_get_str(hash, SCR_KEY_PATH, &dir) == SCR_SUCCESS) {
-        /* flush the file and fill in the meta data for this file */
-        if (scr_flush_a_file(file, dir, meta) == SCR_SUCCESS) {
-          /* successfully flushed this file, record the filesize */
-          unsigned long filesize = 0;
-          if (scr_meta_get_filesize(meta, &filesize) == SCR_SUCCESS) {
-            scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, filesize);
-          }
+        /* get name of file */
+        char srcpath[SCR_MAX_FILENAME];
+        char name[SCR_MAX_FILENAME];
+        scr_path_split(file, srcpath, name);
 
-          /* record the crc32 if one was computed */
-          uLong crc = 0;
-          if (scr_meta_get_crc32(meta, &crc) == SCR_SUCCESS) {
-            scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, crc);
+        /* build full path to file for flushing */
+        char fullpath[SCR_MAX_FILENAME];
+        scr_path_build(fullpath, sizeof(fullpath), dir, name);
+
+        /* get relative path to flushed file from directory containing summary file */
+        if (scr_path_relative(summary_dir, fullpath, name, sizeof(name)) == SCR_SUCCESS) {
+          /* record the name of the file in the summary hash, and get reference to a hash for this file */
+          scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
+
+          /* flush the file and fill in the meta data for this file */
+          if (scr_flush_a_file(file, dir, meta) == SCR_SUCCESS) {
+            /* successfully flushed this file, record the filesize */
+            unsigned long filesize = 0;
+            if (scr_meta_get_filesize(meta, &filesize) == SCR_SUCCESS) {
+              scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, filesize);
+            }
+
+            /* record the crc32 if one was computed */
+            uLong crc = 0;
+            if (scr_meta_get_crc32(meta, &crc) == SCR_SUCCESS) {
+              scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, crc);
+            }
+          } else {
+            /* the flush failed */
+            rc = SCR_FAILURE;
+
+            /* explicitly mark incomplete files */
+            scr_hash_set_kv_int(file_hash, SCR_SUMMARY_6_KEY_COMPLETE, 0);
           }
         } else {
-          /* the flush failed */
-          rc = SCR_FAILURE;
-
-          /* explicitly mark incomplete files */
-          scr_hash_set_kv_int(file_hash, SCR_SUMMARY_6_KEY_COMPLETE, 0);
+          scr_abort(-1, "Failed to get relative path to directory %s from %s @ %s:%d",
+            dir, summary_dir, __FILE__, __LINE__
+          );
         }
       } else {
-        /* failed to get directory to flush file to */
-        rc = SCR_FAILURE;
-
-        /* explicitly mark file as incomplete */
-        scr_hash_set_kv_int(file_hash, SCR_SUMMARY_6_KEY_COMPLETE, 0);
+        scr_abort(-1, "Failed to read directory to flush file to @ %s:%d",
+          __FILE__, __LINE__
+        );
       }
     }
   }
@@ -546,19 +563,10 @@ int scr_flush_sync(scr_filemap* map, int id)
       time_t now = scr_log_seconds();
       scr_log_event("FLUSH STARTED", NULL, &id, &now, NULL);
     }
-
-    /* mark in the flush file that we are flushing the dataset */
-    scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
-
-      /* change state for this checkpoint to SYNC_FLUSHING*/
-    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-    scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_SYNC_FLUSHING);
-    scr_hash_write(scr_flush_file, hash);
-    //scr_hash_print(hash, 3);
-    scr_hash_delete(hash);
-
   }
+
+  /* mark in the flush file that we are flushing the dataset */
+  scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_SYNC_FLUSHING);
 
   /* get list of files to flush, identify containers,
    * create directories, and create container files */
@@ -601,6 +609,9 @@ int scr_flush_sync(scr_filemap* map, int id)
   scr_hash_delete(data);
   scr_hash_delete(file_list);
 
+  /* remove sync flushing marker from flush file */
+  scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_SYNC_FLUSHING);
+
   /* stop timer, compute bandwidth, and report performance */
   if (scr_my_rank_world == 0) {
     /* stop timer and compute bandwidth */
@@ -610,17 +621,6 @@ int scr_flush_sync(scr_filemap* map, int id)
     scr_dbg(1, "scr_flush_sync: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
             time_diff, total_bytes, bw, bw/scr_ranks_world
     );
-    /* mark in the flush file that we are done flushing the dataset */
-    scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
-
-      /* remove the  SYNC_FLUSHING state for this checkpoint */
-    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-    scr_hash_unset_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_SYNC_FLUSHING);
-    scr_hash_write(scr_flush_file, hash);
-    //scr_hash_print(hash, 3);
-    scr_hash_delete(hash);
-
 
     /* log messages about flush */
     if (flushed == SCR_SUCCESS) {

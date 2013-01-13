@@ -95,45 +95,54 @@ if [ "$UPNODES" != "" ] ; then
           if [ $? -eq 0 ] ; then
             echo "$prog: Attempting to scavenge dataset $d"
 
-            # make a new directory to store the files for this dataset
-#            timestamp=`date +%F_%H:%M:%S`
-#            scrdir="scr.${timestamp}.${jobid}.${d}"
-            scrdir="scr.dataset.${d}"
-            datadir=$pardir/$scrdir
-            mkdir -p $datadir
+            # get directory to store files for this dataset
+            subdir=`$bindir/scr_flush_file --dir $pardir --subdir $d`
+            if [ $? -eq 0 ] ; then
+              # build full path to dataset directory
+              datadir=$pardir/$subdir
+              mkdir -p $datadir
 
-            # Gather files from cache to parallel file system
-            echo "$prog: Scavenging files from cache to $datadir"
-            echo $prog: $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $datadir --jobset $SCR_NODELIST --up $UPNODES
-            $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $datadir --jobset $SCR_NODELIST --up $UPNODES
-            echo "$prog: Done scavenging files from cache to $datadir"
+              # create directory for scr files
+              mkdir -p $datadir/.scr
 
-            # check that gathered set is complete, if not, don't update current symlink
-            update_current=1
-            echo "$prog: Checking that dataset is complete"
-            echo "$bindir/scr_index --prefix $pardir --add $scrdir"
-            $bindir/scr_index --prefix $pardir --add $scrdir
-            if [ $? -ne 0 ] ; then
-              update_current=0 # incomplete dataset, don't update current symlink
-            fi
+              # Gather files from cache to parallel file system
+              echo "$prog: Scavenging files from cache to $datadir"
+              echo $prog: $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $datadir --jobset $SCR_NODELIST --up $UPNODES
+              $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $datadir --jobset $SCR_NODELIST --up $UPNODES
+              echo "$prog: Done scavenging files from cache to $datadir"
 
-            # if the set is complete, update the current symlink
-            if [ "$update_current" == "1" ] ; then
-              echo "$prog: Updating scr.current symlink"
-              current="$pardir/scr.current"
-
-              # if there is a current, remove it
-              if [ -e $current ] ; then
-                rm -f $current
+              # check that gathered set is complete,
+              # if not, don't update current symlink
+              update_current=1
+              echo "$prog: Checking that dataset is complete"
+              echo "$bindir/scr_index --prefix $pardir --add $subdir"
+              $bindir/scr_index --prefix $pardir --add $subdir
+              if [ $? -ne 0 ] ; then
+                # incomplete dataset, don't update current symlink
+                update_current=0
               fi
 
-              # make the new current
-              echo "$prog:   $current --> $scrdir"
-              ln -s $scrdir $current
+              # if the set is complete, update the current symlink
+              if [ "$update_current" == "1" ] ; then
+                echo "$prog: Updating scr.current symlink"
+                current="$pardir/scr.current"
 
-              # just completed scavenging this dataset, so quit
-              ret=0
-              break;
+                # if there is a current, remove it
+                if [ -e $current ] ; then
+                  rm -f $current
+                fi
+
+                # make the new current
+                echo "$prog:   $current --> $subdir"
+                ln -s $subdir $current
+
+                # just completed scavenging this dataset, so quit
+                ret=0
+                break;
+              fi
+            else
+              # got a dataset to flush, but failed to build flush dir name
+              echo "$prog: Failed to create directory for dataset $d"
             fi
           else
             # found a dataset that has already been flushed, we can quit

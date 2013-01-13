@@ -17,6 +17,14 @@
 
 int scr_dataset_build_name(int id, int64_t usecs, char* name, int n);
 
+/* this is a hacky way to record data in flush file from complete checkpoint */
+int scr_flush_verify(
+  const scr_filemap* map, /* IN  - current filemap */
+  int id,                 /* IN  - id of dataset to be flushed */
+  char* dir,              /* OUT - buffer to hold subdirectory name */
+  size_t dir_size         /* IN  - size of buffer in bytes */
+);
+
 /* given a filemap and a dataset id, prepare and return a list of files to be flushed,
  * also create corresponding directories and container files */
 int scr_flush_prepare(const scr_filemap* map, int id, scr_hash* file_list);

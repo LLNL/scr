@@ -164,3 +164,28 @@ int scr_flush_file_location_unset(int id, const char* location)
   }
   return SCR_SUCCESS;
 }
+
+/* we track the subdirectory name within the prefix directory
+ * so that we can specify where to create the summary file in scavenge */
+int scr_flush_file_subdir_set(int id, const char* subdir)
+{
+  /* only rank 0 updates the file */
+  if (scr_my_rank_world == 0) {
+    /* read the flush file into hash */
+    scr_hash* hash = scr_hash_new();
+    scr_hash_read(scr_flush_file, hash);
+
+    /* set the location for this dataset */
+    scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
+    scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_DIRECTORY, subdir);
+
+    /* write the hash back to the flush file */
+    scr_hash_write(scr_flush_file, hash);
+
+    /* delete the hash */
+    scr_hash_delete(hash);
+  }
+  return SCR_SUCCESS;
+}
+
+

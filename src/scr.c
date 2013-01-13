@@ -11,6 +11,11 @@
 
 #include "scr_globals.h"
 
+/* include the DTCMP library if it's available */
+#ifdef HAVE_LIBDTCMP
+#include "dtcmp.h"
+#endif /* HAVE_LIBDTCMP */
+
 /*
 =========================================
 Halt logic
@@ -547,8 +552,8 @@ static int scr_get_params()
   }
 
   /* whether to create user-specified directories when flushing to file system */
-  if ((value = scr_param_get("SCR_PRESERVE_USER_DIRECTORIES")) != NULL) {
-    scr_preserve_user_directories = atoi(value);
+  if ((value = scr_param_get("SCR_PRESERVE_DIRECTORIES")) != NULL) {
+    scr_preserve_directories = atoi(value);
   }
 
   /* wether to store files in containers when flushing to file system */
@@ -654,6 +659,17 @@ int SCR_Init()
     return SCR_FAILURE;
   }
 
+#ifdef HAVE_LIBDTCMP
+  /* initialize the DTCMP library for sorting and ranking routines
+   * if we're using it */
+  int dtcmp_rc = DTCMP_Init();
+  if (dtcmp_rc != DTCMP_SUCCESS) {
+    scr_abort(-1, "Failed to initialize DTCMP library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+#endif /* HAVE_LIBDTCMP */
+
   /* NOTE: SCR_ENABLE can also be set in a config file, but to read a config file,
    * we must at least create scr_comm_world and call scr_get_params() */
 
@@ -688,6 +704,17 @@ int SCR_Init()
     /* we dup'd comm_world to broadcast parameters in scr_get_params,
      * need to free it here */
     MPI_Comm_free(&scr_comm_world);
+
+  #ifdef HAVE_LIBDTCMP
+    /* shut down the DTCMP library if we're using it */
+    int dtcmp_rc = DTCMP_Finalize();
+    if (dtcmp_rc != DTCMP_SUCCESS) {
+      scr_abort(-1, "Failed to finalized DTCMP library @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+  #endif /* HAVE_LIBDTCMP */
+
     return SCR_FAILURE;
   }
 
@@ -1097,6 +1124,16 @@ int SCR_Finalize()
   /* we're no longer in an initialized state */
   scr_initialized = 0;
 
+#ifdef HAVE_LIBDTCMP
+  /* shut down the DTCMP library if we're using it */
+  int dtcmp_rc = DTCMP_Finalize();
+  if (dtcmp_rc != DTCMP_SUCCESS) {
+    scr_abort(-1, "Failed to finalized DTCMP library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+#endif /* HAVE_LIBDTCMP */
+
   return SCR_SUCCESS;
 }
 
@@ -1345,6 +1382,14 @@ int SCR_Start_checkpoint()
   scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
   scr_dataset_delete(dataset);
 
+  /* TODO: may want to allow user to specify these values per dataset */
+  /* store variables needed for scavenge */
+  scr_hash* flushdesc = scr_hash_new();
+  scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  scr_preserve_directories);
+  scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, scr_use_containers);
+  scr_filemap_set_flushdesc(scr_map, scr_dataset_id, scr_my_rank_world, flushdesc);
+  scr_hash_delete(flushdesc);
+  
   /* store the redundancy descriptor in the filemap, so if we die before completing
    * the checkpoint, we'll have a record of the new directory we're about to create */
   scr_hash* my_desc_hash = scr_hash_new();
@@ -1404,7 +1449,7 @@ int SCR_Route_file(const char* file, char* newfile)
 
     /* set parameters for the file */
     scr_meta_set_filename(meta, newfile);
-    scr_meta_set_filetype(meta, SCR_META_FILE_FULL);
+    scr_meta_set_filetype(meta, SCR_META_FILE_USER);
     scr_meta_set_complete(meta, 0);
     /* TODODSET: move the ranks field elsewhere, for now it's needed by scr_index.c */
     scr_meta_set_ranks(meta, scr_ranks_world);
@@ -1516,6 +1561,17 @@ int SCR_Complete_checkpoint(int valid)
 
   /* write out info to filemap */
   scr_filemap_write(scr_map_file, scr_map);
+
+  /* TODO: PRESERVE preprocess info needed for flush/scavenge, e.g., container offsets,
+   * list of directories to create, etc. we should also apply redundancy to this info,
+   * this could be done in flush, but it's hard to do in scavenge */
+  char subdir[SCR_MAX_FILENAME];
+  if (scr_flush_verify(scr_map, scr_dataset_id, subdir, sizeof(subdir)) != SCR_SUCCESS) {
+    scr_abort(-1, "Dataset cannot be flushed @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_flush_file_subdir_set(scr_dataset_id, subdir);
 
   /* apply redundancy scheme */
   double bytes_copied = 0.0;

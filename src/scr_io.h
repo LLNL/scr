@@ -167,6 +167,14 @@ int scr_path_absolute(char* buf, size_t size, const char* file);
 /* remove double slashes, trailing slash, '.', and '..' */
 int scr_path_resolve(const char* str, char* newstr, size_t newstrlen);
 
+/* returns relative path pointing to dst starting from src */
+int scr_path_relative(
+  const char* src, /* IN  - starting directory */
+  const char* dst, /* IN  - destination directory */
+  char* path,      /* OUT - relateive path to destination from starting directory */
+  size_t path_size /* IN  - size of path buffer in bytes */
+);
+
 /*
 =========================================
 File Copy Functions

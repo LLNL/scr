@@ -405,7 +405,7 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
 
     /* set the meta data */
     scr_meta_set_filename(meta, newfile);
-    scr_meta_set_filetype(meta, SCR_META_FILE_FULL);
+    scr_meta_set_filetype(meta, SCR_META_FILE_USER);
     scr_meta_set_filesize(meta, filesize);
     scr_meta_set_complete(meta, 1);
     /* TODODSET: move the ranks field elsewhere, for now it's needed by scr_index.c */
@@ -461,7 +461,7 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
 }
 
 /* read contents of summary file */
-static int scr_fetch_summary(const char* dir, scr_hash* file_list)
+static int scr_fetch_summary(const char* summary_dir, scr_hash* file_list)
 {
   /* assume that we won't succeed in our fetch attempt */
   int rc = SCR_FAILURE;
@@ -472,12 +472,12 @@ static int scr_fetch_summary(const char* dir, scr_hash* file_list)
   /* have rank 0 read summary file, if it exists */
   if (scr_my_rank_world == 0) {
     /* check that we can access the directory */
-    if (scr_file_is_readable(dir) == SCR_SUCCESS) {
+    if (scr_file_is_readable(summary_dir) == SCR_SUCCESS) {
       /* read data from the summary file */
-      rc = scr_summary_read(dir, summary_hash);
+      rc = scr_summary_read(summary_dir, summary_hash);
     } else {
-      scr_err("Failed to access directory %s @ %s:%d",
-        dir, __FILE__, __LINE__
+      scr_err("Failed to access summary directory %s @ %s:%d",
+        summary_dir, __FILE__, __LINE__
       );
     }
   }
@@ -544,9 +544,22 @@ static int scr_fetch_summary(const char* dir, scr_hash* file_list)
          elem != NULL;
          elem = scr_hash_elem_next(elem))
     {
-      /* set the source path of each file */
+      /* get the file name */
+      char* file = scr_hash_elem_key(elem);
+
+      /* combine the file name with the summary directory to build a
+       * full path to the file */
+      char fullpath[SCR_MAX_FILENAME];
+      scr_path_build(fullpath, sizeof(fullpath), summary_dir, file);
+
+      /* get the source path of each file */
+      char path[SCR_MAX_FILENAME];
+      char name[SCR_MAX_FILENAME];
+      scr_path_split(fullpath, path, name);
+
+      /* record path in file list */
       scr_hash* hash = scr_hash_elem_hash(elem);
-      scr_hash_util_set_str(hash, SCR_KEY_PATH, dir);
+      scr_hash_util_set_str(hash, SCR_KEY_PATH, path);
     }
   }
 

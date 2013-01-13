@@ -69,10 +69,15 @@ static int scr_split_by_string(const char* str, MPI_Comm* comm)
 #ifdef HAVE_LIBDTCMP
   /* rank strings across all procs */
   uint64_t groups, group_id, group_ranks, group_rank;
-  DTCMP_Rank_strings(
+  int dtcmp_rc = DTCMP_Rank_strings(
     1, &str, &groups, &group_id, &group_ranks, &group_rank,
     DTCMP_FLAG_NONE, scr_comm_world
   );
+  if (dtcmp_rc != DTCMP_SUCCESS) {
+    scr_abort(-1, "Failed to rank strings @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
 
   /* now split comm by our group and rank within our group */
   int color = (int) group_id;

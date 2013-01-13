@@ -17,6 +17,7 @@
 #include "scr_err.h"
 #include "scr_util.h"
 #include "scr_hash.h"
+#include "scr_hash_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +36,7 @@
 int print_usage()
 {
   printf("\n");
-  printf("  Usage:  %s --dir <dir> [--needflush <id> | --latest | --location <id>]\n", PROG);
+  printf("  Usage:  %s --dir <dir> [--latest || --needflush <id> | --location <id> | --subdir <id>]\n", PROG);
   printf("\n");
   exit(1);
 }
@@ -44,13 +45,13 @@ struct arglist {
   char* dir;      /* direcotry containing flush file */
   int need_flush; /* check whether a certain dataset id needs to be flushed */
   int latest;     /* return the id of the latest (most recent) dataset in cache */
-  int location;     /* return the location of dataset with specified id in cache */
+  int location;   /* return the location of dataset with specified id in cache */
+  int subdir;     /* subdirectory (relative to prefix) to create to hold dataset */
 };
 
 int process_args(int argc, char **argv, struct arglist* args)
 {
-  int dset;
-  int loc_dset;
+  int tmp_dset;
   int opCount = 0;
 
   /* define our options */
@@ -58,7 +59,8 @@ int process_args(int argc, char **argv, struct arglist* args)
     {"dir",       required_argument, NULL, 'd'},
     {"needflush", required_argument, NULL, 'n'},
     {"latest",    no_argument,       NULL, 'l'},
-    {"location",    required_argument,       NULL, 'L'},
+    {"location",  required_argument, NULL, 'L'},
+    {"subdir",    required_argument, NULL, 's'},
     {"help",      no_argument,       NULL, 'h'},
     {0, 0, 0, 0}
   };
@@ -67,7 +69,8 @@ int process_args(int argc, char **argv, struct arglist* args)
   args->dir        = NULL;
   args->need_flush = -1;
   args->latest     = 0;
-  args->location = -1;
+  args->location   = -1;
+  args->subdir     = -1;
 
   /* loop through and process all options */
   int c;
@@ -82,11 +85,11 @@ int process_args(int argc, char **argv, struct arglist* args)
         break;
       case 'n':
         /* check whether specified dataset id needs to be flushed */
-        dset = atoi(optarg);
-        if (dset <= 0) {
+        tmp_dset = atoi(optarg);
+        if (tmp_dset <= 0) {
           return 0;
         }
-        args->need_flush = dset;
+        args->need_flush = tmp_dset;
         ++opCount;
         break;
       case 'l':
@@ -96,11 +99,20 @@ int process_args(int argc, char **argv, struct arglist* args)
         break;
       case 'L':
         /* check whether specified dataset id needs to be flushed */
-        loc_dset = atoi(optarg);
-        if (loc_dset <= 0) {
+        tmp_dset = atoi(optarg);
+        if (tmp_dset <= 0) {
           return 0;
         }
-        args->location = loc_dset;
+        args->location = tmp_dset;
+        ++opCount;
+        break;
+      case 's':
+        /* subdirectory (relative to prefix) to create to hold dataset */
+        tmp_dset = atoi(optarg);
+        if (tmp_dset <= 0) {
+          return 0;
+        }
+        args->subdir = tmp_dset;
         ++opCount;
         break;
       case 'h':
@@ -113,18 +125,24 @@ int process_args(int argc, char **argv, struct arglist* args)
       default:
         if (c != -1) {
           /* missed an option */
-          scr_err("%s: Option '%s' specified but not processed", PROG, argv[option_index]);
+          scr_err("%s: Option '%s' specified but not processed",
+            PROG, argv[option_index]
+          );
         }
     }
   } while (c != -1);
 
   /* check that we got a directory name */
   if (args->dir == NULL) {
-    scr_err("%s: Must specify directory containing flush file via '--dir <dir>'", PROG);
+    scr_err("%s: Must specify directory containing flush file via '--dir <dir>'",
+      PROG
+    );
     return 0;
   }
   if (opCount > 1){
-    scr_err("%s: Must specify only a single operation per invocation, e.g. not both --location and --needflush'", PROG);
+    scr_err("%s: Must specify only a single operation per invocation, e.g. not both --location and --needflush'",
+      PROG
+    );
     return 0;
   }
 
@@ -135,35 +153,13 @@ int main (int argc, char *argv[])
 {
   /* process command line arguments */
   struct arglist args;
-  if (!process_args(argc, argv, &args)) {
+  if (! process_args(argc, argv, &args)) {
     return 1;
   }
 
-  /* determine the number of bytes we need to hold the full name of the flush file */
-  int filelen = snprintf(NULL, 0, "%s/flush.scr", args.dir);
-  filelen++; /* add one for the terminating NUL char */
-
-  /* allocate space to store the filename */
-  char* file = NULL;
-  if (filelen > 0) {
-    file = (char*) malloc(filelen);
-  }
-  if (file == NULL) {
-    scr_err("%s: Failed to allocate storage to store flush file name @ %s:%d",
-            PROG, __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* build the full file name */
-  int n = snprintf(file, filelen, "%s/flush.scr", args.dir);
-  if (n >= filelen) {
-    scr_err("%s: Flush file name is too long (need %d bytes, %d byte buffer) @ %s:%d",
-            PROG, n, filelen, __FILE__, __LINE__
-    );
-    scr_free(&file);
-    return 1;
-  }
+  /* build path to flush file */
+  char file[SCR_MAX_FILENAME];
+  scr_path_build(file, sizeof(file), args.dir, "flush.scr");
 
   /* assume we'll fail */
   int rc = 1;
@@ -194,27 +190,44 @@ int main (int argc, char *argv[])
     goto cleanup;
   }
 
-  if (args.location != -1){
+  if (args.location != -1) {
     /* report the location of the specified data set */
     scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.location);
     if (dset_hash != NULL) {
       /* now check for the location marker */
       scr_hash* location_hash = scr_hash_get(dset_hash, SCR_FLUSH_KEY_LOCATION);
-      if (location_hash != NULL){
+      if (location_hash != NULL) {
          rc = 0;
          scr_hash_elem* loc_elem = scr_hash_elem_first(location_hash);
-         if (loc_elem != NULL){
-            //if  the location exists in the file, print it
+         if (loc_elem != NULL) {
+            /* if the location exists in the file, print it */
             char* loc = scr_hash_elem_key(loc_elem);
-            if(loc != NULL)
-               printf("%s\n",loc);
-         }
-         else{
-            // if there is no location information for some reason, print none
+            if (loc != NULL) {
+              printf("%s\n", loc);
+            }
+         } else {
+            /* if there is no location information for some reason,
+             * print none */
             printf("NONE\n");
          }
       }
-      // if specified dataset is not found, we return error in rc (1)
+      /* if specified dataset is not found, we return error in rc (1) */
+    }
+    goto cleanup;
+  }
+
+  /* check whether we should report subdirectory for dataset */
+  if (args.subdir != -1) {
+    /* first check whether we have the requested dataset */
+    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.subdir);
+    if (dset_hash != NULL) {
+      /* now check for the subdir */
+      char* subdir;
+      if (scr_hash_util_get_str(dset_hash, SCR_FLUSH_KEY_DIRECTORY, &subdir) == SCR_SUCCESS) {
+        /* got subdirectory, print it and return success */
+        printf("%s\n", subdir);
+        rc = 0;
+      }
     }
     goto cleanup;
   }
@@ -247,9 +260,6 @@ int main (int argc, char *argv[])
 cleanup:
   /* delete the hash holding the flush file data */
   scr_hash_delete(hash);
-
-  /* free off our file name storage */
-  scr_free(&file);
 
   /* return appropriate exit code */
   return rc;

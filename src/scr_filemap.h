@@ -41,6 +41,15 @@ int scr_filemap_get_desc(const scr_filemap* map, int dset, int rank, scr_hash* h
 /* unset the redundancy descriptor hash for the given rank and dataset id */
 int scr_filemap_unset_desc(scr_filemap* map, int dset, int rank);
 
+/* sets the flush/scavenge descriptor hash for the given rank and dataset id */
+int scr_filemap_set_flushdesc(scr_filemap* map, int dset, int rank, scr_hash* hash);
+
+/* copies the flush/scavenge descriptor hash for the given rank and dataset id into hash */
+int scr_filemap_get_flushdesc(const scr_filemap* map, int dset, int rank, scr_hash* hash);
+
+/* unset the flush/scavenge descriptor hash for the given rank and dataset id */
+int scr_filemap_unset_flushdesc(scr_filemap* map, int dset, int rank);
+
 /* sets the dataset hash for the given rank and dataset id */
 int scr_filemap_set_dataset(scr_filemap* map, int dset, int rank, scr_hash* hash);
 
@@ -67,15 +76,6 @@ int scr_filemap_get_meta(const scr_filemap* map, int dset, int rank, const char*
 
 /* unsets metadata for file */
 int scr_filemap_unset_meta(scr_filemap* map, int dset, int rank, const char* file);
-
-/* sets a tag/value pair */
-int scr_filemap_set_tag(scr_filemap* map, int dset, int rank, const char* tag, const char* value);
-
-/* gets the value for a given tag, returns NULL if not found */
-char* scr_filemap_get_tag(const scr_filemap* map, int dset, int rank, const char* tag);
-
-/* unsets a tag */
-int scr_filemap_unset_tag(scr_filemap* map, int dset, int rank, const char* tag);
 
 /*
 =========================================

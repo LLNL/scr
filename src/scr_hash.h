@@ -54,6 +54,7 @@ Define common hash key strings
 #define SCR_KEY_LENGTH    ("LENGTH")
 #define SCR_KEY_RANK      ("RANK")
 #define SCR_KEY_RANKS     ("RANKS")
+#define SCR_KEY_DIRECTORY ("DIR")
 #define SCR_KEY_FILE      ("FILE")
 #define SCR_KEY_FILES     ("FILES")
 #define SCR_KEY_META      ("META")
@@ -111,10 +112,13 @@ Define common hash key strings
 #define SCR_FLUSH_KEY_LOCATION_PFS      ("PFS")
 #define SCR_FLUSH_KEY_LOCATION_FLUSHING ("FLUSHING")
 #define SCR_FLUSH_KEY_LOCATION_SYNC_FLUSHING ("SYNC_FLUSHING")
+#define SCR_FLUSH_KEY_DIRECTORY ("DIR")
+
+#define SCR_SCAVENGE_KEY_PRESERVE  ("PRESERVE")
+#define SCR_SCAVENGE_KEY_CONTAINER ("CONTAINER")
+#define SCR_SCAVENGE_KEY_PARTNER   ("PARTNER")
 
 #define SCR_NODES_KEY_NODES ("NODES")
-
-#define SCR_FILEMAP_KEY_PARTNER ("PARTNER")
 
 /* transfer file keys */
 #define SCR_TRANSFER_KEY_FILES       ("FILES")
@@ -182,7 +186,7 @@ Define common hash key strings
 #define SCR_META_KEY_FILE     ("FILE")
 #define SCR_META_KEY_SIZE     ("SIZE")
 #define SCR_META_KEY_TYPE     ("TYPE")
-#define SCR_META_KEY_TYPE_FULL ("FULL")
+#define SCR_META_KEY_TYPE_USER ("USER")
 #define SCR_META_KEY_TYPE_XOR  ("XOR")
 #define SCR_META_KEY_CRC      ("CRC")
 #define SCR_META_KEY_COMPLETE ("COMPLETE")

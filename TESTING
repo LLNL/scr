@@ -1,7 +1,7 @@
 # commands to debug various items
-$TV ../../../bin/scr_index -a --prefix /g/g0/${USER}/packages/scr-dist/install/examples --check scr.2010-10-29_16:06:16.1015976.36 &
+$TV ../../../bin/scr_index -a --prefix ${HOME}/packages/scr-dist/install/examples --check scr.2010-10-29_16:06:16.1015976.36 &
 
-$TV /g/g0/${USER}/packages/scr-dist/install/bin/scr_rebuild_xor -a 4 1 2_of_4_in_0.xor 1_of_4_in_0.xor 3_of_4_in_0.xor 4_of_4_in_0.xor &
+$TV ${HOME}/packages/scr-dist/install/bin/scr_rebuild_xor -a 4 1 2_of_4_in_0.xor 1_of_4_in_0.xor 3_of_4_in_0.xor 4_of_4_in_0.xor &
 
 # build the dist tarball
 setenv CFLAGS "-g -O3 -Wall -Werror -DHIDE_TV"
@@ -19,10 +19,9 @@ make distclean
 make dist
 
 # Linux build instructions
-setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=${HOME}/packages/dtcmp.git/install"
-
-setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
 setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql"
+setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=${HOME}/packages/dtcmp.git/install"
+setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
 setenv scrversion "scr-1.1-8"
 cd ~/packages/scr
 make distclean
@@ -40,12 +39,12 @@ mv ${scrversion}.tar.gz ../scr-dist/.
 cd ../scr-dist
 tar -zxf ${scrversion}.tar.gz
 cd ${scrversion}
-./configure --prefix=/g/g0/${USER}/packages/scr-dist/install $configopts
+./configure --prefix=${HOME}/packages/scr-dist/install $configopts
 make
 make install
 
 # cd to examples directory, and check that build of test programs works
-cd /g/g0/${USER}/packages/scr-dist/install/share/scr/examples
+cd ${HOME}/packages/scr-dist/install/share/scr/examples
 setenv OPT "-g -O0"
 make
 
@@ -64,8 +63,9 @@ setenv prefix_files "flush.scr halt.scr nodes.scr"
 
 #setenv TV /usr/global/tools/totalview/v/totalview.8X.9.9-1/bin/totalview
 #setenv TV /usr/global/tools/totalview/v/totalview.8X.8.0-4/bin/totalview
+#setenv LD_LIBRARY_PATH ${HOME}/packages/scr-dist/install/lib
 setenv TV totalview
-setenv LD_LIBRARY_PATH /g/g0/${USER}/packages/scr-dist/install/lib
+setenv LD_LIBRARY_PATH ${HOME}/packages/scr-dist/install/lib:${HOME}/packages/dtcmp.git/install/lib
 setenv SCR_PREFIX `pwd`
 setenv SCR_FETCH 0
 setenv SCR_FLUSH 0
@@ -191,7 +191,7 @@ ${scrbin}/scr_index --list
 # delete all files, corrupt file on disc, run again, check that fetch of current fails but old succeeds
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
-vi -b /g/g0/${USER}/packages/scr-dist/install/share/scr/examples/scr.current/rank_2.ckpt
+vi -b ${HOME}/packages/scr-dist/install/share/scr/examples/scr.current/rank_2.ckpt
 # change some characters and save file (:wq)
 ${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api

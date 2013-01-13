@@ -475,13 +475,23 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
   MPI_Status status;
   int send_num = numfiles;
   int recv_num = 0;
-  MPI_Sendrecv(&send_num, 1, MPI_INT, state->rhs_rank, 0, &recv_num, 1, MPI_INT, state->lhs_rank, 0, c->comm, &status);
+  MPI_Sendrecv(
+    &send_num, 1, MPI_INT, state->rhs_rank, 0,
+    &recv_num, 1, MPI_INT, state->lhs_rank, 0,
+    c->comm, &status
+  );
 
   /* record how many files our partner will send */
   scr_filemap_set_expected_files(map, id, state->lhs_rank_world, recv_num);
 
-  /* remember which node our partner is on (needed for drain) */
-  scr_filemap_set_tag(map, id, state->lhs_rank_world, SCR_FILEMAP_KEY_PARTNER, state->lhs_hostname);
+  /* remember which node our partner is on (needed for scavenge) */
+  scr_hash* flushdesc = scr_hash_new();
+  scr_filemap_get_flushdesc(map, id, state->lhs_rank_world, flushdesc);
+  scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  scr_preserve_directories);
+  scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, scr_use_containers);
+  scr_hash_util_set_str(flushdesc, SCR_SCAVENGE_KEY_PARTNER,   state->lhs_hostname);
+  scr_filemap_set_flushdesc(map, id, state->lhs_rank_world, flushdesc);
+  scr_hash_delete(flushdesc);
 
   /* record partner's redundancy descriptor hash */
   scr_hash* lhs_desc_hash = scr_hash_new();

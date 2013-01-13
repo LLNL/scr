@@ -55,13 +55,14 @@ WRITE:
 #include "scr_hash.h"
 #include "scr_filemap.h"
 
-#define SCR_FILEMAP_KEY_RANK  ("RANK")
-#define SCR_FILEMAP_KEY_DSET  ("DSET")
-#define SCR_FILEMAP_KEY_FILES ("FILES")
-#define SCR_FILEMAP_KEY_FILE  ("FILE")
-#define SCR_FILEMAP_KEY_DESC  ("REDDESC")
-#define SCR_FILEMAP_KEY_DATA  ("DSETDESC")
-#define SCR_FILEMAP_KEY_META  ("META")
+#define SCR_FILEMAP_KEY_RANK    ("RANK")
+#define SCR_FILEMAP_KEY_DSET    ("DSET")
+#define SCR_FILEMAP_KEY_FILES   ("FILES")
+#define SCR_FILEMAP_KEY_FILE    ("FILE")
+#define SCR_FILEMAP_KEY_REDDESC ("REDDESC")
+#define SCR_FILEMAP_KEY_FLUSH   ("FLUSH")
+#define SCR_FILEMAP_KEY_DATA    ("DSETDESC")
+#define SCR_FILEMAP_KEY_META    ("META")
 
 /* returns the RANK hash */
 static scr_hash* scr_filemap_get_rh(const scr_hash* h)
@@ -191,10 +192,10 @@ int scr_filemap_set_desc(scr_filemap* map, int dset, int rank, scr_hash* hash)
   scr_hash* rd = scr_filemap_set_rd(map, dset, rank);
 
   /* set the REDDESC value under the RANK/DSET hash */
-  scr_hash_unset(rd, SCR_FILEMAP_KEY_DESC);
+  scr_hash_unset(rd, SCR_FILEMAP_KEY_REDDESC);
   scr_hash* desc = scr_hash_new();
   scr_hash_merge(desc, hash);
-  scr_hash_set(rd, SCR_FILEMAP_KEY_DESC, desc);
+  scr_hash_set(rd, SCR_FILEMAP_KEY_REDDESC, desc);
 
   return SCR_SUCCESS;
 }
@@ -206,7 +207,7 @@ int scr_filemap_get_desc(const scr_filemap* map, int dset, int rank, scr_hash* h
   scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
 
   /* get the REDDESC value under the RANK/DSET hash */
-  scr_hash* desc = scr_hash_get(rd, SCR_FILEMAP_KEY_DESC);
+  scr_hash* desc = scr_hash_get(rd, SCR_FILEMAP_KEY_REDDESC);
   if (desc != NULL) {
     scr_hash_merge(hash, desc);
     return SCR_SUCCESS;
@@ -220,7 +221,51 @@ int scr_filemap_unset_desc(scr_filemap* map, int dset, int rank)
 {
   /* unset REDDESC value */
   scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
-  scr_hash_unset(rd, SCR_FILEMAP_KEY_DESC);
+  scr_hash_unset(rd, SCR_FILEMAP_KEY_REDDESC);
+
+  /* unset RANK/DSET and DSET/RANK indicies if the hash is empty */
+  scr_filemap_unset_if_empty(map, dset, rank);
+
+  return SCR_SUCCESS;
+}
+
+/* sets the flush/scavenge descriptor hash for the given rank and dataset id */
+int scr_filemap_set_flushdesc(scr_filemap* map, int dset, int rank, scr_hash* hash)
+{
+  /* set indicies and get hash reference */
+  scr_hash* rd = scr_filemap_set_rd(map, dset, rank);
+
+  /* set the FLUSH value under the RANK/DSET hash */
+  scr_hash_unset(rd, SCR_FILEMAP_KEY_FLUSH);
+  scr_hash* desc = scr_hash_new();
+  scr_hash_merge(desc, hash);
+  scr_hash_set(rd, SCR_FILEMAP_KEY_FLUSH, desc);
+
+  return SCR_SUCCESS;
+}
+
+/* copies the flush/scavenge descriptor hash for the given rank and dataset id into hash */
+int scr_filemap_get_flushdesc(const scr_filemap* map, int dset, int rank, scr_hash* hash)
+{
+  /* get RANK/DSET hash */
+  scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
+
+  /* get the FLUSH value under the RANK/DSET hash */
+  scr_hash* desc = scr_hash_get(rd, SCR_FILEMAP_KEY_FLUSH);
+  if (desc != NULL) {
+    scr_hash_merge(hash, desc);
+    return SCR_SUCCESS;
+  }
+
+  return SCR_FAILURE; 
+}
+
+/* unset the flush/scavenge descriptor hash for the given rank and dataset id */
+int scr_filemap_unset_flushdesc(scr_filemap* map, int dset, int rank)
+{
+  /* unset FLUSH value */
+  scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
+  scr_hash_unset(rd, SCR_FILEMAP_KEY_FLUSH);
 
   /* unset RANK/DSET and DSET/RANK indicies if the hash is empty */
   scr_filemap_unset_if_empty(map, dset, rank);
@@ -348,39 +393,6 @@ int scr_filemap_unset_meta(scr_filemap* map, int dset, int rank, const char* fil
 
   /* unset metadata */
   scr_hash_unset(rdf, SCR_FILEMAP_KEY_META);
-
-  return SCR_SUCCESS;
-}
-
-/* sets a tag/value pair */
-int scr_filemap_set_tag(scr_filemap* map, int dset, int rank, const char* tag, const char* value)
-{
-  /* define tag in Rank/Dset/File hash */
-  scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
-  scr_hash_util_set_str(rd, tag, value);
-
-  return SCR_SUCCESS;
-}
-
-/* gets the value for a given tag, returns NULL if not found */
-char* scr_filemap_get_tag(const scr_filemap* map, int dset, int rank, const char* tag)
-{
-  /* define tag in Rank/Dset/File hash */
-  scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
-  char* value = NULL;
-  scr_hash_util_get_str(rd, tag, &value);
-  return value;
-}
-
-/* unsets a tag */
-int scr_filemap_unset_tag(scr_filemap* map, int dset, int rank, const char* tag)
-{
-  /* define tag in Rank/Dset/File hash */
-  scr_hash* rd = scr_filemap_get_rd(map, dset, rank);
-  scr_hash_unset(rd, tag);
-
-  /* unset RANK/DSET and DSET/RANK indicies if the hash is empty */
-  scr_filemap_unset_if_empty(map, dset, rank);
 
   return SCR_SUCCESS;
 }

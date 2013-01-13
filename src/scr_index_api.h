@@ -28,7 +28,7 @@ int scr_index_write(const char* dir, scr_hash* index);
 int scr_index_add_dir(scr_hash* index, int id, const char* name);
 
 /* write completeness code (0 or 1) for given dataset id and directory in given hash */
-int scr_index_set_dataset(scr_hash* index, const scr_dataset* dataset, int complete);
+int scr_index_set_dataset(scr_hash* index, int id, const char* name, const scr_dataset* dataset, int complete);
 
 /* write completeness code (0 or 1) for given dataset id and directory in given hash */
 int scr_index_set_complete(scr_hash* index, int id, const char* name, int complete);

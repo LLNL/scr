@@ -70,7 +70,7 @@ and creating container files (if any)
 
 /* fills in hash with a list of filenames and associated meta data
  * that should be flushed for specified dataset id */
-static int scr_flush_build_list(const scr_filemap* map, int id, scr_hash* file_list)
+static int scr_flush_identify_files(const scr_filemap* map, int id, scr_hash* file_list)
 {
   int rc = SCR_SUCCESS;
 
@@ -117,32 +117,107 @@ static int scr_flush_build_list(const scr_filemap* map, int id, scr_hash* file_l
   return rc;
 }
 
-/* create all directories needed for file list */
-static int scr_flush_create_dirs(scr_hash* file_list)
+/* resolves par and dir directories, then ensures dir is
+ * contained as a subdirectory under parent, and returns subdir */
+static int scr_find_subdir(
+  const char* par,    /* IN  - full path to parent directory */
+  const char* dir,    /* IN  - full path to child directory */
+  char* subdir,       /* OUT - top level subdirectory, if exists */
+  size_t subdir_size) /* IN  - size of subdir buffer */
 {
-  if (scr_preserve_user_directories) {
-    /* preserving user-defined directories, create them here */
+  /* simplify parent directory */
+  char parent[SCR_MAX_FILENAME];
+  if (scr_path_resolve(par, parent, sizeof(parent)) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to simplify parent directory %s @ %s:%d",
+      par, __FILE__, __LINE__
+    );
+  }
+
+  /* get number of characters in parent */
+  size_t parent_len = strlen(parent);
+
+  /* resolve child directory */
+  char child[SCR_MAX_FILENAME];
+  if (scr_path_resolve(dir, child, sizeof(child)) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to simplify directory %s @ %s:%d",
+      dir, __FILE__, __LINE__
+    );
+  }
+
+  /* ensure that parent path is prefix of child path */
+  if (strncmp(parent, child, parent_len) != 0) {
+    scr_abort(-1, "Directory %s not contained in parent %s @ %s:%d",
+      dir, parent, __FILE__, __LINE__
+    );
+  }
+
+  /* get number of components in parent directory */
+  int parent_components;
+  if (scr_path_length(parent, &parent_components) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to get number of components in parent directory %s @ %s:%d",
+      parent, __FILE__, __LINE__
+    );
+  }
+
+  /* ensure that directory has at least one more component than parent */
+  int child_components;
+  if (scr_path_length(child, &child_components) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to get number of components in path %s @ %s:%d",
+      dir, __FILE__, __LINE__
+    );
+  }
+  if (child_components <= parent_components) {
+    scr_abort(-1, "Directory %s must have more components than parent %s @ %s:%d",
+      dir, parent, __FILE__, __LINE__
+    );
+  }
+
+  /* get sub directory name */
+  if (scr_path_slice(child, parent_components, 1, subdir, subdir_size)
+      != SCR_SUCCESS)
+  {
+    scr_abort(-1, "Failed to get subdirectory from %s @ %s:%d",
+      dir, __FILE__, __LINE__
+    );
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* create all directories needed for file list */
+static int scr_flush_identify_dirs(scr_hash* file_list)
+{
+  /* get the dataset for this list of files */
+  scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
+
+  if (scr_preserve_directories) {
+    /* preserving user-defined directories, identify them here */
 #ifdef HAVE_LIBDTCMP
+    /* get pointer to file hash */
+    scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
+
     /* count the number of files that we need to flush */
-    int count = scr_hash_size(file_list);
+    int count = scr_hash_size(files);
 
     /* allocate buffers to hold the directory needed for each file */
     const char** dirs     = NULL;
     uint64_t* group_id    = NULL;
     uint64_t* group_ranks = NULL;
     uint64_t* group_rank  = NULL;
+    const char** subdirs  = NULL;
     if (count > 0) {
       dirs        = (const char**) malloc(sizeof(const char*) * count);
       group_id    = (uint64_t*)    malloc(sizeof(uint64_t)    * count);
       group_ranks = (uint64_t*)    malloc(sizeof(uint64_t)    * count);
       group_rank  = (uint64_t*)    malloc(sizeof(uint64_t)    * count);
+      subdirs     = (const char**) malloc(sizeof(const char*)       * count);
       /* TODO: check for allocation error */
     }
 
     /* lookup directory from meta data for each file */
+    int valid_subdir = 1;
     int i = 0;
     scr_hash_elem* elem = NULL;
-    scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
     for (elem = scr_hash_elem_first(files);
          elem != NULL;
          elem = scr_hash_elem_next(elem))
@@ -151,119 +226,155 @@ static int scr_flush_create_dirs(scr_hash* file_list)
       scr_hash* hash = scr_hash_elem_hash(elem);
       scr_meta* meta = scr_hash_get(hash, SCR_KEY_META);
 
+      /* lookup original path where application wants file to go */
       dirs[i] = NULL;
       char* dir;
       if (scr_meta_get_origpath(meta, &dir) == SCR_SUCCESS) {
+        /* record pointer to directory name */
         dirs[i] = dir;
 
         /* record original path as path to flush to in file list */
         scr_hash_util_set_str(hash, SCR_KEY_PATH, dir);
+
+        /* get top level subdirectory under prefix */
+        char subdir[SCR_MAX_FILENAME];
+        if (scr_find_subdir(scr_par_prefix, dir, subdir, sizeof(subdir)) == SCR_SUCCESS) {
+          subdirs[i] = strdup(subdir);
+        } else {
+          /* dir may not be contained in prefix, or we otherwise
+           * failed to acquire it */
+          subdirs[i] = NULL;
+          valid_subdir = 0;
+        }
       } else {
-        /* TODO: error */
+        scr_abort(-1, "Failed to read original path name for a file @ %s:%d",
+          __FILE__, __LINE__
+        );
       }
 
       /* add one to our file count */
       i++;
     }
 
-    /* select leaders */
-    uint64_t groups;
-    DTCMP_Rankv_strings(
-      count, dirs, &groups, group_id, group_ranks, group_rank,
-      DTCMP_FLAG_NONE, scr_comm_world
-    );
-
-    /* TODO: may need flow control here */
-    /* have leaders issue mkdir */
-    int success = 1;
-    for (i = 0; i < count; i++) {
-      if (group_rank[i] == 0) {
-        if (scr_mkdir(dirs[i], S_IRWXU) != SCR_SUCCESS) {
-          success = 0;
-        }
+    /* verify that all procs have valid subdirs */
+    if (! scr_alltrue(valid_subdir)) {
+      if (scr_my_rank_world == 0) {
+        scr_abort(-1, "One or more processes found an invalid subdirectory @ %s:%d",
+          __FILE__, __LINE__
+        );
       }
     }
 
+    /* rank subdirectories and ensure groups is exactly 1 */
+    uint64_t groups;
+    int dtcmp_rc = DTCMP_Rankv_strings(
+      count, subdirs, &groups, group_id, group_ranks, group_rank,
+      DTCMP_FLAG_NONE, scr_comm_world
+    );
+    if (dtcmp_rc != DTCMP_SUCCESS) {
+      scr_abort(-1, "Failed to rank strings during flush @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+    if (groups != 1) {
+      if (scr_my_rank_world == 0) {
+        scr_abort(-1, "Identified more than one subdirectory during flush @ %s:%d",
+          __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* since groups == 1, at least one process specified a directory */
+    int rank = scr_ranks_world;
+    char root_subdir[SCR_MAX_FILENAME];
+    if (count > 0) {
+      rank = scr_my_rank_world;
+      strcpy(root_subdir, subdirs[0]);
+    }
+
+    /* identify lowest rank which specified directory */
+    int lowest_rank;
+    MPI_Allreduce(&rank, &lowest_rank, 1, MPI_INT, MPI_MIN, scr_comm_world);
+
+    /* broadcast directory from lowest rank so all have a copy */
+    scr_strn_bcast(root_subdir, sizeof(root_subdir), lowest_rank, scr_comm_world);
+
+    /* build full path to top level directory */
+    char full_subdir[SCR_MAX_FILENAME];
+    scr_path_build(full_subdir, sizeof(full_subdir), scr_par_prefix, root_subdir);
+
+    /* record top level directory for flush */
+    scr_hash_util_set_str(file_list, SCR_KEY_PATH, full_subdir);
+
+    /* identify the set of unique directories */
+    dtcmp_rc = DTCMP_Rankv_strings(
+      count, dirs, &groups, group_id, group_ranks, group_rank,
+      DTCMP_FLAG_NONE, scr_comm_world
+    );
+    if (dtcmp_rc != DTCMP_SUCCESS) {
+      scr_abort(-1, "Failed to rank strings during flush @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+
+    /* select leader for each directory */
+    for (i = 0; i < count; i++) {
+      if (group_rank[i] == 0) {
+        scr_hash_set_kv(file_list, SCR_KEY_DIRECTORY, dirs[i]);
+      }
+
+      /* free subdirs */
+      scr_free(&subdirs[i]);
+    }
+
     /* free buffers */
+    scr_free(&subdirs);
     scr_free(&group_id);
     scr_free(&group_ranks);
     scr_free(&group_rank);
     scr_free(&dirs);
 
-    /* TODO: need to track directory names in summary file so we can delete them later */
+    /* TODO: PRESERVE need to track directory names in summary file so we can delete them later */
 
-    /* determine whether all leaders successfully created their directories */
-    if (! scr_alltrue((success == 1))) {
-      return SCR_FAILURE;
-    }
-    return SCR_SUCCESS;
 #else /* HAVE_LIBDTCMP */
+    /* need DTCMP in order to preserve user-defined directories */
     return SCR_FAILURE;
-#endif
+#endif /* HAVE_LIBDTCMP */
   } else {
-    /* create single dataset directory at top level */
-    /* assume that we'll fail to create the directory */
-    int rc = SCR_FAILURE;
-
-    /* get the dataset for this list of files */
-    scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
-
-    /* get the id of the dataset */
-    int id;
-    if (scr_dataset_get_id(dataset, &id) == SCR_SUCCESS) {
-      /* get the name of the dataset */
-      char* name;
-      if (scr_dataset_get_name(dataset, &name) == SCR_SUCCESS) {
-        /* build the directory name */
-        char dir[SCR_MAX_FILENAME];
-        if (scr_path_build(dir, sizeof(dir), scr_par_prefix, name) == SCR_SUCCESS) {
-          /* record top level directory for flush */
-          scr_hash_util_set_str(file_list, SCR_KEY_PATH, dir);
-
-          /* add the flush directory to each file in the list */
-          scr_hash_elem* elem = NULL;
-          scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
-          for (elem = scr_hash_elem_first(files);
-               elem != NULL;
-               elem = scr_hash_elem_next(elem))
-          {
-            /* get meta data for this file */
-            scr_hash* hash = scr_hash_elem_hash(elem);
-            scr_hash_util_set_str(hash, SCR_KEY_PATH, dir);
-          }
-
-          /* have rank 0 create the dataset directory */
-          if (scr_my_rank_world == 0) {
-            /* add the directory to our index file, and record the flush timestamp */
-            scr_hash* index_hash = scr_hash_new();
-            scr_index_read(scr_par_prefix, index_hash);
-            scr_index_set_dataset(index_hash, dataset, 0);
-            scr_index_add_dir(index_hash, id, name);
-            scr_index_mark_flushed(index_hash, id, name);
-            scr_index_write(scr_par_prefix, index_hash);
-            scr_hash_delete(index_hash);
-
-            /* create the directory */
-            if (scr_mkdir(dir, S_IRWXU) == SCR_SUCCESS) {
-              /* created the directory successfully */
-              scr_dbg(1, "Flushing to %s", dir);
-              rc = SCR_SUCCESS;
-            } else {
-              /* failed to create the directory */
-              scr_err("Failed to make checkpoint directory mkdir(%s) @ %s:%d",
-                      dir, __FILE__, __LINE__
-              );
-            }
-          }
-        }
-      }
+    /* create single scr.dataset directory at top level */
+    /* get the name of the dataset */
+    char* name;
+    if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to get dataset name @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
 
-    /* get return code from rank 0 */
-    MPI_Bcast(&rc, 1, MPI_INT, 0, scr_comm_world);
+    /* build the directory name */
+    char dir[SCR_MAX_FILENAME];
+    if (scr_path_build(dir, sizeof(dir), scr_par_prefix, name) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to build path to flush directory @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
 
-    return rc;
+    /* record top level directory for flush */
+    scr_hash_util_set_str(file_list, SCR_KEY_PATH, dir);
+
+    /* add the flush directory to each file in the list */
+    scr_hash_elem* elem = NULL;
+    scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
+    for (elem = scr_hash_elem_first(files);
+         elem != NULL;
+         elem = scr_hash_elem_next(elem))
+    {
+      /* get meta data for this file */
+      scr_hash* hash = scr_hash_elem_hash(elem);
+      scr_hash_util_set_str(hash, SCR_KEY_PATH, dir);
+    }
   }
+
+  return SCR_SUCCESS;
 }
 
 /* given a dataset and a container id, construct full path to container file */
@@ -416,6 +527,131 @@ static int scr_flush_identify_containers(scr_hash* file_list)
   return SCR_SUCCESS;
 }
 
+/* given file map and dataset id, identify files, containers, and
+ * directories needed for flush and return in file list hash */
+static int scr_flush_identify(const scr_filemap* map, int id, scr_hash* file_list)
+{
+  /* check that we have all of our files */
+  int have_files = 1;
+  if (scr_cache_check_files(map, id) != SCR_SUCCESS) {
+    scr_err("Missing one or more files for dataset %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+    have_files = 0;
+  }
+  if (! scr_alltrue(have_files)) {
+    if (scr_my_rank_world == 0) {
+      scr_err("One or more processes are missing files for dataset %d @ %s:%d",
+        id, __FILE__, __LINE__
+      );
+    }
+    return SCR_FAILURE;
+  }
+
+  /* build the list of files to flush, which includes meta data for each one */
+  if (scr_flush_identify_files(map, id, file_list) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to get list of files for dataset %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+  }
+
+  /* build the list of directories to create */
+  if (scr_flush_identify_dirs(file_list) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to get list of directories for dataset %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+  }
+
+  /* identify containers for our files */
+  if (scr_use_containers) {
+    if (scr_flush_identify_containers(file_list) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to identify containers for dataset %d @ %s:%d",
+        id, __FILE__, __LINE__
+      );
+    }
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* create all directories needed for file list */
+static int scr_flush_create_dirs(scr_hash* file_list)
+{
+  /* have rank 0 create the dataset directory */
+  if (scr_my_rank_world == 0) {
+    /* get top level path */
+    char* flushdir;
+    if (scr_hash_util_get_str(file_list, SCR_KEY_PATH, &flushdir) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to get flush directory @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+
+    /* extract subdir name */
+    char path[SCR_MAX_FILENAME];
+    char subdir[SCR_MAX_FILENAME];
+    scr_path_split(flushdir, path, subdir);
+
+    /* get the dataset for this list of files */
+    scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
+
+    /* get the id of the dataset */
+    int id;
+    if (scr_dataset_get_id(dataset, &id) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to get dataset id @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+
+    /* add the directory to our index file, and record the flush timestamp */
+    scr_hash* index_hash = scr_hash_new();
+    scr_index_read(scr_par_prefix, index_hash);
+    scr_index_set_dataset(index_hash, id, subdir, dataset, 0);
+    scr_index_add_dir(index_hash, id, subdir);
+    scr_index_mark_flushed(index_hash, id, subdir);
+    scr_index_write(scr_par_prefix, index_hash);
+    scr_hash_delete(index_hash);
+
+    /* create the directory */
+    if (scr_mkdir(flushdir, S_IRWXU) == SCR_SUCCESS) {
+      /* created the directory successfully */
+      scr_dbg(1, "Flushing to %s", flushdir);
+    } else {
+      /* failed to create the directory */
+      scr_abort(-1, "Failed to make checkpoint directory mkdir(%s) @ %s:%d",
+        flushdir, __FILE__, __LINE__
+      );
+    }
+  }
+
+  /* wait for rank 0 */
+  MPI_Barrier(scr_comm_world);
+
+  /* TODO: add flow control here */
+  /* create other directories in file list */
+  int success = 1;
+  scr_hash_elem* elem = NULL;
+  scr_hash* dirs = scr_hash_get(file_list, SCR_KEY_DIRECTORY);
+  for (elem = scr_hash_elem_first(dirs);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* create directory */
+    char* dir = scr_hash_elem_key(elem);
+    if (scr_mkdir(dir, S_IRWXU) != SCR_SUCCESS) {
+      success = 0;
+    }
+  }
+
+  /* TODO: PRESERVE need to track directory names in summary file so we can delete them later */
+
+  /* determine whether all leaders successfully created their directories */
+  if (! scr_alltrue((success == 1))) {
+    return SCR_FAILURE;
+  }
+  return SCR_SUCCESS;
+}
+
 /* create container files
  * could do different things here depending on the file system, for example:
  *   Lustre - have first process writing to container create it
@@ -462,7 +698,7 @@ static int scr_flush_create_containers(const scr_hash* file_list)
           if (fd < 0) {
             /* the create failed */
             scr_err("Opening file for writing: scr_open(%s) errno=%d %m @ %s:%d",
-                    name, errno, __FILE__, __LINE__
+              name, errno, __FILE__, __LINE__
             );
             success = SCR_FAILURE;
           } else {
@@ -484,41 +720,56 @@ static int scr_flush_create_containers(const scr_hash* file_list)
   return SCR_FAILURE;
 }
 
+/* TODO: attach this info to file map */
+/* this is a hacky way to record data in flush file from complete checkpoint */
+int scr_flush_verify(const scr_filemap* map, int id, char* dir, size_t dir_size)
+{
+  scr_hash* file_list = scr_hash_new();
+
+  /* build the list of files to flush, which includes meta data for each one */
+  if (scr_flush_identify(map, id, file_list) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to identify data for flush of dataset %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+  }
+
+  /* look up path of flush directory */
+  char* flush_dir;
+  if (scr_hash_util_get_str(file_list, SCR_KEY_PATH, &flush_dir) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to get flush directory of dataset %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+  }
+
+  /* get subdirectory name for flush */
+  char prefix[SCR_MAX_FILENAME];
+  char subdir[SCR_MAX_FILENAME];
+  scr_path_split(flush_dir, prefix, subdir);
+
+  /* copy subdir to users buffer */
+  size_t subdir_len = strlen(subdir) + 1;
+  if (subdir_len <= dir_size) {
+    strcpy(dir, subdir);
+  } else {
+    scr_abort(-1, "Failed to copy subdirectory name for dataset %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+  }
+
+  scr_hash_delete(file_list);
+
+  return SCR_SUCCESS;
+}
+
 /* given a filemap and a dataset id, prepare and return a list of files to be flushed,
  * also create corresponding directories and container files */
 int scr_flush_prepare(const scr_filemap* map, int id, scr_hash* file_list)
 {
-  /* check that we have all of our files */
-  int have_files = 1;
-  if (scr_cache_check_files(map, id) != SCR_SUCCESS) {
-    scr_err("Missing one or more files for dataset %d @ %s:%d",
-            id, __FILE__, __LINE__
-    );
-    have_files = 0;
-  }
-  if (! scr_alltrue(have_files)) {
-    if (scr_my_rank_world == 0) {
-      scr_err("One or more processes are missing files for dataset %d @ %s:%d",
-              id, __FILE__, __LINE__
-      );
-    }
-    return SCR_FAILURE;
-  }
-
   /* build the list of files to flush, which includes meta data for each one */
-  if (scr_flush_build_list(map, id, file_list) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to get list of files for dataset %d @ %s:%d",
-            id, __FILE__, __LINE__
+  if (scr_flush_identify(map, id, file_list) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to identify data for flush of dataset %d @ %s:%d",
+      id, __FILE__, __LINE__
     );
-  }
-
-  /* identify containers for our files */
-  if (scr_use_containers) {
-    if (scr_flush_identify_containers(file_list) != SCR_SUCCESS) {
-      scr_abort(-1, "Failed to identify containers for dataset %d @ %s:%d",
-              id, __FILE__, __LINE__
-      );
-    }
   }
 
   /* create directories for flush */
@@ -526,7 +777,7 @@ int scr_flush_prepare(const scr_filemap* map, int id, scr_hash* file_list)
     /* TODO: delete the directories that we just created above? */
     if (scr_my_rank_world == 0) {
       scr_err("Failed to create flush directories for dataset %d @ %s:%d",
-              id, __FILE__, __LINE__
+        id, __FILE__, __LINE__
       );
     }
     return SCR_FAILURE;
@@ -538,7 +789,7 @@ int scr_flush_prepare(const scr_filemap* map, int id, scr_hash* file_list)
       /* TODO: delete the directories that we just created above?
        * and the partial set of files we just created here? */
       scr_err("Failed to create container files for dataset %d @ %s:%d",
-              id, __FILE__, __LINE__
+        id, __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -680,7 +931,7 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
     flushed = SCR_FAILURE;
   }
 
-  /* create current symlink */
+  /* create current symlink and update index file */
   if (scr_my_rank_world == 0) {
     /* assume the flush failed */
     int complete = 0;
@@ -688,12 +939,9 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
       /* remember that the flush was successful */
       complete = 1;
 
-      /* TODO: PRESERVE if preserving user directories, need to point to top
-       * level directory here */
-
-      /* read the name of the dataset and update the current symlink */
-      char* dataset_name;
-      if (scr_dataset_get_name(dataset, &dataset_name) == SCR_SUCCESS) {
+      /* get name of subdirectory holding dataset */
+      char subdir[SCR_MAX_FILENAME];
+      if (scr_find_subdir(scr_par_prefix, summary_dir, subdir, sizeof(subdir)) == SCR_SUCCESS) {
         /* build path to current symlink */
         char current[SCR_MAX_FILENAME];
         scr_path_build(current, sizeof(current), scr_par_prefix, SCR_CURRENT_LINK);
@@ -704,15 +952,23 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
         }
 
         /* create new current to point to new directory */
-        symlink(dataset_name, current);
+        symlink(subdir, current);
       }
 
       /* record the dataset in the index file */
-      scr_hash* index_hash = scr_hash_new();
-      scr_index_read(scr_par_prefix, index_hash);
-      scr_index_set_dataset(index_hash, dataset, complete);
-      scr_index_write(scr_par_prefix, index_hash);
-      scr_hash_delete(index_hash);
+      /* get the id of the dataset */
+      int id;
+      if (scr_dataset_get_id(dataset, &id) == SCR_SUCCESS) {
+        scr_hash* index_hash = scr_hash_new();
+        scr_index_read(scr_par_prefix, index_hash);
+        scr_index_set_dataset(index_hash, id, subdir, dataset, complete);
+        scr_index_write(scr_par_prefix, index_hash);
+        scr_hash_delete(index_hash);
+      } else {
+        scr_abort(-1, "Failed to read dataset id @ %s:%d",
+          __FILE__, __LINE__
+        );
+      }
     }
   }
 

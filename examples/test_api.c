@@ -55,7 +55,9 @@ double getbw(char* name, char* buf, size_t size, int times)
       SCR_Start_checkpoint();
 
       /* get the file name to write our checkpoint file to */
-      SCR_Route_file(name, file);
+      char newname[SCR_MAX_FILENAME];
+      sprintf(newname, "timestep.%d/%s", timestep, name);
+      SCR_Route_file(newname, file);
 
       /* open the file and write the checkpoint */
       int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);

@@ -22,7 +22,7 @@
 /* compute crc32, needed for uLong */
 #include <zlib.h>
 
-#define SCR_META_FILE_FULL (SCR_META_KEY_TYPE_FULL)
+#define SCR_META_FILE_USER (SCR_META_KEY_TYPE_USER)
 #define SCR_META_FILE_XOR  (SCR_META_KEY_TYPE_XOR)
 
 typedef scr_hash scr_meta;

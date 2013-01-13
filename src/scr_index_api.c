@@ -126,26 +126,8 @@ int scr_index_set_complete(scr_hash* index, int id, const char* name, int comple
 }
 
 /* write completeness code (0 or 1) for given dataset id and directory in given hash */
-int scr_index_set_dataset(scr_hash* index, const scr_dataset* dataset, int complete)
+int scr_index_set_dataset(scr_hash* index, int id, const char* name, const scr_dataset* dataset, int complete)
 {
-  /* get the dataset id */
-  int id;
-  if (scr_dataset_get_id(dataset, &id) != SCR_SUCCESS) {
-    scr_err("Failed to get dataset id for index file @ %s:%d",
-            __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* get the dataset name */
-  char* name;
-  if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
-    scr_err("Failed to get dataset name for index file @ %s:%d",
-            __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
   /* copy contents of dataset hash */
   scr_hash* dataset_copy = scr_hash_new();
   scr_hash_merge(dataset_copy, dataset);
