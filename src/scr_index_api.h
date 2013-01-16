@@ -27,6 +27,18 @@ int scr_index_write(const char* dir, scr_hash* index);
 /* add given dataset id and directory name to given hash */
 int scr_index_add_dir(scr_hash* index, int id, const char* name);
 
+/* remove given directory name from hash */
+int scr_index_remove_dir(scr_hash* index, const char* name);
+
+/* set directory name as current directory to restart from */
+int scr_index_set_current(scr_hash* index, const char* name);
+
+/* get directory name as current directory to restart from */
+int scr_index_get_current(scr_hash* index, char** name);
+
+/* unset directory name as current directory to restart from */
+int scr_index_unset_current(scr_hash* index);
+
 /* write completeness code (0 or 1) for given dataset id and directory in given hash */
 int scr_index_set_dataset(scr_hash* index, int id, const char* name, const scr_dataset* dataset, int complete);
 

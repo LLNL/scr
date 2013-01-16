@@ -502,7 +502,7 @@ int scr_flush_async_complete(scr_filemap* map, int id)
     }
   }
 
-  /* write summary file and update current symlink */
+  /* write summary file */
   if (scr_flush_complete(id, scr_flush_async_file_list, data) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }

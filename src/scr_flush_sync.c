@@ -576,7 +576,7 @@ int scr_flush_sync(scr_filemap* map, int id)
     flushed = SCR_FAILURE;
   }
 
-  /* write summary file and create current symlink */
+  /* write summary file */
   if (scr_flush_complete(id, file_list, data) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }

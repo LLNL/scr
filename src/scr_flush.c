@@ -941,7 +941,7 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
     flushed = SCR_FAILURE;
   }
 
-  /* create current symlink and update index file */
+  /* update index file */
   if (scr_my_rank_world == 0) {
     /* assume the flush failed */
     int complete = 0;
@@ -949,41 +949,35 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
       /* remember that the flush was successful */
       complete = 1;
 
+      /* read the index file */
+      scr_hash* index_hash = scr_hash_new();
+      scr_index_read(scr_prefix, index_hash);
+
       /* get name of subdirectory holding dataset */
       char subdir[SCR_MAX_FILENAME];
       if (scr_find_subdir(scr_prefix, summary_dir, subdir, sizeof(subdir)) == SCR_SUCCESS) {
-        /* build path to current symlink */
-        char current[SCR_MAX_FILENAME];
-        scr_path_build(current, sizeof(current), scr_prefix, SCR_CURRENT_LINK);
-
-        /* if current exists, unlink it */
-        if (scr_file_exists(current) == SCR_SUCCESS) {
-          scr_file_unlink(current);
-        }
-
         /* create new current to point to new directory */
-        symlink(subdir, current);
+        scr_index_set_current(index_hash, subdir);
       }
 
       /* record the dataset in the index file */
-      /* get the id of the dataset */
       int id;
       if (scr_dataset_get_id(dataset, &id) == SCR_SUCCESS) {
-        scr_hash* index_hash = scr_hash_new();
-        scr_index_read(scr_prefix, index_hash);
         scr_index_set_dataset(index_hash, id, subdir, dataset, complete);
-        scr_index_write(scr_prefix, index_hash);
-        scr_hash_delete(index_hash);
       } else {
         scr_abort(-1, "Failed to read dataset id @ %s:%d",
           __FILE__, __LINE__
         );
       }
+
+      /* write the index file and delete the hash */
+      scr_index_write(scr_prefix, index_hash);
+      scr_hash_delete(index_hash);
     }
   }
 
   /* have rank 0 broadcast whether the entire flush succeeded,
-   * including summary file and symlink update */
+   * including summary file and index update */
   MPI_Bcast(&flushed, 1, MPI_INT, 0, scr_comm_world);
 
   /* mark this dataset as flushed to the parallel file system */

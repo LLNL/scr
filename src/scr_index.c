@@ -1195,7 +1195,7 @@ int is_complete(const char* prefix, const char* dir)
   return rc;
 }
 
-int index_list (const char* prefix)
+int index_list(const char* prefix)
 {
   int rc = SCR_SUCCESS;
 
@@ -1212,14 +1212,19 @@ int index_list (const char* prefix)
 
   /* TODO: we should bury this logic in scr_index_* functions */
 
+  /* lookup name of current directory */
+  char* current = NULL;
+  scr_index_get_current(index, &current);
+
   /* get a pointer to the checkpoint hash */
   scr_hash* dset_hash = scr_hash_get(index, SCR_INDEX_1_KEY_DATASET);
 
   /* sort datasets in descending order */
   scr_hash_sort_int(dset_hash, SCR_HASH_SORT_DESCENDING);
 
-//  printf("FLAGS  FLUSHED              FETCH  LAST_FETCHED         CKPT  DIRECTORY\n");
-  printf("  DSET VALID FLUSHED             DIRECTORY\n");
+  /* print header */
+  printf("   DSET VALID FLUSHED             DIRECTORY\n");
+
   /* iterate over each of the datasets and print the id and other info */
   scr_hash_elem* elem;
   for (elem = scr_hash_elem_first(dset_hash);
@@ -1271,11 +1276,20 @@ int index_list (const char* prefix)
       char* fetched_str = scr_hash_elem_key(fetched_elem);
 */
 
+      /* print a star beside the dataset directory marked as current */
+      if (current != NULL && strcmp(dir, current) == 0) {
+        printf("*");
+      } else {
+        printf(" ");
+      }
+
       printf("%6d", dset);
 
       printf(" ");
 
-      if (complete == 1) {
+      /* to be valid, the dataset must be marked as vaild and it must
+       * not have failed a fetch attempt */
+      if (complete == 1 && failed_str == NULL) {
         printf("YES  ");
       } else {
         printf("NO   ");
@@ -1305,7 +1319,7 @@ int index_list (const char* prefix)
       printf("%7d", num_fetch);
 
       printf("  ");
-      if (flushed_str != NULL) {
+      if (fetched_str != NULL) {
         printf("%s", fetched_str);
       } else {
         printf("                   ");
@@ -1343,26 +1357,44 @@ int index_remove_dir(const char* prefix, const char* subdir)
     return SCR_FAILURE;
   }
 
-  /* lookup the dataset id based on the directory name */
-  int id;
-  if (scr_index_get_id_by_dir(index, subdir, &id) == SCR_SUCCESS) {
-    /* delete directory from the directory-to-dataset-id index */
-    scr_hash_unset_kv(index, SCR_INDEX_1_KEY_DIR, subdir);
+  /* remove directory from index */
+  if (scr_index_remove_dir(index, subdir) == SCR_SUCCESS) {
+    /* write out new index file */
+    scr_index_write(prefix, index);
+  } else {
+    /* couldn't find the named directory, print an error */
+    scr_err("Named directory was not found in index file: %s @ %s:%d",
+      subdir, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  }
 
-    /* get the hash for this dataset id */
-    scr_hash* dset = scr_hash_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
+  /* free off our index hash */
+  scr_hash_delete(index);
 
-    /* delete this directory from the hash for this dataset id */
-    scr_hash_unset_kv(dset, SCR_INDEX_1_KEY_DIR, subdir);
+  return rc;
+}
 
-    /* if that was the only directory for this dataset id,
-     * also delete the dataset id field */
-    if (scr_hash_size(dset) == 0) {
-      scr_hash_unset_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-    }
+/* set named directory as restart directory */
+int index_current_dir(const char* prefix, const char* subdir)
+{
+  int rc = SCR_SUCCESS;
 
-    /* write out the new index file */
-    scr_index_write(prefix, index); 
+  /* create a new hash to store our index file data */
+  scr_hash* index = scr_hash_new();
+
+  /* read index file from the prefix directory */
+  if (scr_index_read(prefix, index) != SCR_SUCCESS) {
+    scr_err("Failed to read index file in %s @ %s:%d",
+      prefix, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* remove directory from index */
+  if (scr_index_set_current(index, subdir) == SCR_SUCCESS) {
+    /* write out new index file */
+    scr_index_write(prefix, index);
   } else {
     /* couldn't find the named directory, print an error */
     scr_err("Named directory was not found in index file: %s @ %s:%d",
@@ -1449,11 +1481,12 @@ int print_usage()
   printf("  Usage: scr_index [options]\n");
   printf("\n");
   printf("  Options:\n");
-  printf("    -l, --list          List indexed datasets (default behavior)\n");
-  printf("    -a, --add=<dir>     Add dataset directory <dir> to index\n");
-  printf("    -r, --remove=<dir>  Remove dataset directory <dir> from index (does not delete files)\n");
-  printf("    -p, --prefix=<dir>  Specify prefix directory (defaults to current working directory)\n");
-  printf("    -h, --help          Print usage\n");
+  printf("    -l, --list           List indexed datasets (default behavior)\n");
+  printf("    -a, --add=<dir>      Add dataset directory <dir> to index\n");
+  printf("    -r, --remove=<dir>   Remove dataset directory <dir> from index (does not delete files)\n");
+  printf("    -c, --current=<dir>  Set <dir> as restart directory\n");
+  printf("    -p, --prefix=<dir>   Specify prefix directory (defaults to current working directory)\n");
+  printf("    -h, --help           Print usage\n");
   printf("\n");
   return SCR_SUCCESS;
 }
@@ -1464,6 +1497,7 @@ struct arglist {
   int list;
   int add;
   int remove;
+  int current;
 };
 
 /* free any memory allocation during get_args */
@@ -1477,20 +1511,22 @@ int free_args(struct arglist* args)
 int get_args(int argc, char **argv, struct arglist* args)
 {
   /* set to default values */
-  args->prefix = NULL;
-  args->dir    = NULL;
-  args->list   = 1;
-  args->add    = 0;
-  args->remove = 0;
+  args->prefix  = NULL;
+  args->dir     = NULL;
+  args->list    = 1;
+  args->add     = 0;
+  args->remove  = 0;
+  args->current = 0;
 
   static const char *opt_string = "la:r:p:h";
   static struct option long_options[] = {
-    {"list",   no_argument,       NULL, 'l'},
-    {"add",    required_argument, NULL, 'a'},
-    {"remove", required_argument, NULL, 'r'},
-    {"prefix", required_argument, NULL, 'p'},
-    {"help",   no_argument,       NULL, 'h'},
-    {NULL,     no_argument,       NULL,   0}
+    {"list",    no_argument,       NULL, 'l'},
+    {"add",     required_argument, NULL, 'a'},
+    {"remove",  required_argument, NULL, 'r'},
+    {"current", required_argument, NULL, 'c'},
+    {"prefix",  required_argument, NULL, 'p'},
+    {"help",    no_argument,       NULL, 'h'},
+    {NULL,      no_argument,       NULL,   0}
   };
 
   int long_index = 0;
@@ -1509,6 +1545,11 @@ int get_args(int argc, char **argv, struct arglist* args)
         args->dir    = strdup(optarg);
         args->remove = 1;
         args->list   = 0;
+        break;
+      case 'c':
+        args->dir     = strdup(optarg);
+        args->current = 1;
+        args->list    = 0;
         break;
       case 'p':
         args->prefix = strdup(optarg);
@@ -1584,6 +1625,22 @@ int main(int argc, char *argv[])
 
     /* remove the directory */
     rc = index_remove_dir(prefix, dir);
+  }
+
+  /* set named directory as restart directory */
+  if (args.current == 1) {
+    /* check that we have a prefix and dataset directory defined */
+    if (args.prefix == NULL || args.dir == NULL) {
+      print_usage();
+      return 1;
+    }
+
+    /* record the name of the prefix and dataset directories */
+    char* prefix = args.prefix;
+    char* dir = args.dir;
+
+    /* remove the directory */
+    rc = index_current_dir(prefix, dir);
   }
 
   /* list datasets recorded in index file */

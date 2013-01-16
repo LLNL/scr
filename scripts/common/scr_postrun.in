@@ -120,17 +120,9 @@ if [ "$UPNODES" != "" ] ; then
 
               # if the set is complete, update the current symlink
               if [ "$update_current" == "1" ] ; then
-                echo "$prog: Updating scr.current symlink"
-                current="$pardir/scr.current"
-
-                # if there is a current, remove it
-                if [ -e $current ] ; then
-                  rm -f $current
-                fi
-
                 # make the new current
-                echo "$prog:   $current --> $subdir"
-                ln -s $subdir $current
+                echo "$prog: Updating current marker in index to $subdir"
+                $bindir/scr_index --prefix $pardir --current $subdir
 
                 # just completed scavenging this dataset, so quit
                 ret=0

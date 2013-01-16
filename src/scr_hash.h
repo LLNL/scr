@@ -103,6 +103,7 @@ Define common hash key strings
 #define SCR_INDEX_1_KEY_FETCHED   ("FETCHED")
 #define SCR_INDEX_1_KEY_FLUSHED   ("FLUSHED")
 #define SCR_INDEX_1_KEY_FAILED    ("FAILED")
+#define SCR_INDEX_1_KEY_CURRENT   ("CURRENT")
 
 /* the rest of these hash keys are only used in memory or in files
  * that live for the life of the job, thus backwards compatibility is not needed */

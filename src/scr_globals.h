@@ -87,8 +87,6 @@ Globals
 =========================================
 */
 
-#define SCR_CURRENT_LINK "scr.current"
-
 extern char scr_cntl_base[SCR_MAX_FILENAME];  /* base directory for control directory */
 extern char scr_cache_base[SCR_MAX_FILENAME]; /* base directory for cache directory */
 
