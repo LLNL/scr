@@ -78,7 +78,7 @@ scr_path* scr_path_from_strf(const char* format, ...);
 scr_path* scr_path_dup(const scr_path* path);
 
 /* frees a path and sets path pointer to NULL */
-int scr_path_delete(scr_path** path);
+int scr_path_delete(scr_path** ptr_path);
 
 /*
 =========================================
