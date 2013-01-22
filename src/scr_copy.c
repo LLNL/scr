@@ -334,7 +334,7 @@ int main (int argc, char *argv[])
     scr_filemap_merge(map, tmp_map);
 
     /* delete filemap */
-    scr_filemap_delete(tmp_map);
+    scr_filemap_delete(&tmp_map);
   }
 
   /* check whether we have the specified dataset id */
@@ -344,7 +344,7 @@ int main (int argc, char *argv[])
       hostname, args.id
     );
     printf("scr_copy: %s: Return code: 1\n", hostname);
-    scr_filemap_delete(map);
+    scr_filemap_delete(&map);
     scr_hash_delete(&hash);
     return 1;
   }
@@ -356,7 +356,7 @@ int main (int argc, char *argv[])
       hostname, args.id
     );
     printf("scr_copy: %s: Return code: 1\n", hostname);
-    scr_filemap_delete(map);
+    scr_filemap_delete(&map);
     scr_hash_delete(&hash);
     return 1;
   }
@@ -473,7 +473,7 @@ int main (int argc, char *argv[])
               );
               printf("scr_copy: %s: Return code: 1\n", hostname);
               scr_meta_delete(&meta);
-              scr_filemap_delete(map);
+              scr_filemap_delete(&map);
               scr_hash_delete(&hash);
               return 1;
             }
@@ -487,7 +487,7 @@ int main (int argc, char *argv[])
               );
               printf("scr_copy: %s: Return code: 1\n", hostname);
               scr_meta_delete(&meta);
-              scr_filemap_delete(map);
+              scr_filemap_delete(&map);
               scr_hash_delete(&hash);
               return 1;
             }
@@ -587,7 +587,7 @@ int main (int argc, char *argv[])
     }
 
     /* delete the rank filemap object */
-    scr_filemap_delete(rank_map);
+    scr_filemap_delete(&rank_map);
   }
 
   /* print our return code and exit */

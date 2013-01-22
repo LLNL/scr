@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
     scr_filemap_merge(map, tmp_map);
 
     /* delete filemap */
-    scr_filemap_delete(tmp_map);
+    scr_filemap_delete(&tmp_map);
   }
 
   /* scan each file for each rank of each dataset */

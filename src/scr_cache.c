@@ -381,7 +381,7 @@ int scr_cache_clean(scr_filemap* map)
   scr_filemap_write(scr_map_file, map);
 
   /* free the keep_map object */
-  scr_filemap_delete(keep_map);
+  scr_filemap_delete(&keep_map);
 
   return SCR_SUCCESS;
 }

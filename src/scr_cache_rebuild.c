@@ -56,7 +56,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
       scr_filemap_merge(all_map, tmp_map);
 
       /* delete filemap */
-      scr_filemap_delete(tmp_map);
+      scr_filemap_delete(&tmp_map);
 
       /* TODO: note that if we fail after unlinking this file but before
        * writing out the new file, we'll lose information */
@@ -106,7 +106,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
         scr_hash_merge(tmp_hash, tmp_map);
 
         /* delete the filemap for this rank */
-        scr_filemap_delete(tmp_map);
+        scr_filemap_delete(&tmp_map);
       }
     }
 
@@ -139,14 +139,14 @@ int scr_scatter_filemaps(scr_filemap* my_map)
       scr_hash_merge(tmp_hash, tmp_map);
 
       /* delete the filemap for this rank */
-      scr_filemap_delete(tmp_map);
+      scr_filemap_delete(&tmp_map);
       j++;
     }
 
     scr_free(&remaining_ranks);
 
     /* delete the filemap */
-    scr_filemap_delete(all_map);
+    scr_filemap_delete(&all_map);
 
     /* write out the new master filemap */
     hash = scr_hash_new();

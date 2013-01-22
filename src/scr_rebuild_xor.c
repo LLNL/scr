@@ -285,7 +285,7 @@ int main(int argc, char* argv[])
   scr_filemap* partner_map = scr_filemap_new();
   scr_filemap_read(partner_map_file, partner_map);
   scr_filemap_get_flushdesc(partner_map, dset_id, partner_rank, flushdesc);
-  scr_filemap_delete(partner_map);
+  scr_filemap_delete(&partner_map);
 
   /* determine whether we should preserve user directories */
   int preserve_dirs = 0;
@@ -613,7 +613,7 @@ int main(int argc, char* argv[])
   }
 
   /* delete the map */
-  scr_filemap_delete(map);
+  scr_filemap_delete(&map);
 
   scr_meta_delete(&meta_chunk);
 

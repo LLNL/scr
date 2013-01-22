@@ -799,7 +799,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
       scr_err("Error reading filemap: %s @ %s:%d",
         name_tmp, __FILE__, __LINE__
       );
-      scr_filemap_delete(rank_map);
+      scr_filemap_delete(&rank_map);
       continue;
     }
 
@@ -1073,7 +1073,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
     }
 
     /* delete the filemap */
-    scr_filemap_delete(rank_map);
+    scr_filemap_delete(&rank_map);
   }
 
   /* free the xor regular expression */
