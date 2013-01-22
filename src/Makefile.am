@@ -14,6 +14,8 @@ noinst_HEADERS = \
 	scr_globals.h \
 	scr_err.h \
 	scr_io.h \
+	scr_path.h \
+	scr_path_mpi.h \
 	scr_compress.h \
 	scr_util.h \
 	scr_util_mpi.h \
@@ -63,6 +65,7 @@ CMDS_INCLUDES = \
 # source files that are used by scr commands and runtime library
 libscr_base_la_SOURCES = \
 	scr_io.c \
+	scr_path.c \
 	scr_compress.c \
 	scr_util.c \
 	scr_hash.c \
@@ -101,6 +104,7 @@ INCLUDES = \
 libscr_la_SOURCES = \
 	scr_globals.c \
 	scr_err_mpi.c \
+	scr_path_mpi.c \
 	scr_config_mpi.c \
 	scr_util_mpi.c \
 	scr_split.c \
