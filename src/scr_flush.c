@@ -37,7 +37,7 @@ int scr_bool_flush_file(const scr_filemap* map, int dset, int rank, const char* 
   } else {
     /* TODO: print error */
   }
-  scr_meta_delete(meta);
+  scr_meta_delete(&meta);
 
   return flush;
 }
@@ -110,7 +110,7 @@ static int scr_flush_identify_files(const scr_filemap* map, int id, scr_hash* fi
 
     /* if we didn't attach the meta data, we need to delete it */
     if (meta != NULL) {
-      scr_meta_delete(meta);
+      scr_meta_delete(&meta);
     }
   }
 

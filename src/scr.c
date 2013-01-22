@@ -1492,7 +1492,7 @@ int SCR_Route_file(const char* file, char* newfile)
     scr_filemap_write(scr_map_file, scr_map);
 
     /* delete the meta data object */
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
   } else {
     /* if we can't read the file, return an error */
     if (scr_file_is_readable(newfile) != SCR_SUCCESS) {
@@ -1548,7 +1548,7 @@ int SCR_Complete_checkpoint(int valid)
     scr_meta_set_filesize(meta, filesize);
     scr_meta_set_complete(meta, valid);
     scr_filemap_set_meta(scr_map, scr_dataset_id, scr_my_rank_world, file, meta);
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
   }
 
   /* we execute a sum as a logical allreduce to determine whether everyone is valid

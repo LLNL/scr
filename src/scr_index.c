@@ -895,7 +895,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
             scr_err("Reading rank from meta data from %s @ %s:%d",
               full_filename, __FILE__, __LINE__
             );
-            scr_meta_delete(meta);
+            scr_meta_delete(&meta);
             continue;
           }
 #endif
@@ -906,7 +906,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
             scr_err("Reading ranks from meta data from %s @ %s:%d",
               full_filename, __FILE__, __LINE__
             );
-            scr_meta_delete(meta);
+            scr_meta_delete(&meta);
             continue;
           }
 
@@ -916,7 +916,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
             scr_err("Reading filename from meta data from %s @ %s:%d",
               full_filename, __FILE__, __LINE__
             );
-            scr_meta_delete(meta);
+            scr_meta_delete(&meta);
             continue;
           }
 
@@ -926,7 +926,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
             scr_err("Reading filesize from meta data from %s @ %s:%d",
               full_filename, __FILE__, __LINE__
             );
-            scr_meta_delete(meta);
+            scr_meta_delete(&meta);
             continue;
           }
 
@@ -942,7 +942,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
             scr_err("File is not complete: %s @ %s:%d",
               full_filename, __FILE__, __LINE__
             );
-            scr_meta_delete(meta);
+            scr_meta_delete(&meta);
             continue;
           }
 
@@ -951,7 +951,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
             scr_err("File does not exist: %s @ %s:%d",
               full_filename, __FILE__, __LINE__
             );
-            scr_meta_delete(meta);
+            scr_meta_delete(&meta);
             continue;
           }
 
@@ -961,7 +961,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
             scr_err("File is %lu bytes but expected to be %lu bytes: %s @ %s:%d",
               size, meta_filesize, full_filename, __FILE__, __LINE__
             );
-            scr_meta_delete(meta);
+            scr_meta_delete(&meta);
             continue;
           }
 
@@ -970,7 +970,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
             scr_err("File was created with %d ranks, but expected %d ranks: %s @ %s:%d",
               meta_ranks, ranks, full_filename, __FILE__, __LINE__
             );
-            scr_meta_delete(meta);
+            scr_meta_delete(&meta);
             continue;
           }
 
@@ -1067,7 +1067,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
             }
           }
 
-          scr_meta_delete(meta);
+          scr_meta_delete(&meta);
         }
       }
     }

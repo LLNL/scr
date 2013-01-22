@@ -238,7 +238,7 @@ static int scr_bool_have_file(
     valid = 0;
   }
 
-  scr_meta_delete(meta);
+  scr_meta_delete(&meta);
 
   /* TODO: check that crc32 match if set (this would be expensive) */
 
@@ -472,7 +472,7 @@ int main (int argc, char *argv[])
                 hostname, file, args.id
               );
               printf("scr_copy: %s: Return code: 1\n", hostname);
-              scr_meta_delete(meta);
+              scr_meta_delete(&meta);
               scr_filemap_delete(map);
               scr_hash_delete(&hash);
               return 1;
@@ -486,7 +486,7 @@ int main (int argc, char *argv[])
                 hostname, file, args.id
               );
               printf("scr_copy: %s: Return code: 1\n", hostname);
-              scr_meta_delete(meta);
+              scr_meta_delete(&meta);
               scr_filemap_delete(map);
               scr_hash_delete(&hash);
               return 1;
@@ -565,7 +565,7 @@ int main (int argc, char *argv[])
         scr_filemap_set_meta(rank_map, args.id, rank, path_file_relative, meta);
 
         /* free the meta data object */
-        scr_meta_delete(meta);
+        scr_meta_delete(&meta);
       } else {
         /* have_file failed, so there was some problem accessing file */
         rc = 1;

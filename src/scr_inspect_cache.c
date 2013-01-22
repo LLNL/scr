@@ -64,7 +64,7 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
     scr_dbg(2, "Failed to read meta data for file: %s @ %s:%d",
             file, __FILE__, __LINE__
     );
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
     return 0;
   }
 
@@ -73,7 +73,7 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
     scr_dbg(2, "File is marked as incomplete: %s @ %s:%d",
             file, __FILE__, __LINE__
     );
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
     return 0;
   }
 
@@ -85,14 +85,14 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
     scr_dbg(2, "Failed to read checkpoint field in meta data: %s @ %s:%d",
             file, __FILE__, __LINE__
     );
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
     return 0;
   }
   if (dset != meta_dset) {
     scr_dbg(2, "File's checkpoint ID (%d) does not match id in meta data file (%d) for %s @ %s:%d",
             dset, meta_dset, file, __FILE__, __LINE__
     );
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
     return 0;
   }
 #endif
@@ -104,14 +104,14 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
     scr_dbg(2, "Failed to read rank field in meta data: %s @ %s:%d",
             file, __FILE__, __LINE__
     );
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
     return 0;
   }
   if (rank != meta_rank) {
     scr_dbg(2, "File's rank (%d) does not match rank in meta data file (%d) for %s @ %s:%d",
             rank, meta_rank, file, __FILE__, __LINE__
     );
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
     return 0;
   }
 #endif
@@ -123,14 +123,14 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
     scr_dbg(2, "Failed to read ranks field in meta data: %s @ %s:%d",
             file, __FILE__, __LINE__
     );
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
     return 0;
   }
   if (ranks != meta_ranks) {
     scr_dbg(2, "File's ranks (%d) does not match ranks in meta data file (%d) for %s @ %s:%d",
             ranks, meta_ranks, file, __FILE__, __LINE__
     );
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
     return 0;
   }
 #endif
@@ -142,20 +142,20 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
     scr_dbg(2, "Failed to read filesize field in meta data: %s @ %s:%d",
             file, __FILE__, __LINE__
     );
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
     return 0;
   }
   if (size != meta_size) {
     scr_dbg(2, "Filesize is incorrect, currently %lu, expected %lu for %s @ %s:%d",
             size, meta_size, file, __FILE__, __LINE__
     );
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
     return 0;
   }
 
   /* TODO: check that crc32 match if set (this would be expensive) */
 
-  scr_meta_delete(meta);
+  scr_meta_delete(&meta);
 
   /* if we made it here, assume the file is good */
   return 1;

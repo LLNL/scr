@@ -552,8 +552,8 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
     scr_filemap_set_meta(map, id, state->lhs_rank_world, file_partner, recv_meta);
 
     /* free meta data for these files */
-    scr_meta_delete(recv_meta);
-    scr_meta_delete(send_meta);
+    scr_meta_delete(&recv_meta);
+    scr_meta_delete(&send_meta);
   }
 
   /* write out the updated filemap */
@@ -799,7 +799,7 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
   scr_meta_set_ranks(meta, scr_ranks_world);
   scr_filemap_set_meta(map, id, scr_my_rank_world, my_chunk_file, meta);
   scr_filemap_write(scr_map_file, map);
-  scr_meta_delete(meta);
+  scr_meta_delete(&meta);
 
   /* if crc_on_copy is set, compute and store CRC32 value for chunk file */
   if (scr_crc_on_copy) {

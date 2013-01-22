@@ -37,7 +37,7 @@ Allocate, delete, and copy functions
 scr_meta* scr_meta_new();
 
 /* free memory assigned to meta data object */
-int scr_meta_delete(scr_meta* meta);
+int scr_meta_delete(scr_meta** ptr_meta);
 
 /* clear m1 and copy contents of m2 into m1 */
 int scr_meta_copy(scr_meta* m1, const scr_meta* m2);

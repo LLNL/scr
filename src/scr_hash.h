@@ -234,7 +234,7 @@ Allocate and delete hash objects
 scr_hash* scr_hash_new();
 
 /* frees a hash */
-int scr_hash_delete(scr_hash** hash);
+int scr_hash_delete(scr_hash** ptr_hash);
 
 /*
 =========================================

@@ -91,7 +91,7 @@ static int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
   }
 
   /* free our meta data object */
-  scr_meta_delete(meta);
+  scr_meta_delete(&meta);
 
   return rc;
 }
@@ -615,7 +615,7 @@ int main(int argc, char* argv[])
   /* delete the map */
   scr_filemap_delete(map);
 
-  scr_meta_delete(meta_chunk);
+  scr_meta_delete(&meta_chunk);
 
   /* delete the flush/scavenge descriptor */
   scr_hash_delete(&flushdesc);

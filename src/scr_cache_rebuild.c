@@ -578,7 +578,7 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
           scr_filemap_get_meta(map, id, send_rank, file, oldmeta);
           scr_filemap_set_meta(map, id, send_rank, newfile, oldmeta);
           scr_filemap_write(scr_map_file, map);
-          scr_meta_delete(oldmeta);
+          scr_meta_delete(&oldmeta);
 
           /* rename the file */
           scr_dbg(2, "Round %d: rename(%s, %s)", round, file, newfile);
@@ -710,7 +710,7 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
           if (have_incoming) {
             /* record meta data for the file we received */
             scr_filemap_set_meta(map, id, scr_my_rank_world, file_partner, recv_meta);
-            scr_meta_delete(recv_meta);
+            scr_meta_delete(&recv_meta);
 
             /* decrement receive count */
             recv_num--;
@@ -725,7 +725,7 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
           if (have_outgoing) {
             /* remove file from the filemap */
             scr_filemap_remove_file(map, id, send_rank, file);
-            scr_meta_delete(send_meta);
+            scr_meta_delete(&send_meta);
 
             /* decrement our send count */
             send_num--;

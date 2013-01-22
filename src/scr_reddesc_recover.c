@@ -42,13 +42,13 @@ static int scr_bool_have_xor_file(scr_filemap* map, int checkpoint_id, char* xor
       if (strcmp(filetype, SCR_META_FILE_XOR) == 0) {
         strcpy(xor_file, file);
         rc = 1;
-        scr_meta_delete(meta);
+        scr_meta_delete(&meta);
         break;
       }
     }
 
     /* free the meta data for this file and go on to the next */
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
   }
 
   return rc;
@@ -432,7 +432,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     scr_meta_set_ranks(meta_chunk, scr_ranks_world);
     scr_filemap_set_meta(map, id, scr_my_rank_world, full_chunk_filename, meta_chunk);
     scr_filemap_write(scr_map_file, map);
-    scr_meta_delete(meta_chunk);
+    scr_meta_delete(&meta_chunk);
 
     /* if crc_on_copy is set, compute and store CRC32 value for chunk file */
     if (scr_crc_on_copy) {

@@ -459,7 +459,7 @@ static int scr_fetch_files_list(const scr_hash* file_list, const char* dir, scr_
     scr_filemap_set_meta(map, id, scr_my_rank_world, newfile, meta);
 
     /* free the meta data object */
-    scr_meta_delete(meta);
+    scr_meta_delete(&meta);
   }
 
   /* set the expected number of files for this dataset */
