@@ -378,7 +378,7 @@ int main (int argc, char *argv[])
   }
 
   /* delete the hash holding the file data */
-  scr_hash_delete(data);
+  scr_hash_delete(&data);
 
   return 0;
 }

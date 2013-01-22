@@ -753,7 +753,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
     scr_err("Failed to read directory %s @ %s:%d",
       path_scr, __FILE__, __LINE__
     );
-    scr_hash_delete(contents);
+    scr_hash_delete(&contents);
     return SCR_FAILURE;
   }
 
@@ -1080,7 +1080,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
   regfree(&re_xor_file);
 
   /* delete the hash holding the file and directory names */
-  scr_hash_delete(contents);
+  scr_hash_delete(&contents);
 
   return SCR_SUCCESS;
 }
@@ -1153,11 +1153,11 @@ int scr_summary_build(const char* dir)
     }
 
     /* free the scan hash */
-    scr_hash_delete(scan);
+    scr_hash_delete(&scan);
   }
 
   /* delete the summary hash */
-  scr_hash_delete(summary);
+  scr_hash_delete(&summary);
 
   return rc;
 }
@@ -1190,7 +1190,7 @@ int is_complete(const char* prefix, const char* dir)
   }
 
   /* free the index hash */
-  scr_hash_delete(index);
+  scr_hash_delete(&index);
 
   return rc;
 }
@@ -1336,7 +1336,7 @@ int index_list(const char* prefix)
   }
 
   /* free off our index hash */
-  scr_hash_delete(index);
+  scr_hash_delete(&index);
 
   return rc;
 }
@@ -1370,7 +1370,7 @@ int index_remove_dir(const char* prefix, const char* subdir)
   }
 
   /* free off our index hash */
-  scr_hash_delete(index);
+  scr_hash_delete(&index);
 
   return rc;
 }
@@ -1404,7 +1404,7 @@ int index_current_dir(const char* prefix, const char* subdir)
   }
 
   /* free off our index hash */
-  scr_hash_delete(index);
+  scr_hash_delete(&index);
 
   return rc;
 }
@@ -1466,11 +1466,11 @@ int index_add_dir(const char* prefix, const char* subdir)
     }
     
     /* free our summary file hash */
-    scr_hash_delete(summary);
+    scr_hash_delete(&summary);
   }
 
   /* free our index hash */
-  scr_hash_delete(index);
+  scr_hash_delete(&index);
 
   return rc;
 }

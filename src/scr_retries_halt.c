@@ -214,7 +214,7 @@ int main (int argc, char *argv[])
 
 cleanup:
   /* delete the hash holding the halt file data */
-  scr_hash_delete(scr_halt_hash);
+  scr_hash_delete(&scr_halt_hash);
 
   /* free off our file name storage */
   scr_free(&file);

@@ -125,7 +125,7 @@ int main (int argc, char *argv[])
 
 cleanup:
   /* delete the hash holding the nodes file data */
-  scr_hash_delete(hash);
+  scr_hash_delete(&hash);
 
   /* free off our file name storage */
   scr_free(&file);

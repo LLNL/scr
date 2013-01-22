@@ -69,7 +69,7 @@ static int scr_hash_elem_delete(scr_hash_elem* elem)
     scr_free(&(elem->key));
 
     /* free the hash */
-    scr_hash_delete(elem->hash);
+    scr_hash_delete(&elem->hash);
     elem->hash = NULL;
 
     /* finally, free the element structure itself */
@@ -93,15 +93,18 @@ scr_hash* scr_hash_new()
 }
 
 /* frees a hash */
-int scr_hash_delete(scr_hash* hash)
+int scr_hash_delete(scr_hash** ptr_hash)
 {
-  if (hash != NULL) {
-    while (!LIST_EMPTY(hash)) {
-      scr_hash_elem* elem = LIST_FIRST(hash);
-      LIST_REMOVE(elem, pointers);
-      scr_hash_elem_delete(elem);
+  if (ptr_hash != NULL) {
+    scr_hash* hash = *ptr_hash;
+    if (hash != NULL) {
+      while (!LIST_EMPTY(hash)) {
+        scr_hash_elem* elem = LIST_FIRST(hash);
+        LIST_REMOVE(elem, pointers);
+        scr_hash_elem_delete(elem);
+      }
+      scr_free(ptr_hash);
     }
-    scr_free(&hash);
   }
   return SCR_SUCCESS;
 }
@@ -173,7 +176,7 @@ scr_hash* scr_hash_set(scr_hash* hash, const char* key, scr_hash* hash_value)
   } else {
     /* this key already exists, delete its current hash and reset it */
     if (elem->hash != NULL) {
-      scr_hash_delete(elem->hash);
+      scr_hash_delete(&elem->hash);
     }
     elem->hash = hash_value;
   }
@@ -1205,7 +1208,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
   char header[SCR_FILE_HASH_HEADER_SIZE];
   nread = scr_read_attempt(file, fd, header, SCR_FILE_HASH_HEADER_SIZE);
   if (nread != SCR_FILE_HASH_HEADER_SIZE) {
-    scr_hash_delete(tmp_hash);
+    scr_hash_delete(&tmp_hash);
     return -1;
   }
 
@@ -1226,7 +1229,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
     scr_err("File header does not match expected values in %s @ %s:%d",
             file, __FILE__, __LINE__
     );
-    scr_hash_delete(tmp_hash);
+    scr_hash_delete(&tmp_hash);
     return -1;
   }
 
@@ -1243,7 +1246,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
     scr_err("Invalid file size stored in %s @ %s:%d",
             file, __FILE__, __LINE__
     );
-    scr_hash_delete(tmp_hash);
+    scr_hash_delete(&tmp_hash);
     return -1;
   }
 
@@ -1253,7 +1256,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
     scr_err("Allocating %lu byte buffer to write hash to %s @ %s:%d",
             (unsigned long) filesize, file, __FILE__, __LINE__
     );
-    scr_hash_delete(tmp_hash);
+    scr_hash_delete(&tmp_hash);
     return -1;
   }
 
@@ -1269,7 +1272,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
               file, __FILE__, __LINE__
       );
       scr_free(&buf);
-      scr_hash_delete(tmp_hash);
+      scr_hash_delete(&tmp_hash);
       return -1;
     }
   }
@@ -1295,7 +1298,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
               file, __FILE__, __LINE__
       );
       scr_free(&buf);
-      scr_hash_delete(tmp_hash);
+      scr_hash_delete(&tmp_hash);
       return -1;
     }
   }
@@ -1305,7 +1308,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
 
   /* merge and delete the temporary hash */
   scr_hash_merge(hash, tmp_hash);
-  scr_hash_delete(tmp_hash);
+  scr_hash_delete(&tmp_hash);
 
   /* free the buffer holding the file contents */
   scr_free(&buf);

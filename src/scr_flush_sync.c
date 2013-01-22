@@ -601,8 +601,8 @@ int scr_flush_sync(scr_filemap* map, int id)
   }
 
   /* free data structures */
-  scr_hash_delete(data);
-  scr_hash_delete(file_list);
+  scr_hash_delete(&data);
+  scr_hash_delete(&file_list);
 
   /* remove sync flushing marker from flush file */
   scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_SYNC_FLUSHING);

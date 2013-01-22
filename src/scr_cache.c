@@ -318,14 +318,14 @@ int scr_cache_clean(scr_filemap* map)
       if (scr_filemap_get_desc(map, dset, rank, desc) == SCR_SUCCESS) {
         scr_filemap_set_desc(keep_map, dset, rank, desc);
       }
-      scr_hash_delete(desc);
+      scr_hash_delete(&desc);
 
       /* add dataset descriptor to keep map, if one is set */
       scr_hash* dataset = scr_hash_new();
       if (scr_filemap_get_dataset(map, dset, rank, dataset) == SCR_SUCCESS) {
         scr_filemap_set_dataset(keep_map, dset, rank, dataset);
       }
-      scr_hash_delete(dataset);
+      scr_hash_delete(&dataset);
 
       /* check whether we have all the files we think we should */
       int expected_files = scr_filemap_get_expected_files(map, dset, rank);

@@ -55,7 +55,7 @@ scr_meta* scr_meta_new()
 /* free memory assigned to meta data object */
 int scr_meta_delete(scr_meta* meta)
 {
-  int rc = scr_hash_delete(meta);
+  int rc = scr_hash_delete(&meta);
   return rc;
 }
 

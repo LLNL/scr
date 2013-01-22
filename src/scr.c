@@ -915,7 +915,7 @@ int SCR_Init()
     scr_hash* nodes_hash = scr_hash_new();
     scr_hash_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);
     scr_hash_write(scr_nodes_file, nodes_hash);
-    scr_hash_delete(nodes_hash);
+    scr_hash_delete(&nodes_hash);
   }
 
   /* initialize halt info before calling scr_bool_check_halt_and_decrement
@@ -1104,9 +1104,9 @@ int SCR_Finalize()
   scr_reddescs_free();
 
   /* delete the descriptor hashes */
-  scr_hash_delete(scr_storedesc_hash);
-  scr_hash_delete(scr_groupdesc_hash);
-  scr_hash_delete(scr_reddesc_hash);
+  scr_hash_delete(&scr_storedesc_hash);
+  scr_hash_delete(&scr_groupdesc_hash);
+  scr_hash_delete(&scr_reddesc_hash);
 
   /* free off our global filemap object */
   scr_filemap_delete(scr_map);
@@ -1403,7 +1403,7 @@ int SCR_Start_checkpoint()
   scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  scr_preserve_directories);
   scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, scr_use_containers);
   scr_filemap_set_flushdesc(scr_map, scr_dataset_id, scr_my_rank_world, flushdesc);
-  scr_hash_delete(flushdesc);
+  scr_hash_delete(&flushdesc);
   
   /* store the redundancy descriptor in the filemap, so if we die before completing
    * the checkpoint, we'll have a record of the new directory we're about to create */
@@ -1411,7 +1411,7 @@ int SCR_Start_checkpoint()
   scr_reddesc_store_to_hash(reddesc, my_desc_hash);
   scr_filemap_set_desc(scr_map, scr_dataset_id, scr_my_rank_world, my_desc_hash);
   scr_filemap_write(scr_map_file, scr_map);
-  scr_hash_delete(my_desc_hash);
+  scr_hash_delete(&my_desc_hash);
 
   /* make directory in cache to store files for this checkpoint */
   scr_cache_dir_create(reddesc, scr_dataset_id);

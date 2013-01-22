@@ -56,7 +56,7 @@ scr_dataset* scr_dataset_new()
 /* free memory assigned to dataset object */
 int scr_dataset_delete(scr_dataset* dataset)
 {
-  int rc = scr_hash_delete(dataset);
+  int rc = scr_hash_delete(&dataset);
   return rc;
 }
 

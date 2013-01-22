@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
     }
 
     /* free the hash object */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
 
     /* free our strdup'd filename */
     scr_free(&filename);

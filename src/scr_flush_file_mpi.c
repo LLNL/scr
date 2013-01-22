@@ -38,7 +38,7 @@ int scr_bool_need_flush(int id)
     }
 
     /* free the hash object */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
   MPI_Bcast(&need_flush, 1, MPI_INT, 0, scr_comm_world);
 
@@ -65,7 +65,7 @@ int scr_bool_is_flushing(int id)
     }
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
   MPI_Bcast(&is_flushing, 1, MPI_INT, 0, scr_comm_world);
 
@@ -88,7 +88,7 @@ int scr_flush_file_dataset_remove(int id)
     scr_hash_write(scr_flush_file, hash);
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
   return SCR_SUCCESS;
 }
@@ -110,7 +110,7 @@ int scr_flush_file_location_set(int id, const char* location)
     scr_hash_write(scr_flush_file, hash);
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
   return SCR_SUCCESS;
 }
@@ -133,7 +133,7 @@ int scr_flush_file_location_test(int id, const char* location)
     }
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
   MPI_Bcast(&at_location, 1, MPI_INT, 0, scr_comm_world);
 
@@ -160,7 +160,7 @@ int scr_flush_file_location_unset(int id, const char* location)
     scr_hash_write(scr_flush_file, hash);
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
   return SCR_SUCCESS;
 }
@@ -183,7 +183,7 @@ int scr_flush_file_subdir_set(int id, const char* subdir)
     scr_hash_write(scr_flush_file, hash);
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
   return SCR_SUCCESS;
 }

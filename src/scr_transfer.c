@@ -232,7 +232,7 @@ int set_transfer_file_state(char* s, int done)
   }
 
   /* delete the hash */
-  scr_hash_delete(hash);
+  scr_hash_delete(&hash);
 
   return SCR_SUCCESS;
 }
@@ -358,7 +358,7 @@ int update_transfer_file(char* src, char* dst, off_t position)
   }
 
   /* free the hash */
-  scr_hash_delete(hash);
+  scr_hash_delete(&hash);
 
   return SCR_SUCCESS;
 }
@@ -478,7 +478,7 @@ int main (int argc, char *argv[])
 
       /* read the transfer file, which fills in our hash and
        * also updates state and bytes_per_second */
-      scr_hash_delete(hash);
+      scr_hash_delete(&hash);
       hash = read_transfer_file();
 
       /* compute time we should sleep before writing more data based

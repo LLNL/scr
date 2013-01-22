@@ -618,7 +618,7 @@ int main(int argc, char* argv[])
   scr_meta_delete(meta_chunk);
 
   /* delete the flush/scavenge descriptor */
-  scr_hash_delete(flushdesc);
+  scr_hash_delete(&flushdesc);
 
   scr_free(&offset);
 
@@ -631,8 +631,7 @@ int main(int argc, char* argv[])
   scr_free(&user_fds);
 
   for (i=0; i < xor_set_size; i++) {
-    scr_hash_delete(xor_headers[i]);
-    xor_headers[i] = NULL;
+    scr_hash_delete(&xor_headers[i]);
   }
 
   for (i=0; i < xor_set_size; i++) {

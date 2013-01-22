@@ -202,7 +202,7 @@ static int scr_reddesc_free_xor(scr_reddesc* d)
   scr_reddesc_xor* state = (scr_reddesc_xor*) d->copy_state;
   if (state != NULL) {
     /* free the hash mapping group ranks to world ranks */
-    scr_hash_delete(state->group_map);
+    scr_hash_delete(&state->group_map);
 
     /* free strings that we received */
     scr_free(&state->lhs_hostname);
@@ -822,7 +822,7 @@ char* scr_reddesc_val_from_filemap(
 
   /* get the redundancy descriptor hash from the filemap */
   if (scr_filemap_get_desc(map, ckpt, rank, desc) != SCR_SUCCESS) {
-    scr_hash_delete(desc);
+    scr_hash_delete(&desc);
     return NULL;
   }
 
@@ -835,7 +835,7 @@ char* scr_reddesc_val_from_filemap(
   }
 
   /* delete the hash object */
-  scr_hash_delete(desc);
+  scr_hash_delete(&desc);
 
   return dup;
 }
@@ -883,18 +883,18 @@ int scr_reddesc_create_from_filemap(
 
   /* get the redundancy descriptor hash from the filemap */
   if (scr_filemap_get_desc(map, id, rank, desc) != SCR_SUCCESS) {
-    scr_hash_delete(desc);
+    scr_hash_delete(&desc);
     return SCR_FAILURE;
   }
 
   /* fill in our redundancy descriptor */
   if (scr_reddesc_restore_from_hash(d, desc) != SCR_SUCCESS) {
-    scr_hash_delete(desc);
+    scr_hash_delete(&desc);
     return SCR_FAILURE;
   }
 
   /* delete the hash object */
-  scr_hash_delete(desc);
+  scr_hash_delete(&desc);
 
   return SCR_SUCCESS;
 }

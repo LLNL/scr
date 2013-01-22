@@ -212,16 +212,16 @@ int scr_param_finalize()
   /* if the reference count is zero, free the data structures */
   if (scr_param_ref_count == 0) {
     /* free our parameter hash */
-    scr_hash_delete(scr_user_hash);
+    scr_hash_delete(&scr_user_hash);
 
     /* free our parameter hash */
-    scr_hash_delete(scr_system_hash);
+    scr_hash_delete(&scr_system_hash);
 
     /* free our env hash */
-    scr_hash_delete(scr_env_hash);
+    scr_hash_delete(&scr_env_hash);
 
     /* free the hash listing parameters user cannot set */
-    scr_hash_delete(scr_no_user_hash);
+    scr_hash_delete(&scr_no_user_hash);
   }
 
   return SCR_SUCCESS;

@@ -94,7 +94,7 @@ int scr_mysql_disconnect()
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* free our type string to id cache */
-  scr_hash_delete(scr_db_types);
+  scr_hash_delete(&scr_db_types);
 
   mysql_close(&scr_mysql);
 #endif

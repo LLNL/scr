@@ -491,7 +491,7 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
   scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, scr_use_containers);
   scr_hash_util_set_str(flushdesc, SCR_SCAVENGE_KEY_PARTNER,   state->lhs_hostname);
   scr_filemap_set_flushdesc(map, id, state->lhs_rank_world, flushdesc);
-  scr_hash_delete(flushdesc);
+  scr_hash_delete(&flushdesc);
 
   /* record partner's redundancy descriptor hash */
   scr_hash* lhs_desc_hash = scr_hash_new();
@@ -499,8 +499,8 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
   scr_reddesc_store_to_hash(c, my_desc_hash);
   scr_hash_sendrecv(my_desc_hash, state->rhs_rank, lhs_desc_hash, state->lhs_rank, c->comm);
   scr_filemap_set_desc(map, id, state->lhs_rank_world, lhs_desc_hash);
-  scr_hash_delete(my_desc_hash);
-  scr_hash_delete(lhs_desc_hash);
+  scr_hash_delete(&my_desc_hash);
+  scr_hash_delete(&lhs_desc_hash);
 
   /* store this info in our filemap before we receive any files */
   scr_filemap_write(scr_map_file, map);
@@ -612,8 +612,8 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
   scr_reddesc_store_to_hash(c, my_desc_hash);
   scr_hash_sendrecv(my_desc_hash, state->rhs_rank, lhs_desc_hash, state->lhs_rank, c->comm);
   scr_filemap_set_desc(map, id, state->lhs_rank_world, lhs_desc_hash);
-  scr_hash_delete(my_desc_hash);
-  scr_hash_delete(lhs_desc_hash);
+  scr_hash_delete(&my_desc_hash);
+  scr_hash_delete(&lhs_desc_hash);
 
   /* allocate a new xor file header hash */
   scr_hash* header = scr_hash_new();
@@ -714,7 +714,7 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
 
   /* write out the xor chunk header */
   scr_hash_write_fd(my_chunk_file, fd_chunk, header);
-  scr_hash_delete(header);
+  scr_hash_delete(&header);
 
   MPI_Request request[2];
   MPI_Status  status[2];

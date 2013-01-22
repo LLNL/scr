@@ -610,7 +610,7 @@ static int scr_flush_create_dirs(scr_hash* file_list)
     scr_index_add_dir(index_hash, id, subdir);
     scr_index_mark_flushed(index_hash, id, subdir);
     scr_index_write(scr_prefix, index_hash);
-    scr_hash_delete(index_hash);
+    scr_hash_delete(&index_hash);
 
     /* create the directory */
     if (scr_mkdir(flushdir, S_IRWXU) == SCR_SUCCESS) {
@@ -766,7 +766,7 @@ int scr_flush_verify(const scr_filemap* map, int id, char* dir, size_t dir_size)
     );
   }
 
-  scr_hash_delete(file_list);
+  scr_hash_delete(&file_list);
 
   return SCR_SUCCESS;
 }
@@ -871,7 +871,7 @@ static int scr_flush_summary(const char* summary_dir, const scr_dataset* dataset
       scr_hash* incoming_hash = scr_hash_new();
       scr_hash_recv(incoming_hash, ranks[index], scr_comm_world);
       scr_hash_merge(data, incoming_hash);
-      scr_hash_delete(incoming_hash);
+      scr_hash_delete(&incoming_hash);
 
       /* one less request outstanding now */
       outstanding--;
@@ -972,7 +972,7 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
 
       /* write the index file and delete the hash */
       scr_index_write(scr_prefix, index_hash);
-      scr_hash_delete(index_hash);
+      scr_hash_delete(&index_hash);
     }
   }
 

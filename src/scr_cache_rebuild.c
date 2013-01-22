@@ -66,7 +66,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
     }
 
     /* free the hash object */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
 
     /* write out new local 0 filemap */
     if (scr_filemap_num_ranks(all_map) > 0) {
@@ -156,7 +156,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
       scr_hash_set_kv(hash, "Filemap", file);
     }
     scr_hash_write(scr_master_map_file, hash);
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   } else {
     /* send our global rank to the master */
     MPI_Gather(
@@ -181,8 +181,8 @@ int scr_scatter_filemaps(scr_filemap* my_map)
   }
 
   /* free off our send and receive hashes */
-  scr_hash_delete(recv_hash);
-  scr_hash_delete(send_hash);
+  scr_hash_delete(&recv_hash);
+  scr_hash_delete(&send_hash);
 
   return SCR_SUCCESS;
 }
@@ -225,10 +225,10 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
     if (scr_hash_size(desc) > 0) {
       have_dset = 1;
       scr_hash_merge(send_hash, desc);
-      scr_hash_delete(desc);
+      scr_hash_delete(&desc);
       break;
     } else {
-      scr_hash_delete(desc);
+      scr_hash_delete(&desc);
     }
   }
 
@@ -237,7 +237,7 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
 
   /* check that we didn't find an invalid rank on any process */
   if (! scr_alltrue(invalid_rank_found == 0)) {
-    scr_hash_delete(send_hash);
+    scr_hash_delete(&send_hash);
     return SCR_FAILURE;
   }
 
@@ -251,7 +251,7 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
 
   /* if there is no rank, return with failure */
   if (min_rank >= scr_ranks_world) {
-    scr_hash_delete(send_hash);
+    scr_hash_delete(&send_hash);
     return SCR_FAILURE;
   }
 
@@ -269,7 +269,7 @@ static int scr_distribute_datasets(scr_filemap* map, int id)
    * ranks for this checkpoint */
 
   /* free off our send hash */
-  scr_hash_delete(send_hash);
+  scr_hash_delete(&send_hash);
 
   return SCR_SUCCESS;
 }
@@ -311,7 +311,7 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* red)
     if (scr_hash_size(desc) > 0) {
       scr_hash_setf(send_hash, desc, "%d", rank);
     } else {
-      scr_hash_delete(desc);
+      scr_hash_delete(&desc);
     }
   }
 
@@ -320,7 +320,7 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* red)
 
   /* check that we didn't find an invalid rank on any process */
   if (! scr_alltrue(invalid_rank_found == 0)) {
-    scr_hash_delete(send_hash);
+    scr_hash_delete(&send_hash);
     return SCR_FAILURE;
   }
 
@@ -332,8 +332,8 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* red)
   /* check that everyone can get their descriptor */
   int num_desc = scr_hash_size(recv_hash);
   if (! scr_alltrue(num_desc > 0)) {
-    scr_hash_delete(recv_hash);
-    scr_hash_delete(send_hash);
+    scr_hash_delete(&recv_hash);
+    scr_hash_delete(&send_hash);
     scr_dbg(2, "Cannot find process that has my redundancy descriptor @ %s:%d",
       __FILE__, __LINE__
     );
@@ -356,8 +356,8 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* red)
   scr_reddesc_create_from_filemap(map, id, scr_my_rank_world, red);
 
   /* free off our send and receive hashes */
-  scr_hash_delete(recv_hash);
-  scr_hash_delete(send_hash);
+  scr_hash_delete(&recv_hash);
+  scr_hash_delete(&send_hash);
 
   return SCR_SUCCESS;
 }
@@ -463,8 +463,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
   }
 
   /* done with the round hashes, free them off */
-  scr_hash_delete(recv_hash);
-  scr_hash_delete(send_hash);
+  scr_hash_delete(&recv_hash);
+  scr_hash_delete(&send_hash);
 
   /* free off our list of ranks */
   scr_free(&ranks);
@@ -514,8 +514,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
   }
 
   /* done with the round hashes, free them off */
-  scr_hash_delete(recv_hash);
-  scr_hash_delete(send_hash);
+  scr_hash_delete(&recv_hash);
+  scr_hash_delete(&send_hash);
 
   int tmp_rc = 0;
 
@@ -1005,7 +1005,7 @@ int scr_flush_file_rebuild(const scr_filemap* map)
     scr_hash_write(scr_flush_file, hash);
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
   return SCR_SUCCESS;
 }

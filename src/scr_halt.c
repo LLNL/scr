@@ -128,7 +128,7 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
   }
 
   /* free the file_hash */
-  scr_hash_delete(file_hash);
+  scr_hash_delete(&file_hash);
 
   /* decrement the number of remaining checkpoints */
   char* ckpts_str = scr_hash_elem_get_first_val(hash, SCR_HALT_KEY_CHECKPOINTS);

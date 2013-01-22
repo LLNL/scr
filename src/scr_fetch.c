@@ -519,7 +519,7 @@ static int scr_fetch_summary(const char* summary_dir, scr_hash* file_list)
     if (scr_hash_size(container_hash) > 0) {
       scr_hash_set(file_list, SCR_SUMMARY_6_KEY_CONTAINER, container_hash);
     } else {
-      scr_hash_delete(container_hash);
+      scr_hash_delete(&container_hash);
     }
 
     /* scatter out file information for each rank */
@@ -547,7 +547,7 @@ static int scr_fetch_summary(const char* summary_dir, scr_hash* file_list)
       scr_hash_merge(tmp_hash, file_hash);
       scr_hash_set(file_list, SCR_KEY_FILE, tmp_hash);
     }
-    scr_hash_delete(recv_hash);
+    scr_hash_delete(&recv_hash);
 
     /* if we're not using containers, add PATH entry for each of our
      * files */
@@ -576,7 +576,7 @@ static int scr_fetch_summary(const char* summary_dir, scr_hash* file_list)
   }
 
   /* delete the summary hash object */
-  scr_hash_delete(summary_hash);
+  scr_hash_delete(&summary_hash);
 
   return rc;
 }
@@ -727,7 +727,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
         scr_log_event("FETCH FAILED", fetch_dir, NULL, &now, &time_diff);
       }
     }
-    scr_hash_delete(file_list);
+    scr_hash_delete(&file_list);
     return SCR_FAILURE;
   }
 
@@ -746,7 +746,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
         scr_log_event("FETCH FAILED", fetch_dir, NULL, &now, &time_diff);
       }
     }
-    scr_hash_delete(file_list);
+    scr_hash_delete(&file_list);
     return SCR_FAILURE;
   }
 
@@ -758,7 +758,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
     scr_err("Failed to read checkpoint id from dataset @ %s:%d",
       __FILE__, __LINE__
     );
-    scr_hash_delete(file_list);
+    scr_hash_delete(&file_list);
     return SCR_FAILURE;
   }
 
@@ -773,7 +773,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
   scr_hash* my_desc_hash = scr_hash_new();
   scr_reddesc_store_to_hash(c, my_desc_hash);
   scr_filemap_set_desc(map, id, scr_my_rank_world, my_desc_hash);
-  scr_hash_delete(my_desc_hash);
+  scr_hash_delete(&my_desc_hash);
 
   /* write the filemap out before creating the directory */
   scr_filemap_write(scr_map_file, map);
@@ -792,7 +792,7 @@ static int scr_fetch_files(scr_filemap* map, char* fetch_dir, int* dataset_id, i
   }
 
   /* free the hash holding the summary file data */
-  scr_hash_delete(file_list);
+  scr_hash_delete(&file_list);
 
   /* check that all processes copied their file successfully */
   if (! scr_alltrue(success)) {
@@ -990,7 +990,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
 
   /* delete the index hash */
   if (scr_my_rank_world == 0) {
-    scr_hash_delete(index_hash);
+    scr_hash_delete(&index_hash);
   }
 
   /* broadcast whether we actually attempted to fetch anything

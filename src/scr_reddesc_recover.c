@@ -453,7 +453,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     scr_free(&filenames);
   }
   scr_free(&fds);
-  scr_hash_delete(header);
+  scr_hash_delete(&header);
 
   return rc;
 }

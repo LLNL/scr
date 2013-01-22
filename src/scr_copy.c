@@ -345,7 +345,7 @@ int main (int argc, char *argv[])
     );
     printf("scr_copy: %s: Return code: 1\n", hostname);
     scr_filemap_delete(map);
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
     return 1;
   }
 
@@ -357,7 +357,7 @@ int main (int argc, char *argv[])
     );
     printf("scr_copy: %s: Return code: 1\n", hostname);
     scr_filemap_delete(map);
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
     return 1;
   }
 
@@ -388,7 +388,7 @@ int main (int argc, char *argv[])
     scr_hash_util_get_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, &container);
 
     /* free the scavenge descriptor */
-    scr_hash_delete(flushdesc);
+    scr_hash_delete(&flushdesc);
 
     /* if this rank is not a partner, and our partner only flag is set,
      * skip this rank */
@@ -436,7 +436,7 @@ int main (int argc, char *argv[])
     scr_hash_util_set_int(rank_flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  preserve_dirs);
     scr_hash_util_set_int(rank_flushdesc, SCR_SCAVENGE_KEY_CONTAINER, container);
     scr_filemap_set_flushdesc(rank_map, args.id, rank, rank_flushdesc);
-    scr_hash_delete(rank_flushdesc);
+    scr_hash_delete(&rank_flushdesc);
 
     /* step through each file we have for this rank */
     scr_hash_elem* file_elem = NULL;
@@ -474,7 +474,7 @@ int main (int argc, char *argv[])
               printf("scr_copy: %s: Return code: 1\n", hostname);
               scr_meta_delete(meta);
               scr_filemap_delete(map);
-              scr_hash_delete(hash);
+              scr_hash_delete(&hash);
               return 1;
             }
 
@@ -488,7 +488,7 @@ int main (int argc, char *argv[])
               printf("scr_copy: %s: Return code: 1\n", hostname);
               scr_meta_delete(meta);
               scr_filemap_delete(map);
-              scr_hash_delete(hash);
+              scr_hash_delete(&hash);
               return 1;
             }
           }

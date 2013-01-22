@@ -411,7 +411,7 @@ int scr_summary_read(const char* dir, scr_hash* summary_hash)
         scr_err("Reading summary file in %s @ %s:%d",
           dir, __FILE__, __LINE__
         );
-        scr_hash_delete(summary_hash_v5);
+        scr_hash_delete(&summary_hash_v5);
         return SCR_FAILURE;
       }
     }
@@ -422,7 +422,7 @@ int scr_summary_read(const char* dir, scr_hash* summary_hash)
       scr_err("Invalid version 5 summary file in %s @ %s:%d",
         dir, __FILE__, __LINE__
       );
-      scr_hash_delete(summary_hash_v5);
+      scr_hash_delete(&summary_hash_v5);
       return SCR_FAILURE;
     }
 
@@ -432,10 +432,10 @@ int scr_summary_read(const char* dir, scr_hash* summary_hash)
       scr_err("Invalid version 5 summary file in %s @ %s:%d",
         dir, __FILE__, __LINE__
       );
-      scr_hash_delete(summary_hash_v5);
+      scr_hash_delete(&summary_hash_v5);
       return SCR_FAILURE;
     }
-    scr_hash_delete(summary_hash_v5);
+    scr_hash_delete(&summary_hash_v5);
   }
 
   /* TODO: check that hash looks like a version 6 hash */
@@ -490,7 +490,7 @@ int scr_summary_write(const char* dir, const scr_dataset* dataset, int all_compl
   scr_hash_write(file, summary_hash);
 
   /* free the hash object */
-  scr_hash_delete(summary_hash);
+  scr_hash_delete(&summary_hash);
 
   return SCR_SUCCESS;
 }

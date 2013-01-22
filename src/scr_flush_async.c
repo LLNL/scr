@@ -116,7 +116,7 @@ static int scr_flush_async_command_set(char* command)
     scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
   return SCR_SUCCESS;
 }
@@ -145,7 +145,7 @@ static int scr_flush_async_state_wait(char* state)
       }
 
       /* delete the hash */
-      scr_hash_delete(hash);
+      scr_hash_delete(&hash);
     }
 
     /* check whether everyone is at the specified state */
@@ -180,7 +180,7 @@ static int scr_flush_async_file_clear_all()
     scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
   return SCR_SUCCESS;
 }
@@ -215,10 +215,10 @@ int scr_flush_async_stop()
 
   /* clear internal flush_async variables to indicate there is no flush */
   if (scr_flush_async_hash != NULL) {
-    scr_hash_delete(scr_flush_async_hash);
+    scr_hash_delete(&scr_flush_async_hash);
   }
   if (scr_flush_async_file_list != NULL) {
-    scr_hash_delete(scr_flush_async_file_list);
+    scr_hash_delete(&scr_flush_async_file_list);
   }
 
   /* make sure all processes have made it this far before we leave */
@@ -277,7 +277,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
         scr_log_event("ASYNC FLUSH FAILED", "Failed to prepare flush", &id, &now, &time_diff);
       }
     }
-    scr_hash_delete(scr_flush_async_file_list);
+    scr_hash_delete(&scr_flush_async_file_list);
     scr_flush_async_file_list = NULL;
     return SCR_FAILURE;
   }
@@ -343,7 +343,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
       scr_hash* h = scr_hash_new();
       scr_hash_recv(h, i, scr_storedesc_cntl->comm);
       scr_hash_merge(scr_flush_async_hash, h);
-      scr_hash_delete(h);
+      scr_hash_delete(&h);
     }
 
     /* get a hash to store file data */
@@ -382,7 +382,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
     scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
 
     /* delete the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   } else {
     /* send our transfer hash data to the master on this node */
     scr_hash_send(scr_flush_async_hash, 0, scr_storedesc_cntl->comm);
@@ -432,7 +432,7 @@ int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
     }
 
     /* free the hash */
-    scr_hash_delete(hash);
+    scr_hash_delete(&hash);
   }
 
   /* compute the total number of bytes written */
@@ -526,7 +526,7 @@ int scr_flush_async_complete(scr_filemap* map, int id)
     scr_hash_write_close_unlock(scr_transfer_file, &fd, transfer_hash);
 
     /* delete the hash */
-    scr_hash_delete(transfer_hash);
+    scr_hash_delete(&transfer_hash);
   }
 
   /* mark that we've stopped the flush */
@@ -534,11 +534,11 @@ int scr_flush_async_complete(scr_filemap* map, int id)
   scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
 
   /* free data structures */
-  scr_hash_delete(data);
+  scr_hash_delete(&data);
 
   /* free the file list for this checkpoint */
-  scr_hash_delete(scr_flush_async_hash);
-  scr_hash_delete(scr_flush_async_file_list);
+  scr_hash_delete(&scr_flush_async_hash);
+  scr_hash_delete(&scr_flush_async_file_list);
   scr_flush_async_hash      = NULL;
   scr_flush_async_file_list = NULL;
 

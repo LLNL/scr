@@ -673,7 +673,7 @@ scr_filemap* scr_filemap_new()
 /* free memory resources assocaited with filemap */
 int scr_filemap_delete(scr_filemap* map)
 {
-  scr_hash_delete(map);
+  scr_hash_delete(&map);
   return SCR_SUCCESS;
 }
 
