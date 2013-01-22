@@ -35,6 +35,7 @@ $TV ../src/scr_index_cmd -a `pwd` scr.2010-06-29_17:22:08.1018033.10 &
 #include "scr_io.h"
 #include "scr_err.h"
 #include "scr_util.h"
+#include "scr_path.h"
 #include "scr_hash.h"
 #include "scr_meta.h"
 #include "scr_filemap.h"
@@ -148,23 +149,25 @@ $TV ../src/scr_index_cmd -a `pwd` scr.2010-06-29_17:22:08.1018033.10 &
 #define SCR_SCAN_KEY_BUILD    ("BUILD")
 
 /* read the file and directory names from dir and return in hash */
-int scr_read_dir(const char* dir, scr_hash* hash)
+int scr_read_dir(const scr_path* dir, scr_hash* hash)
 {
   int rc = SCR_SUCCESS;
 
-  DIR* dirp = NULL;
-  struct dirent* dp = NULL;
+  /* allocate directory in string form */
+  char* dir_str = scr_path_strdup(dir);
 
   /* open the directory */
-  dirp = opendir(dir);
+  DIR* dirp = opendir(dir_str);
   if (dirp == NULL) {
     scr_err("Failed to open directory %s (errno=%d %m) @ %s:%d",
-      dir, errno, __FILE__, __LINE__
+      dir_str, errno, __FILE__, __LINE__
     );
+    scr_free(&dir_str);
     return SCR_FAILURE;
   } 
 
   /* read each file from the directory */
+  struct dirent* dp = NULL;
   do {
     errno = 0;
     dp = readdir(dirp);
@@ -183,7 +186,7 @@ int scr_read_dir(const char* dir, scr_hash* hash)
     } else {
       if (errno != 0) {
         scr_err("Failed to read directory %s (errno=%d %m) @ %s:%d",
-          dir, errno, __FILE__, __LINE__
+          dir_str, errno, __FILE__, __LINE__
         );
         rc = SCR_FAILURE;
       }
@@ -193,79 +196,76 @@ int scr_read_dir(const char* dir, scr_hash* hash)
   /* close the directory */
   if (closedir(dirp) < 0) {
     scr_err("Failed to close directory %s (errno=%d %m) @ %s:%d",
-      dir, errno, __FILE__, __LINE__
+      dir_str, errno, __FILE__, __LINE__
     );
+    scr_free(&dir_str);
     return SCR_FAILURE;
   }
+
+  /* free our directory string */
+  scr_free(&dir_str);
 
   return rc;
 }
 
-int scr_summary_read(const char* dir, scr_hash* hash)
+int scr_summary_read(const scr_path* dir, scr_hash* hash)
 {
-  /* build the name of the .scr subdirectory */
-  char dir_scr[SCR_MAX_FILENAME];
-  if (scr_path_build(dir_scr, sizeof(dir_scr), dir, ".scr") != SCR_SUCCESS) {
-    scr_err("Failed to build name of .scr subdirectory for %s @ %s:%d",
-      dir, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  int rc = SCR_SUCCESS;
 
   /* build the filename for the summary file */
-  char summary_file[SCR_MAX_FILENAME];
-  if (scr_path_build(summary_file, sizeof(summary_file), dir_scr, SCR_SUMMARY_FILENAME) != SCR_SUCCESS) {
-    scr_err("Failed to build full filename for summary file for directory %s @ %s:%d",
-      dir, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  scr_path* path = scr_path_dup(dir);
+  scr_path_append_str(path, ".scr");
+  scr_path_append_str(path, SCR_SUMMARY_FILENAME);
+  char* summary_file = scr_path_strdup(path);
 
   /* check whether the file exists before we attempt to read it
    * (do this error to avoid printing an error in scr_hash_read) */
   if (scr_file_exists(summary_file) != SCR_SUCCESS) {
-    return SCR_FAILURE;
+    rc = SCR_FAILURE;
+    goto cleanup;
   }
 
   /* now attempt to read the file contents into the hash */
   if (scr_hash_read(summary_file, hash) != SCR_SUCCESS) {
-    return SCR_FAILURE;
+    rc = SCR_FAILURE;
+    goto cleanup;
   }
 
-  return SCR_SUCCESS;
+cleanup:
+  /* free off objects and return with failure */
+  scr_free(&summary_file);
+  scr_path_delete(&path);
+
+  return rc;
 }
 
-int scr_summary_write(const char* dir, scr_hash* hash)
+int scr_summary_write(const scr_path* dir, scr_hash* hash)
 {
-  /* build the name of the .scr subdirectory */
-  char dir_scr[SCR_MAX_FILENAME];
-  if (scr_path_build(dir_scr, sizeof(dir_scr), dir, ".scr") != SCR_SUCCESS) {
-    scr_err("Failed to build name of .scr subdirectory for %s @ %s:%d",
-      dir, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  int rc = SCR_SUCCESS;
 
   /* build the filename for the summary file */
-  char summary_file[SCR_MAX_FILENAME];
-  if (scr_path_build(summary_file, sizeof(summary_file), dir_scr, SCR_SUMMARY_FILENAME) != SCR_SUCCESS) {
-    scr_err("Failed to build full filename for summary file for directory %s @ %s:%d",
-      dir, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  scr_path* path = scr_path_dup(dir);
+  scr_path_append_str(path, ".scr");
+  scr_path_append_str(path, SCR_SUMMARY_FILENAME);
+  char* summary_file = scr_path_strdup(path);
 
   /* now write the hash to the file */
   if (scr_hash_write(summary_file, hash) != SCR_SUCCESS) {
-    return SCR_FAILURE;
+    rc = SCR_FAILURE;
+    goto cleanup;
   }
 
-  return SCR_SUCCESS;
+cleanup:
+  /* free off objects and return with failure */
+  scr_free(&summary_file);
+  scr_path_delete(&path);
+
+  return rc;
 }
 
 /* forks and execs processes to rebuild missing files and waits for them to complete,
  * returns SCR_FAILURE if any dataset failed to rebuild, SCR_SUCCESS otherwise */
-int scr_fork_rebuilds(const char* dir, scr_hash* cmds)
+int scr_fork_rebuilds(const scr_path* dir, scr_hash* cmds)
 {
   int rc = SCR_SUCCESS;
 
@@ -283,6 +283,9 @@ int scr_fork_rebuilds(const char* dir, scr_hash* cmds)
       return SCR_FAILURE;
     }
   }
+
+  /* allocate character string for chdir */
+  char* dir_str = scr_path_strdup(dir);
 
   /* TODO: flow control the number of builds ongoing at a time */
 
@@ -347,9 +350,9 @@ int scr_fork_rebuilds(const char* dir, scr_hash* cmds)
       argv[index] = NULL;
 
       /* cd to current working directory */
-      if (chdir(dir) != 0) {
+      if (chdir(dir_str) != 0) {
         scr_err("Failed to change to directory %s @ %s:%d",
-          dir, __FILE__, __LINE__
+          dir_str, __FILE__, __LINE__
         );
         exit(1);
       }
@@ -378,6 +381,9 @@ int scr_fork_rebuilds(const char* dir, scr_hash* cmds)
     pid_count--;
   }
 
+  /* free the directory string */
+  scr_free(&dir_str);
+
   /* free the pid array */
   scr_free(&pids);
 
@@ -385,7 +391,7 @@ int scr_fork_rebuilds(const char* dir, scr_hash* cmds)
 }
 
 /* returns SCR_FAILURE if any dataset failed to rebuild, SCR_SUCCESS otherwise */
-int scr_rebuild_scan(const char* dir, scr_hash* scan)
+int scr_rebuild_scan(const scr_path* dir, scr_hash* scan)
 {
   /* assume we'll be successful */
   int rc = SCR_SUCCESS;
@@ -504,11 +510,12 @@ int scr_rebuild_scan(const char* dir, scr_hash* scan)
           argc++;
 
           /* build the name of the missing xor file */
-          char missing_filename[SCR_MAX_FILENAME];
-          char missing_filepath[SCR_MAX_FILENAME];
-          snprintf(missing_filename, sizeof(missing_filename), "%d_of_%d_in_%d.xor", missing_member, members, xor_setid);
-          scr_path_build(missing_filepath, sizeof(missing_filepath), ".scr", missing_filename);
+          scr_path* missing_filepath = scr_path_from_str(".scr");
+          scr_path_append_strf(missing_filepath, "%d_of_%d_in_%d.xor", missing_member, members, xor_setid);
+          char* missing_filename_str = scr_path_strdup(missing_filepath);
           scr_hash_setf(buildcmd_hash, NULL, "%d %s", argc, missing_filepath);
+          scr_free(&missing_filename_str);
+          scr_path_delete(&missing_filepath);
           argc++;
 
           /* write each of the existing xor file names, skipping the missing member */
@@ -526,10 +533,11 @@ int scr_rebuild_scan(const char* dir, scr_hash* scan)
 
       /* rebuild if we can */
       scr_hash* unrecoverable = scr_hash_get(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE);
+      char* dir_str = scr_path_strdup(dir);
       if (unrecoverable != NULL) {
         /* at least some files cannot be recovered */
         scr_err("Insufficient files to attempt rebuild of dataset %d in %s @ %s:%d",
-          dset_id, dir, __FILE__, __LINE__
+          dset_id, dir_str, __FILE__, __LINE__
         );
         rc = SCR_FAILURE;
       } else {
@@ -537,11 +545,12 @@ int scr_rebuild_scan(const char* dir, scr_hash* scan)
         scr_hash* builds_hash = scr_hash_get(dset_hash, SCR_SCAN_KEY_BUILD);
         if (scr_fork_rebuilds(dir, builds_hash) != SCR_SUCCESS) {
           scr_err("At least one rebuild failed for dataset %d in %s @ %s:%d",
-            dset_id, dir, __FILE__, __LINE__
+            dset_id, dir_str, __FILE__, __LINE__
           );
           rc = SCR_FAILURE;
         }
       }
+      scr_free(&dir_str);
     }
   }
 
@@ -739,20 +748,23 @@ int scr_inspect_scan(scr_hash* scan)
 
 /* Reads *.scrfilemap files from given dataset directory and adds them to scan hash.
  * Returns SCR_SUCCESS if the files could be scanned */
-int scr_scan_files(const char* dir, scr_hash* scan)
+int scr_scan_files(const scr_path* dir, scr_hash* scan)
 {
   /* create an empty hash to hold the file names */
   scr_hash* contents = scr_hash_new();
 
   /* create path to scr subdirectory */
-  char path_scr[SCR_MAX_FILENAME];
-  scr_path_build(path_scr, sizeof(path_scr), dir, ".scr");
+  scr_path* path_scr = scr_path_dup(dir);
+  scr_path_append_str(path_scr, ".scr");
 
   /* read the contents of the directory */
   if (scr_read_dir(path_scr, contents) != SCR_SUCCESS) {
+    char* path_scr_str = scr_path_strdup(path_scr);
     scr_err("Failed to read directory %s @ %s:%d",
-      path_scr, __FILE__, __LINE__
+      path_scr_str, __FILE__, __LINE__
     );
+    scr_free(&path_scr_str);
+    scr_path_delete(&path_scr);
     scr_hash_delete(&contents);
     return SCR_FAILURE;
   }
@@ -782,14 +794,11 @@ int scr_scan_files(const char* dir, scr_hash* scan)
       continue;
     }
 
-    /* build the full file name */
-    char name_tmp[SCR_MAX_FILENAME];
-    if (scr_path_build(name_tmp, sizeof(name_tmp), path_scr, name) != SCR_SUCCESS) {
-      scr_err("Filename too long to copy into internal buffer: %s/%s @ %s:%d",
-        path_scr, name, __FILE__, __LINE__
-      );
-      continue;
-    }
+    /* allocate string of full file name */
+    scr_path* path_name = scr_path_dup(path_scr);
+    scr_path_append_str(path_name, name);
+    char* name_tmp = scr_path_strdup(path_name);
+    scr_path_delete(&path_name);
 
     /* create an empty filemap to store contents */
     scr_filemap* rank_map = scr_filemap_new();
@@ -799,9 +808,11 @@ int scr_scan_files(const char* dir, scr_hash* scan)
       scr_err("Error reading filemap: %s @ %s:%d",
         name_tmp, __FILE__, __LINE__
       );
+      scr_free(&name_tmp);
       scr_filemap_delete(&rank_map);
       continue;
     }
+    scr_free(&name_tmp);
 
     /* iterate over each dataset in this filemap */
     scr_hash_elem* dset_elem = NULL;
@@ -864,13 +875,10 @@ int scr_scan_files(const char* dir, scr_hash* scan)
           char* file_name = scr_hash_elem_key(file_elem);
 
           /* build the full file name */
-          char full_filename[SCR_MAX_FILENAME];
-          if (scr_path_build(full_filename, sizeof(full_filename), dir, file_name) != SCR_SUCCESS) {
-            scr_err("Filename too long to copy into internal buffer: %s/%s @ %s:%d",
-              dir, file_name, __FILE__, __LINE__
-            );
-            continue;
-          }
+          scr_path* full_filename_path = scr_path_dup(dir);
+          scr_path_append_str(full_filename_path, file_name);
+          char* full_filename = scr_path_strdup(full_filename_path);
+          scr_path_delete(&full_filename_path);
 
           /* get meta data for this file */
           scr_meta* meta = scr_meta_new();
@@ -878,6 +886,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
             scr_err("Failed to read meta data for %s from dataset %d @ %s:%d",
               file_name, dset_id, __FILE__, __LINE__
             );
+            scr_free(&full_filename);
             continue;
           }
 
@@ -896,6 +905,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
               full_filename, __FILE__, __LINE__
             );
             scr_meta_delete(&meta);
+            scr_free(&full_filename);
             continue;
           }
 #endif
@@ -907,6 +917,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
               full_filename, __FILE__, __LINE__
             );
             scr_meta_delete(&meta);
+            scr_free(&full_filename);
             continue;
           }
 
@@ -917,6 +928,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
               full_filename, __FILE__, __LINE__
             );
             scr_meta_delete(&meta);
+            scr_free(&full_filename);
             continue;
           }
 
@@ -927,6 +939,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
               full_filename, __FILE__, __LINE__
             );
             scr_meta_delete(&meta);
+            scr_free(&full_filename);
             continue;
           }
 
@@ -943,6 +956,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
               full_filename, __FILE__, __LINE__
             );
             scr_meta_delete(&meta);
+            scr_free(&full_filename);
             continue;
           }
 
@@ -952,6 +966,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
               full_filename, __FILE__, __LINE__
             );
             scr_meta_delete(&meta);
+            scr_free(&full_filename);
             continue;
           }
 
@@ -962,6 +977,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
               size, meta_filesize, full_filename, __FILE__, __LINE__
             );
             scr_meta_delete(&meta);
+            scr_free(&full_filename);
             continue;
           }
 
@@ -971,6 +987,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
               meta_ranks, ranks, full_filename, __FILE__, __LINE__
             );
             scr_meta_delete(&meta);
+            scr_free(&full_filename);
             continue;
           }
 
@@ -1068,6 +1085,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
           }
 
           scr_meta_delete(&meta);
+          scr_free(&full_filename);
         }
       }
     }
@@ -1079,6 +1097,9 @@ int scr_scan_files(const char* dir, scr_hash* scan)
   /* free the xor regular expression */
   regfree(&re_xor_file);
 
+  /* delete the path to the scr directory */
+  scr_path_delete(&path_scr);
+
   /* delete the hash holding the file and directory names */
   scr_hash_delete(&contents);
 
@@ -1089,7 +1110,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
  * Returns SCR_SUCCESS if the summary file exists or was written,
  * but this does not imply the dataset is valid, only that the summary
  * file was written */
-int scr_summary_build(const char* dir)
+int scr_summary_build(const scr_path* dir)
 {
   int rc = SCR_SUCCESS;
 
@@ -1164,23 +1185,27 @@ int scr_summary_build(const char* dir)
 
 /* returns SCR_SUCCESS only if named directory is explicitly marked as complete
  * in the index file */
-int is_complete(const char* prefix, const char* dir)
+int is_complete(const scr_path* prefix, const scr_path* subdir)
 {
   int rc = SCR_FAILURE;
+
+  /* get string versions of prefix and subdir */
+  char* prefix_str = scr_path_strdup(prefix);
+  char* subdir_str = scr_path_strdup(subdir);
 
   /* create a new hash to store our index file data */
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  scr_index_read(prefix, index); 
+  scr_index_read(prefix_str, index); 
 
   /* lookup the dataset id based on the directory name */
   int id = 0;
-  if (scr_index_get_id_by_dir(index, dir, &id) == SCR_SUCCESS) {
+  if (scr_index_get_id_by_dir(index, subdir_str, &id) == SCR_SUCCESS) {
     if (id != -1) {
       /* found the dataset id, now lookup its COMPLETE value */
       int complete = 0;
-      if (scr_index_get_complete(index, id, dir, &complete) == SCR_SUCCESS) {
+      if (scr_index_get_complete(index, id, subdir_str, &complete) == SCR_SUCCESS) {
         if (complete == 1) {
           /* only return success if we find a value for complete, and if that value is 1 */
           rc = SCR_SUCCESS;
@@ -1192,20 +1217,27 @@ int is_complete(const char* prefix, const char* dir)
   /* free the index hash */
   scr_hash_delete(&index);
 
+  /* free our strings */
+  scr_free(&subdir_str);
+  scr_free(&prefix_str);
+
   return rc;
 }
 
-int index_list(const char* prefix)
+int index_list(const scr_path* prefix)
 {
   int rc = SCR_SUCCESS;
+
+  /* get string version of prefix */
+  char* prefix_str = scr_path_strdup(prefix);
 
   /* create a new hash to store our index file data */
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  if (scr_index_read(prefix, index) != SCR_SUCCESS) {
+  if (scr_index_read(prefix_str, index) != SCR_SUCCESS) {
     scr_err("Failed to read index file in %s @ %s:%d",
-      prefix, __FILE__, __LINE__
+      prefix_str, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1338,73 +1370,100 @@ int index_list(const char* prefix)
   /* free off our index hash */
   scr_hash_delete(&index);
 
+  /* free our string */
+  scr_free(&prefix_str);
+
   return rc;
 }
 
 /* delete named directory from index (does not delete files) */
-int index_remove_dir(const char* prefix, const char* subdir)
+int index_remove_dir(const scr_path* prefix, const scr_path* subdir)
 {
   int rc = SCR_SUCCESS;
+
+  /* get string versions of prefix and subdir */
+  char* prefix_str = scr_path_strdup(prefix);
+  char* subdir_str = scr_path_strdup(subdir);
 
   /* create a new hash to store our index file data */
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  if (scr_index_read(prefix, index) != SCR_SUCCESS) {
+  if (scr_index_read(prefix_str, index) != SCR_SUCCESS) {
     scr_err("Failed to read index file in %s @ %s:%d",
-      prefix, __FILE__, __LINE__
+      prefix_str, __FILE__, __LINE__
     );
-    return SCR_FAILURE;
+    rc = SCR_FAILURE;
+    goto cleanup;
   }
 
   /* remove directory from index */
-  if (scr_index_remove_dir(index, subdir) == SCR_SUCCESS) {
+  if (scr_index_remove_dir(index, subdir_str) == SCR_SUCCESS) {
     /* write out new index file */
-    scr_index_write(prefix, index);
+    scr_index_write(prefix_str, index);
   } else {
     /* couldn't find the named directory, print an error */
     scr_err("Named directory was not found in index file: %s @ %s:%d",
       subdir, __FILE__, __LINE__
     );
     rc = SCR_FAILURE;
+    goto cleanup;
   }
+
+cleanup:
 
   /* free off our index hash */
   scr_hash_delete(&index);
+
+  /* free our strings */
+  scr_free(&subdir_str);
+  scr_free(&prefix_str);
 
   return rc;
 }
 
 /* set named directory as restart directory */
-int index_current_dir(const char* prefix, const char* subdir)
+int index_current_dir(const scr_path* prefix, const scr_path* subdir)
 {
   int rc = SCR_SUCCESS;
+
+  /* get string versions of prefix and subdir */
+  char* prefix_str = scr_path_strdup(prefix);
+  char* subdir_str = scr_path_strdup(subdir);
 
   /* create a new hash to store our index file data */
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  if (scr_index_read(prefix, index) != SCR_SUCCESS) {
+  if (scr_index_read(prefix_str, index) != SCR_SUCCESS) {
     scr_err("Failed to read index file in %s @ %s:%d",
-      prefix, __FILE__, __LINE__
+      prefix_str, __FILE__, __LINE__
     );
-    return SCR_FAILURE;
+    rc = SCR_FAILURE;
+    goto cleanup;
   }
 
   /* remove directory from index */
-  if (scr_index_set_current(index, subdir) == SCR_SUCCESS) {
+  if (scr_index_set_current(index, subdir_str) == SCR_SUCCESS) {
     /* write out new index file */
-    scr_index_write(prefix, index);
+    scr_index_write(prefix_str, index);
   } else {
     /* couldn't find the named directory, print an error */
     scr_err("Named directory was not found in index file: %s @ %s:%d",
-      subdir, __FILE__, __LINE__
+      subdir_str, __FILE__, __LINE__
     );
     rc = SCR_FAILURE;
+    goto cleanup;
   }
+
+cleanup:
 
   /* free off our index hash */
   scr_hash_delete(&index);
+
+  /* free our strings */
+  scr_free(&subdir_str);
+  scr_free(&prefix_str);
 
   return rc;
 }
@@ -1413,32 +1472,37 @@ int index_current_dir(const char* prefix, const char* subdir)
  * attempt add the dataset directory to the index file.
  * Returns SCR_SUCCESS if dataset directory can be indexed,
  * either as complete or incomplete */
-int index_add_dir(const char* prefix, const char* subdir)
+int index_add_dir(const scr_path* prefix, const scr_path* subdir)
 {
   int rc = SCR_SUCCESS;
+
+  /* get string versions of prefix and subdir */
+  char* prefix_str = scr_path_strdup(prefix);
+  char* subdir_str = scr_path_strdup(subdir);
 
   /* create a new hash to store our index file data */
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  scr_index_read(prefix, index); 
+  scr_index_read(prefix_str, index); 
 
   /* if named directory is already indexed, exit with success */
   int id;
-  if (scr_index_get_id_by_dir(index, subdir, &id) != SCR_SUCCESS) {
+  if (scr_index_get_id_by_dir(index, subdir_str, &id) != SCR_SUCCESS) {
     /* create a new hash to hold our summary file data */
     scr_hash* summary = scr_hash_new();
 
     /* read summary file from the dataset directory */
-    char dataset_dir[SCR_MAX_FILENAME];
-    scr_path_build(dataset_dir, sizeof(dataset_dir), prefix, subdir);
-    if (scr_summary_read(dataset_dir, summary) != SCR_SUCCESS) {
+    scr_path* dataset_path = scr_path_dup(prefix);
+    scr_path_append(dataset_path, subdir);
+    if (scr_summary_read(dataset_path, summary) != SCR_SUCCESS) {
       /* if summary file is missing, attempt to build it */
-      if (scr_summary_build(dataset_dir) == SCR_SUCCESS) {
+      if (scr_summary_build(dataset_path) == SCR_SUCCESS) {
         /* if the build was successful, try the read again */
-        scr_summary_read(dataset_dir, summary);
+        scr_summary_read(dataset_path, summary);
       }
     }
+    scr_path_delete(&dataset_path);
     
     /* get the dataset hash for this directory */
     scr_dataset* dataset = scr_hash_get(summary, SCR_SUMMARY_6_KEY_DATASET);
@@ -1449,9 +1513,9 @@ int index_add_dir(const char* prefix, const char* subdir)
         int complete;
         if (scr_hash_util_get_int(summary, SCR_SUMMARY_6_KEY_COMPLETE, &complete) == SCR_SUCCESS) {
           /* write values to the index file */
-          scr_index_set_dataset(index, dataset_id, subdir, dataset, complete);
-          scr_index_mark_flushed(index, dataset_id, subdir);
-          scr_index_write(prefix, index); 
+          scr_index_set_dataset(index, dataset_id, subdir_str, dataset, complete);
+          scr_index_mark_flushed(index, dataset_id, subdir_str);
+          scr_index_write(prefix_str, index); 
         } else {
           /* failed to read complete flag */
           rc = SCR_FAILURE;
@@ -1471,6 +1535,10 @@ int index_add_dir(const char* prefix, const char* subdir)
 
   /* free our index hash */
   scr_hash_delete(&index);
+
+  /* free our strings */
+  scr_free(&subdir_str);
+  scr_free(&prefix_str);
 
   return rc;
 }
@@ -1492,8 +1560,8 @@ int print_usage()
 }
 
 struct arglist {
-  char* prefix;
-  char* dir;
+  scr_path* prefix;
+  scr_path* dir;
   int list;
   int add;
   int remove;
@@ -1503,8 +1571,8 @@ struct arglist {
 /* free any memory allocation during get_args */
 int free_args(struct arglist* args)
 {
-  scr_free(&(args->prefix));
-  scr_free(&(args->dir));
+  scr_path_delete(&(args->prefix));
+  scr_path_delete(&(args->dir));
   return SCR_SUCCESS;
 }
 
@@ -1537,22 +1605,22 @@ int get_args(int argc, char **argv, struct arglist* args)
         args->list = 1;
         break;
       case 'a':
-        args->dir  = strdup(optarg);
+        args->dir  = scr_path_from_str(optarg);
         args->add  = 1;
         args->list = 0;
         break;
       case 'r':
-        args->dir    = strdup(optarg);
+        args->dir    = scr_path_from_str(optarg);
         args->remove = 1;
         args->list   = 0;
         break;
       case 'c':
-        args->dir     = strdup(optarg);
+        args->dir     = scr_path_from_str(optarg);
         args->current = 1;
         args->list    = 0;
         break;
       case 'p':
-        args->prefix = strdup(optarg);
+        args->prefix = scr_path_from_str(optarg);
         break;
       case 'h':
         return SCR_FAILURE;
@@ -1574,8 +1642,17 @@ int get_args(int argc, char **argv, struct arglist* args)
       );
       return SCR_FAILURE;
     }
-    args->prefix = strdup(prefix);
+    args->prefix = scr_path_from_str(prefix);
   }
+
+  /* if the user didn't specify a subdirectory, set it to a NULL path */
+  if (args->dir == NULL) {
+    args->dir = scr_path_new();
+  }
+
+  /* reduce paths to remove any trailing '/' */
+  scr_path_reduce(args->prefix);
+  scr_path_reduce(args->dir);
 
   return SCR_SUCCESS;
 }
@@ -1591,66 +1668,42 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  /* check that the named dataset directory is complete */
-  if (args.add == 1) {
-    /* check that we have a prefix and dataset directory defined */
-    if (args.prefix == NULL || args.dir == NULL) {
+  /* get references to prefix and subdirectory paths */
+  scr_path* prefix = args.prefix;
+  scr_path* subdir = args.dir;
+
+  /* these options all require a prefix directory */
+  if (args.add == 1 || args.remove == 1 || args.current == 1 || args.list == 1) {
+    if (scr_path_is_null(prefix)) {
       print_usage();
       return 1;
     }
+  }
 
-    /* record the name of the prefix and dataset directories */
-    char* prefix = args.prefix;
-    char* dir = args.dir;
+  /* these options all require a subdirectory */
+  if (args.add == 1 || args.remove == 1 || args.current == 1) {
+    if (scr_path_is_null(subdir)) {
+      print_usage();
+      return 1;
+    }
+  }
 
+  if (args.add == 1) {
     /* add the dataset directory dir to the index.scr file in the prefix directory,
      * rebuild missing files if necessary */
     rc = SCR_FAILURE;
-    if (index_add_dir(prefix, dir) == SCR_SUCCESS) {
-      rc = is_complete(prefix, dir);
+    if (index_add_dir(prefix, subdir) == SCR_SUCCESS) {
+      rc = is_complete(prefix, subdir);
     }
-  }
-
-  /* remove the named directory from the index file (does not delete files) */
-  if (args.remove == 1) {
-    /* check that we have a prefix and dataset directory defined */
-    if (args.prefix == NULL || args.dir == NULL) {
-      print_usage();
-      return 1;
-    }
-
-    /* record the name of the prefix and dataset directories */
-    char* prefix = args.prefix;
-    char* dir = args.dir;
-
-    /* remove the directory */
-    rc = index_remove_dir(prefix, dir);
-  }
-
-  /* set named directory as restart directory */
-  if (args.current == 1) {
-    /* check that we have a prefix and dataset directory defined */
-    if (args.prefix == NULL || args.dir == NULL) {
-      print_usage();
-      return 1;
-    }
-
-    /* record the name of the prefix and dataset directories */
-    char* prefix = args.prefix;
-    char* dir = args.dir;
-
-    /* remove the directory */
-    rc = index_current_dir(prefix, dir);
-  }
-
-  /* list datasets recorded in index file */
-  if (args.list == 1) {
-    /* check that we have a prefix directory defined */
-    if (args.prefix == NULL) {
-      print_usage();
-      return 1;
-    }
-    rc = index_list(args.prefix);
+  } else if (args.remove == 1) {
+    /* remove the named directory from the index file (does not delete files) */
+    rc = index_remove_dir(prefix, subdir);
+  } else if (args.current == 1) {
+    /* set named directory as restart directory */
+    rc = index_current_dir(prefix, subdir);
+  } else if (args.list == 1) {
+    /* list datasets recorded in index file */
+    rc = index_list(prefix);
   }
 
   /* free any memory allocated for command line arguments */
