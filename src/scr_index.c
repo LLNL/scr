@@ -844,7 +844,7 @@ int scr_scan_files(const char* dir, scr_hash* scan)
           /* TODODSET */
           /* check that the dataset for this rank matches the one we already have */
           /* if rank_dset != current_dset, then problem */
-          scr_dataset_delete(rank_dset);
+          scr_dataset_delete(&rank_dset);
         }
 
         /* lookup rank hash for this rank */

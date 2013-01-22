@@ -34,7 +34,7 @@ Allocate, delete, and copy functions
 scr_dataset* scr_dataset_new();
 
 /* free memory assigned to dataset object */
-int scr_dataset_delete(scr_dataset* dataset);
+int scr_dataset_delete(scr_dataset** ptr_dataset);
 
 /*
 =========================================

@@ -596,7 +596,7 @@ int scr_flush_sync(scr_filemap* map, int id)
       }
 
       /* delete the dataset object */
-      scr_dataset_delete(dataset);
+      scr_dataset_delete(&dataset);
     }
   }
 

@@ -429,7 +429,7 @@ int main (int argc, char *argv[])
     scr_dataset* dataset = scr_dataset_new();
     scr_filemap_get_dataset(map,      args.id, rank, dataset);
     scr_filemap_set_dataset(rank_map, args.id, rank, dataset);
-    scr_dataset_delete(dataset);
+    scr_dataset_delete(&dataset);
 
     /* record whether we're preserving user directories or using containers */
     scr_hash* rank_flushdesc = scr_hash_new();

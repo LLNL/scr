@@ -1395,7 +1395,7 @@ int SCR_Start_checkpoint()
   }
   scr_hash_bcast(dataset, 0, scr_comm_world);
   scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
-  scr_dataset_delete(dataset);
+  scr_dataset_delete(&dataset);
 
   /* TODO: may want to allow user to specify these values per dataset */
   /* store variables needed for scavenge */
@@ -1572,7 +1572,7 @@ int SCR_Complete_checkpoint(int valid)
     scr_dataset_set_complete(dataset, 0);
   }
   scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
-  scr_dataset_delete(dataset);
+  scr_dataset_delete(&dataset);
 
   /* write out info to filemap */
   scr_filemap_write(scr_map_file, scr_map);
