@@ -126,60 +126,44 @@ static int scr_find_subdir(
   size_t subdir_size) /* IN  - size of subdir buffer */
 {
   /* simplify parent directory */
-  char parent[SCR_MAX_FILENAME];
-  if (scr_path_resolve(par, parent, sizeof(parent)) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to simplify parent directory %s @ %s:%d",
-      par, __FILE__, __LINE__
-    );
-  }
+  scr_path* parent = scr_path_from_str(par);
+  scr_path_reduce(parent);
 
-  /* get number of characters in parent */
-  size_t parent_len = strlen(parent);
+  /* simplify child directory */
+  scr_path* child = scr_path_from_str(dir);
+  scr_path_reduce(child);
 
-  /* resolve child directory */
-  char child[SCR_MAX_FILENAME];
-  if (scr_path_resolve(dir, child, sizeof(child)) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to simplify directory %s @ %s:%d",
-      dir, __FILE__, __LINE__
-    );
-  }
-
-  /* ensure that parent path is prefix of child path */
-  if (strncmp(parent, child, parent_len) != 0) {
-    scr_abort(-1, "Directory %s not contained in parent %s @ %s:%d",
-      dir, parent, __FILE__, __LINE__
-    );
-  }
-
-  /* get number of components in parent directory */
-  int parent_components;
-  if (scr_path_length(parent, &parent_components) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to get number of components in parent directory %s @ %s:%d",
-      parent, __FILE__, __LINE__
-    );
-  }
-
-  /* ensure that directory has at least one more component than parent */
-  int child_components;
-  if (scr_path_length(child, &child_components) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to get number of components in path %s @ %s:%d",
-      dir, __FILE__, __LINE__
-    );
-  }
+  /* ensure that child has at least one more component than parent */
+  int parent_components = scr_path_components(parent);
+  int child_components  = scr_path_components(child);
   if (child_components <= parent_components) {
     scr_abort(-1, "Directory %s must have more components than parent %s @ %s:%d",
       dir, parent, __FILE__, __LINE__
     );
   }
 
-  /* get sub directory name */
-  if (scr_path_slice(child, parent_components, 1, subdir, subdir_size)
-      != SCR_SUCCESS)
-  {
+  /* ensure that parent is prefix of child path */
+  if (! scr_path_is_child(parent, child)) {
+    scr_abort(-1, "Directory %s not contained in parent %s @ %s:%d",
+      dir, parent, __FILE__, __LINE__
+    );
+  }
+
+  /* get first component after parent ends */
+  scr_path* subdir_path = scr_path_sub(child, parent_components, 1);
+  if (scr_path_is_null(subdir_path)) {
     scr_abort(-1, "Failed to get subdirectory from %s @ %s:%d",
       dir, __FILE__, __LINE__
     );
   }
+
+  /* copy path to user buffer, will abort if buffer is too small */
+  scr_path_strcpy(subdir, subdir_size, subdir_path);
+
+  /* free off the paths we created */
+  scr_path_delete(&subdir_path);
+  scr_path_delete(&child);
+  scr_path_delete(&parent);
 
   return SCR_SUCCESS;
 }
@@ -284,12 +268,12 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
       }
     }
 
-    /* since groups == 1, at least one process specified a directory */
+    /* since groups == 1, at least one process specified a directory,
+     * we want to take the minimum rank, so if we have no paths,
+     * initialize rank to the number of ranks (one more than any rank) */
     int rank = scr_ranks_world;
-    char root_subdir[SCR_MAX_FILENAME];
     if (count > 0) {
       rank = scr_my_rank_world;
-      strcpy(root_subdir, subdirs[0]);
     }
 
     /* identify lowest rank which specified directory */
@@ -297,14 +281,20 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
     MPI_Allreduce(&rank, &lowest_rank, 1, MPI_INT, MPI_MIN, scr_comm_world);
 
     /* broadcast directory from lowest rank so all have a copy */
-    scr_strn_bcast(root_subdir, sizeof(root_subdir), lowest_rank, scr_comm_world);
-
-    /* build full path to top level directory */
-    char full_subdir[SCR_MAX_FILENAME];
-    scr_path_build(full_subdir, sizeof(full_subdir), scr_prefix, root_subdir);
+    scr_path* path_full_subdir = scr_path_new();
+    if (scr_my_rank_world == lowest_rank) {
+      scr_path_append(path_full_subdir, scr_prefix_path);
+      scr_path_append_str(path_full_subdir, subdirs[0]);
+    }
+    scr_path_bcast(path_full_subdir, lowest_rank, scr_comm_world);
 
     /* record top level directory for flush */
+    char* full_subdir = scr_path_strdup(path_full_subdir);
     scr_hash_util_set_str(file_list, SCR_KEY_PATH, full_subdir);
+    scr_free(&full_subdir);
+
+    /* free the directory */
+    scr_path_delete(&path_full_subdir);
 
     /* identify the set of unique directories */
     dtcmp_rc = DTCMP_Rankv_strings(
@@ -351,12 +341,9 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
     }
 
     /* build the directory name */
-    char dir[SCR_MAX_FILENAME];
-    if (scr_path_build(dir, sizeof(dir), scr_prefix, name) != SCR_SUCCESS) {
-      scr_abort(-1, "Failed to build path to flush directory @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
+    scr_path* path_dir = scr_path_dup(scr_prefix_path);
+    scr_path_append_str(path_dir, name);
+    char* dir = scr_path_strdup(path_dir);
 
     /* record top level directory for flush */
     scr_hash_util_set_str(file_list, SCR_KEY_PATH, dir);
@@ -372,6 +359,10 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
       scr_hash* hash = scr_hash_elem_hash(elem);
       scr_hash_util_set_str(hash, SCR_KEY_PATH, dir);
     }
+
+    /* free the string and path */
+    scr_free(&dir);
+    scr_path_delete(&path_dir);
   }
 
   return SCR_SUCCESS;
@@ -586,11 +577,11 @@ static int scr_flush_create_dirs(scr_hash* file_list)
         __FILE__, __LINE__
       );
     }
+    scr_path* path_flushdir = scr_path_from_str(flushdir);
 
     /* extract subdir name */
-    char path[SCR_MAX_FILENAME];
-    char subdir[SCR_MAX_FILENAME];
-    scr_path_split(flushdir, path, subdir);
+    scr_path* path_subdir = scr_path_sub(path_flushdir, -1, 1);
+    char* subdir = scr_path_strdup(path_subdir);
 
     /* get the dataset for this list of files */
     scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
@@ -605,11 +596,11 @@ static int scr_flush_create_dirs(scr_hash* file_list)
 
     /* add the directory to our index file, and record the flush timestamp */
     scr_hash* index_hash = scr_hash_new();
-    scr_index_read(scr_prefix, index_hash);
+    scr_index_read(scr_prefix_path, index_hash);
     scr_index_set_dataset(index_hash, id, subdir, dataset, 0);
     scr_index_add_dir(index_hash, id, subdir);
     scr_index_mark_flushed(index_hash, id, subdir);
-    scr_index_write(scr_prefix, index_hash);
+    scr_index_write(scr_prefix_path, index_hash);
     scr_hash_delete(&index_hash);
 
     /* create the directory */
@@ -624,14 +615,22 @@ static int scr_flush_create_dirs(scr_hash* file_list)
     }
 
     /* create the .scr subdirectory */
-    char dir_scr[SCR_MAX_FILENAME];
-    scr_path_build(dir_scr, sizeof(dir_scr), flushdir, ".scr");
+    scr_path* path_scr = scr_path_dup(path_flushdir);
+    scr_path_append_str(path_scr, ".scr");
+    char* dir_scr = scr_path_strdup(path_scr);
     if (scr_mkdir(dir_scr, S_IRWXU) != SCR_SUCCESS) {
       /* failed to create the directory */
       scr_abort(-1, "Failed to make .scr subdirectory directory mkdir(%s) @ %s:%d",
         dir_scr, __FILE__, __LINE__
       );
     }
+    scr_free(&dir_scr);
+    scr_path_delete(&path_scr);
+
+    /* free the paths and string */
+    scr_free(&subdir);
+    scr_path_delete(&path_subdir);
+    scr_path_delete(&path_flushdir);
   }
 
   /* wait for rank 0 */
@@ -751,20 +750,11 @@ int scr_flush_verify(const scr_filemap* map, int id, char* dir, size_t dir_size)
     );
   }
 
-  /* get subdirectory name for flush */
-  char prefix[SCR_MAX_FILENAME];
-  char subdir[SCR_MAX_FILENAME];
-  scr_path_split(flush_dir, prefix, subdir);
-
-  /* copy subdir to users buffer */
-  size_t subdir_len = strlen(subdir) + 1;
-  if (subdir_len <= dir_size) {
-    strcpy(dir, subdir);
-  } else {
-    scr_abort(-1, "Failed to copy subdirectory name for dataset %d @ %s:%d",
-      id, __FILE__, __LINE__
-    );
-  }
+  /* get subdirectory name for flush and copy to user's buffer */
+  scr_path* path_subdir = scr_path_from_str(flush_dir);
+  scr_path_basename(path_subdir);
+  scr_path_strcpy(dir, dir_size, path_subdir);
+  scr_path_delete(&path_subdir);
 
   scr_hash_delete(&file_list);
 
@@ -909,9 +899,11 @@ static int scr_flush_summary(const char* summary_dir, const scr_dataset* dataset
     }
 
     /* write summary file */
-    if (scr_summary_write(summary_dir, dataset, complete, data) != SCR_SUCCESS) {
+    scr_path* summary_path = scr_path_from_str(summary_dir);
+    if (scr_summary_write(summary_path, dataset, complete, data) != SCR_SUCCESS) {
       flushed = SCR_FAILURE;
     }
+    scr_path_delete(&summary_path);
   }
 
   /* determine whether everyone wrote their files ok */
@@ -951,7 +943,7 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
 
       /* read the index file */
       scr_hash* index_hash = scr_hash_new();
-      scr_index_read(scr_prefix, index_hash);
+      scr_index_read(scr_prefix_path, index_hash);
 
       /* get name of subdirectory holding dataset */
       char subdir[SCR_MAX_FILENAME];
@@ -971,7 +963,7 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
       }
 
       /* write the index file and delete the hash */
-      scr_index_write(scr_prefix, index_hash);
+      scr_index_write(scr_prefix_path, index_hash);
       scr_hash_delete(&index_hash);
     }
   }

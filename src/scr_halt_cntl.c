@@ -19,9 +19,12 @@
 
 #include "scr.h"
 #include "scr_io.h"
+#include "scr_path.h"
 #include "scr_err.h"
 #include "scr_util.h"
 #include "scr_halt.h"
+#include "scr_hash.h"
+#include "scr_hash_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -179,11 +182,14 @@ int processArgs(int argc, char **argv, struct arglist* args)
 
 /* read in halt file (which program may have changed), update internal data structure,
  * set & unset any fields, and write out halt file all while locked */
-int scr_halt_sync_and_set(const char* file, struct arglist* args, scr_hash* data)
+int scr_halt_sync_and_set(const scr_path* file_path, struct arglist* args, scr_hash* data)
 {
   /* set the mode on the file to be readable/writable by all
    * (enables a sysadmin to halt a user's job via scr_halt --all) */
   mode_t old_mode = umask(0000);
+
+  /* convert path to string */
+  char* file = scr_path_strdup(file_path);
 
   /* TODO: sleep and try the open several times if the first fails */
   /* open the halt file for reading */
@@ -193,6 +199,7 @@ int scr_halt_sync_and_set(const char* file, struct arglist* args, scr_hash* data
       file, errno, __FILE__, __LINE__
     );
     /* restore the normal file mask */
+    scr_free(&file);
     umask(old_mode);
     return SCR_FAILURE;
   }
@@ -201,6 +208,7 @@ int scr_halt_sync_and_set(const char* file, struct arglist* args, scr_hash* data
   int ret = scr_file_lock_write(file,fd);
   if (ret != SCR_SUCCESS) {
     scr_close(file,fd);
+    scr_free(&file);
     umask(old_mode);
     return ret;
   }
@@ -259,12 +267,16 @@ int scr_halt_sync_and_set(const char* file, struct arglist* args, scr_hash* data
   ret = scr_file_unlock(file, fd);
   if (ret != SCR_SUCCESS) {
     scr_close(file,fd);
+    scr_free(&file);
     umask(old_mode);
     return ret;
   }
 
   /* close file */
   scr_close(file, fd);
+
+  /* free file name string */
+  scr_free(&file);
 
   /* restore the normal file mask */
   umask(old_mode);
@@ -284,9 +296,12 @@ int main (int argc, char *argv[])
   /* create a new hash to hold the file data */
   scr_hash* data = scr_hash_new();
 
+  /* create path to halt file */
+  scr_path* halt_file = scr_path_from_str(args.file);
+
   if (args.list) {
     /* if the user wants to list the values, just read the file, print the values, and exit */
-    scr_halt_read(args.file, data);
+    scr_halt_read(halt_file, data);
   } else {
     /* otherwise, we must be setting something */
     if (args.set_checkpoints) {
@@ -321,7 +336,7 @@ int main (int argc, char *argv[])
 
     printf("\n");
 
-    scr_halt_sync_and_set(args.file, &args, data);
+    scr_halt_sync_and_set(halt_file, &args, data);
   }
 
   /* print the current settings */
@@ -329,40 +344,34 @@ int main (int argc, char *argv[])
   char* value = NULL;
   printf("Halt file settings for %s:\n", args.file);
   int have_one = 0;
-  int exit_before = -1;
-  int halt_seconds = -1;
 
-  value = scr_hash_elem_get_first_val(data, SCR_HALT_KEY_EXIT_REASON);
-  if (value != NULL ) {
+  if (scr_hash_util_get_str(data, SCR_HALT_KEY_EXIT_REASON, &value) == SCR_SUCCESS) {
     printf("  ExitReason:      %s\n", value);
     have_one = 1;
   }
 
-  value = scr_hash_elem_get_first_val(data, SCR_HALT_KEY_CHECKPOINTS);
-  if (value != NULL) {
-    int checkpoints_left = atoi(value);
+  int checkpoints_left;
+  if (scr_hash_util_get_int(data, SCR_HALT_KEY_CHECKPOINTS, &checkpoints_left) == SCR_SUCCESS) {
     printf("  CheckpointsLeft: %d\n", checkpoints_left);
     have_one = 1;
   }
 
-  value = scr_hash_elem_get_first_val(data, SCR_HALT_KEY_EXIT_AFTER);
-  if (value != NULL) {
-    secs = (time_t) atoi(value);
+  int exit_after = -1;
+  if (scr_hash_util_get_int(data, SCR_HALT_KEY_EXIT_AFTER, &exit_after) == SCR_SUCCESS) {
+    secs = (time_t) exit_after;
     printf("  ExitAfter:       %s", asctime(localtime(&secs)));
     have_one = 1;
   }
 
-  value = scr_hash_elem_get_first_val(data, SCR_HALT_KEY_EXIT_BEFORE);
-  if (value != NULL) {
-    exit_before = atoi(value);
+  int exit_before = -1;
+  if (scr_hash_util_get_int(data, SCR_HALT_KEY_EXIT_BEFORE, &exit_before) == SCR_SUCCESS) {
     secs = (time_t) exit_before;
     printf("  ExitBefore:      %s", asctime(localtime(&secs)));
     have_one = 1;
   }
 
-  value = scr_hash_elem_get_first_val(data, SCR_HALT_KEY_SECONDS);
-  if (value != NULL) {
-    halt_seconds = atoi(value);
+  int halt_seconds = -1;
+  if (scr_hash_util_get_int(data, SCR_HALT_KEY_SECONDS, &halt_seconds) == SCR_SUCCESS) {
     printf("  HaltSeconds:     %d\n", halt_seconds);
     have_one = 1;
   }
@@ -376,6 +385,9 @@ int main (int argc, char *argv[])
   if (!have_one) {
     printf("  None\n");
   }
+
+  /* delete path to halt file */
+  scr_path_delete(&halt_file);
 
   /* delete the hash holding the file data */
   scr_hash_delete(&data);

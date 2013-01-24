@@ -35,7 +35,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
 
     /* read in the master map */
     scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_master_map_file, hash);
+    scr_hash_read_path(scr_master_map_file, hash);
 
     /* for each filemap listed in the master map */
     scr_hash_elem* elem;
@@ -50,7 +50,9 @@ int scr_scatter_filemaps(scr_filemap* my_map)
 
       /* read in the filemap */
       scr_filemap* tmp_map = scr_filemap_new();
-      scr_filemap_read(file, tmp_map);
+      scr_path* path_file = scr_path_from_str(file);
+      scr_filemap_read(path_file, tmp_map);
+      scr_path_delete(&path_file);
 
       /* merge it with the all_map */
       scr_filemap_merge(all_map, tmp_map);
@@ -155,7 +157,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
       sprintf(file, "%s/filemap_%d.scrinfo", scr_cntl_prefix, i);
       scr_hash_set_kv(hash, "Filemap", file);
     }
-    scr_hash_write(scr_master_map_file, hash);
+    scr_hash_write_path(scr_master_map_file, hash);
     scr_hash_delete(&hash);
   } else {
     /* send our global rank to the master */
@@ -560,15 +562,14 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
 
       /* iterate over and rename each file */
       for (i=0; i < numfiles; i++) {
-        /* get the existing filename and split into path and name components */
+        /* get the current file name */
         char* file = files[i];
-        char path[SCR_MAX_FILENAME];
-        char name[SCR_MAX_FILENAME];
-        scr_path_split(file, path, name);
 
-        /* build the new filename */
-        char newfile[SCR_MAX_FILENAME];
-        scr_path_build(newfile, sizeof(newfile), dir, name);
+        /* build the new file name */
+        scr_path* path_newfile = scr_path_from_str(file);
+        scr_path_basename(path_newfile);
+        scr_path_prepend_str(path_newfile, dir);
+        char* newfile = scr_path_strdup(path_newfile);
 
         /* if the new file name is different from the old name, rename it */
         if (strcmp(file, newfile) != 0) {
@@ -596,6 +597,10 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
           scr_filemap_remove_file(map, id, send_rank, file);
           scr_filemap_write(scr_map_file, map);
         }
+
+        /* free the path and string */
+        scr_free(&newfile);
+        scr_path_delete(&path_newfile);
       }
 
       /* free the list of filename pointers */
@@ -938,7 +943,7 @@ int scr_flush_file_rebuild(const scr_filemap* map)
   if (scr_my_rank_world == 0) {
     /* read the flush file */
     scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
+    scr_hash_read_path(scr_flush_file, hash);
 
     /* get list of dataset ids in flush file */
     int flush_ndsets;
@@ -1002,7 +1007,7 @@ int scr_flush_file_rebuild(const scr_filemap* map)
     scr_free(&flush_dsets);
 
     /* write the hash back to the flush file */
-    scr_hash_write(scr_flush_file, hash);
+    scr_hash_write_path(scr_flush_file, hash);
 
     /* delete the hash */
     scr_hash_delete(&hash);

@@ -54,6 +54,8 @@
 #include "scr_io.h"
 #include "scr_util.h"
 #include "scr_util_mpi.h"
+#include "scr_path.h"
+#include "scr_path_mpi.h"
 #include "scr_split.h"
 #include "scr_meta.h"
 #include "scr_dataset.h"
@@ -91,19 +93,21 @@ extern char scr_cntl_base[SCR_MAX_FILENAME];  /* base directory for control dire
 extern char scr_cache_base[SCR_MAX_FILENAME]; /* base directory for cache directory */
 
 extern char* scr_cntl_prefix; /* path of control directory (adds to base directory) */
-extern char* scr_prefix;      /* path of SCR_PREFIX directory on PFS */
-extern char* scr_prefix_scr;  /* path to .scr subdir in SCR_PREFIX dir */
+
+extern char* scr_prefix;          /* path of SCR_PREFIX directory on PFS */
+extern char* scr_prefix_scr;      /* path to .scr subdir in SCR_PREFIX dir */
+extern scr_path* scr_prefix_path; /* scr_prefix in scr_path form */
 
 /* these files live in the control directory */
-extern char* scr_master_map_file;
-extern char* scr_map_file;
+extern scr_path* scr_master_map_file;
+extern scr_path* scr_map_file;
 extern char* scr_transfer_file;
 
 /* we keep the halt, flush, and nodes files in the prefix directory
  * so that the batch script and / or external commands can access them */
-extern char scr_halt_file[SCR_MAX_FILENAME];
-extern char scr_flush_file[SCR_MAX_FILENAME];
-extern char scr_nodes_file[SCR_MAX_FILENAME];
+extern scr_path* scr_halt_file;
+extern scr_path* scr_flush_file;
+extern scr_path* scr_nodes_file;
 
 extern scr_filemap* scr_map;    /* memory cache of filemap contents */
 extern scr_hash* scr_halt_hash; /* memory cache of halt file contents */

@@ -14,6 +14,7 @@
 #include "scr_err.h"
 #include "scr_util.h"
 #include "scr_io.h"
+#include "scr_path.h"
 #include "scr_meta.h"
 #include "scr_hash.h"
 
@@ -124,13 +125,18 @@ int scr_meta_set_origname(scr_meta* meta, const char* file)
 /* sets the filename value in meta data, strips any leading directory */
 int scr_meta_set_filename(scr_meta* meta, const char* file)
 {
-  /* split file into path and name components */
-  char path[SCR_MAX_FILENAME];
-  char name[SCR_MAX_FILENAME];
-  scr_path_split(file, path, name);
+  /* extract file name */
+  scr_path* path_file = scr_path_from_str(file);
+  scr_path_basename(path_file);
+  char* name = scr_path_strdup(path_file);
 
   scr_hash_unset(meta, SCR_META_KEY_FILE);
   scr_hash_set_kv(meta, SCR_META_KEY_FILE, name);
+
+  /* free the path and string */
+  scr_free(&name);
+  scr_path_delete(&path_file);
+
   return SCR_SUCCESS;
 }
 

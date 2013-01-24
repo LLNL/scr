@@ -530,45 +530,18 @@ size_t scr_path_strlen(const scr_path* path)
   return 0;
 }
 
-#if 0
-/* execute strncpy-like function to get path */
-char* scr_path_strncpy(char* buf, const scr_path* path, size_t n)
+/* copies path into buf, caller must ensure buf is large enough */
+static int scr_path_strcpy_internal(char* buf, const scr_path* path)
 {
-  /* check that we have a pointer to a path */
-  if (path == NULL) {
-    scr_abort(-1, "Cannot copy NULL pointer to string @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  if (n == 0) {
-    scr_abort(-1, "Cannot copy NULL pointer to string @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
   /* copy contents into string buffer */
   char* ptr = buf;
-  char* end = buf + (n-1);
   scr_path_elem* current = path->head;
-  while (current != NULL && ptr != end) {
-    /* get component and number of characters */
+  while (current != NULL) {
+    /* copy component to buffer */
     char* component = current->component;
     size_t chars    = current->chars;
-
-    /* determine the number of bytes we can copy to buf */
-    size_t remaining = end - ptr;
-    size_t num = chars;
-    if (num >= remaining) {
-      /* leave one space to write the terminating NULL */
-      num = remaining - 1;
-    }
-
-    /* copy bytes and advance pointer */
-    if (num > 0) {
-      strncpy(ptr, component, remaining, num);
-    }
-    ptr += num;
+    memcpy((void*)ptr, (void*)component, chars);
+    ptr += chars;
 
     /* if there is another component, add a slash */
     scr_path_elem* next = current->next;
@@ -582,15 +555,44 @@ char* scr_path_strncpy(char* buf, const scr_path* path, size_t n)
   }
 
   /* terminate the string */
-  char* end = buf + n;
-  while (ptr < end) {
-    *ptr = '\0';
-    ptr++;
+  *ptr = '\0';
+
+  return SCR_SUCCESS;
+}
+
+/* copy string into user buffer, abort if buffer is too small */
+size_t scr_path_strcpy(char* buf, size_t n, const scr_path* path)
+{
+  /* check that we have a pointer to a path */
+  if (path == NULL) {
+    scr_abort(-1, "Cannot copy NULL pointer to string @ %s:%d",
+      __FILE__, __LINE__
+    );
   }
 
-  return buf;
+  /* we can't copy a NULL path */
+  if (scr_path_is_null(path)) {
+    scr_abort(-1, "Cannot copy a NULL path to string @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* get length of path */
+  size_t strlen = scr_path_strlen(path) + 1;
+
+  /* if user buffer is too small, abort */
+  if (n < strlen) {
+    scr_abort(-1, "User buffer of %d bytes is too small to hold string of %d bytes @ %s:%d",
+      n, strlen, __FILE__, __LINE__
+    );
+  }
+
+  /* copy contents into string buffer */
+  scr_path_strcpy_internal(buf, path);
+
+  /* return number of bytes we copied to buffer */
+  return strlen;
 }
-#endif
 
 /* allocate memory and return path in string form */
 char* scr_path_strdup(const scr_path* path)
@@ -615,29 +617,9 @@ char* scr_path_strdup(const scr_path* path)
   }
 
   /* copy contents into string buffer */
-  char* ptr = buf;
-  scr_path_elem* current = path->head;
-  while (current != NULL) {
-    /* copy component to buffer */
-    char* component = current->component;
-    size_t chars    = current->chars;
-    strncpy(ptr, component, chars);
-    ptr += chars;
+  scr_path_strcpy_internal(buf, path);
 
-    /* if there is another component, add a slash */
-    scr_path_elem* next = current->next;
-    if (next != NULL) {
-      *ptr = '/';
-      ptr++;
-    }
-
-    /* move to next component */
-    current = next;
-  }
-
-  /* terminate the string */
-  *ptr = '\0';
-
+  /* return new string to caller */
   return buf;
 }
 
@@ -934,6 +916,107 @@ int scr_path_append_strf(scr_path* path, const char* format, ...)
 cut, slice, and subpath functions
 =========================================
 */
+
+/* keeps upto length components of path starting at specified location
+ * and discards the rest, offset can be negative to count
+ * from back, a negative length copies the remainder of the string */
+int scr_path_slice(scr_path* path, int offset, int length)
+{
+  /* check that we have a path */
+  if (path == NULL) {
+    return SCR_SUCCESS;
+  }
+
+  /* force offset into range */
+  int components = path->components;
+  if (components > 0) {
+    while (offset < 0) {
+      offset += components;
+    }
+    while (offset >= components) {
+      offset -= components;
+    }
+  } else {
+    /* nothing left to slice */
+    return SCR_SUCCESS;
+  }
+
+  /* lookup first element to be head of new path */
+  scr_path_elem* current = scr_path_elem_index(path, offset);
+
+  /* delete any items before this one */
+  scr_path_elem* elem = current->prev;
+  while (elem != NULL) {
+    scr_path_elem* prev = elem->prev;
+    scr_path_elem_free(&elem);
+    elem = prev;
+  }
+
+  /* remember our starting element and intialize tail to NULL */
+  scr_path_elem* head = current;
+  scr_path_elem* tail = NULL;
+
+  /* step through length elements or to the end of the list,
+   * a negative length means we step until end of list */
+  components = 0;
+  size_t chars = 0;
+  while ((length < 0 || length > 0) && current != NULL) {
+    /* count number of components and characters in list and
+     * update tail */
+    components++;
+    chars += current->chars;
+    tail = current;
+
+    /* advance to next element */
+    current = current->next;
+    if (length > 0) {
+      length--;
+    }
+  }
+
+  /* current now points to first element to be cut,
+   * delete it and all trailing items */
+  while (current != NULL) {
+    scr_path_elem* next = current->next;
+    scr_path_elem_free(&current);
+    current = next;
+  }
+
+  /* set new path members */
+  path->components = components;
+  path->chars      = chars;
+  if (components > 0) {
+    /* we have some components, update head and tail, terminate the list */
+    path->head = head;
+    path->tail = tail;
+    head->prev = NULL;
+    tail->next = NULL;
+  } else {
+    /* otherwise, we have no items in the path */
+    path->head = NULL;
+    path->tail = NULL;
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* drops last component from path */
+int scr_path_dirname(scr_path* path)
+{
+  int components = scr_path_components(path);
+  if (components > 0) {
+    int rc = scr_path_slice(path, 0, components-1);
+    return rc;
+  }
+  return SCR_SUCCESS;
+}
+
+/* only leaves last component of path */
+int scr_path_basename(scr_path* path)
+{
+  int rc = scr_path_slice(path, -1, 1);
+  return rc;
+}
 
 /* copies upto length components of path starting at specified location
  * and returns subpath as new path, offset can be negative to count
@@ -1232,7 +1315,7 @@ int scr_path_is_child(const scr_path* parent, const scr_path* child)
 }
 
 /* compute and return relative path from src to dst */
-scr_path* scr_path_rel(const scr_path* src, const scr_path* dst)
+scr_path* scr_path_relative(const scr_path* src, const scr_path* dst)
 {
   /* check that we don't have NULL pointers */
   if (src == NULL || dst == NULL) {
@@ -1300,77 +1383,63 @@ scr_path* scr_path_rel(const scr_path* src, const scr_path* dst)
   return rel;
 }
 
+/*
+=========================================
+I/O routines with paths
+=========================================
+*/
+
 #if 0
-/* broacast path from root to all ranks in comm,
- * receivers must pass in a newly allocated path from scr_path_new() */
-int scr_path_bcast(scr_path* path, int root, MPI_Comm comm)
+/* tests whether the file or directory is readable */
+int scr_path_is_readable(const scr_path* file)
 {
-  /* if pointer is NULL, throw an error */
-  if (path == NULL) {
-    scr_abort(-1, "NULL pointer passed for path @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
+  /* convert to string and delegate to I/O routine */
+  char* file_str = scr_path_strdup(file);
+  int rc = scr_file_is_readable(file_str);
+  scr_free(&file_str);
+  return rc;
+}
 
-  /* lookup our rank in comm */
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-
-  /* determine number of bytes to send */
-  int bytes;
-  int components = scr_path_components(path);
-  if (rank == root) {
-    if (components > 0) {
-      /* figure out string length of path (including terminating NULL) */
-      bytes = scr_path_strlen(path) + 1;
-    } else {
-      /* we use 0 bytes to denote a NULL path,
-       * since even an empty string contains at least one byte */
-      bytes = 0;
-    }
-  } else {
-    /* as a receiver, verify that we were given an empty path */
-    if (components > 0) {
-      scr_abort(-1, "Non-null path passed as input in receiver to bcast path @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
-  }
-
-  /* broadcast number of bytes in path */
-  MPI_Bcast(&bytes, 1, MPI_INT, root, comm);
-
-  /* if path is NULL, we're done */
-  if (bytes == 0) {
-    return SCR_SUCCESS;
-  }
-
-  /* otherwise, allocate bytes to receive str */
-  char* str;
-  if (rank == root) {
-    /* the root converts the path to a string */
-    str = scr_path_strdup(path);
-  } else {
-    /* non-root processes need to allocate an array */
-    str = (char*) malloc((size_t)bytes);
-  }
-  if (str == NULL) {
-    scr_abort(-1, "Failed to allocate memory to bcast path @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* broadcast the string */
-  MPI_Bcast(str, bytes, MPI_CHAR, root, comm);
-
-  /* if we're not the rank, append the string to our path */
-  if (rank != root) {
-    scr_path_append_str(path, str);
-  }
-
-  /* free string */
-  scr_free(&str);
-
-  return SCR_SUCCESS;
+/* tests whether the file or directory is writeable */
+int scr_path_is_writeable(const scr_path* file)
+{
+  /* convert to string and delegate to I/O routine */
+  char* file_str = scr_path_strdup(file);
+  int rc = scr_file_is_writable(file_str);
+  scr_free(&file_str);
+  return rc;
 }
 #endif
+
+#ifndef HIDE_TV
+/*
+=========================================
+Pretty print for TotalView debug window
+=========================================
+*/
+
+/* This enables a nicer display when diving on a path variable
+ * under the TotalView debugger.  It requires TV 8.8 or later. */
+
+#include "tv_data_display.h"
+
+static int TV_ttf_display_type(const scr_path* path)
+{
+  if (path == NULL) {
+    /* empty path, nothing to display here */
+    return TV_ttf_format_ok;
+  }
+
+  if (scr_path_is_null(path)) {
+    /* empty path, nothing to display here */
+    return TV_ttf_format_ok;
+  }
+
+  /* print path in string form */
+  char* str = scr_path_strdup(path);
+  TV_ttf_add_row("path", TV_ttf_type_ascii_string, str);
+  scr_free(&str);
+
+  return TV_ttf_format_ok;
+}
+#endif /* HIDE_TV */

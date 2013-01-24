@@ -718,33 +718,46 @@ scr_filemap* scr_filemap_extract_rank(scr_filemap* map, int rank)
 }
 
 /* reads specified file and fills in filemap structure */
-int scr_filemap_read(const char* file, scr_filemap* map)
+int scr_filemap_read(const scr_path* path_file, scr_filemap* map)
 {
   /* check that we have a map pointer and a hash within the map */
   if (map == NULL) {
     return SCR_FAILURE;
   }
 
+  /* assume we'll fail */
+  int rc = SCR_FAILURE;
+
+  /* get file name */
+  char* file = scr_path_strdup(path_file);
+
   /* can't read file, return error (special case so as not to print error message below) */
   if (scr_file_is_readable(file) != SCR_SUCCESS) {
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* ok, now try to read the file */
   if (scr_hash_read(file, map) != SCR_SUCCESS) {
     scr_err("Reading filemap %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* TODO: check that file count for each rank matches expected count */
 
-  return SCR_SUCCESS;
+  /* success if we make it this far */
+  rc = SCR_SUCCESS;
+
+cleanup:
+  /* free file name string */
+  scr_free(&file);
+
+  return rc;
 }
 
 /* writes given filemap to specified file */
-int scr_filemap_write(const char* file, const scr_filemap* map)
+int scr_filemap_write(const scr_path* file, const scr_filemap* map)
 {
   /* check that we have a map pointer */
   if (map == NULL) {
@@ -752,9 +765,11 @@ int scr_filemap_write(const char* file, const scr_filemap* map)
   }
 
   /* write out the hash */
-  if (scr_hash_write(file, map) != SCR_SUCCESS) {
+  if (scr_hash_write_path(file, map) != SCR_SUCCESS) {
+    char path_err[SCR_MAX_FILENAME];
+    scr_path_strcpy(path_err, sizeof(path_err), file);
     scr_err("Writing filemap %s @ %s:%d",
-            file, __FILE__, __LINE__
+      path_err, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }

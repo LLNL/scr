@@ -14,9 +14,11 @@
 
 #include "scr.h"
 #include "scr_io.h"
+#include "scr_path.h"
 #include "scr_util.h"
 #include "scr_err.h"
 #include "scr_hash.h"
+#include "scr_hash_util.h"
 #include "scr_param.h"
 #include "scr_halt.h"
 
@@ -104,20 +106,17 @@ int main (int argc, char *argv[])
     return NEED_HALT;
   }
 
-  /* allocate space to store the filename */
-  char* file = scr_strdupf("%s/.scr/%s", args.dir, NAME);
-  if (file == NULL) {
-    /* failed to allocate memory to hold halt file name, to be safe,
-     * assume we need to halt */
-    scr_err("%s: Failed to allocate storage to store halt file name @ %s:%d",
-      PROG, __FILE__, __LINE__
-    );
-    return NEED_HALT;
-  }
+  /* TODO: hopefully we don't abort right here and exit with wrong return code */
+  /* create path to halt file */
+  scr_path* halt_file = scr_path_from_str(args.dir);
+  scr_path_append_str(halt_file, NAME);
+  char* file = scr_path_strdup(halt_file);
 
   /* if we don't have a halt file, we're ok to continue */
   if (scr_file_exists(file) != SCR_SUCCESS) {
     printf("%s: CONTINUE RUN: No halt file found.\n", PROG);
+    scr_free(&file);
+    scr_path_delete(&halt_file);
     return DONT_HALT;
   }
 
@@ -128,7 +127,7 @@ int main (int argc, char *argv[])
   scr_hash* scr_halt_hash = scr_hash_new();
 
   /* read in our halt file */
-  if (scr_halt_read(file, scr_halt_hash) != SCR_SUCCESS) {
+  if (scr_halt_read(halt_file, scr_halt_hash) != SCR_SUCCESS) {
     /* failed to read the halt file -- to be safe, assume we need to halt */
     printf("%s: HALT RUN: Failed to open existing halt file.\n", PROG);
     rc = NEED_HALT;
@@ -154,14 +153,10 @@ int main (int argc, char *argv[])
   scr_param_finalize();
 
   /* if halt seconds is set in halt file, use this value instead */
-  value = scr_hash_elem_get_first_val(scr_halt_hash, SCR_HALT_KEY_SECONDS);
-  if (value != NULL) {
-    halt_seconds = atoi(value);
-  }
+  scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_SECONDS, &halt_seconds);
 
   /* check whether a reason has been specified */
-  value = scr_hash_elem_get_first_val(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON);
-  if (value != NULL) {
+  if (scr_hash_util_get_str(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON, &value) == SCR_SUCCESS) {
     if (strcmp(value, "") != 0) {
       printf("%s: HALT RUN: Reason: %s.\n", PROG, value);
       rc = NEED_HALT;
@@ -169,9 +164,8 @@ int main (int argc, char *argv[])
   }
 
   /* check whether we are out of checkpoints */
-  value = scr_hash_elem_get_first_val(scr_halt_hash, SCR_HALT_KEY_CHECKPOINTS);
-  if (value != NULL) {
-    int checkpoints_left = atoi(value);
+  int checkpoints_left;
+  if (scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_CHECKPOINTS, &checkpoints_left) == SCR_SUCCESS) {
     if (checkpoints_left == 0) {
       printf("%s: HALT RUN: No checkpoints remaining.\n", PROG);
       rc = NEED_HALT;
@@ -179,9 +173,8 @@ int main (int argc, char *argv[])
   }
 
   /* check whether we need to exit before a specified time */
-  value = scr_hash_elem_get_first_val(scr_halt_hash, SCR_HALT_KEY_EXIT_BEFORE);
-  if (value != NULL) {
-    int exit_before = atoi(value);
+  int exit_before;
+  if (scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_BEFORE, &exit_before) == SCR_SUCCESS) {
     if (now >= (exit_before - halt_seconds)) {
       time_t time_now  = (time_t) now;
       time_t time_exit = (time_t) exit_before - halt_seconds;
@@ -197,9 +190,8 @@ int main (int argc, char *argv[])
   }
 
   /* check whether we need to exit after a specified time */
-  value = scr_hash_elem_get_first_val(scr_halt_hash, SCR_HALT_KEY_EXIT_AFTER);
-  if (value != NULL) {
-    int exit_after = atoi(value);
+  int exit_after;
+  if (scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_AFTER, &exit_after) == SCR_SUCCESS) {
     if (now >= exit_after) {
       time_t time_now  = (time_t) now;
       time_t time_exit = (time_t) exit_after;
@@ -218,6 +210,7 @@ cleanup:
 
   /* free off our file name storage */
   scr_free(&file);
+  scr_path_delete(&halt_file);
 
   /* return appropriate exit code */
   return rc;

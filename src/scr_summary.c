@@ -19,25 +19,23 @@ Summary file functions
 
 /* read in the summary file from dir assuming file is using version 4 format or earlier,
  * convert to version 5 hash */
-static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
+static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash)
 {
   /* check that we have a pointer to a hash */
   if (summary_hash == NULL) {
     return SCR_FAILURE;
   }
 
-  /* check whether we can read the summary file */
-  char summary_file[SCR_MAX_FILENAME];
-  if (scr_path_build(summary_file, sizeof(summary_file), dir, "scr_summary.txt") != SCR_SUCCESS) {
-    scr_err("Failed to build full filename for summary file @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  /* build name of summary file */
+  scr_path* summary_path = scr_path_dup(dir);
+  scr_path_append_str(summary_path, "scr_summary.txt");
+  char* summary_file = scr_path_strdup(summary_path);
+  scr_path_delete(&summary_path);
 
   /* check whether we can read the file before we actually try,
    * we take this step to avoid printing an error in scr_hash_read */
   if (scr_file_is_readable(summary_file) != SCR_SUCCESS) {
+    scr_free(&summary_file);
     return SCR_FAILURE;
   }
 
@@ -47,6 +45,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
     scr_err("Opening summary file for read: fopen(%s, \"r\") errno=%d %m @ %s:%d",
       summary_file, errno, __FILE__, __LINE__
     );
+    scr_free(&summary_file);
     return SCR_FAILURE;
   }
 
@@ -85,6 +84,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
       summary_file, __FILE__, __LINE__
     );
     fclose(fs);
+    scr_free(&summary_file);
     return SCR_FAILURE;
   }
 
@@ -131,6 +131,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
       );
       fclose(fs);
       scr_hash_unset_all(summary_hash);
+      scr_free(&summary_file);
       return SCR_FAILURE;
     } else if (n != expected_n) {
       scr_err("Invalid read of record %d in %s at line %d @ %s:%d",
@@ -138,6 +139,7 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
       );
       fclose(fs);
       scr_hash_unset_all(summary_hash);
+      scr_free(&summary_file);
       return SCR_FAILURE;
     }
 
@@ -213,8 +215,12 @@ static int scr_summary_read_v4_to_v5(const char* dir, scr_hash* summary_hash)
   if (bad_values) {
     /* clear the hash, since we may have set bad values */
     scr_hash_unset_all(summary_hash);
+    scr_free(&summary_file);
     return SCR_FAILURE;
   }
+
+  /* free summary file string */
+  scr_free(&summary_file);
 
   /* otherwise, return success */
   return SCR_SUCCESS;
@@ -286,70 +292,67 @@ static int scr_summary_check_v5(scr_hash* hash)
 }
 
 /* read in the summary file from dir */
-static int scr_summary_read_v5(const char* dir, scr_hash* summary_hash)
+static int scr_summary_read_v5(const scr_path* dir, scr_hash* summary_hash)
 {
   /* check that we got a pointer to a hash */
   if (summary_hash == NULL) {
     return SCR_FAILURE;
   }
 
-  /* build the filename for the summary file */
-  char summary_file[SCR_MAX_FILENAME];
-  if (scr_path_build(summary_file, sizeof(summary_file), dir, "summary.scr") != SCR_SUCCESS) {
-    scr_err("Failed to build full filename for summary file @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  /* assume that we'll fail */
+  int rc = SCR_FAILURE;
+
+  /* build the summary filename */
+  scr_path* summary_path = scr_path_dup(dir);
+  scr_path_append_str(summary_path, "summary.scr");
+  char* summary_file = scr_path_strdup(summary_path);
 
   /* check whether we can read the file before we actually try,
    * we take this step to avoid printing an error in scr_hash_read */
   if (scr_file_is_readable(summary_file) != SCR_SUCCESS) {
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* read in the summary hash file */
-  if (scr_hash_read(summary_file, summary_hash) != SCR_SUCCESS) {
+  if (scr_hash_read_path(summary_path, summary_hash) != SCR_SUCCESS) {
     scr_err("Reading summary file %s @ %s:%d",
       summary_file, __FILE__, __LINE__
     );
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* if we made it here, we successfully read the summary file as a hash */
-  return SCR_SUCCESS;
+  rc = SCR_SUCCESS;
+
+cleanup:
+  /* free the summary path */
+  scr_free(&summary_file);
+  scr_path_delete(&summary_path);
+
+  return rc;
 }
 
 /* read in the summary file from dir */
-static int scr_summary_read_v6(const char* dir, scr_hash* summary_hash)
+static int scr_summary_read_v6(const scr_path* dir, scr_hash* summary_hash)
 {
   /* check that we got a pointer to a hash */
   if (summary_hash == NULL) {
     return SCR_FAILURE;
   }
 
-  /* build the .scr subdirectory */
-  char dir_scr[SCR_MAX_FILENAME];
-  if (scr_path_build(dir_scr, sizeof(dir_scr), dir, ".scr") != SCR_SUCCESS) {
-    scr_err("Failed to build full name of .scr subdirectory @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  /* assume that we'll fail */
+  int rc = SCR_FAILURE;
 
-  /* build the filename for the summary file */
-  char summary_file[SCR_MAX_FILENAME];
-  if (scr_path_build(summary_file, sizeof(summary_file), dir_scr, "summary.scr") != SCR_SUCCESS) {
-    scr_err("Failed to build full filename for summary file @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  /* build the summary filename */
+  scr_path* summary_path = scr_path_dup(dir);
+  scr_path_append_str(summary_path, ".scr");
+  scr_path_append_str(summary_path, "summary.scr");
+  char* summary_file = scr_path_strdup(summary_path);
 
   /* check whether we can read the file before we actually try,
    * we take this step to avoid printing an error in scr_hash_read */
   if (scr_file_is_readable(summary_file) != SCR_SUCCESS) {
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* read in the summary hash file */
@@ -357,7 +360,7 @@ static int scr_summary_read_v6(const char* dir, scr_hash* summary_hash)
     scr_err("Reading summary file %s @ %s:%d",
       summary_file, __FILE__, __LINE__
     );
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* read the version from the summary hash */
@@ -366,7 +369,7 @@ static int scr_summary_read_v6(const char* dir, scr_hash* summary_hash)
     scr_err("Failed to read version from summary file %s @ %s:%d",
       summary_file, __FILE__, __LINE__
     );
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* check that the version number matches */
@@ -374,11 +377,18 @@ static int scr_summary_read_v6(const char* dir, scr_hash* summary_hash)
     scr_err("Summary file %s is version %d instead of version %d @ %s:%d",
       summary_file, version, SCR_SUMMARY_FILE_VERSION_6, __FILE__, __LINE__
     );
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* if we made it here, we successfully read the summary file as a hash */
-  return SCR_SUCCESS;
+  rc = SCR_SUCCESS;
+
+cleanup:
+  /* free the summary file string */
+  scr_free(&summary_file);
+  scr_path_delete(&summary_path);
+
+  return rc;
 }
 
 static int scr_summary_convert_v5_to_v6(scr_hash* old, scr_hash* new)
@@ -389,7 +399,7 @@ static int scr_summary_convert_v5_to_v6(scr_hash* old, scr_hash* new)
 }
 
 /* read in the summary file from dir */
-int scr_summary_read(const char* dir, scr_hash* summary_hash)
+int scr_summary_read(const scr_path* dir, scr_hash* summary_hash)
 {
   /* check that we have pointers to a hash */
   if (summary_hash == NULL) {
@@ -444,25 +454,12 @@ int scr_summary_read(const char* dir, scr_hash* summary_hash)
 }
 
 /* write out the summary file to dir */
-int scr_summary_write(const char* dir, const scr_dataset* dataset, int all_complete, scr_hash* data)
+int scr_summary_write(const scr_path* dir, const scr_dataset* dataset, int all_complete, scr_hash* data)
 {
-  /* build the .scr subdirectory */
-  char dir_scr[SCR_MAX_FILENAME];
-  if (scr_path_build(dir_scr, sizeof(dir_scr), dir, ".scr") != SCR_SUCCESS) {
-    scr_err("Failed to build full name of .scr subdirectory @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
   /* build the summary filename */
-  char file[SCR_MAX_FILENAME];
-  if (scr_path_build(file, sizeof(file), dir_scr, "summary.scr") != SCR_SUCCESS) {
-    scr_err("Failed to build full filename for summary file @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  scr_path* summary_path = scr_path_dup(dir);
+  scr_path_append_str(summary_path, ".scr");
+  scr_path_append_str(summary_path, "summary.scr");
 
   /* create an empty hash to build our summary info */
   scr_hash* summary_hash = scr_hash_new();
@@ -487,10 +484,13 @@ int scr_summary_write(const char* dir, const scr_dataset* dataset, int all_compl
   scr_hash_util_set_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, scr_ranks_world);
 
   /* write the hash to a file */
-  scr_hash_write(file, summary_hash);
+  scr_hash_write_path(summary_path, summary_hash);
 
   /* free the hash object */
   scr_hash_delete(&summary_hash);
+
+  /* free the file name string */
+  scr_path_delete(&summary_path);
 
   return SCR_SUCCESS;
 }

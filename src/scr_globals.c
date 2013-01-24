@@ -37,19 +37,21 @@ char scr_cntl_base[SCR_MAX_FILENAME]  = SCR_CNTL_BASE;  /* base directory for co
 char scr_cache_base[SCR_MAX_FILENAME] = SCR_CACHE_BASE; /* base directory for cache directory */
 
 char* scr_cntl_prefix = NULL; /* path of control directory (adds to base directory) */
-char* scr_prefix      = NULL; /* path of SCR_PREFIX directory on PFS */
-char* scr_prefix_scr  = NULL; /* path of .scr subdir in SCR_PREFIX dir */
+
+char* scr_prefix          = NULL; /* path of SCR_PREFIX directory on PFS */
+char* scr_prefix_scr      = NULL; /* path of .scr subdir in SCR_PREFIX dir */
+scr_path* scr_prefix_path = NULL; /* scr_prefix in scr_path form */
 
 /* these files live in the control directory */
-char* scr_master_map_file = NULL;
-char* scr_map_file        = NULL;
+scr_path* scr_master_map_file = NULL;
+scr_path* scr_map_file        = NULL;
 char* scr_transfer_file   = NULL;
 
 /* we keep the halt, flush, and nodes files in the prefix directory
  * so that the batch script and / or external commands can access them */
-char scr_halt_file[SCR_MAX_FILENAME];
-char scr_flush_file[SCR_MAX_FILENAME];
-char scr_nodes_file[SCR_MAX_FILENAME];
+scr_path* scr_halt_file  = NULL;
+scr_path* scr_flush_file = NULL;
+scr_path* scr_nodes_file = NULL;
 
 scr_filemap* scr_map = NULL;    /* memory cache of filemap contents */
 scr_hash* scr_halt_hash = NULL; /* memory cache of halt file contents */

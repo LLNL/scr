@@ -26,7 +26,7 @@ int scr_bool_need_flush(int id)
   if (scr_my_rank_world == 0) {
     /* read the flush file */
     scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
+    scr_hash_read_path(scr_flush_file, hash);
 
     /* if we have the dataset in cache, but not on the parallel file system,
      * then it needs to be flushed */
@@ -55,7 +55,7 @@ int scr_bool_is_flushing(int id)
   if (scr_my_rank_world == 0) {
     /* read flush file into hash */
     scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
+    scr_hash_read_path(scr_flush_file, hash);
 
     /* attempt to look up the FLUSHING state for this checkpoint */
     scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
@@ -79,13 +79,13 @@ int scr_flush_file_dataset_remove(int id)
   if (scr_my_rank_world == 0) {
     /* read the flush file into hash */
     scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
+    scr_hash_read_path(scr_flush_file, hash);
 
     /* delete this dataset id from the flush file */
     scr_hash_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
 
     /* write the hash back to the flush file */
-    scr_hash_write(scr_flush_file, hash);
+    scr_hash_write_path(scr_flush_file, hash);
 
     /* delete the hash */
     scr_hash_delete(&hash);
@@ -100,14 +100,14 @@ int scr_flush_file_location_set(int id, const char* location)
   if (scr_my_rank_world == 0) {
     /* read the flush file into hash */
     scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
+    scr_hash_read_path(scr_flush_file, hash);
 
     /* set the location for this dataset */
     scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
     scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
 
     /* write the hash back to the flush file */
-    scr_hash_write(scr_flush_file, hash);
+    scr_hash_write_path(scr_flush_file, hash);
 
     /* delete the hash */
     scr_hash_delete(&hash);
@@ -123,7 +123,7 @@ int scr_flush_file_location_test(int id, const char* location)
   if (scr_my_rank_world == 0) {
     /* read the flush file into hash */
     scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
+    scr_hash_read_path(scr_flush_file, hash);
 
     /* check the location for this dataset */
     scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
@@ -150,14 +150,14 @@ int scr_flush_file_location_unset(int id, const char* location)
   if (scr_my_rank_world == 0) {
     /* read the flush file into hash */
     scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
+    scr_hash_read_path(scr_flush_file, hash);
 
     /* unset the location for this dataset */
     scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
     scr_hash_unset_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
 
     /* write the hash back to the flush file */
-    scr_hash_write(scr_flush_file, hash);
+    scr_hash_write_path(scr_flush_file, hash);
 
     /* delete the hash */
     scr_hash_delete(&hash);
@@ -173,14 +173,14 @@ int scr_flush_file_subdir_set(int id, const char* subdir)
   if (scr_my_rank_world == 0) {
     /* read the flush file into hash */
     scr_hash* hash = scr_hash_new();
-    scr_hash_read(scr_flush_file, hash);
+    scr_hash_read_path(scr_flush_file, hash);
 
     /* set the location for this dataset */
     scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
     scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_DIRECTORY, subdir);
 
     /* write the hash back to the flush file */
-    scr_hash_write(scr_flush_file, hash);
+    scr_hash_write_path(scr_flush_file, hash);
 
     /* delete the hash */
     scr_hash_delete(&hash);

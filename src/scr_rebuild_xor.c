@@ -14,6 +14,7 @@
 
 #include "scr.h"
 #include "scr_io.h"
+#include "scr_path.h"
 #include "scr_meta.h"
 #include "scr_err.h"
 #include "scr_util.h"
@@ -96,15 +97,6 @@ static int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
   return rc;
 }
 
-/* construct path to scrfilemap file for given rank */
-int build_scrfilemap_path(int rank, char* path, size_t path_size)
-{
-  char filename[SCR_MAX_FILENAME];
-  sprintf(filename, "%d.scrfilemap", rank);
-  int rc = scr_path_build(path, path_size, ".scr", filename);
-  return rc;
-}
-
 int main(int argc, char* argv[])
 {
   int i, j;
@@ -120,6 +112,10 @@ int main(int argc, char* argv[])
   /* get current working directory */
   char dsetdir[SCR_MAX_FILENAME];
   scr_getcwd(dsetdir, sizeof(dsetdir));
+
+  /* create and reduce path for dataset */
+  scr_path* path_dset = scr_path_from_str(dsetdir);
+  scr_path_reduce(path_dset);
 
   /* allocate buffers */
   char* buffer_A = malloc(buffer_size * sizeof(char));
@@ -277,15 +273,18 @@ int main(int argc, char* argv[])
   }
 
   /* get name of partner's .scrfilemap */
-  char partner_map_file[SCR_MAX_FILENAME];
-  build_scrfilemap_path(partner_rank, partner_map_file, sizeof(partner_map_file));
+  scr_path* path_partner_map = scr_path_from_str(".scr");
+  scr_path_append_strf(path_partner_map, "%d.scrfilemap", partner_rank);
 
   /* extract partner's flush descriptor */
   scr_hash* flushdesc = scr_hash_new();
   scr_filemap* partner_map = scr_filemap_new();
-  scr_filemap_read(partner_map_file, partner_map);
+  scr_filemap_read(path_partner_map, partner_map);
   scr_filemap_get_flushdesc(partner_map, dset_id, partner_rank, flushdesc);
   scr_filemap_delete(&partner_map);
+
+  /* delete partner map path */
+  scr_path_delete(&path_partner_map);
 
   /* determine whether we should preserve user directories */
   int preserve_dirs = 0;
@@ -322,8 +321,9 @@ int main(int argc, char* argv[])
   /* allocate space for a file descriptor, file name pointer, and filesize for each user file */
   int* user_fds                 = (int*)           malloc(total_num_files * sizeof(int));
   char** user_files             = (char**)         malloc(total_num_files * sizeof(char*));
+  char** user_rel_files         = (char**)         malloc(total_num_files * sizeof(char*));
   unsigned long* user_filesizes = (unsigned long*) malloc(total_num_files * sizeof(unsigned long));
-  if (user_fds == NULL || user_files == NULL || user_filesizes == NULL) {
+  if (user_fds == NULL || user_files == NULL || user_rel_files == NULL || user_filesizes == NULL) {
     scr_err("Failed to allocate buffer memory @ %s:%d",
       __FILE__, __LINE__
     );
@@ -363,9 +363,9 @@ int main(int argc, char* argv[])
         );
         return 1;
       }
-        
+
       /* construct full path to user file */
-      char user_fullpath[SCR_MAX_FILENAME];
+      scr_path* path_user_full = scr_path_from_str(origname);
       if (preserve_dirs) {
         /* get original path of file */
         char* origpath;
@@ -377,17 +377,44 @@ int main(int argc, char* argv[])
         }
 
         /* construct full path to file */
-        scr_path_build(user_fullpath, sizeof(user_fullpath), origpath, origname);
+        scr_path_prepend_str(path_user_full, origpath);
       } else {
         /* construct full path to file */
-        scr_path_build(user_fullpath, sizeof(user_fullpath), dsetdir, origname);
+        scr_path_prepend(path_user_full, path_dset);
       }
 
+      /* reduce path to user file */
+      scr_path_reduce(path_user_full);
+
       /* make a copy of the full path */
-      user_files[offset] = strdup(user_fullpath);
+      user_files[offset] = scr_path_strdup(path_user_full);
+
+      /* make a copy of relative path */
+      scr_path* path_user_rel = scr_path_relative(path_dset, path_user_full);
+      user_rel_files[offset] = scr_path_strdup(path_user_rel);
+      scr_path_delete(&path_user_rel);
+
+      /* free the full path */
+      scr_path_delete(&path_user_full);
 
       /* open the file */
       if (i == 0) {
+        /* create directory for file */
+        scr_path* user_dir_path = scr_path_from_str(user_files[offset]);
+        scr_path_reduce(user_dir_path);
+        scr_path_dirname(user_dir_path);
+        if (! scr_path_is_null(user_dir_path)) {
+          char* user_dir = scr_path_strdup(user_dir_path);
+          if (scr_mkdir(user_dir, S_IRWXU) != SCR_SUCCESS) {
+            scr_err("Failed to create directory for user file %s @ %s:%d",
+              user_dir, __FILE__, __LINE__
+            );
+            return 1;
+          }
+          scr_free(&user_dir);
+        }
+        scr_path_delete(&user_dir_path);
+
         /* open missing file for writing */
         user_fds[offset] = scr_open(user_files[offset], O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
         if (user_fds[offset] < 0) {
@@ -556,11 +583,8 @@ int main(int argc, char* argv[])
 
   /* write meta data for each of the user files and add each one to the filemap */
   for (j=0; j < num_files[0]; j++) {
-    /* get name of user file relative to dsetdir */
-    char user_file_relative[SCR_MAX_FILENAME];
-    scr_path_relative(dsetdir, user_files[j], user_file_relative, sizeof(user_file_relative));
-
     /* add user file to filemap and record meta data */
+    char* user_file_relative = user_rel_files[j];
     scr_filemap_add_file(map, dset_id, my_rank, user_file_relative);
     scr_meta* meta = scr_hash_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
     scr_filemap_set_meta(map, dset_id, my_rank, user_file_relative, meta);
@@ -585,11 +609,8 @@ int main(int argc, char* argv[])
 
   /* compute, check, and store crc values with files */
   for (j=0; j < num_files[0]; j++) {
-    /* get name of user file relative to dsetdir */
-    char user_file_relative[SCR_MAX_FILENAME];
-    scr_path_relative(dsetdir, user_files[j], user_file_relative, sizeof(user_file_relative));
-
     /* compute crc on user file */
+    char* user_file_relative = user_rel_files[j];
     if (scr_compute_crc(map, dset_id, my_rank, user_file_relative) != SCR_SUCCESS) {
       /* the crc check failed, so delete the file */
       scr_file_unlink(user_files[j]);
@@ -606,11 +627,12 @@ int main(int argc, char* argv[])
   scr_filemap_set_flushdesc(map, dset_id, my_rank, flushdesc);
 
   /* write filemap for this rank */
-  char map_file[SCR_MAX_FILENAME];
-  build_scrfilemap_path(my_rank, map_file, sizeof(map_file));
-  if (scr_filemap_write(map_file, map) != SCR_SUCCESS) {
+  scr_path* path_map = scr_path_from_str(".scr");
+  scr_path_append_strf(path_map, "%d.scrfilemap", my_rank);
+  if (scr_filemap_write(path_map, map) != SCR_SUCCESS) {
     rc = 1;
   }
+  scr_path_delete(&path_map);
 
   /* delete the map */
   scr_filemap_delete(&map);
@@ -623,10 +645,12 @@ int main(int argc, char* argv[])
   scr_free(&offset);
 
   for (i=0; i < total_num_files; i++) {
+    scr_free(&user_rel_files[i]);
     scr_free(&user_files[i]);
   }
 
   scr_free(&user_filesizes);
+  scr_free(&user_rel_files);
   scr_free(&user_files);
   scr_free(&user_fds);
 
@@ -646,6 +670,8 @@ int main(int argc, char* argv[])
 
   scr_free(&buffer_B);
   scr_free(&buffer_A);
+
+  scr_path_delete(&path_dset);
 
   return rc;
 }

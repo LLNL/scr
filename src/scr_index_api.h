@@ -15,14 +15,15 @@
 #define SCR_INDEX_API_H
 
 #include <stdio.h>
+#include "scr_path.h"
 #include "scr_hash.h"
 #include "scr_dataset.h"
 
 /* read the index file from given directory and merge its contents into the given hash */
-int scr_index_read(const char* dir, scr_hash* index);
+int scr_index_read(const scr_path* dir, scr_hash* index);
 
 /* overwrite the contents of the index file in given directory with given hash */
-int scr_index_write(const char* dir, scr_hash* index);
+int scr_index_write(const scr_path* dir, scr_hash* index);
 
 /* add given dataset id and directory name to given hash */
 int scr_index_add_dir(scr_hash* index, int id, const char* name);

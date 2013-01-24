@@ -14,6 +14,7 @@
 #include "scr.h"
 #include "scr_err.h"
 #include "scr_io.h"
+#include "scr_path.h"
 #include "scr_util.h"
 #include "scr_meta.h"
 #include "scr_hash.h"
@@ -37,7 +38,6 @@
 int buffer_size = 128*1024;
 
 static char scr_my_hostname[SCR_MAX_FILENAME];
-static char* scr_master_map_file = NULL;
 
 /* checks whether specifed file exists, is readable, and is complete */
 static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* file)
@@ -45,7 +45,7 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
   /* if no filename is given return false */
   if (file == NULL || strcmp(file,"") == 0) {
     scr_dbg(2, "File name is null or the empty string @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return 0;
   }
@@ -53,7 +53,7 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
   /* check that we can read the file */
   if (scr_file_is_readable(file) != SCR_SUCCESS) {
     scr_dbg(2, "Do not have read access to file: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     return 0;
   }
@@ -62,7 +62,7 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
   scr_meta* meta = scr_meta_new();
   if (scr_filemap_get_meta(map, dset, rank, file, meta) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read meta data for file: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     scr_meta_delete(&meta);
     return 0;
@@ -71,7 +71,7 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
   /* check that the file is complete */
   if (scr_meta_is_complete(meta) != SCR_SUCCESS) {
     scr_dbg(2, "File is marked as incomplete: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     scr_meta_delete(&meta);
     return 0;
@@ -83,14 +83,14 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
   int meta_dset = -1;
   if (scr_meta_get_checkpoint(meta, &meta_dset) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read checkpoint field in meta data: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     scr_meta_delete(&meta);
     return 0;
   }
   if (dset != meta_dset) {
     scr_dbg(2, "File's checkpoint ID (%d) does not match id in meta data file (%d) for %s @ %s:%d",
-            dset, meta_dset, file, __FILE__, __LINE__
+      dset, meta_dset, file, __FILE__, __LINE__
     );
     scr_meta_delete(&meta);
     return 0;
@@ -102,14 +102,14 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
   int meta_rank = -1;
   if (scr_meta_get_rank(meta, &meta_rank) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read rank field in meta data: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     scr_meta_delete(&meta);
     return 0;
   }
   if (rank != meta_rank) {
     scr_dbg(2, "File's rank (%d) does not match rank in meta data file (%d) for %s @ %s:%d",
-            rank, meta_rank, file, __FILE__, __LINE__
+      rank, meta_rank, file, __FILE__, __LINE__
     );
     scr_meta_delete(&meta);
     return 0;
@@ -121,14 +121,14 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
   int meta_ranks = -1;
   if (scr_meta_get_ranks(meta, &meta_ranks) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read ranks field in meta data: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     scr_meta_delete(&meta);
     return 0;
   }
   if (ranks != meta_ranks) {
     scr_dbg(2, "File's ranks (%d) does not match ranks in meta data file (%d) for %s @ %s:%d",
-            ranks, meta_ranks, file, __FILE__, __LINE__
+      ranks, meta_ranks, file, __FILE__, __LINE__
     );
     scr_meta_delete(&meta);
     return 0;
@@ -140,14 +140,14 @@ static int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const 
   unsigned long meta_size = 0;
   if (scr_meta_get_filesize(meta, &meta_size) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read filesize field in meta data: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     scr_meta_delete(&meta);
     return 0;
   }
   if (size != meta_size) {
     scr_dbg(2, "Filesize is incorrect, currently %lu, expected %lu for %s @ %s:%d",
-            size, meta_size, file, __FILE__, __LINE__
+      size, meta_size, file, __FILE__, __LINE__
     );
     scr_meta_delete(&meta);
     return 0;
@@ -169,19 +169,19 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  scr_master_map_file = strdup(argv[1]);
+  scr_path* scr_master_map_file = scr_path_from_str(strdup(argv[1]));
 
   /* get my hostname */
   if (gethostname(scr_my_hostname, sizeof(scr_my_hostname)) != 0) {
     scr_err("scr_inspect_cache: Call to gethostname failed @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return 1;
   }
 
   /* read in the master map */
   scr_hash* hash = scr_hash_new();
-  scr_hash_read(scr_master_map_file, hash);
+  scr_hash_read_path(scr_master_map_file, hash);
 
   /* create an empty filemap */
   scr_filemap* map = scr_filemap_new();
@@ -197,7 +197,9 @@ int main(int argc, char* argv[])
 
     /* read in the filemap */
     scr_filemap* tmp_map = scr_filemap_new();
-    scr_filemap_read(file, tmp_map);
+    scr_path* path_file = scr_path_from_str(file);
+    scr_filemap_read(path_file, tmp_map);
+    scr_path_delete(&path_file);
 
     /* merge it with local 0 filemap */
     scr_filemap_merge(map, tmp_map);
@@ -240,7 +242,7 @@ int main(int argc, char* argv[])
           if (! scr_bool_have_file(map, dset, rank, file)) {
               missing_file = 1;
               scr_dbg(1, "File is unreadable or incomplete: Dataset %d, Rank %d, File: %s",
-                      dset, rank, file
+                dset, rank, file
               );
           }
         }
@@ -265,14 +267,14 @@ int main(int argc, char* argv[])
           int group_size = atoi(group_size_str);
           int group_rank = atoi(group_rank_str);
           printf("DSET=%d RANK=%d TYPE=%s GROUPS=%d GROUP_ID=%d GROUP_SIZE=%d GROUP_RANK=%d FILES=1\n",
-                 dset, rank, type, groups, group_id, group_size, group_rank
+            dset, rank, type, groups, group_id, group_size, group_rank
           );
         }
       }
     }
   }
 
-  scr_free(&scr_master_map_file);
+  scr_path_delete(&scr_master_map_file);
 
   return 0;
 }

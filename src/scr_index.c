@@ -513,7 +513,7 @@ int scr_rebuild_scan(const scr_path* dir, scr_hash* scan)
           scr_path* missing_filepath = scr_path_from_str(".scr");
           scr_path_append_strf(missing_filepath, "%d_of_%d_in_%d.xor", missing_member, members, xor_setid);
           char* missing_filename_str = scr_path_strdup(missing_filepath);
-          scr_hash_setf(buildcmd_hash, NULL, "%d %s", argc, missing_filepath);
+          scr_hash_setf(buildcmd_hash, NULL, "%d %s", argc, missing_filename_str);
           scr_free(&missing_filename_str);
           scr_path_delete(&missing_filepath);
           argc++;
@@ -797,22 +797,22 @@ int scr_scan_files(const scr_path* dir, scr_hash* scan)
     /* allocate string of full file name */
     scr_path* path_name = scr_path_dup(path_scr);
     scr_path_append_str(path_name, name);
-    char* name_tmp = scr_path_strdup(path_name);
-    scr_path_delete(&path_name);
 
     /* create an empty filemap to store contents */
     scr_filemap* rank_map = scr_filemap_new();
 
     /* read in the filemap */
-    if (scr_filemap_read(name_tmp, rank_map) != SCR_SUCCESS) {
+    if (scr_filemap_read(path_name, rank_map) != SCR_SUCCESS) {
+      char path_err[SCR_MAX_FILENAME];
+      scr_path_strcpy(path_err, sizeof(path_err), path_name);
       scr_err("Error reading filemap: %s @ %s:%d",
-        name_tmp, __FILE__, __LINE__
+        path_err, __FILE__, __LINE__
       );
-      scr_free(&name_tmp);
+      scr_path_delete(&path_name);
       scr_filemap_delete(&rank_map);
       continue;
     }
-    scr_free(&name_tmp);
+    scr_path_delete(&path_name);
 
     /* iterate over each dataset in this filemap */
     scr_hash_elem* dset_elem = NULL;
@@ -1190,14 +1190,13 @@ int is_complete(const scr_path* prefix, const scr_path* subdir)
   int rc = SCR_FAILURE;
 
   /* get string versions of prefix and subdir */
-  char* prefix_str = scr_path_strdup(prefix);
   char* subdir_str = scr_path_strdup(subdir);
 
   /* create a new hash to store our index file data */
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  scr_index_read(prefix_str, index); 
+  scr_index_read(prefix, index); 
 
   /* lookup the dataset id based on the directory name */
   int id = 0;
@@ -1219,7 +1218,6 @@ int is_complete(const scr_path* prefix, const scr_path* subdir)
 
   /* free our strings */
   scr_free(&subdir_str);
-  scr_free(&prefix_str);
 
   return rc;
 }
@@ -1235,7 +1233,7 @@ int index_list(const scr_path* prefix)
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  if (scr_index_read(prefix_str, index) != SCR_SUCCESS) {
+  if (scr_index_read(prefix, index) != SCR_SUCCESS) {
     scr_err("Failed to read index file in %s @ %s:%d",
       prefix_str, __FILE__, __LINE__
     );
@@ -1389,7 +1387,7 @@ int index_remove_dir(const scr_path* prefix, const scr_path* subdir)
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  if (scr_index_read(prefix_str, index) != SCR_SUCCESS) {
+  if (scr_index_read(prefix, index) != SCR_SUCCESS) {
     scr_err("Failed to read index file in %s @ %s:%d",
       prefix_str, __FILE__, __LINE__
     );
@@ -1400,7 +1398,7 @@ int index_remove_dir(const scr_path* prefix, const scr_path* subdir)
   /* remove directory from index */
   if (scr_index_remove_dir(index, subdir_str) == SCR_SUCCESS) {
     /* write out new index file */
-    scr_index_write(prefix_str, index);
+    scr_index_write(prefix, index);
   } else {
     /* couldn't find the named directory, print an error */
     scr_err("Named directory was not found in index file: %s @ %s:%d",
@@ -1435,7 +1433,7 @@ int index_current_dir(const scr_path* prefix, const scr_path* subdir)
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  if (scr_index_read(prefix_str, index) != SCR_SUCCESS) {
+  if (scr_index_read(prefix, index) != SCR_SUCCESS) {
     scr_err("Failed to read index file in %s @ %s:%d",
       prefix_str, __FILE__, __LINE__
     );
@@ -1446,7 +1444,7 @@ int index_current_dir(const scr_path* prefix, const scr_path* subdir)
   /* remove directory from index */
   if (scr_index_set_current(index, subdir_str) == SCR_SUCCESS) {
     /* write out new index file */
-    scr_index_write(prefix_str, index);
+    scr_index_write(prefix, index);
   } else {
     /* couldn't find the named directory, print an error */
     scr_err("Named directory was not found in index file: %s @ %s:%d",
@@ -1484,7 +1482,7 @@ int index_add_dir(const scr_path* prefix, const scr_path* subdir)
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  scr_index_read(prefix_str, index); 
+  scr_index_read(prefix, index); 
 
   /* if named directory is already indexed, exit with success */
   int id;
@@ -1515,7 +1513,7 @@ int index_add_dir(const scr_path* prefix, const scr_path* subdir)
           /* write values to the index file */
           scr_index_set_dataset(index, dataset_id, subdir_str, dataset, complete);
           scr_index_mark_flushed(index, dataset_id, subdir_str);
-          scr_index_write(prefix_str, index); 
+          scr_index_write(prefix, index); 
         } else {
           /* failed to read complete flag */
           rc = SCR_FAILURE;

@@ -15,8 +15,10 @@
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
+#include "scr_path.h"
 #include "scr_util.h"
 #include "scr_hash.h"
+#include "scr_hash_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,13 +96,9 @@ int main (int argc, char *argv[])
   }
 
   /* build the full file name */
-  char* file = scr_strdupf("%s/.scr/nodes.scr", args.dir);
-  if (file == NULL) {
-    scr_err("%s: Failed to allocate storage to store nodes file name @ %s:%d",
-      PROG, __FILE__, __LINE__
-    );
-    return 1;
-  }
+  scr_path* file_path = scr_path_from_str(args.dir);
+  scr_path_append_str(file_path, ".scr");
+  scr_path_append_str(file_path, "nodes.scr");
 
   /* assume we'll fail */
   int rc = 1;
@@ -109,14 +107,14 @@ int main (int argc, char *argv[])
   scr_hash* hash = scr_hash_new();
 
   /* read in our nodes file */
-  if (scr_hash_read(file, hash) != SCR_SUCCESS) {
+  if (scr_hash_read_path(file_path, hash) != SCR_SUCCESS) {
     /* failed to read the nodes file */
     goto cleanup;
   }
 
   /* lookup the value associated with the NODES key */
-  char* nodes_str = scr_hash_elem_get_first_val(hash, SCR_NODES_KEY_NODES);
-  if (nodes_str != NULL) {
+  char* nodes_str;
+  if (scr_hash_util_get_str(hash, SCR_NODES_KEY_NODES, &nodes_str) == SCR_SUCCESS) {
     printf("%s\n", nodes_str);
     rc = 0;
   } else {
@@ -128,7 +126,7 @@ cleanup:
   scr_hash_delete(&hash);
 
   /* free off our file name storage */
-  scr_free(&file);
+  scr_path_delete(&file_path);
 
   /* return appropriate exit code */
   return rc;

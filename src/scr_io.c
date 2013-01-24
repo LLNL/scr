@@ -17,6 +17,7 @@
 #include "scr_err.h"
 #include "scr_io.h"
 #include "scr_util.h"
+#include "scr_path.h"
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -817,360 +818,6 @@ int scr_getcwd(char* buf, size_t size)
   return rc;
 }
 
-/* split path and filename from fullpath on the rightmost '/'
- * assumes all filename if no '/' is found */
-int scr_path_split(const char* file, char* path, char* filename)
-{
-  /* dirname and basename may modify their arguments, so we need to make a copy. */
-  char* pcopy = strdup(file);
-  char* ncopy = strdup(file);
-
-  strcpy(path,     dirname(pcopy));
-  strcpy(filename, basename(ncopy));
-
-  scr_free(&ncopy);
-  scr_free(&pcopy);
-  return SCR_SUCCESS;
-}
-
-/* combine path and file into a fullpath in buf */
-int scr_path_build(char* buf, size_t size, const char* path, const char* file)
-{
-  int nwrite = 0;
-  if ((path == NULL || strcmp(path, "") == 0) && (file == NULL || strcmp(file, "") == 0)) {
-    /* empty path and file, just write an empty string to file */
-    nwrite = 1;
-    if (size > 0) {
-      *buf = '\0';
-    }
-  } else if (path == NULL || strcmp(path, "") == 0) {
-    /* empty path, just return file */
-    nwrite = snprintf(buf, size, "%s", file);
-  } else if (file == NULL || strcmp(file, "") == 0) {
-    /* empty file, just return path */
-    nwrite = snprintf(buf, size, "%s", path);
-  } else {
-    /* concatenate path and file */
-    nwrite = snprintf(buf, size, "%s/%s", path, file);
-  }
-
-  /* return success or failure depending on whether we fit everything into the buffer */
-  if (nwrite >= size) {
-    scr_err("Output buffer too small to concatenate path and file name (have %d bytes, need %d bytes) @ %s:%d",
-            size, nwrite, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-  return SCR_SUCCESS;
-}
-
-/* returns the number of components (number of slashes + 1) */
-int scr_path_length(const char* str, int* length)
-{
-  /* check that we got a length variable */
-  if (length == NULL) {
-    return SCR_FAILURE;
-  }
-
-  /* return 0 for a NULL pointer */
-  if (str == NULL) {
-    *length = 0;
-    return SCR_SUCCESS;
-  }
-
-  /* otherwise count the number of slashes */
-  size_t i;
-  int count = 0;
-  for (i = 0; str[i] != '\0'; i++) {
-    if (str[i] == '/') {
-      count++;
-    }
-  }
-
-  /* number of components is number of slashes + 1 */
-  *length = count + 1;
-  return SCR_SUCCESS;
-}
-
-/* returns the substring starting at the specified component index
- * (0 through scr_path_length-1) and running for length components */
-int scr_path_slice(
-  const char* str,
-  int start,
-  int length,
-  char* substr,
-  size_t substrlen)
-{
-  /* check that parameters are ok */
-  if (start < 0 || length < 0 || substr == NULL) {
-    return SCR_FAILURE;
-  }
-
-  /* nothing to copy for a NULL string */
-  if (str == NULL) {
-    return SCR_FAILURE;
-  }
-
-  /* if start is 0, then first will be i=0 character
-   * regardless whether it is a slash or not */
-  int count = 0;
-  size_t i = 0;
-  while (str[i] != '\0' && count < start) {
-    if (str[i] == '/') {
-      count++;
-    }
-    i++;
-  }
-
-  /* at this point, i is sitting one char one past the starting '/'
-   * or it is on the terminating NUL */
-  size_t first = i;
-
-  /* run until we've seen length more slashes or hit the end
-   * of the string */
-  while (str[i] != '\0' && count < start + length) {
-    if (str[i] == '/') {
-      count++;
-    }
-    i++;
-  }
-
-  /* determine the number of characters to copy from str, assume
-   * we'll copy in the empty string until we figure out otherwise */
-  size_t len = 0;
-  if (count < start + length) {
-    /* we ended because we hit the end of the string, we didn't
-     * find the last slash, so just copy all bytes up to end of string */
-    len = i - first;
-  } else if (i > first + 1) {
-    /* in this case, we counted the correct number of slashes
-     * and our index is one char past the last slash */
-    len = i - first - 1;
-  }
-
-  /* copy contents into substr and return */
-  if (len < substrlen) {
-    const char* ptr = &str[first];
-    if (len > 0) {
-      memcpy(substr, ptr, len);
-    }
-    substr[len] = '\0';
-    return SCR_SUCCESS;
-  }
-
-  return SCR_FAILURE;
-}
-
-/* given a file or directory name, construct the full path by prepending
- * the current working directory if needed */
-int scr_path_absolute(char* buf, size_t size, const char* file)
-{
-  /* check that we have valid buffers and a non-empty string */
-  if (buf == NULL || file == NULL || strcmp(file, "") == 0) {
-    return SCR_FAILURE;
-  }
-
-  int rc = SCR_SUCCESS;
-
-  /* get an absolute path in tmp_buf */
-  char tmp_buf[SCR_MAX_FILENAME];
-  if (file[0] == '/') {
-    /* the filename is already an absolute path, so just make a copy */
-    size_t file_len = strlen(file) + 1;
-    if (file_len <= sizeof(tmp_buf)) {
-      strcpy(tmp_buf, file);
-    } else {
-      /* tmp buffer is too small */
-      rc = SCR_FAILURE;
-    }
-  } else {
-    /* the path is not absolute, so prepend the current working directory */
-    char cwd[SCR_MAX_FILENAME];
-    if (scr_getcwd(cwd, sizeof(cwd)) == SCR_SUCCESS) {
-      if (scr_path_build(tmp_buf, sizeof(tmp_buf), cwd, file) != SCR_SUCCESS) {
-        /* problem concatenating cwd with file */
-        rc = SCR_FAILURE;
-      }
-    } else {
-      /* problem acquiring current working directory */
-      rc = SCR_FAILURE;
-    }
-  }
-
-  /* now we have an absolute path in tmp_buf,
-   * return a simplified version to caller */
-  if (rc == SCR_SUCCESS) {
-    if (scr_path_resolve(tmp_buf, buf, size) != SCR_SUCCESS) {
-      rc = SCR_FAILURE;
-    }
-  }
-
-  return rc;
-}
-
-/* TODO: handle symlinks */
-/* remove double slashes, trailing slash, '.', and '..' */
-int scr_path_resolve(const char* str, char* newstr, size_t newstrlen)
-{
-  /* check that we got valid input parameters */
-  if (str == NULL || newstr == NULL) {
-    return SCR_FAILURE;
-  }
-
-  /* TODO: what to do with things like lustre:/my/file? */
-  /* require an absolute path, code below assumes string starts with a '/' */
-  if (str[0] != '/') {
-    return SCR_FAILURE;
-  }
-
-  /* scan from left char by char and copy into newstr */
-  size_t src = 0;
-  size_t dst = 0;
-  while (str[src] != '\0') {
-    /* make sure we don't overrun the length of the new string */
-    if (dst >= newstrlen) {
-      /* TODO: intermediate representation could be too long but final
-       * representation may still fit */
-      /* not enough room to copy path into newstr */
-      return SCR_FAILURE;
-    }
-
-    /* copy character from path to newstr */
-    char current = str[src];
-    newstr[dst] = current;
-
-    /* while last char is slash */
-    while (str[src] == '/') {
-      /* skip ahead until next char is not slash, this removes
-       * consecutive slashes from path */
-      while (str[src+1] == '/') {
-        src++;
-      }
-
-      /* if next character is '.', look for '.' and '..' */
-      char one_ahead = str[src+1];
-      if (one_ahead == '.') {
-        char two_ahead = str[src+2];
-        if (two_ahead == '/' || two_ahead == '\0') {
-          /* next char is '/' or '\0', we have ref to current
-           * directory as in "foo/./" or "foo/." so skip two chars */
-          src += 2;
-        } else if (two_ahead == '.') {
-          char three_ahead = str[src+3];
-          if (three_ahead == '/' || three_ahead == '\0') {
-            /* next char is '/' or '\0', pop off one component since
-             * we found "foo/../" or foo/.." */
-            src += 3;
-
-            /* pop off last component from newstr */
-            if (dst > 0) {
-              /* remove the last slash we just added */
-              dst--;
-
-              /* now pop characters until we hit another slash */
-              while (dst > 0 && newstr[dst] != '/') {
-                dst--;
-              }
-            } else {
-              /* we've tried to pop too far, as in "/.." */
-              return SCR_FAILURE;
-            }
-          } else {
-            /* '/..' is followed by some character other than a '/' or '\0' */
-            break;
-          }
-        } else {
-          /* '/.' is followed by some character other than a '.', '/', or '\0' */
-          break;
-        }
-      } else {
-        /* slash is followed by some character other than a '.' */
-        break;
-      }
-    }
-
-    /* advance new string pointer */
-    dst++;
-
-    /* advance src pointer */
-    if (str[src] != '\0') {
-      src++;
-    }
-  }
-
-  /* remove any trailing slash */
-  if (dst > 1 && newstr[dst-1] == '/') {
-    dst--;
-  }
-
-  /* terminate our new path */
-  if (dst < newstrlen) {
-    newstr[dst] = '\0';
-  } else {
-    return SCR_FAILURE;
-  }
-
-  return SCR_SUCCESS;
-}
-
-/* returns relative path pointing to dst starting from src */
-int scr_path_relative(const char* src, const char* dst, char* path, size_t path_size)
-{
-  /* check input parameters */
-  if (src == NULL || dst == NULL || path == NULL) {
-    return SCR_FAILURE;
-  }
-
-  /* resolve source path */
-  char src_resolve[SCR_MAX_FILENAME];
-  if (scr_path_resolve(src, src_resolve, sizeof(src_resolve)) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  /* resolve destination path */
-  char dst_resolve[SCR_MAX_FILENAME];
-  if (scr_path_resolve(dst, dst_resolve, sizeof(dst_resolve)) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  /* TODO: compute relative paths for arbitrary src and dst paths,
-   * for now we just support this if dst is child of src */
-
-  /* get number of chars in src */
-  size_t src_size = strlen(src);
-
-  /* ensure that dst is child of src */
-  if (strncmp(src_resolve, dst_resolve, src_size) != 0) {
-    return SCR_FAILURE;
-  }
-
-  /* get number of components in src directory */
-  int src_components;
-  if (scr_path_length(src_resolve, &src_components) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  /* get number of components in dst directory */
-  int dst_components;
-  if (scr_path_length(dst_resolve, &dst_components) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  /* check that number of dst components is greater than or equal to src */
-  if (dst_components < src_components) {
-    return SCR_FAILURE;
-  }
-
-  /* now strip src components from dst */
-  int start = src_components;
-  int remaining = dst_components - src_components;
-  if (scr_path_slice(dst_resolve, start, remaining, path, path_size) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  return SCR_SUCCESS;
-}
-
 /*
 =========================================
 File Copy Functions
@@ -1180,61 +827,44 @@ File Copy Functions
 /* TODO: could perhaps use O_DIRECT here as an optimization */
 /* TODO: could apply compression/decompression here */
 /* copy src_file (full path) to dest_path and return new full path in dest_file */
-int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, char* dst, size_t dst_size, uLong* crc)
+int scr_file_copy(
+  const char* src_file,
+  const char* dst_file,
+  unsigned long buf_size,
+  uLong* crc)
 {
   /* check that we got something for a source file */
-  if (src == NULL || strcmp(src, "") == 0) {
+  if (src_file == NULL || strcmp(src_file, "") == 0) {
     scr_err("Invalid source file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
 
-  /* check that we got something for a destination directory */
-  if (dst_dir == NULL || strcmp(dst_dir, "") == 0) {
-    scr_err("Invalid destination directory @ %s:%d",
-            __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* check that we got a pointer to a destination buffer */
-  if (dst == NULL) {
-    scr_err("Invalid buffer for destination file name @ %s:%d",
-            __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* split src_file into path and filename */
-  char path[SCR_MAX_FILENAME];
-  char name[SCR_MAX_FILENAME];
-  scr_path_split(src, path, name);
-
-  /* create dest_file using dest_path and filename */
-  if (scr_path_build(dst, dst_size, dst_dir, name) != SCR_SUCCESS) {
-    scr_err("Failed to build full filename for destination file @ %s:%d",
-            __FILE__, __LINE__
+  /* check that we got something for a destination file */
+  if (dst_file == NULL || strcmp(dst_file, "") == 0) {
+    scr_err("Invalid destination file @ %s:%d",
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
 
   /* open src_file for reading */
-  int fd_src = scr_open(src, O_RDONLY);
-  if (fd_src < 0) {
+  int src_fd = scr_open(src_file, O_RDONLY);
+  if (src_fd < 0) {
     scr_err("Opening file to copy: scr_open(%s) errno=%d %m @ %s:%d",
-            src, errno, __FILE__, __LINE__
+      src_file, errno, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
 
   /* open dest_file for writing */
-  int fd_dst = scr_open(dst, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-  if (fd_dst < 0) {
+  int dst_fd = scr_open(dst_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+  if (dst_fd < 0) {
     scr_err("Opening file for writing: scr_open(%s) errno=%d %m @ %s:%d",
-            dst, errno, __FILE__, __LINE__
+      dst_file, errno, __FILE__, __LINE__
     );
-    scr_close(src, fd_src);
+    scr_close(src_file, src_fd);
     return SCR_FAILURE;
   }
 
@@ -1243,17 +873,17 @@ int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, ch
   that tells the kernel that you don't ever need the pages
   from the file again, and it won't bother keeping them in the page cache.
   */
-  posix_fadvise(fd_src, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
-  posix_fadvise(fd_dst, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
+  posix_fadvise(src_fd, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
+  posix_fadvise(dst_fd, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
 
   /* allocate buffer to read in file chunks */
   char* buf = (char*) malloc(buf_size);
   if (buf == NULL) {
     scr_err("Allocating memory: malloc(%llu) errno=%d %m @ %s:%d",
-            buf_size, errno, __FILE__, __LINE__
+      buf_size, errno, __FILE__, __LINE__
     );
-    scr_close(dst, fd_dst);
-    scr_close(src, fd_src);
+    scr_close(dst_file, dst_fd);
+    scr_close(src_file, src_fd);
     return SCR_FAILURE;
   }
 
@@ -1268,7 +898,7 @@ int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, ch
   int copying = 1;
   while (copying) {
     /* attempt to read buf_size bytes from file */
-    int nread = scr_read_attempt(src, fd_src, buf, buf_size);
+    int nread = scr_read_attempt(src_file, src_fd, buf, buf_size);
 
     /* if we read some bytes, write them out */
     if (nread > 0) {
@@ -1278,7 +908,7 @@ int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, ch
       }
 
       /* write our nread bytes out */
-      int nwrite = scr_write_attempt(dst, fd_dst, buf, nread);
+      int nwrite = scr_write_attempt(dst_file, dst_fd, buf, nread);
 
       /* check for a write error or a short write */
       if (nwrite != nread) {
@@ -1305,16 +935,16 @@ int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, ch
   scr_free(&buf);
 
   /* close source and destination files */
-  if (scr_close(dst, fd_dst) != SCR_SUCCESS) {
+  if (scr_close(dst_file, dst_fd) != SCR_SUCCESS) {
     rc = SCR_FAILURE;
   }
-  if (scr_close(src, fd_src) != SCR_SUCCESS) {
+  if (scr_close(src_file, src_fd) != SCR_SUCCESS) {
     rc = SCR_FAILURE;
   }
 
   /* unlink the file if the copy failed */
   if (rc != SCR_SUCCESS) {
-    unlink(dst);
+    unlink(dst_file);
   }
 
   return rc;

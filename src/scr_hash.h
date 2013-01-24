@@ -12,6 +12,8 @@
 #ifndef SCR_HASH_H
 #define SCR_HASH_H
 
+#include "scr_path.h"
+
 #include <stdarg.h>
 #include <sys/types.h>
 
@@ -370,6 +372,12 @@ int scr_hash_write(const char* file, const scr_hash* hash);
 
 /* opens specified file and reads in a hash storing its contents in the given hash object */
 int scr_hash_read(const char* file, scr_hash* hash);
+
+/* write the given hash to specified file */
+int scr_hash_write_path(const scr_path* file, const scr_hash* hash);
+
+/* opens specified file and reads in a hash storing its contents in the given hash object */
+int scr_hash_read_path(const scr_path* file, scr_hash* hash);
 
 /* given a filename and hash, lock/open/read/close/unlock the file storing its contents in the hash */
 int scr_hash_read_with_lock(const char* file, scr_hash* hash);

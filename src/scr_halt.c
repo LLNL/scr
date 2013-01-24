@@ -28,11 +28,17 @@
 #include <unistd.h>
 
 /* given the name of a halt file, read it and fill in hash */
-int scr_halt_read(const char* file, scr_hash* hash)
+int scr_halt_read(const scr_path* path_file, scr_hash* hash)
 {
+  /* assume we'll fail */
+  int rc = SCR_FAILURE;
+
+  /* get file name */
+  char* file = scr_path_strdup(path_file);
+
   /* check whether we can read the halt file */
   if (scr_file_is_readable(file) != SCR_SUCCESS) {
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* TODO: sleep and try the open several times if the first fails */
@@ -42,7 +48,7 @@ int scr_halt_read(const char* file, scr_hash* hash)
     scr_err("Opening file for read: scr_open(%s) errno=%d %m @ %s:%d",
       file, errno, __FILE__, __LINE__
     );
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* acquire a file lock before reading */
@@ -50,7 +56,8 @@ int scr_halt_read(const char* file, scr_hash* hash)
   int ret = scr_file_lock_read(file, fd);
   if (ret != SCR_SUCCESS) {
     scr_close(file,fd);
-    return ret;
+    rc = ret;
+    goto cleanup;
   }
 
   /* read in the hash */
@@ -62,16 +69,28 @@ int scr_halt_read(const char* file, scr_hash* hash)
   /* close file */
   scr_close(file, fd);
 
-  return SCR_SUCCESS;
+  /* success if we make it this far */
+  rc = SCR_SUCCESS;
+
+cleanup:
+  scr_free(&file);
+
+  return rc;
 }
 
 /* read in halt file (which user may have changed via scr_halt), update internal data structure,
  * optionally decrement the checkpoints_left field, and write out halt file all while locked */
-int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
+int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int dec_count)
 {
+  /* assume we'll fail */
+  int rc = SCR_FAILURE;
+
   /* set the mode on the file to be readable/writable by all
    * (enables a sysadmin to halt a user's job via scr_halt --all) */
   mode_t old_mode = umask(0000);
+
+  /* get file name */
+  char* file = scr_path_strdup(file_path);
 
   /* record whether file already exists before we open it */
   int exists = (scr_file_exists(file) == SCR_SUCCESS);
@@ -84,16 +103,15 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
       file, errno, __FILE__, __LINE__
     );
     /* restore the normal file mask */
-    //umask(old_mode);
-    return SCR_FAILURE;
+    goto cleanup;
   }
 
   /* acquire a file lock before read/modify/write */
   int ret = scr_file_lock_read(file, fd);
   if (ret != SCR_SUCCESS) {
     scr_close(file,fd);
-    umask(old_mode);
-    return ret;
+    rc = ret;
+    goto cleanup;
   }
 
   /* get a new blank hash to read in file */
@@ -159,9 +177,16 @@ int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count)
   /* close file */
   scr_close(file, fd);
 
+  /* success if we make it this far */
+  rc = SCR_SUCCESS;
+
+cleanup:
+  /* free the file string */
+  scr_free(&file);
+
   /* restore the normal file mask */
   umask(old_mode);
 
   /* write current values to halt file */
-  return SCR_SUCCESS;
+  return rc;
 }

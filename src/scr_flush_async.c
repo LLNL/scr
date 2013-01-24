@@ -314,21 +314,22 @@ int scr_flush_async_start(scr_filemap* map, int id)
     }
     my_bytes += (double) filesize;
 
-    /* break file into path and name components */
-    char path[SCR_MAX_FILENAME];
-    char name[SCR_MAX_FILENAME];
-    scr_path_split(file, path, name);
-
-    /* create dest_file using dest_dir and name */
-    char dest_file[SCR_MAX_FILENAME];
-    scr_path_build(dest_file, sizeof(dest_file), dest_dir, name);
-
     /* add this file to the hash, and add its filesize to the number of bytes written */
     scr_hash* transfer_file_hash = scr_hash_set_kv(scr_flush_async_hash, SCR_TRANSFER_KEY_FILES, file);
     if (file_hash != NULL) {
-      scr_hash_util_set_str(transfer_file_hash, SCR_TRANSFER_KEY_DESTINATION, dest_file);
+      /* break file into path and name components */
+      scr_path* path_dest_file = scr_path_from_str(file);
+      scr_path_basename(path_dest_file);
+      scr_path_prepend_str(path_dest_file, dest_dir);
+      char* dest_file = scr_path_strdup(path_dest_file);
+    
+      scr_hash_util_set_str(transfer_file_hash, SCR_TRANSFER_KEY_DESTINATION,   dest_file);
       scr_hash_util_set_bytecount(transfer_file_hash, SCR_TRANSFER_KEY_SIZE,    filesize);
       scr_hash_util_set_bytecount(transfer_file_hash, SCR_TRANSFER_KEY_WRITTEN, 0);
+
+      /* delete path and string for the file name */
+      scr_free(&dest_file);
+      scr_path_delete(&path_dest_file);
     }
  
     /* add this file to our total count */
@@ -479,10 +480,12 @@ int scr_flush_async_complete(scr_filemap* map, int id)
     scr_hash* hash = scr_hash_elem_hash(elem);
 
     /* record the filename in the hash, and get reference to a hash for this file */
-    char path[SCR_MAX_FILENAME];
-    char name[SCR_MAX_FILENAME];
-    scr_path_split(file, path, name);
+    scr_path* path_file = scr_path_from_str(file);
+    scr_path_basename(path_file);
+    char* name = scr_path_strdup(path_file);
     scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
+    scr_free(&name);
+    scr_path_delete(&path_file);
 
     /* TODO: check that this file was written successfully */
 

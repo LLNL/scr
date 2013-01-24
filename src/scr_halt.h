@@ -28,10 +28,10 @@ This file defines the data structure for a halt file.
 #define SCR_HALT_KEY_CHECKPOINTS ("CheckpointsLeft")
 
 /* given the name of a halt file, read it and fill in data */
-int scr_halt_read(const char* file, scr_hash* hash);
+int scr_halt_read(const scr_path* file, scr_hash* hash);
 
 /* read in halt file (which user may have changed via scr_halt), update internal data structure,
  * optionally decrement the checkpoints_left field, and write out halt file all while locked */
-int scr_halt_sync_and_decrement(const char* file, scr_hash* hash, int dec_count);
+int scr_halt_sync_and_decrement(const scr_path* file, scr_hash* hash, int dec_count);
 
 #endif

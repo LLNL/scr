@@ -100,12 +100,26 @@ ssize_t scr_writef(const char* file, int fd, const char* format, ...);
 
 /* logically concatenate n opened files and read count bytes from this logical file into buf starting
  * from offset, pad with zero on end if missing data */
-int scr_read_pad_n(int n, char** files, int* fds,
-                   char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes);
+int scr_read_pad_n(
+  int n,
+  char** files,
+  int* fds,
+  char* buf,
+  unsigned long count,
+  unsigned long offset,
+  unsigned long* filesizes
+);
 
 /* write to an array of open files with known filesizes and treat them as one single large file */
-int scr_write_pad_n(int n, char** files, int* fds,
-                    char* buf, unsigned long count, unsigned long offset, unsigned long* filesizes);
+int scr_write_pad_n(
+  int n,
+  char** files,
+  int* fds,
+  char* buf,
+  unsigned long count,
+  unsigned long offset,
+  unsigned long* filesizes
+);
 
 /* given a filename, return number of bytes in file */
 unsigned long scr_file_size(const char* file);
@@ -140,48 +154,18 @@ int scr_rmdir(const char* dir);
 /* write current working directory to buf */
 int scr_getcwd(char* buf, size_t size);
 
-/* split path and filename from fullpath on the rightmost '/'
-   assumes all filename if no '/' is found */
-int scr_path_split(const char* file, char* path, char* filename);
-
-/* combine path and file into a full path in buf whose size is given in size */
-int scr_path_build(char* buf, size_t size, const char* path, const char* file);
-
-/* returns the number of components (number of slashes + 1) */
-int scr_path_length(const char* str, int* length);
-
-/* returns the substring starting at the specified component index
- * (0 through scr_path_length-1) and running for length components */
-int scr_path_slice(
-  const char* str,
-  int start,
-  int length,
-  char* substr,
-  size_t substrlen
-);
-
-/* given a file or directory name, construct the full path by prepending
- * the current working directory if needed */
-int scr_path_absolute(char* buf, size_t size, const char* file);
-
-/* remove double slashes, trailing slash, '.', and '..' */
-int scr_path_resolve(const char* str, char* newstr, size_t newstrlen);
-
-/* returns relative path pointing to dst starting from src */
-int scr_path_relative(
-  const char* src, /* IN  - starting directory */
-  const char* dst, /* IN  - destination directory */
-  char* path,      /* OUT - relateive path to destination from starting directory */
-  size_t path_size /* IN  - size of path buffer in bytes */
-);
-
 /*
 =========================================
 File Copy Functions
 =========================================
 */
 
-int scr_copy_to(const char* src, const char* dst_dir, unsigned long buf_size, char* dst, size_t dst_size, uLong* crc);
+int scr_file_copy(
+  const char* src_file,
+  const char* dst_file,
+  unsigned long buf_size,
+  uLong* crc
+);
 
 /*
 =========================================

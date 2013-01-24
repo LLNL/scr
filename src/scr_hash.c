@@ -19,6 +19,7 @@
 #include "scr_hash.h"
 #include "scr_io.h"
 #include "scr_util.h"
+#include "scr_path.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1184,6 +1185,31 @@ int scr_hash_write(const char* file, const scr_hash* hash)
   return rc;
 }
 
+/* write the given hash to specified file */
+int scr_hash_write_path(const scr_path* file_path, const scr_hash* hash)
+{
+  /* check that we have a hash and a file name */
+  if (file_path == NULL || hash == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* check that path is not NULL */
+  if (scr_path_is_null(file_path)) {
+    return SCR_FAILURE;
+  }
+
+  /* get file name */
+  char* file = scr_path_strdup(file_path);
+
+  /* write the hash */
+  int rc = scr_hash_write(file, hash);
+
+  /* free the string we allocated for the file */
+  scr_free(&file);
+
+  return rc;
+}
+
 /* executes logic of scr_hash_read using an opened file descriptor */
 ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
 {
@@ -1354,6 +1380,32 @@ int scr_hash_read(const char* file, scr_hash* hash)
   if (scr_close(file, fd) != SCR_SUCCESS) {
     rc = SCR_FAILURE;
   }
+
+  return rc;
+}
+
+/* opens specified file and reads in a hash storing its contents in
+ * the given hash object */
+int scr_hash_read_path(const scr_path* file_path, scr_hash* hash)
+{
+  /* check that we have a hash and a file name */
+  if (file_path == NULL || hash == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* check that path is not NULL */
+  if (scr_path_is_null(file_path)) {
+    return SCR_FAILURE;
+  }
+
+  /* get file name */
+  char* file = scr_path_strdup(file_path);
+
+  /* read the hash */
+  int rc = scr_hash_read(file, hash);
+
+  /* free the string */
+  scr_free(&file);
 
   return rc;
 }

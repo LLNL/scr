@@ -19,6 +19,7 @@
 #include "scr_io.h"
 #include "scr_err.h"
 #include "scr_util.h"
+#include "scr_path.h"
 #include "scr_meta.h"
 #include "scr_hash.h"
 #include "scr_filemap.h"
@@ -302,17 +303,17 @@ int main (int argc, char *argv[])
   int first_non_option = optind;
 
   /* build the name of the master filemap */
-  char scr_master_map_file[SCR_MAX_FILENAME];
-  scr_path_build(
-    scr_master_map_file, sizeof(scr_master_map_file),
-    args.cntldir, "filemap.scrinfo"
-  );
+  scr_path* scr_master_map_file = scr_path_from_str(args.cntldir);
+  scr_path_append_str(scr_master_map_file, "filemap.scrinfo");
 
   /* TODO: get list of partner nodes I have files for */
 
   /* read in the master map */
   scr_hash* hash = scr_hash_new();
-  scr_hash_read(scr_master_map_file, hash);
+  scr_hash_read_path(scr_master_map_file, hash);
+
+  /* free the name of the master map file */
+  scr_path_delete(&scr_master_map_file);
 
   /* create an empty filemap */
   scr_filemap* map = scr_filemap_new();
@@ -328,7 +329,9 @@ int main (int argc, char *argv[])
 
     /* read in the filemap */
     scr_filemap* tmp_map = scr_filemap_new();
-    scr_filemap_read(file, tmp_map);
+    scr_path* path_file = scr_path_from_str(file);
+    scr_filemap_read(path_file, tmp_map);
+    scr_path_delete(&path_file);
 
     /* merge it with local 0 filemap */
     scr_filemap_merge(map, tmp_map);
@@ -349,17 +352,15 @@ int main (int argc, char *argv[])
     return 1;
   }
 
+  /* path to data set directory */
+  scr_path* path_dataset = scr_path_from_str(args.dstdir);
+  scr_path_reduce(path_dataset);
+
   /* define the path to the .scr subdirectory */
-  char path_scr[SCR_MAX_FILENAME];
-  if (scr_path_build(path_scr, sizeof(path_scr), args.dstdir, ".scr") != SCR_SUCCESS) {
-    printf("scr_copy: %s: Failed to build path to scr directory for dataset id %d\n",
-      hostname, args.id
-    );
-    printf("scr_copy: %s: Return code: 1\n", hostname);
-    scr_filemap_delete(&map);
-    scr_hash_delete(&hash);
-    return 1;
-  }
+  scr_path* path_scr = scr_path_dup(path_dataset);
+  scr_path_append_str(path_scr, ".scr");
+  scr_path_reduce(path_scr);
+  char* path_scr_str = scr_path_strdup(path_scr);
 
   int rc = 0;
 
@@ -460,14 +461,14 @@ int main (int argc, char *argv[])
         }
 
         /* get path to copy file */
-        char* path_file = NULL;
+        char* dst_dir = NULL;
         if (user_file) {
           /* assume that we're not preserving directories and copy
            * all files to top level dir */
-          path_file = args.dstdir;
+          dst_dir = args.dstdir;
           if (preserve_dirs) {
             /* we're preserving user directories, get original path */
-            if (scr_meta_get_origpath(meta, &path_file) != SCR_SUCCESS) {
+            if (scr_meta_get_origpath(meta, &dst_dir) != SCR_SUCCESS) {
               printf("scr_copy: %s: Could not find original path for file %s in dataset id %d\n",
                 hostname, file, args.id
               );
@@ -481,7 +482,7 @@ int main (int argc, char *argv[])
             /* TODO: keep a cache of directory names that we've already created */
 
             /* make directory to file */
-            if (scr_mkdir(path_file, S_IRWXU) != SCR_SUCCESS) {
+            if (scr_mkdir(dst_dir, S_IRWXU) != SCR_SUCCESS) {
               printf("scr_copy: %s: Failed to create original path for file %s in dataset id %d\n",
                 hostname, file, args.id
               );
@@ -494,8 +495,15 @@ int main (int argc, char *argv[])
           }
         } else {
           /* scavenge SCR files to SCR directory */
-          path_file = path_scr;
+          dst_dir = path_scr_str;
         }
+
+        /* create destination file name */
+        scr_path* dst_path = scr_path_from_str(file);
+        scr_path_basename(dst_path);
+        scr_path_prepend_str(dst_path, dst_dir);
+        scr_path_reduce(dst_path);
+        char* dst_file = scr_path_strdup(dst_path);
 
         /* copy the file and optionally compute the crc during the copy */
         int crc_valid = 0;
@@ -505,26 +513,19 @@ int main (int argc, char *argv[])
           crc_valid = 1;
           crc_p = &crc;
         }
-        char dst[SCR_MAX_FILENAME];
-        if (scr_copy_to(file, path_file, args.buf_size, dst, sizeof(dst), crc_p)
+        if (scr_file_copy(file, dst_file, args.buf_size, crc_p)
           != SCR_SUCCESS)
         {
           crc_valid = 0;
           rc = 1;
         }
 
-        /* compute relative path to file dir from dstdir */
-        char path_file_relative[SCR_MAX_FILENAME];
-        if (scr_path_relative(args.dstdir, dst, path_file_relative, sizeof(path_file_relative)) != SCR_SUCCESS) {
-          scr_err("scr_copy: Failed to get relative path to destination file %s when flushing to %s @ %s:%d",
-            file, dst, __FILE__, __LINE__
-          );
-          rc = 1;
-          continue;
-        }
+        /* compute relative path to destination file from dataset dir */
+        scr_path* path_relative = scr_path_relative(path_dataset, dst_path);
+        char* file_relative = scr_path_strdup(path_relative);
 
         /* add this file to the rank_map */
-        scr_filemap_add_file(rank_map, args.id, rank, path_file_relative);
+        scr_filemap_add_file(rank_map, args.id, rank, file_relative);
 
         /* if file has crc32, check it against the one computed during
          * the copy, otherwise if crc_flag is set, record crc32 */
@@ -535,14 +536,14 @@ int main (int argc, char *argv[])
               /* detected a crc mismatch during the copy */
 
               /* TODO: unlink the copied file */
-              /* scr_file_unlink(dst); */
+              /* scr_file_unlink(dst_file); */
 
               /* mark the file as invalid */
               scr_meta_set_complete(meta, 0);
 
               rc = 1;
               scr_err("scr_copy: CRC32 mismatch detected when flushing file %s to %s @ %s:%d",
-                file, dst, __FILE__, __LINE__
+                file, dst_file, __FILE__, __LINE__
               );
 
               /* TODO: would be good to log this, but right now only
@@ -562,7 +563,15 @@ int main (int argc, char *argv[])
         }
 
         /* record its meta data in the filemap */
-        scr_filemap_set_meta(rank_map, args.id, rank, path_file_relative, meta);
+        scr_filemap_set_meta(rank_map, args.id, rank, file_relative, meta);
+
+        /* free the string containing the relative file name */
+        scr_free(&file_relative);
+        scr_path_delete(&path_relative);
+
+        /* free the destination file path and string */
+        scr_free(&dst_file);
+        scr_path_delete(&dst_path);
 
         /* free the meta data object */
         scr_meta_delete(&meta);
@@ -576,19 +585,23 @@ int main (int argc, char *argv[])
     }
 
     /* write out the rank filemap for scr_index */
-    char rank_str[SCR_MAX_FILENAME];
-    char rank_filemap_name[SCR_MAX_FILENAME];
-    sprintf(rank_str, "%d.scrfilemap", rank);
-    scr_path_build(
-      rank_filemap_name, sizeof(rank_filemap_name), path_scr, rank_str
-    );
-    if (scr_filemap_write(rank_filemap_name, rank_map) != SCR_SUCCESS) {
+    scr_path* path_rank = scr_path_dup(path_scr);
+    scr_path_append_strf(path_rank, "%d.scrfilemap", rank);
+    if (scr_filemap_write(path_rank, rank_map) != SCR_SUCCESS) {
       rc = 1;
     }
+    scr_path_delete(&path_rank);
 
     /* delete the rank filemap object */
     scr_filemap_delete(&rank_map);
   }
+
+  /* delete path to scr directory */
+  scr_free(&path_scr_str);
+  scr_path_delete(&path_scr);
+
+  /* free the dataset directory path */
+  scr_path_delete(&path_dataset);
 
   /* print our return code and exit */
   printf("scr_copy: %s: Return code: %d\n", hostname, rc);

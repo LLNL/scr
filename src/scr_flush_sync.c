@@ -19,15 +19,17 @@ Synchronous flush functions
 
 /* flushes file named in src_file to dst_dir and fills in meta based on flush,
  * returns success of flush */
-static int scr_flush_a_file(const char* file, const char* dir, scr_meta* meta)
+static int scr_flush_a_file(const char* src_file, const char* dst_dir, scr_meta* meta)
 {
   int flushed = SCR_SUCCESS;
   int tmp_rc;
 
-  /* break file into path and name components */
-  char path[SCR_MAX_FILENAME];
-  char name[SCR_MAX_FILENAME];
-  scr_path_split(file, path, name);
+  /* build full name to destination file */
+  scr_path* dst_path = scr_path_from_str(src_file);
+  scr_path_basename(dst_path);
+  scr_path_prepend_str(dst_path, dst_dir);
+  scr_path_reduce(dst_path);
+  char* dst_file = scr_path_strdup(dst_path);
 
   /* copy file */
   int crc_valid = 0;
@@ -37,16 +39,13 @@ static int scr_flush_a_file(const char* file, const char* dir, scr_meta* meta)
     crc_valid = 1;
     crc_p = &crc;
   }
-  char my_flushed_file[SCR_MAX_FILENAME];
-  tmp_rc = scr_copy_to(file, dir, scr_file_buf_size,
-                       my_flushed_file, sizeof(my_flushed_file), crc_p
-  );
+  tmp_rc = scr_file_copy(src_file, dst_file, scr_file_buf_size, crc_p);
   if (tmp_rc != SCR_SUCCESS) {
     crc_valid = 0;
     flushed = SCR_FAILURE;
   }
   scr_dbg(2, "scr_flush_a_file: Read and copied %s to %s with success code %d @ %s:%d",
-          file, my_flushed_file, tmp_rc, __FILE__, __LINE__
+    src_file, dst_file, tmp_rc, __FILE__, __LINE__
   );
 
   /* if file has crc32, check it against the one computed during the copy,
@@ -58,21 +57,21 @@ static int scr_flush_a_file(const char* file, const char* dir, scr_meta* meta)
         /* detected a crc mismatch during the copy */
 
         /* TODO: unlink the copied file */
-        /* scr_file_unlink(my_flushed_file); */
+        /* scr_file_unlink(dst_file); */
 
         /* mark the file as invalid */
         scr_meta_set_complete(meta, 0);
 
         flushed = SCR_FAILURE;
         scr_err("scr_flush_a_file: CRC32 mismatch detected when flushing file %s to %s @ %s:%d",
-                file, my_flushed_file, __FILE__, __LINE__
+          src_file, dst_file, __FILE__, __LINE__
         );
 
         /* TODO: would be good to log this, but right now only rank 0 can write log entries */
         /*
         if (scr_log_enable) {
           time_t now = scr_log_seconds();
-          scr_log_event("CRC32 MISMATCH", my_flushed_file, NULL, &now, NULL);
+          scr_log_event("CRC32 MISMATCH", dst_file, NULL, &now, NULL);
         }
         */
       }
@@ -88,6 +87,10 @@ static int scr_flush_a_file(const char* file, const char* dir, scr_meta* meta)
   /* (we don't update the meta file here, since perhaps the file in cache is ok and only the flush failed) */
   int complete = (flushed == SCR_SUCCESS);
   scr_meta_set_complete(meta, complete);
+
+  /* free destination file string and path */
+  scr_free(&dst_file);
+  scr_path_delete(&dst_path);
 
   return flushed;
 }
@@ -299,6 +302,9 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
     );
   }
 
+  /* create summary path */
+  scr_path* path_summary_dir = scr_path_from_str(summary_dir);
+
   /* create a summary file entry for our rank */
   scr_hash* rank2file_hash = scr_hash_new();
   scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, scr_my_rank_world);
@@ -322,6 +328,10 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
     /* get the filename */
     char* file = scr_hash_elem_key(elem);
 
+    /* convert file to path and extract name of file */
+    scr_path* path_name = scr_path_from_str(file);
+    scr_path_basename(path_name);
+
     /* get the hash for this element */
     scr_hash* hash = scr_hash_elem_hash(elem);
 
@@ -334,10 +344,9 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
       /* TODO: PRESERVE get original filename here */
 
       /* add this file to the summary file */
-      char path[SCR_MAX_FILENAME];
-      char name[SCR_MAX_FILENAME];
-      scr_path_split(file, path, name);
+      char* name = scr_path_strdup(path_name);
       scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
+      scr_free(&name);
 
       /* get segments hash for this file */
       scr_hash* segments = scr_hash_get(hash, SCR_SUMMARY_6_KEY_SEGMENT);
@@ -371,19 +380,17 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
       /* get directory to flush file to */
       char* dir;
       if (scr_hash_util_get_str(hash, SCR_KEY_PATH, &dir) == SCR_SUCCESS) {
-        /* get name of file */
-        char srcpath[SCR_MAX_FILENAME];
-        char name[SCR_MAX_FILENAME];
-        scr_path_split(file, srcpath, name);
-
-        /* build full path to file for flushing */
-        char fullpath[SCR_MAX_FILENAME];
-        scr_path_build(fullpath, sizeof(fullpath), dir, name);
+        /* create full path of destination file */
+        scr_path* path_full = scr_path_from_str(dir);
+        scr_path_append(path_full, path_name);
 
         /* get relative path to flushed file from directory containing summary file */
-        if (scr_path_relative(summary_dir, fullpath, name, sizeof(name)) == SCR_SUCCESS) {
+        scr_path* path_relative = scr_path_relative(path_summary_dir, path_full);
+        if (! scr_path_is_null(path_relative)) {
           /* record the name of the file in the summary hash, and get reference to a hash for this file */
+          char* name = scr_path_strdup(path_relative);
           scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
+          scr_free(&name);
 
           /* flush the file and fill in the meta data for this file */
           if (scr_flush_a_file(file, dir, meta) == SCR_SUCCESS) {
@@ -410,13 +417,23 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
             dir, summary_dir, __FILE__, __LINE__
           );
         }
+
+        /* free relative and full paths */
+        scr_path_delete(&path_relative);
+        scr_path_delete(&path_full);
       } else {
         scr_abort(-1, "Failed to read directory to flush file to @ %s:%d",
           __FILE__, __LINE__
         );
       }
     }
+
+    /* free the file name path */
+    scr_path_delete(&path_name);
   }
+
+  /* free summary dir path */
+  scr_path_delete(&path_summary_dir);
 
   return rc;
 }

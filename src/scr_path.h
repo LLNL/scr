@@ -96,8 +96,9 @@ int scr_path_components(const scr_path* path);
  * (excludes terminating NUL) */
 size_t scr_path_strlen(const scr_path* path);
 
-/* execute strncpy-like function to get path */
-//char* scr_path_strncpy(char* s1, const scr_path* path, size_t n);
+/* copy string into user buffer, abort if buffer is too small,
+ * return number of bytes written */
+size_t scr_path_strcpy(char* buf, size_t n, const scr_path* path);
 
 /* allocate memory and return path in string form,
  * caller is responsible for freeing string with scr_free() */
@@ -154,6 +155,17 @@ cut, slice, and subpath functions
 =========================================
 */
 
+/* keeps upto length components of path starting at specified location
+ * and discards the rest, offset can be negative to count
+ * from back, a negative length copies the remainder of the string */
+int scr_path_slice(scr_path* path, int offset, int length);
+
+/* drops last component from path */
+int scr_path_dirname(scr_path* path);
+
+/* only leaves last component of path */
+int scr_path_basename(scr_path* path);
+
 /* copies upto length components of path starting at specified location
  * and returns subpath as new path, offset can be negative to count
  * from back, a negative length copies the remainder of the string */
@@ -179,6 +191,6 @@ int scr_path_is_absolute(const scr_path* path);
 int scr_path_is_child(const scr_path* parent, const scr_path* child);
 
 /* compute and return relative path from src to dst */
-scr_path* scr_path_rel(const scr_path* src, const scr_path* dst);
+scr_path* scr_path_relative(const scr_path* src, const scr_path* dst);
 
 #endif /* SCR_PATH_H */

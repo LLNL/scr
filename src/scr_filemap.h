@@ -181,10 +181,10 @@ Filemap read/write/free functions
 */
 
 /* reads specified file and fills in filemap structure */
-int scr_filemap_read(const char* file, scr_filemap* map);
+int scr_filemap_read(const scr_path* file, scr_filemap* map);
 
 /* writes given filemap to specified file */
-int scr_filemap_write(const char* file, const scr_filemap* map);
+int scr_filemap_write(const scr_path* file, const scr_filemap* map);
 
 /* create a new filemap structure */
 scr_filemap* scr_filemap_new();

@@ -64,8 +64,6 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
 
   int fd_chunk = 0;
   char full_chunk_filename[SCR_MAX_FILENAME] = "";
-  char path[SCR_MAX_FILENAME] = "";
-  char name[SCR_MAX_FILENAME] = "";
 
   int* fds = NULL;
   char** filenames = NULL;
@@ -83,7 +81,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     /* lookup name of xor file */
     if (! scr_bool_have_xor_file(map, id, full_chunk_filename)) {
       scr_abort(-1, "Missing XOR file %s @ %s:%d",
-              full_chunk_filename, __FILE__, __LINE__
+        full_chunk_filename, __FILE__, __LINE__
       );
     }
 
@@ -91,7 +89,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     fd_chunk = scr_open(full_chunk_filename, O_RDONLY);
     if (fd_chunk < 0) {
       scr_abort(-1, "Opening XOR file for reading in XOR rebuild: scr_open(%s, O_RDONLY) errno=%d %m @ %s:%d",
-              full_chunk_filename, errno, __FILE__, __LINE__
+        full_chunk_filename, errno, __FILE__, __LINE__
       );
     }
 
@@ -102,7 +100,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     current_hash = scr_hash_get(header, SCR_KEY_COPY_XOR_CURRENT);
     if (scr_hash_util_get_int(current_hash, SCR_KEY_COPY_XOR_FILES, &num_files) != SCR_SUCCESS) {
       scr_abort(-1, "Failed to read number of files from XOR file header: %s @ %s:%d",
-              full_chunk_filename, __FILE__, __LINE__
+        full_chunk_filename, __FILE__, __LINE__
       );
     }
 
@@ -113,13 +111,14 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       filesizes = (unsigned long*) malloc(num_files * sizeof(unsigned long));
       if (fds == NULL || filenames == NULL || filesizes == NULL) {
         scr_abort(-1, "Failed to allocate file arrays @ %s:%d",
-                  __FILE__, __LINE__
+          __FILE__, __LINE__
         );
       }
     }
 
     /* get path from chunk file */
-    scr_path_split(full_chunk_filename, path, name);
+    scr_path* path_chunk = scr_path_from_str(full_chunk_filename);
+    scr_path_dirname(path_chunk);
 
     /* open each of our files */
     for (i=0; i < num_files; i++) {
@@ -127,7 +126,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       scr_hash* meta_tmp = scr_hash_get_kv_int(current_hash, SCR_KEY_COPY_XOR_FILE, i);
       if (meta_tmp == NULL) {
         scr_abort(-1, "Failed to find file %d in XOR file header %s @ %s:%d",
-                  i, full_chunk_filename, __FILE__, __LINE__
+          i, full_chunk_filename, __FILE__, __LINE__
         );
       }
 
@@ -135,26 +134,27 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       char* filename = NULL;
       if (scr_meta_get_filename(meta_tmp, &filename) != SCR_SUCCESS) {
         scr_abort(-1, "Failed to read filename for file %d in XOR file header %s @ %s:%d",
-                  i, full_chunk_filename, __FILE__, __LINE__
+          i, full_chunk_filename, __FILE__, __LINE__
         );
       }
 
       /* create full path to the file */
-      char full_file[SCR_MAX_FILENAME];
-      scr_path_build(full_file, sizeof(full_file), path, filename);
+      scr_path* path_full_file = scr_path_dup(path_chunk);
+      scr_path_append_str(path_full_file, filename);
+      char* full_file = scr_path_strdup(path_full_file);
 
       /* copy the full filename */
       filenames[i] = strdup(full_file);
       if (filenames[i] == NULL) {
         scr_abort(-1, "Failed to copy filename during rebuild @ %s:%d",
-                  full_file, __FILE__, __LINE__
+          full_file, __FILE__, __LINE__
         );
       }
 
       /* lookup the filesize */
       if (scr_meta_get_filesize(meta_tmp, &filesizes[i]) != SCR_SUCCESS) {
         scr_abort(-1, "Failed to read file size for file %s in XOR file header during rebuild @ %s:%d",
-                  full_file, __FILE__, __LINE__
+          full_file, __FILE__, __LINE__
         );
       }
 
@@ -163,10 +163,17 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       if (fds[i] < 0) {
         /* TODO: try again? */
         scr_abort(-1, "Opening checkpoint file for reading in XOR rebuild: scr_open(%s, O_RDONLY) errno=%d %m @ %s:%d",
-                  full_file, errno, __FILE__, __LINE__
+          full_file, errno, __FILE__, __LINE__
         );
       }
+
+      /* free the path and string for the file name */
+      scr_free(&full_file);
+      scr_path_delete(&path_full_file);
     }
+
+    /* free the chunk path */
+    scr_path_delete(&path_chunk);
 
     /* if failed rank is to my left, i have the meta for his files, send him the header */
     if (root == state->lhs_rank) {
@@ -200,7 +207,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     /* get the number of files */
     if (scr_hash_util_get_int(current_hash, SCR_KEY_COPY_XOR_FILES, &num_files) != SCR_SUCCESS) {
       scr_abort(-1, "Failed to read number of files from XOR file header during rebuild @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
     if (num_files > 0) {
@@ -209,18 +216,24 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       filesizes = (unsigned long*) malloc(num_files * sizeof(unsigned long));
       if (fds == NULL || filenames == NULL || filesizes == NULL) {
         scr_abort(-1, "Failed to allocate file arrays @ %s:%d",
-                  __FILE__, __LINE__
+          __FILE__, __LINE__
         );
       }
     }
 
-    /* set chunk filename of form:  <xor_rank+1>_of_<xor_groupsize>_in_<xor_groupid>.xor */
+    /* get dataset directory */
     char dir[SCR_MAX_FILENAME];
     scr_cache_dir_get(c, id, dir);
-    sprintf(full_chunk_filename, "%s/%d_of_%d_in_%d.xor", dir, c->my_rank+1, c->ranks, c->group_id);
+
+    /* set chunk filename of form: <xor_rank+1>_of_<xor_groupsize>_in_<xor_groupid>.xor */
+    scr_path* path_full_chunk_filename = scr_path_from_str(dir);
+    scr_path_append_strf(path_full_chunk_filename, "%d_of_%d_in_%d.xor", dir, c->my_rank+1, c->ranks, c->group_id);
+    scr_path_strcpy(full_chunk_filename, sizeof(full_chunk_filename), path_full_chunk_filename);
+    scr_path_delete(&path_full_chunk_filename);
 
     /* split file into path and name */
-    scr_path_split(full_chunk_filename, path, name);
+    scr_path* path_chunk = scr_path_from_str(full_chunk_filename);
+    scr_path_dirname(path_chunk);
 
     /* record our chunk file and each of our files in the filemap before creating */
     scr_filemap_add_file(map, id, scr_my_rank_world, full_chunk_filename);
@@ -229,7 +242,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       scr_hash* meta_tmp = scr_hash_get_kv_int(current_hash, SCR_KEY_COPY_XOR_FILE, i);
       if (meta_tmp == NULL) {
         scr_abort(-1, "Failed to find file %d in XOR file header %s @ %s:%d",
-                  i, full_chunk_filename, __FILE__, __LINE__
+          i, full_chunk_filename, __FILE__, __LINE__
         );
       }
 
@@ -237,41 +250,49 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       char* filename = NULL;
       if (scr_meta_get_filename(meta_tmp, &filename) != SCR_SUCCESS) {
         scr_abort(-1, "Failed to read filename for file %d in XOR file header %s @ %s:%d",
-                  i, full_chunk_filename, __FILE__, __LINE__
+          i, full_chunk_filename, __FILE__, __LINE__
         );
       }
 
       /* get the filename */
-      char full_file[SCR_MAX_FILENAME];
-      scr_path_build(full_file, sizeof(full_file), path, filename);
+      scr_path* path_full_file = scr_path_dup(path_chunk);
+      scr_path_append_str(path_full_file, filename);
+      char* full_file = scr_path_strdup(path_full_file);
 
       /* copy the filename */
       filenames[i] = strdup(full_file);
       if (filenames[i] == NULL) {
         scr_abort(-1, "Failed to copy filename during rebuild @ %s:%d",
-                  full_file, __FILE__, __LINE__
+          full_file, __FILE__, __LINE__
         );
       }
 
       /* get the filesize */
       if (scr_meta_get_filesize(meta_tmp, &filesizes[i]) != SCR_SUCCESS) {
         scr_abort(-1, "Failed to read file size for file %s in XOR file header during rebuild @ %s:%d",
-                  full_file, __FILE__, __LINE__
+          full_file, __FILE__, __LINE__
         );
       }
 
       /* add the file to our filemap */
       scr_filemap_add_file(map, id, scr_my_rank_world, full_file);
+
+      /* free path and string for file name */
+      scr_free(&full_file);
+      scr_path_delete(&path_full_file);
     }
     scr_filemap_set_expected_files(map, id, scr_my_rank_world, num_files + 1);
     scr_filemap_write(scr_map_file, map);
+
+    /* free the chunk path */
+    scr_path_delete(&path_chunk);
 
     /* open my chunk file for writing */
     fd_chunk = scr_open(full_chunk_filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd_chunk < 0) {
       /* TODO: try again? */
       scr_abort(-1, "Opening XOR chunk file for writing in XOR rebuild: scr_open(%s) errno=%d %m @ %s:%d",
-                full_chunk_filename, errno, __FILE__, __LINE__
+        full_chunk_filename, errno, __FILE__, __LINE__
       );
     }
 
@@ -282,7 +303,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       if (fds[i] < 0) {
         /* TODO: try again? */
         scr_abort(-1, "Opening file for writing in XOR rebuild: scr_open(%s) errno=%d %m @ %s:%d",
-                  filenames[i], errno, __FILE__, __LINE__
+          filenames[i], errno, __FILE__, __LINE__
         );
       }
     }
@@ -295,7 +316,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
   unsigned long chunk_size;
   if (scr_hash_util_get_unsigned_long(header, SCR_KEY_COPY_XOR_CHUNK, &chunk_size) != SCR_SUCCESS) {
     scr_abort(-1, "Failed to read chunk size from XOR file header %s @ %s:%d",
-            full_chunk_filename, __FILE__, __LINE__
+      full_chunk_filename, __FILE__, __LINE__
     );
   }
 
@@ -303,7 +324,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
   char* send_buf = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
   if (send_buf == NULL) {
     scr_abort(-1, "Allocating memory for send buffer: malloc(%d) errno=%d %m @ %s:%d",
-            scr_mpi_buf_size, errno, __FILE__, __LINE__
+      scr_mpi_buf_size, errno, __FILE__, __LINE__
     );
   }
 
@@ -311,7 +332,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
   char* recv_buf = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
   if (recv_buf == NULL) {
     scr_abort(-1, "Allocating memory for recv buffer: malloc(%d) errno=%d %m @ %s:%d",
-            scr_mpi_buf_size, errno, __FILE__, __LINE__
+      scr_mpi_buf_size, errno, __FILE__, __LINE__
     );
   }
 
@@ -412,7 +433,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
         /* check for mismatches here, in case we failed to rebuild the file correctly */
         if (scr_compute_crc(map, id, scr_my_rank_world, filenames[i]) != SCR_SUCCESS) {
           scr_err("Failed to verify CRC32 after rebuild on file %s @ %s:%d",
-                  filenames[i], __FILE__, __LINE__
+            filenames[i], __FILE__, __LINE__
           );
 
           /* make sure we fail this rebuild */
@@ -532,7 +553,7 @@ int scr_reddesc_recover(scr_filemap* map, const scr_reddesc* c, int id)
   if (rc != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
       scr_dbg(1, "Missing files @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
     return SCR_FAILURE;
@@ -545,7 +566,7 @@ int scr_reddesc_recover(scr_filemap* map, const scr_reddesc* c, int id)
   if (! scr_alltrue(have_my_files)) {
     if (scr_my_rank_world == 0) {
       scr_dbg(1, "Missing files @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
     return SCR_FAILURE;

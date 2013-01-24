@@ -255,7 +255,9 @@ int scr_cache_purge(scr_filemap* map)
   } while (current_id != -1);
 
   /* now delete the filemap itself */
-  scr_file_unlink(scr_map_file);
+  char* file = scr_path_strdup(scr_map_file);
+  scr_file_unlink(file);
+  scr_free(&file);
 
   /* TODO: want to clear the map object here? */
 

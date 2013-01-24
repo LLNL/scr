@@ -229,26 +229,25 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
   /* check that user's filename is not too long */
   if (strlen(file) >= SCR_MAX_FILENAME) {
     scr_abort(-1, "file name (%s) is longer than SCR_MAX_FILENAME (%d) @ %s:%d",
-              file, SCR_MAX_FILENAME, __FILE__, __LINE__
+      file, SCR_MAX_FILENAME, __FILE__, __LINE__
     );
   }
-
-  /* split user's filename into path and name components */
-  char path[SCR_MAX_FILENAME];
-  char name[SCR_MAX_FILENAME];
-  scr_path_split(file, path, name);
 
   /* lookup the checkpoint directory */
   char dir[SCR_MAX_FILENAME];
   scr_cache_dir_get(reddesc, id, dir);
 
-  /* build the composed name */
-  if (scr_path_build(newfile, n, dir, name) != SCR_SUCCESS) {
-    /* abort if the new name is longer than our buffer */
-    scr_abort(-1, "file name (%s/%s) is longer than n (%d) @ %s:%d",
-              dir, name, n, __FILE__, __LINE__
-    );
-  }
+  /* chop file to just the file name and prepend directory */
+  scr_path* path_file = scr_path_from_str(file);
+  scr_path_basename(path_file);
+  scr_path_prepend_str(path_file, dir);
+
+  /* copy to user's buffer */
+  size_t n_size = (size_t) n;
+  scr_path_strcpy(newfile, n_size, path_file);
+
+  /* free the file path */
+  scr_path_delete(&path_file);
 
   return SCR_SUCCESS;
 }
@@ -603,9 +602,9 @@ static int scr_get_params()
     }
   }
 
-  /* override default scr_prefix (parallel file system prefix) */
+  /* set scr_prefix_path and scr_prefix */
   if ((value = scr_param_get("SCR_PREFIX")) != NULL) {
-    scr_prefix = strdup(value);
+    scr_prefix_path = scr_path_from_str(value);
   } else {
     /* if user didn't set with SCR_PREFIX,
      * pick up the current working directory as a default */
@@ -615,8 +614,10 @@ static int scr_get_params()
         __FILE__, __LINE__
       );
     }
-    scr_prefix = strdup(current_dir);
+    scr_prefix_path = scr_path_from_str(current_dir);
   }
+  scr_path_reduce(scr_prefix_path);
+  scr_prefix = scr_path_strdup(scr_prefix_path);
 
   /* connect to the SCR log database if enabled */
   /* NOTE: We do this inbetween our existing calls to scr_param_init and scr_param_finalize,
@@ -825,7 +826,10 @@ int SCR_Init()
   }
 
   /* define the path to the .scr subdir within the prefix dir */
-  scr_prefix_scr = scr_strdupf("%s/.scr", scr_prefix);
+  scr_path* path_prefix_scr = scr_path_dup(scr_prefix_path);
+  scr_path_append_str(path_prefix_scr, ".scr");
+  scr_prefix_scr = scr_path_strdup(path_prefix_scr);
+  scr_path_delete(&path_prefix_scr);
 
   /* TODO: create store descriptor for prefix directory */
   /* create the .scr subdirectory */
@@ -838,12 +842,12 @@ int SCR_Init()
   }
 
   /* build the control directory name: CNTL_BASE/username/scr.jobid */
-  scr_cntl_prefix = scr_strdupf("%s/%s/scr.%s", scr_cntl_base, scr_username, scr_jobid);
-  if (scr_cntl_prefix == NULL) {
-    scr_abort(-1, "Failed to allocate buffer to store control prefix @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
+  scr_path* path_cntl_prefix = scr_path_from_str(scr_cntl_base);
+  scr_path_append_str(path_cntl_prefix, scr_username);
+  scr_path_append_strf(path_cntl_prefix, "scr.%s", scr_jobid);
+  scr_path_reduce(path_cntl_prefix);
+  scr_cntl_prefix = scr_path_strdup(path_cntl_prefix);
+  scr_path_delete(&path_cntl_prefix);
 
   /* create the control directory */
   if (scr_storedesc_dir_create(scr_storedesc_cntl, scr_cntl_prefix)
@@ -887,16 +891,26 @@ int SCR_Init()
   MPI_Barrier(scr_comm_world);
 
   /* place the halt, flush, and nodes files in the prefix directory */
-  scr_path_build(scr_halt_file,  sizeof(scr_halt_file),  scr_prefix_scr, "halt.scr");
-  scr_path_build(scr_flush_file, sizeof(scr_flush_file), scr_prefix_scr, "flush.scr");
-  scr_path_build(scr_nodes_file, sizeof(scr_nodes_file), scr_prefix_scr, "nodes.scr");
+  scr_halt_file = scr_path_from_str(scr_prefix_scr);
+  scr_path_append_str(scr_halt_file, "halt.scr");
+
+  scr_flush_file = scr_path_from_str(scr_prefix_scr);
+  scr_path_append_str(scr_flush_file, "flush.scr");
+
+  scr_nodes_file = scr_path_from_str(scr_prefix_scr);
+  scr_path_append_str(scr_nodes_file, "nodes.scr");
 
   /* build the file names using the control directory prefix */
-  scr_map_file = scr_strdupf("%s/filemap_%d.scrinfo",
-    scr_cntl_prefix, scr_storedesc_cntl->rank
-  );
-  scr_master_map_file = scr_strdupf("%s/filemap.scrinfo",  scr_cntl_prefix);
-  scr_transfer_file   = scr_strdupf("%s/transfer.scrinfo", scr_cntl_prefix);
+  scr_map_file = scr_path_from_str(scr_cntl_prefix);
+  scr_path_append_strf(scr_map_file, "filemap_%d.scrinfo", scr_storedesc_cntl->rank);
+
+  scr_master_map_file = scr_path_from_str(scr_cntl_prefix);
+  scr_path_append_str(scr_master_map_file, "filemap.scrinfo");
+
+  scr_path* path_transfer_file = scr_path_from_str(scr_cntl_prefix);
+  scr_path_append_str(path_transfer_file, "transfer.scrinfo");
+  scr_transfer_file = scr_path_strdup(path_transfer_file);
+  scr_path_delete(&path_transfer_file);
 
   /* TODO: continue draining a checkpoint if one is in progress from the previous run,
    * for now, just delete the transfer file so we'll start over from scratch */
@@ -914,7 +928,7 @@ int SCR_Init()
   if (scr_my_rank_world == 0) {
     scr_hash* nodes_hash = scr_hash_new();
     scr_hash_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);
-    scr_hash_write(scr_nodes_file, nodes_hash);
+    scr_hash_write_path(scr_nodes_file, nodes_hash);
     scr_hash_delete(&nodes_hash);
   }
 
@@ -1129,12 +1143,17 @@ int SCR_Finalize()
   scr_free(&scr_clustername);
   scr_free(&scr_group);
   scr_free(&scr_transfer_file);
-  scr_free(&scr_master_map_file);
-  scr_free(&scr_map_file);
   scr_free(&scr_cntl_prefix);
   scr_free(&scr_prefix_scr);
   scr_free(&scr_prefix);
   scr_free(&scr_my_hostname);
+
+  scr_path_delete(&scr_map_file);
+  scr_path_delete(&scr_master_map_file);
+  scr_path_delete(&scr_nodes_file);
+  scr_path_delete(&scr_flush_file);
+  scr_path_delete(&scr_halt_file);
+  scr_path_delete(&scr_prefix_path);
 
   /* we're no longer in an initialized state */
   scr_initialized = 0;
@@ -1470,20 +1489,38 @@ int SCR_Route_file(const char* file, char* newfile)
     scr_meta_set_ranks(meta, scr_ranks_world);
     scr_meta_set_orig(meta, file);
 
-    /* determine full path to original file and record it in the meta data */
-    char path_file[SCR_MAX_FILENAME];
-    if (scr_path_absolute(path_file, sizeof(path_file), file) == SCR_SUCCESS) {
-      /* store the full path and name of the original file */
-      char path[SCR_MAX_FILENAME];
-      char name[SCR_MAX_FILENAME];
-      scr_path_split(path_file, path, name);
-      scr_meta_set_origpath(meta, path);
-      scr_meta_set_origname(meta, name);
-    } else {
-      scr_err("Failed to build absolute path to %s @ %s:%d",
-        file, __FILE__, __LINE__
-      );
+    /* build absolute path to file */
+    scr_path* path_abs = scr_path_from_str(file);
+    if (! scr_path_is_absolute(path_abs)) {
+      /* the path is not absolute, so prepend the current working directory */
+      char cwd[SCR_MAX_FILENAME];
+      if (scr_getcwd(cwd, sizeof(cwd)) == SCR_SUCCESS) {
+        scr_path_prepend_str(path_abs, cwd);
+      } else {
+        /* problem acquiring current working directory */
+        scr_abort(-1, "Failed to build absolute path to %s @ %s:%d",
+          file, __FILE__, __LINE__
+        );
+      }
     }
+
+    /* simplify the absolute path (removes "." and ".." entries) */
+    scr_path_reduce(path_abs);
+
+    /* cut absolute path into direcotry and file name */
+    scr_path* path_name = scr_path_cut(path_abs, -1);
+
+    /* store the full path and name of the original file */
+    char* path = scr_path_strdup(path_abs);
+    char* name = scr_path_strdup(path_name);
+    scr_meta_set_origpath(meta, path);
+    scr_meta_set_origname(meta, name);
+    scr_free(&name);
+    scr_free(&path);
+
+    /* free directory and file name paths */
+    scr_path_delete(&path_name);
+    scr_path_delete(&path_abs);
 
     /* record the meta data for this file */
     scr_filemap_set_meta(scr_map, scr_dataset_id, scr_my_rank_world, newfile, meta);

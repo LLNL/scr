@@ -59,11 +59,12 @@ int scr_swap_file_names(
 
   /* define the path to store our partner's file */
   if (have_incoming) {
-    /* set full path to filename */
-    char path[SCR_MAX_FILENAME] = "";
-    char name[SCR_MAX_FILENAME] = "";
-    scr_path_split(file_recv_orig, path, name);
-    scr_path_build(file_recv, size_recv, dir_recv, name);
+    /* set path to file name */
+    scr_path* path_recv = scr_path_from_str(file_recv_orig);
+    scr_path_basename(path_recv);
+    scr_path_prepend_str(path_recv, dir_recv);
+    scr_path_strcpy(file_recv, size_recv, path_recv);
+    scr_path_delete(&path_recv);
 
     /* free the file name we received */
     scr_free(&file_recv_orig);
