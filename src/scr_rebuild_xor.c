@@ -405,7 +405,8 @@ int main(int argc, char* argv[])
         scr_path_dirname(user_dir_path);
         if (! scr_path_is_null(user_dir_path)) {
           char* user_dir = scr_path_strdup(user_dir_path);
-          if (scr_mkdir(user_dir, S_IRWXU) != SCR_SUCCESS) {
+          mode_t mode_dir = scr_getmode(1, 1, 1);
+          if (scr_mkdir(user_dir, mode_dir) != SCR_SUCCESS) {
             scr_err("Failed to create directory for user file %s @ %s:%d",
               user_dir, __FILE__, __LINE__
             );
@@ -416,7 +417,8 @@ int main(int argc, char* argv[])
         scr_path_delete(&user_dir_path);
 
         /* open missing file for writing */
-        user_fds[offset] = scr_open(user_files[offset], O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+        mode_t mode_file = scr_getmode(1, 1, 0);
+        user_fds[offset] = scr_open(user_files[offset], O_WRONLY | O_CREAT | O_TRUNC, mode_file);
         if (user_fds[offset] < 0) {
           scr_err("Opening user file for writing: scr_open(%s) errno=%d %m @ %s:%d",
             user_files[offset], errno, __FILE__, __LINE__
@@ -437,7 +439,8 @@ int main(int argc, char* argv[])
   }
 
   /* finally, open the xor file for the missing rank */
-  xor_fds[0] = scr_open(xor_files[0], O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  xor_fds[0] = scr_open(xor_files[0], O_WRONLY | O_CREAT | O_TRUNC, mode_file);
   if (xor_fds[0] < 0) {
     scr_err("Opening xor file to be reconstructed: scr_open(%s) errno=%d %m @ %s:%d",
       xor_files[0], errno, __FILE__, __LINE__

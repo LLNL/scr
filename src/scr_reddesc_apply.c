@@ -120,9 +120,10 @@ static int scr_swap_files_copy(
   /* open the file to recv: truncate, write-only mode */
   int fd_recv = -1;
   if (have_incoming) {
-    fd_recv = scr_open(file_recv, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    mode_t mode_file = scr_getmode(1, 1, 0);
+    fd_recv = scr_open(file_recv, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
     if (fd_recv < 0) {
-      scr_abort(-1, "Opening file for recv: scr_open(%s, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR) errno=%d %m @ %s:%d",
+      scr_abort(-1, "Opening file for recv: scr_open(%s, O_WRONLY | O_CREAT | O_TRUNC, ...) errno=%d %m @ %s:%d",
               file_recv, errno, __FILE__, __LINE__
       );
     }
@@ -253,10 +254,11 @@ static int scr_swap_files_move(
   } else if (have_incoming) {
     /* if we're in this branch, then we only have an incoming file,
      * so we'll write our recv file from scratch */
-    fd = scr_open(file_recv, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    mode_t mode_file = scr_getmode(1, 1, 0);
+    fd = scr_open(file_recv, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
     if (fd < 0) {
       /* TODO: skip writes and return error? */
-      scr_abort(-1, "Opening file for recv: scr_open(%s, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR) errno=%d %m @ %s:%d",
+      scr_abort(-1, "Opening file for recv: scr_open(%s, O_WRONLY | O_CREAT | O_TRUNC, ...) errno=%d %m @ %s:%d",
               file_recv, errno, __FILE__, __LINE__
       );
     }
@@ -705,7 +707,8 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
   scr_filemap_write(scr_map_file, map);
 
   /* open my chunk file */
-  int fd_chunk = scr_open(my_chunk_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  int fd_chunk = scr_open(my_chunk_file, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
   if (fd_chunk < 0) {
     /* TODO: try again? */
     scr_abort(-1, "Opening XOR chunk file for writing: scr_open(%s) errno=%d %m @ %s:%d",

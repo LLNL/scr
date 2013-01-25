@@ -287,8 +287,11 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     /* free the chunk path */
     scr_path_delete(&path_chunk);
 
+    /* get permissions for file */
+    mode_t mode_file = scr_getmode(1, 1, 0);
+
     /* open my chunk file for writing */
-    fd_chunk = scr_open(full_chunk_filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    fd_chunk = scr_open(full_chunk_filename, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
     if (fd_chunk < 0) {
       /* TODO: try again? */
       scr_abort(-1, "Opening XOR chunk file for writing in XOR rebuild: scr_open(%s) errno=%d %m @ %s:%d",
@@ -299,7 +302,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     /* open each of my files for writing */
     for (i=0; i < num_files; i++) {
       /* open my file for writing */
-      fds[i] = scr_open(filenames[i], O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+      fds[i] = scr_open(filenames[i], O_WRONLY | O_CREAT | O_TRUNC, mode_file);
       if (fds[i] < 0) {
         /* TODO: try again? */
         scr_abort(-1, "Opening file for writing in XOR rebuild: scr_open(%s) errno=%d %m @ %s:%d",

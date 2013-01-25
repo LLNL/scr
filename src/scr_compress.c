@@ -428,7 +428,8 @@ int scr_compress(const char* file_src, const char* file_dst, unsigned long block
   }
 
   /* open compressed file for writing */
-  int fd_dst = scr_open(file_dst, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  int fd_dst = scr_open(file_dst, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
   if (fd_dst < 0) {
     scr_err("Opening file for writing: %s errno=%d %m @ %s:%d",
             file_dst, errno, __FILE__, __LINE__
@@ -982,7 +983,8 @@ int scr_uncompress(const char* file_src, const char* file_dst)
   }
 
   /* open compressed file for writing */
-  int fd_dst = scr_open(file_dst, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  int fd_dst = scr_open(file_dst, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
   if (fd_dst < 0) {
     scr_err("Opening file for writing: %s errno=%d %m @ %s:%d",
             file_dst, errno, __FILE__, __LINE__

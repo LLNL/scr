@@ -568,6 +568,9 @@ static int scr_flush_identify(const scr_filemap* map, int id, scr_hash* file_lis
 /* create all directories needed for file list */
 static int scr_flush_create_dirs(scr_hash* file_list)
 {
+  /* get file mode for directory permissions */
+  mode_t mode_dir = scr_getmode(1, 1, 1);
+
   /* have rank 0 create the dataset directory */
   if (scr_my_rank_world == 0) {
     /* get top level path */
@@ -604,7 +607,7 @@ static int scr_flush_create_dirs(scr_hash* file_list)
     scr_hash_delete(&index_hash);
 
     /* create the directory */
-    if (scr_mkdir(flushdir, S_IRWXU) == SCR_SUCCESS) {
+    if (scr_mkdir(flushdir, mode_dir) == SCR_SUCCESS) {
       /* created the directory successfully */
       scr_dbg(1, "Flushing to %s", flushdir);
     } else {
@@ -618,7 +621,7 @@ static int scr_flush_create_dirs(scr_hash* file_list)
     scr_path* path_scr = scr_path_dup(path_flushdir);
     scr_path_append_str(path_scr, ".scr");
     char* dir_scr = scr_path_strdup(path_scr);
-    if (scr_mkdir(dir_scr, S_IRWXU) != SCR_SUCCESS) {
+    if (scr_mkdir(dir_scr, mode_dir) != SCR_SUCCESS) {
       /* failed to create the directory */
       scr_abort(-1, "Failed to make .scr subdirectory directory mkdir(%s) @ %s:%d",
         dir_scr, __FILE__, __LINE__
@@ -647,7 +650,7 @@ static int scr_flush_create_dirs(scr_hash* file_list)
   {
     /* create directory */
     char* dir = scr_hash_elem_key(elem);
-    if (scr_mkdir(dir, S_IRWXU) != SCR_SUCCESS) {
+    if (scr_mkdir(dir, mode_dir) != SCR_SUCCESS) {
       success = 0;
     }
   }
@@ -668,6 +671,9 @@ static int scr_flush_create_dirs(scr_hash* file_list)
 static int scr_flush_create_containers(const scr_hash* file_list)
 {
   int success = SCR_SUCCESS;
+
+  /* get permissions for files */
+  mode_t mode_file = scr_getmode(1, 1, 0);
 
   /* here, we look at each segment a process writes,
    * and the process which writes data to offset 0 is responsible for creating the container */
@@ -703,7 +709,7 @@ static int scr_flush_create_containers(const scr_hash* file_list)
          * we are responsible for creating the file */
         if (offset == 0 && length > 0) {
           /* open the file with create and truncate options, then just immediately close it */
-          int fd = scr_open(name, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+          int fd = scr_open(name, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
           if (fd < 0) {
             /* the create failed */
             scr_err("Opening file for writing: scr_open(%s) errno=%d %m @ %s:%d",

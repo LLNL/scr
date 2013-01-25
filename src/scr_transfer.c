@@ -431,6 +431,9 @@ int main (int argc, char *argv[])
   /* initialize our tracking variables */
   read_params();
 
+  /* get file io mode */
+  mode_t mode_file = scr_getmode(1, 1, 0);
+
   /* we cache the opened file descriptors to avoid extra opens,
    * seeks, and closes */
   int fd_src = -1;
@@ -620,7 +623,7 @@ int main (int argc, char *argv[])
 
         /* open the file and remember the filename if we have one */
         if (new_file_dst != NULL) {
-          fd_dst = scr_open(new_file_dst, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+          fd_dst = scr_open(new_file_dst, O_RDWR | O_CREAT, mode_file);
           /* TODO: check for errors here */
           old_file_dst = strdup(new_file_dst);
           /* TODO: check for errors here */

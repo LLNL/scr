@@ -834,7 +834,8 @@ int SCR_Init()
   /* TODO: create store descriptor for prefix directory */
   /* create the .scr subdirectory */
   if (scr_my_rank_world == 0) {
-    if (scr_mkdir(scr_prefix_scr, S_IRWXU) != SCR_SUCCESS) {
+    mode_t mode_dir = scr_getmode(1, 1, 1);
+    if (scr_mkdir(scr_prefix_scr, mode_dir) != SCR_SUCCESS) {
       scr_abort(-1, "Failed to create .scr subdirectory %s @ %s:%d",
         scr_prefix_scr, __FILE__, __LINE__
       );

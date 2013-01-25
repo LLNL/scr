@@ -150,7 +150,8 @@ static int scr_fetch_file_from_containers(const char* file, scr_meta* meta, scr_
   }
 
   /* open the file for writing */
-  int fd_src = scr_open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  int fd_src = scr_open(file, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
   if (fd_src < 0) {
     scr_err("Opening file to copy: scr_open(%s) errno=%d %m @ %s:%d",
       file, errno, __FILE__, __LINE__

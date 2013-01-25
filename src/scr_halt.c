@@ -85,10 +85,6 @@ int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int d
   /* assume we'll fail */
   int rc = SCR_FAILURE;
 
-  /* set the mode on the file to be readable/writable by all
-   * (enables a sysadmin to halt a user's job via scr_halt --all) */
-  mode_t old_mode = umask(0000);
-
   /* get file name */
   char* file = scr_path_strdup(file_path);
 
@@ -97,7 +93,8 @@ int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int d
 
   /* TODO: sleep and try the open several times if the first fails */
   /* open the halt file for reading */
-  int fd = scr_open(file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  int fd = scr_open(file, O_RDWR | O_CREAT, mode_file);
   if (fd < 0) {
     scr_err("Opening file for write: scr_open(%s) errno=%d %m @ %s:%d",
       file, errno, __FILE__, __LINE__
@@ -183,9 +180,6 @@ int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int d
 cleanup:
   /* free the file string */
   scr_free(&file);
-
-  /* restore the normal file mask */
-  umask(old_mode);
 
   /* write current values to halt file */
   return rc;

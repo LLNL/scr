@@ -52,6 +52,29 @@ open/lock/close/read/write functions
 =========================================
 */
 
+/* returns user's current mode as determine by his umask */
+mode_t scr_getmode(int read, int write, int execute)
+{
+  /* lookup current mask and set it back */
+  mode_t old_mask = umask(S_IWGRP | S_IWOTH);
+  umask(old_mask);
+
+  mode_t bits = 0;
+  if (read) {
+    bits |= (S_IRUSR | S_IRGRP | S_IROTH);
+  }
+  if (write) {
+    bits |= (S_IWUSR | S_IWGRP | S_IWOTH);
+  }
+  if (execute) {
+    bits |= (S_IXUSR | S_IXGRP | S_IXOTH);
+  }
+
+  /* convert mask to mode */
+  mode_t mode = bits & ~old_mask & 0777;
+  return mode;
+}
+
 /* open file with specified flags and mode, retry open a few times on failure */
 int scr_open(const char* file, int flags, ...)
 {
@@ -859,7 +882,8 @@ int scr_file_copy(
   }
 
   /* open dest_file for writing */
-  int dst_fd = scr_open(dst_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  int dst_fd = scr_open(dst_file, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
   if (dst_fd < 0) {
     scr_err("Opening file for writing: scr_open(%s) errno=%d %m @ %s:%d",
       dst_file, errno, __FILE__, __LINE__

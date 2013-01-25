@@ -184,23 +184,19 @@ int processArgs(int argc, char **argv, struct arglist* args)
  * set & unset any fields, and write out halt file all while locked */
 int scr_halt_sync_and_set(const scr_path* file_path, struct arglist* args, scr_hash* data)
 {
-  /* set the mode on the file to be readable/writable by all
-   * (enables a sysadmin to halt a user's job via scr_halt --all) */
-  mode_t old_mode = umask(0000);
-
   /* convert path to string */
   char* file = scr_path_strdup(file_path);
 
   /* TODO: sleep and try the open several times if the first fails */
   /* open the halt file for reading */
-  int fd = scr_open(file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  int fd = scr_open(file, O_RDWR | O_CREAT, mode_file);
   if (fd < 0) {
     scr_err("Opening file for write: scr_open(%s) errno=%d %m @ %s:%d",
       file, errno, __FILE__, __LINE__
     );
     /* restore the normal file mask */
     scr_free(&file);
-    umask(old_mode);
     return SCR_FAILURE;
   }
 
@@ -209,7 +205,6 @@ int scr_halt_sync_and_set(const scr_path* file_path, struct arglist* args, scr_h
   if (ret != SCR_SUCCESS) {
     scr_close(file,fd);
     scr_free(&file);
-    umask(old_mode);
     return ret;
   }
 
@@ -268,7 +263,6 @@ int scr_halt_sync_and_set(const scr_path* file_path, struct arglist* args, scr_h
   if (ret != SCR_SUCCESS) {
     scr_close(file,fd);
     scr_free(&file);
-    umask(old_mode);
     return ret;
   }
 
@@ -277,9 +271,6 @@ int scr_halt_sync_and_set(const scr_path* file_path, struct arglist* args, scr_h
 
   /* free file name string */
   scr_free(&file);
-
-  /* restore the normal file mask */
-  umask(old_mode);
 
   /* write current values to halt file */
   return SCR_SUCCESS;

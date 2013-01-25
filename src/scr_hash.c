@@ -1163,7 +1163,8 @@ int scr_hash_write(const char* file, const scr_hash* hash)
   }
 
   /* open the hash file */
-  int fd = scr_open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  int fd = scr_open(file, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
   if (fd < 0) {
     scr_err("Opening hash file for write: %s @ %s:%d",
             file, __FILE__, __LINE__
@@ -1430,7 +1431,8 @@ int scr_hash_read_with_lock(const char* file, scr_hash* hash)
   }
 
   /* open file with lock for read / write access */
-  int fd = scr_open_with_lock(file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  int fd = scr_open_with_lock(file, O_RDWR | O_CREAT, mode_file);
   if (fd >= 0) {
     /* read the file into the hash */
     scr_hash_read_fd(file, fd, hash);
@@ -1481,7 +1483,8 @@ int scr_hash_lock_open_read(const char* file, int* fd, scr_hash* hash)
   }
 
   /* open file with lock for read / write access */
-  *fd = scr_open_with_lock(file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+  mode_t mode_file = scr_getmode(1, 1, 0);
+  *fd = scr_open_with_lock(file, O_RDWR | O_CREAT, mode_file);
   if (*fd >= 0) {
     /* read the file into the hash */
     scr_hash_read_fd(file, *fd, hash);

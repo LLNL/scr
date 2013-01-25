@@ -115,6 +115,9 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
     return SCR_FAILURE;
   }
 
+  /* get mode for each file */
+  mode_t mode_file = scr_getmode(1, 1, 0);
+
   /* open the file for reading */
   int fd_src = scr_open(file, O_RDONLY);
   if (fd_src < 0) {
@@ -177,7 +180,7 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
 
     /* open container file for writing -- we don't truncate here because more than one
      * process may be writing to the same file */
-    int fd_container = scr_open(container_name, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    int fd_container = scr_open(container_name, O_WRONLY | O_CREAT, mode_file);
     if (fd_container < 0) {
       scr_err("Opening file for writing: scr_open(%s) errno=%d %m @ %s:%d",
               container_name, errno, __FILE__, __LINE__

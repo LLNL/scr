@@ -63,6 +63,9 @@ Basic File I/O
 =========================================
 */
 
+/* returns user's current mode as determine by his umask */
+mode_t scr_getmode(int read, int write, int execute);
+
 /* open file with specified flags and mode, retry open a few times on failure */
 int scr_open(const char* file, int flags, ...);
 
