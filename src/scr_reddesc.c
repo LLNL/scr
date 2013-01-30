@@ -469,29 +469,21 @@ int scr_reddesc_create_from_hash(
   /* initialize the descriptor */
   scr_reddesc_init(d);
 
-  char* value = NULL;
-
   /* enable / disable the descriptor */
   d->enabled = 1;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_ENABLED);
-  if (value != NULL) {
-    d->enabled = atoi(value);
-  }
+  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_ENABLED, &(d->enabled));
 
   /* index of the descriptor */
   d->index = index;
 
   /* set the interval, default to 1 unless specified otherwise */
   d->interval = 1;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_INTERVAL);
-  if (value != NULL) {
-    d->interval = atoi(value);
-  }
+  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_INTERVAL, &(d->interval));
 
   /* set the base directory */
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_BASE);
-  if (value != NULL) {
-    d->base = strdup(value);
+  char* base;
+  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_BASE, &base) == SCR_SUCCESS) {
+    d->base = strdup(base);
 
     /* set the index to the store descriptor for this base directory */
     int store_index = scr_storedescs_index_from_name(d->base);
@@ -510,28 +502,29 @@ int scr_reddesc_create_from_hash(
   }
 
   /* build the directory name */
-  d->directory = scr_strdupf("%s/%s/scr.%s/index.%d",
-    d->base, scr_username, scr_jobid, d->index
-  );
+  scr_path* dir = scr_path_from_str(d->base);
+  scr_path_append_str(dir, scr_username);
+  scr_path_append_strf(dir, "scr.%s", scr_jobid);
+  scr_path_append_strf(dir, "index.%d", d->index);
+  scr_path_reduce(dir);
+  d->directory = scr_path_strdup(dir);
+  scr_path_delete(&dir);
     
   /* set the xor set size */
   int set_size = scr_set_size;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_SET_SIZE);
-  if (value != NULL) {
-    set_size = atoi(value);
-  }
+  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_SET_SIZE, &set_size);
 
   /* read the checkpoint type from the hash,
    * and build our checkpoint communicator */
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_TYPE);
-  if (value != NULL) {
-    if (scr_reddesc_type_int_from_str(value, &d->copy_type) != SCR_SUCCESS)
+  char* type;
+  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &type) == SCR_SUCCESS) {
+    if (scr_reddesc_type_int_from_str(type, &d->copy_type) != SCR_SUCCESS)
     {
       /* don't recognize copy type, disable this descriptor */
       d->enabled = 0;
       if (scr_my_rank_world == 0) {
         scr_warn("Unknown copy type %s in redundancy descriptor %d, disabling checkpoint @ %s:%d",
-          value, d->index, __FILE__, __LINE__
+          type, d->index, __FILE__, __LINE__
         );
       }
     }

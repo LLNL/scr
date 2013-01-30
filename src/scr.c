@@ -1580,6 +1580,8 @@ int SCR_Complete_checkpoint(int valid)
     unsigned long filesize = scr_file_size(file);
     my_counts[1] += filesize;
 
+   /* TODO: record permissions and/or timestamps? */
+
     /* fill in filesize and complete flag in the meta data for the file */
     scr_meta* meta = scr_meta_new();
     scr_filemap_get_meta(scr_map, scr_dataset_id, scr_my_rank_world, file, meta);

@@ -118,41 +118,38 @@ int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* 
   /* initialize the descriptor */
   scr_storedesc_init(s);
 
-  char* value = NULL;
-
   /* enable / disable the descriptor */
   s->enabled = 1;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_ENABLED);
-  if (value != NULL) {
-    s->enabled = atoi(value);
-  }
+  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_ENABLED, &(s->enabled));
 
   /* index of the descriptor */
   s->index = index;
 
   /* set the base directory */
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_BASE);
-  if (value != NULL) {
-    s->name = strdup(value);
+  char* base;
+  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_BASE, &base) == SCR_SUCCESS) {
+    s->name = strdup(base);
   }
 
   /* set the max count, default to scr_cache_size unless specified otherwise */
   s->max_count = scr_cache_size;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_COUNT);
-  if (value != NULL) {
-    s->max_count = atoi(value);
-  }
+  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_COUNT, &(s->max_count));
 
   /* assume we can call mkdir/rmdir on this store unless told otherwise */
   s->can_mkdir = 1;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_MKDIR);
-  if (value != NULL) {
-    s->can_mkdir = atoi(value);
-  }
+  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_MKDIR, &(s->can_mkdir));
 
   /* TODO: use FGFS eventually, for now we assume node-local storage */
   /* get communicator of ranks that can access this storage device */
-  const scr_groupdesc* groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
+  char* group;
+  const scr_groupdesc* groupdesc;
+  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &group) == SCR_SUCCESS) {
+      /* lookup group descriptor for specified name */
+      groupdesc = scr_groupdescs_from_name(group);
+  } else {
+      /* if group is not set, assume it's node-local storage */
+      groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
+  }
   if (groupdesc != NULL) {
     MPI_Comm_dup(groupdesc->comm, &s->comm);
 

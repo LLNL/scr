@@ -158,7 +158,12 @@ int main (int argc, char *argv[])
   }
 
   /* build path to flush file */
-  char* file = scr_strdupf("%s/.scr/%s", args.dir, "flush.scr");
+  scr_path* file_path = scr_path_from_str(args.dir);
+  scr_path_append_str(file_path, ".scr");
+  scr_path_append_str(file_path, "flush.scr");
+  scr_path_reduce(file_path);
+  char* file = scr_path_strdup(file_path);
+  scr_path_delete(&file_path);
   if (file == NULL) {
     scr_err("%s: Failed to allocate storage to store nodes file name @ %s:%d",
       PROG, __FILE__, __LINE__
