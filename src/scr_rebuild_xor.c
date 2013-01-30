@@ -198,8 +198,8 @@ int main(int argc, char* argv[])
     /* open each xor file for reading */
     xor_fds[i] = scr_open(xor_files[i], O_RDONLY);
     if (xor_fds[i] < 0) {
-      scr_err("Opening xor segment file: scr_open(%s) errno=%d %m @ %s:%d",
-        xor_files[i], errno, __FILE__, __LINE__
+      scr_err("Opening xor segment file: scr_open(%s) errno=%d %s @ %s:%d",
+        xor_files[i], errno, strerror(errno), __FILE__, __LINE__
       );
       return 1;
     }
@@ -420,8 +420,8 @@ int main(int argc, char* argv[])
         mode_t mode_file = scr_getmode(1, 1, 0);
         user_fds[offset] = scr_open(user_files[offset], O_WRONLY | O_CREAT | O_TRUNC, mode_file);
         if (user_fds[offset] < 0) {
-          scr_err("Opening user file for writing: scr_open(%s) errno=%d %m @ %s:%d",
-            user_files[offset], errno, __FILE__, __LINE__
+          scr_err("Opening user file for writing: scr_open(%s) errno=%d %s @ %s:%d",
+            user_files[offset], errno, strerror(errno), __FILE__, __LINE__
           );
           return 1;
         }
@@ -429,8 +429,8 @@ int main(int argc, char* argv[])
         /* open existing file for reading */
         user_fds[offset] = scr_open(user_files[offset], O_RDONLY);
         if (user_fds[offset] < 0) {
-          scr_err("Opening user file for reading: scr_open(%s) errno=%d %m @ %s:%d",
-            user_files[offset], errno, __FILE__, __LINE__
+          scr_err("Opening user file for reading: scr_open(%s) errno=%d %s @ %s:%d",
+            user_files[offset], errno, strerror(errno), __FILE__, __LINE__
           );
           return 1;
         }
@@ -442,8 +442,8 @@ int main(int argc, char* argv[])
   mode_t mode_file = scr_getmode(1, 1, 0);
   xor_fds[0] = scr_open(xor_files[0], O_WRONLY | O_CREAT | O_TRUNC, mode_file);
   if (xor_fds[0] < 0) {
-    scr_err("Opening xor file to be reconstructed: scr_open(%s) errno=%d %m @ %s:%d",
-      xor_files[0], errno, __FILE__, __LINE__
+    scr_err("Opening xor file to be reconstructed: scr_open(%s) errno=%d %s @ %s:%d",
+      xor_files[0], errno, strerror(errno), __FILE__, __LINE__
     );
     return 1;
   }

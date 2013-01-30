@@ -236,8 +236,8 @@ int scr_config_read_common(const char* file, scr_hash* hash)
   /* open the file */
   FILE* fs = fopen(file, "r");
   if (fs == NULL) {
-    scr_err("Opening configuration file for read: fopen(%s, \"r\") errno=%d %m @ %s:%d",
-            file, errno, __FILE__, __LINE__
+    scr_err("Opening configuration file for read: fopen(%s, \"r\") errno=%d %s @ %s:%d",
+            file, errno, strerror(errno), __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }

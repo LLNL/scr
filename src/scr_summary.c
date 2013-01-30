@@ -42,8 +42,8 @@ static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash
   /* open the summary file */
   FILE* fs = fopen(summary_file, "r");
   if (fs == NULL) {
-    scr_err("Opening summary file for read: fopen(%s, \"r\") errno=%d %m @ %s:%d",
-      summary_file, errno, __FILE__, __LINE__
+    scr_err("Opening summary file for read: fopen(%s, \"r\") errno=%d %s @ %s:%d",
+      summary_file, errno, strerror(errno), __FILE__, __LINE__
     );
     scr_free(&summary_file);
     return SCR_FAILURE;

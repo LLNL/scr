@@ -121,8 +121,8 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
   /* open the file for reading */
   int fd_src = scr_open(file, O_RDONLY);
   if (fd_src < 0) {
-    scr_err("Opening file to copy: scr_open(%s) errno=%d %m @ %s:%d",
-            file, errno, __FILE__, __LINE__
+    scr_err("Opening file to copy: scr_open(%s) errno=%d %s @ %s:%d",
+            file, errno, strerror(errno), __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -140,8 +140,8 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
   /* allocate buffer to read in file chunks */
   char* buf = (char*) malloc(buf_size);
   if (buf == NULL) {
-    scr_err("Allocating memory: malloc(%llu) errno=%d %m @ %s:%d",
-            buf_size, errno, __FILE__, __LINE__
+    scr_err("Allocating memory: malloc(%llu) errno=%d %s @ %s:%d",
+            buf_size, errno, strerror(errno), __FILE__, __LINE__
     );
     scr_close(file, fd_src);
     return SCR_FAILURE;
@@ -182,8 +182,8 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
      * process may be writing to the same file */
     int fd_container = scr_open(container_name, O_WRONLY | O_CREAT, mode_file);
     if (fd_container < 0) {
-      scr_err("Opening file for writing: scr_open(%s) errno=%d %m @ %s:%d",
-              container_name, errno, __FILE__, __LINE__
+      scr_err("Opening file for writing: scr_open(%s) errno=%d %s @ %s:%d",
+              container_name, errno, strerror(errno), __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
       break;

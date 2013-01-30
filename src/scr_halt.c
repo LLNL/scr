@@ -45,8 +45,8 @@ int scr_halt_read(const scr_path* path_file, scr_hash* hash)
   /* open the halt file for reading */
   int fd = scr_open(file, O_RDONLY);
   if (fd < 0) {
-    scr_err("Opening file for read: scr_open(%s) errno=%d %m @ %s:%d",
-      file, errno, __FILE__, __LINE__
+    scr_err("Opening file for read: scr_open(%s) errno=%d %s @ %s:%d",
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
     goto cleanup;
   }
@@ -96,8 +96,8 @@ int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int d
   mode_t mode_file = scr_getmode(1, 1, 0);
   int fd = scr_open(file, O_RDWR | O_CREAT, mode_file);
   if (fd < 0) {
-    scr_err("Opening file for write: scr_open(%s) errno=%d %m @ %s:%d",
-      file, errno, __FILE__, __LINE__
+    scr_err("Opening file for write: scr_open(%s) errno=%d %s @ %s:%d",
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
     /* restore the normal file mask */
     goto cleanup;

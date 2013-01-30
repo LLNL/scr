@@ -847,8 +847,8 @@ int open(const char *pathname, int flags, ...)
   if (checkpoint) {
     if (rc < 0) {
       /* Don't want to kick out here because user may have expected this open to fail, e.g., read-only */
-      fprintf(stderr,"SCRI: ERROR: Failed to open %s for rerouting %s (%m errno=%d) @ %s:%d\n",
-              name, pathname, errno, __FILE__, __LINE__
+      fprintf(stderr,"SCRI: ERROR: Failed to open %s for rerouting %s (errno=%d %s) @ %s:%d\n",
+              name, pathname, errno, strerror(errno), __FILE__, __LINE__
       );
     } else {
       scri_add_checkpoint_fd(pathname, name, rc, flags);
@@ -918,8 +918,8 @@ FILE* fopen(const char * pathname, const char * mode)
   if (checkpoint) {
     if (rc == NULL) {
       /* Don't want to kick out here because user may have expected this open to fail, e.g., read-only */
-      fprintf(stderr,"SCRI: ERROR: Failed to fopen %s for rerouting %s with mode %s (errno=%d %m) @ %s:%d\n",
-             name, pathname, mode, errno, __FILE__, __LINE__
+      fprintf(stderr,"SCRI: ERROR: Failed to fopen %s for rerouting %s with mode %s (errno=%d %s) @ %s:%d\n",
+             name, pathname, mode, errno, strerror(errno), __FILE__, __LINE__
       );
     } else {
       scri_add_checkpoint_fstream(pathname, name, rc, mode);

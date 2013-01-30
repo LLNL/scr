@@ -87,8 +87,8 @@ static int scr_swap_files_copy(
   if (have_outgoing) {
     buf_send = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
     if (buf_send == NULL) {
-      scr_abort(-1, "Allocating memory: malloc(%ld) errno=%d %m @ %s:%d",
-              scr_mpi_buf_size, errno, __FILE__, __LINE__
+      scr_abort(-1, "Allocating memory: malloc(%ld) errno=%d %s @ %s:%d",
+              scr_mpi_buf_size, errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -99,8 +99,8 @@ static int scr_swap_files_copy(
   if (have_incoming) {
     buf_recv = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
     if (buf_recv == NULL) {
-      scr_abort(-1, "Allocating memory: malloc(%ld) errno=%d %m @ %s:%d",
-              scr_mpi_buf_size, errno, __FILE__, __LINE__
+      scr_abort(-1, "Allocating memory: malloc(%ld) errno=%d %s @ %s:%d",
+              scr_mpi_buf_size, errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -111,8 +111,8 @@ static int scr_swap_files_copy(
   if (have_outgoing) {
     fd_send = scr_open(file_send, O_RDONLY);
     if (fd_send < 0) {
-      scr_abort(-1, "Opening file for send: scr_open(%s, O_RDONLY) errno=%d %m @ %s:%d",
-              file_send, errno, __FILE__, __LINE__
+      scr_abort(-1, "Opening file for send: scr_open(%s, O_RDONLY) errno=%d %s @ %s:%d",
+              file_send, errno, strerror(errno), __FILE__, __LINE__
       );
     }
   }
@@ -123,8 +123,8 @@ static int scr_swap_files_copy(
     mode_t mode_file = scr_getmode(1, 1, 0);
     fd_recv = scr_open(file_recv, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
     if (fd_recv < 0) {
-      scr_abort(-1, "Opening file for recv: scr_open(%s, O_WRONLY | O_CREAT | O_TRUNC, ...) errno=%d %m @ %s:%d",
-              file_recv, errno, __FILE__, __LINE__
+      scr_abort(-1, "Opening file for recv: scr_open(%s, O_WRONLY | O_CREAT | O_TRUNC, ...) errno=%d %s @ %s:%d",
+              file_recv, errno, strerror(errno), __FILE__, __LINE__
       );
     }
   }
@@ -215,8 +215,8 @@ static int scr_swap_files_move(
   if (have_outgoing) {
     buf_send = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
     if (buf_send == NULL) {
-      scr_abort(-1, "Allocating memory: malloc(%ld) errno=%d %m @ %s:%d",
-              scr_mpi_buf_size, errno, __FILE__, __LINE__
+      scr_abort(-1, "Allocating memory: malloc(%ld) errno=%d %s @ %s:%d",
+              scr_mpi_buf_size, errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -227,8 +227,8 @@ static int scr_swap_files_move(
   if (have_incoming) {
     buf_recv = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
     if (buf_recv == NULL) {
-      scr_abort(-1, "Allocating memory: malloc(%ld) errno=%d %m @ %s:%d",
-              scr_mpi_buf_size, errno, __FILE__, __LINE__
+      scr_abort(-1, "Allocating memory: malloc(%ld) errno=%d %s @ %s:%d",
+              scr_mpi_buf_size, errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -247,8 +247,8 @@ static int scr_swap_files_move(
     fd = scr_open(file_send, O_RDWR);
     if (fd < 0) {
       /* TODO: skip writes and return error? */
-      scr_abort(-1, "Opening file for send/recv: scr_open(%s, O_RDWR) errno=%d %m @ %s:%d",
-              file_send, errno, __FILE__, __LINE__
+      scr_abort(-1, "Opening file for send/recv: scr_open(%s, O_RDWR) errno=%d %s @ %s:%d",
+              file_send, errno, strerror(errno), __FILE__, __LINE__
       );
     }
   } else if (have_incoming) {
@@ -258,8 +258,8 @@ static int scr_swap_files_move(
     fd = scr_open(file_recv, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
     if (fd < 0) {
       /* TODO: skip writes and return error? */
-      scr_abort(-1, "Opening file for recv: scr_open(%s, O_WRONLY | O_CREAT | O_TRUNC, ...) errno=%d %m @ %s:%d",
-              file_recv, errno, __FILE__, __LINE__
+      scr_abort(-1, "Opening file for recv: scr_open(%s, O_WRONLY | O_CREAT | O_TRUNC, ...) errno=%d %s @ %s:%d",
+              file_recv, errno, strerror(errno), __FILE__, __LINE__
       );
     }
   }
@@ -580,16 +580,16 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
   /* allocate buffer to read a piece of my file */
   char* send_buf = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
   if (send_buf == NULL) {
-    scr_abort(-1, "Allocating memory for send buffer: malloc(%d) errno=%d %m @ %s:%d",
-            scr_mpi_buf_size, errno, __FILE__, __LINE__
+    scr_abort(-1, "Allocating memory for send buffer: malloc(%d) errno=%d %s @ %s:%d",
+            scr_mpi_buf_size, errno, strerror(errno), __FILE__, __LINE__
     );
   }
 
   /* allocate buffer to read a piece of the recevied chunk file */
   char* recv_buf = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
   if (recv_buf == NULL) {
-    scr_abort(-1, "Allocating memory for recv buffer: malloc(%d) errno=%d %m @ %s:%d",
-            scr_mpi_buf_size, errno, __FILE__, __LINE__
+    scr_abort(-1, "Allocating memory for recv buffer: malloc(%d) errno=%d %s @ %s:%d",
+            scr_mpi_buf_size, errno, strerror(errno), __FILE__, __LINE__
     );
   }
 
@@ -654,8 +654,8 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
     fds[file_count]  = scr_open(filenames[file_count], O_RDONLY);
     if (fds[file_count] < 0) {
       /* TODO: try again? */
-      scr_abort(-1, "Opening checkpoint file for copying: scr_open(%s, O_RDONLY) errno=%d %m @ %s:%d",
-                filenames[file_count], errno, __FILE__, __LINE__
+      scr_abort(-1, "Opening checkpoint file for copying: scr_open(%s, O_RDONLY) errno=%d %s @ %s:%d",
+                filenames[file_count], errno, strerror(errno), __FILE__, __LINE__
       );
     }
 
@@ -711,8 +711,8 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
   int fd_chunk = scr_open(my_chunk_file, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
   if (fd_chunk < 0) {
     /* TODO: try again? */
-    scr_abort(-1, "Opening XOR chunk file for writing: scr_open(%s) errno=%d %m @ %s:%d",
-            my_chunk_file, errno, __FILE__, __LINE__
+    scr_abort(-1, "Opening XOR chunk file for writing: scr_open(%s) errno=%d %s @ %s:%d",
+            my_chunk_file, errno, strerror(errno), __FILE__, __LINE__
     );
   }
 

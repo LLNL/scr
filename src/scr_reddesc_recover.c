@@ -88,8 +88,8 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     /* open our xor file for reading */
     fd_chunk = scr_open(full_chunk_filename, O_RDONLY);
     if (fd_chunk < 0) {
-      scr_abort(-1, "Opening XOR file for reading in XOR rebuild: scr_open(%s, O_RDONLY) errno=%d %m @ %s:%d",
-        full_chunk_filename, errno, __FILE__, __LINE__
+      scr_abort(-1, "Opening XOR file for reading in XOR rebuild: scr_open(%s, O_RDONLY) errno=%d %s @ %s:%d",
+        full_chunk_filename, errno, strerror(errno), __FILE__, __LINE__
       );
     }
 
@@ -162,8 +162,8 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       fds[i] = scr_open(full_file, O_RDONLY);
       if (fds[i] < 0) {
         /* TODO: try again? */
-        scr_abort(-1, "Opening checkpoint file for reading in XOR rebuild: scr_open(%s, O_RDONLY) errno=%d %m @ %s:%d",
-          full_file, errno, __FILE__, __LINE__
+        scr_abort(-1, "Opening checkpoint file for reading in XOR rebuild: scr_open(%s, O_RDONLY) errno=%d %s @ %s:%d",
+          full_file, errno, strerror(errno), __FILE__, __LINE__
         );
       }
 
@@ -294,8 +294,8 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     fd_chunk = scr_open(full_chunk_filename, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
     if (fd_chunk < 0) {
       /* TODO: try again? */
-      scr_abort(-1, "Opening XOR chunk file for writing in XOR rebuild: scr_open(%s) errno=%d %m @ %s:%d",
-        full_chunk_filename, errno, __FILE__, __LINE__
+      scr_abort(-1, "Opening XOR chunk file for writing in XOR rebuild: scr_open(%s) errno=%d %s @ %s:%d",
+        full_chunk_filename, errno, strerror(errno), __FILE__, __LINE__
       );
     }
 
@@ -305,8 +305,8 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       fds[i] = scr_open(filenames[i], O_WRONLY | O_CREAT | O_TRUNC, mode_file);
       if (fds[i] < 0) {
         /* TODO: try again? */
-        scr_abort(-1, "Opening file for writing in XOR rebuild: scr_open(%s) errno=%d %m @ %s:%d",
-          filenames[i], errno, __FILE__, __LINE__
+        scr_abort(-1, "Opening file for writing in XOR rebuild: scr_open(%s) errno=%d %s @ %s:%d",
+          filenames[i], errno, strerror(errno), __FILE__, __LINE__
         );
       }
     }
@@ -326,16 +326,16 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
   /* allocate buffer to read a piece of my file */
   char* send_buf = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
   if (send_buf == NULL) {
-    scr_abort(-1, "Allocating memory for send buffer: malloc(%d) errno=%d %m @ %s:%d",
-      scr_mpi_buf_size, errno, __FILE__, __LINE__
+    scr_abort(-1, "Allocating memory for send buffer: malloc(%d) errno=%d %s @ %s:%d",
+      scr_mpi_buf_size, errno, strerror(errno), __FILE__, __LINE__
     );
   }
 
   /* allocate buffer to read a piece of the recevied chunk file */
   char* recv_buf = (char*) scr_align_malloc(scr_mpi_buf_size, scr_page_size);
   if (recv_buf == NULL) {
-    scr_abort(-1, "Allocating memory for recv buffer: malloc(%d) errno=%d %m @ %s:%d",
-      scr_mpi_buf_size, errno, __FILE__, __LINE__
+    scr_abort(-1, "Allocating memory for recv buffer: malloc(%d) errno=%d %s @ %s:%d",
+      scr_mpi_buf_size, errno, strerror(errno), __FILE__, __LINE__
     );
   }
 

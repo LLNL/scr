@@ -587,8 +587,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
           if (tmp_rc != 0) {
             /* TODO: to cross mount points, if tmp_rc == EXDEV,
              * open new file, copy, and delete orig */
-            scr_err("Moving checkpoint file: rename(%s, %s) %m errno=%d @ %s:%d",
-              file, newfile, errno, __FILE__, __LINE__
+            scr_err("Moving checkpoint file: rename(%s, %s) %s errno=%d @ %s:%d",
+              file, newfile, strerror(errno), errno, __FILE__, __LINE__
             );
             rc = SCR_FAILURE;
           }

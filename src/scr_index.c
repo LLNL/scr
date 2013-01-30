@@ -159,8 +159,8 @@ int scr_read_dir(const scr_path* dir, scr_hash* hash)
   /* open the directory */
   DIR* dirp = opendir(dir_str);
   if (dirp == NULL) {
-    scr_err("Failed to open directory %s (errno=%d %m) @ %s:%d",
-      dir_str, errno, __FILE__, __LINE__
+    scr_err("Failed to open directory %s (errno=%d %s) @ %s:%d",
+      dir_str, errno, strerror(errno), __FILE__, __LINE__
     );
     scr_free(&dir_str);
     return SCR_FAILURE;
@@ -185,8 +185,8 @@ int scr_read_dir(const scr_path* dir, scr_hash* hash)
       #endif
     } else {
       if (errno != 0) {
-        scr_err("Failed to read directory %s (errno=%d %m) @ %s:%d",
-          dir_str, errno, __FILE__, __LINE__
+        scr_err("Failed to read directory %s (errno=%d %s) @ %s:%d",
+          dir_str, errno, strerror(errno), __FILE__, __LINE__
         );
         rc = SCR_FAILURE;
       }
@@ -195,8 +195,8 @@ int scr_read_dir(const scr_path* dir, scr_hash* hash)
 
   /* close the directory */
   if (closedir(dirp) < 0) {
-    scr_err("Failed to close directory %s (errno=%d %m) @ %s:%d",
-      dir_str, errno, __FILE__, __LINE__
+    scr_err("Failed to close directory %s (errno=%d %s) @ %s:%d",
+      dir_str, errno, strerror(errno), __FILE__, __LINE__
     );
     scr_free(&dir_str);
     return SCR_FAILURE;
@@ -1635,8 +1635,8 @@ int get_args(int argc, char **argv, struct arglist* args)
   if (args->prefix == NULL) {
     char prefix[SCR_MAX_FILENAME];
     if (getcwd(prefix, sizeof(prefix)) == NULL) {
-      scr_err("Problem reading current working directory (getcwd() errno=%d %m) @ %s:%d",
-        errno, __FILE__, __LINE__
+      scr_err("Problem reading current working directory (getcwd() errno=%d %s) @ %s:%d",
+        errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }

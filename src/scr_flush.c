@@ -712,8 +712,8 @@ static int scr_flush_create_containers(const scr_hash* file_list)
           int fd = scr_open(name, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
           if (fd < 0) {
             /* the create failed */
-            scr_err("Opening file for writing: scr_open(%s) errno=%d %m @ %s:%d",
-              name, errno, __FILE__, __LINE__
+            scr_err("Opening file for writing: scr_open(%s) errno=%d %s @ %s:%d",
+              name, errno, strerror(errno), __FILE__, __LINE__
             );
             success = SCR_FAILURE;
           } else {

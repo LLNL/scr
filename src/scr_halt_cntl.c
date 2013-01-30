@@ -192,8 +192,8 @@ int scr_halt_sync_and_set(const scr_path* file_path, struct arglist* args, scr_h
   mode_t mode_file = scr_getmode(1, 1, 0);
   int fd = scr_open(file, O_RDWR | O_CREAT, mode_file);
   if (fd < 0) {
-    scr_err("Opening file for write: scr_open(%s) errno=%d %m @ %s:%d",
-      file, errno, __FILE__, __LINE__
+    scr_err("Opening file for write: scr_open(%s) errno=%d %s @ %s:%d",
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
     /* restore the normal file mask */
     scr_free(&file);
