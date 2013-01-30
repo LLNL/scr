@@ -168,9 +168,10 @@ int scr_groupdescs_create()
   );
 
   /* set the number of group descriptors,
-   * we define one for all procs on the same node */
+   * we define one for all procs on the same node
+   * and another for the world */
   int num_groups = scr_hash_size(groups);
-  int count = num_groups + 1;
+  int count = num_groups + 2;
 
   /* set our count to maximum count across all procs */
   MPI_Allreduce(
@@ -192,6 +193,12 @@ int scr_groupdescs_create()
   int index = 0;
   scr_groupdesc_create_by_str(
     &scr_groupdescs[index], index, SCR_GROUP_NODE, scr_my_hostname
+  );
+  index++;
+
+  /* create group descriptor for all procs in job */
+  scr_groupdesc_create_by_str(
+    &scr_groupdescs[index], index, SCR_GROUP_WORLD, "ALL"
   );
   index++;
 

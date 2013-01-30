@@ -30,7 +30,8 @@
 #define SCR_COPY_XOR     (4)
 #define SCR_COPY_FILE    (8)
 
-#define SCR_GROUP_NODE "NODE"
+#define SCR_GROUP_NODE  "NODE"
+#define SCR_GROUP_WORLD "WORLD"
 
 /* whether SCR is enabled by default */
 #ifndef SCR_ENABLE
