@@ -56,7 +56,7 @@ static scr_hash_elem* scr_hash_elem_new()
     elem->hash = NULL;
   } else {
     scr_abort(-1, "Failed to allocate memory for hash element @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
   }
   return elem;
@@ -87,7 +87,7 @@ scr_hash* scr_hash_new()
     LIST_INIT(hash);
   } else {
     scr_abort(-1, "Failed to allocate memory for hash object @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
   }
   return hash;
@@ -126,7 +126,7 @@ static scr_hash_elem* scr_hash_elem_init(scr_hash_elem* elem, const char* key, s
       /* bad idea to allow key to be set to NULL */
       elem->key = NULL;
       scr_err("Setting hash element key to NULL @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
     elem->hash = hash;
@@ -279,10 +279,9 @@ scr_hash* scr_hash_setf(scr_hash* hash, scr_hash* hash_value, const char* format
    * it */
   char* format_copy = strdup(format);
   if (format_copy == NULL) {
-    scr_err("Failed to duplicate format string @ %s:%d",
-            __FILE__, __LINE__
+    scr_abort(-1, "Failed to duplicate format string @ %s:%d",
+      __FILE__, __LINE__
     );
-    exit(1);
   }
 
   /* we break up tokens by spaces */
@@ -304,10 +303,9 @@ scr_hash* scr_hash_setf(scr_hash* hash, scr_hash* hash_value, const char* format
    * it */
   format_copy = strdup(format);
   if (format_copy == NULL) {
-    scr_err("Failed to duplicate format string @ %s:%d",
-            __FILE__, __LINE__
+    scr_abort(-1, "Failed to duplicate format string @ %s:%d",
+      __FILE__, __LINE__
     );
-    exit(1);
   }
 
   /* for each format specifier, convert the next key argument to a
@@ -338,18 +336,16 @@ scr_hash* scr_hash_setf(scr_hash* hash, scr_hash* hash_value, const char* format
     } else if (strcmp(token, "%f") == 0) {
       size = snprintf(key, sizeof(key), token, va_arg(args, double));
     } else {
-      scr_err("Unsupported hash key format '%s' @ %s:%d",
-              token, __FILE__, __LINE__
+      scr_abort(-1, "Unsupported hash key format '%s' @ %s:%d",
+        token, __FILE__, __LINE__
       );
-      exit(1);
     }
 
     /* check that we were able to fit the string into our buffer */
     if (size >= sizeof(key)) {
-      scr_err("Key buffer too small, have %lu need %d bytes @ %s:%d",
-              sizeof(key), size, __FILE__, __LINE__
+      scr_abort(-1, "Key buffer too small, have %lu need %d bytes @ %s:%d",
+        sizeof(key), size, __FILE__, __LINE__
       );
-      exit(1);
     }
 
     if (i < count-1) {
@@ -396,10 +392,9 @@ scr_hash* scr_hash_getf(const scr_hash* hash, const char* format, ...)
   /* make a copy of the format specifier, since strtok clobbers it */
   char* format_copy = strdup(format);
   if (format_copy == NULL) {
-    scr_err("Failed to duplicate format string @ %s:%d",
-            __FILE__, __LINE__
+    scr_abort(-1, "Failed to duplicate format string @ %s:%d",
+      __FILE__, __LINE__
     );
-    exit(1);
   }
 
   /* we break up tokens by spaces */
@@ -420,10 +415,9 @@ scr_hash* scr_hash_getf(const scr_hash* hash, const char* format, ...)
   /* make a copy of the format specifier, since strtok clobbers it */
   format_copy = strdup(format);
   if (format_copy == NULL) {
-    scr_err("Failed to duplicate format string @ %s:%d",
-            __FILE__, __LINE__
+    scr_abort(-1, "Failed to duplicate format string @ %s:%d",
+      __FILE__, __LINE__
     );
-    exit(1);
   }
 
   /* for each format specifier, convert the next key argument to a
@@ -454,18 +448,16 @@ scr_hash* scr_hash_getf(const scr_hash* hash, const char* format, ...)
     } else if (strcmp(token, "%f") == 0) {
       size = snprintf(key, sizeof(key), token, va_arg(args, double));
     } else {
-      scr_err("Unsupported hash key format '%s' @ %s:%d",
-              token, __FILE__, __LINE__
+      scr_abort(-1, "Unsupported hash key format '%s' @ %s:%d",
+        token, __FILE__, __LINE__
       );
-      exit(1);
     }
 
     /* check that we were able to fit the string into our buffer */
     if (size >= sizeof(key)) {
-      scr_err("Key buffer too small, have %lu need %d bytes @ %s:%d",
-              sizeof(key), size, __FILE__, __LINE__
+      scr_abort(-1, "Key buffer too small, have %lu need %d bytes @ %s:%d",
+        sizeof(key), size, __FILE__, __LINE__
       );
-      exit(1);
     }
 
     /* get hash for this key */
@@ -635,9 +627,9 @@ int scr_hash_list_int(const scr_hash* hash, int* n, int** v)
   /* now allocate array of ints to save keys */
   int* list = (int*) malloc(count * sizeof(int));
   if (list == NULL) {
-    scr_err("Failed to allocate integer list at %s:%d",
-            __FILE__, __LINE__);
-    exit(1);
+    scr_abort(-1, "Failed to allocate integer list at %s:%d",
+      __FILE__, __LINE__
+    );
   }
 
   /* record key values in array */
@@ -907,7 +899,7 @@ char* scr_hash_get_val(const scr_hash* hash, const char* key)
     } else {
       /* this is an error */
       scr_err("Hash for key %s expected to have exactly one element, but it has %d @ %s:%d",
-              key, size, __FILE__, __LINE__
+        key, size, __FILE__, __LINE__
       );
     }
   }
@@ -1075,38 +1067,42 @@ Read and write hash to a file
 =========================================
 */
 
-/* executes logic of scr_has_write with opened file descriptor */
-ssize_t scr_hash_write_fd(const char* file, int fd, const scr_hash* hash)
+size_t scr_hash_persist_size(const scr_hash* hash)
 {
-  ssize_t nwrite = 0;
-
-  /* for now, we always compute and store a crc value */
-  int crc_set = 1;
-
-  /* check that we have a hash, a file name, and a file descriptor */
-  if (file == NULL || fd < 0 || hash == NULL) {
-    return -1;
-  }
-
   /* compute the size of the file (includes header, data, and
    * trailing crc32) */
   size_t pack_size = scr_hash_pack_size(hash);
-  uint64_t filesize = SCR_FILE_HASH_HEADER_SIZE + pack_size;
-  if (crc_set) {
-    /* add room for the crc32 value */
-    filesize += sizeof(uint32_t);
+  size_t size = SCR_FILE_HASH_HEADER_SIZE + pack_size;
+
+  /* add room for the crc32 value */
+  size += sizeof(uint32_t);
+
+  return size;
+}
+
+/* persist hash in newly allocated buffer,
+ * return buffer address and size to be freed by caller */
+int scr_hash_write_persist(void** ptr_buf, size_t* ptr_size, const scr_hash* hash)
+{
+  /* check that we have a hash, a file name, and a file descriptor */
+  if (ptr_buf == NULL || hash == NULL) {
+    return SCR_FAILURE;
   }
 
+  /* compute size of buffer to persist hash */
+  size_t bufsize = scr_hash_persist_size(hash);
+
   /* allocate a buffer to pack the hash in */
-  char* buf = (char*) malloc(filesize);
+  char* buf = (char*) malloc(bufsize);
   if (buf == NULL) {
-    scr_err("Allocating %lu byte buffer to write hash to %s @ %s:%d",
-            (unsigned long) filesize, file, __FILE__, __LINE__
+    scr_err("Allocating %lu byte buffer to persist hash @ %s:%d",
+      (unsigned long) bufsize, __FILE__, __LINE__
     );
-    return -1;
+    return SCR_FAILURE;
   }
 
   size_t size = 0;
+  uint64_t filesize = (uint64_t) bufsize;
 
   /* write the SCR file magic number, the hash file id, and the
    * version number */
@@ -1117,29 +1113,50 @@ ssize_t scr_hash_write_fd(const char* file, int fd, const scr_hash* hash)
   /* write the file size (includes header, data, and trailing crc) */
   scr_pack_uint64_t(buf, filesize, &size, (uint64_t) filesize);
 
-  /* set the flags */
+  /* set the flags, indicate that the crc32 is set */
   uint32_t flags = 0x0;
-  if (crc_set) {
-    /* indicate that the crc32 is set */
-    flags |= SCR_FILE_FLAGS_CRC32;
-  }
+  flags |= SCR_FILE_FLAGS_CRC32;
   scr_pack_uint32_t(buf, filesize, &size, (uint32_t) flags);
 
   /* pack the hash into the buffer */
   size += scr_hash_pack(buf + size, hash);
 
-  /* compute and store the crc value if we need to */
-  if (crc_set) {
-    /* compute the crc over the length of the file */
-    uLong crc = crc32(0L, Z_NULL, 0);
-    crc = crc32(crc, (const Bytef*) buf, (uInt) size);
+  /* compute the crc over the length of the file */
+  uLong crc = crc32(0L, Z_NULL, 0);
+  crc = crc32(crc, (const Bytef*) buf, (uInt) size);
 
-    /* write the crc to the buffer */
-    scr_pack_uint32_t(buf, filesize, &size, (uint32_t) crc);
+  /* write the crc to the buffer */
+  scr_pack_uint32_t(buf, filesize, &size, (uint32_t) crc);
+
+  /* check that it adds up correctly */
+  if (size != bufsize) {
+    scr_abort(-1, "Failed to persist hash wrote %lu bytes != expected %lu @ %s:%d",
+      (unsigned long) size, (unsigned long) bufsize, __FILE__, __LINE__
+    );
   }
 
-  /* write the hash to the file */
-  nwrite = scr_write_attempt(file, fd, buf, size);
+  /* save address of buffer in output parameter */
+  *ptr_buf  = buf;
+  *ptr_size = size;
+
+  return SCR_SUCCESS;;
+}
+
+/* executes logic of scr_has_write with opened file descriptor */
+ssize_t scr_hash_write_fd(const char* file, int fd, const scr_hash* hash)
+{
+  /* check that we have a hash, a file name, and a file descriptor */
+  if (file == NULL || fd < 0 || hash == NULL) {
+    return -1;
+  }
+
+  /* persist hash to buffer */
+  void* buf;
+  size_t size;
+  scr_hash_write_persist(&buf, &size, hash);
+
+  /* write buffer to file */
+  ssize_t nwrite = scr_write_attempt(file, fd, buf, size);
 
   /* free the pack buffer */
   scr_free(&buf);
@@ -1167,7 +1184,7 @@ int scr_hash_write(const char* file, const scr_hash* hash)
   int fd = scr_open(file, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
   if (fd < 0) {
     scr_err("Opening hash file for write: %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1211,6 +1228,96 @@ int scr_hash_write_path(const scr_path* file_path, const scr_hash* hash)
   return rc;
 }
 
+#if 0
+/* reads a hash from its persisted state stored at buf which is at
+ * least bufsize bytes long, merges hash into output parameter
+ * and returns number of bytes processed or -1 on error */
+ssize_t scr_hash_read_persist(const void* buf, size_t bufsize, scr_hash* hash)
+{
+  size_t size = 0;
+
+  /* check that we have a buffer and a hash */
+  if (buf == NULL || hash == NULL || bufsize < SCR_FILE_HASH_HEADER_SIZE) {
+    return -1;
+  }
+
+  /* read in the magic number, the type, and the version number */
+  uint32_t magic;
+  uint16_t type, version;
+  scr_unpack_uint32_t(buf, bufsize, &size, &magic);
+  scr_unpack_uint16_t(buf, bufsize, &size, &type);
+  scr_unpack_uint16_t(buf, bufsize, &size, &version);
+
+  /* check that the magic number matches */
+  /* check that the file type is something we understand */
+  /* check that the file version matches */
+  if (magic   != SCR_FILE_MAGIC ||
+      type    != SCR_FILE_TYPE_HASH ||
+      version != SCR_FILE_VERSION_HASH_1)
+  {
+    scr_err("Header does not match expected values @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return -1;
+  }
+
+  /* read the file size */
+  uint64_t filesize;
+  scr_unpack_uint64_t(buf, bufsize, &size, &filesize);
+
+  /* read the flags field (32 bits) */
+  uint32_t flags;
+  scr_unpack_uint32_t(buf, bufsize, &size, &flags);
+
+  /* check that filesize is at least as large as the header */
+  if (filesize < SCR_FILE_HASH_HEADER_SIZE) {
+    scr_err("Invalid file size stored in %s @ %s:%d",
+      file, __FILE__, __LINE__
+    );
+    return -1;
+  }
+
+  /* check that the filesize is not larger than the buffer size */
+  if (filesize > bufsize) {
+    scr_err("Buffer %lu bytes too small for hash %lu bytes @ %s:%d",
+      (unsigned long) bufsize, (unsigned long) filesize, __FILE__, __LINE__
+    );
+    return -1;
+  }
+
+  /* check the crc value if it's set */
+  int crc_set = flags & SCR_FILE_FLAGS_CRC32;
+  if (crc_set) {
+    /* compute the crc value of the data */
+    uLong crc = crc32(0L, Z_NULL, 0);
+    crc = crc32(crc, (const Bytef*) buf, (uInt) filesize - sizeof(uint32_t));
+
+    /* read the crc value */
+    uint32_t crc_file_network, crc_file;
+    memcpy(&crc_file_network, buf + filesize - sizeof(uint32_t), sizeof(uint32_t));
+    crc_file = scr_ntoh32(crc_file_network);
+
+    /* check the crc value */
+    if (crc != crc_file) {
+      scr_err("CRC32 mismatch detected in hash @ %s:%d",
+        __FILE__, __LINE__
+      );
+      return -1;
+    }
+  }
+
+  /* create a temporary hash to read data into, unpack, and merge */
+  scr_hash* tmp_hash = scr_hash_new();
+  scr_hash_unpack(buf + size, tmp_hash);
+  scr_hash_merge(hash, tmp_hash);
+  scr_hash_delete(&tmp_hash);
+
+  /* return number of bytes processed */
+  ssize_t ret = (ssize_t) filesize;
+  return ret;
+}
+#endif
+
 /* executes logic of scr_hash_read using an opened file descriptor */
 ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
 {
@@ -1222,20 +1329,10 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
     return -1;
   }
 
-  /* create a temporary hash to read data into */
-  scr_hash* tmp_hash = scr_hash_new();
-  if (tmp_hash == NULL) {
-    scr_err("Failed to allocate memory for a temporary hash for reading %s @ %s:%d",
-            file, __FILE__, __LINE__
-    );
-    return -1;
-  }
-
   /* read in the file header */
   char header[SCR_FILE_HASH_HEADER_SIZE];
   nread = scr_read_attempt(file, fd, header, SCR_FILE_HASH_HEADER_SIZE);
   if (nread != SCR_FILE_HASH_HEADER_SIZE) {
-    scr_hash_delete(&tmp_hash);
     return -1;
   }
 
@@ -1254,9 +1351,8 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
       version != SCR_FILE_VERSION_HASH_1)
   {
     scr_err("File header does not match expected values in %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
-    scr_hash_delete(&tmp_hash);
     return -1;
   }
 
@@ -1269,11 +1365,10 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
   scr_unpack_uint32_t(header, sizeof(header), &size, &flags);
 
   /* check that the filesize is valid (positive) */
-  if (filesize <= 0) {
+  if (filesize < SCR_FILE_HASH_HEADER_SIZE) {
     scr_err("Invalid file size stored in %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
-    scr_hash_delete(&tmp_hash);
     return -1;
   }
 
@@ -1281,9 +1376,8 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
   char* buf = (char*) malloc(filesize);
   if (buf == NULL) {
     scr_err("Allocating %lu byte buffer to write hash to %s @ %s:%d",
-            (unsigned long) filesize, file, __FILE__, __LINE__
+      (unsigned long) filesize, file, __FILE__, __LINE__
     );
-    scr_hash_delete(&tmp_hash);
     return -1;
   }
 
@@ -1296,10 +1390,9 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
     nread = scr_read_attempt(file, fd, buf + size, remainder);
     if (nread != remainder) {
       scr_err("Failed to read file %s @ %s:%d",
-              file, __FILE__, __LINE__
+        file, __FILE__, __LINE__
       );
       scr_free(&buf);
-      scr_hash_delete(&tmp_hash);
       return -1;
     }
   }
@@ -1322,18 +1415,16 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
     /* check the crc value */
     if (crc != crc_file) {
       scr_err("CRC32 mismatch detected in %s @ %s:%d",
-              file, __FILE__, __LINE__
+        file, __FILE__, __LINE__
       );
       scr_free(&buf);
-      scr_hash_delete(&tmp_hash);
       return -1;
     }
   }
 
-  /* unpack the hash */
+  /* create a temporary hash to read data into, unpack, and merge */
+  scr_hash* tmp_hash = scr_hash_new();
   scr_hash_unpack(buf + size, tmp_hash);
-
-  /* merge and delete the temporary hash */
   scr_hash_merge(hash, tmp_hash);
   scr_hash_delete(&tmp_hash);
 
@@ -1362,7 +1453,7 @@ int scr_hash_read(const char* file, scr_hash* hash)
   int fd = scr_open(file, O_RDONLY);
   if (fd < 0) {
     scr_err("Opening hash file for read %s @ %s:%d",
-              file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1417,7 +1508,7 @@ int scr_hash_read_with_lock(const char* file, scr_hash* hash)
   /* check that we got a filename */
   if (file == NULL) {
     scr_err("No filename specified @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1425,7 +1516,7 @@ int scr_hash_read_with_lock(const char* file, scr_hash* hash)
   /* check that we got a hash to read data into */
   if (hash == NULL) {
     scr_err("No hash provided to read data into @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1443,7 +1534,7 @@ int scr_hash_read_with_lock(const char* file, scr_hash* hash)
     return SCR_SUCCESS;
   } else {
     scr_err("Failed to open file with lock %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
   }
 
@@ -1457,7 +1548,7 @@ int scr_hash_lock_open_read(const char* file, int* fd, scr_hash* hash)
   /* check that we got a pointer to a file descriptor */
   if (fd == NULL) {
     scr_err("Must provide a pointer to an int to return opened file descriptor @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1469,7 +1560,7 @@ int scr_hash_lock_open_read(const char* file, int* fd, scr_hash* hash)
   /* check that we got a filename */
   if (file == NULL) {
     scr_err("No filename specified @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1477,7 +1568,7 @@ int scr_hash_lock_open_read(const char* file, int* fd, scr_hash* hash)
   /* check that we got a hash to read data into */
   if (hash == NULL) {
     scr_err("No hash provided to read data into @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1501,7 +1592,7 @@ int scr_hash_write_close_unlock(const char* file, int* fd, const scr_hash* hash)
   /* check that we got a pointer to a file descriptor */
   if (fd == NULL) {
     scr_err("Must provide a pointer to an opened file descriptor @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1509,7 +1600,7 @@ int scr_hash_write_close_unlock(const char* file, int* fd, const scr_hash* hash)
   /* check that the file descriptor is open */
   if (*fd < 0) {
     scr_err("File descriptor does not point to a valid file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1517,7 +1608,7 @@ int scr_hash_write_close_unlock(const char* file, int* fd, const scr_hash* hash)
   /* check that we got a filename */
   if (file == NULL) {
     scr_err("No filename specified @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -1525,7 +1616,7 @@ int scr_hash_write_close_unlock(const char* file, int* fd, const scr_hash* hash)
   /* check that we got a hash to read data into */
   if (hash == NULL) {
     scr_err("No hash provided to write data from @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }

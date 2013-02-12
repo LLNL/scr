@@ -22,6 +22,7 @@ make dist
 setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql"
 setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=${HOME}/packages/dtcmp.git/install"
 setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
+setenv CFLAGS "-g -O0"
 setenv scrversion "scr-1.1-8"
 cd ~/packages/scr
 make distclean
@@ -54,7 +55,7 @@ mpicc -g -O0 -I${HOME}/packages/scr-dist/install/include -I. -o test_api test_co
 mxterm 4 32 120
 
 # set up initial enviroment for testing
-setenv scrbin "../../../bin"
+setenv scrbin ${HOME}/packages/scr-dist/install/bin
 setenv jobid `${scrbin}/scr_env --jobid`
 echo $jobid
 setenv downnode `${scrbin}/scr_glob_hosts -n 1 -h "$SLURM_NODELIST"`

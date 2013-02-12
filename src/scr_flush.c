@@ -68,6 +68,124 @@ and creating container files (if any)
 =========================================
 */
 
+#define SCR_FLUSH_SCAN_COUNT (0)
+#define SCR_FLUSH_SCAN_RANKS (1)
+#define SCR_FLUSH_SCAN_RANK  (2)
+int scr_flush_pick_writer(int level, unsigned long count, int* writer, int* have_all)
+{
+  /* use a segment size of 1MB */
+  unsigned long segsize = 1024*1024;
+
+  /* get communicator info */
+  MPI_Comm comm  = scr_comm_world;
+  int rank       = scr_my_rank_world;
+  int ranks      = scr_ranks_world;
+
+#if 0
+  /* this code groups procs into consecutive ranges like a k-nomial tree
+   * of degree width+1 */
+  int width = 3;
+  int range = 1;
+  while (level > 0) {
+    range *= width;
+    level--;
+  }
+  int level_writer_id = rank / range;
+  *writer = level_writer_id * range;
+  *have_all = 0;
+  if (range >= ranks) {
+    *have_all = 1;
+  }
+  return SCR_SUCCESS;
+#endif
+
+  /* first find our offset */
+  unsigned long offset;
+  MPI_Scan(&count, &offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, comm);
+  offset -= count;
+
+  /* determine whether we start a new segment */
+  int starts_new = 0;
+  if (rank == 0) {
+    /* force rank 0 to start a segment, even if it has no bytes */
+    starts_new = 1;
+  } else if (count > 0) {
+    /* otherwise we only start a segment if our bytes overflow the boundary */
+    unsigned long segindex = offset / segsize;
+    unsigned long seglastbyte = (segindex + 1) * segsize - 1;
+    unsigned long mylastbyte  = offset + count - 1;
+    if (mylastbyte > seglastbyte) {
+      starts_new = 1;
+    }
+  }
+
+  /* initialize our send data */
+  int send[3], recv[3];
+  send[SCR_FLUSH_SCAN_COUNT] = starts_new;
+  send[SCR_FLUSH_SCAN_RANKS] = 1;
+  send[SCR_FLUSH_SCAN_RANK]  = MPI_PROC_NULL;
+  if (starts_new) {
+    send[SCR_FLUSH_SCAN_RANK] = rank;
+  }
+
+  /* first execute the segmented scan */
+  int step = 1;
+  MPI_Request request[4];
+  MPI_Status  status[4];
+  while (step < ranks) {
+    int k = 0;
+
+    /* if we have a left partner, recv his right-going data */
+    int left = rank - step;
+    if (left >= 0) {
+      MPI_Irecv(recv, 3, MPI_INT, left, 0, comm, &request[k]);
+      k++;
+    }
+
+    /* if we have a right partner, send him our right-going data */
+    int right = rank + step;
+    if (right < ranks) {
+      MPI_Isend(send, 3, MPI_INT, right, 0, comm, &request[k]);
+      k++;
+    }
+
+    /* wait for all communication to complete */
+    if (k > 0) {
+      MPI_Waitall(k, request, status);
+    }
+
+    /* if we have a left partner, merge his data with our result */
+    if (left >= 0) {
+      /* reduce data into right-going buffer */
+      send[SCR_FLUSH_SCAN_COUNT] += recv[SCR_FLUSH_SCAN_COUNT];
+      if (send[SCR_FLUSH_SCAN_RANK] == MPI_PROC_NULL) {
+        send[SCR_FLUSH_SCAN_RANKS] += recv[SCR_FLUSH_SCAN_RANKS];
+        send[SCR_FLUSH_SCAN_RANK]   = recv[SCR_FLUSH_SCAN_RANK];
+      }
+    }
+
+    /* go to next round */
+    step *= 2;
+  }
+
+  /* we don't use this for now, but keep it in case we go back to it */
+  int writer_id = send[SCR_FLUSH_SCAN_COUNT] - 1;
+
+  /* set output parameters */
+  *writer = send[SCR_FLUSH_SCAN_RANK];
+
+  /* determine whether we've finished, the last rank knows the total
+   * in the group */
+  *have_all = 0;
+  if (send[SCR_FLUSH_SCAN_RANKS] == ranks) {
+    /* all ranks now accounted for, so we're done */
+    *have_all = 1;
+  }
+  MPI_Bcast(have_all, 1, MPI_INT, ranks-1, comm);
+
+  return SCR_SUCCESS; 
+}
+
 /* fills in hash with a list of filenames and associated meta data
  * that should be flushed for specified dataset id */
 static int scr_flush_identify_files(const scr_filemap* map, int id, scr_hash* file_list)
@@ -811,109 +929,577 @@ index file
 =========================================
 */
 
+static unsigned long scr_flush_summary_offset_map_shared(
+  const char* file,
+  int* ptr_fd,
+  unsigned long base,
+  int range,
+  int level,
+  int valid,
+  unsigned long offset_in,
+  unsigned long size_in)
+{
+  /* get our rank and number of ranks in communicator */
+  int rank, ranks;
+  MPI_Comm_rank(scr_comm_world, &rank);
+  MPI_Comm_size(scr_comm_world, &ranks);
+
+  /* TODO: also encode a filename to split chunks to different files */
+  /* build hash to send to root */
+  scr_hash* hash = scr_hash_new();
+  if (valid) {
+    scr_hash_util_set_bytecount(hash, SCR_SUMMARY_6_KEY_OFFSET, offset_in);
+    scr_hash_util_set_bytecount(hash, SCR_SUMMARY_6_KEY_SIZE, size_in);
+  }
+
+  /* TODO: determine writer based on hash size */
+  /* determine writer */
+  int group_width = 3;
+  int newrange = range * group_width;
+  int writer_id = rank / newrange;
+  int writer = writer_id * group_width;
+
+  /* create new hashes to send and receive data */
+  scr_hash* send = scr_hash_new();
+  scr_hash* recv = scr_hash_new();
+
+  /* if we have valid values, prepare hash to send to writer */
+  if (valid) {
+    /* attach offset/size hash to send hash */
+    scr_hash_setf(send, hash, "%d", writer);
+  } else {
+    /* nothing to send, so delete offset/size hash */
+    scr_hash_delete(&hash);
+  }
+
+  /* gather hash to writers */
+  scr_hash_exchange_direction(send, recv, scr_comm_world, SCR_HASH_EXCHANGE_LEFT);
+
+  /* prepare hash of offsets and sizes for writing */
+  void* buf = NULL;
+  size_t bufsize = 0;
+  if (rank == writer) {
+    /* create hash to merge info */
+    scr_hash* hash_save = scr_hash_new();
+
+    /* store level value in hash */
+    scr_hash_util_set_int(hash_save, SCR_SUMMARY_6_KEY_LEVEL, level);
+
+    /* record hash containing offsets and sizes indexed by rank */
+    scr_hash* hash_rank = scr_hash_new();
+    scr_hash_merge(hash_rank, recv);
+    scr_hash_set(hash_save, SCR_SUMMARY_6_KEY_RANK, hash_rank);
+
+    /* persist hash */
+    scr_hash_write_persist(&buf, &bufsize, hash_save);
+    scr_hash_delete(&hash_save);
+  }
+
+  /* TODO: compress data */
+
+  /* compute size of offset/size hash */
+  unsigned long size = 0;
+  if (rank == writer) {
+    size = (unsigned long) bufsize;
+  }
+
+  /* compute the offset to write our data */
+  unsigned long offset;
+  MPI_Scan(&size, &offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
+  offset -= size;
+
+  /* call gather recursively if there's another level */
+  unsigned long file_offset = 0;
+  if (newrange < ranks) {
+     /* gather offsets to higher level, and record number of bytes
+      * written by all higher levels */
+     int newlevel = level + 1;
+     int newvalid = 0;
+     if (rank == writer) {
+       newvalid = 1;
+     }
+     file_offset = scr_flush_summary_offset_map_shared(
+       file, ptr_fd, base, newrange, newlevel, newvalid, offset, size
+     );
+  }
+
+  /* write hash to file */
+  if (rank == writer) {
+    /* open the file if we need to */
+    if (*ptr_fd == -1) {
+      *ptr_fd = scr_open(file, O_WRONLY);
+      if (*ptr_fd < 0) {
+        scr_abort(-1, "Opening file for write: %s @ %s:%d",
+          file, __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* write data to file offset */
+    off_t pos = base + file_offset + offset;
+    scr_dbg(1, "level %d position %lu size %lu", level, (unsigned long) pos, (unsigned long) bufsize);
+    scr_lseek(file, *ptr_fd, pos, SEEK_SET);
+    scr_write(file, *ptr_fd, buf, bufsize);
+
+    /* free the buffer holding the persistent hash */
+    scr_free(&buf);
+  }
+
+  /* advance file offset by number of bytes we wrote */
+  unsigned long level_size;
+  MPI_Allreduce(&size, &level_size, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
+  file_offset += level_size;
+
+  /* free the offset and size buffer */
+  scr_hash_delete(&recv);
+  scr_hash_delete(&send);
+
+  return file_offset;
+}
+
 /* write summary file for flush */
-static int scr_flush_summary(const char* summary_dir, const scr_dataset* dataset, const scr_hash* file_list, scr_hash* data)
+static int scr_flush_summary_shared(
+  const char* summary_dir,
+  const scr_dataset* dataset,
+  const scr_hash* file_list,
+  scr_hash* data)
 {
   int flushed = SCR_SUCCESS;
 
   /* TODO: need to determine whether everyone flushed successfully */
+  int all_complete = 1;
 
-  /* TODO: current method is a flat tree with rank 0 as the root,
-   * need a more scalable algorithm */
+  /* build file name to summary file */
+  scr_path* summary_path = scr_path_from_str(summary_dir);
+  scr_path_append_str(summary_path, ".scr");
+  scr_path_append_str(summary_path, "summary.scr");
+  char* summary_file = scr_path_strdup(summary_path);
 
-  /* flow control the send among processes, and gather meta data to rank 0 */
+  /* TODO: use scan to pick our writer */
+  /* pick our writer */
+  int rank;
+  MPI_Comm_rank(scr_comm_world, &rank);
+  int group_width = 3;
+  int writer_id = rank / group_width;
+  int writer = writer_id * group_width;
+
+  /* create send and receive hashes */
+  scr_hash* send = scr_hash_new();
+  scr_hash* recv = scr_hash_new();
+
+  /* copy data into send hash (note we don't have to delete temp since
+   * we attach it to the send hash here */
+  scr_hash* temp = scr_hash_new();
+  scr_hash_merge(temp, data);
+  scr_hash_setf(send, temp, "%d", writer);
+
+  /* gather hashes to writers */
+  scr_hash_exchange_direction(send, recv, scr_comm_world, SCR_HASH_EXCHANGE_LEFT);
+
+  /* TODO: compress data */
+  /* persist received hash */
+  void* buf = NULL;
+  size_t bufsize = 0;
+  unsigned long size = 0;
+  if (rank == writer) {
+    scr_hash_write_persist(&buf, &bufsize, recv);
+    size = (unsigned long) bufsize;
+  }
+
+  /* if we open a file for writing, we remember this by tracking fd */
+  int fd = -1;
+
+  /* rank 0 creates file and writes number of ranks */
+  unsigned long header_size = 0;
   if (scr_my_rank_world == 0) {
-    /* now, have a sliding window of w processes send simultaneously */
-    int w = scr_flush_width;
-    if (w > (scr_ranks_world - 1)) {
-      w = scr_ranks_world - 1;
+    /* create file and write header */
+    mode_t mode_file = scr_getmode(1, 1, 0);
+    fd = scr_open(summary_file, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
+    if (fd < 0) {
+      scr_abort(-1, "Opening hash file for write: %s @ %s:%d",
+        summary_file, __FILE__, __LINE__
+      );
+      return SCR_FAILURE;
     }
 
-    /* allocate MPI_Request arrays and an array of ints */
-    int*         ranks    = (int*)         malloc(w * sizeof(int));
-    int*         flags    = (int*)         malloc(w * sizeof(int));
-    MPI_Request* req_recv = (MPI_Request*) malloc(w * sizeof(MPI_Request));
-    MPI_Request* req_send = (MPI_Request*) malloc(w * sizeof(MPI_Request));
-    MPI_Status status;
+    /* create an empty hash to build our summary info */
+    scr_hash* summary_hash = scr_hash_new();
 
-    int i = 1;
-    int outstanding = 0;
-    int index = 0;
-    while (i < scr_ranks_world || outstanding > 0) {
-      /* issue up to w outstanding sends and receives */
-      while (i < scr_ranks_world && outstanding < w) {
-        /* record which rank we assign to this slot */
-        ranks[index] = i;
+    /* write the summary file version number */
+    scr_hash_util_set_int(summary_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_6);
 
-        /* post a receive for the response message we'll get back when rank i is done */
-        MPI_Irecv(&flags[index], 1, MPI_INT, i, 0, scr_comm_world, &req_recv[index]);
+    /* mark whether the flush is complete in the summary file */
+    scr_hash_util_set_int(summary_hash, SCR_SUMMARY_6_KEY_COMPLETE, all_complete);
 
-        /* post a send to tell rank i to start */
-        MPI_Isend(&flushed, 1, MPI_INT, i, 0, scr_comm_world, &req_send[index]);
+    /* write the dataset descriptor */
+    scr_hash* dataset_hash = scr_hash_new();
+    scr_hash_merge(dataset_hash, dataset);
+    scr_hash_set(summary_hash, SCR_SUMMARY_6_KEY_DATASET, dataset_hash);
 
-        /* update the number of outstanding requests */
-        i++;
-        outstanding++;
-        index++;
+    /* write the number of ranks used to write this dataset */
+    scr_hash* rank2file_hash = scr_hash_get(summary_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+    scr_hash_util_set_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, scr_ranks_world);
+
+    /* write the hash to a file */
+    ssize_t summary_size = scr_hash_write_fd(summary_file, fd, summary_hash);
+    header_size = (unsigned long) summary_size;
+
+    /* free the hash object */
+    scr_hash_delete(&summary_hash);
+  }
+
+  /* broadcast header length */
+  MPI_Bcast(&header_size, 1, MPI_UNSIGNED_LONG, 0, scr_comm_world);
+
+  /* compute offset to write our block of summary data */
+  unsigned long offset;
+  MPI_Scan(&size, &offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
+  offset -= size;
+
+  /* write offset map to file */
+  int valid = 0;
+  if (rank == writer) {
+    valid = 1;
+  }
+  unsigned long map_size = scr_flush_summary_offset_map_shared(
+    summary_file, &fd, header_size, 1, 0, valid, offset, size
+  );
+
+  /* write blocks of summary data */
+  if (rank == writer) {
+    /* open the file if we need to */
+    if (fd == -1) {
+      fd = scr_open(summary_file, O_WRONLY);
+      if (fd < 0) {
+        scr_abort(-1, "Opening file for write: %s @ %s:%d",
+          summary_file, __FILE__, __LINE__
+        );
       }
-
-      /* wait to hear back from any rank */
-      MPI_Waitany(w, req_recv, &index, &status);
-
-      /* someone responded, the send to this rank should also be done, so complete it */
-      MPI_Wait(&req_send[index], &status);
-
-      /* receive the meta data from this rank */
-      scr_hash* incoming_hash = scr_hash_new();
-      scr_hash_recv(incoming_hash, ranks[index], scr_comm_world);
-      scr_hash_merge(data, incoming_hash);
-      scr_hash_delete(&incoming_hash);
-
-      /* one less request outstanding now */
-      outstanding--;
     }
 
-    /* free the MPI_Request arrays */
-    scr_free(&req_send);
-    scr_free(&req_recv);
-    scr_free(&flags);
-    scr_free(&ranks);
-  } else {
-    /* receive signal to start */
-    int start;
-    MPI_Status status;
-    MPI_Recv(&start, 1, MPI_INT, 0, 0, scr_comm_world, &status);
+    /* write data to file offset */
+    off_t pos = header_size + map_size + offset;
+    scr_dbg(1, "hashes position %lu size %lu", (unsigned long) pos, size);
+    scr_lseek(summary_file, fd, pos, SEEK_SET);
+    scr_write(summary_file, fd, buf, bufsize);
 
-    /* flush each of my files and fill in meta data structures */
-    if (start != SCR_SUCCESS) {
-      flushed = SCR_FAILURE;
-    }
-
-    /* send message to rank 0 to report that we're done */
-    MPI_Send(&flushed, 1, MPI_INT, 0, 0, scr_comm_world);
-
-    /* would be better to do this as a reduction-type of operation */
-    scr_hash_send(data, 0, scr_comm_world);
+    /* free memory */
+    scr_free(&buf);
   }
 
-  /* write out the summary file */
-  if (scr_my_rank_world == 0) {
-    /* determine whether flush was complete */
-    int complete = 1;
-    if (flushed != SCR_SUCCESS) {
-      complete = 0;
-    }
-
-    /* write summary file */
-    scr_path* summary_path = scr_path_from_str(summary_dir);
-    if (scr_summary_write(summary_path, dataset, complete, data) != SCR_SUCCESS) {
-      flushed = SCR_FAILURE;
-    }
-    scr_path_delete(&summary_path);
+  /* close file if we were writing to it */
+  if (fd != -1) {
+    scr_close(summary_file, fd);
   }
+
+  /* free our hash data */
+  scr_free(&recv);
+  scr_free(&send);
+
+  /* free the summary file name */
+  scr_free(&summary_file);
+  scr_path_delete(&summary_path);
 
   /* determine whether everyone wrote their files ok */
   if (scr_alltrue((flushed == SCR_SUCCESS))) {
+    return SCR_SUCCESS;
+  }
+  return SCR_FAILURE;
+}
+
+static unsigned long scr_flush_summary_map(
+  const scr_path* dir,
+  const scr_path* file,
+  int level,
+  int valid)
+{
+  int rc = SCR_SUCCESS;
+
+  /* get our rank and number of ranks in communicator */
+  int rank, ranks;
+  MPI_Comm_rank(scr_comm_world, &rank);
+  MPI_Comm_size(scr_comm_world, &ranks);
+
+  /* record file name relative to dir */
+  scr_hash* hash = scr_hash_new();
+  unsigned long pack_size = 0;
+  if (valid) {
+    scr_path* rel_path = scr_path_relative(dir, file);
+    const char* rel_file = scr_path_strdup(rel_path);
+    scr_hash_util_set_str(hash, SCR_SUMMARY_6_KEY_FILE, rel_file);
+    scr_free(&rel_file);
+    scr_path_delete(&rel_path);
+    pack_size = (unsigned long) scr_hash_pack_size(hash);
+  }
+
+  /* pick writers so that we send roughly 1MB of data to each */
+  int writer, have_all_procs;
+  scr_flush_pick_writer(level, pack_size, &writer, &have_all_procs);
+
+  /* create new hashes to send and receive data */
+  scr_hash* send = scr_hash_new();
+  scr_hash* recv = scr_hash_new();
+
+  /* if we have valid values, prepare hash to send to writer */
+  if (valid) {
+    /* attach data to send hash */
+    scr_hash_setf(send, hash, "%d", writer);
+  } else {
+    /* nothing to send, so delete data hash */
+    scr_hash_delete(&hash);
+  }
+
+  /* gather hash to writers */
+  scr_hash_exchange_direction(send, recv, scr_comm_world, SCR_HASH_EXCHANGE_LEFT);
+
+  /* prepare hash of file names for writing */
+  void* buf = NULL;
+  size_t bufsize = 0;
+  if (rank == writer) {
+    /* create hash to merge info */
+    scr_hash* hash_save = scr_hash_new();
+
+    /* store level value in hash */
+    scr_hash_util_set_int(hash_save, SCR_SUMMARY_6_KEY_LEVEL, level);
+
+    /* record hash containing file names indexed by rank */
+    scr_hash* hash_rank = scr_hash_new();
+    scr_hash_merge(hash_rank, recv);
+    scr_hash_set(hash_save, SCR_SUMMARY_6_KEY_RANK, hash_rank);
+
+    /* persist hash */
+    scr_hash_write_persist(&buf, &bufsize, hash_save);
+    scr_hash_delete(&hash_save);
+  }
+
+  /* TODO: compress data */
+
+  /* create file name for rank2file index */
+  scr_path* rank2file_path = scr_path_dup(dir);
+  if (! have_all_procs) {
+    /* for all lower level maps we append a level id and writer id */
+    scr_path_append_strf(rank2file_path, "rank2file.%d.%d.scr", level, writer);
+  } else {
+    /* at the top most level, simplify the name so we can find it */
+    scr_path_append_str(rank2file_path, "rank2file.scr");
+  }
+  char* rank2file_file = scr_path_strdup(rank2file_path);
+
+  /* call gather recursively if there's another level */
+  if (! have_all_procs) {
+     /* gather file names to higher level */
+     int newlevel = level + 1;
+     int newvalid = 0;
+     if (rank == writer) {
+       newvalid = 1;
+     }
+     if (scr_flush_summary_map(dir, rank2file_path, newlevel, newvalid)
+         != SCR_SUCCESS)
+     {
+       rc = SCR_FAILURE;
+     }
+  }
+
+  /* write hash to file */
+  if (rank == writer) {
+    /* open the file if we need to */
+    mode_t mode = scr_getmode(1, 1, 0);
+    int fd = scr_open(rank2file_file, O_WRONLY | O_CREAT | O_TRUNC, mode);
+    if (fd < 0) {
+      scr_err("Opening file for write: %s @ %s:%d",
+        rank2file_file, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+
+    /* write data to file */
+    if (fd >= 0) {
+      scr_dbg(1, "level %d size %lu file %s",
+        level, (unsigned long) bufsize, rank2file_file
+      );
+      ssize_t write_rc = scr_write(rank2file_file, fd, buf, bufsize);
+      if (write_rc < 0) {
+        rc = SCR_FAILURE;
+      }
+
+      /* close the file */
+      scr_close(rank2file_file, fd);
+    }
+
+    /* free the buffer holding the persistent hash */
+    scr_free(&buf);
+  }
+
+  /* free path and file name */
+  scr_free(&rank2file_file);
+  scr_path_delete(&rank2file_path);
+
+  /* free send and receive hashes */
+  scr_hash_delete(&recv);
+  scr_hash_delete(&send);
+
+  return rc;
+}
+
+/* write summary file for flush */
+static int scr_flush_summary(
+  const char* summary_dir,
+  const scr_dataset* dataset,
+  const scr_hash* file_list,
+  scr_hash* data)
+{
+  int rc = SCR_SUCCESS;
+
+  /* TODO: need to determine whether everyone flushed successfully */
+  int all_complete = 1;
+
+  /* define path to dataset directory */
+  scr_path* dset_path = scr_path_from_str(summary_dir);
+  scr_path_append_str(dset_path, ".scr");
+  scr_path_reduce(dset_path);
+
+  /* pick our writer so that we send roughly 1MB of data to each */
+  int writer, have_all_procs;
+  unsigned long pack_size = (unsigned long) scr_hash_pack_size(data);
+  scr_flush_pick_writer(1, pack_size, &writer, &have_all_procs);
+
+  /* create send and receive hashes */
+  scr_hash* send = scr_hash_new();
+  scr_hash* recv = scr_hash_new();
+
+  /* copy data into send hash (note we don't have to delete temp since
+   * we attach it to the send hash here */
+  scr_hash* temp = scr_hash_new();
+  scr_hash_merge(temp, data);
+  scr_hash_setf(send, temp, "%d", writer);
+
+  /* gather hashes to writers */
+  scr_hash_exchange_direction(send, recv, scr_comm_world, SCR_HASH_EXCHANGE_LEFT);
+
+  /* TODO: compress data */
+  /* persist received hash */
+  void* buf;
+  size_t bufsize;
+  if (scr_my_rank_world == writer) {
+    scr_hash_write_persist(&buf, &bufsize, recv);
+  }
+
+  /* rank 0 creates file and writes number of ranks */
+  if (scr_my_rank_world == 0) {
+    /* build file name to summary file */
+    scr_path* summary_path = scr_path_dup(dset_path);
+    scr_path_append_str(summary_path, "summary.scr");
+    char* summary_file = scr_path_strdup(summary_path);
+
+    /* create file and write header */
+    mode_t mode = scr_getmode(1, 1, 0);
+    int fd = scr_open(summary_file, O_WRONLY | O_CREAT | O_TRUNC, mode);
+    if (fd < 0) {
+      scr_err("Opening hash file for write: %s @ %s:%d",
+        summary_file, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+
+    /* write data to file */
+    if (fd >= 0) {
+      /* create an empty hash to build our summary info */
+      scr_hash* summary_hash = scr_hash_new();
+
+      /* write the summary file version number */
+      scr_hash_util_set_int(summary_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_6);
+
+      /* mark whether the flush is complete in the summary file */
+      scr_hash_util_set_int(summary_hash, SCR_SUMMARY_6_KEY_COMPLETE, all_complete);
+
+      /* write the dataset descriptor */
+      scr_hash* dataset_hash = scr_hash_new();
+      scr_hash_merge(dataset_hash, dataset);
+      scr_hash_set(summary_hash, SCR_SUMMARY_6_KEY_DATASET, dataset_hash);
+
+      /* TODO: can we drop this? */
+      /* write the number of ranks used to write this dataset */
+      scr_hash* rank2file_hash = scr_hash_get(summary_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+      scr_hash_util_set_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, scr_ranks_world);
+
+      /* write the hash to a file */
+      ssize_t write_rc = scr_hash_write_fd(summary_file, fd, summary_hash);
+      if (write_rc < 0) {
+        rc = SCR_FAILURE;
+      }
+
+      /* free the hash object */
+      scr_hash_delete(&summary_hash);
+
+      /* close the file */
+      scr_close(summary_file, fd);
+    }
+
+    /* free the path and string of the summary file */
+    scr_free(&summary_file);
+    scr_path_delete(&summary_path);
+  }
+
+  /* create file name for rank2file index */
+  scr_path* rank2file_path = scr_path_dup(dset_path);
+  scr_path_append_strf(rank2file_path, "rank2file.0.%d.scr", writer);
+  char* rank2file_file = scr_path_strdup(rank2file_path);
+
+  /* write map to files */
+  int level = 1;
+  int valid = 0;
+  if (scr_my_rank_world == writer) {
+    valid = 1;
+  }
+  if (scr_flush_summary_map(dset_path, rank2file_path, level, valid)
+      != SCR_SUCCESS)
+  {
+    rc = SCR_FAILURE;
+  }
+
+  /* write blocks of summary data */
+  if (scr_my_rank_world == writer) {
+    /* open the file if we need to */
+    mode_t mode = scr_getmode(1, 1, 0);
+    int fd = scr_open(rank2file_file, O_WRONLY | O_CREAT | O_TRUNC, mode);
+    if (fd < 0) {
+      scr_err( "Opening file for write: %s @ %s:%d",
+        rank2file_file, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+
+    if (fd >= 0) {
+      /* write data to file */
+      scr_dbg(1, "hashes size %lu file %s",
+        (unsigned long) bufsize, rank2file_file
+      );
+      ssize_t write_rc = scr_write(rank2file_file, fd, buf, bufsize);
+      if (write_rc < 0) {
+        rc = SCR_FAILURE;
+      }
+
+      /* close the file */
+      scr_close(rank2file_file, fd);
+    }
+
+    /* free memory */
+    scr_free(&buf);
+  }
+
+  /* free path and file name */
+  scr_free(&rank2file_file);
+  scr_path_delete(&rank2file_path);
+
+  /* free our hash data */
+  scr_free(&recv);
+  scr_free(&send);
+
+  /* free path and file name */
+  scr_path_delete(&dset_path);
+
+  /* determine whether everyone wrote their files ok */
+  if (scr_alltrue((rc == SCR_SUCCESS))) {
     return SCR_SUCCESS;
   }
   return SCR_FAILURE;

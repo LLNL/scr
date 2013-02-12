@@ -81,6 +81,7 @@ Define common hash key strings
 #define SCR_SUMMARY_FILE_VERSION_6 (6)
 #define SCR_SUMMARY_6_KEY_DATASET   ("DSET")
 #define SCR_SUMMARY_6_KEY_RANK2FILE ("RANK2FILE")
+#define SCR_SUMMARY_6_KEY_LEVEL     ("LEVEL")
 #define SCR_SUMMARY_6_KEY_RANK      ("RANK")
 #define SCR_SUMMARY_6_KEY_RANKS     ("RANKS")
 #define SCR_SUMMARY_6_KEY_COMPLETE  ("COMPLETE")
@@ -360,6 +361,10 @@ size_t scr_hash_unpack(const char* buf, scr_hash* hash);
 Read and write hash to a file
 =========================================
 */
+
+/* persist hash in newly allocated buffer,
+ * return buffer address and size to be freed by caller */
+int scr_hash_write_persist(void** ptr_buf, size_t* ptr_size, const scr_hash* hash);
 
 /* executes logic of scr_has_write with opened file descriptor */
 ssize_t scr_hash_write_fd(const char* file, int fd, const scr_hash* hash);
