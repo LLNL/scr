@@ -268,6 +268,19 @@ int scr_close_with_unlock(const char* file, int fd)
   return scr_close(file, fd);
 }
 
+/* seek file descriptor to specified position */
+int scr_lseek(const char* file, int fd, off_t pos, int whence)
+{
+  off_t rc = lseek(fd, pos, whence);
+  if (rc == (off_t)-1) {
+    scr_err("Error seeking %s: errno=%d %s @ %s:%d",
+      file, errno, strerror(errno), __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+  return SCR_SUCCESS;
+}
+
 /* reliable read from file descriptor (retries, if necessary, until hard error) */
 ssize_t scr_read(const char* file, int fd, void* buf, size_t size)
 {

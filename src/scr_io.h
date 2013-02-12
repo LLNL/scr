@@ -83,6 +83,9 @@ int scr_open_with_lock(const char* file, int flags, mode_t mode);
 /* unlocks the specified file descriptor and then closes the file */
 int scr_close_with_unlock(const char* file, int fd);
 
+/* seek file descriptor to specified position */
+int scr_lseek(const char* file, int fd, off_t pos, int whence);
+
 /* reliable read from opened file descriptor (retries, if necessary, until hard error) */
 ssize_t scr_read(const char* file, int fd, void* buf, size_t size);
 
