@@ -52,4 +52,18 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm);
  *   <hash_received_from_rank_B> */
 int scr_hash_exchange(const scr_hash* hash_send, scr_hash* hash_recv, MPI_Comm comm);
 
+typedef enum {
+  SCR_HASH_EXCHANGE_RIGHT = 0,
+  SCR_HASH_EXCHANGE_LEFT,
+} scr_hash_exchange_enum;
+
+/* like scr_hash_exchange, but with a direction specified for Bruck's
+ * algorithm */
+int scr_hash_exchange_direction(
+  const scr_hash* hash_send,
+        scr_hash* hash_recv,
+  MPI_Comm comm,
+  scr_hash_exchange_enum direction
+);
+
 #endif
