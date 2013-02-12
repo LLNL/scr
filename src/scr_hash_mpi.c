@@ -245,12 +245,83 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
  *   <hash_received_from_rank_B> */
 int scr_hash_exchange(const scr_hash* hash_send, scr_hash* hash_recv, MPI_Comm comm)
 {
-  /* TODO: calculate fewest hops for each destination */
+  /* get our rank and number of ranks in comm */
+  int rank, ranks;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &ranks);
+
+  /* since we have two paths, we try to be more efficient by sending
+   * each item in the direction of fewest hops */
+  scr_hash* left  = scr_hash_new();
+  scr_hash* right = scr_hash_new();
+
+  /* iterate through elements and assign to left or right hash */
+  scr_hash_elem* elem;
+  for (elem = scr_hash_elem_first(hash_send);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* get dest rank and pointer to hash for that rank */
+    int dest = scr_hash_elem_key_int(elem);
+    scr_hash* elem_hash = scr_hash_elem_hash(elem);
+
+    /* compute distance to our left */
+    int dist_left = rank - dest;
+    if (dist_left < 0) {
+      dist_left += ranks;
+    }
+
+    /* compute distance to our right */
+    int dist_right = dest - rank;
+    if (dist_right < 0) {
+      dist_right += ranks;
+    }
+
+    /* count hops in each direction */
+    int hops_left = 0;
+    int hops_right = 0;
+    int bit = 1;
+    int step = 1;
+    while (step < ranks) {
+      /* if distance is odd in this bit,
+       * we'd send it during this step */
+      if (dist_left & bit) {
+        hops_left++;
+      }
+      if (dist_right & bit) {
+        hops_right++;
+      }
+
+      /* go to the next step */
+      bit <<= 1;
+      step *= 2;
+    }
+
+    /* assign to hash having the fewest hops */
+    scr_hash* tmp = scr_hash_new();
+    scr_hash_merge(tmp, elem_hash);
+    if (hops_left < hops_right) {
+      scr_hash_setf(left, tmp, "%d", dest);
+    } else {
+      scr_hash_setf(right, tmp, "%d", dest);
+    }
+  }
 
   /* deletegate work to scr_hash_exchange_direction */
   int rc = scr_hash_exchange_direction(
-    hash_send, hash_recv, comm, SCR_HASH_EXCHANGE_RIGHT
+    left, hash_recv, comm, SCR_HASH_EXCHANGE_LEFT
   );
+  int right_rc = scr_hash_exchange_direction(
+    right, hash_recv, comm, SCR_HASH_EXCHANGE_RIGHT
+  );
+  if (rc == SCR_SUCCESS) {
+    rc = right_rc;
+  }
+
+  /* free our left and right hashes */
+  scr_hash_delete(&right);
+  scr_hash_delete(&left);
+
   return rc;
 }
 
