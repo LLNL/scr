@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 
 /*
 =========================================
@@ -38,16 +39,23 @@ Hash MPI transfer functions
 /* packs and send the given hash to the specified rank */
 int scr_hash_send(const scr_hash* hash, int rank, MPI_Comm comm)
 {
-  /* first get the size of the hash */
-  size_t size = scr_hash_pack_size(hash);
-  
-  /* tell rank how big the pack size is */
-  MPI_Send(&size, sizeof(size), MPI_BYTE, rank, 0, comm);
+  /* get size of hash and check that it doesn't exceed INT_MAX */
+  size_t pack_size = scr_hash_pack_size(hash);
+  size_t max_int = (size_t) INT_MAX;
+  if (pack_size > INT_MAX) {
+    scr_abort(-1, "scr_hash_send: hash size %lu is bigger than INT_MAX %d @ %s:%d",
+      (unsigned long) pack_size, INT_MAX, __FILE__, __LINE__
+    );
+  }
+
+  /* tell destination how big the pack size is */
+  int size = (int) pack_size;
+  MPI_Send(&size, 1, MPI_INT, rank, 0, comm);
 
   /* pack the hash and send it */
   if (size > 0) {
     /* allocate a buffer big enough to pack the hash */
-    char* buf = (char*) malloc(size);
+    char* buf = (char*) malloc((size_t)size);
     if (buf != NULL) {
       /* pack the hash, send it, and free our buffer */
       scr_hash_pack(buf, hash);
@@ -55,7 +63,7 @@ int scr_hash_send(const scr_hash* hash, int rank, MPI_Comm comm)
       scr_free(&buf);
     } else {
       scr_abort(-1, "scr_hash_send: Failed to malloc buffer to pack hash @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
   }
@@ -75,14 +83,14 @@ int scr_hash_recv(scr_hash* hash, int rank, MPI_Comm comm)
   scr_hash_unset_all(hash);
 
   /* get the size of the incoming hash */
+  int size;
   MPI_Status status;
-  size_t size = 0;
-  MPI_Recv(&size, sizeof(size), MPI_BYTE, rank, 0, comm, &status);
+  MPI_Recv(&size, 1, MPI_INT, rank, 0, comm, &status);
   
   /* receive the hash and unpack it */
   if (size > 0) {
     /* allocate a buffer big enough to receive the packed hash */
-    char* buf = (char*) malloc(size);
+    char* buf = (char*) malloc((size_t)size);
     if (buf != NULL) {
       /* receive the hash, unpack it, and free our buffer */
       MPI_Recv(buf, size, MPI_BYTE, rank, 0, comm, &status);
@@ -90,7 +98,7 @@ int scr_hash_recv(scr_hash* hash, int rank, MPI_Comm comm)
       scr_free(&buf);
     } else {
       scr_abort(-1, "scr_hash_recv: Failed to malloc buffer to receive hash @ %s:%d",
-              __FILE__, __LINE__
+        __FILE__, __LINE__
       );
     }
   }
@@ -122,15 +130,25 @@ int scr_hash_sendrecv(const scr_hash* hash_send, int rank_send,
 
   /* exchange hash pack sizes in order to allocate buffers */
   num_req = 0;
-  size_t size_send = 0;
-  size_t size_recv = 0;
+  int size_send = 0;
+  int size_recv = 0;
   if (have_incoming) {
-    MPI_Irecv(&size_recv, sizeof(size_recv), MPI_BYTE, rank_recv, 0, comm, &request[num_req]);
+    MPI_Irecv(&size_recv, 1, MPI_INT, rank_recv, 0, comm, &request[num_req]);
     num_req++;
   }
   if (have_outgoing) {
-    size_send = scr_hash_pack_size(hash_send);
-    MPI_Isend(&size_send, sizeof(size_send), MPI_BYTE, rank_send, 0, comm, &request[num_req]);
+    /* get size of packed hash and check that it doesn't exceed INT_MAX */
+    size_t pack_size = scr_hash_pack_size(hash_send);
+    size_t max_int = (size_t) INT_MAX;
+    if (pack_size > max_int) {
+      scr_abort(-1, "scr_hash_sendrecv: hash size %lu is bigger than INT_MAX %d @ %s:%d",
+        (unsigned long) pack_size, INT_MAX, __FILE__, __LINE__
+      );
+    }
+
+    /* tell rank how big the pack size is */
+    size_send = (int) pack_size;
+    MPI_Isend(&size_send, 1, MPI_INT, rank_send, 0, comm, &request[num_req]);
     num_req++;
   }
   if (num_req > 0) {
@@ -143,14 +161,14 @@ int scr_hash_sendrecv(const scr_hash* hash_send, int rank_send,
   char* buf_recv = NULL;
   if (size_recv > 0) {
     /* allocate space to receive a packed hash, and receive it */
-    buf_recv = (char*) malloc(size_recv);
+    buf_recv = (char*) malloc((size_t)size_recv);
     /* TODO: check for errors */
     MPI_Irecv(buf_recv, size_recv, MPI_BYTE, rank_recv, 0, comm, &request[num_req]);
     num_req++;
   }
   if (size_send > 0) {
     /* allocate space, pack our hash, and send it */
-    buf_send = (char*) malloc(size_send);
+    buf_send = (char*) malloc((size_t)size_send);
     /* TODO: check for errors */
     scr_hash_pack(buf_send, hash_send);
     MPI_Isend(buf_send, size_send, MPI_BYTE, rank_send, 0, comm, &request[num_req]);
@@ -181,16 +199,23 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
 
   /* determine whether we are the root of the bcast */
   if (rank == root) {
-    /* first get the size of the hash */
-    size_t size = scr_hash_pack_size(hash);
-  
+    /* get size of hash and check that it doesn't exceed INT_MAX */
+    size_t pack_size = scr_hash_pack_size(hash);
+    size_t max_int = (size_t) INT_MAX;
+    if (pack_size > max_int) {
+      scr_abort(-1, "scr_hash_bcast: hash size %lu is bigger than INT_MAX %d @ %s:%d",
+        (unsigned long) pack_size, INT_MAX, __FILE__, __LINE__
+      );
+    }
+
     /* broadcast the size */
-    MPI_Bcast(&size, sizeof(size), MPI_BYTE, root, comm);
+    int size = (int) pack_size;
+    MPI_Bcast(&size, 1, MPI_INT, root, comm);
 
     /* pack the hash and send it */
     if (size > 0) {
       /* allocate a buffer big enough to pack the hash */
-      char* buf = (char*) malloc(size);
+      char* buf = (char*) malloc((size_t)size);
       if (buf != NULL) {
         /* pack the hash, broadcast it, and free our buffer */
         scr_hash_pack(buf, hash);
@@ -198,7 +223,7 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
         scr_free(&buf);
       } else {
         scr_abort(-1, "scr_hash_bcast: Failed to malloc buffer to pack hash @ %s:%d",
-                __FILE__, __LINE__
+          __FILE__, __LINE__
         );
       }
     }
@@ -207,13 +232,13 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
     scr_hash_unset_all(hash);
 
     /* get the size of the incoming hash */
-    size_t size = 0;
-    MPI_Bcast(&size, sizeof(size), MPI_BYTE, root, comm);
+    int size;
+    MPI_Bcast(&size, 1, MPI_INT, root, comm);
   
     /* receive the hash and unpack it */
     if (size > 0) {
       /* allocate a buffer big enough to receive the packed hash */
-      char* buf = (char*) malloc(size);
+      char* buf = (char*) malloc((size_t)size);
       if (buf != NULL) {
         /* receive the hash, unpack it, and free our buffer */
         MPI_Bcast(buf, size, MPI_BYTE, root, comm);
@@ -221,7 +246,7 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
         scr_free(&buf);
       } else {
         scr_abort(-1, "scr_hash_bcast: Failed to malloc buffer to receive hash @ %s:%d",
-                __FILE__, __LINE__
+          __FILE__, __LINE__
         );
       }
     }
@@ -368,16 +393,29 @@ int scr_hash_exchange_direction(
   }
 
   /* now run through Bruck's index algorithm to exchange data */
-  int factor = 1;
-  while (factor < ranks) {
-    /* determine our source and destination ranks for this step */
+  int bit = 1;
+  int step = 1;
+  while (step < ranks) {
+    /* compute left and right ranks for this step */
+    int left = rank - step;
+    if (left < 0) {
+      left += ranks;
+    }
+    int right = rank + step;
+    if (right >= ranks) {
+      right -= ranks;
+    }
+
+    /* determine source and destination ranks for this step */
     int dst, src;
     if (direction == SCR_HASH_EXCHANGE_RIGHT) {
-      dst = (rank + factor + ranks) % ranks;
-      src = (rank - factor + ranks) % ranks;
+      /* send to the right */
+      dst = right;
+      src = left;
     } else {
-      dst = (rank - factor + ranks) % ranks;
-      src = (rank + factor + ranks) % ranks;
+      /* send to the left */
+      dst = left;
+      src = right;
     }
 
     /* create hashes for those we'll keep, send, and receive */
@@ -396,21 +434,28 @@ int scr_hash_exchange_direction(
       scr_hash* elem_hash = scr_hash_elem_hash(elem);
 
       /* compute relative distance from our rank */
-      int relative_rank;
+      int dist;
       if (direction == SCR_HASH_EXCHANGE_RIGHT) {
-        relative_rank = (dest_rank - rank + ranks) % ranks;
+        dist = dest_rank - rank;
       } else {
-        relative_rank = (rank - dest_rank + ranks) % ranks;
+        dist = rank - dest_rank;
+      }
+      if (dist < 0) {
+        dist += ranks;
       }
 
-      /* we send the hash if the distance is not divisible by 2 */
-      int relative_id = (relative_rank / factor) % 2;
-      if (relative_id > 0) {
-        /* copy hash to send */
+      /* copy item to send, keep, or output hash */
+      if (dest_rank == rank) {
+        /* we are the destination for this item, discard SRC key
+         * and copy hash to output hash */
+        scr_hash* dest_hash = scr_hash_get(elem_hash, "S");
+        scr_hash_merge(hash_out, dest_hash);
+      } else if (dist & bit) {
+        /* we send the hash if the bit is set */
         scr_hash* dest_send = scr_hash_set_kv_int(send, "D", dest_rank);
         scr_hash_merge(dest_send, elem_hash);
       } else {
-        /* copy hash to keep */
+        /* otherwise, copy hash to keep */
         scr_hash* dest_keep = scr_hash_set_kv_int(keep, "D", dest_rank);
         scr_hash_merge(dest_keep, elem_hash);
       }
@@ -429,8 +474,11 @@ int scr_hash_exchange_direction(
     /* prepare for next rount */
     scr_hash_delete(&recv);
     scr_hash_delete(&send);
-    factor *= 2;
+    bit <<= 1;
+    step *= 2;
   }
+
+  /* TODO: check that all items are really destined for this rank */
 
   /* copy current into output hash */
   scr_hash* dest_hash = scr_hash_get_kv_int(current, "D", rank);
