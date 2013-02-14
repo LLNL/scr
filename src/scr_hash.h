@@ -254,6 +254,9 @@ scr_hash* scr_hash_get(const scr_hash* hash, const char* key);
 /* given a hash, a key, and a hash value, set (or reset) the key's hash */
 scr_hash* scr_hash_set(scr_hash* hash, const char* key, scr_hash* hash_value);
 
+/* given a hash and a key, extract and return hash for specified key, returns NULL if not found */
+scr_hash* scr_hash_extract(scr_hash* hash, const char* key);
+
 /* given a hash and a key, extract and delete any matching element */
 int scr_hash_unset(scr_hash* hash, const char* key);
 

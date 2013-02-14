@@ -189,6 +189,24 @@ scr_hash* scr_hash_set(scr_hash* hash, const char* key, scr_hash* hash_value)
   return elem->hash;
 }
 
+/* given a hash and a key, extract and return hash for specified key,
+ * returns NULL if not found */
+scr_hash* scr_hash_extract(scr_hash* hash, const char* key)
+{
+  if (hash == NULL) {
+    return NULL;
+  }
+
+  scr_hash_elem* elem = scr_hash_elem_extract(hash, key);
+  if (elem != NULL) {
+    scr_hash* elem_hash = elem->hash;
+    elem->hash = NULL;
+    scr_hash_elem_delete(elem);
+    return elem_hash;
+  }
+  return NULL;
+}
+
 /* given a hash and a key, extract and delete any matching element */
 int scr_hash_unset(scr_hash* hash, const char* key)
 {
