@@ -268,106 +268,12 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
  *   <hash_received_from_rank_A>
  * <rank_B>
  *   <hash_received_from_rank_B> */
-int scr_hash_exchange(const scr_hash* hash_send, scr_hash* hash_recv, MPI_Comm comm)
-{
-  /* get our rank and number of ranks in comm */
-  int rank, ranks;
-  MPI_Comm_rank(comm, &rank);
-  MPI_Comm_size(comm, &ranks);
-
-  /* since we have two paths, we try to be more efficient by sending
-   * each item in the direction of fewest hops */
-  scr_hash* left  = scr_hash_new();
-  scr_hash* right = scr_hash_new();
-
-  /* iterate through elements and assign to left or right hash */
-  scr_hash_elem* elem;
-  for (elem = scr_hash_elem_first(hash_send);
-       elem != NULL;
-       elem = scr_hash_elem_next(elem))
-  {
-    /* get dest rank and pointer to hash for that rank */
-    int dest = scr_hash_elem_key_int(elem);
-    scr_hash* elem_hash = scr_hash_elem_hash(elem);
-
-    /* compute distance to our left */
-    int dist_left = rank - dest;
-    if (dist_left < 0) {
-      dist_left += ranks;
-    }
-
-    /* compute distance to our right */
-    int dist_right = dest - rank;
-    if (dist_right < 0) {
-      dist_right += ranks;
-    }
-
-    /* count hops in each direction */
-    int hops_left = 0;
-    int hops_right = 0;
-    int bit = 1;
-    int step = 1;
-    while (step < ranks) {
-      /* if distance is odd in this bit,
-       * we'd send it during this step */
-      if (dist_left & bit) {
-        hops_left++;
-      }
-      if (dist_right & bit) {
-        hops_right++;
-      }
-
-      /* go to the next step */
-      bit <<= 1;
-      step *= 2;
-    }
-
-    /* assign to hash having the fewest hops */
-    scr_hash* tmp = scr_hash_new();
-    scr_hash_merge(tmp, elem_hash);
-    if (hops_left < hops_right) {
-      scr_hash_setf(left, tmp, "%d", dest);
-    } else {
-      scr_hash_setf(right, tmp, "%d", dest);
-    }
-  }
-
-  /* deletegate work to scr_hash_exchange_direction */
-  int rc = scr_hash_exchange_direction(
-    left, hash_recv, comm, SCR_HASH_EXCHANGE_LEFT
-  );
-  int right_rc = scr_hash_exchange_direction(
-    right, hash_recv, comm, SCR_HASH_EXCHANGE_RIGHT
-  );
-  if (rc == SCR_SUCCESS) {
-    rc = right_rc;
-  }
-
-  /* free our left and right hashes */
-  scr_hash_delete(&right);
-  scr_hash_delete(&left);
-
-  return rc;
-}
-
-/* execute a (sparse) global exchange, similar to an alltoallv operation
- * 
- * hash_send specifies destinations as:
- * <rank_X>
- *   <hash_to_send_to_rank_X>
- * <rank_Y>
- *   <hash_to_send_to_rank_Y>
- *
- * hash_recv returns hashes sent from remote ranks as:
- * <rank_A>
- *   <hash_received_from_rank_A>
- * <rank_B>
- *   <hash_received_from_rank_B> */
-int scr_hash_exchange_direction(
+static int scr_hash_exchange_direction_hops(
   const scr_hash* hash_in,
         scr_hash* hash_out,
   MPI_Comm comm,
-  scr_hash_exchange_enum direction)
+  scr_hash_exchange_enum direction,
+  int hops)
 {
   scr_hash_elem* elem;
 
@@ -392,10 +298,12 @@ int scr_hash_exchange_direction(
     scr_hash_merge(src_hash, data_hash);
   }
 
-  /* now run through Bruck's index algorithm to exchange data */
+  /* now run through Bruck's index algorithm to exchange data,
+   * if hops is positive we can stop after that many steps */
   int bit = 1;
   int step = 1;
-  while (step < ranks) {
+  int hop_count = 0;
+  while (step < ranks && (hops < 0 || hop_count < hops)) {
     /* compute left and right ranks for this step */
     int left = rank - step;
     if (left < 0) {
@@ -476,6 +384,7 @@ int scr_hash_exchange_direction(
     scr_hash_delete(&send);
     bit <<= 1;
     step *= 2;
+    hop_count++;
   }
 
   /* TODO: check that all items are really destined for this rank */
@@ -489,4 +398,130 @@ int scr_hash_exchange_direction(
   scr_hash_delete(&current);
 
   return SCR_SUCCESS;
+}
+
+/* execute a (sparse) global exchange, similar to an alltoallv operation
+ * 
+ * hash_send specifies destinations as:
+ * <rank_X>
+ *   <hash_to_send_to_rank_X>
+ * <rank_Y>
+ *   <hash_to_send_to_rank_Y>
+ *
+ * hash_recv returns hashes sent from remote ranks as:
+ * <rank_A>
+ *   <hash_received_from_rank_A>
+ * <rank_B>
+ *   <hash_received_from_rank_B> */
+#define HOPS_LEFT  (0)
+#define HOPS_RIGHT (1)
+int scr_hash_exchange(const scr_hash* send, scr_hash* recv, MPI_Comm comm)
+{
+  /* get our rank and number of ranks in comm */
+  int rank, ranks;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &ranks);
+
+  /* since we have two paths, we try to be more efficient by sending
+   * each item in the direction of fewest hops */
+  scr_hash* left  = scr_hash_new();
+  scr_hash* right = scr_hash_new();
+
+  /* we compute maximum hops needed to each size */
+  int max_hops[2];
+  max_hops[HOPS_LEFT]  = 0;
+  max_hops[HOPS_RIGHT] = 0;
+
+  /* iterate through elements and assign to left or right hash */
+  scr_hash_elem* elem;
+  for (elem = scr_hash_elem_first(send);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* get dest rank and pointer to hash for that rank */
+    int dest = scr_hash_elem_key_int(elem);
+    scr_hash* elem_hash = scr_hash_elem_hash(elem);
+
+    /* compute distance to our left */
+    int dist_left = rank - dest;
+    if (dist_left < 0) {
+      dist_left += ranks;
+    }
+
+    /* compute distance to our right */
+    int dist_right = dest - rank;
+    if (dist_right < 0) {
+      dist_right += ranks;
+    }
+
+    /* count hops in each direction */
+    int hops_left = 0;
+    int hops_right = 0;
+    int bit = 1;
+    int step = 1;
+    while (step < ranks) {
+      /* if distance is odd in this bit,
+       * we'd send it during this step */
+      if (dist_left & bit) {
+        hops_left++;
+      }
+      if (dist_right & bit) {
+        hops_right++;
+      }
+
+      /* go to the next step */
+      bit <<= 1;
+      step *= 2;
+    }
+
+    /* assign to hash having the fewest hops */
+    scr_hash* tmp = scr_hash_new();
+    scr_hash_merge(tmp, elem_hash);
+    if (hops_left < hops_right) {
+      /* assign to left-going exchange */
+      scr_hash_setf(left, tmp, "%d", dest);
+      if (hops_left > max_hops[HOPS_LEFT]) {
+        max_hops[HOPS_LEFT] = hops_left;
+      }
+    } else {
+      /* assign to right-going exchange */
+      scr_hash_setf(right, tmp, "%d", dest);
+      if (hops_right > max_hops[HOPS_RIGHT]) {
+        max_hops[HOPS_RIGHT] = hops_right;
+      }
+    }
+  }
+
+  /* most hash exchanges have a small number of hops
+   * compared to the size of the job, so determine max
+   * hops counts with allreduce and cut exchange off early */
+  int all_hops[2];
+  MPI_Allreduce(max_hops, all_hops, 2, MPI_INT, MPI_MAX, comm);
+
+  /* deletegate work to scr_hash_exchange_direction */
+  int rc = scr_hash_exchange_direction_hops(
+    left, recv, comm, SCR_HASH_EXCHANGE_LEFT, all_hops[HOPS_LEFT]
+  );
+  int right_rc = scr_hash_exchange_direction_hops(
+    right, recv, comm, SCR_HASH_EXCHANGE_RIGHT, all_hops[HOPS_RIGHT]
+  );
+  if (rc == SCR_SUCCESS) {
+    rc = right_rc;
+  }
+
+  /* free our left and right hashes */
+  scr_hash_delete(&right);
+  scr_hash_delete(&left);
+
+  return rc;
+}
+
+int scr_hash_exchange_direction(
+  const scr_hash* send,
+        scr_hash* recv,
+  MPI_Comm comm,
+  scr_hash_exchange_enum dir)
+{
+  int rc = scr_hash_exchange_direction_hops(send, recv, comm, dir, -1);
+  return rc;
 }
