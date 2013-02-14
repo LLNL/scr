@@ -842,16 +842,18 @@ cleanup:
 }
 
 static int scr_fetch_rank2file_map(
-  const scr_path* dir,
+  const scr_path* dataset_path,
   int             depth,
   int*            ptr_valid,
-  char**          ptr_file)
+  char**          ptr_file,
+  unsigned long*  ptr_offset)
 {
   int rc = SCR_SUCCESS;
 
   /* get local variables so we don't have to deference everything */
-  int valid  = *ptr_valid;
-  char* file = *ptr_file;
+  int valid            = *ptr_valid;
+  char* file           = *ptr_file;
+  unsigned long offset = *ptr_offset;
 
   /* create a hash to hold section of file */
   scr_hash* hash = scr_hash_new();
@@ -870,6 +872,7 @@ static int scr_fetch_rank2file_map(
     if (fd >= 0) {
       /* read our segment from the file */
       scr_dbg(1, "depth %d file %s", depth, file);
+      scr_lseek(file, fd, offset, SEEK_SET);
       ssize_t read_rc = scr_hash_read_fd(file, fd, hash);
       if (read_rc < 0) {
         scr_err("Failed to read from %s @ %s:%d",
@@ -905,23 +908,31 @@ static int scr_fetch_rank2file_map(
   /* see if anyone sent us anything */
   int newvalid = 0;
   char* newfile = NULL;
+  unsigned long newoffset = 0;
   scr_hash_elem* elem = scr_hash_elem_first(recv);
   if (elem != NULL) {
     /* got something, so now we'll read in the next step */
     newvalid = 1;
 
-    /* get offset and size of segment we should read */
+    /* get file name we should read */
     scr_hash* elem_hash = scr_hash_elem_hash(elem);
     char* value;
     if (scr_hash_util_get_str(elem_hash, SCR_SUMMARY_6_KEY_FILE, &value)
         == SCR_SUCCESS)
     {
       /* return string of full path to file to caller */
-      scr_path* newpath = scr_path_dup(dir);
+      scr_path* newpath = scr_path_dup(dataset_path);
       scr_path_append_str(newpath, value);
       newfile = scr_path_strdup(newpath);
       scr_path_delete(&newpath);
     } else {
+      rc = SCR_FAILURE;
+    }
+
+    /* get offset we should start reading from */
+    if (scr_hash_util_get_bytecount(elem_hash, SCR_SUMMARY_6_KEY_OFFSET, &newoffset)
+        != SCR_SUCCESS)
+    {
       rc = SCR_FAILURE;
     }
   }
@@ -953,12 +964,13 @@ static int scr_fetch_rank2file_map(
   if (valid) {
     scr_free(ptr_file);
   }
-  *ptr_valid = newvalid;
-  *ptr_file  = newfile;
+  *ptr_valid  = newvalid;
+  *ptr_file   = newfile;
+  *ptr_offset = newoffset;
 
   /* recuse if we still have levels to read */
   if (level_id > 1) {
-    rc = scr_fetch_rank2file_map(dir, depth+1, ptr_valid, ptr_file);
+    rc = scr_fetch_rank2file_map(dataset_path, depth+1, ptr_valid, ptr_file, ptr_offset);
   }
 
 cleanup:
@@ -969,21 +981,21 @@ cleanup:
 }
 
 static int scr_summary_read_mpi(
-  const scr_path* dset_dir,
+  const scr_path* dataset_path,
   scr_hash* file_list)
 {
   int rc = SCR_SUCCESS;
 
   /* build path to summary file */
-  scr_path* dset_scr_path = scr_path_dup(dset_dir);
-  scr_path_append_str(dset_scr_path, ".scr");
-  scr_path_reduce(dset_scr_path);
+  scr_path* meta_path = scr_path_dup(dataset_path);
+  scr_path_append_str(meta_path, ".scr");
+  scr_path_reduce(meta_path);
 
   /* rank 0 reads the header */
   scr_hash* header = scr_hash_new();
   if (scr_my_rank_world == 0) {
     /* build path to summary file */
-    scr_path* summary_path = scr_path_dup(dset_scr_path);
+    scr_path* summary_path = scr_path_dup(meta_path);
     scr_path_append_str(summary_path, "summary.scr");
     const char* summary_file = scr_path_strdup(summary_path);
 
@@ -1047,18 +1059,20 @@ static int scr_summary_read_mpi(
     }
 #endif
 
-  scr_path* rank2file_path = scr_path_dup(dset_scr_path);
+  scr_path* rank2file_path = scr_path_dup(meta_path);
   scr_path_append_str(rank2file_path, "rank2file.scr");
 
   /* fetch offset and sizes of file hash data */
-  char* file = NULL;
   int valid = 0;
+  char* file = NULL;
+  unsigned long offset = 0;
   if (scr_my_rank_world == 0) {
     /* rank 0 is only valid reader to start with */
-    valid = 1;
-    file = scr_path_strdup(rank2file_path);
+    valid  = 1;
+    file   = scr_path_strdup(rank2file_path);
+    offset = 0;
   }
-  if (scr_fetch_rank2file_map(dset_scr_path, 1, &valid, &file)
+  if (scr_fetch_rank2file_map(dataset_path, 1, &valid, &file, &offset)
       != SCR_SUCCESS)
   {
     rc = SCR_FAILURE;
@@ -1082,6 +1096,7 @@ static int scr_summary_read_mpi(
     if (fd >= 0) {
       /* read hash from file */
       scr_dbg(1, "hashes file %s", file);
+      scr_lseek(file, fd, offset, SEEK_SET);
       ssize_t readsize = scr_hash_read_fd(file, fd, send);
       if (readsize < 0) {
         scr_err("Failed to read rank2file map file %s @ %s:%d",
@@ -1146,7 +1161,7 @@ static int scr_summary_read_mpi(
 
     /* combine the file name with the summary directory to build a
      * full path to the file */
-    scr_path* path_full = scr_path_dup(dset_dir);
+    scr_path* path_full = scr_path_dup(dataset_path);
     scr_path_append_str(path_full, file);
 
     /* subtract off last component to get just the path */
@@ -1181,7 +1196,7 @@ cleanup:
   scr_hash_delete(&header);
 
   /* free path for dataset directory */
-  scr_path_delete(&dset_scr_path);
+  scr_path_delete(&meta_path);
 
   return rc;
 }

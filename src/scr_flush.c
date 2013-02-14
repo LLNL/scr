@@ -1208,25 +1208,32 @@ static int scr_flush_summary_shared(
 }
 
 static unsigned long scr_flush_summary_map(
-  const scr_path* dir,
+  const scr_path* dataset_path,
   const scr_path* file,
+  unsigned long offset,
   int level,
   int valid)
 {
   int rc = SCR_SUCCESS;
+
+  /* define path to metadata directory */
+  scr_path* meta_path = scr_path_dup(dataset_path);
+  scr_path_append_str(meta_path, ".scr");
+  scr_path_reduce(meta_path);
 
   /* get our rank and number of ranks in communicator */
   int rank, ranks;
   MPI_Comm_rank(scr_comm_world, &rank);
   MPI_Comm_size(scr_comm_world, &ranks);
 
-  /* record file name relative to dir */
+  /* record file name relative to dataset dir */
   scr_hash* hash = scr_hash_new();
   unsigned long pack_size = 0;
   if (valid) {
-    scr_path* rel_path = scr_path_relative(dir, file);
+    scr_path* rel_path = scr_path_relative(dataset_path, file);
     const char* rel_file = scr_path_strdup(rel_path);
     scr_hash_util_set_str(hash, SCR_SUMMARY_6_KEY_FILE, rel_file);
+    scr_hash_util_set_bytecount(hash, SCR_SUMMARY_6_KEY_OFFSET, offset);
     scr_free(&rel_file);
     scr_path_delete(&rel_path);
     pack_size = (unsigned long) scr_hash_pack_size(hash);
@@ -1275,7 +1282,7 @@ static unsigned long scr_flush_summary_map(
   /* TODO: compress data */
 
   /* create file name for rank2file index */
-  scr_path* rank2file_path = scr_path_dup(dir);
+  scr_path* rank2file_path = scr_path_dup(meta_path);
   if (! have_all_procs) {
     /* for all lower level maps we append a level id and writer id */
     scr_path_append_strf(rank2file_path, "rank2file.%d.%d.scr", level, writer);
@@ -1288,12 +1295,13 @@ static unsigned long scr_flush_summary_map(
   /* call gather recursively if there's another level */
   if (! have_all_procs) {
      /* gather file names to higher level */
+     unsigned long newoffset = 0;
      int newlevel = level + 1;
      int newvalid = 0;
      if (rank == writer) {
        newvalid = 1;
      }
-     if (scr_flush_summary_map(dir, rank2file_path, newlevel, newvalid)
+     if (scr_flush_summary_map(dataset_path, rank2file_path, newoffset, newlevel, newvalid)
          != SCR_SUCCESS)
      {
        rc = SCR_FAILURE;
@@ -1317,6 +1325,7 @@ static unsigned long scr_flush_summary_map(
       scr_dbg(1, "level %d size %lu file %s",
         level, (unsigned long) bufsize, rank2file_file
       );
+      scr_lseek(rank2file_file, fd, offset, SEEK_SET);
       ssize_t write_rc = scr_write(rank2file_file, fd, buf, bufsize);
       if (write_rc < 0) {
         rc = SCR_FAILURE;
@@ -1338,12 +1347,15 @@ static unsigned long scr_flush_summary_map(
   scr_hash_delete(&recv);
   scr_hash_delete(&send);
 
+  /* free scr meta data path */
+  scr_path_delete(&meta_path);
+
   return rc;
 }
 
 /* write summary file for flush */
 static int scr_flush_summary(
-  const char* summary_dir,
+  const char* dataset_dir,
   const scr_dataset* dataset,
   const scr_hash* file_list,
   scr_hash* data)
@@ -1354,9 +1366,12 @@ static int scr_flush_summary(
   int all_complete = 1;
 
   /* define path to dataset directory */
-  scr_path* dset_path = scr_path_from_str(summary_dir);
-  scr_path_append_str(dset_path, ".scr");
-  scr_path_reduce(dset_path);
+  scr_path* dataset_path = scr_path_from_str(dataset_dir);
+
+  /* define path to metadata directory */
+  scr_path* meta_path = scr_path_dup(dataset_path);
+  scr_path_append_str(meta_path, ".scr");
+  scr_path_reduce(meta_path);
 
   /* pick our writer so that we send roughly 1MB of data to each */
   int writer, have_all_procs;
@@ -1387,7 +1402,7 @@ static int scr_flush_summary(
   /* rank 0 creates file and writes number of ranks */
   if (scr_my_rank_world == 0) {
     /* build file name to summary file */
-    scr_path* summary_path = scr_path_dup(dset_path);
+    scr_path* summary_path = scr_path_dup(meta_path);
     scr_path_append_str(summary_path, "summary.scr");
     char* summary_file = scr_path_strdup(summary_path);
 
@@ -1441,17 +1456,18 @@ static int scr_flush_summary(
   }
 
   /* create file name for rank2file index */
-  scr_path* rank2file_path = scr_path_dup(dset_path);
+  scr_path* rank2file_path = scr_path_dup(meta_path);
   scr_path_append_strf(rank2file_path, "rank2file.0.%d.scr", writer);
   char* rank2file_file = scr_path_strdup(rank2file_path);
 
   /* write map to files */
+  unsigned long offset = 0;
   int level = 1;
   int valid = 0;
   if (scr_my_rank_world == writer) {
     valid = 1;
   }
-  if (scr_flush_summary_map(dset_path, rank2file_path, level, valid)
+  if (scr_flush_summary_map(dataset_path, rank2file_path, offset, level, valid)
       != SCR_SUCCESS)
   {
     rc = SCR_FAILURE;
@@ -1474,6 +1490,7 @@ static int scr_flush_summary(
       scr_dbg(1, "hashes size %lu file %s",
         (unsigned long) bufsize, rank2file_file
       );
+      scr_lseek(rank2file_file, fd, offset, SEEK_SET);
       ssize_t write_rc = scr_write(rank2file_file, fd, buf, bufsize);
       if (write_rc < 0) {
         rc = SCR_FAILURE;
@@ -1496,7 +1513,8 @@ static int scr_flush_summary(
   scr_free(&send);
 
   /* free path and file name */
-  scr_path_delete(&dset_path);
+  scr_path_delete(&meta_path);
+  scr_path_delete(&dataset_path);
 
   /* determine whether everyone wrote their files ok */
   if (scr_alltrue((rc == SCR_SUCCESS))) {

@@ -218,6 +218,8 @@ int scr_summary_read(const scr_path* dir, scr_hash* hash)
   scr_path_append_str(path, SCR_SUMMARY_FILENAME);
   char* summary_file = scr_path_strdup(path);
 
+  /* TODO: need to try reading every file */
+
   /* check whether the file exists before we attempt to read it
    * (do this error to avoid printing an error in scr_hash_read) */
   if (scr_file_exists(summary_file) != SCR_SUCCESS) {
@@ -243,22 +245,98 @@ int scr_summary_write(const scr_path* dir, scr_hash* hash)
 {
   int rc = SCR_SUCCESS;
 
-  /* build the filename for the summary file */
-  scr_path* path = scr_path_dup(dir);
-  scr_path_append_str(path, ".scr");
-  scr_path_append_str(path, SCR_SUMMARY_FILENAME);
-  char* summary_file = scr_path_strdup(path);
+  /* build the path for the scr metadata directory */
+  scr_path* meta_path = scr_path_dup(dir);
+  scr_path_append_str(meta_path, ".scr");
 
-  /* now write the hash to the file */
-  if (scr_hash_write(summary_file, hash) != SCR_SUCCESS) {
-    rc = SCR_FAILURE;
-    goto cleanup;
+  /* this is an ugly hack until we turn this into a parallel operation
+   * format of rank2file is a tree of files which we hard-code to be
+   * two-levels deep here */
+
+  /* get pointer to RANK2FILE info sorted by rank */
+  scr_hash* rank2file  = scr_hash_get(hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+  scr_hash* ranks_hash = scr_hash_get(rank2file, SCR_SUMMARY_6_KEY_RANK);
+  scr_hash_sort_int(ranks_hash, SCR_HASH_SORT_ASCENDING);
+
+  /* create hash for primary rank2file map and encode level */
+  scr_hash* files_hash = scr_hash_new();
+  scr_hash_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_LEVEL, 1);
+
+  /* iterate over each rank to record its info */
+  int writer = 0;
+  scr_hash_elem* elem = scr_hash_elem_first(ranks_hash);
+  while (elem != NULL) {
+    /* build name for rank2file part */
+    scr_path* rank2file_path = scr_path_dup(meta_path);
+    scr_path_append_strf(rank2file_path, "rank2file.0.%d.scr", writer);
+
+    /* create a hash to record an entry from each rank */
+    scr_hash* entries = scr_hash_new();
+//    scr_hash_set_kv_int(entries, SCR_SUMMARY_6_KEY_LEVEL, 0);
+
+    /* record up to 8K entries */
+    int count = 0;
+    while (count < 8192) {
+      /* make copy of hash for current rank under RANK/<rank> in entries */
+      char* rank = scr_hash_elem_key(elem);
+      scr_hash* elem_hash = scr_hash_elem_hash(elem);
+      scr_hash* entry = scr_hash_setf(entries, "%d %s %s %d",
+        rank, SCR_SUMMARY_6_KEY_RANK2FILE, SCR_SUMMARY_6_KEY_RANK, rank
+      );
+      scr_hash_merge(entry, elem_hash);
+      count++;
+
+      /* break early if we reach the end */
+      elem = scr_hash_elem_next(elem);
+      if (elem == NULL) {
+        break;
+      }
+    }
+
+    /* write hash to file rank2file part */
+    if (scr_hash_write_path(rank2file_path, entries) != SCR_SUCCESS) {
+      rc = SCR_FAILURE;
+      elem = NULL;
+    }
+
+    /* record file name of part in files hash, relative to dataset directory */
+    scr_path* rank2file_rel_path = scr_path_relative(dir, rank2file_path);
+    const char* rank2file_name = scr_path_strdup(rank2file_rel_path);
+    scr_hash* files_rank_hash = scr_hash_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_RANK, writer);
+    scr_hash_set_kv(files_rank_hash, SCR_SUMMARY_6_KEY_FILE, rank2file_name);  
+    scr_free(&rank2file_name);
+    scr_path_delete(&rank2file_rel_path);
+
+    /* delete part hash and path */
+    scr_hash_delete(&entries);
+    scr_path_delete(&rank2file_path);
+
+    /* get id of next writer */
+    writer += count;
   }
 
-cleanup:
+  /* write out rank2file map */
+  scr_path* files_path = scr_path_dup(meta_path);
+  scr_path_append_str(files_path, "rank2file.scr");
+  if (scr_hash_write_path(files_path, files_hash) != SCR_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+  scr_path_delete(&files_path);
+  scr_hash_delete(&files_hash);
+  
+  /* remove RANK2FILE from summary hash */
+  scr_hash_unset(hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+
+  /* write summary file */
+  scr_path* summary_path = scr_path_dup(meta_path);
+  scr_path_append_str(summary_path, SCR_SUMMARY_FILENAME);
+  if (scr_hash_write_path(summary_path, hash) != SCR_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+  scr_path_delete(&summary_path);
+
   /* free off objects and return with failure */
-  scr_free(&summary_file);
-  scr_path_delete(&path);
+  scr_path_delete(&meta_path);
 
   return rc;
 }
@@ -748,26 +826,316 @@ int scr_inspect_scan(scr_hash* scan)
 
 /* Reads *.scrfilemap files from given dataset directory and adds them to scan hash.
  * Returns SCR_SUCCESS if the files could be scanned */
-int scr_scan_files(const scr_path* dir, scr_hash* scan)
+int scr_scan_file(const scr_path* dir, const scr_path* path_name, int* ranks, regex_t* re_xor_file, scr_hash* scan)
 {
-  /* create an empty hash to hold the file names */
-  scr_hash* contents = scr_hash_new();
+  /* create an empty filemap to store contents */
+  scr_filemap* rank_map = scr_filemap_new();
 
-  /* create path to scr subdirectory */
-  scr_path* path_scr = scr_path_dup(dir);
-  scr_path_append_str(path_scr, ".scr");
-
-  /* read the contents of the directory */
-  if (scr_read_dir(path_scr, contents) != SCR_SUCCESS) {
-    char* path_scr_str = scr_path_strdup(path_scr);
-    scr_err("Failed to read directory %s @ %s:%d",
-      path_scr_str, __FILE__, __LINE__
+  /* read in the filemap */
+  if (scr_filemap_read(path_name, rank_map) != SCR_SUCCESS) {
+    char* path_err = scr_path_strdup(path_name);
+    scr_err("Error reading filemap: %s @ %s:%d",
+      path_err, __FILE__, __LINE__
     );
-    scr_free(&path_scr_str);
-    scr_path_delete(&path_scr);
-    scr_hash_delete(&contents);
+    scr_free(&path_err);
+    scr_filemap_delete(&rank_map);
     return SCR_FAILURE;
   }
+
+  /* iterate over each dataset in this filemap */
+  scr_hash_elem* dset_elem = NULL;
+  for (dset_elem = scr_filemap_first_dataset(rank_map);
+       dset_elem != NULL;
+       dset_elem = scr_hash_elem_next(dset_elem))
+  {
+    /* get the dataset id */
+    int dset_id = scr_hash_elem_key_int(dset_elem);
+
+    /* lookup scan hash for this dataset id */
+    scr_hash* list_hash = scr_hash_set_kv_int(scan, SCR_SCAN_KEY_DLIST, dset_id);
+
+    /* lookup rank2file hash for this dataset, allocate a new one if it's not found */
+    scr_hash* rank2file_hash = scr_hash_get(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+    if (rank2file_hash == NULL) {
+      /* there is no existing rank2file hash, create a new one and add it */
+      rank2file_hash = scr_hash_new();
+      scr_hash_set(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE, rank2file_hash);
+    }
+
+    /* for each rank that we have for this dataset,
+     * set dataset descriptor and the expected number of files */
+    scr_hash_elem* rank_elem = NULL;
+    for (rank_elem = scr_filemap_first_rank_by_dataset(rank_map, dset_id);
+         rank_elem != NULL;
+         rank_elem = scr_hash_elem_next(rank_elem))
+    {
+      /* get the rank number */
+      int rank_id = scr_hash_elem_key_int(rank_elem);
+
+      /* read dataset hash from filemap and record in summary */
+      scr_dataset* rank_dset = scr_dataset_new();
+      scr_filemap_get_dataset(rank_map, dset_id, rank_id, rank_dset);
+      scr_dataset* current_dset = scr_hash_get(list_hash, SCR_SUMMARY_6_KEY_DATASET);
+      if (current_dset == NULL ) {
+        /* there is no dataset hash currently assigned, so use the one for the current rank */
+        scr_hash_set(list_hash, SCR_SUMMARY_6_KEY_DATASET, rank_dset);
+      } else {
+        /* TODODSET */
+        /* check that the dataset for this rank matches the one we already have */
+        /* if rank_dset != current_dset, then problem */
+        scr_dataset_delete(&rank_dset);
+      }
+
+      /* lookup rank hash for this rank */
+      scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
+
+      /* set number of expected files for this rank */
+      int num_expect = scr_filemap_get_expected_files(rank_map, dset_id, rank_id);
+      scr_hash_set_kv_int(rank_hash, SCR_SUMMARY_6_KEY_FILES, num_expect);
+
+      /* TODO: check that we have each named file for this rank */
+      scr_hash_elem* file_elem = NULL;
+      for (file_elem = scr_filemap_first_file(rank_map, dset_id, rank_id);
+           file_elem != NULL;
+           file_elem = scr_hash_elem_next(file_elem))
+      {
+        /* get the file name (relative to dir) */
+        char* file_name = scr_hash_elem_key(file_elem);
+
+        /* build the full file name */
+        scr_path* full_filename_path = scr_path_dup(dir);
+        scr_path_append_str(full_filename_path, file_name);
+        char* full_filename = scr_path_strdup(full_filename_path);
+        scr_path_delete(&full_filename_path);
+
+        /* get meta data for this file */
+        scr_meta* meta = scr_meta_new();
+        if (scr_filemap_get_meta(rank_map, dset_id, rank_id, file_name, meta) != SCR_SUCCESS) {
+          scr_err("Failed to read meta data for %s from dataset %d @ %s:%d",
+            file_name, dset_id, __FILE__, __LINE__
+          );
+          scr_free(&full_filename);
+          continue;
+        }
+
+        /* only check files ending with .scr and skip the summary.scr file
+         *   check that file is complete
+         *   check that file exists
+         *   check that file size matches
+         *   check that ranks agree
+         *   check that checkpoint id agrees */
+
+#if 0
+        /* read the rank from the meta data */
+        int meta_rank = -1;
+        if (scr_meta_get_rank(meta, &meta_rank) != SCR_SUCCESS) {
+          scr_err("Reading rank from meta data from %s @ %s:%d",
+            full_filename, __FILE__, __LINE__
+          );
+          scr_meta_delete(&meta);
+          scr_free(&full_filename);
+          continue;
+        }
+#endif
+
+        /* read the ranks from the meta data */
+        int meta_ranks = -1;
+        if (scr_meta_get_ranks(meta, &meta_ranks) != SCR_SUCCESS) {
+          scr_err("Reading ranks from meta data from %s @ %s:%d",
+            full_filename, __FILE__, __LINE__
+          );
+          scr_meta_delete(&meta);
+          scr_free(&full_filename);
+          continue;
+        }
+
+        /* read filename from meta data */
+        char* meta_filename = NULL;
+        if (scr_meta_get_filename(meta, &meta_filename) != SCR_SUCCESS) {
+          scr_err("Reading filename from meta data from %s @ %s:%d",
+            full_filename, __FILE__, __LINE__
+          );
+          scr_meta_delete(&meta);
+          scr_free(&full_filename);
+          continue;
+        }
+
+        /* read filesize from meta data */
+        unsigned long meta_filesize = 0;
+        if (scr_meta_get_filesize(meta, &meta_filesize) != SCR_SUCCESS) {
+          scr_err("Reading filesize from meta data from %s @ %s:%d",
+            full_filename, __FILE__, __LINE__
+          );
+          scr_meta_delete(&meta);
+          scr_free(&full_filename);
+          continue;
+        }
+
+        /* set our ranks if it's not been set */
+        if (*ranks == -1) {
+          *ranks = meta_ranks;
+        }
+
+/* TODO: need to check directories on all of these file names */
+
+        /* check that the file is complete */
+        if (scr_meta_is_complete(meta) != SCR_SUCCESS) {
+          scr_err("File is not complete: %s @ %s:%d",
+            full_filename, __FILE__, __LINE__
+          );
+          scr_meta_delete(&meta);
+          scr_free(&full_filename);
+          continue;
+        }
+
+        /* check that the file exists */
+        if (scr_file_exists(full_filename) != SCR_SUCCESS) {
+          scr_err("File does not exist: %s @ %s:%d",
+            full_filename, __FILE__, __LINE__
+          );
+          scr_meta_delete(&meta);
+          scr_free(&full_filename);
+          continue;
+        }
+
+        /* check that the file size matches */
+        unsigned long size = scr_file_size(full_filename);
+        if (meta_filesize != size) {
+          scr_err("File is %lu bytes but expected to be %lu bytes: %s @ %s:%d",
+            size, meta_filesize, full_filename, __FILE__, __LINE__
+          );
+          scr_meta_delete(&meta);
+          scr_free(&full_filename);
+          continue;
+        }
+
+        /* check that the ranks match */
+        if (meta_ranks != *ranks) {
+          scr_err("File was created with %d ranks, but expected %d ranks: %s @ %s:%d",
+            meta_ranks, *ranks, full_filename, __FILE__, __LINE__
+          );
+          scr_meta_delete(&meta);
+          scr_free(&full_filename);
+          continue;
+        }
+
+        /* DLIST
+         *   <dataset_id>
+         *     RANK2FILE
+         *       RANKS
+         *         <num_ranks>
+         *       RANK
+         *         <rank>
+         *           FILE
+         *             <filename>
+         *               SIZE
+         *                 <filesize>
+         *               CRC
+         *                 <crc> */
+        /* TODODSET: rank2file_hash may not exist yet */
+        scr_hash* list_hash = scr_hash_set_kv_int(scan, SCR_SCAN_KEY_DLIST, dset_id);
+        scr_hash* rank2file_hash = scr_hash_get(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+        scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, meta_ranks);
+        scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
+        scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, file_name);
+        scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, meta_filesize);
+
+        uLong meta_crc;
+        if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
+          scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, meta_crc);
+        }
+
+        /* if the file is an XOR file, read in the XOR set parameters */
+        if (scr_meta_check_filetype(meta, SCR_META_FILE_XOR) == SCR_SUCCESS) {
+          /* mark this file as being an XOR file */
+          scr_hash_set(file_hash, SCR_SUMMARY_6_KEY_NOFETCH, NULL);
+
+          /* extract the xor set id, the size of the xor set, and our position within the set */
+          size_t nmatch = 4;
+          regmatch_t pmatch[nmatch];
+          char* value = NULL;
+          int xor_rank, xor_ranks, xor_setid;
+          if (regexec(re_xor_file, full_filename, nmatch, pmatch, 0) == 0) {
+            xor_rank  = -1;
+            xor_ranks = -1;
+            xor_setid = -1;
+
+            /* get the rank in the xor set */
+            value = strndup(full_filename + pmatch[1].rm_so, (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so));
+            if (value != NULL) {
+              xor_rank = atoi(value);
+              scr_free(&value);
+            }
+
+            /* get the size of the xor set */
+            value = strndup(full_filename + pmatch[2].rm_so, (size_t)(pmatch[2].rm_eo - pmatch[2].rm_so));
+            if (value != NULL) {
+              xor_ranks = atoi(value);
+              scr_free(&value);
+            }
+
+            /* get the id of the xor set */
+            value = strndup(full_filename + pmatch[3].rm_so, (size_t)(pmatch[3].rm_eo - pmatch[3].rm_so));
+            if (value != NULL) {
+              xor_setid = atoi(value);
+              scr_free(&value);
+            }
+
+            /* add the XOR file entries into our scan hash */
+            if (xor_rank != -1 && xor_ranks != -1 && xor_setid != -1) {
+              /* DLIST
+               *   <dataset_id>
+               *     XOR
+               *       <xor_setid>
+               *         MEMBERS
+               *           <num_members_in_xor_set>
+               *         MEMBER
+               *           <xor_set_member_id>
+               *             FILE
+               *               <filename>
+               *             RANK
+               *               <rank_id> */
+              scr_hash* xor_hash = scr_hash_set_kv_int(list_hash, SCR_SCAN_KEY_XOR, xor_setid);
+              scr_hash_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBERS, xor_ranks);
+              scr_hash* xor_rank_hash = scr_hash_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, xor_rank);
+              scr_hash_set_kv(xor_rank_hash, SCR_SUMMARY_6_KEY_FILE, file_name);
+              scr_hash_set_kv_int(xor_rank_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
+            } else {
+              scr_err("Failed to extract XOR rank, set size, or set id from %s @ %s:%d",
+                full_filename, __FILE__, __LINE__
+              );
+            }
+          } else {
+            scr_err("XOR file does not match expected file name format %s @ %s:%d",
+              full_filename, __FILE__, __LINE__
+            );
+          }
+        }
+
+        scr_meta_delete(&meta);
+        scr_free(&full_filename);
+      }
+    }
+  }
+
+  /* delete the filemap */
+  scr_filemap_delete(&rank_map);
+
+  return SCR_SUCCESS;
+}
+
+/* Reads *.scrfilemap files from given dataset directory and adds them to scan hash.
+ * Returns SCR_SUCCESS if the files could be scanned */
+int scr_scan_files(const scr_path* dir, scr_hash* scan)
+{
+  int rc = SCR_SUCCESS;
+
+  /* create path to scr subdirectory */
+  scr_path* meta_path = scr_path_dup(dir);
+  scr_path_append_str(meta_path, ".scr");
+
+  /* allocate directory in string form */
+  char* dir_str = scr_path_strdup(meta_path);
 
   /* set up a regular expression so we can extract the xor set information from a file */
   /* TODO: move this info to the meta data */
@@ -777,333 +1145,85 @@ int scr_scan_files(const scr_path* dir, scr_hash* scan)
   /* initialize global variables */
   int ranks = -1;
 
-  /* read scrfilemap files first to know how many files to expect for each rank */
-  scr_hash_elem* elem = NULL;
-  scr_hash* files = scr_hash_get(contents, SCR_IO_KEY_FILE);
-  for (elem = scr_hash_elem_first(files);
-       elem != NULL;
-       elem = scr_hash_elem_next(elem))
-  {
-    /* get the file name */
-    char* name = scr_hash_elem_key(elem);
+  /* open the directory */
+  DIR* dirp = opendir(dir_str);
+  if (dirp == NULL) {
+    scr_err("Failed to open directory %s (errno=%d %s) @ %s:%d",
+      dir_str, errno, strerror(errno), __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+    goto cleanup;
+  } 
 
-    /* skip this file unless it has the .scrfilemap extension */
-    int len = strlen(name);
-    char* ext = name + len - 11;
-    if (strcmp(ext, ".scrfilemap") != 0) {
-      continue;
-    }
+  /* read each file from the directory */
+  struct dirent* dp = NULL;
+  do {
+    errno = 0;
+    dp = readdir(dirp);
+    if (dp != NULL) {
+      const char* name = NULL;
 
-    /* allocate string of full file name */
-    scr_path* path_name = scr_path_dup(path_scr);
-    scr_path_append_str(path_name, name);
-
-    /* create an empty filemap to store contents */
-    scr_filemap* rank_map = scr_filemap_new();
-
-    /* read in the filemap */
-    if (scr_filemap_read(path_name, rank_map) != SCR_SUCCESS) {
-      char path_err[SCR_MAX_FILENAME];
-      scr_path_strcpy(path_err, sizeof(path_err), path_name);
-      scr_err("Error reading filemap: %s @ %s:%d",
-        path_err, __FILE__, __LINE__
-      );
-      scr_path_delete(&path_name);
-      scr_filemap_delete(&rank_map);
-      continue;
-    }
-    scr_path_delete(&path_name);
-
-    /* iterate over each dataset in this filemap */
-    scr_hash_elem* dset_elem = NULL;
-    for (dset_elem = scr_filemap_first_dataset(rank_map);
-         dset_elem != NULL;
-         dset_elem = scr_hash_elem_next(dset_elem))
-    {
-      /* get the dataset id */
-      int dset_id = scr_hash_elem_key_int(dset_elem);
-
-      /* lookup scan hash for this dataset id */
-      scr_hash* list_hash = scr_hash_set_kv_int(scan, SCR_SCAN_KEY_DLIST, dset_id);
-
-      /* lookup rank2file hash for this dataset, allocate a new one if it's not found */
-      scr_hash* rank2file_hash = scr_hash_get(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
-      if (rank2file_hash == NULL) {
-        /* there is no existing rank2file hash, create a new one and add it */
-        rank2file_hash = scr_hash_new();
-        scr_hash_set(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE, rank2file_hash);
-      }
-
-      /* for each rank that we have for this dataset,
-       * set dataset descriptor and the expected number of files */
-      scr_hash_elem* rank_elem = NULL;
-      for (rank_elem = scr_filemap_first_rank_by_dataset(rank_map, dset_id);
-           rank_elem != NULL;
-           rank_elem = scr_hash_elem_next(rank_elem))
-      {
-        /* get the rank number */
-        int rank_id = scr_hash_elem_key_int(rank_elem);
-
-        /* read dataset hash from filemap and record in summary */
-        scr_dataset* rank_dset = scr_dataset_new();
-        scr_filemap_get_dataset(rank_map, dset_id, rank_id, rank_dset);
-        scr_dataset* current_dset = scr_hash_get(list_hash, SCR_SUMMARY_6_KEY_DATASET);
-        if (current_dset == NULL ) {
-          /* there is no dataset hash currently assigned, so use the one for the current rank */
-          scr_hash_set(list_hash, SCR_SUMMARY_6_KEY_DATASET, rank_dset);
-        } else {
-          /* TODODSET */
-          /* check that the dataset for this rank matches the one we already have */
-          /* if rank_dset != current_dset, then problem */
-          scr_dataset_delete(&rank_dset);
+      #ifdef _DIRENT_HAVE_D_TYPE
+        /* distinguish between directories and files if we can */
+        if (dp->d_type != DT_DIR) {
+          name = dp->d_name;
         }
+      #else
+        /* TODO: throw a compile error here instead? */
+        name = dp->d_name;
+      #endif
 
-        /* lookup rank hash for this rank */
-        scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
+      /* we only process .scrfilemap files */
+      if (name != NULL) {
+        int len = strlen(name);
+        const char* ext = name + len - 11;
+        if (strcmp(ext, ".scrfilemap") == 0) {
+          /* create a full path of the file name */
+          scr_path* path_name = scr_path_dup(meta_path);
+          scr_path_append_str(path_name, name);
 
-        /* set number of expected files for this rank */
-        int num_expect = scr_filemap_get_expected_files(rank_map, dset_id, rank_id);
-        scr_hash_set_kv_int(rank_hash, SCR_SUMMARY_6_KEY_FILES, num_expect);
-
-        /* TODO: check that we have each named file for this rank */
-        scr_hash_elem* file_elem = NULL;
-        for (file_elem = scr_filemap_first_file(rank_map, dset_id, rank_id);
-             file_elem != NULL;
-             file_elem = scr_hash_elem_next(file_elem))
-        {
-          /* get the file name (relative to dir) */
-          char* file_name = scr_hash_elem_key(file_elem);
-
-          /* build the full file name */
-          scr_path* full_filename_path = scr_path_dup(dir);
-          scr_path_append_str(full_filename_path, file_name);
-          char* full_filename = scr_path_strdup(full_filename_path);
-          scr_path_delete(&full_filename_path);
-
-          /* get meta data for this file */
-          scr_meta* meta = scr_meta_new();
-          if (scr_filemap_get_meta(rank_map, dset_id, rank_id, file_name, meta) != SCR_SUCCESS) {
-            scr_err("Failed to read meta data for %s from dataset %d @ %s:%d",
-              file_name, dset_id, __FILE__, __LINE__
-            );
-            scr_free(&full_filename);
-            continue;
+          /* read file contents into our scan hash */
+          int tmp_rc = scr_scan_file(dir, path_name, &ranks, &re_xor_file, scan);
+          if (tmp_rc != SCR_SUCCESS) {
+            rc = tmp_rc;
+            scr_path_delete(&path_name);
+            break;
           }
 
-          /* only check files ending with .scr and skip the summary.scr file
-           *   check that file is complete
-           *   check that file exists
-           *   check that file size matches
-           *   check that ranks agree
-           *   check that checkpoint id agrees */
-
-#if 0
-          /* read the rank from the meta data */
-          int meta_rank = -1;
-          if (scr_meta_get_rank(meta, &meta_rank) != SCR_SUCCESS) {
-            scr_err("Reading rank from meta data from %s @ %s:%d",
-              full_filename, __FILE__, __LINE__
-            );
-            scr_meta_delete(&meta);
-            scr_free(&full_filename);
-            continue;
-          }
-#endif
-
-          /* read the ranks from the meta data */
-          int meta_ranks = -1;
-          if (scr_meta_get_ranks(meta, &meta_ranks) != SCR_SUCCESS) {
-            scr_err("Reading ranks from meta data from %s @ %s:%d",
-              full_filename, __FILE__, __LINE__
-            );
-            scr_meta_delete(&meta);
-            scr_free(&full_filename);
-            continue;
-          }
-
-          /* read filename from meta data */
-          char* meta_filename = NULL;
-          if (scr_meta_get_filename(meta, &meta_filename) != SCR_SUCCESS) {
-            scr_err("Reading filename from meta data from %s @ %s:%d",
-              full_filename, __FILE__, __LINE__
-            );
-            scr_meta_delete(&meta);
-            scr_free(&full_filename);
-            continue;
-          }
-
-          /* read filesize from meta data */
-          unsigned long meta_filesize = 0;
-          if (scr_meta_get_filesize(meta, &meta_filesize) != SCR_SUCCESS) {
-            scr_err("Reading filesize from meta data from %s @ %s:%d",
-              full_filename, __FILE__, __LINE__
-            );
-            scr_meta_delete(&meta);
-            scr_free(&full_filename);
-            continue;
-          }
-
-          /* set our ranks if it's not been set */
-          if (ranks == -1) {
-            ranks = meta_ranks;
-          }
-
-/* TODO: need to check directories on all of these file names */
-
-          /* check that the file is complete */
-          if (scr_meta_is_complete(meta) != SCR_SUCCESS) {
-            scr_err("File is not complete: %s @ %s:%d",
-              full_filename, __FILE__, __LINE__
-            );
-            scr_meta_delete(&meta);
-            scr_free(&full_filename);
-            continue;
-          }
-
-          /* check that the file exists */
-          if (scr_file_exists(full_filename) != SCR_SUCCESS) {
-            scr_err("File does not exist: %s @ %s:%d",
-              full_filename, __FILE__, __LINE__
-            );
-            scr_meta_delete(&meta);
-            scr_free(&full_filename);
-            continue;
-          }
-
-          /* check that the file size matches */
-          unsigned long size = scr_file_size(full_filename);
-          if (meta_filesize != size) {
-            scr_err("File is %lu bytes but expected to be %lu bytes: %s @ %s:%d",
-              size, meta_filesize, full_filename, __FILE__, __LINE__
-            );
-            scr_meta_delete(&meta);
-            scr_free(&full_filename);
-            continue;
-          }
-
-          /* check that the ranks match */
-          if (meta_ranks != ranks) {
-            scr_err("File was created with %d ranks, but expected %d ranks: %s @ %s:%d",
-              meta_ranks, ranks, full_filename, __FILE__, __LINE__
-            );
-            scr_meta_delete(&meta);
-            scr_free(&full_filename);
-            continue;
-          }
-
-          /* DLIST
-           *   <dataset_id>
-           *     RANK2FILE
-           *       RANKS
-           *         <num_ranks>
-           *       RANK
-           *         <rank>
-           *           FILE
-           *             <filename>
-           *               SIZE
-           *                 <filesize>
-           *               CRC
-           *                 <crc> */
-          /* TODODSET: rank2file_hash may not exist yet */
-          scr_hash* list_hash = scr_hash_set_kv_int(scan, SCR_SCAN_KEY_DLIST, dset_id);
-          scr_hash* rank2file_hash = scr_hash_get(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
-          scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, meta_ranks);
-          scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
-          scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, file_name);
-          scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, meta_filesize);
-
-          uLong meta_crc;
-          if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
-            scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, meta_crc);
-          }
-
-          /* if the file is an XOR file, read in the XOR set parameters */
-          if (scr_meta_check_filetype(meta, SCR_META_FILE_XOR) == SCR_SUCCESS) {
-            /* mark this file as being an XOR file */
-            scr_hash_set(file_hash, SCR_SUMMARY_6_KEY_NOFETCH, NULL);
-
-            /* extract the xor set id, the size of the xor set, and our position within the set */
-            size_t nmatch = 4;
-            regmatch_t pmatch[nmatch];
-            char* value = NULL;
-            int xor_rank, xor_ranks, xor_setid;
-            if (regexec(&re_xor_file, full_filename, nmatch, pmatch, 0) == 0) {
-              xor_rank  = -1;
-              xor_ranks = -1;
-              xor_setid = -1;
-
-              /* get the rank in the xor set */
-              value = strndup(full_filename + pmatch[1].rm_so, (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so));
-              if (value != NULL) {
-                xor_rank = atoi(value);
-                scr_free(&value);
-              }
-
-              /* get the size of the xor set */
-              value = strndup(full_filename + pmatch[2].rm_so, (size_t)(pmatch[2].rm_eo - pmatch[2].rm_so));
-              if (value != NULL) {
-                xor_ranks = atoi(value);
-                scr_free(&value);
-              }
-
-              /* get the id of the xor set */
-              value = strndup(full_filename + pmatch[3].rm_so, (size_t)(pmatch[3].rm_eo - pmatch[3].rm_so));
-              if (value != NULL) {
-                xor_setid = atoi(value);
-                scr_free(&value);
-              }
-
-              /* add the XOR file entries into our scan hash */
-              if (xor_rank != -1 && xor_ranks != -1 && xor_setid != -1) {
-                /* DLIST
-                 *   <dataset_id>
-                 *     XOR
-                 *       <xor_setid>
-                 *         MEMBERS
-                 *           <num_members_in_xor_set>
-                 *         MEMBER
-                 *           <xor_set_member_id>
-                 *             FILE
-                 *               <filename>
-                 *             RANK
-                 *               <rank_id> */
-                scr_hash* xor_hash = scr_hash_set_kv_int(list_hash, SCR_SCAN_KEY_XOR, xor_setid);
-                scr_hash_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBERS, xor_ranks);
-                scr_hash* xor_rank_hash = scr_hash_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, xor_rank);
-                scr_hash_set_kv(xor_rank_hash, SCR_SUMMARY_6_KEY_FILE, file_name);
-                scr_hash_set_kv_int(xor_rank_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
-              } else {
-                scr_err("Failed to extract XOR rank, set size, or set id from %s @ %s:%d",
-                  full_filename, __FILE__, __LINE__
-                );
-              }
-            } else {
-              scr_err("XOR file does not match expected file name format %s @ %s:%d",
-                full_filename, __FILE__, __LINE__
-              );
-            }
-          }
-
-          scr_meta_delete(&meta);
-          scr_free(&full_filename);
+          /* delete the path */
+          scr_path_delete(&path_name);
         }
       }
+    } else {
+      if (errno != 0) {
+        scr_err("Failed to read directory %s (errno=%d %s) @ %s:%d",
+          dir_str, errno, strerror(errno), __FILE__, __LINE__
+        );
+        rc = SCR_FAILURE;
+        break;
+      }
     }
+  } while (dp != NULL);
 
-    /* delete the filemap */
-    scr_filemap_delete(&rank_map);
+  /* close the directory */
+  if (closedir(dirp) < 0) {
+    scr_err("Failed to close directory %s (errno=%d %s) @ %s:%d",
+      dir_str, errno, strerror(errno), __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
   }
 
+cleanup:
   /* free the xor regular expression */
   regfree(&re_xor_file);
 
-  /* delete the path to the scr directory */
-  scr_path_delete(&path_scr);
+  /* free our directory string */
+  scr_free(&dir_str);
 
-  /* delete the hash holding the file and directory names */
-  scr_hash_delete(&contents);
+  /* delete scr path */
+  scr_path_delete(&meta_path);
 
-  return SCR_SUCCESS;
+  return rc;
 }
 
 /* builds and writes the summary file for the given directory
