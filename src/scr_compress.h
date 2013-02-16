@@ -14,9 +14,17 @@
 
 /*
 =========================================
-File compression functions
+Compression functions
 =========================================
 */
+
+/* compress the specified buffer and return it in a newly allocated buffer,
+ * returns SCR_SUCCESS if successful, in which case, caller must free buffer */
+int scr_compress_buf(const void* inbuf, size_t insize, void** outbuf, size_t* outsize);
+
+/* uncompress the specified buffer and return it in a newly allocated buffer,
+ * returns SCR_SUCCESS if successful, in which case, caller must free buffer */
+int scr_uncompress_buf(const void* inbuf, size_t insize, void** outbuf, size_t* outsize);
 
 /* compress the specified file using blocks of size block_size and store as file_dst */
 int scr_compress_in_place(const char* file_src, const char* file_dst, unsigned long block_size, int level);

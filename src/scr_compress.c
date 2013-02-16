@@ -63,6 +63,411 @@ File compression functions
  *
  * (4) uint32_t header crc (from first byte of magic number to last byte of block table) */
 
+/* compress insize bytes from in inbuf and store in outbuf which has
+ * up to outsize bytes available, return number written in outwritten */
+static int scr_compress_zlib(
+  int level,          /* set compression level 0=none, 9=max */
+  const void* inbuf,
+  size_t insize,
+  void* outbuf,
+  size_t outsize,
+  size_t* outwritten)
+{
+  int rc = SCR_SUCCESS;
+
+  /* initialize output parameters */
+  *outwritten = 0;
+
+  /* initialize compression stream */
+  z_stream strm;
+  strm.zalloc = Z_NULL;
+  strm.zfree  = Z_NULL;
+  strm.opaque = Z_NULL;
+  int ret = deflateInit(&strm, level);
+  if (ret != Z_OK) {
+    rc = SCR_FAILURE;
+    return rc;
+  }
+
+  /* compress data */
+  size_t written = 0;
+  strm.avail_in  = insize;
+  strm.next_in   = (void*)inbuf;
+  strm.avail_out = outsize;
+  strm.next_out  = outbuf;
+  do {
+    ret = deflate(&strm, Z_FINISH);
+    if (ret == Z_OK || ret == Z_BUF_ERROR || ret == Z_STREAM_END) {
+      /* compute number of bytes written by this call to deflate */
+      written = outsize - strm.avail_out;
+    } else {
+      /* hit an error of some sort */
+      scr_err("Error during compression (ret=%d) @ %s:%d",
+        ret, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+  } while (strm.avail_in !=0 && strm.avail_out != 0 && ret != Z_BUF_ERROR && rc == SCR_SUCCESS);
+
+  /* check that we compressed the entire block */
+  if (strm.avail_in != 0 || ret != Z_STREAM_END) {
+    scr_err("Failed to compress @ %s:%d",
+      __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  }
+
+  /* finalize the compression stream */
+  deflateEnd(&strm);
+
+  /* report number of bytes written to outbuf */
+  *outwritten = written;
+
+  return SCR_SUCCESS;
+}
+
+/* compress insize bytes from in inbuf and store in outbuf which has
+ * up to outsize bytes available, return number written in outwritten */
+static int scr_uncompress_zlib(
+  const void* inbuf,
+  size_t insize,
+  void* outbuf,
+  size_t outsize,
+  size_t* outwritten)
+{
+  /* initialize output parameters */
+  *outwritten = 0;
+
+  /* initialize decompression stream */
+  z_stream strm;
+  strm.zalloc   = Z_NULL;
+  strm.zfree    = Z_NULL;
+  strm.opaque   = Z_NULL;
+  strm.avail_in = 0;
+  strm.next_in  = Z_NULL;
+  int ret = inflateInit(&strm);
+  if (ret != Z_OK) {
+    scr_err("Failed to initialize decompression stream (ret=%d) @ %s:%d",
+      ret, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  int rc = SCR_SUCCESS;
+
+  /* uncompress data */
+  size_t written = 0;
+  strm.avail_in  = insize;
+  strm.next_in   = (void*)inbuf;
+  strm.avail_out = outsize;
+  strm.next_out  = outbuf;
+  do {
+    ret = inflate(&strm, Z_NO_FLUSH);
+    if (ret == Z_NEED_DICT ||
+        ret == Z_DATA_ERROR ||
+        ret == Z_MEM_ERROR ||
+        ret == Z_STREAM_ERROR)
+    {
+      /* hit an error of some sort */
+      scr_err("Error during decompression (ret=%d) @ %s:%d",
+        ret, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    } else {
+      /* compute number of uncompressed bytes written so far */
+      written = outsize - strm.avail_out;
+    }
+  } while (strm.avail_in != 0 && strm.avail_out != 0 && ret != Z_BUF_ERROR && rc == SCR_SUCCESS);
+
+  /* check that we uncompressed the entire block */
+  if (strm.avail_in != 0 || ret != Z_STREAM_END) {
+    scr_err("Failed to decompress @ %s:%d",
+      __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  }
+
+  /* finalize the compression stream */
+  inflateEnd(&strm);
+
+  /* report number of bytes written */
+  *outwritten = written;
+
+  return rc;
+}
+
+/* compress the specified buffer and return it in a newly allocated buffer,
+ * returns SCR_SUCCESS if successful, in which case, caller must free buffer */
+int scr_compress_buf(const void* inbuf, size_t insize, void** outbuf, size_t* outsize)
+{
+  /* set outbuf to NULL and outsize to 0 */
+  *outbuf  = NULL;
+  *outsize = 0;
+
+  /* set compression level 0=none, 9=max */
+  int compression_level = Z_DEFAULT_COMPRESSION;
+//  int compression_level = level;
+
+  unsigned long block_size = (unsigned long) insize;
+
+  /* determine the number of blocks that we'll write */
+  unsigned long num_blocks = 1;
+
+  /* initialize compression stream */
+  z_stream strm;
+  strm.zalloc = Z_NULL;
+  strm.zfree  = Z_NULL;
+  strm.opaque = Z_NULL;
+  int ret = deflateInit(&strm, compression_level);
+  if (ret != Z_OK) {
+    return SCR_FAILURE;
+  }
+
+  /* compute the size of the header */
+  unsigned long header_size =
+    SCR_FILE_COMPRESSED_HEADER_SIZE +
+    num_blocks * (2 * sizeof(uint64_t) + 2 * sizeof(uint32_t));
+
+  /* determine upper bound of compressed data */
+  uLong bound_size = deflateBound(&strm, (uLong) block_size);
+
+  /* allocate buffer to write compressed data into */
+  size_t total_size = ((size_t) header_size) + ((size_t) bound_size);
+  void* buf = malloc(total_size);
+  if (buf == NULL) {
+    scr_abort(-1, "Allocating compress buffer malloc(%ld) errno=%d %s @ %s:%d",
+      total_size, errno, strerror(errno), __FILE__, __LINE__
+    );
+  }
+
+  int rc = SCR_SUCCESS;
+
+  /* write the SCR file magic number, file type, and version number */
+  void* header = buf;
+  size_t header_offset = 0;
+  scr_pack_uint32_t(header, header_size, &header_offset, (uint32_t) SCR_FILE_MAGIC);
+  scr_pack_uint16_t(header, header_size, &header_offset, (uint16_t) SCR_FILE_TYPE_COMPRESSED);
+  scr_pack_uint16_t(header, header_size, &header_offset, (uint16_t) SCR_FILE_VERSION_COMPRESSED_1);
+
+  /* write the size of the header, the original file size, block size, and number of blocks */
+  scr_pack_uint64_t(header, header_size, &header_offset, (uint64_t) header_size);
+  scr_pack_uint64_t(header, header_size, &header_offset, (uint64_t) insize);
+  scr_pack_uint64_t(header, header_size, &header_offset, (uint64_t) block_size);
+  scr_pack_uint64_t(header, header_size, &header_offset, (uint64_t) num_blocks);
+
+  /* read block from source file, compress, write to destination file */
+  unsigned long block_offset_cmp = 0;
+
+  /* record size of compressed block, crc of compressed block */
+  unsigned long block_size_cmp = 0;
+  uLong crc_cmp = crc32(0L, Z_NULL, 0);
+
+  /* compute crc for original block */
+  uLong crc_orig = crc32(0L, Z_NULL, 0);
+  crc_orig = crc32(crc_orig, (const Bytef*) inbuf, (uInt) insize);
+
+  /* compress data */
+  char* buf_dst = (char*)buf + header_size;
+  size_t have = 0;
+  strm.avail_in  = insize;
+  strm.next_in   = (void*)inbuf;
+  strm.avail_out = bound_size;
+  strm.next_out  = buf_dst;
+  do {
+    ret = deflate(&strm, Z_FINISH);
+    if (ret == Z_OK || ret == Z_BUF_ERROR || ret == Z_STREAM_END) {
+      /* compute number of bytes written by this call to deflate */
+      have = bound_size - strm.avail_out;
+    } else {
+      /* hit an error of some sort */
+      scr_err("Error during compression (ret=%d) @ %s:%d",
+        ret, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+  } while (strm.avail_in !=0 && strm.avail_out != 0 && ret != Z_BUF_ERROR && rc == SCR_SUCCESS);
+
+  /* write data */
+  if (have > 0 && rc == SCR_SUCCESS) {
+    /* compute crc of compressed block */
+    crc_cmp = crc32(crc_cmp, (const Bytef*) buf_dst, (uInt) have);
+
+    /* add count to our total compressed block size */
+    block_size_cmp += have;
+  }
+
+  /* check that we compressed the entire block */
+  if (strm.avail_in != 0 || ret != Z_STREAM_END) {
+    scr_err("Failed to compress @ %s:%d",
+      __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  }
+
+  /* finalize the compression stream */
+  deflateEnd(&strm);
+
+  /* TODO: handle the case where compressed size is larger than original size */
+  if (block_size_cmp > block_size) {
+    scr_abort(-1, "Compressed size is larger than original size @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* add entry for block in header: length, crc cmp, crc orig */
+  scr_pack_uint64_t(header, header_size, &header_offset, (uint64_t) block_offset_cmp);
+  scr_pack_uint64_t(header, header_size, &header_offset, (uint64_t) block_size_cmp);
+  scr_pack_uint32_t(header, header_size, &header_offset, (uint32_t) crc_cmp);
+  scr_pack_uint32_t(header, header_size, &header_offset, (uint32_t) crc_orig);
+  block_offset_cmp += block_size_cmp;
+
+  /* compute crc over length of the header and write it to header */
+  uLong crc = crc32(0L, Z_NULL, 0);
+  crc = crc32(crc, (const Bytef*) header, (uInt) header_offset);
+  scr_pack_uint32_t(header, header_size, &header_offset, (uint32_t) crc);
+
+  /* free our buffers */
+  if (rc == SCR_SUCCESS) {
+    /* set output parameters */
+    *outbuf  = buf;
+    *outsize = (size_t) (header_size + block_offset_cmp);
+  } else {
+    /* free the buffer if we weren't successful uncompressing data */
+    scr_free(&buf);
+  }
+
+  return rc;
+}
+
+/* uncompress the specified buffer and return it in a newly allocated buffer,
+ * returns SCR_SUCCESS if successful, in which case, caller must free buffer */
+int scr_uncompress_buf(const void* inbuf, size_t insize, void** outbuf, size_t* outsize)
+{
+  /* set outbuf to NULL and outsize to 0 */
+  *outbuf  = NULL;
+  *outsize = 0;
+
+  size_t size = 0;
+
+  /* unpack magic number, the type, and the version */
+  uint32_t magic;
+  uint16_t type, version;
+  scr_unpack_uint32_t(inbuf, insize, &size, &magic);
+  scr_unpack_uint16_t(inbuf, insize, &size, &type);
+  scr_unpack_uint16_t(inbuf, insize, &size, &version);
+
+  /* check the magic number, the type, and the version */
+  if (magic   != SCR_FILE_MAGIC ||
+      type    != SCR_FILE_TYPE_COMPRESSED ||
+      version != SCR_FILE_VERSION_COMPRESSED_1)
+  {
+    scr_err("File type does not match values for a compressed file @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* read size of header, file size, block size, and number of blocks */
+  uint64_t header_size, datasize, block_size, num_blocks;
+  scr_unpack_uint64_t(inbuf, insize, &size, &header_size);
+  scr_unpack_uint64_t(inbuf, insize, &size, &datasize);
+  scr_unpack_uint64_t(inbuf, insize, &size, &block_size);
+  scr_unpack_uint64_t(inbuf, insize, &size, &num_blocks);
+
+  /* point to header */
+  const void* header = inbuf;
+
+  /* get crc for header */
+  uint32_t crc_header;
+  size_t header_offset = header_size - sizeof(uint32_t);
+  scr_unpack_uint32_t(header, header_size, &header_offset, &crc_header);
+
+  /* compute crc over length of the header */
+  uLong crc = crc32(0L, Z_NULL, 0);
+  crc = crc32(crc, (const Bytef*) header, (uInt) (header_size - sizeof(uint32_t)));
+
+  /* check that crc values match */
+  if ((uLong) crc_header != crc) {
+    scr_err("CRC32 mismatch detected in header @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* set header offset to point to entry for first block */
+  header_offset = 
+    sizeof(uint32_t)        /* magic */
+    + 2 * sizeof(uint16_t)  /* type and version */
+    + 4 * sizeof(uint64_t); /* header size, file size, block size, num blocks */
+
+  /* TODO: handle case where num_blocks > 1 */
+  if (num_blocks != 1) {
+    scr_abort(-1, "Cannot currently uncompress more than one block @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* read entry for block from header: length, crc cmp, crc orig */
+  uint64_t block_offset_cmp, block_size_cmp;
+  uint32_t file_crc_cmp, file_crc_orig;
+  scr_unpack_uint64_t(header, header_size, &header_offset, &block_offset_cmp);
+  scr_unpack_uint64_t(header, header_size, &header_offset, &block_size_cmp);
+  scr_unpack_uint32_t(header, header_size, &header_offset, &file_crc_cmp);
+  scr_unpack_uint32_t(header, header_size, &header_offset, &file_crc_orig);
+
+  /* get pointer to first byte of compressed data */
+  char* buf_src = (char*)header +
+    SCR_FILE_COMPRESSED_HEADER_SIZE +
+    num_blocks * (2 * sizeof(uint64_t) + 2 * sizeof(uint32_t));
+
+  /* compute crc for compressed block */
+  uLong crc_cmp = crc32(0L, Z_NULL, 0);
+  crc_cmp = crc32(crc_cmp, (const Bytef*) buf_src, (uInt) block_size_cmp);
+  if (crc_cmp != file_crc_cmp) {
+    /* CRC failure on compressed data, don't both decompressing */
+    scr_err("CRC32 mismatch detected in compressed block @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* allocate buffer to read data into */
+  void* buf = malloc((size_t) block_size);
+  if (buf == NULL) {
+    scr_abort(-1, "Allocating buffer to decompress data malloc(%ld) errno=%d %s @ %s:%d",
+      block_size, errno, strerror(errno), __FILE__, __LINE__
+    );
+  }
+
+  /* decompress data */
+  size_t written;
+  int rc = scr_uncompress_zlib(buf_src, block_size_cmp, buf, block_size, &written);
+
+  /* if we decompressed ok, check crc of uncompressed data */
+  if (rc == SCR_SUCCESS && written > 0) {
+    /* compute crc of uncompressed block */
+    uLong crc_orig = crc32(0L, Z_NULL, 0);
+    crc_orig = crc32(crc_orig, (const Bytef*) buf, (uInt) written);
+    if (crc_orig != file_crc_orig) {
+      scr_err("CRC32 mismatch detected in decompressed block @ %s:%d",
+        __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+  }
+
+  if (rc == SCR_SUCCESS) {
+    /* set output parameters */
+    *outbuf  = buf;
+    *outsize = written;
+  } else {
+    /* free the buffer if we weren't successful uncompressing data */
+    scr_free(&buf);
+  }
+
+  return rc;
+}
+
 /* compress the specified file using blocks of size block_size and store as file_dst */
 int scr_compress_in_place(const char* file_src, const char* file_dst, unsigned long block_size, int level)
 {
