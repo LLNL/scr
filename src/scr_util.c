@@ -387,7 +387,7 @@ int scr_pack_uint64_t(void* buf, size_t buf_size, size_t* buf_pos, uint64_t val)
 }
 
 /* unpack an unsigned 16 bit value to specified buffer in host order */
-int scr_unpack_uint16_t(void* buf, size_t buf_size, size_t* buf_pos, uint16_t* val)
+int scr_unpack_uint16_t(const void* buf, size_t buf_size, size_t* buf_pos, uint16_t* val)
 {
   /* check that we have a valid pointer to a buffer position value */
   if (buf == NULL || buf_pos == NULL || val == NULL) {
@@ -425,7 +425,7 @@ int scr_unpack_uint16_t(void* buf, size_t buf_size, size_t* buf_pos, uint16_t* v
 }
 
 /* unpack an unsigned 32 bit value to specified buffer in host order */
-int scr_unpack_uint32_t(void* buf, size_t buf_size, size_t* buf_pos, uint32_t* val)
+int scr_unpack_uint32_t(const void* buf, size_t buf_size, size_t* buf_pos, uint32_t* val)
 {
   /* check that we have a valid pointer to a buffer position value */
   if (buf == NULL || buf_pos == NULL || val == NULL) {
@@ -463,7 +463,7 @@ int scr_unpack_uint32_t(void* buf, size_t buf_size, size_t* buf_pos, uint32_t* v
 }
 
 /* unpack an unsigned 64 bit value to specified buffer in host order */
-int scr_unpack_uint64_t(void* buf, size_t buf_size, size_t* buf_pos, uint64_t* val)
+int scr_unpack_uint64_t(const void* buf, size_t buf_size, size_t* buf_pos, uint64_t* val)
 {
   /* check that we have a valid pointer to a buffer position value */
   if (buf == NULL || buf_pos == NULL || val == NULL) {
