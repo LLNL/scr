@@ -308,11 +308,6 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
   /* create summary path */
   scr_path* path_summary_dir = scr_path_from_str(summary_dir);
 
-  /* create a summary file entry for our rank */
-  scr_hash* rank2file_hash = scr_hash_new();
-  scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, scr_my_rank_world);
-  scr_hash_set(summary, SCR_SUMMARY_6_KEY_RANK2FILE, rank2file_hash);
-
   /* get pointer to containers hash and copy into summary info if one exists */
   scr_hash* containers = scr_hash_get(file_list, SCR_SUMMARY_6_KEY_CONTAINER);
   if (containers != NULL) {
@@ -348,7 +343,7 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
 
       /* add this file to the summary file */
       char* name = scr_path_strdup(path_name);
-      scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
+      scr_hash* file_hash = scr_hash_set_kv(summary, SCR_SUMMARY_6_KEY_FILE, name);
       scr_free(&name);
 
       /* get segments hash for this file */
@@ -392,7 +387,7 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
         if (! scr_path_is_null(path_relative)) {
           /* record the name of the file in the summary hash, and get reference to a hash for this file */
           char* name = scr_path_strdup(path_relative);
-          scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
+          scr_hash* file_hash = scr_hash_set_kv(summary, SCR_SUMMARY_6_KEY_FILE, name);
           scr_free(&name);
 
           /* flush the file and fill in the meta data for this file */

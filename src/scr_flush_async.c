@@ -461,11 +461,6 @@ int scr_flush_async_complete(scr_filemap* map, int id)
   /* allocate structure to hold metadata info */
   scr_hash* data = scr_hash_new();
 
-  /* create a summary file entry for our rank */
-  scr_hash* rank2file_hash = scr_hash_new();
-  scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, scr_my_rank_world);
-  scr_hash_set(data, SCR_SUMMARY_6_KEY_RANK2FILE, rank2file_hash);
-
   /* fill in metadata info for the files this process flushed */
   scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
   scr_hash_elem* elem = NULL;
@@ -483,7 +478,7 @@ int scr_flush_async_complete(scr_filemap* map, int id)
     scr_path* path_file = scr_path_from_str(file);
     scr_path_basename(path_file);
     char* name = scr_path_strdup(path_file);
-    scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, name);
+    scr_hash* file_hash = scr_hash_set_kv(data, SCR_SUMMARY_6_KEY_FILE, name);
     scr_free(&name);
     scr_path_delete(&path_file);
 

@@ -264,6 +264,7 @@ int scr_summary_write(const scr_path* dir, scr_hash* hash)
 
   /* iterate over each rank to record its info */
   int writer = 0;
+  int max_rank = -1;
   scr_hash_elem* elem = scr_hash_elem_first(ranks_hash);
   while (elem != NULL) {
     /* build name for rank2file part */
@@ -272,18 +273,21 @@ int scr_summary_write(const scr_path* dir, scr_hash* hash)
 
     /* create a hash to record an entry from each rank */
     scr_hash* entries = scr_hash_new();
-//    scr_hash_set_kv_int(entries, SCR_SUMMARY_6_KEY_LEVEL, 0);
+    scr_hash_set_kv_int(entries, SCR_SUMMARY_6_KEY_LEVEL, 0);
 
     /* record up to 8K entries */
     int count = 0;
     while (count < 8192) {
-      /* make copy of hash for current rank under RANK/<rank> in entries */
-      char* rank = scr_hash_elem_key(elem);
+      /* get rank id */
+      int rank = scr_hash_elem_key_int(elem);
+      if (rank > max_rank) {
+        max_rank = rank;
+      }
+
+      /* copy hash of current rank under RANK/<rank> in entries */
       scr_hash* elem_hash = scr_hash_elem_hash(elem);
-      scr_hash* entry = scr_hash_setf(entries, "%d %s %s %d",
-        rank, SCR_SUMMARY_6_KEY_RANK2FILE, SCR_SUMMARY_6_KEY_RANK, rank
-      );
-      scr_hash_merge(entry, elem_hash);
+      scr_hash* rank_hash = scr_hash_set_kv_int(entries, SCR_SUMMARY_6_KEY_RANK, rank);
+      scr_hash_merge(rank_hash, elem_hash);
       count++;
 
       /* break early if we reach the end */
@@ -292,6 +296,9 @@ int scr_summary_write(const scr_path* dir, scr_hash* hash)
         break;
       }
     }
+
+    /* record the number of ranks */
+    scr_hash_set_kv_int(entries, SCR_SUMMARY_6_KEY_RANKS, count);
 
     /* write hash to file rank2file part */
     if (scr_hash_write_path(rank2file_path, entries) != SCR_SUCCESS) {
@@ -302,8 +309,10 @@ int scr_summary_write(const scr_path* dir, scr_hash* hash)
     /* record file name of part in files hash, relative to dataset directory */
     scr_path* rank2file_rel_path = scr_path_relative(dir, rank2file_path);
     const char* rank2file_name = scr_path_strdup(rank2file_rel_path);
+    unsigned long offset = 0;
     scr_hash* files_rank_hash = scr_hash_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_RANK, writer);
-    scr_hash_set_kv(files_rank_hash, SCR_SUMMARY_6_KEY_FILE, rank2file_name);  
+    scr_hash_util_set_str(files_rank_hash, SCR_SUMMARY_6_KEY_FILE, rank2file_name);  
+    scr_hash_util_set_bytecount(files_rank_hash, SCR_SUMMARY_6_KEY_OFFSET, offset);  
     scr_free(&rank2file_name);
     scr_path_delete(&rank2file_rel_path);
 
@@ -314,6 +323,11 @@ int scr_summary_write(const scr_path* dir, scr_hash* hash)
     /* get id of next writer */
     writer += count;
   }
+
+  /* TODO: a cleaner way to do this is to only write this info if the
+   * rebuild is successful, then we simply count the total ranks */
+  /* record total number of ranks in job as max rank + 1 */
+  scr_hash_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_RANKS, max_rank+1);
 
   /* write out rank2file map */
   scr_path* files_path = scr_path_dup(meta_path);
