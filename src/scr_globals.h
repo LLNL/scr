@@ -89,8 +89,8 @@ Globals
 =========================================
 */
 
-extern char scr_cntl_base[SCR_MAX_FILENAME];  /* base directory for control directory */
-extern char scr_cache_base[SCR_MAX_FILENAME]; /* base directory for cache directory */
+extern char* scr_cntl_base;  /* base directory for control directory */
+extern char* scr_cache_base; /* base directory for cache directory */
 
 extern char* scr_cntl_prefix; /* path of control directory (adds to base directory) */
 

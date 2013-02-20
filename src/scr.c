@@ -356,12 +356,16 @@ static int scr_get_params()
 
   /* override default base control directory */
   if ((value = scr_param_get("SCR_CNTL_BASE")) != NULL) {
-    strcpy(scr_cntl_base, value);
+    scr_cntl_base = strdup(value);
+  } else {
+    scr_cntl_base = strdup(SCR_CNTL_BASE);
   }
 
   /* override default base directory for checkpoint cache */
   if ((value = scr_param_get("SCR_CACHE_BASE")) != NULL) {
-    strcpy(scr_cache_base, value);
+    scr_cache_base = strdup(value);
+  } else {
+    scr_cache_base = strdup(SCR_CACHE_BASE);
   }
 
   /* set maximum number of checkpoints to keep in cache */
@@ -1144,9 +1148,11 @@ int SCR_Finalize()
   scr_free(&scr_clustername);
   scr_free(&scr_group);
   scr_free(&scr_transfer_file);
-  scr_free(&scr_cntl_prefix);
   scr_free(&scr_prefix_scr);
   scr_free(&scr_prefix);
+  scr_free(&scr_cntl_prefix);
+  scr_free(&scr_cntl_base);
+  scr_free(&scr_cache_base);
   scr_free(&scr_my_hostname);
 
   scr_path_delete(&scr_map_file);

@@ -14,7 +14,6 @@
 
 #include <sys/types.h>
 
-/* needed for SCR_MAX_FILENAME */
 #include "scr.h"
 #include "scr_hash.h"
 #include "scr_hash_util.h"

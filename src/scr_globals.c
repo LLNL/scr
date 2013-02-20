@@ -33,9 +33,8 @@ Globals
  * If SCR_PREFIX is not set, the current working directory of the running program is used.
 */
 
-char scr_cntl_base[SCR_MAX_FILENAME]  = SCR_CNTL_BASE;  /* base directory for control directory */
-char scr_cache_base[SCR_MAX_FILENAME] = SCR_CACHE_BASE; /* base directory for cache directory */
-
+char* scr_cache_base  = NULL; /* base directory for cache directory */
+char* scr_cntl_base   = NULL; /* base directory for control directory */
 char* scr_cntl_prefix = NULL; /* path of control directory (adds to base directory) */
 
 char* scr_prefix          = NULL; /* path of SCR_PREFIX directory on PFS */
