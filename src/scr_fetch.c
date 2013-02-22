@@ -86,47 +86,29 @@ static int scr_fetch_file(
 
 /* extract container name, size, offset, and length values
  * for container that holds the specified segment */
-int scr_container_get_name_size_offset_length(
-  const scr_hash* segment, const scr_hash* containers,
-  char** name, unsigned long* size,
-  unsigned long* offset, unsigned long* length)
+int scr_container_get_name_offset_length(
+  const scr_hash* segment,
+  char** name,
+  unsigned long* offset,
+  unsigned long* length)
 {
   /* check that our parameters are valid */
-  if (segment == NULL || containers == NULL ||
-      name == NULL || size == NULL || offset == NULL || length == NULL)
-  {
+  if (segment == NULL || name == NULL || offset == NULL || length == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* get name of container */
+  if (scr_hash_util_get_str(segment, SCR_SUMMARY_6_KEY_FILE, name) != SCR_SUCCESS) {
+    return SCR_FAILURE;
+  }
+
+  /* lookup the offset value */
+  if (scr_hash_util_get_bytecount(segment, SCR_SUMMARY_6_KEY_OFFSET, offset) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
   /* lookup the segment length */
   if (scr_hash_util_get_bytecount(segment, SCR_SUMMARY_6_KEY_LENGTH, length) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  /* get the container hash */
-  scr_hash* container = scr_hash_get(segment, SCR_SUMMARY_6_KEY_CONTAINER);
-
-  /* lookup id for container */
-  int id;
-  if (scr_hash_util_get_int(container, SCR_SUMMARY_6_KEY_ID, &id) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  /* lookup the offset value */
-  if (scr_hash_util_get_bytecount(container, SCR_SUMMARY_6_KEY_OFFSET, offset) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  /* get container with matching id from containers list */
-  scr_hash* info = scr_hash_getf(containers, "%d", id);
-
-  /* get name of container */
-  if (scr_hash_util_get_str(info, SCR_KEY_NAME, name) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  /* get size of container */
-  if (scr_hash_util_get_bytecount(info, SCR_KEY_SIZE, size) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -139,7 +121,7 @@ static int scr_fetch_file_from_containers(
   const char* file,
   scr_meta* meta,
   scr_hash* segments,
-  const scr_hash* containers)
+  const char* from_dir)
 {
   unsigned long buf_size = scr_file_buf_size;
 
@@ -152,8 +134,8 @@ static int scr_fetch_file_from_containers(
   }
 
   /* check that our other arguments are valid */
-  if (meta == NULL || segments == NULL || containers == NULL) {
-    scr_err("Invalid metadata, segments, or container @ %s:%d",
+  if (meta == NULL || segments == NULL) {
+    scr_err("Invalid metadata or segments @ %s:%d",
       __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -180,11 +162,9 @@ static int scr_fetch_file_from_containers(
   /* allocate buffer to read in file chunks */
   char* buf = (char*) malloc(buf_size);
   if (buf == NULL) {
-    scr_err("Allocating memory: malloc(%llu) errno=%d %s @ %s:%d",
+    scr_abort(-1, "Allocating memory: malloc(%llu) errno=%d %s @ %s:%d",
       buf_size, errno, strerror(errno), __FILE__, __LINE__
     );
-    scr_close(file, fd_src);
-    return SCR_FAILURE;
   }
 
   /* initialize crc value */
@@ -209,8 +189,8 @@ static int scr_fetch_file_from_containers(
      * segment (both in bytes) */
     char* container_name;
     unsigned long container_size, container_offset, segment_length;
-    if (scr_container_get_name_size_offset_length(hash, containers,
-      &container_name, &container_size, &container_offset, &segment_length) != SCR_SUCCESS)
+    if (scr_container_get_name_offset_length(hash,
+      &container_name, &container_offset, &segment_length) != SCR_SUCCESS)
     {
       scr_err("Failed to get segment offset and length @ %s:%d",
         __FILE__, __LINE__
@@ -219,11 +199,17 @@ static int scr_fetch_file_from_containers(
       break;
     }
 
+    /* build full name to source file */
+    scr_path* from_path = scr_path_from_str(from_dir);
+    scr_path_append_str(from_path, container_name);
+    scr_path_reduce(from_path);
+    char* from_file = scr_path_strdup(from_path);
+
     /* open container file for reading */
-    int fd_container = scr_open(container_name, O_RDONLY);
+    int fd_container = scr_open(from_file, O_RDONLY);
     if (fd_container < 0) {
       scr_err("Opening file for reading: scr_open(%s) errno=%d %s @ %s:%d",
-        container_name, errno, strerror(errno), __FILE__, __LINE__
+        from_file, errno, strerror(errno), __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
       break;
@@ -241,7 +227,7 @@ static int scr_fetch_file_from_containers(
     if (lseek(fd_container, pos, SEEK_SET) == (off_t)-1) {
       /* our seek failed, return an error */
       scr_err("Failed to seek to byte %lu in %s @ %s:%d",
-        pos, container_name, __FILE__, __LINE__
+        pos, from_file, __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
       break;
@@ -257,7 +243,7 @@ static int scr_fetch_file_from_containers(
       }
 
       /* attempt to read buf_size bytes from container */
-      int nread = scr_read_attempt(container_name, fd_container, buf, count);
+      int nread = scr_read_attempt(from_file, fd_container, buf, count);
 
       /* if we read some bytes, write them out */
       if (nread > 0) {
@@ -296,9 +282,13 @@ static int scr_fetch_file_from_containers(
     }
 
     /* close container */
-    if (scr_close(container_name, fd_container) != SCR_SUCCESS) {
+    if (scr_close(from_file, fd_container) != SCR_SUCCESS) {
       rc = SCR_FAILURE;
     }
+
+    /* free the source file name and path */
+    scr_free(&from_file);
+    scr_path_delete(&from_path);
   }
 
   /* close the source file */
@@ -347,9 +337,6 @@ static int scr_fetch_files_list(
   int id;
   scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
   scr_dataset_get_id(dataset, &id);
-
-  /* get pointer to containers hash */
-  scr_hash* containers = scr_hash_get(file_list, SCR_SUMMARY_6_KEY_CONTAINER);
 
   /* now iterate through the file list and fetch each file */
   scr_hash_elem* file_elem = NULL;
@@ -432,14 +419,19 @@ static int scr_fetch_files_list(
 
     /* fetch file from containers if they are defined, otherwise fetch
      * the native file */
-    if (containers != NULL) {
-      /* lookup segments hash for this file */
-      scr_hash* segments = scr_hash_get(hash, SCR_SUMMARY_6_KEY_SEGMENT);
-
-      /* fetch file from containers */
-      if (scr_fetch_file_from_containers(newfile, meta, segments, containers) != SCR_SUCCESS) {
-        /* failed to fetch file, mark it as incomplete */
-        scr_meta_set_complete(meta, 0);
+    scr_hash* segments = scr_hash_get(hash, SCR_SUMMARY_6_KEY_SEGMENT);
+    if (segments != NULL) {
+      /* get source path */
+      char* from_dir;
+      if (scr_hash_util_get_str(file_list, SCR_KEY_PATH, &from_dir) == SCR_SUCCESS) {
+        /* fetch file from containers */
+        if (scr_fetch_file_from_containers(newfile, meta, segments, from_dir) != SCR_SUCCESS) {
+          /* failed to fetch file, mark it as incomplete */
+          scr_meta_set_complete(meta, 0);
+          rc = SCR_FAILURE;
+        }
+      } else {
+        /* failed to find base dataset directory in file list */
         rc = SCR_FAILURE;
       }
     } else {
@@ -615,13 +607,36 @@ cleanup:
   return rc;
 }
 
-static int scr_summary_read_mpi(
-  const scr_path* dataset_path,
+/* read contents of summary file */
+static int scr_fetch_summary(
+  const char* summary_dir,
   scr_hash* file_list)
 {
+  /* assume that we won't succeed in our fetch attempt */
   int rc = SCR_SUCCESS;
 
+  /* check whether summary file exists and is readable */
+  if (scr_my_rank_world == 0) {
+    /* check that we can access the directory */
+    if (scr_file_is_readable(summary_dir) != SCR_SUCCESS) {
+      scr_err("Failed to access summary directory %s @ %s:%d",
+        summary_dir, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+  }
+
+  /* broadcast success code from rank 0 */
+  MPI_Bcast(&rc, 1, MPI_INT, 0, scr_comm_world);
+  if (rc != SCR_SUCCESS) {
+    return rc;
+  }
+
+  /* add path to file list */
+  scr_hash_util_set_str(file_list, SCR_KEY_PATH, summary_dir);
+
   /* build path to summary file */
+  scr_path* dataset_path = scr_path_from_str(summary_dir);
   scr_path* meta_path = scr_path_dup(dataset_path);
   scr_path_append_str(meta_path, ".scr");
   scr_path_reduce(meta_path);
@@ -673,26 +688,6 @@ static int scr_summary_read_mpi(
   scr_dataset* dataset = scr_hash_get(header, SCR_SUMMARY_6_KEY_DATASET);
   scr_hash_merge(dataset_hash, dataset);
   scr_hash_set(file_list, SCR_SUMMARY_6_KEY_DATASET, dataset_hash);
-
-  /* TODO: containers */
-#if 0
-    /* TODO: it's overkill to bcast info for all containers, each proc
-     * only really needs to know about the containers that contain its
-     * files */
-
-    /* broadcast the container file information if we have any */
-    scr_hash* container_hash = scr_hash_new();
-    if (scr_my_rank_world == 0) {
-      scr_dataset* container = scr_hash_get(summary_hash, SCR_SUMMARY_6_KEY_CONTAINER);
-      scr_hash_merge(container_hash, container);
-    }
-    scr_hash_bcast(container_hash, 0, scr_comm_world);
-    if (scr_hash_size(container_hash) > 0) {
-      scr_hash_set(file_list, SCR_SUMMARY_6_KEY_CONTAINER, container_hash);
-    } else {
-      scr_hash_delete(&container_hash);
-    }
-#endif
 
   /* build path to rank2file map */
   scr_path* rank2file_path = scr_path_dup(meta_path);
@@ -785,8 +780,6 @@ static int scr_summary_read_mpi(
      * the info we need is in the element hash */
     scr_hash* elem_hash = scr_hash_elem_hash(elem);
 
-    /* TODO: handle containers */
-
     /* get pointer to file hash */
     scr_hash* file_hash = scr_hash_get(elem_hash, SCR_SUMMARY_6_KEY_FILE);
     if (file_hash != NULL) {
@@ -848,39 +841,7 @@ cleanup:
 
   /* free path for dataset directory */
   scr_path_delete(&meta_path);
-
-  return rc;
-}
-
-/* read contents of summary file */
-static int scr_fetch_summary(
-  const char* summary_dir,
-  scr_hash* file_list)
-{
-  /* assume that we won't succeed in our fetch attempt */
-  int rc = SCR_SUCCESS;
-
-  /* check whether summary file exists and is readable */
-  if (scr_my_rank_world == 0) {
-    /* check that we can access the directory */
-    if (scr_file_is_readable(summary_dir) != SCR_SUCCESS) {
-      scr_err("Failed to access summary directory %s @ %s:%d",
-        summary_dir, __FILE__, __LINE__
-      );
-      rc = SCR_FAILURE;
-    }
-  }
-
-  /* broadcast success code from rank 0 */
-  MPI_Bcast(&rc, 1, MPI_INT, 0, scr_comm_world);
-  if (rc != SCR_SUCCESS) {
-    return rc;
-  }
-
-  /* read summary data */
-  scr_path* summary_path = scr_path_from_str(summary_dir);
-  rc = scr_summary_read_mpi(summary_path, file_list);
-  scr_path_delete(&summary_path);
+  scr_path_delete(&dataset_path);
 
   return rc;
 }

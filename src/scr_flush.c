@@ -46,12 +46,8 @@ int scr_dataset_build_name(int id, int64_t usecs, char* name, int n)
 {
 #if 0
   /* format timestamp */
-  char timestamp[SCR_MAX_FILENAME];
   time_t now = (time_t) (usecs / (int64_t) 1000000);
   strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H:%M:%S", localtime(&now));
-
-  /* build the directory name */
-  char dirname[SCR_MAX_FILENAME];
   snprintf(name, n, "scr.%s.%s.%d", timestamp, scr_jobid, id);
 #endif
 
@@ -484,30 +480,6 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
   return SCR_SUCCESS;
 }
 
-/* given a dataset and a container id, construct full path to container file */
-static int scr_container_construct_name(const scr_dataset* dataset, int id, char* file, int len)
-{
-  /* check that we have a dataset and a buffer to write the name to */
-  if (dataset == NULL || file == NULL) {
-    return SCR_FAILURE;
-  }
-
-  /* get the name of the dataset */
-  char* name;
-  if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  /* build the name and check that it's not truncated */
-  int n = snprintf(file, len, "%s/%s/ctr.%d.scr", scr_prefix, name, id);
-  if (n >= len) {
-    /* we truncated the container name */
-    return SCR_FAILURE;
-  }
-
-  return SCR_SUCCESS;
-}
-
 /* identify the container to write each file to */
 static int scr_flush_identify_containers(scr_hash* file_list)
 {
@@ -522,6 +494,9 @@ static int scr_flush_identify_containers(scr_hash* file_list)
 
   /* get the dataset for the file list */
   scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
+
+  /* create base container path */
+  scr_path* container_base_path = scr_path_from_str(".scr");
 
   /* compute total number of bytes we'll flush on this process */
   unsigned long my_bytes = 0;
@@ -550,22 +525,22 @@ static int scr_flush_identify_containers(scr_hash* file_list)
   MPI_Allreduce(&my_bytes, &total_bytes, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
 
   /* compute total number of bytes we need to write on the node */
-  unsigned long local_bytes;
-  MPI_Reduce(&my_bytes, &local_bytes, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, scr_comm_node);
+  unsigned long node_bytes;
+  MPI_Reduce(&my_bytes, &node_bytes, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, scr_comm_node);
 
   /* compute offset for each node */
-  unsigned long local_offset = 0;
+  unsigned long node_offset = 0;
   if (rank_node == 0) {
-    MPI_Scan(&local_bytes, &local_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_node_across);
-    local_offset -= local_bytes;
+    MPI_Scan(&node_bytes, &node_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_node_across);
+    node_offset -= node_bytes;
   }
 
   /* compute offset for each process,
-   * note that local_offset == 0 for all procs on the node except for rank == 0,
+   * note that node_offset == 0 for all procs on the node except for rank == 0,
    * which contains the offset for the node */
   unsigned long my_offset = 0;
-  local_offset += my_bytes;
-  MPI_Scan(&local_offset, &my_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_node);
+  node_offset += my_bytes;
+  MPI_Scan(&node_offset, &my_offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_node);
   my_offset -= my_bytes;
 
   /* compute offset for each file on this process */
@@ -593,28 +568,20 @@ static int scr_flush_identify_containers(scr_hash* file_list)
           container_length = remaining;
         }
 
-        /* store segment length, container id, and container offset under new file segment */
+        /* compute container name */
+        scr_path* container_path = scr_path_dup(container_base_path);
+        scr_path_append_strf(container_path, "ctr.%d.scr", container_id);
+        char* container_name = scr_path_strdup(container_path);
+
+        /* store segment id, host file, offset, and length */
         scr_hash* segment_hash = scr_hash_set_kv_int(hash, SCR_SUMMARY_6_KEY_SEGMENT, file_segment);
         scr_hash_util_set_bytecount(segment_hash, SCR_SUMMARY_6_KEY_LENGTH, container_length);
-        scr_hash* container_hash = scr_hash_new();
-        scr_hash_util_set_int(container_hash, SCR_SUMMARY_6_KEY_ID, container_id);
-        scr_hash_util_set_bytecount(container_hash, SCR_SUMMARY_6_KEY_OFFSET, container_offset);
-        scr_hash_set(segment_hash, SCR_SUMMARY_6_KEY_CONTAINER, container_hash);
+        scr_hash_util_set_str(segment_hash, SCR_SUMMARY_6_KEY_FILE, container_name);
+        scr_hash_util_set_bytecount(segment_hash, SCR_SUMMARY_6_KEY_OFFSET, container_offset);
 
-        /* add entry for container name in the file list */
-        scr_hash* details = scr_hash_set_kv_int(file_list, SCR_SUMMARY_6_KEY_CONTAINER, container_id);
-
-        /* compute name of container */
-        char container_name[SCR_MAX_FILENAME];
-        scr_container_construct_name(dataset, container_id, container_name, sizeof(container_name));
-        scr_hash_util_set_str(details, SCR_KEY_NAME, container_name);
-
-        /* compute size of container */
-        unsigned long size = container_size;
-        if ((container_id+1) * container_size > total_bytes) {
-          size = total_bytes - (container_id * container_size);
-        }
-        scr_hash_util_set_bytecount(details, SCR_SUMMARY_6_KEY_SIZE, size);
+        /* free container name and path */
+        scr_free(&container_name);
+        scr_path_delete(&container_path);
 
         /* move on to the next file segment */
         remaining   -= container_length;
@@ -626,6 +593,9 @@ static int scr_flush_identify_containers(scr_hash* file_list)
       rc = SCR_FAILURE;
     }
   }
+
+  /* delete container path */
+  scr_path_delete(&container_base_path);
 
   /* determine whether all processes successfully computed their containers */
   if (! scr_alltrue((rc == SCR_SUCCESS))) {
@@ -786,16 +756,20 @@ static int scr_flush_create_dirs(scr_hash* file_list)
  *   GPFS   - gather container names to rank 0 and have it create them all */
 static int scr_flush_create_containers(const scr_hash* file_list)
 {
+  /* here, we look at each segment a process writes,
+   * and the process which writes data to offset 0 is responsible for creating the container */
   int success = SCR_SUCCESS;
+
+  /* get top level path */
+  char* flushdir;
+  if (scr_hash_util_get_str(file_list, SCR_KEY_PATH, &flushdir) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to get flush directory @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
 
   /* get permissions for files */
   mode_t mode_file = scr_getmode(1, 1, 0);
-
-  /* here, we look at each segment a process writes,
-   * and the process which writes data to offset 0 is responsible for creating the container */
-
-  /* get the hash of containers */
-  scr_hash* containers = scr_hash_get(file_list, SCR_SUMMARY_6_KEY_CONTAINER);
 
   /* iterate over each of our files */
   scr_hash_elem* file_elem;
@@ -819,23 +793,33 @@ static int scr_flush_create_containers(const scr_hash* file_list)
 
       /* lookup the container details for this segment */
       char* name;
-      unsigned long size, offset, length;
-      if (scr_container_get_name_size_offset_length(segment, containers, &name, &size, &offset, &length) == SCR_SUCCESS) {
+      unsigned long offset, length;
+      if (scr_container_get_name_offset_length(segment, &name, &offset, &length) == SCR_SUCCESS) {
         /* if we write something to offset 0 of this container,
          * we are responsible for creating the file */
         if (offset == 0 && length > 0) {
-          /* open the file with create and truncate options, then just immediately close it */
-          int fd = scr_open(name, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
+          /* create full path to container file */
+          scr_path* container_path = scr_path_from_str(flushdir);
+          scr_path_append_str(container_path, name);
+          char* container_name = scr_path_strdup(container_path);
+
+          /* open the file with create and truncate options,
+           * then just immediately close it */
+          int fd = scr_open(container_name, O_WRONLY | O_CREAT | O_TRUNC, mode_file);
           if (fd < 0) {
             /* the create failed */
             scr_err("Opening file for writing: scr_open(%s) errno=%d %s @ %s:%d",
-              name, errno, strerror(errno), __FILE__, __LINE__
+              container_name, errno, strerror(errno), __FILE__, __LINE__
             );
             success = SCR_FAILURE;
           } else {
             /* the create succeeded, now just close the file */
-            scr_close(name, fd);
+            scr_close(container_name, fd);
           }
+
+          /* free the container name and string */
+          scr_free(&container_name);
+          scr_path_delete(&container_path);
         }
       } else {
         /* failed to read container details from segment hash, consider this an error */

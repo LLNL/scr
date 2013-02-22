@@ -675,8 +675,9 @@ int SCR_Init()
   }
 #endif /* HAVE_LIBDTCMP */
 
-  /* NOTE: SCR_ENABLE can also be set in a config file, but to read a config file,
-   * we must at least create scr_comm_world and call scr_get_params() */
+  /* NOTE: SCR_ENABLE can also be set in a config file, but to read
+   * a config file, we must at least create scr_comm_world and call
+   * scr_get_params() */
 
   /* create a context for the library */
   MPI_Comm_dup(MPI_COMM_WORLD,  &scr_comm_world);
@@ -757,11 +758,13 @@ int SCR_Init()
     }
   }
 
-  /* check that we have an enabled redundancy descriptor with interval of one,
-   * this is necessary so a reddesc is defined for every checkpoint */
+  /* check that we have an enabled redundancy descriptor with
+   * interval of one, this is necessary so a reddesc is defined
+   * for every checkpoint */
   int found_one = 0;
   for (i=0; i < scr_nreddescs; i++) {
-    /* check that we have at least one descriptor enabled with an interval of one */
+    /* check that we have at least one descriptor enabled with
+     * an interval of one */
     if (scr_reddescs[i].enabled && scr_reddescs[i].interval == 1) {
       found_one = 1;
     }
@@ -774,9 +777,9 @@ int SCR_Init()
     }
   }
 
-  /* if we're using containers we need two other communicators during each flush,
-   * one contains all procs on each node, and one contains all procs that have the
-   * same rank per node */
+  /* if we're using containers we need two other communicators during
+   * each flush, one contains all procs on each node, and one contains
+   * all procs that have the same rank per node */
   scr_groupdesc* groupdesc_node = scr_groupdescs_from_name(SCR_GROUP_NODE);
   if (groupdesc_node != NULL) {
     /* just dup the communicator from the NODE group */
@@ -863,7 +866,8 @@ int SCR_Init()
     );
   }
 
-  /* TODO: should we check for access and required space in cache directory at this point? */
+  /* TODO: should we check for access and required space in cntl
+   * directory at this point? */
 
   /* create the cache directories */
   for (i=0; i < scr_nreddescs; i++) {
@@ -890,7 +894,8 @@ int SCR_Init()
     }
   }
 
-  /* TODO: should we check for access and required space in cache directore at this point? */
+  /* TODO: should we check for access and required space in cache
+   * directories at this point? */
 
   /* ensure that the control and checkpoint directories are ready */
   MPI_Barrier(scr_comm_world);
@@ -917,8 +922,9 @@ int SCR_Init()
   scr_transfer_file = scr_path_strdup(path_transfer_file);
   scr_path_delete(&path_transfer_file);
 
-  /* TODO: continue draining a checkpoint if one is in progress from the previous run,
-   * for now, just delete the transfer file so we'll start over from scratch */
+  /* TODO: continue draining a checkpoint if one is in progress
+   * from the previous run, for now, just delete the transfer file
+   * so we'll start over from scratch */
   if (scr_storedesc_cntl->rank == 0) {
     scr_file_unlink(scr_transfer_file);
   }
@@ -1005,6 +1011,7 @@ int SCR_Init()
   /* TODO: there is some risk here of cleaning the cache when we shouldn't
    * if given a badly placed nodeset for a restart job step within an
    * allocation with lots of spares. */
+
   /* if the distribute fails, or if the code must restart from the parallel
    * file system, clear the cache */
   if (rc != SCR_SUCCESS || scr_global_restart) {
@@ -1027,6 +1034,7 @@ int SCR_Init()
   /* TODO: there is some risk here of cleaning the cache when we shouldn't
    * if given a badly placed nodeset for a restart job step within an
    * allocation with lots of spares. */
+
   /* if the fetch fails, lets clear the cache */
   if (rc != SCR_SUCCESS) {
     /* clear the cache of all files */

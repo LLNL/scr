@@ -97,20 +97,24 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, scr_meta*
 
 /* given a filename, its meta data, its list of segments, and list of destination containers,
  * copy file to container files */
-static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_hash* segments, const scr_hash* containers)
+static int scr_flush_file_to_containers(
+  const char* file,
+  scr_meta* meta,
+  scr_hash* segments,
+  const char* dst_dir)
 {
   /* check that we got something for a source file */
   if (file == NULL || strcmp(file, "") == 0) {
     scr_err("Invalid source file @ %s:%d",
-            __FILE__, __LINE__
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
 
   /* check that our other arguments are valid */
-  if (meta == NULL || segments == NULL || containers == NULL) {
-    scr_err("Invalid metadata, segments, or container @ %s:%d",
-            __FILE__, __LINE__
+  if (meta == NULL || segments == NULL) {
+    scr_err("Invalid metadata or segments @ %s:%d",
+      __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -122,7 +126,7 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
   int fd_src = scr_open(file, O_RDONLY);
   if (fd_src < 0) {
     scr_err("Opening file to copy: scr_open(%s) errno=%d %s @ %s:%d",
-            file, errno, strerror(errno), __FILE__, __LINE__
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -140,11 +144,9 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
   /* allocate buffer to read in file chunks */
   char* buf = (char*) malloc(buf_size);
   if (buf == NULL) {
-    scr_err("Allocating memory: malloc(%llu) errno=%d %s @ %s:%d",
-            buf_size, errno, strerror(errno), __FILE__, __LINE__
+    scr_abort(-1, "Allocating memory: malloc(%llu) errno=%d %s @ %s:%d",
+      buf_size, errno, strerror(errno), __FILE__, __LINE__
     );
-    scr_close(file, fd_src);
-    return SCR_FAILURE;
   }
 
   /* initialize crc value */
@@ -167,9 +169,9 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
 
     /* get the offset into the container and the length of the segment (both in bytes) */
     char* container_name;
-    unsigned long container_size, container_offset, segment_length;
-    if (scr_container_get_name_size_offset_length(hash, containers,
-      &container_name, &container_size, &container_offset, &segment_length) != SCR_SUCCESS)
+    unsigned long container_offset, segment_length;
+    if (scr_container_get_name_offset_length(hash,
+      &container_name, &container_offset, &segment_length) != SCR_SUCCESS)
     {
       scr_err("Failed to get segment offset and length @ %s:%d",
               __FILE__, __LINE__
@@ -178,12 +180,18 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
       break;
     }
 
+    /* build full name to destination file */
+    scr_path* dst_path = scr_path_from_str(dst_dir);
+    scr_path_append_str(dst_path, container_name);
+    scr_path_reduce(dst_path);
+    char* dst_file = scr_path_strdup(dst_path);
+
     /* open container file for writing -- we don't truncate here because more than one
      * process may be writing to the same file */
-    int fd_container = scr_open(container_name, O_WRONLY | O_CREAT, mode_file);
+    int fd_container = scr_open(dst_file, O_WRONLY);
     if (fd_container < 0) {
       scr_err("Opening file for writing: scr_open(%s) errno=%d %s @ %s:%d",
-              container_name, errno, strerror(errno), __FILE__, __LINE__
+        dst_file, errno, strerror(errno), __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
       break;
@@ -201,7 +209,7 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
     if (lseek(fd_container, pos, SEEK_SET) == (off_t)-1) {
       /* our seek failed, return an error */
       scr_err("Failed to seek to byte %lu in %s @ %s:%d",
-              pos, container_name, __FILE__, __LINE__
+        pos, dst_file, __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
       break;
@@ -227,7 +235,7 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
         }
 
         /* write our nread bytes out */
-        int nwrite = scr_write_attempt(container_name, fd_container, buf, nread);
+        int nwrite = scr_write_attempt(dst_file, fd_container, buf, nread);
 
         /* check for a write error or a short write */
         if (nwrite != nread) {
@@ -256,9 +264,13 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
     }
 
     /* close container */
-    if (scr_close(container_name, fd_container) != SCR_SUCCESS) {
+    if (scr_close(dst_file, fd_container) != SCR_SUCCESS) {
       rc = SCR_FAILURE;
     }
+
+    /* free the container file name and path */
+    scr_free(&dst_file);
+    scr_path_delete(&dst_path);
   }
 
   /* close the source file */
@@ -277,7 +289,7 @@ static int scr_flush_file_to_containers(const char* file, scr_meta* meta, scr_ha
         /* if a crc is already set in the meta data, check that we computed the same value */
         if (crc != crc2) {
           scr_err("CRC32 mismatch detected when flushing file %s @ %s:%d",
-                  file, __FILE__, __LINE__
+            file, __FILE__, __LINE__
           );
           rc = SCR_FAILURE;
         }
@@ -308,14 +320,6 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
   /* create summary path */
   scr_path* path_summary_dir = scr_path_from_str(summary_dir);
 
-  /* get pointer to containers hash and copy into summary info if one exists */
-  scr_hash* containers = scr_hash_get(file_list, SCR_SUMMARY_6_KEY_CONTAINER);
-  if (containers != NULL) {
-    scr_hash* containers_copy = scr_hash_new();
-    scr_hash_merge(containers_copy, containers);
-    scr_hash_set(summary, SCR_SUMMARY_6_KEY_CONTAINER, containers_copy);
-  }
-
   /* flush each of my files and fill in summary data structure */
   scr_hash_elem* elem = NULL;
   scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
@@ -336,9 +340,10 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
     /* get meta data for this file */
     scr_meta* meta = scr_hash_get(hash, SCR_KEY_META);
 
-    /* if containers are defined, we flush the file to its containers,
+    /* if segments are defined, we flush the file to its containers,
      * otherwise we copy the file out as is */
-    if (containers != NULL) {
+    scr_hash* segments = scr_hash_get(hash, SCR_SUMMARY_6_KEY_SEGMENT);
+    if (segments != NULL) {
       /* TODO: PRESERVE get original filename here */
 
       /* add this file to the summary file */
@@ -346,11 +351,8 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
       scr_hash* file_hash = scr_hash_set_kv(summary, SCR_SUMMARY_6_KEY_FILE, name);
       scr_free(&name);
 
-      /* get segments hash for this file */
-      scr_hash* segments = scr_hash_get(hash, SCR_SUMMARY_6_KEY_SEGMENT);
-
       /* flush the file to the containers listed in its segmenets */
-      if (scr_flush_file_to_containers(file, meta, segments, containers) == SCR_SUCCESS) {
+      if (scr_flush_file_to_containers(file, meta, segments, summary_dir) == SCR_SUCCESS) {
         /* successfully flushed this file, record the filesize */
         unsigned long filesize = 0;
         if (scr_meta_get_filesize(meta, &filesize) == SCR_SUCCESS) {
