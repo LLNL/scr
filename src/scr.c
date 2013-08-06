@@ -354,21 +354,27 @@ static int scr_get_params()
     }
   }
 
-  /* TODO: reduce cntl and cache base paths */
-
   /* override default base control directory */
+  scr_path* cntl_path = NULL;
   if ((value = scr_param_get("SCR_CNTL_BASE")) != NULL) {
-    scr_cntl_base = strdup(value);
+    cntl_path = scr_path_from_str(value);
   } else {
-    scr_cntl_base = strdup(SCR_CNTL_BASE);
+    cntl_path = scr_path_from_str(SCR_CNTL_BASE);
   }
+  scr_path_reduce(cntl_path);
+  scr_cntl_base = scr_path_strdup(cntl_path);
+  scr_path_delete(&cntl_path);
 
   /* override default base directory for checkpoint cache */
+  scr_path* cache_path = NULL;
   if ((value = scr_param_get("SCR_CACHE_BASE")) != NULL) {
-    scr_cache_base = strdup(value);
+    cache_path = scr_path_from_str(value);
   } else {
-    scr_cache_base = strdup(SCR_CACHE_BASE);
+    cache_path = scr_path_from_str(SCR_CACHE_BASE);
   }
+  scr_path_reduce(cache_path);
+  scr_cache_base = scr_path_strdup(cache_path);
+  scr_path_delete(&cache_path);
 
   /* set maximum number of checkpoints to keep in cache */
   if ((value = scr_param_get("SCR_CACHE_SIZE")) != NULL) {
