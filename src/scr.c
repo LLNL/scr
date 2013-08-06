@@ -354,6 +354,8 @@ static int scr_get_params()
     }
   }
 
+  /* TODO: reduce cntl and cache base paths */
+
   /* override default base control directory */
   if ((value = scr_param_get("SCR_CNTL_BASE")) != NULL) {
     scr_cntl_base = strdup(value);
@@ -386,10 +388,18 @@ static int scr_get_params()
   if (tmp != NULL) {
     scr_hash_set(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, tmp);
   } else {
-    /* fill in info for one STORE type */
+    /* TODO: consider requiring user to specify config file for this */
+
+    /* create a store descriptor for the cache directory */
     tmp = scr_hash_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, "0");
     scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,  scr_cache_base);
     scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, scr_cache_size);
+
+    /* also create one for control directory if cntl != cache */
+    if (strcmp(scr_cntl_base, scr_cache_base) != 0) {
+      tmp = scr_hash_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, "1");
+      scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,  scr_cntl_base);
+    }
   }
   
   /* select copy method */
