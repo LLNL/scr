@@ -28,7 +28,7 @@ int scr_hash_util_set_bytecount(scr_hash* hash, const char* key, unsigned long c
   scr_hash_unset(hash, key);
 
   /* then set the new value */
-  scr_hash* hash2 = scr_hash_setf(hash, NULL, "%s %llu", key, count);
+  scr_hash* hash2 = scr_hash_setf(hash, NULL, "%s %lu", key, count);
 
   /* if there wasn't a hash, return failure */
   if (hash2 == NULL) {
