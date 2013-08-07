@@ -125,10 +125,10 @@ int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* 
   /* index of the descriptor */
   s->index = index;
 
-  /* set the base directory */
+  /* set the base directory, reduce path in the process */
   char* base;
   if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_BASE, &base) == SCR_SUCCESS) {
-    s->name = strdup(base);
+    s->name = scr_path_strdup_reduce_str(base);
   }
 
   /* set the max count, default to scr_cache_size unless specified otherwise */

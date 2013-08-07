@@ -483,7 +483,8 @@ int scr_reddesc_create_from_hash(
   /* set the base directory */
   char* base;
   if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_BASE, &base) == SCR_SUCCESS) {
-    d->base = strdup(base);
+    /* strdup base after reducing it */
+    d->base = scr_path_strdup_reduce_str(base);
 
     /* set the index to the store descriptor for this base directory */
     int store_index = scr_storedescs_index_from_name(d->base);
@@ -697,7 +698,8 @@ int scr_reddesc_restore_from_hash(
   /* set the base directory */
   value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_BASE);
   if (value != NULL) {
-    d->base = strdup(value);
+    /* strdup base after reducing it */
+    d->base = scr_path_strdup_reduce_str(value);
 
     /* set the index to the store descriptor for this base directory */
     int store_index = scr_storedescs_index_from_name(d->base);
