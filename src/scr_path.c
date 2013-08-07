@@ -1251,6 +1251,17 @@ int scr_path_reduce(scr_path* path)
   return SCR_SUCCESS;
 }
 
+/* creates path from string, calls reduce, calls path_strdup,
+ * and deletes path, caller must free returned string with scr_free */
+char* scr_path_strdup_reduce_str(const char* str)
+{
+  scr_path* path = scr_path_from_str(str);
+  scr_path_reduce(path);
+  char* newstr = scr_path_strdup(path);
+  scr_path_delete(&path);
+  return newstr;
+}
+
 /* return 1 if path starts with an empty string, 0 otherwise */
 int scr_path_is_absolute(const scr_path* path)
 {

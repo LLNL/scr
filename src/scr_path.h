@@ -184,6 +184,10 @@ simplify and resolve functions
 /* removes consecutive '/', '.', '..', and trailing '/' */
 int scr_path_reduce(scr_path* path);
 
+/* creates path from string, calls reduce, calls path_strdup,
+ * and deletes path, caller must free returned string with scr_free */
+char* scr_path_strdup_reduce_str(const char* str);
+
 /* return 1 if path starts with an empty string, 0 otherwise */
 int scr_path_is_absolute(const scr_path* path);
 
