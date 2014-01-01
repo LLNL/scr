@@ -24,7 +24,7 @@ Store descriptor functions
 */
 
 /* initialize the specified store descriptor */
-int scr_storedesc_init(scr_storedesc* s)
+static int scr_storedesc_init(scr_storedesc* s)
 {
   /* check that we got a valid store descriptor */
   if (s == NULL) {
@@ -48,7 +48,7 @@ int scr_storedesc_init(scr_storedesc* s)
 }
 
 /* free any memory associated with the specified store descriptor */
-int scr_storedesc_free(scr_storedesc* s)
+static int scr_storedesc_free(scr_storedesc* s)
 {
   /* free the strings we strdup'd */
   scr_free(&s->name);
@@ -87,7 +87,7 @@ static int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
 
 /* build a store descriptor corresponding to the specified hash,
  * this function is collective, because it issues MPI calls */
-int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* hash)
+static int scr_storedesc_create_from_hash(scr_storedesc* s, const char* name, int index, const scr_hash* hash)
 {
   int rc = SCR_SUCCESS;
 
@@ -125,11 +125,9 @@ int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* 
   /* index of the descriptor */
   s->index = index;
 
+  /* TODO: check that path is absolute */
   /* set the base directory, reduce path in the process */
-  char* base;
-  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_BASE, &base) == SCR_SUCCESS) {
-    s->name = scr_path_strdup_reduce_str(base);
-  }
+  s->name = scr_path_strdup_reduce_str(name);
 
   /* set the max count, default to scr_cache_size unless specified otherwise */
   s->max_count = scr_cache_size;
@@ -139,7 +137,6 @@ int scr_storedesc_create_from_hash(scr_storedesc* s, int index, const scr_hash* 
   s->can_mkdir = 1;
   scr_hash_util_get_int(hash, SCR_CONFIG_KEY_MKDIR, &(s->can_mkdir));
 
-  /* TODO: use FGFS eventually, for now we assume node-local storage */
   /* get communicator of ranks that can access this storage device */
   char* group;
   const scr_groupdesc* groupdesc;
@@ -280,18 +277,37 @@ int scr_storedescs_create()
 
   /* iterate over each of our hash entries filling in each
    * corresponding descriptor */
-  int i;
-  for (i=0; i < scr_nstoredescs; i++) {
-    /* get the info hash for this descriptor */
-    scr_hash* hash = scr_hash_get_kv_int(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, i);
-    if (scr_storedesc_create_from_hash(&scr_storedescs[i], i, hash) != SCR_SUCCESS) {
+  int index = 0;
+  scr_hash_elem* elem;
+  for (elem = scr_hash_elem_first(tmp);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* rank 0 selects name of store descriptor for this step */
+    char* name = NULL;
+    if (scr_my_rank_world == 0) {
+      name = scr_hash_elem_key(elem);
+    }
+    scr_str_bcast(&name, 0, scr_comm_world);
+
+    /* get the hash for descriptor of specified name */
+    scr_hash* hash = scr_hash_get(tmp, name);
+    if (scr_storedesc_create_from_hash(&scr_storedescs[index], name, index, hash) != SCR_SUCCESS) {
       all_valid = 0;
     }
+
+    /* free name if we're not rank 0 */
+    if (scr_my_rank_world != 0) {
+      scr_free(&name);
+    }
+
+    /* increment our index for the next descriptor */
+    index++;
   }
 
   /* create store descriptor for control directory */
   scr_storedesc_cntl = (scr_storedesc*) malloc(sizeof(scr_storedesc));
-  int index = scr_storedescs_index_from_name(scr_cntl_base);
+  index = scr_storedescs_index_from_name(scr_cntl_base);
   if (scr_storedesc_cntl != NULL && index >= 0) {
     scr_storedesc_copy(scr_storedesc_cntl, &scr_storedescs[index]);
   } else {
@@ -301,7 +317,7 @@ int scr_storedescs_create()
   }
   
   /* determine whether everyone found a valid store descriptor */
-  if (!all_valid) {
+  if (! all_valid) {
     return SCR_FAILURE;
   }
   return SCR_SUCCESS;

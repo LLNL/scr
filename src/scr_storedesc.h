@@ -37,17 +37,6 @@ Store descriptor functions
 =========================================
 */
 
-/* initialize the specified store descriptor */
-int scr_storedesc_init(scr_storedesc* store);
-
-/* free any memory associated with the specified store descriptor */
-int scr_storedesc_free(scr_storedesc* store);
-
-/* build a store descriptor corresponding to the specified hash */
-int scr_storedesc_create_from_hash(
-  scr_storedesc* s, int index, const scr_hash* hash
-);
-
 /* create specified directory on store */
 int scr_storedesc_dir_create(const scr_storedesc* s, const char* dir);
 
