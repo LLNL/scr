@@ -951,61 +951,43 @@ int scr_reddescs_create()
   int all_valid = 1;
 
   /* iterate over each of our hash entries filling in each
-   * corresponding descriptor */
+   * corresponding descriptor, have rank 0 determine the
+   * order in which we'll create the descriptors */
   int index = 0;
-  if (scr_my_rank_world == 0) {
-    /* have rank 0 determine the order in which we'll create the
-     * descriptors */
-    scr_hash_elem* elem;
-    for (elem = scr_hash_elem_first(descs);
-         elem != NULL;
-         elem = scr_hash_elem_next(elem))
+  scr_hash_elem* elem;
+  for (elem = scr_hash_elem_first(descs);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* select redundancy descriptor name on rank 0 */
+    char* name = NULL;
+    if (scr_my_rank_world == 0) {
+      name = scr_hash_elem_key(elem);
+    }
+    scr_str_bcast(&name, 0, scr_comm_world);
+
+    /* get the info hash for this descriptor */
+    scr_hash* hash = scr_hash_get(descs, name);
+
+    /* create descriptor */
+    if (scr_reddesc_create_from_hash(&scr_reddescs[index], index, hash)
+        != SCR_SUCCESS)
     {
-      /* get key for this group */
-      char* key = scr_hash_elem_key(elem);
-
-      /* bcast key name */
-      scr_str_bcast(&key, 0, scr_comm_world);
-
-      /* get the info hash for this descriptor */
-      scr_hash* hash = scr_hash_get(descs, key);
-
-      /* create descriptor */
-      if (scr_reddesc_create_from_hash(&scr_reddescs[index], index, hash)
-          != SCR_SUCCESS)
-      {
+      if (scr_my_rank_world == 0) {
         scr_err("Failed to set up %s=%s @ %s:%f",
-          SCR_CONFIG_KEY_CKPTDESC, key, __FILE__, __LINE__
+          SCR_CONFIG_KEY_CKPTDESC, name, __FILE__, __LINE__
         );
-        all_valid = 0;
       }
-
-      /* advance to our next descriptor */
-      index++;
+      all_valid = 0;
     }
-  } else {
-    int i;
-    for (i = 0; i < scr_nreddescs; i++) {
-      /* receive key */
-      char* key;
-      scr_str_bcast(&key, 0, scr_comm_world);
 
-      /* get the info hash for this descriptor */
-      scr_hash* hash = scr_hash_get(descs, key);
-
-      /* create descriptor */
-      if (scr_reddesc_create_from_hash(&scr_reddescs[index], index, hash)
-          != SCR_SUCCESS)
-      {
-        all_valid = 0;
-      }
-
-      /* free key name */
-      scr_free(&key);
-
-      /* advance to our next descriptor */
-      index++;
+    /* free descriptor name on non rank 0 tasks */
+    if (scr_my_rank_world != 0) {
+      scr_free(&name);
     }
+
+    /* advance to our next descriptor */
+    index++;
   }
 
   /* determine whether everyone found a valid redundancy descriptor */
