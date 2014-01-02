@@ -35,7 +35,7 @@ static int scr_storedesc_init(scr_storedesc* s)
   }
 
   /* initialize the descriptor */
-  s->enabled   =  0;
+  s->enabled   = 0;
   s->index     = -1;
   s->name      = NULL;
   s->max_count = 0;
@@ -50,12 +50,17 @@ static int scr_storedesc_init(scr_storedesc* s)
 /* free any memory associated with the specified store descriptor */
 static int scr_storedesc_free(scr_storedesc* s)
 {
-  /* free the strings we strdup'd */
-  scr_free(&s->name);
+  if (s != NULL) {
+    /* free the strings we strdup'd */
+    scr_free(&s->name);
 
-  /* free the communicator we created */
-  if (s->comm != MPI_COMM_NULL) {
-    MPI_Comm_free(&s->comm);
+    /* free the communicator we created */
+    if (s->comm != MPI_COMM_NULL) {
+      MPI_Comm_free(&s->comm);
+    }
+
+    /* reinitialize fields */
+    scr_storedesc_init(s);
   }
 
   return SCR_SUCCESS;
@@ -273,7 +278,13 @@ int scr_storedescs_create()
     /* TODO: check for errors */
   }
 
+  /* flag to indicate whether we successfully build all store
+   * descriptors */
   int all_valid = 1;
+
+  /* sort the hash to ensure we step through all elements in the same
+   * order on all procs */
+  scr_hash_sort(tmp, SCR_HASH_SORT_ASCENDING);
 
   /* iterate over each of our hash entries filling in each
    * corresponding descriptor */
@@ -283,22 +294,13 @@ int scr_storedescs_create()
        elem != NULL;
        elem = scr_hash_elem_next(elem))
   {
-    /* rank 0 selects name of store descriptor for this step */
-    char* name = NULL;
-    if (scr_my_rank_world == 0) {
-      name = scr_hash_elem_key(elem);
-    }
-    scr_str_bcast(&name, 0, scr_comm_world);
+    /* get name of store descriptor for this step */
+    char* name = scr_hash_elem_key(elem);
 
     /* get the hash for descriptor of specified name */
     scr_hash* hash = scr_hash_get(tmp, name);
     if (scr_storedesc_create_from_hash(&scr_storedescs[index], name, index, hash) != SCR_SUCCESS) {
       all_valid = 0;
-    }
-
-    /* free name if we're not rank 0 */
-    if (scr_my_rank_world != 0) {
-      scr_free(&name);
     }
 
     /* increment our index for the next descriptor */
@@ -326,16 +328,17 @@ int scr_storedescs_create()
 /* free scr_storedescs array */
 int scr_storedescs_free()
 {
+  /* free descriptor for control directory */
+  scr_storedesc_free(scr_storedesc_cntl);
+  scr_free(&scr_storedesc_cntl);
+
   /* iterate over and free each of our store descriptors */
   if (scr_nstoredescs > 0 && scr_storedescs != NULL) {
     int i;
-    for (i=0; i < scr_nstoredescs; i++) {
+    for (i = 0; i < scr_nstoredescs; i++) {
       scr_storedesc_free(&scr_storedescs[i]);
     }
   }
-
-  /* free descriptor for control directory */
-  scr_storedesc_free(scr_storedesc_cntl);
 
   /* set the count back to zero */
   scr_nstoredescs = 0;

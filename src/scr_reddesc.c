@@ -48,7 +48,7 @@ int scr_reddesc_init(scr_reddesc* d)
   d->groups         =  0;
   d->group_id       = -1;
   d->ranks          =  0;
-  d->my_rank        = MPI_PROC_NULL;
+  d->rank           = MPI_PROC_NULL;
 
   return SCR_SUCCESS;
 }
@@ -331,7 +331,7 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, scr_hash* hash)
   scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_GROUPS,     d->groups);
   scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_GROUP_ID,   d->group_id);
   scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_GROUP_SIZE, d->ranks);
-  scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_GROUP_RANK, d->my_rank);
+  scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_GROUP_RANK, d->rank);
 
   return SCR_SUCCESS;
 }
@@ -607,7 +607,7 @@ int scr_reddesc_create_from_hash(
     }
 
     /* find our position in the checkpoint communicator */
-    MPI_Comm_rank(d->comm, &d->my_rank);
+    MPI_Comm_rank(d->comm, &d->rank);
     MPI_Comm_size(d->comm, &d->ranks);
 
     /* for our group id, use the global rank of the rank 0 task
@@ -616,7 +616,7 @@ int scr_reddesc_create_from_hash(
     MPI_Bcast(&d->group_id, 1, MPI_INT, 0, d->comm);
 
     /* count the number of groups */
-    int group_master = (d->my_rank == 0) ? 1 : 0;
+    int group_master = (d->rank == 0) ? 1 : 0;
     MPI_Allreduce(
       &group_master, &d->groups, 1, MPI_INT, MPI_SUM, scr_comm_world
     );
@@ -760,7 +760,7 @@ int scr_reddesc_restore_from_hash(
   }
 
   /* find our position in the checkpoint communicator */
-  MPI_Comm_rank(d->comm, &d->my_rank);
+  MPI_Comm_rank(d->comm, &d->rank);
   MPI_Comm_size(d->comm, &d->ranks);
 
   /* for our group id, use the global rank of the rank 0 task
@@ -769,7 +769,7 @@ int scr_reddesc_restore_from_hash(
   MPI_Bcast(&d->group_id, 1, MPI_INT, 0, d->comm);
 
   /* count the number of groups */
-  int group_master = (d->my_rank == 0) ? 1 : 0;
+  int group_master = (d->rank == 0) ? 1 : 0;
   MPI_Allreduce(
     &group_master, &d->groups, 1, MPI_INT, MPI_SUM, scr_comm_world
   );
@@ -950,6 +950,10 @@ int scr_reddescs_create()
    * descriptors */
   int all_valid = 1;
 
+  /* sort the hash to ensure we step through all elements in the same
+   * order on all procs */
+  scr_hash_sort(descs, SCR_HASH_SORT_ASCENDING);
+
   /* iterate over each of our hash entries filling in each
    * corresponding descriptor, have rank 0 determine the
    * order in which we'll create the descriptors */
@@ -960,11 +964,7 @@ int scr_reddescs_create()
        elem = scr_hash_elem_next(elem))
   {
     /* select redundancy descriptor name on rank 0 */
-    char* name = NULL;
-    if (scr_my_rank_world == 0) {
-      name = scr_hash_elem_key(elem);
-    }
-    scr_str_bcast(&name, 0, scr_comm_world);
+    char* name = scr_hash_elem_key(elem);
 
     /* get the info hash for this descriptor */
     scr_hash* hash = scr_hash_get(descs, name);
@@ -979,11 +979,6 @@ int scr_reddescs_create()
         );
       }
       all_valid = 0;
-    }
-
-    /* free descriptor name on non rank 0 tasks */
-    if (scr_my_rank_world != 0) {
-      scr_free(&name);
     }
 
     /* advance to our next descriptor */
