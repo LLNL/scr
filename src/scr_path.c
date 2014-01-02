@@ -53,14 +53,8 @@ static inline int scr_path_init(scr_path* path)
 /* allocate and initialize a new path element */
 static scr_path_elem* scr_path_elem_alloc()
 {
-  scr_path_elem* elem = (scr_path_elem*) malloc(sizeof(scr_path_elem));
-  if (elem != NULL) {
-    scr_path_elem_init(elem);
-  } else {
-    scr_abort(-1, "Failed to allocate memory for path element @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
+  scr_path_elem* elem = (scr_path_elem*) SCR_MALLOC(sizeof(scr_path_elem));
+  scr_path_elem_init(elem);
   return elem;
 }
 
@@ -86,14 +80,8 @@ static int scr_path_elem_free(scr_path_elem** ptr_elem)
 /* allocate a new path */
 static scr_path* scr_path_alloc()
 {
-  scr_path* path = (scr_path*) malloc(sizeof(scr_path));
-  if (path != NULL) {
-    scr_path_init(path);
-  } else {
-    scr_abort(-1, "Failed to allocate memory for path object @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
+  scr_path* path = (scr_path*) SCR_MALLOC(sizeof(scr_path));
+  scr_path_init(path);
   return path;
 }
 
@@ -296,12 +284,7 @@ static char* scr_path_alloc_strf(const char* format, va_list args1, va_list args
 
   /* allocate space to hold string, add one for the terminating NUL */
   size_t strlen = chars + 1;
-  char* str = (char*) malloc(strlen);
-  if (str == NULL) {
-    scr_abort(-1, "Failed to allocate memory for path component string @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
+  char* str = (char*) SCR_MALLOC(strlen);
 
   /* copy formatted string into new memory */
   vsnprintf(str, strlen, format, args2);
@@ -353,12 +336,7 @@ scr_path* scr_path_from_str(const char* str)
       /* compute number of bytes to copy this component
        * (including terminating NULL) */
       size_t buflen = end - start + 1;
-      char* buf = (char*) malloc(buflen);
-      if (buf == NULL) {
-        scr_abort(-1, "Failed to allocate memory for component string @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
+      char* buf = (char*) SCR_MALLOC(buflen);
 
       /* copy characters into string buffer and add terminating NUL */
       size_t chars = buflen - 1;
@@ -609,12 +587,7 @@ char* scr_path_strdup(const scr_path* path)
 
   /* compute number of bytes we need to allocate and allocate string */
   size_t buflen = scr_path_strlen(path) + 1;
-  char* buf = (char*) malloc(buflen);
-  if (buf == NULL) {
-    scr_abort(-1, "Failed to allocate buffer for path @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
+  char* buf = (char*) SCR_MALLOC(buflen);
 
   /* copy contents into string buffer */
   scr_path_strcpy_internal(buf, path);

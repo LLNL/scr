@@ -179,10 +179,7 @@ int scr_groupdescs_create()
   );
 
   /* allocate our group descriptors */
-  if (scr_ngroupdescs > 0) {
-    scr_groupdescs = (scr_groupdesc*) malloc(scr_ngroupdescs * sizeof(scr_groupdesc));
-    /* TODO: check for errors */
-  }
+  scr_groupdescs = (scr_groupdesc*) SCR_MALLOC(scr_ngroupdescs * sizeof(scr_groupdesc));
 
   /* disable all group descriptors until we build each one */
   for (i = 0; i < scr_ngroupdescs; i++) {

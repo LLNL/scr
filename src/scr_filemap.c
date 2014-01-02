@@ -561,12 +561,7 @@ int scr_filemap_list_files(const scr_filemap* map, int dset, int rank, int* n, c
   }
 
   /* now allocate array of pointers to the filenames */
-  char** list = (char**) malloc(count * sizeof(char*));
-  if (list == NULL) {
-    scr_err("Failed to allocate filename list for dataset id %d and rank %d at %s:%d",
-            dset, rank, __FILE__, __LINE__);
-    exit(1);
-  }
+  char** list = (char**) SCR_MALLOC(count * sizeof(char*));
 
   /* record pointer values in array */
   count = 0;

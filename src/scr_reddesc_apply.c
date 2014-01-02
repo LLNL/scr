@@ -595,19 +595,9 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
 
   /* count the number of files I have and allocate space in structures for each of them */
   int num_files = scr_filemap_num_files(map, id, scr_my_rank_world);
-  int* fds = NULL;
-  char** filenames = NULL;
-  unsigned long* filesizes = NULL;
-  if (num_files > 0) {
-    fds       = (int*)           malloc(num_files * sizeof(int));
-    filenames = (char**)         malloc(num_files * sizeof(char*));
-    filesizes = (unsigned long*) malloc(num_files * sizeof(unsigned long));
-    if (fds == NULL || filenames == NULL || filesizes == NULL) {
-      scr_abort(-1, "Failed to allocate file arrays @ %s:%d",
-                __FILE__, __LINE__
-      );
-    }
-  }
+  int* fds = (int*) SCR_MALLOC(num_files * sizeof(int));
+  char** filenames = (char**) SCR_MALLOC(num_files * sizeof(char*));
+  unsigned long* filesizes = (unsigned long*) SCR_MALLOC(num_files * sizeof(unsigned long));
 
   /* record partner's redundancy descriptor hash in our filemap */
   scr_hash* lhs_desc_hash = scr_hash_new();
@@ -700,7 +690,7 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
   char my_chunk_file[SCR_MAX_FILENAME];
   char dir[SCR_MAX_FILENAME];
   scr_cache_dir_get(c, id, dir);
-  sprintf(my_chunk_file,  "%s/%d_of_%d_in_%d.xor", dir, c->my_rank+1, c->ranks, c->group_id);
+  sprintf(my_chunk_file,  "%s/%d_of_%d_in_%d.xor", dir, c->rank+1, c->ranks, c->group_id);
 
   /* record chunk file in filemap before creating it */
   scr_filemap_add_file(map, id, scr_my_rank_world, my_chunk_file);
@@ -735,8 +725,8 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
     for(chunk_id = c->ranks-1; chunk_id >= 0; chunk_id--) {
       /* read the next set of bytes for this chunk from my file into send_buf */
       if (chunk_id > 0) {
-        int chunk_id_rel = (c->my_rank + c->ranks + chunk_id) % c->ranks;
-        if (chunk_id_rel > c->my_rank) {
+        int chunk_id_rel = (c->rank + c->ranks + chunk_id) % c->ranks;
+        if (chunk_id_rel > c->rank) {
           chunk_id_rel--;
         }
         unsigned long offset = chunk_size * (unsigned long) chunk_id_rel + nread;

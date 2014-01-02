@@ -296,19 +296,11 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
     int count = scr_hash_size(files);
 
     /* allocate buffers to hold the directory needed for each file */
-    const char** dirs     = NULL;
-    uint64_t* group_id    = NULL;
-    uint64_t* group_ranks = NULL;
-    uint64_t* group_rank  = NULL;
-    const char** subdirs  = NULL;
-    if (count > 0) {
-      dirs        = (const char**) malloc(sizeof(const char*) * count);
-      group_id    = (uint64_t*)    malloc(sizeof(uint64_t)    * count);
-      group_ranks = (uint64_t*)    malloc(sizeof(uint64_t)    * count);
-      group_rank  = (uint64_t*)    malloc(sizeof(uint64_t)    * count);
-      subdirs     = (const char**) malloc(sizeof(const char*)       * count);
-      /* TODO: check for allocation error */
-    }
+    const char** dirs     = (const char**) SCR_MALLOC(sizeof(const char*) * count);
+    uint64_t* group_id    = (uint64_t*)    SCR_MALLOC(sizeof(uint64_t)    * count);
+    uint64_t* group_ranks = (uint64_t*)    SCR_MALLOC(sizeof(uint64_t)    * count);
+    uint64_t* group_rank  = (uint64_t*)    SCR_MALLOC(sizeof(uint64_t)    * count);
+    const char** subdirs  = (const char**) SCR_MALLOC(sizeof(const char*)       * count);
 
     /* lookup directory from meta data for each file */
     int valid_subdir = 1;

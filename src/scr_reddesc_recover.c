@@ -77,7 +77,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
 
   int num_files = -1;
   scr_hash* current_hash = NULL;
-  if (root != c->my_rank) {
+  if (root != c->rank) {
     /* lookup name of xor file */
     if (! scr_bool_have_xor_file(map, id, full_chunk_filename)) {
       scr_abort(-1, "Missing XOR file %s @ %s:%d",
@@ -105,16 +105,9 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     }
 
     /* allocate arrays to hold file descriptors, filenames, and filesizes for each of our files */
-    if (num_files > 0) {
-      fds       = (int*)           malloc(num_files * sizeof(int));
-      filenames = (char**)         malloc(num_files * sizeof(char*));
-      filesizes = (unsigned long*) malloc(num_files * sizeof(unsigned long));
-      if (fds == NULL || filenames == NULL || filesizes == NULL) {
-        scr_abort(-1, "Failed to allocate file arrays @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
-    }
+    fds       = (int*)           SCR_MALLOC(num_files * sizeof(int));
+    filenames = (char**)         SCR_MALLOC(num_files * sizeof(char*));
+    filesizes = (unsigned long*) SCR_MALLOC(num_files * sizeof(unsigned long));
 
     /* get path from chunk file */
     scr_path* path_chunk = scr_path_from_str(full_chunk_filename);
@@ -210,16 +203,11 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
         __FILE__, __LINE__
       );
     }
-    if (num_files > 0) {
-      fds       = (int*)           malloc(num_files * sizeof(int));
-      filenames = (char**)         malloc(num_files * sizeof(char*));
-      filesizes = (unsigned long*) malloc(num_files * sizeof(unsigned long));
-      if (fds == NULL || filenames == NULL || filesizes == NULL) {
-        scr_abort(-1, "Failed to allocate file arrays @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
-    }
+
+    /* allocate items for each file */
+    fds       = (int*)           SCR_MALLOC(num_files * sizeof(int));
+    filenames = (char**)         SCR_MALLOC(num_files * sizeof(char*));
+    filesizes = (unsigned long*) SCR_MALLOC(num_files * sizeof(unsigned long));
 
     /* get dataset directory */
     char dir[SCR_MAX_FILENAME];
@@ -227,7 +215,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
 
     /* set chunk filename of form: <xor_rank+1>_of_<xor_groupsize>_in_<xor_groupid>.xor */
     scr_path* path_full_chunk_filename = scr_path_from_str(dir);
-    scr_path_append_strf(path_full_chunk_filename, "%d_of_%d_in_%d.xor", dir, c->my_rank+1, c->ranks, c->group_id);
+    scr_path_append_strf(path_full_chunk_filename, "%d_of_%d_in_%d.xor", dir, c->rank+1, c->ranks, c->group_id);
     scr_path_strcpy(full_chunk_filename, sizeof(full_chunk_filename), path_full_chunk_filename);
     scr_path_delete(&path_full_chunk_filename);
 
@@ -350,9 +338,9 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
         count = scr_mpi_buf_size;
       }
 
-      if (root != c->my_rank) {
+      if (root != c->rank) {
         /* read the next set of bytes for this chunk from my file into send_buf */
-        if (chunk_id != c->my_rank) {
+        if (chunk_id != c->rank) {
           /* for this chunk, read data from the logical file */
           if (scr_read_pad_n(num_files, filenames, fds,
                              send_buf, count, offset, filesizes) != SCR_SUCCESS)
@@ -385,7 +373,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
         MPI_Recv(recv_buf, count, MPI_BYTE, state->lhs_rank, 0, c->comm, &status[0]);
 
         /* if this is not my xor chunk, write data to normal file, otherwise write to my xor chunk */
-        if (chunk_id != c->my_rank) {
+        if (chunk_id != c->rank) {
           /* for this chunk, write data to the logical file */
           if (scr_write_pad_n(num_files, filenames, fds,
                               recv_buf, count, offset, filesizes) != SCR_SUCCESS)
@@ -420,7 +408,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
   }
 
   /* if i'm the rebuild rank, complete my file and xor chunk */
-  if (root == c->my_rank) {
+  if (root == c->rank) {
     /* complete each of our files and mark each as complete */
     for (i=0; i < num_files; i++) {
       /* TODO: need to check for errors, check that file is really valid */
@@ -519,7 +507,7 @@ static int scr_reddesc_recover_xor_attempt(scr_filemap* map, const scr_reddesc* 
   int rc = SCR_SUCCESS;
   if (total_rebuild > 0) {
     /* someone in my set needs to rebuild, determine who */
-    int tmp_rank = need_rebuild ? c->my_rank : -1;
+    int tmp_rank = need_rebuild ? c->rank : -1;
     int rebuild_rank;
     MPI_Allreduce(&tmp_rank, &rebuild_rank, 1, MPI_INT, MPI_MAX, c->comm);
 

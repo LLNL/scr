@@ -35,7 +35,7 @@ typedef struct {
   int      groups;         /* number of redundancy sets */
   int      group_id;       /* unique id assigned to this redundancy set */
   int      ranks;          /* number of ranks in this set */
-  int      my_rank;        /* caller's rank within its set */
+  int      rank;           /* caller's rank within its set */
 } scr_reddesc;
 
 typedef struct {

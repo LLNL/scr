@@ -50,15 +50,9 @@ Allocate and delete hash objects
 /* allocates a new hash element */
 static scr_hash_elem* scr_hash_elem_new()
 {
-  scr_hash_elem* elem = (scr_hash_elem*) malloc(sizeof(scr_hash_elem));
-  if (elem != NULL) {
-    elem->key  = NULL;
-    elem->hash = NULL;
-  } else {
-    scr_abort(-1, "Failed to allocate memory for hash element @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
+  scr_hash_elem* elem = (scr_hash_elem*) SCR_MALLOC(sizeof(scr_hash_elem));
+  elem->key  = NULL;
+  elem->hash = NULL;
   return elem;
 }
 
@@ -82,14 +76,8 @@ static int scr_hash_elem_delete(scr_hash_elem* elem)
 /* allocates a new hash */
 scr_hash* scr_hash_new()
 {
-  scr_hash* hash = (scr_hash*) malloc(sizeof(scr_hash));
-  if (hash != NULL) {
-    LIST_INIT(hash);
-  } else {
-    scr_abort(-1, "Failed to allocate memory for hash object @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
+  scr_hash* hash = (scr_hash*) SCR_MALLOC(sizeof(scr_hash));
+  LIST_INIT(hash);
   return hash;
 }
 
@@ -533,10 +521,7 @@ int scr_hash_sort(scr_hash* hash, int direction)
   };
 
   /* allocate space for each element */
-  struct sort_elem* list = (struct sort_elem*) malloc(count * sizeof(struct sort_elem));
-  if (list == NULL) {
-    return SCR_FAILURE;
-  }
+  struct sort_elem* list = (struct sort_elem*) SCR_MALLOC(count * sizeof(struct sort_elem));
 
   /* walk the hash and fill in the keys */
   scr_hash_elem* elem = NULL;
@@ -587,10 +572,7 @@ int scr_hash_sort_int(scr_hash* hash, int direction)
   };
 
   /* allocate space for each element */
-  struct sort_elem* list = (struct sort_elem*) malloc(count * sizeof(struct sort_elem));
-  if (list == NULL) {
-    return SCR_FAILURE;
-  }
+  struct sort_elem* list = (struct sort_elem*) SCR_MALLOC(count * sizeof(struct sort_elem));
 
   /* walk the hash and fill in the keys */
   scr_hash_elem* elem = NULL;
@@ -643,12 +625,7 @@ int scr_hash_list_int(const scr_hash* hash, int* n, int** v)
   }
 
   /* now allocate array of ints to save keys */
-  int* list = (int*) malloc(count * sizeof(int));
-  if (list == NULL) {
-    scr_abort(-1, "Failed to allocate integer list at %s:%d",
-      __FILE__, __LINE__
-    );
-  }
+  int* list = (int*) SCR_MALLOC(count * sizeof(int));
 
   /* record key values in array */
   count = 0;
@@ -1111,13 +1088,7 @@ int scr_hash_write_persist(void** ptr_buf, size_t* ptr_size, const scr_hash* has
   size_t bufsize = scr_hash_persist_size(hash);
 
   /* allocate a buffer to pack the hash in */
-  char* buf = (char*) malloc(bufsize);
-  if (buf == NULL) {
-    scr_err("Allocating %lu byte buffer to persist hash @ %s:%d",
-      (unsigned long) bufsize, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  char* buf = (char*) SCR_MALLOC(bufsize);
 
   size_t size = 0;
   uint64_t filesize = (uint64_t) bufsize;
@@ -1391,13 +1362,7 @@ ssize_t scr_hash_read_fd(const char* file, int fd, scr_hash* hash)
   }
 
   /* allocate a buffer to read the hash and crc */
-  char* buf = (char*) malloc(filesize);
-  if (buf == NULL) {
-    scr_err("Allocating %lu byte buffer to write hash to %s @ %s:%d",
-      (unsigned long) filesize, file, __FILE__, __LINE__
-    );
-    return -1;
-  }
+  char* buf = (char*) SCR_MALLOC(filesize);
 
   /* copy the header into the buffer */
   memcpy(buf, header, size);

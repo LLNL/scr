@@ -142,12 +142,7 @@ static int scr_flush_file_to_containers(
   unsigned long buf_size = scr_file_buf_size;
 
   /* allocate buffer to read in file chunks */
-  char* buf = (char*) malloc(buf_size);
-  if (buf == NULL) {
-    scr_abort(-1, "Allocating memory: malloc(%llu) errno=%d %s @ %s:%d",
-      buf_size, errno, strerror(errno), __FILE__, __LINE__
-    );
-  }
+  char* buf = (char*) SCR_MALLOC(buf_size);
 
   /* initialize crc value */
   uLong crc;
@@ -458,8 +453,8 @@ static int scr_flush_data(scr_hash* file_list, scr_hash* data)
     }
 
     /* allocate MPI_Request arrays and an array of ints */
-    int*         flags = (int*)         malloc(2 * w * sizeof(int));
-    MPI_Request* req   = (MPI_Request*) malloc(2 * w * sizeof(MPI_Request));
+    int*         flags = (int*)         SCR_MALLOC(2 * w * sizeof(int));
+    MPI_Request* req   = (MPI_Request*) SCR_MALLOC(2 * w * sizeof(MPI_Request));
     MPI_Status status;
 
     int i = 1;

@@ -83,7 +83,7 @@ int scr_path_bcast(scr_path* path, int root, MPI_Comm comm)
     str = scr_path_strdup(path);
   } else {
     /* non-root processes need to allocate an array */
-    str = (char*) malloc((size_t)bytes);
+    str = (char*) SCR_MALLOC((size_t)bytes);
   }
   if (str == NULL) {
     scr_abort(-1, "Failed to allocate memory to bcast path @ %s:%d",

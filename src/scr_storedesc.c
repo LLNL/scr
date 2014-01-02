@@ -273,10 +273,7 @@ int scr_storedescs_create()
   }
 
   /* allocate our store descriptors */
-  if (scr_nstoredescs > 0) {
-    scr_storedescs = (scr_storedesc*) malloc(scr_nstoredescs * sizeof(scr_storedesc));
-    /* TODO: check for errors */
-  }
+  scr_storedescs = (scr_storedesc*) SCR_MALLOC(scr_nstoredescs * sizeof(scr_storedesc));
 
   /* flag to indicate whether we successfully build all store
    * descriptors */
@@ -308,7 +305,7 @@ int scr_storedescs_create()
   }
 
   /* create store descriptor for control directory */
-  scr_storedesc_cntl = (scr_storedesc*) malloc(sizeof(scr_storedesc));
+  scr_storedesc_cntl = (scr_storedesc*) SCR_MALLOC(sizeof(scr_storedesc));
   index = scr_storedescs_index_from_name(scr_cntl_base);
   if (scr_storedesc_cntl != NULL && index >= 0) {
     scr_storedesc_copy(scr_storedesc_cntl, &scr_storedescs[index]);

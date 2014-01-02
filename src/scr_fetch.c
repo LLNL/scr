@@ -160,12 +160,7 @@ static int scr_fetch_file_from_containers(
 
   /* TODO: align this buffer */
   /* allocate buffer to read in file chunks */
-  char* buf = (char*) malloc(buf_size);
-  if (buf == NULL) {
-    scr_abort(-1, "Allocating memory: malloc(%llu) errno=%d %s @ %s:%d",
-      buf_size, errno, strerror(errno), __FILE__, __LINE__
-    );
-  }
+  char* buf = (char*) SCR_MALLOC(buf_size);
 
   /* initialize crc value */
   uLong crc;
@@ -869,14 +864,9 @@ static int scr_fetch_data(
     }
 
     /* allocate MPI_Request arrays and an array of ints */
-    int* flags       = (int*)         malloc(2 * w * sizeof(int));
-    MPI_Request* req = (MPI_Request*) malloc(2 * w * sizeof(MPI_Request));
+    int* flags       = (int*)         SCR_MALLOC(2 * w * sizeof(int));
+    MPI_Request* req = (MPI_Request*) SCR_MALLOC(2 * w * sizeof(MPI_Request));
     MPI_Status status;
-    if (flags == NULL || req == NULL) {
-      scr_abort(-1, "Failed to allocate memory for flow control @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
 
     /* execute our flow control window */
     int outstanding = 0;

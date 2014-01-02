@@ -76,12 +76,7 @@ int scr_scatter_filemaps(scr_filemap* my_map)
     }
 
     /* get global rank of each rank */
-    int* ranks = (int*) malloc(scr_storedesc_cntl->ranks * sizeof(int));
-    if (ranks == NULL) {
-      scr_abort(-1,"Failed to allocate memory to record local rank list @ %s:%d",
-         __FILE__, __LINE__
-      );
-    }
+    int* ranks = (int*) SCR_MALLOC(scr_storedesc_cntl->ranks * sizeof(int));
     MPI_Gather(
       &scr_my_rank_world, 1, MPI_INT, ranks, 1, MPI_INT,
       0, scr_storedesc_cntl->comm
@@ -409,13 +404,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
   }
 
   /* allocate array to record the rank we can send to in each round */
-  int* have_rank_by_round = (int*) malloc(sizeof(int) * nranks);
-  int* send_flag_by_round = (int*) malloc(sizeof(int) * nranks);
-  if (have_rank_by_round == NULL || send_flag_by_round == NULL) {
-    scr_abort(-1,"Failed to allocate memory to record rank id by round @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
+  int* have_rank_by_round = (int*) SCR_MALLOC(sizeof(int) * nranks);
+  int* send_flag_by_round = (int*) SCR_MALLOC(sizeof(int) * nranks);
 
   /* check that we have all of the files for each rank,
    * and determine the round we can send them */

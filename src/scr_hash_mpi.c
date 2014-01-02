@@ -55,17 +55,11 @@ int scr_hash_send(const scr_hash* hash, int rank, MPI_Comm comm)
   /* pack the hash and send it */
   if (size > 0) {
     /* allocate a buffer big enough to pack the hash */
-    char* buf = (char*) malloc((size_t)size);
-    if (buf != NULL) {
-      /* pack the hash, send it, and free our buffer */
-      scr_hash_pack(buf, hash);
-      MPI_Send(buf, size, MPI_BYTE, rank, 0, comm);
-      scr_free(&buf);
-    } else {
-      scr_abort(-1, "scr_hash_send: Failed to malloc buffer to pack hash @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
+    /* pack the hash, send it, and free our buffer */
+    char* buf = (char*) SCR_MALLOC((size_t)size);
+    scr_hash_pack(buf, hash);
+    MPI_Send(buf, size, MPI_BYTE, rank, 0, comm);
+    scr_free(&buf);
   }
 
   return SCR_SUCCESS;
@@ -90,17 +84,11 @@ int scr_hash_recv(scr_hash* hash, int rank, MPI_Comm comm)
   /* receive the hash and unpack it */
   if (size > 0) {
     /* allocate a buffer big enough to receive the packed hash */
-    char* buf = (char*) malloc((size_t)size);
-    if (buf != NULL) {
-      /* receive the hash, unpack it, and free our buffer */
-      MPI_Recv(buf, size, MPI_BYTE, rank, 0, comm, &status);
-      scr_hash_unpack(buf, hash);
-      scr_free(&buf);
-    } else {
-      scr_abort(-1, "scr_hash_recv: Failed to malloc buffer to receive hash @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
+    /* receive the hash, unpack it, and free our buffer */
+    char* buf = (char*) SCR_MALLOC((size_t)size);
+    MPI_Recv(buf, size, MPI_BYTE, rank, 0, comm, &status);
+    scr_hash_unpack(buf, hash);
+    scr_free(&buf);
   }
 
   return SCR_SUCCESS;
@@ -161,15 +149,13 @@ int scr_hash_sendrecv(const scr_hash* hash_send, int rank_send,
   char* buf_recv = NULL;
   if (size_recv > 0) {
     /* allocate space to receive a packed hash, and receive it */
-    buf_recv = (char*) malloc((size_t)size_recv);
-    /* TODO: check for errors */
+    buf_recv = (char*) SCR_MALLOC((size_t)size_recv);
     MPI_Irecv(buf_recv, size_recv, MPI_BYTE, rank_recv, 0, comm, &request[num_req]);
     num_req++;
   }
   if (size_send > 0) {
     /* allocate space, pack our hash, and send it */
-    buf_send = (char*) malloc((size_t)size_send);
-    /* TODO: check for errors */
+    buf_send = (char*) SCR_MALLOC((size_t)size_send);
     scr_hash_pack(buf_send, hash_send);
     MPI_Isend(buf_send, size_send, MPI_BYTE, rank_send, 0, comm, &request[num_req]);
     num_req++;
@@ -215,17 +201,11 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
     /* pack the hash and send it */
     if (size > 0) {
       /* allocate a buffer big enough to pack the hash */
-      char* buf = (char*) malloc((size_t)size);
-      if (buf != NULL) {
-        /* pack the hash, broadcast it, and free our buffer */
-        scr_hash_pack(buf, hash);
-        MPI_Bcast(buf, size, MPI_BYTE, root, comm);
-        scr_free(&buf);
-      } else {
-        scr_abort(-1, "scr_hash_bcast: Failed to malloc buffer to pack hash @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
+      /* pack the hash, broadcast it, and free our buffer */
+      char* buf = (char*) SCR_MALLOC((size_t)size);
+      scr_hash_pack(buf, hash);
+      MPI_Bcast(buf, size, MPI_BYTE, root, comm);
+      scr_free(&buf);
     }
   } else {
     /* clear the hash */
@@ -238,17 +218,11 @@ int scr_hash_bcast(scr_hash* hash, int root, MPI_Comm comm)
     /* receive the hash and unpack it */
     if (size > 0) {
       /* allocate a buffer big enough to receive the packed hash */
-      char* buf = (char*) malloc((size_t)size);
-      if (buf != NULL) {
-        /* receive the hash, unpack it, and free our buffer */
-        MPI_Bcast(buf, size, MPI_BYTE, root, comm);
-        scr_hash_unpack(buf, hash);
-        scr_free(&buf);
-      } else {
-        scr_abort(-1, "scr_hash_bcast: Failed to malloc buffer to receive hash @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
+      /* receive the hash, unpack it, and free our buffer */
+      char* buf = (char*) SCR_MALLOC((size_t)size);
+      MPI_Bcast(buf, size, MPI_BYTE, root, comm);
+      scr_hash_unpack(buf, hash);
+      scr_free(&buf);
     }
   }
 

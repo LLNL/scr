@@ -60,8 +60,7 @@ static int scr_reddesc_create_partner(scr_reddesc* d)
   int rc = SCR_SUCCESS;
 
   /* allocate a new structure to hold partner state */
-  scr_reddesc_partner* state = (scr_reddesc_partner*) malloc(sizeof(scr_reddesc_partner));
-  /* TODO: check for errors */
+  scr_reddesc_partner* state = (scr_reddesc_partner*) SCR_MALLOC(sizeof(scr_reddesc_partner));
 
   /* attach structure to reddesc */
   d->copy_state = (void*) state;
@@ -105,8 +104,7 @@ static int scr_reddesc_create_xor(scr_reddesc* d)
   int rc = SCR_SUCCESS;
 
   /* allocate a new structure to hold XOR state */
-  scr_reddesc_xor* state = (scr_reddesc_xor*) malloc(sizeof(scr_reddesc_xor));
-  /* TODO: check for errors */
+  scr_reddesc_xor* state = (scr_reddesc_xor*) SCR_MALLOC(sizeof(scr_reddesc_xor));
 
   /* attach structure to reddesc */
   d->copy_state = (void*) state;
@@ -131,8 +129,7 @@ static int scr_reddesc_create_xor(scr_reddesc* d)
   /* record mapping of rank in xor group to corresponding world rank */
   if (ranks_comm > 0) {
     /* allocate array to receive rank from each process */
-    int* ranklist = (int*) malloc(ranks_comm * sizeof(int));
-    /* TODO: check for errors */
+    int* ranklist = (int*) SCR_MALLOC(ranks_comm * sizeof(int));
 
     /* gather rank values */
     MPI_Allgather(&scr_my_rank_world, 1, MPI_INT, ranklist, 1, MPI_INT, d->comm);
@@ -941,10 +938,7 @@ int scr_reddescs_create()
   }
 
   /* allocate our redundancy descriptors */
-  if (scr_nreddescs > 0) {
-    scr_reddescs = (scr_reddesc*) malloc(scr_nreddescs * sizeof(scr_reddesc));
-    /* TODO: check for errors */
-  }
+  scr_reddescs = (scr_reddesc*) SCR_MALLOC(scr_nreddescs * sizeof(scr_reddesc));
 
   /* flag to indicate whether we successfully build all redundancy
    * descriptors */

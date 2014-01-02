@@ -24,6 +24,11 @@ int scr_atod(char* str, double* val);
 int scr_abtoull(char* str, unsigned long long* val);
 
 
+/* allocate size bytes, returns NULL if size == 0,
+ * calls scr_abort if allocation fails */
+#define SCR_MALLOC(X) scr_malloc(X, __FILE__, __LINE__);
+void* scr_malloc(size_t size, const char* file, int line);
+
 /* pass address of pointer to be freed, frees memory if not NULL and sets pointer to NULL */
 void scr_free(void* ptr);
 
@@ -32,7 +37,6 @@ void* scr_align_malloc(size_t size, size_t align);
 
 /* frees a blocked allocated with a call to scr_align_malloc */
 void scr_align_free(void* buf);
-
 
 /*sprintfs a formatted string into an newly allocated string */
 char* scr_strdupf(const char* format, ...);

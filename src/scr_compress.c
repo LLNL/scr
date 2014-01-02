@@ -233,12 +233,7 @@ int scr_compress_buf(const void* inbuf, size_t insize, void** outbuf, size_t* ou
 
   /* allocate buffer to write compressed data into */
   size_t total_size = ((size_t) header_size) + ((size_t) bound_size);
-  void* buf = malloc(total_size);
-  if (buf == NULL) {
-    scr_abort(-1, "Allocating compress buffer malloc(%ld) errno=%d %s @ %s:%d",
-      total_size, errno, strerror(errno), __FILE__, __LINE__
-    );
-  }
+  void* buf = SCR_MALLOC(total_size);
 
   int rc = SCR_SUCCESS;
 
@@ -432,12 +427,7 @@ int scr_uncompress_buf(const void* inbuf, size_t insize, void** outbuf, size_t* 
   }
 
   /* allocate buffer to read data into */
-  void* buf = malloc((size_t) block_size);
-  if (buf == NULL) {
-    scr_abort(-1, "Allocating buffer to decompress data malloc(%ld) errno=%d %s @ %s:%d",
-      block_size, errno, strerror(errno), __FILE__, __LINE__
-    );
-  }
+  void* buf = SCR_MALLOC((size_t) block_size);
 
   /* decompress data */
   size_t written;
@@ -513,13 +503,7 @@ int scr_compress_in_place(const char* file_src, const char* file_dst, unsigned l
   unsigned long header_size = SCR_FILE_COMPRESSED_HEADER_SIZE + num_blocks * (2 * sizeof(uint64_t) + 2 * sizeof(uint32_t));
 
   /* allocate buffer to hold file header */
-  void* header = malloc(header_size);
-  if (header == NULL) {
-    scr_err("Allocating header buffer when compressing %s: malloc(%ld) errno=%d %s @ %s:%d",
-            file_src, header_size, errno, strerror(errno), __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  void* header = SCR_MALLOC(header_size);
 
   /* allocate buffer to read data into */
   void* buf_src = scr_align_malloc((size_t) block_size, page_size);
@@ -791,13 +775,7 @@ int scr_compress(const char* file_src, const char* file_dst, unsigned long block
   unsigned long header_size = SCR_FILE_COMPRESSED_HEADER_SIZE + num_blocks * (2 * sizeof(uint64_t) + 2 * sizeof(uint32_t));
 
   /* allocate buffer to hold file header */
-  void* header = malloc(header_size);
-  if (header == NULL) {
-    scr_err("Allocating header buffer when compressing %s: malloc(%ld) errno=%d %s @ %s:%d",
-            file_src, header_size, errno, strerror(errno), __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
+  void* header = SCR_MALLOC(header_size);
 
   /* allocate buffer to read data into */
   void* buf_src = scr_align_malloc((size_t) block_size, page_size);
@@ -1079,14 +1057,7 @@ int scr_uncompress_in_place(const char* file_src, const char* file_dst)
   scr_unpack_uint64_t(buf, sizeof(buf), &size, &num_blocks);
 
   /* allocate buffer to hold file header */
-  void* header = malloc(header_size);
-  if (header == NULL) {
-    scr_err("Allocating header buffer when decompressing %s: malloc(%ld) errno=%d %s @ %s:%d",
-            file_src, header_size, errno, strerror(errno), __FILE__, __LINE__
-    );
-    scr_close(file_src, fd_src);
-    return SCR_FAILURE;
-  }
+  void* header = SCR_MALLOC(header_size);
 
   /* allocate buffer to read data into */
   void* buf_src = scr_align_malloc((size_t) block_size, page_size);
@@ -1440,15 +1411,7 @@ int scr_uncompress(const char* file_src, const char* file_dst)
   scr_unpack_uint64_t(buf, sizeof(buf), &size, &num_blocks);
 
   /* allocate buffer to hold file header */
-  void* header = malloc(header_size);
-  if (header == NULL) {
-    scr_err("Allocating header buffer when decompressing %s: malloc(%ld) errno=%d %s @ %s:%d",
-            file_src, header_size, errno, strerror(errno), __FILE__, __LINE__
-    );
-    scr_close(file_dst, fd_dst);
-    scr_close(file_src, fd_src);
-    return SCR_FAILURE;
-  }
+  void* header = SCR_MALLOC(header_size);
 
   /* allocate buffer to read data into */
   void* buf_src = scr_align_malloc((size_t) block_size, page_size);

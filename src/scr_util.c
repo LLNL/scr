@@ -157,6 +157,20 @@ int scr_abtoull(char* str, unsigned long long* val)
   return SCR_SUCCESS;
 }
 
+/* allocate size bytes, returns NULL if size == 0,
+ * calls scr_abort if allocation fails */
+void* scr_malloc(size_t size, const char* file, int line)
+{
+  void* ptr = NULL;
+  if (size > 0) {
+    ptr = malloc(size);
+    if (ptr == NULL) {
+      scr_abort(-1, "Failed to allocate %llu bytes @ %s:%d", file, line);
+    }
+  }
+  return ptr;
+}
+
 /* caller really passes in a void**, but we define it as just void* to avoid printing
  * a bunch of warnings */
 void scr_free(void* p)
@@ -188,7 +202,7 @@ void* scr_align_malloc(size_t size, size_t align)
   size_t bytes = size + align + sizeof(void*);
 
   /* allocate memory */
-  void* start = malloc(bytes);
+  void* start = SCR_MALLOC(bytes);
   if (start == NULL) {
     return NULL;
   }
@@ -247,7 +261,7 @@ char* scr_strdupf(const char* format, ...)
 
   /* allocate and print the string */
   if (size > 0) {
-    str = (char*) malloc(size);
+    str = (char*) SCR_MALLOC(size);
 
     va_start(args, format);
     vsnprintf(str, size, format, args);

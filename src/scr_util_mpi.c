@@ -55,12 +55,7 @@ int scr_str_recv(char** str, int rank, MPI_Comm comm)
   char* recvstr = NULL;
   if (len > 0) {
     /* allocate space to receive string */
-    recvstr = (char*) malloc(len);
-    if (recvstr == NULL) {
-      scr_abort(-1, "Failed to allocate %d bytes to receive string @ %s:%d",
-        len, __FILE__, __LINE__
-      );
-    }
+    recvstr = (char*) SCR_MALLOC(len);
 
     /* receive the string */
     MPI_Recv(recvstr, len, MPI_CHAR, rank, 999, comm, &status);
@@ -106,12 +101,7 @@ int scr_str_sendrecv(
   /* if receive length is positive, allocate space to receive string */
   char* tmp_str = NULL;
   if (recv_len > 0) {
-    tmp_str = (char*) malloc(recv_len);
-    if (tmp_str == NULL) {
-      scr_abort(-1, "Failed to allocate %d bytes to receive string @ %s:%d",
-        recv_len, __FILE__, __LINE__
-      );
-    }
+    tmp_str = (char*) SCR_MALLOC(recv_len);
   }
 
   /* exchange strings */
@@ -149,12 +139,7 @@ int scr_str_bcast(char** str, int root, MPI_Comm comm)
     tmp_str = *str;
   } else {
     if (len > 0) {
-      tmp_str = (char*) malloc(len);
-      if (tmp_str == NULL) {
-        scr_abort(-1, "Failed to allocate %d bytes to bcast string @ %s:%d",
-          len, __FILE__, __LINE__
-        );
-      }
+      tmp_str = (char*) SCR_MALLOC(len);
     }
   }
 

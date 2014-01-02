@@ -250,10 +250,7 @@ static int scr_sort_bitonic(
   int tag)
 {
   /* allocate a scratch buffer to hold received type during sort */
-  void* scratch = malloc(type_size);
-  if (scratch == NULL) {
-    /* TODO: error */
-  }
+  void* scratch = SCR_MALLOC(type_size);
 
   /* conduct the bitonic sort on our values */
   int ranks;
@@ -325,16 +322,10 @@ static int scr_split_sorted(
   send_ints[CHAIN_SRC] = *orig_ptr;
 
   /* allocate a scratch buffer to receive value from left neighbor */
-  void* left_buf = malloc(type_size);
-  if (left_buf == NULL) {
-    /* TODO: error */
-  }
+  void* left_buf = SCR_MALLOC(type_size);
 
   /* allocate a scratch buffer to receive value from right neighbor */
-  void* right_buf = malloc(type_size);
-  if (right_buf == NULL) {
-    /* TODO: error */
-  }
+  void* right_buf = SCR_MALLOC(type_size);
 
   /* get our rank in communicator */
   int rank, ranks;
@@ -600,10 +591,7 @@ int scr_rank_str(MPI_Comm comm, const char* str, int* groups, int* groupid)
 
   /* allocate space to hold a copy of the string (plus rank) */
   size_t buf_size = max_len + sizeof(int);
-  void* buf = malloc(buf_size);
-  if (buf == NULL) {
-    /* TODO: error */
-  }
+  void* buf = SCR_MALLOC(buf_size);
 
   /* TODO: if we want items with equal strings to be ordered by rank
    * in comm, then we need to include chain.group_rank as second key */
