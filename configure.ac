@@ -1,7 +1,7 @@
 ##
 # Prologue.
 ##
-AC_INIT
+AC_INIT([SCR],[1.1.8],[scalablecr-discuss@lists.sourceforge.net],[scr],[http://sourceforge.net/projects/scalablecr])
 AC_CONFIG_SRCDIR([src/scr.c])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR([m4])
@@ -16,7 +16,7 @@ X_AC_EXPAND_INSTALL_DIRS
 ##
 # Automake support.
 ##
-AM_INIT_AUTOMAKE([$META_NAME], [$META_VERSION]-[$META_RELEASE])
+AM_INIT_AUTOMAKE([foreign])
 
 #AM_MAINTAINER_MODE
 
@@ -29,7 +29,6 @@ AM_PROG_CC_C_O
 #X_AC_PROG_MPICC
 LX_FIND_MPI
 X_AC_YOGRT
-#X_AC_GCS
 X_AC_DTCMP
 X_AC_MYSQL
 X_AC_MACHINE
