@@ -482,30 +482,58 @@ scr_hash* scr_hash_getf(const scr_hash* hash, const char* format, ...)
   return (scr_hash*) h;
 }
 
+/* define a structure to hold the key and elem address */
+struct sort_elem_str {
+  char* key;
+  scr_hash_elem* addr;
+};
+
+/* define a structure to hold the key and elem address */
+struct sort_elem_int {
+  int key;
+  scr_hash_elem* addr;
+};
+
 /* sort strings in ascending order */
 static int scr_hash_cmp_fn_str_asc(const void* a, const void* b)
 {
-  int cmp = strcmp((char*)a, (char*)b);
+  struct sort_elem_str* elem_a = (struct sort_elem_str*) a;
+  struct sort_elem_str* elem_b = (struct sort_elem_str*) b;
+  const char* str_a = elem_a->key;
+  const char* str_b = elem_b->key;
+  int cmp = strcmp(str_a, str_b);
   return cmp;
 }
 
 /* sort strings in descending order */
 static int scr_hash_cmp_fn_str_desc(const void* a, const void* b)
 {
-  int cmp = strcmp((char*)b, (char*)a);
+  struct sort_elem_str* elem_a = (struct sort_elem_str*) a;
+  struct sort_elem_str* elem_b = (struct sort_elem_str*) b;
+  const char* str_a = elem_a->key;
+  const char* str_b = elem_b->key;
+  int cmp = strcmp(str_b, str_a);
   return cmp;
 }
 
 /* sort integers in ascending order */
 static int scr_hash_cmp_fn_int_asc(const void* a, const void* b)
 {
-  return (int) (*(int*)a - *(int*)b);
+  struct sort_elem_int* elem_a = (struct sort_elem_int*) a;
+  struct sort_elem_int* elem_b = (struct sort_elem_int*) b;
+  int int_a = elem_a->key;
+  int int_b = elem_b->key;
+  return (int) (int_a - int_b);
 }
 
 /* sort integers in descending order */
 static int scr_hash_cmp_fn_int_desc(const void* a, const void* b)
 {
-  return (int) (*(int*)b - *(int*)a);
+  struct sort_elem_int* elem_a = (struct sort_elem_int*) a;
+  struct sort_elem_int* elem_b = (struct sort_elem_int*) b;
+  int int_a = elem_a->key;
+  int int_b = elem_b->key;
+  return (int) (int_b - int_a);
 }
 
 /* sort the hash assuming the keys are ints */
@@ -514,14 +542,8 @@ int scr_hash_sort(scr_hash* hash, int direction)
   /* get the size of the hash */
   int count = scr_hash_size(hash);
 
-  /* define a structure to hold the key and elem address */
-  struct sort_elem {
-    char* key;
-    scr_hash_elem* addr;
-  };
-
   /* allocate space for each element */
-  struct sort_elem* list = (struct sort_elem*) SCR_MALLOC(count * sizeof(struct sort_elem));
+  struct sort_elem_str* list = (struct sort_elem_str*) SCR_MALLOC(count * sizeof(struct sort_elem_str));
 
   /* walk the hash and fill in the keys */
   scr_hash_elem* elem = NULL;
@@ -542,7 +564,7 @@ int scr_hash_sort(scr_hash* hash, int direction)
   if (direction == SCR_HASH_SORT_DESCENDING) {
     fn = &scr_hash_cmp_fn_str_desc;
   }
-  qsort(list, count, sizeof(struct sort_elem), fn);
+  qsort(list, count, sizeof(struct sort_elem_str), fn);
 
   /* walk the sorted list backwards, extracting the element by address,
    * and inserting at the head */
@@ -565,14 +587,8 @@ int scr_hash_sort_int(scr_hash* hash, int direction)
   /* get the size of the hash */
   int count = scr_hash_size(hash);
 
-  /* define a structure to hold the key and elem address */
-  struct sort_elem {
-    int key;
-    scr_hash_elem* addr;
-  };
-
   /* allocate space for each element */
-  struct sort_elem* list = (struct sort_elem*) SCR_MALLOC(count * sizeof(struct sort_elem));
+  struct sort_elem_int* list = (struct sort_elem_int*) SCR_MALLOC(count * sizeof(struct sort_elem_int));
 
   /* walk the hash and fill in the keys */
   scr_hash_elem* elem = NULL;
@@ -593,7 +609,7 @@ int scr_hash_sort_int(scr_hash* hash, int direction)
   if (direction == SCR_HASH_SORT_DESCENDING) {
     fn = &scr_hash_cmp_fn_int_desc;
   }
-  qsort(list, count, sizeof(struct sort_elem), fn);
+  qsort(list, count, sizeof(struct sort_elem_int), fn);
 
   /* walk the sorted list backwards, extracting the element by address,
    * and inserting at the head */
