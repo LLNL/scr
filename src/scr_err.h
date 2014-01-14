@@ -12,7 +12,7 @@
 #ifndef SCR_ERR_H
 #define SCR_ERR_H
 
-#define SCR_ERR_VERSION "v1.1-8"
+#define SCR_ERR_VERSION "v1.1.8"
 
 /*
 =========================================
