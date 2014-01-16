@@ -16,6 +16,7 @@
 #include "scr_util.h"
 #include "scr_err.h"
 #include "scr_io.h"
+#include "scr_path.h"
 #include "scr_hash.h"
 #include "scr_hash_util.h"
 #include "scr_config.h"
@@ -150,6 +151,54 @@ scr_hash* scr_param_get_hash(char* name)
   return NULL;
 }
 
+/* allocates a new string (to be freed with scr_free)
+ * that is path to user config file */
+static char* user_config_path()
+{
+  char* file = NULL;
+
+  /* first, use SCR_CONF_FILE if it's set */
+  char* value = getenv("SCR_CONF_FILE");
+  if (value != NULL) {
+    file = strdup(value);
+    return file;
+  }
+
+  /* otherwise, look in the prefix directory */
+  char* prefix = NULL;
+  value = getenv("SCR_PREFIX");
+  if (value != NULL) {
+    /* user set SCR_PREFIX, strdup that value */
+    prefix = strdup(value);
+  } else {
+    /* if user didn't set with SCR_PREFIX,
+     * pick up the current working directory as a default */
+    char current_dir[SCR_MAX_FILENAME];
+    if (scr_getcwd(current_dir, sizeof(current_dir)) != SCR_SUCCESS) {
+      scr_abort(-1, "Problem reading current working directory @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+    prefix = strdup(current_dir);
+  }
+
+  /* couldn't find a prefix directory, so bail */
+  if (prefix == NULL) {
+    return file;
+  }
+
+  /* tack file name on to directory */
+  scr_path* prefix_path = scr_path_from_str(prefix);
+  scr_path_append_str(prefix_path, SCR_CONFIG_FILE_USER);
+  file = scr_path_strdup(prefix_path);
+  scr_path_free(&prefix_path);
+
+  /* free the prefix dir which we strdup'd */
+  scr_free(&prefix);
+
+  return file;
+}
+
 /* read config files and store contents */
 int scr_param_init()
 {
@@ -162,11 +211,12 @@ int scr_param_init()
 
     /* allocate hash object to store values from user config file,
      * if specified */
-    char* user_file = getenv("SCR_CONF_FILE");
+    char* user_file = user_config_path();
     if (user_file != NULL) {
       scr_user_hash = scr_hash_new();
       scr_config_read(user_file, scr_user_hash);
     }
+    scr_free(&user_file);
 
     /* allocate hash object to store values from system config file */
     scr_system_hash = scr_hash_new();
