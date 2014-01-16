@@ -429,18 +429,18 @@ static int scr_get_params()
   if (scr_copy_type == SCR_COPY_SINGLE) {
     /* fill in info for one SINGLE checkpoint */
     tmp = scr_hash_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,     scr_cache_base);
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_STORE,    scr_cache_base);
     scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "SINGLE");
   } else if (scr_copy_type == SCR_COPY_PARTNER) {
     /* fill in info for one PARTNER checkpoint */
     tmp = scr_hash_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,     scr_cache_base);
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_STORE,    scr_cache_base);
     scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "PARTNER");
     scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_GROUP,    scr_group);
   } else if (scr_copy_type == SCR_COPY_XOR) {
     /* fill in info for one XOR checkpoint */
     tmp = scr_hash_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_BASE,     scr_cache_base);
+    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_STORE,    scr_cache_base);
     scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "XOR");
     scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_GROUP,    scr_group);
     scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_SET_SIZE, scr_set_size);

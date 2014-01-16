@@ -294,9 +294,9 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, scr_hash* hash)
   /* we don't set GROUP_INDEX because this is dependent on runtime
    * environment */
 
-  /* set the BASE key */
+  /* set the STORE key */
   if (d->base != NULL) {
-    scr_hash_set_kv(hash, SCR_CONFIG_KEY_BASE, d->base);
+    scr_hash_set_kv(hash, SCR_CONFIG_KEY_STORE, d->base);
   }
 
   /* set the DIRECTORY key */
@@ -479,7 +479,7 @@ int scr_reddesc_create_from_hash(
 
   /* set the base directory */
   char* base;
-  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_BASE, &base) == SCR_SUCCESS) {
+  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_STORE, &base) == SCR_SUCCESS) {
     /* strdup base after reducing it */
     d->base = scr_path_strdup_reduce_str(base);
 
@@ -693,7 +693,7 @@ int scr_reddesc_restore_from_hash(
   }
 
   /* set the base directory */
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_BASE);
+  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_STORE);
   if (value != NULL) {
     /* strdup base after reducing it */
     d->base = scr_path_strdup_reduce_str(value);
@@ -837,7 +837,7 @@ char* scr_reddesc_val_from_filemap(
 char* scr_reddesc_base_from_filemap(scr_filemap* map, int ckpt, int rank)
 {
   char* value = scr_reddesc_val_from_filemap(
-    map, ckpt, rank, SCR_CONFIG_KEY_BASE
+    map, ckpt, rank, SCR_CONFIG_KEY_STORE
   );
   return value;
 }
