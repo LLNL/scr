@@ -62,6 +62,9 @@
 #define SCR_CONFIG_FILE "/etc/scr.conf"
 #endif
 
+/* default name of user config file */
+#define SCR_CONFIG_FILE_USER ".scrconf"
+
 /* base control directory */
 #ifndef SCR_CNTL_BASE
 #define SCR_CNTL_BASE "/tmp"
