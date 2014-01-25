@@ -4,7 +4,7 @@ use lib '@X_DATADIR@/scr';
 use scr_param;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 
-# This script returns info on the SCR control and cache directories
+# This script returns info on the SCR control, cache, and prefix directories
 # for the current user and jobid, it returns "INVALID" if something
 # is not set.
 
@@ -13,51 +13,58 @@ use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 # scripts
 
 # TODO: read cache directory from config file
-my $prog = "scr_cntl_dir";
+my $prog = "scr_list_dir";
 
 my $bindir = "@X_BINDIR@";
 
-my $param = undef;
-if (defined $ENV{SCR_CONF_FILE}) {
-  $param = new scr_param($ENV{SCR_CONF_FILE});
-} else {
-  $param = new scr_param();
-}
+my $param = new scr_param();
 
 sub print_usage
 {
   print "\n";
-  print "  Usage:  $prog [--base] [--cache] [--user <username>] [--jobid <id>]\n";
+  print "  Usage:  $prog [options] <control | cache>\n";
+  print "\n";
+  print "  Options:\n";
+  print "    -u, --user     Specify username.\n";
+  print "    -j, --jobid    Specify jobid.\n";
+  print "    -b, --base     List base portion of cache/control directory";
   print "\n";
   exit 1;
 }
 
 # read in command line arguments
 my %conf = ();
-$conf{base}  = undef;
-$conf{cache} = undef;
-$conf{user}  = undef;
-$conf{jobid} = undef;
+$conf{user}   = undef;
+$conf{jobid}  = undef;
+$conf{base}   = undef;
 my $rc = GetOptions (
-   "base|b"    => \$conf{base},
-   "cache|c"   => \$conf{cache},
    "user|u=s"  => \$conf{user},
    "jobid|j=i" => \$conf{jobid},
+   "base|b"    => \$conf{base},
 );
 if (not $rc) {
   print_usage();
 }
 
+# should have exactly one argument
+if (@ARGV != 1) {
+  print_usage();
+}
+
+# check that user specified "control" or "cache"
+my $dir = shift @ARGV;
+if ($dir ne "control" and $dir ne "cache") {
+  print_usage();
+}
+
 # get the base directory
 my @bases = ();
-if (defined $conf{cache}) {
+if ($dir eq "cache") {
   # lookup cache base
-  my $cachedesc = $param->get_hash("CACHEDESC");
+  my $cachedesc = $param->get_hash("CACHE");
   if (defined $cachedesc) {
     foreach my $index (keys %$cachedesc) {
-      if (defined $$cachedesc{$index}{"BASE"}) {
-        push @bases, (keys %{$$cachedesc{$index}{"BASE"}})[0];
-      }
+      push @bases, $index;
     }
   }
 } else {

@@ -28,7 +28,7 @@ prog="scr_postrun"
 print_usage() { echo "Usage: $prog [-p prefix_dir]"; exit 1; }
 
 # pass prefix via command line
-pardir=${SCR_PREFIX:-`pwd`}
+pardir=`$bindir/scr_prefix`
 OPTIND=1
 while getopts "p:" flag ; do
   case $flag in
@@ -70,7 +70,7 @@ echo "$prog: UPNODES:   $UPNODES"
 ret=1
 if [ "$UPNODES" != "" ] ; then
   # get the SCR control directory
-  cntldir=`$bindir/scr_cntl_dir`;
+  cntldir=`$bindir/scr_list_dir control`;
   # TODO: check that we have a control directory
 
   # TODODEST: need to scavenge latest checkpoint and any output set
@@ -108,17 +108,17 @@ if [ "$UPNODES" != "" ] ; then
               echo "$prog: Done scavenging files from cache to $datadir"
 
               # check that gathered set is complete,
-              # if not, don't update current symlink
+              # if not, don't update current marker
               update_current=1
               echo "$prog: Checking that dataset is complete"
               echo "$bindir/scr_index --prefix $pardir --add $subdir"
               $bindir/scr_index --prefix $pardir --add $subdir
               if [ $? -ne 0 ] ; then
-                # incomplete dataset, don't update current symlink
+                # incomplete dataset, don't update current marker
                 update_current=0
               fi
 
-              # if the set is complete, update the current symlink
+              # if the set is complete, update the current marker
               if [ "$update_current" == "1" ] ; then
                 # make the new current
                 echo "$prog: Updating current marker in index to $subdir"

@@ -50,16 +50,8 @@ if [ -z "$SCR_NODELIST" ] ; then
 fi
 export SCR_NODELIST
 
-# if SCR_PREFIX is not set, use the current working directory
-if [ -z "$SCR_PREFIX" ] ; then
-  SCR_PREFIX=`pwd`
-fi
-# if SCR_PREFIX is still not set, bail out
-if [ -z "$SCR_PREFIX" ] ; then
-  echo "$prog: ERROR: Must set \$SCR_PREFIX to prefix directory which contains checkpoint directories."
-  exit 1
-fi
-prefix=$SCR_PREFIX
+# get prefix directory
+prefix=`$bindir/scr_prefix`
 
 use_scr_watchdog=0
 if [ "$SCR_WATCHDOG" == "1" ] ; then
@@ -75,7 +67,7 @@ if [ -z "$intersection" ] ; then
 fi
 
 # get the control directory
-cntldir=`$bindir/scr_cntl_dir`
+cntldir=`$bindir/scr_list_dir control`
 if [ $? -ne 0 ] ; then
   echo "$prog: ERROR: Invalid control directory $cntldir."
   exit 1
@@ -269,7 +261,6 @@ if [ $use_scr_watchdog -eq 1 ] && [ $watchdog_pid -ne -1 ]; then
   echo "$kill -n KILL $watchdog_pid";
   kill -n KILL $watchdog_pid;
 fi
-
 
 # make a record of end time
 timestamp=`date`

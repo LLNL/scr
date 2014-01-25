@@ -14,12 +14,7 @@ my $dshbak = "@DSHBAK_EXE@";
 
 my $start_time = time();
 
-my $param = undef;
-if (defined $ENV{SCR_CONF_FILE}) {
-  $param = new scr_param($ENV{SCR_CONF_FILE});
-} else {
-  $param = new scr_param();
-}
+my $param = new scr_param();
 
 my %conf = ();
 
@@ -161,7 +156,7 @@ if (defined $conf{free}) {
 # check that control and cache directories on each node work and are of proper size
 # get the control directory the job will use
 my @cntldir_vals = ();
-my $cntldir_string = `$bindir/scr_cntl_dir --base`;
+my $cntldir_string = `$bindir/scr_list_dir --base control`;
 if ($? == 0) {
   chomp $cntldir_string;
   my @dirs = split(" ", $cntldir_string);
@@ -184,7 +179,7 @@ if (@cntldir_vals > 0) {
 
 # get the cache directory the job will use
 my @cachedir_vals = ();
-my $cachedir_string = `$bindir/scr_cntl_dir --cache --base`;
+my $cachedir_string = `$bindir/scr_list_dir --base cache`;
 if ($? == 0) {
   chomp $cachedir_string;
   my @dirs = split(" ", $cachedir_string);

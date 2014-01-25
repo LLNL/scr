@@ -271,9 +271,7 @@ foreach my $dir (@dirs) {
 #  }
 #  my ($nodeset, $username) = split(/\s+/, $nodes_and_user);
 
-#  # build the name of the halt file
-#  my $cntldir = `$bindir/scr_cntl_dir --user $username --jobid $jobid`;
-#  chomp $cntldir;
+  # build the name of the halt file
   my $halt_file = "$dir/.scr/halt.scr";
 
   # TODO: Set halt file permissions so system admins can modify them

@@ -14,12 +14,7 @@ my $dshbak = "@DSHBAK_EXE@";
 
 my $start_time = time();
 
-my $param = undef;
-if (defined $ENV{SCR_CONF_FILE}) {
-  $param = new scr_param($ENV{SCR_CONF_FILE});
-} else {
-  $param = new scr_param();
-}
+my $param = new scr_param();
 
 my %conf = ();
 

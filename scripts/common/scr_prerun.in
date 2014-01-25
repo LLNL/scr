@@ -26,18 +26,17 @@ prog="scr_prerun"
 print_usage() { echo "Usage: $prog [-p prefix_dir]"; exit 1; }
 
 # process command line options
-PARDIR=${SCR_PREFIX:-`pwd`}
+pardir=`$bindir/scr_prefix`
 OPTIND=1
 while getopts "p:" flag ; do
   case $flag in
-    p) PARDIR=$OPTARG;;
+    p) pardir=$OPTARG;;
     *) print_usage;;
   esac
 done
 
-pardir=$PARDIR
 # check that we have the parallel file system prefix directory
-if [ "$PARDIR" == "" ] ; then
+if [ "$pardir" == "" ] ; then
   print_usage
 fi
 

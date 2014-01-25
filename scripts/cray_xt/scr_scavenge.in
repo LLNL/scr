@@ -22,12 +22,7 @@ my $crc_flag = "--crc";
 my $container_flag = "--containers";
 
 # lookup buffer size and crc flag via scr_param
-my $param = undef;
-if (defined $ENV{SCR_CONF_FILE}) {
-  $param = new scr_param($ENV{SCR_CONF_FILE});
-} else {
-  $param = new scr_param();
-}
+my $param = new scr_param();
 
 my $param_buf_size = $param->get("SCR_FILE_BUF_SIZE");
 if (defined $param_buf_size) {

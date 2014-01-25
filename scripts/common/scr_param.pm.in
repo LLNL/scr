@@ -9,10 +9,6 @@ my $sysconf = "@SCR_CONFIG_FILE@";
 sub new
 {
   my $type = shift;
-  my $usrfile = undef;
-  if (@_ > 0) {
-    $usrfile = shift;
-  }
 
   my $self = {};
 
@@ -21,6 +17,28 @@ sub new
   $self->{sysconf} = undef;
   $self->{compile} = undef;
   $self->{no_user} = undef;
+
+  # define prefix directory
+  my $prefix = undef;
+  if (defined $ENV{SCR_PREFIX}) {
+    # use SCR_PREFIX if set
+    $prefix = $ENV{SCR_PREFIX};
+  } else {
+    # otherwise, use the current working dir
+    my $cwd = `pwd`;
+    chomp $cwd;
+    $prefix = $cwd;
+  }
+
+  # define user config file
+  my $usrfile = undef;
+  if (defined $ENV{SCR_CONF_FILE}) {
+    # use SCR_CONF_FILE if set
+    $usrfile = $ENV{SCR_CONF_FILE};
+  } elsif (defined $prefix) {
+    # otherwise, look in the prefix directory
+    $usrfile = "$prefix/.scrconf";
+  }
 
   # read in the user configuration file, if specified
   if (defined $usrfile and -r $usrfile) {
@@ -38,13 +56,14 @@ sub new
   $self->{compile}{"CACHEDIR"}{"@SCR_CACHE_BASE@"} = {};
   $self->{compile}{"SCR_CNTL_BASE"}{"@SCR_CNTL_BASE@"} = {};
   $self->{compile}{"SCR_CACHE_BASE"}{"@SCR_CACHE_BASE@"} = {};
-  $self->{compile}{"SCR_CACHE_SIZE"}{"2"} = {};
+  $self->{compile}{"SCR_CACHE_SIZE"}{"1"} = {};
 
-  # set our restricted parameters
+  # set our restricted parameters,
+  # these can't be set via env vars or user conf file
   $self->{no_user} = {};
   $self->{no_user}{"SCR_CNTL_BASE"} = {};
 
-  # TODO: At this point we could scan the environment and user config file
+  # NOTE: At this point we could scan the environment and user config file
   # for restricted parameters to print a warning.  However, in this case
   # printing the extra messages from a perl script whose output is used by
   # other scripts as input may do more harm than good.  Printing the
@@ -54,12 +73,11 @@ sub new
   # create a single CACHEDESC in the user hash
   my $cache_base = get($self, "SCR_CACHE_BASE");
   my $cache_size = get($self, "SCR_CACHE_SIZE");
-  if (not defined $self->{usrconf}{"CACHEDESC"} and
+  if (not defined $self->{usrconf}{"CACHE"} and
       defined $cache_base and
       defined $cache_size)
   {
-    $self->{usrconf}{"CACHEDESC"}{"0"}{"BASE"}{$cache_base} = {};
-    $self->{usrconf}{"CACHEDESC"}{"0"}{"SIZE"}{$cache_size} = {};
+    $self->{usrconf}{"CACHE"}{$cache_base}{"SIZE"}{$cache_size} = {};
   }
 
   return bless $self, $type;
