@@ -495,8 +495,6 @@ int scr_reddesc_create_from_hash(
         d->base, __FILE__, __LINE__
       );
     }
-
-//    d->group_index = scr_groupdescs_index_from_base(d->group);
   }
 
   /* build the directory name */
@@ -545,6 +543,11 @@ int scr_reddesc_create_from_hash(
       d->copy_type = SCR_COPY_SINGLE;
     }
 
+    /* read the group name */
+    char* groupname = SCR_GROUP_NODE;
+    scr_hash_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &groupname);
+//    d->group_index = scr_groupdescs_index_from_base(d->group);
+
     /* build the communicator based on the copy type
      * and other parameters */
     int rank_across, ranks_across, split_id;
@@ -554,8 +557,8 @@ int scr_reddesc_create_from_hash(
       MPI_Comm_dup(MPI_COMM_SELF, &d->comm);
       break;
     case SCR_COPY_PARTNER:
-      /* dup the communicator across nodes */
-      groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
+      /* dup the communicator across failure groups */
+      groupdesc = scr_groupdescs_from_name(groupname);
       if (groupdesc != NULL) {
         scr_reddesc_split_across(
           scr_comm_world, groupdesc->comm, &d->comm
@@ -570,9 +573,9 @@ int scr_reddesc_create_from_hash(
     case SCR_COPY_XOR:
       /* split the communicator across nodes based on xor set size
        * to create our xor communicator */
-      groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
+      groupdesc = scr_groupdescs_from_name(groupname);
       if (groupdesc != NULL) {
-        /* split comm world across groups */
+        /* split comm world across failure groups */
         MPI_Comm comm_across;
         scr_reddesc_split_across(
           scr_comm_world, groupdesc->comm, &comm_across
@@ -587,7 +590,7 @@ int scr_reddesc_create_from_hash(
           rank_across, ranks_across, set_size, &split_id
         );
 
-        /* split communicator into groups */
+        /* split communicator into sets */
         MPI_Comm_split(
           comm_across, split_id, scr_my_rank_world, &d->comm
         );
@@ -710,8 +713,6 @@ int scr_reddesc_restore_from_hash(
         d->base, __FILE__, __LINE__
       );
     }
-
-//    d->group_index = scr_groupdescs_index_from_base(d->group);
   }
 
   /* build the directory name */
