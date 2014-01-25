@@ -478,8 +478,9 @@ int scr_reddesc_create_from_hash(
   scr_hash_util_get_int(hash, SCR_CONFIG_KEY_INTERVAL, &(d->interval));
 
   /* set the base directory */
-  char* base;
-  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_STORE, &base) == SCR_SUCCESS) {
+  char* base = scr_cache_base;
+  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_STORE, &base);
+  if (base != NULL) {
     /* strdup base after reducing it */
     d->base = scr_path_strdup_reduce_str(base);
 
@@ -495,6 +496,13 @@ int scr_reddesc_create_from_hash(
         d->base, __FILE__, __LINE__
       );
     }
+  } else {
+    /* couldn't find requested store, disable this descriptor and
+     * warn user */
+    d->enabled = 0;
+    scr_warn("Failed to find store parameter for redundancy descriptor @ %s:%d",
+      __FILE__, __LINE__
+    );
   }
 
   /* build the directory name */
@@ -512,131 +520,127 @@ int scr_reddesc_create_from_hash(
 
   /* read the checkpoint type from the hash,
    * and build our checkpoint communicator */
-  char* type;
-  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &type) == SCR_SUCCESS) {
-    if (scr_reddesc_type_int_from_str(type, &d->copy_type) != SCR_SUCCESS)
-    {
-      /* don't recognize copy type, disable this descriptor */
-      d->enabled = 0;
-      if (scr_my_rank_world == 0) {
-        scr_warn("Unknown copy type %s in redundancy descriptor %d, disabling checkpoint @ %s:%d",
-          type, d->index, __FILE__, __LINE__
+  char str_xor[] = "XOR";
+  char* type = str_xor;
+  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &type);
+  if (scr_reddesc_type_int_from_str(type, &d->copy_type) != SCR_SUCCESS) {
+    /* don't recognize copy type, disable this descriptor */
+    d->enabled = 0;
+    if (scr_my_rank_world == 0) {
+      scr_warn("Unknown copy type %s in redundancy descriptor %d, disabling checkpoint @ %s:%d",
+        type, d->index, __FILE__, __LINE__
+      );
+    }
+  }
+
+  /* CONVENIENCE: if all ranks are on the same node, change checkpoint
+   * type to SINGLE, we do this so single-node jobs can run without
+   * requiring the user to change the copy type */
+  const scr_groupdesc* groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
+  if (groupdesc != NULL && groupdesc->ranks == scr_ranks_world) {
+    if (scr_my_rank_world == 0) {
+      if (d->copy_type != SCR_COPY_SINGLE) {
+        /* print a warning if we changed things on the user */
+        scr_warn("Forcing copy type to SINGLE in redundancy descriptor %d @ %s:%d",
+          d->index, __FILE__, __LINE__
         );
       }
     }
+    d->copy_type = SCR_COPY_SINGLE;
+  }
 
-    const scr_groupdesc* groupdesc;
+  /* read the group name */
+  char* groupname = SCR_GROUP_NODE;
+  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &groupname);
 
-    /* CONVENIENCE: if all ranks are on the same node, change checkpoint
-     * type to SINGLE, we do this so single-node jobs can run without
-     * requiring the user to change the copy type */
-    groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
-    if (groupdesc != NULL && groupdesc->ranks == scr_ranks_world) {
-      if (scr_my_rank_world == 0) {
-        if (d->copy_type != SCR_COPY_SINGLE) {
-          /* print a warning if we changed things on the user */
-          scr_warn("Forcing copy type to SINGLE in redundancy descriptor %d @ %s:%d",
-            d->index, __FILE__, __LINE__
-          );
-        }
-      }
-      d->copy_type = SCR_COPY_SINGLE;
+  /* build the communicator based on the copy type
+   * and other parameters */
+  int rank_across, ranks_across, split_id;
+  switch (d->copy_type) {
+  case SCR_COPY_SINGLE:
+    /* not going to communicate with anyone, so just dup COMM_SELF */
+    MPI_Comm_dup(MPI_COMM_SELF, &d->comm);
+    break;
+  case SCR_COPY_PARTNER:
+    /* dup the communicator across failure groups */
+    groupdesc = scr_groupdescs_from_name(groupname);
+    if (groupdesc != NULL) {
+      scr_reddesc_split_across(
+        scr_comm_world, groupdesc->comm, &d->comm
+      );
+    } else {
+      /* TODO: we could fall back to SINGLE here instead */
+      scr_abort(-1, "Failed to get communicator across failure groups @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
+    break;
+  case SCR_COPY_XOR:
+    /* split the communicator across nodes based on xor set size
+     * to create our xor communicator */
+    groupdesc = scr_groupdescs_from_name(groupname);
+    if (groupdesc != NULL) {
+      /* split comm world across failure groups */
+      MPI_Comm comm_across;
+      scr_reddesc_split_across(
+        scr_comm_world, groupdesc->comm, &comm_across
+      );
 
-    /* read the group name */
-    char* groupname = SCR_GROUP_NODE;
-    scr_hash_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &groupname);
-//    d->group_index = scr_groupdescs_index_from_base(d->group);
+      /* get our rank and the number of ranks in this communicator */
+      MPI_Comm_rank(comm_across, &rank_across);
+      MPI_Comm_size(comm_across, &ranks_across);
 
-    /* build the communicator based on the copy type
-     * and other parameters */
-    int rank_across, ranks_across, split_id;
-    switch (d->copy_type) {
-    case SCR_COPY_SINGLE:
-      /* not going to communicate with anyone, so just dup COMM_SELF */
-      MPI_Comm_dup(MPI_COMM_SELF, &d->comm);
-      break;
-    case SCR_COPY_PARTNER:
-      /* dup the communicator across failure groups */
-      groupdesc = scr_groupdescs_from_name(groupname);
-      if (groupdesc != NULL) {
-        scr_reddesc_split_across(
-          scr_comm_world, groupdesc->comm, &d->comm
-        );
-      } else {
-        /* TODO: we could fall back to SINGLE here instead */
-        scr_abort(-1, "Failed to get communicator across failure groups @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
-      break;
-    case SCR_COPY_XOR:
-      /* split the communicator across nodes based on xor set size
-       * to create our xor communicator */
-      groupdesc = scr_groupdescs_from_name(groupname);
-      if (groupdesc != NULL) {
-        /* split comm world across failure groups */
-        MPI_Comm comm_across;
-        scr_reddesc_split_across(
-          scr_comm_world, groupdesc->comm, &comm_across
-        );
+      /* identify which group we're in */
+      scr_reddesc_group_id(
+        rank_across, ranks_across, set_size, &split_id
+      );
 
-        /* get our rank and the number of ranks in this communicator */
-        MPI_Comm_rank(comm_across, &rank_across);
-        MPI_Comm_size(comm_across, &ranks_across);
+      /* split communicator into sets */
+      MPI_Comm_split(
+        comm_across, split_id, scr_my_rank_world, &d->comm
+      );
 
-        /* identify which group we're in */
-        scr_reddesc_group_id(
-          rank_across, ranks_across, set_size, &split_id
-        );
-
-        /* split communicator into sets */
-        MPI_Comm_split(
-          comm_across, split_id, scr_my_rank_world, &d->comm
-        );
-
-        /* free the temporary communicator */
-        MPI_Comm_free(&comm_across);
-      } else {
-        /* TODO: we could fall back to SINGLE here instead */
-        scr_abort(-1, "Failed to get communicator across failure groups @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
-      break;
+      /* free the temporary communicator */
+      MPI_Comm_free(&comm_across);
+    } else {
+      /* TODO: we could fall back to SINGLE here instead */
+      scr_abort(-1, "Failed to get communicator across failure groups @ %s:%d",
+        __FILE__, __LINE__
+      );
     }
+    break;
+  }
 
-    /* find our position in the checkpoint communicator */
-    MPI_Comm_rank(d->comm, &d->rank);
-    MPI_Comm_size(d->comm, &d->ranks);
+  /* find our position in the checkpoint communicator */
+  MPI_Comm_rank(d->comm, &d->rank);
+  MPI_Comm_size(d->comm, &d->ranks);
 
-    /* for our group id, use the global rank of the rank 0 task
-     * in our checkpoint comm */
-    d->group_id = scr_my_rank_world;
-    MPI_Bcast(&d->group_id, 1, MPI_INT, 0, d->comm);
+  /* for our group id, use the global rank of the rank 0 task
+   * in our checkpoint comm */
+  d->group_id = scr_my_rank_world;
+  MPI_Bcast(&d->group_id, 1, MPI_INT, 0, d->comm);
 
-    /* count the number of groups */
-    int group_master = (d->rank == 0) ? 1 : 0;
-    MPI_Allreduce(
-      &group_master, &d->groups, 1, MPI_INT, MPI_SUM, scr_comm_world
-    );
+  /* count the number of groups */
+  int group_master = (d->rank == 0) ? 1 : 0;
+  MPI_Allreduce(
+    &group_master, &d->groups, 1, MPI_INT, MPI_SUM, scr_comm_world
+  );
 
-    /* fill in state struct depending on copy type */
-    switch (d->copy_type) {
-    case SCR_COPY_SINGLE:
-      break;
-    case SCR_COPY_PARTNER:
-      scr_reddesc_create_partner(d);
-      break;
-    case SCR_COPY_XOR:
-      scr_reddesc_create_xor(d);
-      break;
-    }
+  /* fill in state struct depending on copy type */
+  switch (d->copy_type) {
+  case SCR_COPY_SINGLE:
+    break;
+  case SCR_COPY_PARTNER:
+    scr_reddesc_create_partner(d);
+    break;
+  case SCR_COPY_XOR:
+    scr_reddesc_create_xor(d);
+    break;
+  }
 
-    /* if anyone has disabled this checkpoint, everyone needs to */
-    if (! scr_alltrue(d->enabled)) {
-      d->enabled = 0;
-    }
+  /* if anyone has disabled this checkpoint, everyone needs to */
+  if (! scr_alltrue(d->enabled)) {
+    d->enabled = 0;
   }
 
   return SCR_SUCCESS;
@@ -679,27 +683,19 @@ int scr_reddesc_restore_from_hash(
   /* initialize the descriptor */
   scr_reddesc_init(d);
 
-  char* value = NULL;
-
   /* enable / disable the descriptor */
   d->enabled = 1;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_ENABLED);
-  if (value != NULL) {
-    d->enabled = atoi(value);
-  }
+  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_ENABLED, &(d->enabled));
 
   /* set the interval, default to 1 unless specified otherwise */
   d->interval = 1;
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_INTERVAL);
-  if (value != NULL) {
-    d->interval = atoi(value);
-  }
+  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_INTERVAL, &(d->interval));
 
   /* set the base directory */
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_STORE);
-  if (value != NULL) {
+  char* base;
+  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_STORE, &base) == SCR_SUCCESS) {
     /* strdup base after reducing it */
-    d->base = scr_path_strdup_reduce_str(value);
+    d->base = scr_path_strdup_reduce_str(base);
 
     /* set the index to the store descriptor for this base directory */
     int store_index = scr_storedescs_index_from_name(d->base);
@@ -709,53 +705,63 @@ int scr_reddesc_restore_from_hash(
       /* couldn't find requested store, disable this descriptor and
        * warn user */
       d->enabled = 0;
-      scr_warn("Failed to find store descriptor named %s @ %s:%d",
+      scr_abort(-1, "Failed to find store descriptor named %s @ %s:%d",
         d->base, __FILE__, __LINE__
       );
     }
+  } else {
+    /* couldn't find requested store, disable this descriptor and
+     * warn user */
+    d->enabled = 0;
+    scr_abort(-1, "Unknown base directory in redundancy descriptor hash @ %s:%d",
+      __FILE__, __LINE__
+    );
   }
 
   /* build the directory name */
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_DIRECTORY);
-  if (value != NULL) {
+  char* dir;
+  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_DIRECTORY, &dir) == SCR_SUCCESS) {
     /* directory name already set, just copy it */
-    d->directory = strdup(value);
+    d->directory = strdup(dir);
   } else {
     /* if it's not set, we have no idea what it should be since we
      * we don't know the index which is included in the directory */
-    scr_abort(-1, "Missing directory in descriptor hash @ %s:%d",
+    scr_abort(-1, "Missing directory in redundancy descriptor hash @ %s:%d",
       __FILE__, __LINE__
     );
   }
     
   /* read the checkpoint type from the hash,
    * and build our checkpoint communicator */
-  value = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_TYPE);
-  if (value != NULL) {
-    if (scr_reddesc_type_int_from_str(value, &d->copy_type) != SCR_SUCCESS) {
+  char* type;
+  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &type) == SCR_SUCCESS) {
+    if (scr_reddesc_type_int_from_str(type, &d->copy_type) != SCR_SUCCESS) {
       d->enabled = 0;
       if (scr_my_rank_world == 0) {
-        scr_warn("Unknown copy type %s in redundancy descriptor hash, disabling checkpoint @ %s:%d",
-          value, __FILE__, __LINE__
+        scr_abort(-1, "Unknown copy type %s in redundancy descriptor hash @ %s:%d",
+          type, __FILE__, __LINE__
         );
       }
     }
-  }
-
-  /* build the checkpoint communicator */
-  char* group_id_str   = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_GROUP_ID);
-  char* group_rank_str = scr_hash_elem_get_first_val(hash, SCR_CONFIG_KEY_GROUP_RANK);
-  if (group_id_str != NULL && group_rank_str != NULL) {
-    /* we already have a group id and rank,
-     * use that to rebuild the communicator */
-    int group_id   = atoi(group_id_str);
-    int group_rank = atoi(group_rank_str);
-    MPI_Comm_split(scr_comm_world, group_id, group_rank, &d->comm);
   } else {
-    scr_abort(-1, "Failed to restore redundancy communicator @ %s:%d",
+    scr_abort(-1, "Unknown copy type in redundancy descriptor hash @ %s:%d",
       __FILE__, __LINE__
     );
   }
+
+  /* build the checkpoint communicator */
+  int group_id, group_rank;
+  if (scr_hash_util_get_int(hash, SCR_CONFIG_KEY_GROUP_ID, &group_id) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to read group id in redundancy descriptor hash @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  if (scr_hash_util_get_int(hash, SCR_CONFIG_KEY_GROUP_RANK, &group_rank) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to read group rank in redundancy descriptor hash @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  MPI_Comm_split(scr_comm_world, group_id, group_rank, &d->comm);
 
   /* find our position in the checkpoint communicator */
   MPI_Comm_rank(d->comm, &d->rank);

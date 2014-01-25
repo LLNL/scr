@@ -92,7 +92,11 @@ static int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
 
 /* build a store descriptor corresponding to the specified hash,
  * this function is collective, because it issues MPI calls */
-static int scr_storedesc_create_from_hash(scr_storedesc* s, const char* name, int index, const scr_hash* hash)
+static int scr_storedesc_create_from_hash(
+  scr_storedesc* s,
+  const char* name,
+  int index,
+  const scr_hash* hash)
 {
   int rc = SCR_SUCCESS;
 
