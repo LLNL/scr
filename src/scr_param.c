@@ -191,7 +191,7 @@ static char* user_config_path()
   scr_path* prefix_path = scr_path_from_str(prefix);
   scr_path_append_str(prefix_path, SCR_CONFIG_FILE_USER);
   file = scr_path_strdup(prefix_path);
-  scr_path_free(&prefix_path);
+  scr_path_delete(&prefix_path);
 
   /* free the prefix dir which we strdup'd */
   scr_free(&prefix);
