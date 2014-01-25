@@ -1,5 +1,6 @@
 dist_bin_SCRIPTS = \
-	scr_cntl_dir \
+        scr_prefix \
+	scr_list_dir \
 	scr_check_node \
 	scr_glob_hosts \
 	scr_postrun \

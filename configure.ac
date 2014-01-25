@@ -125,7 +125,8 @@ AC_CONFIG_FILES([ \
   man/scr_srun.1 \
   scripts/Makefile \
   scripts/common/Makefile \
-  scripts/common/scr_cntl_dir \
+  scripts/common/scr_prefix \
+  scripts/common/scr_list_dir \
   scripts/common/scr_check_node \
   scripts/common/scr_glob_hosts \
   scripts/common/scr_prerun \

@@ -1,6 +1,7 @@
 SUBDIRS = common $(MACHINE_NAME)
 dist_bin_SCRIPTS = \
-	common/scr_cntl_dir \
+	common/scr_prefix \
+	common/scr_list_dir \
 	common/scr_check_node \
 	common/scr_glob_hosts \
 	common/scr_postrun \
