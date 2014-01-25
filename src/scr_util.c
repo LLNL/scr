@@ -32,11 +32,10 @@
 /* localtime, asctime */
 #include <time.h>
 
-/* TODO: support processing of byte values */
+/* pull in things like ULLONG_MAX */
+#include <limits.h>
 
-unsigned long long kilo = 1024;
-unsigned long long mega = 1024*1024;
-unsigned long long giga = 1024*1024*1024;
+/* TODO: support processing of byte values */
 
 /* given a string, convert it to a double and write that value to val */
 int scr_atod(char* str, double* val)
@@ -65,8 +64,8 @@ int scr_atod(char* str, double* val)
     *val = value;
   } else {
     /* could not interpret value */
-    scr_err("scr_atod: Invalid double: %s @ %s:%d",
-            str, __FILE__, __LINE__
+    scr_err("scr_atod: Invalid double: %s errno=%d %s @ %s:%d",
+            str, errno, strerror(errno), __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -74,7 +73,31 @@ int scr_atod(char* str, double* val)
   return SCR_SUCCESS;
 }
 
-/* converts string like 10mb to unsigned long long integer value of 10*1024*1024 */
+static unsigned long long kilo  =                1024ULL;
+static unsigned long long mega  =             1048576ULL;
+static unsigned long long giga  =          1073741824ULL;
+static unsigned long long tera  =       1099511627776ULL;
+static unsigned long long peta  =    1125899906842624ULL;
+static unsigned long long exa   = 1152921504606846976ULL;
+
+/* abtoull ==> ASCII bytes to unsigned long long
+ * Converts string like "10mb" to unsigned long long integer value
+ * of 10*1024*1024.  Input string should have leading number followed
+ * by optional units.  The leading number can be a floating point
+ * value (read by strtod).  The trailing units consist of one or two
+ * letters which should be attached to the number with no space
+ * in between.  The units may be upper or lower case, and the second
+ * letter if it exists, must be 'b' or 'B' (short for bytes).
+ *
+ * Valid units: k,K,m,M,g,G,t,T,p,P,e,E
+ *
+ * Examples: 2kb, 1.5m, 200GB, 1.4T.
+ *
+ * Returns SCR_SUCCESS if conversion is successful,
+ * and SCR_FAILURE otherwise.
+ *
+ * Returns converted value in val parameter.  This
+ * parameter is only updated if successful. */
 int scr_abtoull(char* str, unsigned long long* val)
 {
   /* check that we have a string */
@@ -98,6 +121,14 @@ int scr_abtoull(char* str, unsigned long long* val)
   char* next = NULL;
   double num = strtod(str, &next);
   if (errno != 0) {
+    /* conversion failed */
+    scr_err("scr_abtoull: Invalid double: %s errno=%d %s @ %s:%d",
+            str, errno, strerror(errno), __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+  if (str == next) {
+    /* no conversion performed */
     scr_err("scr_abtoull: Invalid double: %s @ %s:%d",
             str, __FILE__, __LINE__
     );
@@ -119,6 +150,18 @@ int scr_abtoull(char* str, unsigned long long* val)
     case 'g':
     case 'G':
       units = giga;
+      break;
+    case 't':
+    case 'T':
+      units = tera;
+      break;
+    case 'p':
+    case 'P':
+      units = peta;
+      break;
+    case 'e':
+    case 'E':
+      units = exa;
       break;
     default:
       scr_err("scr_abtoull: Unexpected byte string %s @ %s:%d",
@@ -151,8 +194,21 @@ int scr_abtoull(char* str, unsigned long long* val)
     return SCR_FAILURE;
   }
 
-  /* multiply by our units and set out return value */
-  *val = (unsigned long long) (num * (double) units);
+  /* TODO: double check this overflow calculation */
+  /* multiply by our units and check for overflow */
+  double units_d = (double) units;
+  double val_d = num * units_d;
+  double max_d = (double) ULLONG_MAX;
+  if (val_d > max_d) {
+    /* overflow */
+    scr_err("scr_abtoull: Byte string overflowed UNSIGNED LONG LONG type: %s @ %s:%d",
+            str, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* set return value */
+  *val = (unsigned long long) val_d;
 
   return SCR_SUCCESS;
 }

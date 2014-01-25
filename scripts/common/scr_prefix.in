@@ -1,0 +1,14 @@
+#!/usr/bin/perl -w
+use strict;
+
+# use value in $SCR_PREFIX if set
+if (defined $ENV{SCR_PREFIX}) {
+  print "$ENV{SCR_PREFIX}\n";
+  exit 0;
+}
+
+# otherwise, assume it's the current working directory
+my $cwd = `pwd`;
+chomp $cwd;
+print "$cwd\n";
+exit 0;
