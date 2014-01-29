@@ -509,7 +509,7 @@ int scr_reddesc_create_from_hash(
   scr_path* dir = scr_path_from_str(d->base);
   scr_path_append_str(dir, scr_username);
   scr_path_append_strf(dir, "scr.%s", scr_jobid);
-  scr_path_append_strf(dir, "index.%d", d->index);
+//  scr_path_append_strf(dir, "index.%d", d->index);
   scr_path_reduce(dir);
   d->directory = scr_path_strdup(dir);
   scr_path_delete(&dir);
@@ -518,18 +518,19 @@ int scr_reddesc_create_from_hash(
   int set_size = scr_set_size;
   scr_hash_util_get_int(hash, SCR_CONFIG_KEY_SET_SIZE, &set_size);
 
-  /* read the checkpoint type from the hash,
-   * and build our checkpoint communicator */
-  char str_xor[] = "XOR";
-  char* type = str_xor;
-  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &type);
-  if (scr_reddesc_type_int_from_str(type, &d->copy_type) != SCR_SUCCESS) {
-    /* don't recognize copy type, disable this descriptor */
-    d->enabled = 0;
-    if (scr_my_rank_world == 0) {
-      scr_warn("Unknown copy type %s in redundancy descriptor %d, disabling checkpoint @ %s:%d",
-        type, d->index, __FILE__, __LINE__
-      );
+  /* read the redundancy scheme type from the hash */
+  char* type;
+  d->copy_type = scr_copy_type;
+  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &type) == SCR_SUCCESS)
+  {
+    if (scr_reddesc_type_int_from_str(type, &d->copy_type) != SCR_SUCCESS) {
+      /* don't recognize copy type, disable this descriptor */
+      d->enabled = 0;
+      if (scr_my_rank_world == 0) {
+        scr_warn("Unknown copy type %s in redundancy descriptor %d, disabling checkpoint @ %s:%d",
+          type, d->index, __FILE__, __LINE__
+        );
+      }
     }
   }
 
@@ -550,7 +551,7 @@ int scr_reddesc_create_from_hash(
   }
 
   /* read the group name */
-  char* groupname = SCR_GROUP_NODE;
+  char* groupname = scr_group;
   scr_hash_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &groupname);
 
   /* build the communicator based on the copy type
@@ -570,8 +571,8 @@ int scr_reddesc_create_from_hash(
       );
     } else {
       /* TODO: we could fall back to SINGLE here instead */
-      scr_abort(-1, "Failed to get communicator across failure groups @ %s:%d",
-        __FILE__, __LINE__
+      scr_abort(-1, "Failed to get communicator across failure group named %s @ %s:%d",
+        groupname, __FILE__, __LINE__
       );
     }
     break;
@@ -604,8 +605,8 @@ int scr_reddesc_create_from_hash(
       MPI_Comm_free(&comm_across);
     } else {
       /* TODO: we could fall back to SINGLE here instead */
-      scr_abort(-1, "Failed to get communicator across failure groups @ %s:%d",
-        __FILE__, __LINE__
+      scr_abort(-1, "Failed to get communicator across failure group named %s @ %s:%d",
+        groupname, __FILE__, __LINE__
       );
     }
     break;

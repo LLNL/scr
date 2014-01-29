@@ -22,7 +22,7 @@ Dataset cache functions
 static char* scr_cache_dir_build(const char* path, int id)
 {
   scr_path* dir = scr_path_from_str(path);
-  scr_path_append_strf(dir, "dataset.%d", id);
+  scr_path_append_strf(dir, "scr.dataset.%d", id);
   scr_path_reduce(dir);
   char* str = scr_path_strdup(dir);
   scr_path_delete(&dir);

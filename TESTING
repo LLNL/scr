@@ -48,6 +48,7 @@ make install
 cd ${HOME}/packages/scr-dist/install/share/scr/examples
 setenv OPT "-g -O0"
 make
+cp ~/myscr.conf .scrconf
 
 mpicc -g -O0 -I${HOME}/packages/scr-dist/install/include -I. -o test_api test_common.o test_api.c -L${HOME}/packages/scr-dist/install/lib -lscr -lscr_base -lscr -lscr_base -L/usr/local/tools/zlib-1.2.6/lib -lz
 
@@ -102,9 +103,9 @@ srun -n4 -N4 ./test_api
 
 # delete latest checkpoint directory from two nodes, remove halt file, run again,
 # check that rebuild works for older checkpoint
-srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid/index.2/dataset.18
-srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/index.2/dataset.18
-srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/index.0/dataset.18
+srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid/scr.dataset.18
+srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/scr.dataset.18
+srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/scr.dataset.18
 ${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 
@@ -119,11 +120,11 @@ srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
 
-# check that scr_cntl_dir returns good values
-${scrbin}/scr_cntl_dir
-${scrbin}/scr_cntl_dir --base
-${scrbin}/scr_cntl_dir --cache
-${scrbin}/scr_cntl_dir --cache --base
+# check that scr_list_dir returns good values
+${scrbin}/scr_list_dir control
+${scrbin}/scr_list_dir --base control
+${scrbin}/scr_list_dir cache
+${scrbin}/scr_list_dir --base cache
 
 # check that scr_list_down_nodes returns good values
 ${scrbin}/scr_list_down_nodes
