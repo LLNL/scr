@@ -473,12 +473,12 @@ static int scr_get_params()
     }
   }
 
-  /* whether to distribute files in filemap to ranks in SCR_Init */
+  /* whether to distribute files in filemap to ranks */
   if ((value = scr_param_get("SCR_DISTRIBUTE")) != NULL) {
     scr_distribute = atoi(value);
   }
 
-  /* whether to fetch files from the parallel file system in SCR_Init */
+  /* whether to fetch files from the parallel file system */
   if ((value = scr_param_get("SCR_FETCH")) != NULL) {
     scr_fetch = atoi(value);
   }
