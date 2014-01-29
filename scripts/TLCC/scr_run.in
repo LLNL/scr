@@ -2,7 +2,7 @@
 
 # requires: srun
 
-# if SCR is disabled, just do a normal srun and exit
+# if SCR is disabled, just do a normal run and exit
 if [ "$SCR_ENABLE" == "0" ] ; then
   srun "$@"
   exit $?
@@ -170,7 +170,7 @@ while [ 1 ] ; do
     exclude="--exclude $down_nodes"
   fi
 
-  # make a record of when each srun is started
+  # make a record of when each run is started
   attempts=$(($attempts + 1))
   timestamp=`date`
   echo "$prog: RUN $attempts: $timestamp"
@@ -201,7 +201,6 @@ while [ 1 ] ; do
      wait $srun_pid;
   fi
 
-
   end_secs=`date +%s`
   run_secs=$(($end_secs - $start_secs))
 
@@ -220,7 +219,6 @@ while [ 1 ] ; do
     fi
   fi
 
-  # TODO: this assumes srun is running where rank 0 runs
   # is there a halt condition instructing us to stop?
   $bindir/scr_retries_halt --dir $prefix;
   if [ $? == 0 ] ; then
@@ -241,10 +239,10 @@ done
 
 # stop scr_transfer processes before we attempt to scavenge
 if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-  $bindir/scr_halt  --dir $prefix --immediate
+  $bindir/scr_halt --dir $prefix --immediate
 fi
 
-# make a record of time postsrun is started
+# make a record of time postrun is started
 timestamp=`date`
 echo "$prog: postrun: $timestamp"
 
