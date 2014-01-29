@@ -206,6 +206,44 @@ int scr_alltrue(int flag)
   return all_true;
 }
 
+void scr_allabort(const char* file, int line, int code, const char* format, ...)
+{
+  /* have rank 0 print the message and call abort */
+  if (scr_my_rank_world == 0) {
+    /* check that we have a format string */
+    if (format != NULL) {
+      /* compute the size of the string */
+      va_list args;
+      va_start(args, format);
+      int size = vsnprintf(NULL, 0, format, args) + 1;
+      va_end(args);
+
+      /* allocate and print the string */
+      if (size > 0) {
+        char* str = (char*) scr_malloc(size, file, line);
+
+        va_start(args, format);
+        vsnprintf(str, size, format, args);
+        va_end(args);
+    
+        /* print string provided by caller */
+        scr_abort(code, "%s @ %s:%d", str, file, line);
+      } else {
+        /* don't know how we'd get here, but just in case ... */
+        scr_abort(code, "Abort @ %s:%d", file, line);
+      }
+    } else {
+      /* caller passed NULL for format */
+      scr_abort(code, "Abort @ %s:%d", file, line);
+    }
+  }
+
+  /* hold all other tasks in a barrier */
+  MPI_Barrier(scr_comm_world);
+
+  return;
+}
+
 /* given a comm as input, find the left and right partner
  * ranks and hostnames */
 int scr_set_partners(
