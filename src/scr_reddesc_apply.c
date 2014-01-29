@@ -768,7 +768,7 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
     rc = SCR_FAILURE;
   }
 
-  /* close my checkpoint files */
+  /* close my dataset files */
   for (i=0; i < num_files; i++) {
     scr_close(filenames[i], fds[i]);
   }
