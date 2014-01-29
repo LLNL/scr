@@ -17,10 +17,6 @@
 
 #include "scr_globals.h"
 
-#ifdef HAVE_LIBDTCMP
-#include "dtcmp.h"
-#endif /* HAVE_LIBDTCMP */
-
 /*
 =========================================
 Group descriptor functions
@@ -63,35 +59,6 @@ int scr_groupdesc_free(scr_groupdesc* d)
   return SCR_SUCCESS;
 }
 
-/* split processes into groups who have matching strings */
-static int scr_split_by_string(const char* str, MPI_Comm* comm)
-{
-#ifdef HAVE_LIBDTCMP
-  /* rank strings across all procs */
-  uint64_t groups, group_id, group_ranks, group_rank;
-  int dtcmp_rc = DTCMP_Rank_strings(
-    1, &str, &groups, &group_id, &group_ranks, &group_rank,
-    DTCMP_FLAG_NONE, scr_comm_world
-  );
-  if (dtcmp_rc != DTCMP_SUCCESS) {
-    scr_abort(-1, "Failed to rank strings @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* now split comm by our group and rank within our group */
-  int color = (int) group_id;
-  int key   = (int) group_rank;
-  MPI_Comm_split(scr_comm_world, color, key, comm);
-#else /* HAVE_LIBDTCMP */
-  int groups, groupid;
-  scr_rank_str(scr_comm_world, str, &groups, &groupid);
-  MPI_Comm_split(scr_comm_world, groupid, 0, comm);
-#endif
-
-  return SCR_SUCCESS;
-}
-
 /* build a group descriptor of all procs having the same value */
 int scr_groupdesc_create_by_str(
   scr_groupdesc* d, int index, const char* key, const char* value)
@@ -105,7 +72,9 @@ int scr_groupdesc_create_by_str(
   d->name    = strdup(key);
 
   /* get communicator of all tasks with same value */
-  scr_split_by_string(value, &d->comm);
+  int groups, groupid;
+  scr_rank_str(scr_comm_world, value, &groups, &groupid);
+  MPI_Comm_split(scr_comm_world, groupid, 0, &d->comm);
 
   /* find our position in the group communicator */
   MPI_Comm_rank(d->comm, &d->rank);
