@@ -870,7 +870,7 @@ int scr_cache_rebuild(scr_filemap* map)
       if (! rebuild_succeeded) {
         /* log that we failed */
         if (scr_my_rank_world == 0) {
-          scr_dbg(1, "Failed to distribute and rebuild dataset %d", current_id);
+          scr_dbg(1, "Failed to rebuild dataset %d", current_id);
           if (scr_log_enable) {
             time_t now = scr_log_seconds();
             scr_log_event("REBUILD FAILED", NULL, &current_id, &now, NULL);
