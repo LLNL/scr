@@ -36,7 +36,7 @@
 int print_usage()
 {
   printf("\n");
-  printf("  Usage:  %s --dir <dir> [--latest || --needflush <id> | --location <id> | --subdir <id>]\n", PROG);
+  printf("  Usage:  %s --dir <dir> [--latest | --needflush <id> | --location <id> | --subdir <id>]\n", PROG);
   printf("\n");
   exit(1);
 }
@@ -98,7 +98,7 @@ int process_args(int argc, char **argv, struct arglist* args)
         ++opCount;
         break;
       case 'L':
-        /* check whether specified dataset id needs to be flushed */
+        /* print location of specified dataset */
         tmp_dset = atoi(optarg);
         if (tmp_dset <= 0) {
           return 0;
@@ -156,6 +156,8 @@ int main (int argc, char *argv[])
   if (! process_args(argc, argv, &args)) {
     return 1;
   }
+
+  /* TODO: use cwd if prefix directory is not specified */
 
   /* build path to flush file */
   scr_path* file_path = scr_path_from_str(args.dir);
