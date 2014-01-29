@@ -104,7 +104,9 @@ int scr_groupdescs_index_from_name(const char* name)
   /* iterate through our group descriptors until we find a match */
   int i;
   for (i = 0; i < scr_ngroupdescs; i++) {
-    if (strcmp(name, scr_groupdescs[i].name) == 0) {
+    if (scr_groupdescs[i].enabled &&
+        strcmp(name, scr_groupdescs[i].name) == 0)
+    {
       /* found a match, record its index and break */
       index = i;
       break;
@@ -202,7 +204,10 @@ int scr_groupdescs_create()
         );
         index++;
       } else {
-        /* TODO: print error */
+        /* print warning that group is not defined */
+        scr_warn("Not all ranks have group %s defined @ %s:%d",
+          key, __FILE__, __LINE__
+        );
       }
     }
   } else {

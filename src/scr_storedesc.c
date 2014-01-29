@@ -146,16 +146,13 @@ static int scr_storedesc_create_from_hash(
   s->can_mkdir = 1;
   scr_hash_util_get_int(hash, SCR_CONFIG_KEY_MKDIR, &(s->can_mkdir));
 
-  /* get communicator of ranks that can access this storage device */
-  char* group;
-  const scr_groupdesc* groupdesc;
-  if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &group) == SCR_SUCCESS) {
-      /* lookup group descriptor for specified name */
-      groupdesc = scr_groupdescs_from_name(group);
-  } else {
-      /* if group is not set, assume it's node-local storage */
-      groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
-  }
+  /* get communicator of ranks that can access this storage device,
+   * assume node-local storage unless told otherwise  */
+  char* group = SCR_GROUP_NODE;
+  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &group);
+
+  /* lookup group descriptor for specified name */
+  const scr_groupdesc* groupdesc = scr_groupdescs_from_name(group);
   if (groupdesc != NULL) {
     MPI_Comm_dup(groupdesc->comm, &s->comm);
 
@@ -256,7 +253,9 @@ int scr_storedescs_index_from_name(const char* name)
   /* search through the scr_storedescs looking for a match */
   int i;
   for (i = 0; i < scr_nstoredescs; i++) {
-    if (strcmp(name, scr_storedescs[i].name) == 0) {
+    if (scr_storedescs[i].enabled &&
+        strcmp(name, scr_storedescs[i].name) == 0)
+    {
       /* found a match, record its index, and break */
       index = i;
       break;

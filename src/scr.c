@@ -574,7 +574,7 @@ static int scr_get_params()
      * need to change transfer file format for this */
     if (scr_flush_async && scr_use_containers) {
       scr_warn("Async flush does not yet support containers, disabling containers @ %s:%d",
-               __FILE__, __LINE__
+          __FILE__, __LINE__
       );
       scr_use_containers = 0;
     }

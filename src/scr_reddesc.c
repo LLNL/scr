@@ -571,9 +571,7 @@ int scr_reddesc_create_from_hash(
       );
     } else {
       /* TODO: we could fall back to SINGLE here instead */
-      scr_abort(-1, "Failed to get communicator across failure group named %s @ %s:%d",
-        groupname, __FILE__, __LINE__
-      );
+      SCR_ALLABORT(-1, "Failed to get communicator across failure group named %s", groupname);
     }
     break;
   case SCR_COPY_XOR:
@@ -605,9 +603,7 @@ int scr_reddesc_create_from_hash(
       MPI_Comm_free(&comm_across);
     } else {
       /* TODO: we could fall back to SINGLE here instead */
-      scr_abort(-1, "Failed to get communicator across failure group named %s @ %s:%d",
-        groupname, __FILE__, __LINE__
-      );
+      SCR_ALLABORT(-1, "Failed to get communicator across failure group named %s", groupname);
     }
     break;
   }
