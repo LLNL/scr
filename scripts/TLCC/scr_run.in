@@ -178,7 +178,6 @@ while [ 1 ] ; do
   # launch the job, make sure we include the script node and exclude down nodes
   start_secs=`date +%s`
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
-  if [ -n "$SCR_CHECKPOINT_PATTERN" ] ; then export LD_PRELOAD="$libdir/libscr_interpose.so" ; fi
 
   if [ $use_scr_watchdog -eq 0 ]; then
      srun --nodelist $script_node $exclude "$@"
@@ -203,7 +202,6 @@ while [ 1 ] ; do
   fi
 
 
-  if [ -n "$SCR_CHECKPOINT_PATTERN" ] ; then unset LD_PRELOAD ; fi
   end_secs=`date +%s`
   run_secs=$(($end_secs - $start_secs))
 
