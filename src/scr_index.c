@@ -838,7 +838,7 @@ int scr_inspect_scan(scr_hash* scan)
   return SCR_SUCCESS;
 }
 
-/* Reads *.scrfilemap files from given dataset directory and adds them to scan hash.
+/* Reads fmap files from given dataset directory and adds them to scan hash.
  * Returns SCR_SUCCESS if the files could be scanned */
 int scr_scan_file(const scr_path* dir, const scr_path* path_name, int* ranks, regex_t* re_xor_file, scr_hash* scan)
 {
@@ -1138,7 +1138,7 @@ int scr_scan_file(const scr_path* dir, const scr_path* path_name, int* ranks, re
   return SCR_SUCCESS;
 }
 
-/* Reads *.scrfilemap files from given dataset directory and adds them to scan hash.
+/* Reads fmap files from given dataset directory and adds them to scan hash.
  * Returns SCR_SUCCESS if the files could be scanned */
 int scr_scan_files(const scr_path* dir, scr_hash* scan)
 {
@@ -1187,11 +1187,9 @@ int scr_scan_files(const scr_path* dir, scr_hash* scan)
         name = dp->d_name;
       #endif
 
-      /* we only process .scrfilemap files */
+      /* we only process fmap files */
       if (name != NULL) {
-        int len = strlen(name);
-        const char* ext = name + len - 11;
-        if (strcmp(ext, ".scrfilemap") == 0) {
+        if (strncmp(name, "fmap.", 5) == 0) {
           /* create a full path of the file name */
           scr_path* path_name = scr_path_dup(meta_path);
           scr_path_append_str(path_name, name);

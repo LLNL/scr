@@ -586,7 +586,7 @@ int main (int argc, char *argv[])
 
     /* write out the rank filemap for scr_index */
     scr_path* path_rank = scr_path_dup(path_scr);
-    scr_path_append_strf(path_rank, "%d.scrfilemap", rank);
+    scr_path_append_strf(path_rank, "fmap.%d.scr", rank);
     if (scr_filemap_write(path_rank, rank_map) != SCR_SUCCESS) {
       rc = 1;
     }

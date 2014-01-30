@@ -272,9 +272,9 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  /* get name of partner's .scrfilemap */
+  /* get name of partner's fmap */
   scr_path* path_partner_map = scr_path_from_str(".scr");
-  scr_path_append_strf(path_partner_map, "%d.scrfilemap", partner_rank);
+  scr_path_append_strf(path_partner_map, "fmap.%d.scr", partner_rank);
 
   /* extract partner's flush descriptor */
   scr_hash* flushdesc = scr_hash_new();
@@ -631,7 +631,7 @@ int main(int argc, char* argv[])
 
   /* write filemap for this rank */
   scr_path* path_map = scr_path_from_str(".scr");
-  scr_path_append_strf(path_map, "%d.scrfilemap", my_rank);
+  scr_path_append_strf(path_map, "fmap.%d.scr", my_rank);
   if (scr_filemap_write(path_map, map) != SCR_SUCCESS) {
     rc = 1;
   }
