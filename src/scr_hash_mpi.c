@@ -387,8 +387,8 @@ static int scr_hash_exchange_direction_hops(
  *   <hash_received_from_rank_A>
  * <rank_B>
  *   <hash_received_from_rank_B> */
-#define HOPS_LEFT  (0)
-#define HOPS_RIGHT (1)
+#define STEPS_LEFT  (0)
+#define STEPS_RIGHT (1)
 int scr_hash_exchange(const scr_hash* send, scr_hash* recv, MPI_Comm comm)
 {
   /* get our rank and number of ranks in comm */
@@ -396,15 +396,21 @@ int scr_hash_exchange(const scr_hash* send, scr_hash* recv, MPI_Comm comm)
   MPI_Comm_rank(comm, &rank);
   MPI_Comm_size(comm, &ranks);
 
-  /* since we have two paths, we try to be more efficient by sending
-   * each item in the direction of fewest hops */
+  /* Since we have two paths, we try to be more efficient by sending
+   * each item in the direction of fewest hops.  For example, consider
+   * an 11 task job in which rank 0 wants to send to rank 8.
+   * Rank 8 is closer to rank 0 from the left (dist = 3) than the
+   * right (dist = 8).  However rank 0 can send to rank 8 using
+   * a single hop (direct send) going right whereas the data takes 2
+   * hops to go left. In this case, we send the data to the right to
+   * minimize the number of hops. */
   scr_hash* left  = scr_hash_new();
   scr_hash* right = scr_hash_new();
 
-  /* we compute maximum hops needed to each size */
-  int max_hops[2];
-  max_hops[HOPS_LEFT]  = 0;
-  max_hops[HOPS_RIGHT] = 0;
+  /* we compute maximum steps needed to each side */
+  int max_steps[2];
+  max_steps[STEPS_LEFT]  = 0;
+  max_steps[STEPS_RIGHT] = 0;
 
   /* iterate through elements and assign to left or right hash */
   scr_hash_elem* elem;
@@ -431,21 +437,25 @@ int scr_hash_exchange(const scr_hash* send, scr_hash* recv, MPI_Comm comm)
     /* count hops in each direction */
     int hops_left = 0;
     int hops_right = 0;
-    int bit = 1;
+    int dist = 1;
     int step = 1;
-    while (step < ranks) {
+    int steps_left  = 0;
+    int steps_right = 0;
+    while (dist < ranks) {
       /* if distance is odd in this bit,
        * we'd send it during this step */
-      if (dist_left & bit) {
+      if (dist_left & dist) {
         hops_left++;
+        steps_left = step;
       }
-      if (dist_right & bit) {
+      if (dist_right & dist) {
         hops_right++;
+        steps_right = step;
       }
 
       /* go to the next step */
-      bit <<= 1;
-      step *= 2;
+      dist <<= 1;
+      step++;
     }
 
     /* assign to hash having the fewest hops */
@@ -454,14 +464,14 @@ int scr_hash_exchange(const scr_hash* send, scr_hash* recv, MPI_Comm comm)
     if (hops_left < hops_right) {
       /* assign to left-going exchange */
       scr_hash_setf(left, tmp, "%d", dest);
-      if (hops_left > max_hops[HOPS_LEFT]) {
-        max_hops[HOPS_LEFT] = hops_left;
+      if (steps_left > max_steps[STEPS_LEFT]) {
+        max_steps[STEPS_LEFT] = steps_left;
       }
     } else {
       /* assign to right-going exchange */
       scr_hash_setf(right, tmp, "%d", dest);
-      if (hops_right > max_hops[HOPS_RIGHT]) {
-        max_hops[HOPS_RIGHT] = hops_right;
+      if (steps_right > max_steps[STEPS_RIGHT]) {
+        max_steps[STEPS_RIGHT] = steps_right;
       }
     }
   }
@@ -469,15 +479,15 @@ int scr_hash_exchange(const scr_hash* send, scr_hash* recv, MPI_Comm comm)
   /* most hash exchanges have a small number of hops
    * compared to the size of the job, so determine max
    * hops counts with allreduce and cut exchange off early */
-  int all_hops[2];
-  MPI_Allreduce(max_hops, all_hops, 2, MPI_INT, MPI_MAX, comm);
+  int all_steps[2];
+  MPI_Allreduce(max_steps, all_steps, 2, MPI_INT, MPI_MAX, comm);
 
-  /* deletegate work to scr_hash_exchange_direction */
+  /* delegate work to scr_hash_exchange_direction */
   int rc = scr_hash_exchange_direction_hops(
-    left, recv, comm, SCR_HASH_EXCHANGE_LEFT, all_hops[HOPS_LEFT]
+    left, recv, comm, SCR_HASH_EXCHANGE_LEFT, all_steps[STEPS_LEFT]
   );
   int right_rc = scr_hash_exchange_direction_hops(
-    right, recv, comm, SCR_HASH_EXCHANGE_RIGHT, all_hops[HOPS_RIGHT]
+    right, recv, comm, SCR_HASH_EXCHANGE_RIGHT, all_steps[STEPS_RIGHT]
   );
   if (rc == SCR_SUCCESS) {
     rc = right_rc;
