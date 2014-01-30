@@ -213,9 +213,9 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     char dir[SCR_MAX_FILENAME];
     scr_cache_dir_get(c, id, dir);
 
-    /* set chunk filename of form: <xor_rank+1>_of_<xor_groupsize>_in_<xor_groupid>.xor */
+    /* set chunk filename of form: <group_id>_<xor_rank+1>_of_<xor_ranks>.scr */
     scr_path* path_full_chunk_filename = scr_path_from_str(dir);
-    scr_path_append_strf(path_full_chunk_filename, "%d_of_%d_in_%d.xor", c->rank+1, c->ranks, c->group_id);
+    scr_path_append_strf(path_full_chunk_filename, "xor.%d_%d_of_%d.scr", c->group_id, c->rank+1, c->ranks);
     scr_path_strcpy(full_chunk_filename, sizeof(full_chunk_filename), path_full_chunk_filename);
     scr_path_delete(&path_full_chunk_filename);
 

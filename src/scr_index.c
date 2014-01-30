@@ -603,7 +603,7 @@ int scr_rebuild_scan(const scr_path* dir, scr_hash* scan)
 
           /* build the name of the missing xor file */
           scr_path* missing_filepath = scr_path_from_str(".scr");
-          scr_path_append_strf(missing_filepath, "%d_of_%d_in_%d.xor", missing_member, members, xor_setid);
+          scr_path_append_strf(missing_filepath, "xor.%d_%d_of_%d.scr", xor_setid, missing_member, members);
           char* missing_filename_str = scr_path_strdup(missing_filepath);
           scr_hash_setf(buildcmd_hash, NULL, "%d %s", argc, missing_filename_str);
           scr_free(&missing_filename_str);
@@ -1068,30 +1068,30 @@ int scr_scan_file(const scr_path* dir, const scr_path* path_name, int* ranks, re
           size_t nmatch = 4;
           regmatch_t pmatch[nmatch];
           char* value = NULL;
-          int xor_rank, xor_ranks, xor_setid;
+          int xor_setid, xor_rank, xor_ranks;
           if (regexec(re_xor_file, full_filename, nmatch, pmatch, 0) == 0) {
+            xor_setid = -1;
             xor_rank  = -1;
             xor_ranks = -1;
-            xor_setid = -1;
+
+            /* get the id of the xor set */
+            value = strndup(full_filename + pmatch[1].rm_so, (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so));
+            if (value != NULL) {
+              xor_setid = atoi(value);
+              scr_free(&value);
+            }
 
             /* get the rank in the xor set */
-            value = strndup(full_filename + pmatch[1].rm_so, (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so));
+            value = strndup(full_filename + pmatch[2].rm_so, (size_t)(pmatch[2].rm_eo - pmatch[2].rm_so));
             if (value != NULL) {
               xor_rank = atoi(value);
               scr_free(&value);
             }
 
             /* get the size of the xor set */
-            value = strndup(full_filename + pmatch[2].rm_so, (size_t)(pmatch[2].rm_eo - pmatch[2].rm_so));
-            if (value != NULL) {
-              xor_ranks = atoi(value);
-              scr_free(&value);
-            }
-
-            /* get the id of the xor set */
             value = strndup(full_filename + pmatch[3].rm_so, (size_t)(pmatch[3].rm_eo - pmatch[3].rm_so));
             if (value != NULL) {
-              xor_setid = atoi(value);
+              xor_ranks = atoi(value);
               scr_free(&value);
             }
 
@@ -1154,7 +1154,7 @@ int scr_scan_files(const scr_path* dir, scr_hash* scan)
   /* set up a regular expression so we can extract the xor set information from a file */
   /* TODO: move this info to the meta data */
   regex_t re_xor_file;
-  regcomp(&re_xor_file, "([0-9]+)_of_([0-9]+)_in_([0-9]+).xor", REG_EXTENDED);
+  regcomp(&re_xor_file, "xor.([0-9]+)_([0-9]+)_of_([0-9]+).scr", REG_EXTENDED);
 
   /* initialize global variables */
   int ranks = -1;
