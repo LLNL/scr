@@ -829,14 +829,8 @@ int SCR_Init()
   if (scr_prefix == NULL || strcmp(scr_prefix, "") == 0) {
     if (scr_my_rank_world == 0) {
       scr_halt("SCR_INIT_FAILED");
-      scr_abort(-1, "SCR_PREFIX must be set @ %s:%d"
-        __FILE__, __LINE__
-      );
     }
-
-    /* rank 0 will abort above, but we don't want other processes to
-     * continue past this point */
-    MPI_Barrier(scr_comm_world);
+    SCR_ALLABORT(-1, "SCR_PREFIX must be set");
   }
 
   /* define the path to the .scr subdir within the prefix dir */
