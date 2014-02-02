@@ -24,11 +24,6 @@ $conf{usage} = <<EOF
   Usage:  $prog [options] [prefixdir ...]
 
   Options:
-    -z, --all
-          Halt all jobs on the system.
-    -u, --user=LIST
-          Halt all jobs for a comma-separated LIST of users.
-
     -c, --checkpoints=N
           Halt job after N checkpoints.
     -b, --before=TIME
@@ -62,18 +57,12 @@ $conf{usage} = <<EOF
     -h, --help
           Print usage.
 
-LIST refers to a comma-separated list of words. All options
-which take a LIST argument may also be specified multiple times
-(e.g. --user=sally,tim --user=frank).
-
 TIME arguments are parsed using the perl Date::Manip(3pm) package, and thus
 may be specified in one of many formats. Examples include '12pm',
 'yesterday,noon', '12/25-15:30:33', and so on. See the Date::Manip(3pm)
 manpage for more examples.
 
-If no directory is specified, and --user and --all are not given, then
-the directory is set from the environment.  This feature is convenient when
-invoking the command in job batch scripts.
+If no directory is specified, the current working directory is used.
 
 EOF
 ;
@@ -88,8 +77,6 @@ sub print_usage {
 }
 
 # read in environment variables and command line options
-$conf{all}         = 0;
-$conf{user}        = "";
 $conf{checkpoints} = undef;
 $conf{before}      = undef;
 $conf{after}       = undef;
@@ -105,8 +92,6 @@ $conf{remove}      = 0;
 $conf{verbose}     = 0;
 $conf{help}        = 0;
 my $rc = GetOptions (
-  "all|z"       => \$conf{all},
-  "user|u=s"    => \$conf{user},
   "checkpoints|c=i" => \$conf{checkpoints},
   "before|b=s"  => \$conf{before},
   "after|a=s"   => \$conf{after},
@@ -126,57 +111,24 @@ if ($conf{help} or not $rc) {
   print_usage();
 }
 
-# TODO: eventually, we'll want a way to map a username/machinename/jobid to
-# a simulation name, and then update the halt file for that simulation
-
 # get the directories
 my @dirs = ();
-if ($conf{all} or $conf{user}) {
-  print "$prog: ERROR: --all and --user options not yet supported";
-  exit 1;
-
-  # we keep this here in case an admin wants to stop
-  # a running job by jobid
-#  my $user_query = "";
-#  if ($conf{user}) {
-#    $user_query = "--user=$conf{user}";
-#  }
-#  my $jobs = `squeue $user_query --format=\%i -h`;
-#  chomp $jobs;
-#  @jobids = split("\n", $jobs);
-#  @found_jobs = @jobids;
+if (@ARGV >= 1) {
+  # if find some arguments on the command line, assume they are target directories
+  @dirs = @ARGV;
 } else {
-  # check that we have at least one directory listed
-  if (@ARGV >= 1) {
-    # if find some arguments on the command line, assume they are jobids
-    @dirs = @ARGV;
-  } else {
-    # TODO: we could try to pick up the setting for SCR_PREFIX
-    print "$prog: ERROR: Must specify prefix directory containing halt file\n";
-    print_usage();
+  # use current working directory if none specified
+  my $dir = `pwd`;
+  $rc = $?;
+  if ($rc == 0) {
+    chomp $dir;
+    push @dirs, $dir;
   }
+}
 
-#  # check that user gave a valid jobid
-#  my $jobs = join(",", @jobids);
-#  my $output = `squeue -o "%u %i" -j $jobs -h`;
-#  $rc = $?;
-#  if ($rc == 0) {
-#    foreach my $jobid (@jobids) {
-#      my $found = 0;
-#      foreach my $line (split "\n", $output) {
-#        my ($user, $id) = split /\s+/, $line;
-#        if ($id == $jobid) {
-#          $found = 1;
-#          last;
-#        }
-#      }
-#      if ($found) {
-#        push @found_jobs, $jobid;
-#      } else {
-#        push @missing_jobs, $jobid;
-#      }
-#    }
-#  }
+# check that we got a direcotry
+if (@dirs == 0) {
+  print_usage();
 }
 
 my $ret = 0;
@@ -258,18 +210,7 @@ if ($conf{remove}) {
 foreach my $dir (@dirs) {
   my $rc = 0;
 
-  print "Updating halt file for $dir\n";
-
-#  # lookup nodeset for jobid
-#  my $nodes_and_user = `squeue -j $jobid --format="\%N \%u" -h\n`;
-#  $rc = $?;
-#  if ($rc != 0) {
-#    print "\n";
-#    print "$prog: ERROR: Failed to find nodeset and username for job $jobid\n";
-#    $ret = 1;
-#    next;
-#  }
-#  my ($nodeset, $username) = split(/\s+/, $nodes_and_user);
+  print "Updating halt file in $dir\n";
 
   # build the name of the halt file
   my $halt_file = "$dir/.scr/halt.scr";
@@ -279,7 +220,8 @@ foreach my $dir (@dirs) {
   if (@halt_conditions) {
     # create the halt file with specified conditions
     my $halt_file_options = join(" ", @halt_conditions);
-    $halt_cmd = "$bash -c \"$mkdir -p $dir; $bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
+#    $halt_cmd = "$bash -c \"$mkdir -p $dir/.scr; $bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
+    $halt_cmd = "$bash -c \"$bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
   } else {
     # remove the halt file
     $halt_cmd = "$bash -c \"$rm -f $halt_file\"";
@@ -309,41 +251,6 @@ if ($conf{immediate}) {
   # TODO: lookup active jobid for given prefix directory and halt job based on system
   print "$prog: ERROR: --immediate option not yet supported\n";
   exit 1;
-
-#  if (@found_jobs > 0) {
-#    print "Cancelling job steps ...\n";
-#  }
-#  foreach my $jobid (@found_jobs) {
-#    my $rc = 0;
-#
-#    my $scontrol = `scontrol show step $jobid`;
-#    if ($? == 0) {
-#      my @lines = split("\n", $scontrol);
-#      my @steps = ();
-#      foreach my $line (@lines) {
-#        if ($line =~ /StepId=(\d+\.\d+)/) {
-#          my $step = $1;
-#          # don't want to cancel jobid.0 (that's the allocation, not a step)
-#          if ($step ne "$jobid.0") {
-#            push @steps, $1;
-#          }
-#        }
-#      }
-#      if (@steps > 0) {
-#        my $steps = join(" ", @steps);
-#        print "  scancel $steps\n";
-#        `scancel $steps`;
-#        $rc = $?;
-#        if ($rc != 0) {
-#          print "$prog: ERROR: Failed to cancel job steps $steps\n";
-#          $ret = 1;
-#        }
-#      }
-#    } else {
-#      print "$prog: ERROR: Failed to lookup job step ids for jobid $jobid\n";
-#      $ret = 1;
-#    }
-#  }
 }
 
 exit $ret;
