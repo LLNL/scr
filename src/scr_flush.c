@@ -22,7 +22,11 @@ Common flush functions
 */
 
 /* returns true if the named file needs to be flushed, 0 otherwise */
-int scr_bool_flush_file(const scr_filemap* map, int dset, int rank, const char* file)
+int scr_bool_flush_file(
+  const scr_filemap* map,
+  int dset,
+  int rank,
+  const char* file)
 {
   /* assume we need to flush this file */
   int flush = 1;
@@ -44,13 +48,6 @@ int scr_bool_flush_file(const scr_filemap* map, int dset, int rank, const char* 
 
 int scr_dataset_build_name(int id, int64_t usecs, char* name, int n)
 {
-#if 0
-  /* format timestamp */
-  time_t now = (time_t) (usecs / (int64_t) 1000000);
-  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H:%M:%S", localtime(&now));
-  snprintf(name, n, "scr.%s.%s.%d", timestamp, scr_jobid, id);
-#endif
-
   /* build the directory name */
   snprintf(name, n, "scr.dataset.%d", id);
 
@@ -67,7 +64,11 @@ and creating container files (if any)
 #define SCR_FLUSH_SCAN_COUNT (0)
 #define SCR_FLUSH_SCAN_RANKS (1)
 #define SCR_FLUSH_SCAN_RANK  (2)
-int scr_flush_pick_writer(int level, unsigned long count, int* outwriter, int* outranks)
+int scr_flush_pick_writer(
+  int level,
+  unsigned long count,
+  int* outwriter,
+  int* outranks)
 {
   /* use a segment size of 1MB */
   unsigned long segsize = 1024*1024;
@@ -182,7 +183,10 @@ int scr_flush_pick_writer(int level, unsigned long count, int* outwriter, int* o
 
 /* fills in hash with a list of filenames and associated meta data
  * that should be flushed for specified dataset id */
-static int scr_flush_identify_files(const scr_filemap* map, int id, scr_hash* file_list)
+static int scr_flush_identify_files(
+  const scr_filemap* map,
+  int id,
+  scr_hash* file_list)
 {
   int rc = SCR_SUCCESS;
 
@@ -191,7 +195,8 @@ static int scr_flush_identify_files(const scr_filemap* map, int id, scr_hash* fi
   scr_filemap_get_dataset(map, id, scr_my_rank_world, dataset);
   scr_hash_set(file_list, SCR_KEY_DATASET, dataset);
 
-  /* identify which files we need to flush as part of the specified dataset id */
+  /* identify which files we need to flush as part of the specified
+   * dataset id */
   scr_hash_elem* elem = NULL;
   for (elem = scr_filemap_first_file(map, id, scr_my_rank_world);
        elem != NULL;
@@ -209,7 +214,10 @@ static int scr_flush_identify_files(const scr_filemap* map, int id, scr_hash* fi
         flush = 0;
       }
 
-      /* if we need to flush this file, add it to the list and attach its meta data */
+      /* TODO: shouldn't we avoid flushing partner files? */
+
+      /* if we need to flush this file, add it to the list and attach
+       * its meta data */
       if (flush) {
         scr_hash* file_hash = scr_hash_set_kv(file_list, SCR_KEY_FILE, file);
         scr_hash_set(file_hash, SCR_KEY_META, meta);
@@ -428,7 +436,8 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
     scr_free(&group_rank);
     scr_free(&dirs);
 
-    /* TODO: PRESERVE need to track directory names in summary file so we can delete them later */
+    /* TODO: PRESERVE need to track directory names in summary
+     * file so we can delete them later */
 
 #else /* HAVE_LIBDTCMP */
     /* need DTCMP in order to preserve user-defined directories */
@@ -598,7 +607,10 @@ static int scr_flush_identify_containers(scr_hash* file_list)
 
 /* given file map and dataset id, identify files, containers, and
  * directories needed for flush and return in file list hash */
-static int scr_flush_identify(const scr_filemap* map, int id, scr_hash* file_list)
+static int scr_flush_identify(
+  const scr_filemap* map,
+  int id,
+  scr_hash* file_list)
 {
   /* check that we have all of our files */
   int have_files = 1;
@@ -749,7 +761,8 @@ static int scr_flush_create_dirs(scr_hash* file_list)
 static int scr_flush_create_containers(const scr_hash* file_list)
 {
   /* here, we look at each segment a process writes,
-   * and the process which writes data to offset 0 is responsible for creating the container */
+   * and the process which writes data to offset 0 is
+   * responsible for creating the container */
   int success = SCR_SUCCESS;
 
   /* get top level path */
@@ -829,7 +842,11 @@ static int scr_flush_create_containers(const scr_hash* file_list)
 
 /* TODO: attach this info to file map */
 /* this is a hacky way to record data in flush file from complete checkpoint */
-int scr_flush_verify(const scr_filemap* map, int id, char* dir, size_t dir_size)
+int scr_flush_verify(
+  const scr_filemap* map,
+  int id,
+  char* dir,
+  size_t dir_size)
 {
   scr_hash* file_list = scr_hash_new();
 
@@ -859,8 +876,9 @@ int scr_flush_verify(const scr_filemap* map, int id, char* dir, size_t dir_size)
   return SCR_SUCCESS;
 }
 
-/* given a filemap and a dataset id, prepare and return a list of files to be flushed,
- * also create corresponding directories and container files */
+/* given a filemap and a dataset id, prepare and return a list of
+ * files to be flushed, also create corresponding directories and
+ * container files */
 int scr_flush_prepare(const scr_filemap* map, int id, scr_hash* file_list)
 {
   /* build the list of files to flush, which includes meta data for each one */
