@@ -12,9 +12,12 @@
 #ifndef SCR_FETCH_H
 #define SCR_FETCH_H
 
-int scr_container_get_name_size_offset_length(
-  const scr_hash* segment, const scr_hash* containers,
-  char** name, unsigned long* size, unsigned long* offset, unsigned long* length
+/* TODO: move this function somewhere else */
+int scr_container_get_name_offset_length(
+  const scr_hash* segment,
+  char** name,
+  unsigned long* offset,
+  unsigned long* length
 );
 
 /* attempt to fetch most recent checkpoint from prefix directory into cache */
