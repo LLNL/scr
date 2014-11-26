@@ -267,7 +267,7 @@ int scr_compress_buf(const void* inbuf, size_t insize, void** outbuf, size_t* ou
   strm.avail_in  = insize;
   strm.next_in   = (void*)inbuf;
   strm.avail_out = bound_size;
-  strm.next_out  = buf_dst;
+  strm.next_out  = (void*)buf_dst;
   do {
     ret = deflate(&strm, Z_FINISH);
     if (ret == Z_OK || ret == Z_BUF_ERROR || ret == Z_STREAM_END) {
