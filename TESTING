@@ -3,6 +3,10 @@ $TV ../../../bin/scr_index -a --prefix ${HOME}/packages/scr-dist/install/example
 
 $TV ${HOME}/packages/scr-dist/install/bin/scr_rebuild_xor -a 4 1 2_of_4_in_0.xor 1_of_4_in_0.xor 3_of_4_in_0.xor 4_of_4_in_0.xor &
 
+# NOTE: one must use MPI-2.2 or newer to compile LWGRP and DTCMP
+# fetch and build dependencies (LWGRP and DTCMP)
+./buildme_deps
+
 # build the dist tarball
 setenv CFLAGS "-g -O3 -Wall -Werror -DHIDE_TV"
 setenv CFLAGS "-g -O0 -Wall"
@@ -20,7 +24,7 @@ make dist
 
 # Linux build instructions
 setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql"
-setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=${HOME}/packages/dtcmp.git/install"
+setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=./deps/install"
 setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
 setenv CFLAGS "-g -O0"
 setenv scrversion "scr-1.1.8"
@@ -67,7 +71,7 @@ setenv prefix_files ".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 #setenv TV /usr/global/tools/totalview/v/totalview.8X.8.0-4/bin/totalview
 #setenv LD_LIBRARY_PATH ${HOME}/packages/scr-dist/install/lib
 setenv TV totalview
-setenv LD_LIBRARY_PATH ${HOME}/packages/scr-dist/install/lib:${HOME}/packages/dtcmp.git/install/lib
+setenv LD_LIBRARY_PATH ${HOME}/packages/scr-dist/install/lib:${HOME}/packages/scr/deps/install/lib
 setenv SCR_PREFIX `pwd`
 setenv SCR_FETCH 0
 setenv SCR_FLUSH 0

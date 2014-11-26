@@ -1,0 +1,51 @@
+#!/bin/bash
+set -x
+
+OPT="-g -O0"
+
+rm -rf deps
+mkdir -p deps
+cd deps
+
+installdir=`pwd`/install
+
+lwgrp=lwgrp-1.0.2
+dtcmp=dtcmp-1.0.3
+
+if [ ! -f ${lwgrp}.tar.gz ] ; then
+  wget https://github.com/hpc/lwgrp/releases/download/v1.0.2/${lwgrp}.tar.gz
+fi
+if [ ! -f ${dtcmp}.tar.gz ] ; then
+  wget https://github.com/hpc/dtcmp/releases/download/v1.0.3/${dtcmp}.tar.gz
+fi
+
+rm -rf ${lwgrp}
+tar -zxf ${lwgrp}.tar.gz
+pushd ${lwgrp}
+  export CFLAGS=${OPT}
+  ./configure \
+    --prefix=${installdir} \
+    --disable-silent-rules && \
+  make && \
+  make install
+  if [ $? -ne 0 ]; then
+    echo "failed to configure, build, or install liblwgrp"
+    exit 1
+  fi
+popd
+
+rm -rf ${dtcmp}
+tar -zxf ${dtcmp}.tar.gz
+pushd ${dtcmp}
+  export CFLAGS=${OPT}
+  ./configure \
+    --prefix=${installdir} \
+    --disable-silent-rules \
+    --with-lwgrp=${installdir} && \
+  make && \
+  make install
+  if [ $? -ne 0 ]; then
+    echo "failed to configure, build, or install libdtcmp"
+    exit 1
+  fi
+popd
