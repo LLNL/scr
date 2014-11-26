@@ -42,7 +42,7 @@ int scr_hash_send(const scr_hash* hash, int rank, MPI_Comm comm)
   /* get size of hash and check that it doesn't exceed INT_MAX */
   size_t pack_size = scr_hash_pack_size(hash);
   size_t max_int = (size_t) INT_MAX;
-  if (pack_size > INT_MAX) {
+  if (pack_size > max_int) {
     scr_abort(-1, "scr_hash_send: hash size %lu is bigger than INT_MAX %d @ %s:%d",
       (unsigned long) pack_size, INT_MAX, __FILE__, __LINE__
     );

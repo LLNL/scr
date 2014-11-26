@@ -63,6 +63,10 @@ File compression functions
  *
  * (4) uint32_t header crc (from first byte of magic number to last byte of block table) */
 
+#if 0
+/* comment these functions out for now, since they're not used,
+ * which causes gcc to throw warning, which causes -Wall builds to fail */
+
 /* compress insize bytes from in inbuf and store in outbuf which has
  * up to outsize bytes available, return number written in outwritten */
 static int scr_compress_zlib(
@@ -457,6 +461,7 @@ int scr_uncompress_buf(const void* inbuf, size_t insize, void** outbuf, size_t* 
 
   return rc;
 }
+#endif
 
 /* compress the specified file using blocks of size block_size and store as file_dst */
 int scr_compress_in_place(const char* file_src, const char* file_dst, unsigned long block_size, int level)

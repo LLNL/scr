@@ -183,7 +183,7 @@ static int scr_fetch_file_from_containers(
     /* get the offset into the container and the length of the
      * segment (both in bytes) */
     char* container_name;
-    unsigned long container_size, container_offset, segment_length;
+    unsigned long container_offset, segment_length;
     if (scr_container_get_name_offset_length(hash,
       &container_name, &container_offset, &segment_length) != SCR_SUCCESS)
     {

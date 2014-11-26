@@ -168,7 +168,7 @@ int scr_flush_pick_writer(
   }
 
   /* we don't use this for now, but keep it in case we go back to it */
-  int writer_id = send[SCR_FLUSH_SCAN_COUNT] - 1;
+/* int writer_id = send[SCR_FLUSH_SCAN_COUNT] - 1; */
 
   /* set output parameters */
   *outwriter = send[SCR_FLUSH_SCAN_RANK];
@@ -494,7 +494,7 @@ static int scr_flush_identify_containers(scr_hash* file_list)
   unsigned long container_size = scr_container_size;
 
   /* get the dataset for the file list */
-  scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
+/*  scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET); */
 
   /* create base container path */
   scr_path* container_base_path = scr_path_from_str(".scr");

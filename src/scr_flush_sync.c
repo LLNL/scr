@@ -119,9 +119,6 @@ static int scr_flush_file_to_containers(
     return SCR_FAILURE;
   }
 
-  /* get mode for each file */
-  mode_t mode_file = scr_getmode(1, 1, 0);
-
   /* open the file for reading */
   int fd_src = scr_open(file, O_RDONLY);
   if (fd_src < 0) {

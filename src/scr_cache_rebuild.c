@@ -655,6 +655,10 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
           recv_rank = MPI_PROC_NULL;
         }
 
+        /* TODO: since we overwrite files in place in order to avoid
+         * running out of storage space, we should sort files in order
+         * of descending size for the next step */
+
         /* get our file list for the destination */
         int numfiles = 0;
         char** files = NULL;
@@ -785,7 +789,7 @@ int scr_cache_rebuild(scr_filemap* map)
   /* clean any incomplete files from our cache */
   scr_cache_clean(map);
 
-  /* get the list of datasets we have in our cache */
+  /* get ordered list of datasets we have in our cache */
   int ndsets;
   int* dsets;
   scr_filemap_list_datasets(map, &ndsets, &dsets);
@@ -935,13 +939,13 @@ int scr_flush_file_rebuild(const scr_filemap* map)
     scr_hash* hash = scr_hash_new();
     scr_hash_read_path(scr_flush_file, hash);
 
-    /* get list of dataset ids in flush file */
+    /* get ordered list of dataset ids in flush file */
     int flush_ndsets;
     int* flush_dsets;
     scr_hash* flush_dsets_hash = scr_hash_get(hash, SCR_FLUSH_KEY_DATASET);
     scr_hash_list_int(flush_dsets_hash, &flush_ndsets, &flush_dsets);
 
-    /* get list of dataset ids in cache */
+    /* get ordered list of dataset ids in cache */
     int cache_ndsets;
     int* cache_dsets;
     scr_filemap_list_datasets(map, &cache_ndsets, &cache_dsets);

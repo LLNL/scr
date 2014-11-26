@@ -70,6 +70,8 @@ int scr_cache_dir_create(const scr_reddesc* red, int id)
         __FILE__, __LINE__
       );
     }
+
+    /* TODO: create hidden .scr subdir within dataset directory */
   } else {
     scr_abort(-1, "Invalid store descriptor @ %s:%d",
       __FILE__, __LINE__
@@ -130,6 +132,8 @@ int scr_cache_delete(scr_filemap* map, int id)
   if (store_index >= 0 && store_index < scr_nstoredescs && dir != NULL) {
     /* build name of dataset directory */
     char* dataset_dir = scr_cache_dir_build(dir, id);
+
+    /* TODO: delete hidden .scr directory */
 
     /* remove the dataset directory from cache */
     scr_storedesc* store = &scr_storedescs[store_index];

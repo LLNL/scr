@@ -425,7 +425,9 @@ int scr_swap_files(
       comm
     );
   } else {
-    scr_err("Unknown file transfer type: %d @ %s:%d", swap_type, __FILE__, __LINE__);
+    scr_err("Unknown file transfer type: %d @ %s:%d",
+            swap_type, __FILE__, __LINE__
+    );
     return SCR_FAILURE;
   }
 
@@ -462,7 +464,10 @@ int scr_swap_files(
 }
 
 /* copy files to a partner node */
-static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int id)
+static int scr_reddesc_apply_partner(
+  scr_filemap* map,
+  const scr_reddesc* c,
+  int id)
 {
   int rc = SCR_SUCCESS;
 
@@ -474,7 +479,8 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
   char** files = NULL;
   scr_filemap_list_files(map, id, scr_my_rank_world, &numfiles, &files);
 
-  /* first, determine how many files we'll be sending and receiving with our partners */
+  /* first, determine how many files we'll be sending and receiving
+   * with our partners */
   MPI_Status status;
   int send_num = numfiles;
   int recv_num = 0;
@@ -518,7 +524,8 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
     int send_rank = MPI_PROC_NULL;
     int recv_rank = MPI_PROC_NULL;
 
-    /* if we have a file left to send, get the filename and destination rank */
+    /* if we have a file left to send,
+     * get the filename and destination rank */
     char* file = NULL;
     if (send_num > 0) {
       int i = numfiles - send_num;
@@ -537,7 +544,8 @@ static int scr_reddesc_apply_partner(scr_filemap* map, const scr_reddesc* c, int
     char file_partner[SCR_MAX_FILENAME];
     scr_swap_file_names(file, send_rank, file_partner, sizeof(file_partner), recv_rank, dir, c->comm);
 
-    /* if we'll receive a file, record the name of our partner's file in the filemap */
+    /* if we'll receive a file, record the name of our partner's
+     * file in the filemap */
     if (recv_rank != MPI_PROC_NULL) {
       scr_filemap_add_file(map, id, state->lhs_rank_world, file_partner);
       scr_filemap_write(scr_map_file, map);
@@ -804,13 +812,19 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
   return rc;
 }
 
-/* apply redundancy scheme to file and return number of bytes copied in bytes parameter */
-int scr_reddesc_apply(scr_filemap* map, const scr_reddesc* c, int id, double* bytes)
+/* apply redundancy scheme to file and return number of bytes copied
+ * in bytes parameter */
+int scr_reddesc_apply(
+  scr_filemap* map,
+  const scr_reddesc* c,
+  int id,
+  double* bytes)
 {
   /* initialize to 0 */
   *bytes = 0.0;
 
-  /* step through each of my files for the specified dataset to scan for any incomplete files */
+  /* step through each of my files for the specified dataset
+   * to scan for any incomplete files */
   int valid = 1;
   double my_bytes = 0.0;
   scr_hash_elem* file_elem;
@@ -822,7 +836,7 @@ int scr_reddesc_apply(scr_filemap* map, const scr_reddesc* c, int id, double* by
     char* file = scr_hash_elem_key(file_elem);
 
     /* check the file */
-    if (!scr_bool_have_file(map, id, scr_my_rank_world, file, scr_ranks_world)) {
+    if (! scr_bool_have_file(map, id, scr_my_rank_world, file, scr_ranks_world)) {
       scr_dbg(2, "File determined to be invalid: %s", file);
       valid = 0;
     }
@@ -830,7 +844,8 @@ int scr_reddesc_apply(scr_filemap* map, const scr_reddesc* c, int id, double* by
     /* add up the number of bytes on our way through */
     my_bytes += (double) scr_file_size(file);
 
-    /* if crc_on_copy is set, compute crc and update meta file (PARTNER does this during the copy) */
+    /* if crc_on_copy is set, compute crc and update meta file
+     * (PARTNER does this during the copy) */
     if (scr_crc_on_copy && c->copy_type != SCR_COPY_PARTNER) {
       scr_compute_crc(map, id, scr_my_rank_world, file);
     }
@@ -876,7 +891,9 @@ int scr_reddesc_apply(scr_filemap* map, const scr_reddesc* c, int id, double* by
   /* determine whether everyone succeeded in their copy */
   int valid_copy = (rc == SCR_SUCCESS);
   if (! valid_copy) {
-    scr_err("scr_copy_files failed with return code %d @ %s:%d", rc, __FILE__, __LINE__);
+    scr_err("scr_copy_files failed with return code %d @ %s:%d",
+            rc, __FILE__, __LINE__
+    );
   }
   int all_valid_copy = scr_alltrue(valid_copy);
   rc = all_valid_copy ? SCR_SUCCESS : SCR_FAILURE;

@@ -898,7 +898,7 @@ int SCR_Init()
   /* TODO: should we check for access and required space in cache
    * directories at this point? */
 
-  /* ensure that the control and checkpoint directories are ready */
+  /* ensure that the control and cache directories are ready */
   MPI_Barrier(scr_comm_world);
 
   /* place the halt, flush, and nodes files in the prefix directory */
