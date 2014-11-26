@@ -1,9 +1,14 @@
 #!/bin/bash
+
+# Fetches and builds lwgrp and dtcmp libs, which SCR
+# uses as optional dependencies.
+
+# requires MPI-2.2 or higher
+
 set -x
 
 OPT="-g -O0"
 
-rm -rf deps
 mkdir -p deps
 cd deps
 
@@ -18,6 +23,8 @@ fi
 if [ ! -f ${dtcmp}.tar.gz ] ; then
   wget https://github.com/hpc/dtcmp/releases/download/v1.0.3/${dtcmp}.tar.gz
 fi
+
+rm -rf $installdir
 
 rm -rf ${lwgrp}
 tar -zxf ${lwgrp}.tar.gz
