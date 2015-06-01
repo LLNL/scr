@@ -160,10 +160,10 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     if (scr_flush_async_in_progress) {
       /* there's an async flush ongoing, see which dataset is being flushed */
       if (scr_flush_async_dataset_id == scr_dataset_id) {
-        /* we're going to sync flush this same checkpoint below, so kill it */
+        /* we're going to sync flush this same dataset below, so kill it */
         scr_flush_async_stop(scr_map);
       } else {
-        /* the async flush is flushing a different checkpoint, so wait for it */
+        /* the async flush is flushing a different dataset, so wait for it */
         scr_flush_async_wait(scr_map);
       }
     }
@@ -233,7 +233,7 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
     );
   }
 
-  /* lookup the checkpoint directory */
+  /* lookup the cache directory for this dataset */
   char dir[SCR_MAX_FILENAME];
   scr_cache_dir_get(reddesc, id, dir);
 
@@ -1606,17 +1606,19 @@ int SCR_Complete_checkpoint(int valid)
     scr_meta_delete(&meta);
   }
 
+  /* TODODSET: we may want to delay setting COMPLETE in the dataset until after copy call? */
+
   /* we execute a sum as a logical allreduce to determine whether everyone is valid
    * we interpret the result to be true only if the sum adds up to the number of processes */
   if (valid) {
     my_counts[2] = 1;
   }
 
-  /* TODODSET: we may want to delay setting COMPLETE in the dataset until after copy call? */
-
-  /* store total number of files, total number of bytes, and complete flag in dataset */
+  /* execute allreduce */
   unsigned long total_counts[3];
   MPI_Allreduce(my_counts, total_counts, 3, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
+
+  /* store total number of files, total number of bytes, and complete flag in dataset */
   scr_dataset* dataset = scr_dataset_new();
   scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
   scr_dataset_set_files(dataset, (int) total_counts[0]);
