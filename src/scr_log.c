@@ -19,6 +19,7 @@
 #include "scr_param.h"
 #include "scr_log.h"
 #include "scr_hash.h"
+#include "scr_hash_util.h"
 
 #include <stdlib.h>
 #include <stdio.h>
