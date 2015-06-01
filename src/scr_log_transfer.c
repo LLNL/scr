@@ -67,7 +67,7 @@ void print_usage()
   printf("  -Y <to>        To directory (string)\n");
   printf("  -D <id>        Dataset id (integer)\n");
   printf("  -S <start>     Transfer start time as UNIX timestamp (integer)\n");
-  printf("  -D <duration>  Duration in seconds (integer)\n");
+  printf("  -L <duration>  Duration in seconds (integer)\n");
   printf("  -B <bytes>     Number of bytes transfered (integer)\n");
   printf("\n");
   return;
@@ -110,7 +110,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
       }
 
       /* single argument parameters */
-      if (strchr("ujsTXYDSDB", flag)) {
+      if (strchr("ujsTXYDSLB", flag)) {
         switch(flag) {
         case 'u':
           args->username = strdup(argptr);
@@ -139,7 +139,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
           global_start = (time_t) strtoul(argptr, NULL, 0);
           args->transfer_start = &global_start;
           break;
-        case 'D':
+        case 'L':
           global_secs = (double) atoi(argptr);
           args->transfer_secs = &global_secs;
           break;
