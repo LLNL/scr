@@ -234,8 +234,7 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
   }
 
   /* lookup the cache directory for this dataset */
-  char dir[SCR_MAX_FILENAME];
-  scr_cache_dir_get(reddesc, id, dir);
+  char* dir = scr_cache_dir_get(reddesc, id);
 
   /* chop file to just the file name and prepend directory */
   scr_path* path_file = scr_path_from_str(file);
@@ -248,6 +247,9 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
 
   /* free the file path */
   scr_path_delete(&path_file);
+
+  /* free the cache directory */
+  scr_free(&dir);
 
   return SCR_SUCCESS;
 }
@@ -1676,11 +1678,11 @@ int SCR_Complete_checkpoint(int valid)
       scr_log_event("CHECKPOINT COMPLETED", reddesc->base, &scr_dataset_id, &now, &time_diff);
 
       /* log the transfer details */
-      char dir[SCR_MAX_FILENAME];
-      scr_cache_dir_get(reddesc, scr_dataset_id, dir);
+      char* dir = scr_cache_dir_get(reddesc, scr_dataset_id);
       scr_log_transfer("CHECKPOINT", reddesc->base, dir, &scr_dataset_id,
         &scr_timestamp_checkpoint_start, &cost, &bytes_copied
       );
+      scr_free(&dir);
     }
 
     /* print out a debug message with the result of the copy */

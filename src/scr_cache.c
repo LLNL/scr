@@ -17,21 +17,32 @@ Dataset cache functions
 =========================================
 */
 
-/* allocates and returns a string representing the dataset directory
- * given a path and dataset id */
-static char* scr_cache_dir_build(const char* path, int id)
+static char* scr_cache_dir_from_str(const char* dir, int id)
 {
-  scr_path* dir = scr_path_from_str(path);
-  scr_path_append_strf(dir, "scr.dataset.%d", id);
-  scr_path_reduce(dir);
-  char* str = scr_path_strdup(dir);
-  scr_path_delete(&dir);
+  /* build the dataset directory name */
+  scr_path* path = scr_path_from_str(dir);
+  scr_path_append_strf(path, "scr.dataset.%d", id);
+  scr_path_reduce(path);
+  char* str = scr_path_strdup(path);
+  scr_path_delete(&path);
+  return str;
+}
+
+static char* scr_cache_dir_hidden_from_str(const char* dir, int id)
+{
+  /* build the dataset directory name */
+  scr_path* path = scr_path_from_str(dir);
+  scr_path_append_strf(path, "scr.dataset.%d", id);
+  scr_path_append_str(path, ".scr");
+  scr_path_reduce(path);
+  char* str = scr_path_strdup(path);
+  scr_path_delete(&path);
   return str;
 }
 
 /* returns name of the dataset directory for a given redundancy descriptor
- * and dataset id */
-int scr_cache_dir_get(const scr_reddesc* red, int id, char* dir)
+ * and dataset id, caller must free returned string */
+char* scr_cache_dir_get(const scr_reddesc* red, int id)
 {
   /* fatal error if c or c->directory is not set */
   if (red == NULL || red->directory == NULL) {
@@ -41,11 +52,24 @@ int scr_cache_dir_get(const scr_reddesc* red, int id, char* dir)
   }
 
   /* build the dataset directory name */
-  char* tmp = scr_cache_dir_build(red->directory, id);
-  strcpy(dir, tmp);
-  scr_free(&tmp);
+  char* str = scr_cache_dir_from_str(red->directory, id);
+  return str;
+}
 
-  return SCR_SUCCESS;
+/* returns name of hidden .scr subdirectory within the dataset directory
+ * for a given redundancy descriptor and dataset id, caller must free
+ * returned string */
+char* scr_cache_dir_hidden_get(const scr_reddesc* red, int id)
+{
+  /* fatal error if c or c->directory is not set */
+  if (red == NULL || red->directory == NULL) {
+    scr_abort(-1, "NULL redundancy descriptor or NULL dataset directory @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  char* str = scr_cache_dir_hidden_from_str(red->directory, id);
+  return str;
 }
 
 /* create a dataset directory given a redundancy descriptor and dataset id,
@@ -57,21 +81,27 @@ int scr_cache_dir_create(const scr_reddesc* red, int id)
   /* get store descriptor for this redudancy descriptor */
   scr_storedesc* store = scr_reddesc_get_store(red);
   if (store != NULL) {
-    /* get the name of the dataset directory for the given id */
-    char dir[SCR_MAX_FILENAME];
-    scr_cache_dir_get(red, id, dir);
-
     /* create directory on store */
+    char* dir = scr_cache_dir_get(red, id);
     if (scr_storedesc_dir_create(store, dir) != SCR_SUCCESS)
     {
       /* check that we created the directory successfully,
        * fatal error if not */
-      scr_abort(-1, "Failed to create dataset directory, aborting @ %s:%d",
-        __FILE__, __LINE__
+      scr_abort(-1, "Failed to create dataset directory %s, aborting @ %s:%d",
+        dir, __FILE__, __LINE__
       );
     }
+    scr_free(&dir);
 
-    /* TODO: create hidden .scr subdir within dataset directory */
+    /* create hidden .scr subdir within dataset directory */
+    char* dir_scr = scr_cache_dir_hidden_get(red, id);
+    if (scr_storedesc_dir_create(store, dir_scr) != SCR_SUCCESS)
+    {
+      scr_abort(-1, "Failed to create dataset directory %s, aborting @ %s:%d",
+        dir_scr, __FILE__, __LINE__
+      );
+    }
+    scr_free(&dir_scr);
   } else {
     scr_abort(-1, "Invalid store descriptor @ %s:%d",
       __FILE__, __LINE__
@@ -130,20 +160,25 @@ int scr_cache_delete(scr_filemap* map, int id)
   char* dir  = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
   int store_index = scr_storedescs_index_from_name(base);
   if (store_index >= 0 && store_index < scr_nstoredescs && dir != NULL) {
-    /* build name of dataset directory */
-    char* dataset_dir = scr_cache_dir_build(dir, id);
+    /* get store descriptor */
+    scr_storedesc* store = &scr_storedescs[store_index];
 
-    /* TODO: delete hidden .scr directory */
+    /* remove hidden .scr subdirectory from cache */
+    char* dir_scr = scr_cache_dir_hidden_from_str(dir, id);
+    if (scr_storedesc_dir_delete(store, dir_scr) != SCR_SUCCESS) {
+      scr_err("Failed to remove dataset directory: %s @ %s:%d",
+        dir_scr, __FILE__, __LINE__
+      );
+    }
+    scr_free(&dir_scr);
 
     /* remove the dataset directory from cache */
-    scr_storedesc* store = &scr_storedescs[store_index];
+    char* dataset_dir = scr_cache_dir_from_str(dir, id);
     if (scr_storedesc_dir_delete(store, dataset_dir) != SCR_SUCCESS) {
       scr_err("Failed to remove dataset directory: %s @ %s:%d",
         dataset_dir, __FILE__, __LINE__
       );
     }
-
-    /* free off dataset directory string */
     scr_free(&dataset_dir);
   } else {
     /* TODO: abort! */

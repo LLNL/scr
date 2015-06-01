@@ -512,8 +512,7 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
   int tmp_rc = 0;
 
   /* get the path for this dataset */
-  char dir[SCR_MAX_FILENAME];
-  scr_cache_dir_get(red, id, dir);
+  char* dir = scr_cache_dir_get(red, id);
 
   /* run through rounds and exchange files */
   for (round = 0; round <= max_rounds; round++) {
@@ -743,6 +742,9 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
       }
     }
   }
+
+  /* free cache directory */
+  scr_free(&dir);
 
   /* if we have more rounds than max rounds, delete the remainder of our files */
   for (round = max_rounds+1; round < nranks; round++) {

@@ -79,8 +79,8 @@ int scr_reddesc_free(
  * specified checkpoint id */
 scr_reddesc* scr_reddesc_for_checkpoint(
   int id,
-  int nckpts,
-  scr_reddesc* ckpts
+  int ndescs,
+  scr_reddesc* descs
 );
 
 /* convert the specified redundancy descritpor into a corresponding

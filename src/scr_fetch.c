@@ -1037,14 +1037,16 @@ static int scr_fetch_files(
   scr_cache_dir_create(c, id);
 
   /* get the cache directory */
-  char cache_dir[SCR_MAX_FILENAME];
-  scr_cache_dir_get(c, id, cache_dir);
+  char* cache_dir = scr_cache_dir_get(c, id);
 
   /* now we can finally fetch the actual files */
   int success = 1;
   if (scr_fetch_data(file_list, cache_dir, map) != SCR_SUCCESS) {
     success = 0;
   }
+
+  /* free cache directory name */
+  scr_free(&cache_dir);
 
   /* free the hash holding the summary file data */
   scr_hash_delete(&file_list);
@@ -1108,11 +1110,11 @@ static int scr_fetch_files(
         scr_log_event("FETCH FAILED", fetch_dir, &id, &now, &time_diff);
       }
 
-      char cache_dir[SCR_MAX_FILENAME];
-      scr_cache_dir_get(c, id, cache_dir);
+      char* cache_dir = scr_cache_dir_get(c, id);
       scr_log_transfer("FETCH", fetch_dir, cache_dir, &id,
         &timestamp_start, &time_diff, &total_bytes
       );
+      scr_free(&cache_dir);
     }
   }
 

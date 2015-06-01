@@ -515,8 +515,7 @@ static int scr_reddesc_apply_partner(
   scr_filemap_write(scr_map_file, map);
 
   /* define directory to receive partner file in */
-  char dir[SCR_MAX_FILENAME];
-  scr_cache_dir_get(c, id, dir);
+  char* dir = scr_cache_dir_get(c, id);
 
   /* for each potential file, step through a call to swap */
   while (send_num > 0 || recv_num > 0) {
@@ -566,6 +565,9 @@ static int scr_reddesc_apply_partner(
     scr_meta_delete(&recv_meta);
     scr_meta_delete(&send_meta);
   }
+
+  /* free cache directory string */
+  scr_free(&dir);
 
   /* write out the updated filemap */
   scr_filemap_write(scr_map_file, map);
@@ -696,9 +698,9 @@ static int scr_reddesc_apply_xor(scr_filemap* map, const scr_reddesc* c, int id)
 
   /* set chunk filenames of form:  xor.<group_id>_<xor_rank+1>_of_<xor_ranks>.scr */
   char my_chunk_file[SCR_MAX_FILENAME];
-  char dir[SCR_MAX_FILENAME];
-  scr_cache_dir_get(c, id, dir);
+  char* dir = scr_cache_dir_get(c, id);
   sprintf(my_chunk_file,  "%s/xor.%d_%d_of_%d.scr", dir, c->group_id, c->rank+1, c->ranks);
+  scr_free(&dir);
 
   /* record chunk file in filemap before creating it */
   scr_filemap_add_file(map, id, scr_my_rank_world, my_chunk_file);
@@ -906,15 +908,15 @@ int scr_reddesc_apply(
     double time_end = MPI_Wtime();
     double time_diff = time_end - time_start;
     double bw = *bytes / (1024.0 * 1024.0 * time_diff);
-    scr_dbg(1, "scr_copy_files: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
+    scr_dbg(1, "scr_reddesc_apply: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
             time_diff, *bytes, bw, bw/scr_ranks_world
     );
 
     /* log data on the copy in the database */
     if (scr_log_enable) {
-      char dir[SCR_MAX_FILENAME];
-      scr_cache_dir_get(c, id, dir);
+      char* dir = scr_cache_dir_get(c, id);
       scr_log_transfer("COPY", c->base, dir, &id, &timestamp_start, &time_diff, bytes);
+      scr_free(&dir);
     }
   }
 
