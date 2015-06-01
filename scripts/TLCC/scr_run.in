@@ -208,7 +208,7 @@ while [ 1 ] ; do
   $bindir/scr_list_down_nodes $keep_down --log --reason --secs $run_secs
 
   # log stats on the latest run attempt
-  $bindir/scr_log_event -T "RUN ENDED" -N "Job=$jobid, Run=$attempts" -S $end_secs -D $run_secs
+  $bindir/scr_log_event -T "RUN ENDED" -N "Job=$jobid, Run=$attempts" -S $end_secs -L $run_secs
 
   # any retry attempts left?
   if [ $runs -gt -1 ] ; then

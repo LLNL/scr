@@ -38,14 +38,14 @@ struct arglist {
   int     event;
   char*   event_type;
   char*   event_note;
-  int*    event_ckpt;
+  int*    event_dset;
   time_t* event_start;
   double* event_secs;
 };
 
 int scr_log_enable = 1;
 
-int global_ckpt;
+int global_dset;
 time_t global_start;
 double global_secs;
 
@@ -61,9 +61,9 @@ void print_usage()
   printf("\n");
   printf("  -T <type>      Event type (string)\n");
   printf("  -N <note>      Note (string)\n");
-  printf("  -C <id>        Checkpoint id (integer)\n");
+  printf("  -D <id>        Dataset id (integer)\n");
   printf("  -S <start>     Event start time as UNIX timestamp (integer)\n");
-  printf("  -D <duration>  Duration in seconds (integer)\n");
+  printf("  -L <duration>  Duration in seconds (integer)\n");
   printf("\n");
   return;
 }
@@ -82,7 +82,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
   args->event             = 0;
   args->event_type        = NULL;
   args->event_note        = NULL;
-  args->event_ckpt        = NULL;
+  args->event_dset        = NULL;
   args->event_start       = NULL;
   args->event_secs        = NULL;
 
@@ -103,7 +103,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
       }
 
       /* single argument parameters */
-      if (strchr("ujsTNCSD", flag)) {
+      if (strchr("ujsTNDSL", flag)) {
         switch(flag) {
         case 'u':
           args->username = strdup(argptr);
@@ -121,15 +121,15 @@ int processArgs(int argc, char **argv, struct arglist* args)
         case 'N':
           args->event_note = strdup(argptr);
           break;
-        case 'C':
-          global_ckpt = (int) atoi(argptr);
-          args->event_ckpt = &global_ckpt;
+        case 'D':
+          global_dset = (int) atoi(argptr);
+          args->event_dset = &global_dset;
           break;
         case 'S':
           global_start = (time_t) strtoul(argptr, NULL, 0);
           args->event_start = &global_start;
           break;
-        case 'D':
+        case 'L':
           global_secs = (int) atoi(argptr);
           args->event_secs = &global_secs;
           break;
@@ -216,7 +216,7 @@ int main (int argc, char *argv[])
   }
 
   if (scr_log_enable) {
-    if (scr_log_event(args.event_type, args.event_note, args.event_ckpt, args.event_start, args.event_secs) != SCR_SUCCESS)
+    if (scr_log_event(args.event_type, args.event_note, args.event_dset, args.event_start, args.event_secs) != SCR_SUCCESS)
     {
       rc = 1;
     }
