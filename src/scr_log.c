@@ -51,10 +51,11 @@ MySQL functions
 */
 
 #ifdef HAVE_LIBMYSQLCLIENT
-static MYSQL scr_mysql;
+static MYSQL scr_mysql; /* caches mysql object */
 #endif
 
-static unsigned long scr_db_jobid = 0;       /* caches the jobid for the current job */
+static unsigned long scr_db_jobid = 0; /* caches the jobid for the current job */
+
 #ifdef HAVE_LIBMYSQLCLIENT
 static scr_hash* scr_db_types = NULL; /* caches type string to type id lookups */
 #endif
@@ -63,9 +64,7 @@ static scr_hash* scr_db_types = NULL; /* caches type string to type id lookups *
 int scr_mysql_connect()
 {
 #ifdef HAVE_LIBMYSQLCLIENT
-  /* TODO: read in connection parameters using scr_get_param calls */
-
-  /* create our type string to id cache */
+  /* create our type-string-to-id cache */
   scr_db_types = scr_hash_new();
   if (scr_db_types == NULL) {
     scr_err("Failed to create a hash to cache type string to id lookups @ %s:%d",
@@ -78,7 +77,7 @@ int scr_mysql_connect()
   mysql_init(&scr_mysql);
 
   /* connect to the database */
-  if (!mysql_real_connect(&scr_mysql, scr_db_host, scr_db_user, scr_db_pass, scr_db_name, 0, NULL, 0)) {
+  if (! mysql_real_connect(&scr_mysql, scr_db_host, scr_db_user, scr_db_pass, scr_db_name, 0, NULL, 0)) {
     scr_err("Failed to connect to SCR log database %s on host %s @ %s:%d",
             scr_db_name, scr_db_host, __FILE__, __LINE__
     );
@@ -101,10 +100,18 @@ int scr_mysql_disconnect()
   return SCR_SUCCESS;
 }
 
+/* allocate a new string, having escaped all internal quotes
+ * using mysql_real_escape_string, escaping is needed
+ * in case values to be inserted have quotes,
+ * caller is responsible for freeing string */
 char* scr_mysql_quote_string(const char* value)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   if (value != NULL) {
+    /* start with a leading single quote, escape internal quotes
+     * by adding a leading backslash (could double length of input
+     * string), then end with trailing single quote and
+     * terminating NUL */
     int n = strlen(value);
     char* q = (char*) malloc(2*n+1+2);
     if (q != NULL) {
@@ -144,6 +151,7 @@ char* scr_mysql_quote_seconds(const time_t* value)
 #endif
 }
 
+/* allocate string of quoted integer value */
 char* scr_mysql_quote_int(const int* value)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
@@ -168,6 +176,7 @@ char* scr_mysql_quote_int(const int* value)
 #endif
 }
 
+/* allocate string of quoted double value */
 char* scr_mysql_quote_double(const double* value)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
@@ -192,7 +201,8 @@ char* scr_mysql_quote_double(const double* value)
 #endif
 }
 
-/* lookup name in table and return id if found */
+/* lookup name in table and return id if found,
+ * returns SCR_FAILURE on error or if name is not found */
 int scr_mysql_read_id(const char* table, const char* name, unsigned long* id)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
@@ -338,8 +348,6 @@ int scr_mysql_read_write_id(const char* table, const char* name, unsigned long* 
 int scr_mysql_type_id(const char* type, int* id)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
-  unsigned long tmp_id;
-
   /* check that we don't have a NULL string */
   if (type == NULL) {
     scr_err("Type string is NULL @ %s:%d",
@@ -349,15 +357,14 @@ int scr_mysql_type_id(const char* type, int* id)
   }
 
   /* first check the hash in case we can avoid reading from the database */
-  char* id_str = scr_hash_elem_get_first_val(scr_db_types, type);
-  if (id_str != NULL) {
-    /* found our id from the hash, convert to an unsigned long, then to an int */
-    tmp_id = strtoul(id_str, NULL, 0);
+  unsigned long tmp_id;
+  if (scr_hash_util_get_unsigned_long(scr_db_types, type, &tmp_id) == SCR_SUCCESS) {
+    /* found our id from the hash, convert to an int and return */
     *id = (int) tmp_id;
     return SCR_SUCCESS;
   }
 
-  /* lookup the id for our jobname */
+  /* failed to find our id in the hash, lookup the id for our jobname */
   if (scr_mysql_read_write_id("types", type, &tmp_id) != SCR_SUCCESS) {
     scr_err("Failed to find type_id for %s @ %s:%d",
             type, __FILE__, __LINE__
@@ -366,7 +373,7 @@ int scr_mysql_type_id(const char* type, int* id)
   }
 
   /* got our id, now cache the lookup */
-  scr_hash_setf(scr_db_types, NULL, "%s %lu", type, tmp_id);
+  scr_hash_util_set_unsigned_long(scr_db_types, type, tmp_id);
 
   /* cast the id down to an int */
   *id = (int) tmp_id;
@@ -375,7 +382,7 @@ int scr_mysql_type_id(const char* type, int* id)
 }
 
 /* records an SCR event in the SCR log database */
-int scr_mysql_log_event(const char* type, const char* note, const int* ckpt, const time_t* start, const double* secs)
+int scr_mysql_log_event(const char* type, const char* note, const int* dset, const time_t* start, const double* secs)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* lookup the id for the type string */
@@ -388,13 +395,13 @@ int scr_mysql_log_event(const char* type, const char* note, const int* ckpt, con
   }
 
   char* qnote  = scr_mysql_quote_string(note);
-  char* qckpt  = scr_mysql_quote_int(ckpt);
+  char* qdset  = scr_mysql_quote_int(dset);
   char* qstart = scr_mysql_quote_seconds(start);
   char* qsecs  = scr_mysql_quote_double(secs);
 
   /* check that we got valid strings for each of our parameters */
   if (qnote  == NULL ||
-      qckpt  == NULL ||
+      qdset  == NULL ||
       qstart == NULL ||
       qsecs  == NULL)
   {
@@ -409,16 +416,16 @@ int scr_mysql_log_event(const char* type, const char* note, const int* ckpt, con
   int n = snprintf(query, sizeof(query),
     "INSERT"
     " INTO `events`"
-    " (`id`,`job_id`,`type_id`,`checkpoint_id`,`start`,`time`,`note`)"
+    " (`id`,`job_id`,`type_id`,`dset_id`,`start`,`time`,`note`)"
     " VALUES"
     " (NULL, %lu, %d, %s, %s, %s, %s)"
     " ;",
-    scr_db_jobid, type_id, qckpt, qstart, qsecs, qnote
+    scr_db_jobid, type_id, qdset, qstart, qsecs, qnote
   );
 
   /* free the strings as they are now encoded into the query */
   scr_free(&qnote);
-  scr_free(&qckpt);
+  scr_free(&qdset);
   scr_free(&qstart);
   scr_free(&qsecs);
 
@@ -445,8 +452,8 @@ int scr_mysql_log_event(const char* type, const char* note, const int* ckpt, con
   return SCR_SUCCESS;
 }
 
-/* records an SCR file transfer (checkpoint/fetch/flush/drain) in the SCR log database */
-int scr_mysql_log_transfer(const char* type, const char* from, const char* to, const int* ckpt, const time_t* start, const double* secs, const double* bytes)
+/* records an SCR file transfer (copy/fetch/flush/drain) in the SCR log database */
+int scr_mysql_log_transfer(const char* type, const char* from, const char* to, const int* dset, const time_t* start, const double* secs, const double* bytes)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* lookup the id for the type string */
@@ -477,7 +484,7 @@ int scr_mysql_log_transfer(const char* type, const char* from, const char* to, c
   /* convert seconds since epoch to mysql datetime strings */
   char* qfrom  = scr_mysql_quote_string(from);
   char* qto    = scr_mysql_quote_string(to);
-  char* qckpt  = scr_mysql_quote_int(ckpt);
+  char* qdset  = scr_mysql_quote_int(dset);
   char* qstart = scr_mysql_quote_seconds(start);
   char* qend   = scr_mysql_quote_seconds(end);
   char* qsecs  = scr_mysql_quote_double(secs);
@@ -487,7 +494,7 @@ int scr_mysql_log_transfer(const char* type, const char* from, const char* to, c
   /* check that we got valid strings for each of our parameters */
   if (qfrom  == NULL ||
       qto    == NULL ||
-      qckpt  == NULL ||
+      qdset  == NULL ||
       qstart == NULL ||
       qend   == NULL ||
       qsecs  == NULL ||
@@ -505,17 +512,17 @@ int scr_mysql_log_transfer(const char* type, const char* from, const char* to, c
   int n = snprintf(query, sizeof(query),
     "INSERT"
     " INTO `transfers`"
-    " (`id`,`job_id`,`type_id`,`checkpoint_id`,`start`,`end`,`time`,`bytes`,`bw`,`from`,`to`)"
+    " (`id`,`job_id`,`type_id`,`dset_id`,`start`,`end`,`time`,`bytes`,`bw`,`from`,`to`)"
     " VALUES"
     " (NULL, %lu, %d, %s, %s, %s, %s, %s, %s, %s, %s)"
     " ;",
-    scr_db_jobid, type_id, qckpt, qstart, qend, qsecs, qbytes, qbw, qfrom, qto
+    scr_db_jobid, type_id, qdset, qstart, qend, qsecs, qbytes, qbw, qfrom, qto
   );
 
   /* free the strings as they are now encoded into the query */
   scr_free(&qfrom);
   scr_free(&qto);
-  scr_free(&qckpt);
+  scr_free(&qdset);
   scr_free(&qstart);
   scr_free(&qend);
   scr_free(&qsecs);
@@ -816,32 +823,32 @@ int scr_log_run(time_t start)
 }
 
 /* log reason and time for halting current run */
-int scr_log_halt(const char* reason, const int* ckpt)
+int scr_log_halt(const char* reason, const int* dset)
 {
   int rc = SCR_SUCCESS;
   if (scr_db_enable) {
     time_t now = scr_log_seconds();
-    rc = scr_mysql_log_event("HALT", reason, ckpt, &now, NULL);
+    rc = scr_mysql_log_event("HALT", reason, dset, &now, NULL);
   }
   return rc;
 }
 
 /* log an event */
-int scr_log_event(const char* type, const char* note, const int* ckpt, const time_t* start, const double* secs)
+int scr_log_event(const char* type, const char* note, const int* dset, const time_t* start, const double* secs)
 {
   int rc = SCR_SUCCESS;
   if (scr_db_enable) {
-    rc = scr_mysql_log_event(type, note, ckpt, start, secs);
+    rc = scr_mysql_log_event(type, note, dset, start, secs);
   }
   return rc;
 }
 
 /* log a transfer: copy / checkpoint / fetch / flush */
-int scr_log_transfer(const char* type, const char* from, const char* to, const int* ckpt_id, const time_t* start, const double* secs, const double* bytes)
+int scr_log_transfer(const char* type, const char* from, const char* to, const int* dset_id, const time_t* start, const double* secs, const double* bytes)
 {
   int rc = SCR_SUCCESS;
   if (scr_db_enable) {
-    rc = scr_mysql_log_transfer(type, from, to, ckpt_id, start, secs, bytes);
+    rc = scr_mysql_log_transfer(type, from, to, dset_id, start, secs, bytes);
   }
   return rc;
 }

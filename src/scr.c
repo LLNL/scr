@@ -34,11 +34,11 @@ static int scr_halt(const char* reason)
   }
 
   /* log the halt condition */
-  int* ckpt = NULL;
-  if (scr_checkpoint_id > 0) {
-    ckpt = &scr_checkpoint_id;
+  int* dset = NULL;
+  if (scr_dataset_id > 0) {
+    dset = &scr_dataset_id;
   }
-  scr_log_halt(reason, ckpt);
+  scr_log_halt(reason, dset);
 
   /* and write out the halt file */
   int rc = scr_halt_sync_and_decrement(scr_halt_file, scr_halt_hash, 0);
@@ -1069,7 +1069,7 @@ int SCR_Init()
 
     /* log the start time of this compute phase */
     if (scr_log_enable) {
-      int compute_id = scr_checkpoint_id + 1;
+      int compute_id = scr_dataset_id + 1;
       scr_timestamp_compute_start = scr_log_seconds();
       scr_log_event("COMPUTE STARTED", NULL, &compute_id, &scr_timestamp_compute_start, NULL);
     }
@@ -1313,7 +1313,7 @@ int SCR_Start_checkpoint()
 
     /* log the end of this compute phase */
     if (scr_log_enable) {
-      int compute_id = scr_checkpoint_id + 1;
+      int compute_id = scr_dataset_id + 1;
       double time_diff = scr_time_compute_end - scr_time_compute_start;
       time_t now = scr_log_seconds();
       scr_log_event("COMPUTE COMPLETED", NULL, &compute_id, &now, &time_diff);
@@ -1334,7 +1334,7 @@ int SCR_Start_checkpoint()
     /* log the start of this checkpoint phase */
     if (scr_log_enable) {
       scr_timestamp_checkpoint_start = scr_log_seconds();
-      scr_log_event("CHECKPOINT STARTED", reddesc->base, &scr_checkpoint_id, &scr_timestamp_checkpoint_start, NULL);
+      scr_log_event("CHECKPOINT STARTED", reddesc->base, &scr_dataset_id, &scr_timestamp_checkpoint_start, NULL);
     }
   }
 
@@ -1671,12 +1671,12 @@ int SCR_Complete_checkpoint(int valid)
       /* log the end of this checkpoint phase */
       double time_diff = scr_time_checkpoint_end - scr_time_checkpoint_start;
       time_t now = scr_log_seconds();
-      scr_log_event("CHECKPOINT COMPLETED", reddesc->base, &scr_checkpoint_id, &now, &time_diff);
+      scr_log_event("CHECKPOINT COMPLETED", reddesc->base, &scr_dataset_id, &now, &time_diff);
 
       /* log the transfer details */
       char dir[SCR_MAX_FILENAME];
       scr_cache_dir_get(reddesc, scr_dataset_id, dir);
-      scr_log_transfer("CHECKPOINT", reddesc->base, dir, &scr_checkpoint_id,
+      scr_log_transfer("CHECKPOINT", reddesc->base, dir, &scr_dataset_id,
         &scr_timestamp_checkpoint_start, &cost, &bytes_copied
       );
     }
@@ -1728,7 +1728,7 @@ int SCR_Complete_checkpoint(int valid)
 
     /* log the start time of this compute phase */
     if (scr_log_enable) {
-      int compute_id = scr_checkpoint_id + 1;
+      int compute_id = scr_dataset_id + 1;
       scr_timestamp_compute_start = scr_log_seconds();
       scr_log_event("COMPUTE STARTED", NULL, &compute_id, &scr_timestamp_compute_start, NULL);
     }

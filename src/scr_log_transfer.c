@@ -39,7 +39,7 @@ struct arglist {
   char*   transfer_type;
   char*   transfer_from;
   char*   transfer_to;
-  int*    transfer_ckpt;
+  int*    transfer_dset;
   time_t* transfer_start;
   double* transfer_secs;
   double* transfer_bytes;
@@ -47,7 +47,7 @@ struct arglist {
 
 int scr_log_enable = 1;
 
-int global_ckpt;
+int global_dset;
 time_t global_start;
 double global_secs;
 double global_bytes;
@@ -65,7 +65,7 @@ void print_usage()
   printf("  -T <type>      Event type (string)\n");
   printf("  -X <from>      From directory (string)\n");
   printf("  -Y <to>        To directory (string)\n");
-  printf("  -C <id>        Checkpoint id (integer)\n");
+  printf("  -D <id>        Dataset id (integer)\n");
   printf("  -S <start>     Transfer start time as UNIX timestamp (integer)\n");
   printf("  -D <duration>  Duration in seconds (integer)\n");
   printf("  -B <bytes>     Number of bytes transfered (integer)\n");
@@ -88,7 +88,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
   args->transfer_type     = NULL;
   args->transfer_from     = NULL;
   args->transfer_to       = NULL;
-  args->transfer_ckpt     = NULL;
+  args->transfer_dset     = NULL;
   args->transfer_start    = NULL;
   args->transfer_secs     = NULL;
   args->transfer_bytes    = NULL;
@@ -110,7 +110,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
       }
 
       /* single argument parameters */
-      if (strchr("ujsTXYCSDB", flag)) {
+      if (strchr("ujsTXYDSDB", flag)) {
         switch(flag) {
         case 'u':
           args->username = strdup(argptr);
@@ -131,9 +131,9 @@ int processArgs(int argc, char **argv, struct arglist* args)
         case 'Y':
           args->transfer_to = strdup(argptr);
           break;
-        case 'C':
-          global_ckpt = (int) atoi(argptr);
-          args->transfer_ckpt = &global_ckpt;
+        case 'D':
+          global_dset = (int) atoi(argptr);
+          args->transfer_dset = &global_dset;
           break;
         case 'S':
           global_start = (time_t) strtoul(argptr, NULL, 0);
@@ -230,9 +230,9 @@ int main (int argc, char *argv[])
   }
 
   if (scr_log_enable) {
-  //  if (scr_log_event(args.event_type, args.event_note, args.event_ckpt, args.event_start, args.event_secs) != SCR_SUCCESS)
+  //  if (scr_log_event(args.event_type, args.event_note, args.event_dset, args.event_start, args.event_secs) != SCR_SUCCESS)
     if (scr_log_transfer(args.transfer_type, args.transfer_from, args.transfer_to,
-          args.transfer_ckpt, args.transfer_start, args.transfer_secs, args.transfer_bytes) != SCR_SUCCESS)
+          args.transfer_dset, args.transfer_start, args.transfer_secs, args.transfer_bytes) != SCR_SUCCESS)
     {
       rc = 1;
     }

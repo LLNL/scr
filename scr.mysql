@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS `transfers` (
         `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         `job_id`        INT          NOT NULL, # id to jobs table
         `type_id`       INT UNSIGNED NOT NULL, # fetch, flush, or drain?
-        `checkpoint_id` INT UNSIGNED NOT NULL, # SCR checkpoint iteration number
+        `dset_id`       INT UNSIGNED NOT NULL, # SCR dataset number
         `start`         DATETIME     NOT NULL, # start time of operation
         `end`           DATETIME     NOT NULL, # end time of operation
         `time`          FLOAT        NOT NULL, # total time of operation
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS `events` (
         `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         `job_id`        INT          NOT NULL, # id to jobs table
         `type_id`       INT UNSIGNED NOT NULL, # fetch, flush, or drain?
-        `checkpoint_id` INT UNSIGNED     NULL, # SCR checkpoint iteration number
+        `dset_id`       INT UNSIGNED     NULL, # SCR dataset number
         `start`         DATETIME         NULL, # start time of operation
         `time`          FLOAT            NULL, # total time of operation
         `note`          BLOB             NULL, # source directory
