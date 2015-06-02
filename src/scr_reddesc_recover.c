@@ -210,7 +210,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     filesizes = (unsigned long*) SCR_MALLOC(num_files * sizeof(unsigned long));
 
     /* get dataset directory */
-    char* dir = scr_cache_dir_get(c, id);
+    char* dir = scr_cache_dir_hidden_get(c, id);
 
     /* set chunk filename of form: <group_id>_<xor_rank+1>_of_<xor_ranks>.scr */
     scr_path* path_full_chunk_filename = scr_path_from_str(dir);
