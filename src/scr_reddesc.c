@@ -728,8 +728,8 @@ int scr_reddesc_restore_from_hash(
     );
   }
     
-  /* read the checkpoint type from the hash,
-   * and build our checkpoint communicator */
+  /* read the redundancy scheme type from the hash,
+   * and build our redundancy communicator */
   char* type;
   if (scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &type) == SCR_SUCCESS) {
     if (scr_reddesc_type_int_from_str(type, &d->copy_type) != SCR_SUCCESS) {
@@ -746,7 +746,7 @@ int scr_reddesc_restore_from_hash(
     );
   }
 
-  /* build the checkpoint communicator */
+  /* build the group communicator */
   int group_id, group_rank;
   if (scr_hash_util_get_int(hash, SCR_CONFIG_KEY_GROUP_ID, &group_id) != SCR_SUCCESS) {
     scr_abort(-1, "Failed to read group id in redundancy descriptor hash @ %s:%d",
@@ -813,6 +813,7 @@ char* scr_reddesc_val_from_filemap(
    * hash from the filemap */
   scr_hash* desc = scr_hash_new();
   if (desc == NULL) {
+    /* TODO: this should really be an error */
     return NULL;
   }
 
