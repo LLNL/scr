@@ -109,9 +109,8 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     filenames = (char**)         SCR_MALLOC(num_files * sizeof(char*));
     filesizes = (unsigned long*) SCR_MALLOC(num_files * sizeof(unsigned long));
 
-    /* get path from chunk file */
-    scr_path* path_chunk = scr_path_from_str(full_chunk_filename);
-    scr_path_dirname(path_chunk);
+    /* get path from redundancy descriptor */
+    const char* dset_path = scr_cache_dir_get(c, id);
 
     /* open each of our files */
     for (i=0; i < num_files; i++) {
@@ -132,7 +131,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       }
 
       /* create full path to the file */
-      scr_path* path_full_file = scr_path_dup(path_chunk);
+      scr_path* path_full_file = scr_path_from_str(dset_path);
       scr_path_append_str(path_full_file, filename);
       char* full_file = scr_path_strdup(path_full_file);
 
@@ -165,8 +164,8 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       scr_path_delete(&path_full_file);
     }
 
-    /* free the chunk path */
-    scr_path_delete(&path_chunk);
+    /* free the dataset path */
+    scr_free(&dset_path);
 
     /* if failed rank is to my left, i have the meta for his files, send him the header */
     if (root == state->lhs_rank) {
@@ -197,7 +196,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     scr_hash_recv(partner_hash, state->lhs_rank, c->comm);
     scr_hash_set(header, SCR_KEY_COPY_XOR_PARTNER, partner_hash);
 
-    /* get the number of files */
+    /* get the number of files that we need to rebuild */
     if (scr_hash_util_get_int(current_hash, SCR_KEY_COPY_XOR_FILES, &num_files) != SCR_SUCCESS) {
       scr_abort(-1, "Failed to read number of files from XOR file header during rebuild @ %s:%d",
         __FILE__, __LINE__
@@ -221,9 +220,8 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     /* free path to dataset directory */
     scr_free(&dir);
 
-    /* split file into path and name */
-    scr_path* path_chunk = scr_path_from_str(full_chunk_filename);
-    scr_path_dirname(path_chunk);
+    /* get path from redundancy descriptor */
+    const char* dset_path = scr_cache_dir_get(c, id);
 
     /* record our chunk file and each of our files in the filemap before creating */
     scr_filemap_add_file(map, id, scr_my_rank_world, full_chunk_filename);
@@ -245,7 +243,7 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
       }
 
       /* get the filename */
-      scr_path* path_full_file = scr_path_dup(path_chunk);
+      scr_path* path_full_file = scr_path_from_str(dset_path);
       scr_path_append_str(path_full_file, filename);
       char* full_file = scr_path_strdup(path_full_file);
 
@@ -274,8 +272,8 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     scr_filemap_set_expected_files(map, id, scr_my_rank_world, num_files + 1);
     scr_filemap_write(scr_map_file, map);
 
-    /* free the chunk path */
-    scr_path_delete(&path_chunk);
+    /* free the dataset path */
+    scr_free(&dset_path);
 
     /* get permissions for file */
     mode_t mode_file = scr_getmode(1, 1, 0);

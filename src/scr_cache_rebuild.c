@@ -21,7 +21,7 @@ File Copy Functions
 #define COPY_FILES 0
 #define MOVE_FILES 1
 
-static int scr_swap_file_names(
+int scr_swap_file_names(
   const char* file_send, int rank_send,
         char* file_recv, size_t size_recv, int rank_recv,
   const char* dir_recv, MPI_Comm comm)
@@ -378,7 +378,7 @@ static int scr_swap_files_move(
  *   It is then truncated and renamed according the size and name of the incoming file,
  *   or it is deleted (moved) if there is no incoming file.
  */
-static int scr_swap_files(
+int scr_swap_files(
   int swap_type,
   const char* file_send, scr_meta* meta_send, int rank_send,
   const char* file_recv, scr_meta* meta_recv, int rank_recv,
@@ -811,12 +811,17 @@ static int scr_distribute_reddescs(scr_filemap* map, int id, scr_reddesc* red)
   return SCR_SUCCESS;
 }
 
-/* this moves all files in the cache to make them accessible
- * to new rank mapping */
+/* this moves all files of the specified dataset in the cache to
+ * make them accessible to new rank mapping */
 static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id)
 {
   int i, round;
   int rc = SCR_SUCCESS;
+
+  /* TODO: mark dataset as being distributed in filemap,
+   * because if we fail in the middle of a distribute,
+   * we can't trust the contents of the files anymore,
+   * at which point it should be deleted */
 
   /* clean out any incomplete files before we start */
   scr_cache_clean(map);
@@ -963,9 +968,6 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
 
   int tmp_rc = 0;
 
-  /* get the path for this dataset */
-  char* dir = scr_cache_dir_get(red, id);
-
   /* run through rounds and exchange files */
   for (round = 0; round <= max_rounds; round++) {
     /* assume we don't need to send or receive any files this round */
@@ -1008,9 +1010,18 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
         /* get the current file name */
         char* file = files[i];
 
-        /* TODO: get file type of incoming file to know which
-         * directory to put it in, use existing reddesc of file
-         * to that pattern matches reddesc for rebuild */
+        /* lookup meta data for this file */
+        scr_meta* meta = scr_meta_new();
+        scr_filemap_get_meta(map, id, send_rank, file, meta);
+
+        /* get the path for this file based on its type
+         * and dataset id */
+        char* dir = NULL;
+        if (scr_meta_check_filetype(meta, SCR_META_FILE_USER) == SCR_SUCCESS) {
+          dir = scr_cache_dir_get(red, id);
+        } else {
+          dir = scr_cache_dir_hidden_get(red, id);
+        }
 
         /* build the new file name */
         scr_path* path_newfile = scr_path_from_str(file);
@@ -1022,11 +1033,8 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
         if (strcmp(file, newfile) != 0) {
           /* record the new filename to our map and write it to disk */
           scr_filemap_add_file(map, id, send_rank, newfile);
-          scr_meta* oldmeta = scr_meta_new();
-          scr_filemap_get_meta(map, id, send_rank, file, oldmeta);
-          scr_filemap_set_meta(map, id, send_rank, newfile, oldmeta);
+          scr_filemap_set_meta(map, id, send_rank, newfile, meta);
           scr_filemap_write(scr_map_file, map);
-          scr_meta_delete(&oldmeta);
 
           /* rename the file */
           scr_dbg(2, "Round %d: rename(%s, %s)", round, file, newfile);
@@ -1048,6 +1056,12 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
         /* free the path and string */
         scr_free(&newfile);
         scr_path_delete(&path_newfile);
+
+        /* free directory string */
+        scr_free(&dir);
+
+        /* free meta data */
+        scr_meta_delete(&meta);
       }
 
       /* free the list of filename pointers */
@@ -1134,16 +1148,37 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
             scr_filemap_get_meta(map, id, send_rank, file, send_meta);
           }
 
-          /* exhange file names with partners */
+          /* exchange meta data so we can determine type of incoming file */
+          scr_meta* recv_meta = scr_meta_new();
+          scr_hash_sendrecv(send_meta, send_rank, recv_meta, recv_rank, scr_comm_world);
+
+          /* get the path for this file based on its type and dataset id */
+          char* dir = NULL;
+          if (have_incoming) {
+            if (scr_meta_check_filetype(recv_meta, SCR_META_FILE_USER) == SCR_SUCCESS) {
+              dir = scr_cache_dir_get(red, id);
+            } else {
+              dir = scr_cache_dir_hidden_get(red, id);
+            }
+          }
+
+          /* exhange file names with partners,
+           * building full path of incoming file */
           char file_partner[SCR_MAX_FILENAME];
           scr_swap_file_names(
             file, send_rank, file_partner, sizeof(file_partner), recv_rank,
             dir, scr_comm_world
           );
 
+          /* free directory string */
+          scr_free(&dir);
+
+          /* free incoming meta data (we'll get this again later) */
+          scr_meta_delete(&recv_meta);
+
           /* if we'll receive a file, record the name of our file
            * in the filemap and write it to disk */
-          scr_meta* recv_meta = NULL;
+          recv_meta = NULL;
           if (recv_rank != MPI_PROC_NULL) {
             recv_meta = scr_meta_new();
             scr_filemap_add_file(map, id, scr_my_rank_world, file_partner);
@@ -1200,9 +1235,6 @@ static int scr_distribute_files(scr_filemap* map, const scr_reddesc* red, int id
       }
     }
   }
-
-  /* free cache directory */
-  scr_free(&dir);
 
   /* if we have more rounds than max rounds, delete the remainder of our files */
   for (round = max_rounds+1; round < nranks; round++) {

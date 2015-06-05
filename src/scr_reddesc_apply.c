@@ -63,7 +63,7 @@ static int scr_reddesc_apply_partner(
   scr_filemap_write(scr_map_file, map);
 
   /* define directory to receive partner file in */
-  char* dir = scr_cache_dir_hidden_get(c, id);
+  char* dir = scr_cache_dir_get(c, id);
 
   /* for each potential file, step through a call to swap */
   while (send_num > 0 || recv_num > 0) {
@@ -89,7 +89,7 @@ static int scr_reddesc_apply_partner(
 
     /* exhange file names with partners */
     char file_partner[SCR_MAX_FILENAME];
-//    scr_swap_file_names(file, send_rank, file_partner, sizeof(file_partner), recv_rank, dir, c->comm);
+    scr_swap_file_names(file, send_rank, file_partner, sizeof(file_partner), recv_rank, dir, c->comm);
 
     /* if we'll receive a file, record the name of our partner's
      * file in the filemap */
@@ -104,12 +104,10 @@ static int scr_reddesc_apply_partner(
 
     /* exhange files with partners */
     scr_meta* recv_meta = scr_meta_new();
-#if 0
     if (scr_swap_files(COPY_FILES, file, send_meta, send_rank, file_partner, recv_meta, recv_rank, c->comm) != SCR_SUCCESS) {
       rc = SCR_FAILURE;
     }
     scr_filemap_set_meta(map, id, state->lhs_rank_world, file_partner, recv_meta);
-#endif
 
     /* free meta data for these files */
     scr_meta_delete(&recv_meta);
