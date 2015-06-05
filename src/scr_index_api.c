@@ -138,9 +138,30 @@ int scr_index_remove_dir(scr_hash* index, const char* name)
       scr_hash_unset_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
     }
 
+    /* if this is the current directory, update current */
+    char* current = NULL;
+    if (scr_index_get_current(index, &current) == SCR_SUCCESS) {
+      if (strcmp(current, name) == 0) {
+        /* name is current, remove it */
+        scr_index_unset_current(index);
+
+        /* replace current with next most recent */
+        int newid;
+        char newname[SCR_MAX_FILENAME];
+        scr_index_get_most_recent_complete(index, id, &newid, newname);
+        if (newid != -1) {
+          /* found a new directory, update current */
+          scr_index_set_current(index, newname);
+        }
+      }
+    }
+
     /* write out the new index file */
     return SCR_SUCCESS;
   } else {
+    /* drop index from current if it matches */
+    scr_hash_unset_kv(index, SCR_INDEX_1_KEY_CURRENT, name);
+
     /* couldn't find the named directory, print an error */
     scr_err("Named directory was not found in index file: %s @ %s:%d",
       name, __FILE__, __LINE__
