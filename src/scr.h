@@ -40,6 +40,9 @@ int SCR_Route_file(const char* name, char* file);
 /* inform library that the current checkpoint is complete */
 int SCR_Complete_checkpoint(int valid);
 
+/* get and return the SCR version */
+char* SCR_Get_version();
+
 /* enable C++ codes to include this header directly */
 #ifdef __cplusplus
 } /* extern "C" */
