@@ -32,7 +32,7 @@ resource managers. SCR is an open source project under a BSD license
 hosted at: http://scalablecr.sourceforge.net.
 
 Detailed usage is provided in the user manual (scr_users_manual.pdf),
-and detailed implementation details are in the develope's manual
+and detailed implementation details are in the developer's manual
 (scr_developers_manual.pdf).
 
 -----------------------------
@@ -115,7 +115,7 @@ libyogrt support:
   configure.
 
   The function of libyogrt is to enable a job to determine how much
-  time it has left in its current allocaiton.  While libyogrt is not
+  time it has left in its current allocation.  While libyogrt is not
   available outside of LLNL, other computer centers often have some
   mechanism that provides similar functionality.  It should be straigt-
   forward to replace calls to libyogrt with something else.  One must
