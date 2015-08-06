@@ -1740,3 +1740,9 @@ int SCR_Complete_checkpoint(int valid)
 
   return rc;
 }
+
+/* get and return the SCR version */
+char* SCR_Get_version()
+{
+  return SCR_ERR_VERSION;
+}
