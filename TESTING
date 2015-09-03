@@ -1,7 +1,9 @@
 # set SCR_PKG to the directory where SCR is cloned
+# set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
 # set SCR_INSTALL to the directory where SCR is installed
 setenv SCR_PKG     "${HOME}/packages/scr"
-setenv SCR_INSTALL "${HOME}/packages/scr-dist/install"
+setenv SCR_BUILD   "${HOME}/packages/scr-dist"
+setenv SCR_INSTALL "${SCR_BUILD}/install"
 
 # commands to debug various items
 #setenv TV /usr/global/tools/totalview/v/totalview.8X.9.9-1/bin/totalview
@@ -46,14 +48,14 @@ make dist
 make
 
 # unzip the dist tarball, configure, make, make install
-rm -rf ../scr-dist
-mkdir ../scr-dist
-mv ${scrversion}.tar.gz ../scr-dist/.
-cd ../scr-dist
+rm -rf ${SCR_BUILD}
+mkdir ${SCR_BUILD}
+mv ${scrversion}.tar.gz ${SCR_BUILD}/.
+cd ${SCR_BUILD}
 tar -zxf ${scrversion}.tar.gz
 cd ${scrversion}
 ./configure --prefix=${SCR_INSTALL} $configopts
-make
+make -j4
 make install
 
 # cd to examples directory, and check that build of test programs works
