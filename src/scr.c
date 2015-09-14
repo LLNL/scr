@@ -381,7 +381,7 @@ static int scr_get_params()
   if (tmp != NULL) {
     scr_hash_set(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, tmp);
   }
-  
+
   /* fill in a hash of store descriptors */
   scr_storedesc_hash = scr_hash_new();
   tmp = scr_param_get_hash(SCR_CONFIG_KEY_STOREDESC);
@@ -400,7 +400,7 @@ static int scr_get_params()
       scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, 0);
     }
   }
-  
+
   /* select copy method */
   if ((value = scr_param_get("SCR_COPY_TYPE")) != NULL) {
     if (strcasecmp(value, "single") == 0) {
@@ -970,8 +970,6 @@ int SCR_Init()
   /* exit right now if we need to halt */
   scr_bool_check_halt_and_decrement(SCR_TEST_AND_HALT, 0);
 
-  int rc = SCR_FAILURE;
-
   /* if the code is restarting from the parallel file system,
    * disable fetch and enable flush_on_restart */
   if (scr_global_restart) {
@@ -988,6 +986,7 @@ int SCR_Init()
   scr_scatter_filemaps(scr_map);
 
   /* attempt to distribute files for a restart */
+  int rc = SCR_FAILURE;
   if (rc != SCR_SUCCESS && scr_distribute) {
     /* distribute and rebuild files in cache,
      * sets scr_dataset_id and scr_checkpoint_id upon success */
@@ -1050,10 +1049,11 @@ int SCR_Init()
   if (rc != SCR_SUCCESS) {
     /* if a fetch was attempted but failed, print a warning */
     if (scr_my_rank_world == 0 && fetch_attempted) {
-      scr_err("Failed to fetch checkpoint set into cache @ %s:%d",
+      scr_err("Failed to fetch checkpoint set into cache. Restarting from the beginning @ %s:%d.",
         __FILE__, __LINE__
       );
     }
+    /* We are restarting from the trivial checkpoint (full restart) */
     rc = SCR_SUCCESS;
   }
 
@@ -1285,7 +1285,7 @@ int SCR_Start_checkpoint()
   if (! scr_enabled) {
     return SCR_FAILURE;
   }
-  
+
   /* bail out if not initialized -- will get bad results */
   if (! scr_initialized) {
     scr_abort(-1, "SCR has not been initialized @ %s:%d",
@@ -1441,7 +1441,7 @@ int SCR_Start_checkpoint()
   scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, scr_use_containers);
   scr_filemap_set_flushdesc(scr_map, scr_dataset_id, scr_my_rank_world, flushdesc);
   scr_hash_delete(&flushdesc);
-  
+
   /* store the redundancy descriptor in the filemap, so if we die before completing
    * the checkpoint, we'll have a record of the new directory we're about to create */
   scr_hash* my_desc_hash = scr_hash_new();
@@ -1468,7 +1468,7 @@ int SCR_Route_file(const char* file, char* newfile)
   if (! scr_enabled) {
     return SCR_FAILURE;
   }
-  
+
   /* bail out if not initialized -- will get bad results */
   if (! scr_initialized) {
     scr_abort(-1, "SCR has not been initialized @ %s:%d",

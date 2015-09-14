@@ -275,7 +275,7 @@ int scr_halt_sync_and_set(const scr_path* file_path, struct arglist* args, scr_h
   /* write current values to halt file */
   return SCR_SUCCESS;
 }
-      
+
 int main (int argc, char *argv[])
 {
   int rc = 0;
@@ -294,7 +294,9 @@ int main (int argc, char *argv[])
 
   if (args.list) {
     /* if the user wants to list the values, just read the file, print the values, and exit */
-    rc = scr_halt_read(halt_file, data);
+    if (scr_file_is_readable(halt_file) == SCR_SUCCESS) {
+      rc = scr_halt_read(halt_file, data);
+    }
   } else {
     /* otherwise, we must be setting something */
     if (args.set_checkpoints) {
