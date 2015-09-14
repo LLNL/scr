@@ -87,3 +87,4 @@ echo "_____________________________________________________________________"
 # must be run on a machine with python in the same location as on the target machine
 sed -i 's|^#!.*$|#!'`which python`'|' ${SCR_PKG}/testing/TEST
 msub -V -l nodes=4,partition=$1 -m be -j oe -o $2 ${SCR_PKG}/testing/TEST
+
