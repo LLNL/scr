@@ -69,20 +69,28 @@ double getbw(char* name, char* buf, size_t size, int times)
         rc = write_checkpoint(fd_me, timestep, buf, size);
         if (rc < 0) {
           valid = 0;
+          printf("%d: Error writing to %s\n", rank, file);
         }
 
         /* force the data to storage */
         rc = fsync(fd_me);
         if (rc < 0) {
           valid = 0;
+          printf("%d: Error fsync %s\n", rank, file);
         }
 
         /* make sure the close is without error */
         rc = close(fd_me);
         if (rc < 0) {
           valid = 0;
+          printf("%d: Error closing %s\n", rank, file);
         }
       }
+      else {
+      	printf("%d: Could not open file %s\n", rank, file);
+      }
+      if( valid )
+      	printf("%d: Written checkpoint to %s\n", rank, file);
 
       /* mark this checkpoint as complete */
       SCR_Complete_checkpoint(valid);
@@ -165,15 +173,17 @@ int main (int argc, char* argv[])
     if (read_checkpoint(file, &timestep, buf, filesize)) {
       /* read the file ok, now check that contents are good */
       found_checkpoint = 1;
+      printf("%d: Successfully read checkpoint from %s\n", rank, file);
       if (!check_buffer(buf, filesize, rank, timestep)) {
         printf("%d: Invalid value in buffer\n", rank);
         MPI_Abort(MPI_COMM_WORLD, 1);
         return 1;
       }
+    } else {
+    	printf("%d: Could not read checkpoint %d from %s\n", rank, timestep, file);
     }
-  } else if (rank == 0) {
-    printf("SCR_Route_file failed during restart attempt\n");
-  }
+  } else
+    printf("%d: SCR_Route_file failed during restart attempt\n", rank);
 
   /* determine whether all tasks successfully read their checkpoint file */
   int all_found_checkpoint = 0;
