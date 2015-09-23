@@ -1,0 +1,1014 @@
+#!/usr/local/bin/python
+########
+#MSUB -l nodes=4
+#MSUB -l walltime=600
+#MSUB -q pbatch
+#MSUB -V
+
+import os
+from subprocess import *
+import re
+import shutil
+import time
+import pwd as PWD
+
+RET=0
+# set up initial enviroment for testing
+os.environ['scrbin']= os.environ['SCR_INSTALL'] + '/bin'
+scrbin = os.environ['scrbin']
+print os.environ['SCR_INSTALL']
+print scrbin
+
+print "___"
+
+p = Popen([scrbin+'/scr_env', '--jobid'],stdout=PIPE)
+jobid=p.stdout.read().strip()
+os.environ['jobid']=jobid
+print os.environ['jobid'],jobid
+
+p = Popen([scrbin+'/scr_glob_hosts', '-n', '1', '-h', os.environ['SLURM_NODELIST']],stdout=PIPE)
+os.environ['downnode']=p.stdout.read()
+print os.environ['downnode']
+
+os.environ['prefix_files']=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
+
+os.environ['LD_LIBRARY_PATH']=os.environ['SCR_INSTALL']+'/lib:'+os.environ['SCR_PKG']+'/deps/install/lib'
+os.environ['SCR_PREFIX']=os.getcwd()
+os.environ['SCR_FETCH']=str(0)
+os.environ['SCR_FLUSH']=str(0)
+os.environ['SCR_DEBUG']=str(1)
+os.environ['SCR_LOG_ENABLE']=str(0)
+os.environ['SCR_JOB_NAME']='testing_job'
+os.environ['SCR_CACHE_SIZE']=str(2)
+
+#os.environ['SCR_CONF_FILE']='~/myscr.conf'
+
+#os.environ['BG_PERSISTMEMRESET']=str(0)
+#os.environ['BG_PERSISTMEMSIZE']=str(10)
+
+# clean out any cruft from previous runs
+# deletes files from cache and any halt, flush, nodes files
+if os.path.exists('/tmp/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun', '-n4', '-N4', '/bin/rm', '-rf', '/tmp/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+if os.path.exists('/ssd/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun', '-n4', '-N4', '/bin/rm', '-rf', '/ssd/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait
+p=Popen(['rm','-f',os.environ['prefix_files']])
+p.wait
+
+print "_______________________"
+
+# check that a run works
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+
+output=p.stdout.read()
+print output
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([1,2,3,4,5,6]):
+    print ".....first test failed"
+    RET=1
+
+
+print "----------------------------------------------------------"
+
+# check that the next run bails out due to SCR_FINALIZE_CALLED
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+
+output=p.stdout.read()
+print output
+
+halt_statement = re.search(".*SCR_FINALIZE_CALLED.*",output)
+if not halt_statement:
+    print ".....halt test failed"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# remove halt file and run again, check that checkpoints continue where last run left off
+p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()], stderr=STDOUT,stdout=PIPE)
+p.wait()
+output=p.stdout.read()
+halt_update=re.search(".*[uU]pdating.*halt.*file.*",output)
+if not halt_update:
+    print ".....removing halt file failed"
+    RET=1
+
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+
+output=p.stdout.read()
+print output
+
+rebuild_statements = re.findall("[Rr]ebuilt dataset \d+",output)
+rebuilt_datasets = []
+for s in rebuild_statements:
+    d = re.search("\d+",s)
+    rebuilt_datasets.append(int(d.group(0)))
+if set(rebuilt_datasets) != set([5,6]):
+    print rebuilt_datasets
+    print ".....first rebuild failed"
+    RET=1
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([7,8,9,10,11,12]):
+    print completed_checkpoints
+    print ".....continuing test failed"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# delete all files from /ssd on rank 0, remove halt file, run again, check that rebuild works
+if os.path.exists('/tmp/'+os.environ['USER']+'/scr.'+jobid):
+    shutil.rmtree('/tmp/'+os.environ['USER']+'/scr.'+jobid)
+if os.path.exists('/ssd/'+os.environ['USER']+'/scr.'+jobid):
+    shutil.rmtree('/ssd/'+os.environ['USER']+'/scr.'+jobid)
+p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()],stderr=STDOUT,stdout=PIPE)
+p.wait()
+print p.stdout.read()
+#We've already tested scr_halt -r
+
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+
+output=p.stdout.read()
+print output
+
+rebuild_statements = re.findall("[Rr]ebuilt dataset \d+",output)
+rebuild_XORS = re.findall("[Rr]ebuilding.*XOR",output)
+rebuilt_datasets = []
+for s in rebuild_statements:
+    d = re.search("\d+",s)
+    rebuilt_datasets.append(int(d.group(0)))
+if set(rebuilt_datasets) != set([11,12]) or len(rebuild_XORS) != 2:
+    print ".....rebuild from XOR failed"
+    RET=1
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([13,14,15,16,17,18]):
+    print completed_checkpoints
+    print ".....continuing test failed"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# delete latest checkpoint directory from two nodes, remove halt file, run again,
+# check that rebuild works for older checkpoint
+if os.path.exists('/tmp/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun','-n2','-N2','/bin/rm','-rf','/tmp/'+os.environ['USER']+'/scr.'+jobid+'/scr.dataset.18'])
+    p.wait()
+if os.path.exists('/ssd/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun','-n2','-N2','/bin/rm','-rf','/ssd/'+os.environ['USER']+'/scr.'+jobid+'/scr.dataset.18'])
+    p.wait
+#srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/scr.dataset.18
+p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()])
+#We've already tested this
+
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+
+output=p.stdout.read()
+print output
+
+rebuild_17 = re.search("[Rr]ebuilt dataset \d+",output).group(0).split()
+failure_18 = re.search("[Ff]ailed.*rebuild.*\d+",output).group(0).split()
+if int(rebuild_17[2]) != 17 or int(failure_18[4]) != 18:
+    print ".....did not properly fail on 18 and rebuild from 17"
+    RET=1
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([18,19,20,21,22,23]):
+    print completed_checkpoints
+    print ".....continuing test failed"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# delete all files from all nodes, remove halt file, run again, check that run starts over
+if os.path.exists('/tmp/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun', '-n4', '-N4', '/bin/rm', '-rf', '/tmp/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+if os.path.exists('/ssd/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun', '-n4', '-N4', '/bin/rm', '-rf', '/ssd/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait
+
+p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()],stderr=STDOUT,stdout=PIPE)
+p.wait()
+print p.stdout.read()
+#We've already tested scr_halt -r
+
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+
+output=p.stdout.read()
+print output
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([1,2,3,4,5,6]):
+    print completed_checkpoints
+    print ".....full-restart test failed"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# clear the cache and control directory
+if os.path.exists('/tmp/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun', '-n4', '-N4', '/bin/rm', '-rf', '/tmp/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+if os.path.exists('/ssd/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun', '-n4', '-N4', '/bin/rm', '-rf', '/ssd/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait
+for f in os.environ['prefix_files'].split():
+    os.remove(f)
+if os.path.exists(os.getcwd()+'.scr/halt.scr'):
+    ".....failed to remove halt file"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# check that scr_list_dir returns good values
+p=Popen([scrbin+'/scr_list_dir', 'control'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+control = p.stdout.read().strip()
+print control
+if p.returncode != 0:
+    print ".....scr_list_dir control failed"
+    RET=1
+
+p=Popen([scrbin+'/scr_list_dir', '--base', 'control'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+control_base = p.stdout.read().strip()
+print control_base
+idx_end_base = control.find('/',2)
+if p.returncode != 0 or control_base != control[:idx_end_base]:
+    print ".....scr_list_dir --base control failed"
+    RET=1
+
+p=Popen([scrbin+'/scr_list_dir', 'cache'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+cache = p.stdout.read().strip()
+print cache
+if p.returncode != 0:
+    print ".....scr_list_dir cache failed"
+    RET=1
+
+p=Popen([scrbin+'/scr_list_dir', '--base', 'cache'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+cache_base = p.stdout.read().strip()
+print cache_base
+idx_end_base = cache.find('/',2)
+if p.returncode != 0 or cache_base != cache[:idx_end_base]:
+    print ".....scr_list_dir --base cache failed"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# check that scr_list_down_nodes returns good values
+downnode = os.environ['downnode']
+
+p=Popen([scrbin+'/scr_list_down_nodes'], stderr=STDOUT, stdout=PIPE)
+p.wait()
+print p.stdout.read().strip()
+if p.returncode != 0 or p.stdout.read().strip() != "":
+    print ".....scr_list_down_nodes failed"
+
+p=Popen([scrbin+'/scr_list_down_nodes', '--down', downnode], stderr=STDOUT, stdout=PIPE)
+p.wait()
+out1 = p.stdout.read().strip()
+print out1
+
+p=Popen([scrbin+'/scr_list_down_nodes', '--reason', '--down', downnode], stderr=STDOUT, stdout=PIPE)
+p.wait()
+out2 = p.stdout.read().strip()
+print out2
+
+os.environ['SCR_EXCLUDE_NODES']=downnode
+
+p=Popen([scrbin+'/scr_list_down_nodes'], stderr=STDOUT, stdout=PIPE)
+p.wait()
+out3 = p.stdout.read().strip()
+print out3
+
+p=Popen([scrbin+'/scr_list_down_nodes', '--reason'], stderr=STDOUT, stdout=PIPE)
+p.wait()
+out4 = p.stdout.read().strip()
+print out4
+
+del os.environ['SCR_EXCLUDE_NODES']
+
+numbers = re.findall("\d+",out1+out2+out3+out3)
+for n in numbers:
+    if n != re.search("\d+",downnode).group(0):
+        print ".....The listed downnode is inconsistent. Only one node should be listed down."
+        RET=1
+
+reason1 = out2.find("Specified on command line")
+reason2 = out4.find("User excluded via SCR_EXCLUDE_NODES")
+if reason1 < 0 or reason2 < 0:
+    print ".....The down node reasons do not match what they should be"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# check that scr_halt seems to work
+pwd = os.getcwd()
+halt = scrbin+'/scr_halt'
+
+p=Popen([halt, '--list', pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_list = p.stdout.read()
+print h_list
+if p.returncode != 0 or h_list.find("None") < 0:
+    print ".....scr_halt --list failed"
+    RET=1
+
+time.sleep(5)
+
+
+p=Popen([halt, '--before', '3pm today', pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_before = p.stdout.read()
+print h_before
+set_comment_idx = h_before.find("Setting ExitBefore")
+set_list_idx = h_before.find("ExitBefore:")
+if p.returncode != 0 or set_list_idx < 0 or set_comment_idx < 0:
+    print ".....scr_halt --before failed"
+    RET=1
+
+time.sleep(5)
+
+
+p=Popen([halt, '--after', '4pm today', pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_after = p.stdout.read()
+print h_after
+set_comment_idx = h_after.find("Setting ExitAfter")
+list_eb_idx = h_after.find("ExitBefore:")
+list_ea_idx = h_after.find("ExitAfter:")
+if p.returncode != 0 or list_eb_idx < 0 or list_ea_idx < 0 or set_comment_idx < 0:
+    print ".....scr_halt --after failed"
+    RET=1
+eb_after = re.findall(".*ExitBefore:.*",h_after)
+eb_before = re.findall(".*ExitBefore:.*",h_before)
+if eb_after[0] != eb_before[0]:
+    print ".....before value corrupted between scr_halt --before and scr_halt --after"
+    RET=1
+
+time.sleep(5)
+
+p=Popen([halt, '--seconds', '1200', pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_seconds = p.stdout.read()
+print h_seconds
+set_comment_idx = h_seconds.find("Setting HaltSeconds")
+list_eb_idx = h_seconds.find("ExitBefore:")
+list_ea_idx = h_seconds.find("ExitAfter:")
+list_s_idx = h_seconds.find("HaltSeconds:")
+if p.returncode != 0 or list_s_idx < 0 or list_eb_idx < 0 or list_ea_idx < 0 or set_comment_idx < 0:
+    print ".....scr_halt --seconds failed"
+    RET=1
+eb_seconds = re.findall(".*ExitBefore:.*",h_seconds)
+eb_before = re.findall(".*ExitBefore:.*",h_before)
+ea_seconds = re.findall(".*ExitAfter:.*",h_seconds)
+ea_after = re.findall(".*ExitAfter:.*",h_after)
+if eb_seconds[0] != eb_before[0] or ea_seconds[0] != ea_after[0]:
+    print ".....before or after value corrupted between scr_halt calls"
+    RET=1
+
+time.sleep(5)
+
+p=Popen([halt, '--unset-before', pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_ubefore = p.stdout.read()
+print h_ubefore
+unset_comment_idx = h_ubefore.find("Unsetting ExitBefore")
+list_ea_idx = h_ubefore.find("ExitAfter:")
+list_s_idx = h_ubefore.find("HaltSeconds:")
+if p.returncode != 0 or list_s_idx < 0 or list_ea_idx < 0 or unset_comment_idx < 0:
+    print ".....scr_halt --unset-before failed"
+    RET=1
+s_seconds = re.findall(".*HaltSeconds:.*",h_seconds)
+s_ubefore = re.findall(".*HaltSeconds:.*",h_ubefore)
+ea_ubefore = re.findall(".*ExitAfter:.*",h_ubefore)
+ea_after = re.findall(".*ExitAfter:.*",h_after)
+if s_seconds[0] != s_ubefore[0] or ea_ubefore[0] != ea_after[0]:
+    print ".....seconds or after value corrupted between scr_halt calls"
+    RET=1
+
+time.sleep(5)
+
+p=Popen([halt, '--unset-after', pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_uafter = p.stdout.read()
+print h_uafter
+unset_comment_idx = h_uafter.find("Unsetting ExitAfter")
+list_s_idx = h_ubefore.find("HaltSeconds:")
+if p.returncode != 0 or list_s_idx < 0 or unset_comment_idx < 0:
+    print ".....scr_halt --unset-after failed"
+    RET=1
+s_seconds = re.findall(".*HaltSeconds:.*",h_seconds)
+s_uafter = re.findall(".*HaltSeconds:.*",h_uafter)
+if s_seconds[0] != s_uafter[0]:
+    print ".....seconds value corrupted between scr_halt calls"
+    RET=1
+
+time.sleep(5)
+
+
+p=Popen([halt, '--unset-seconds', pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_useconds = p.stdout.read()
+print h_useconds
+unset_comment_idx = h_useconds.find("Unsetting HaltSeconds")
+list_none = h_useconds.find("None")
+if p.returncode != 0 or list_none < 0 or unset_comment_idx < 0:
+    print ".....scr_halt --unset-seconds failed"
+    RET=1
+
+time.sleep(5)
+
+p=Popen([halt, pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_halt = p.stdout.read()
+print h_halt
+set_comment_idx = h_halt.find("Setting ExitReason")
+list_r_idx = h_halt.find("ExitReason:")
+if p.returncode != 0 or list_r_idx < 0 or set_comment_idx < 0:
+    print ".....scr_halt failed"
+    RET=1
+
+time.sleep(5)
+
+p=Popen([halt, '--checkpoints', '5', pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_ckpts = p.stdout.read()
+print h_ckpts
+set_comment_idx = h_ckpts.find("Setting CheckpointsLeft")
+list_ckpt_idx = h_ckpts.find("CheckpointsLeft:")
+list_r_idx = h_ckpts.find("ExitReason:")
+if p.returncode != 0 or list_r_idx < 0 or list_ckpt_idx < 0 or set_comment_idx < 0:
+    print ".....scr_halt --checkpoints failed"
+    RET=1
+
+time.sleep(5)
+
+p=Popen([halt, '--unset-checkpoints', pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_uckpts = p.stdout.read()
+print h_uckpts
+unset_comment_idx = h_uckpts.find("Unsetting CheckpointsLeft")
+list_r_idx = h_uckpts.find("ExitReason:")
+if p.returncode != 0 or list_r_idx < 0 or unset_comment_idx < 0:
+    print ".....scr_halt --unset-checkpoints failed"
+    RET=1
+r_halt = re.findall(".*ExitReason:.*",h_halt)
+r_uckpts = re.findall(".*ExitReason:.*",h_uckpts)
+if r_halt[0] != r_uckpts[0]:
+    print ".....exit reason corrupted between scr_halt calls"
+    RET=1
+
+time.sleep(5)
+
+p=Popen([halt, '--unset-reason', pwd],stderr=STDOUT,stdout=PIPE)
+p.wait()
+h_ureason = p.stdout.read()
+print h_ureason
+unset_comment_idx = h_ureason.find("Unsetting ExitReason")
+list_none = h_ureason.find("None")
+if p.returncode != 0 or list_none < 0 or unset_comment_idx < 0:
+    print ".....scr_halt --unset-reason failed"
+    RET=1
+
+time.sleep(5)
+
+p=Popen([halt, '--remove', pwd])
+p.wait()
+#already tested
+
+
+print "-----------------------------------------------------------"
+
+# check that scr_env seems to work
+p=Popen([scrbin+'/scr_env', '--user'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read().strip()
+print output
+if output != PWD.getpwuid(os.getuid()).pw_name:
+    print ".....scr_env --user failed"
+    RET=1
+
+p=Popen([scrbin+'/scr_env', '--jobid'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read().strip()
+print output
+if output != jobid:
+    print ".....scr_env --jobid failed"
+    RET=1
+
+p=Popen([scrbin+'/scr_env', '--nodes'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read().strip()
+print output
+if output != os.environ['SLURM_NODELIST']:
+    print ".....scr_env --nodes failed"
+    RET=1
+
+
+p=Popen([scrbin+'/scr_env', '--down'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read().strip()
+print output
+if output != "":
+    print ".....scr_env --down failed"
+    RET=1
+#We report an error if any node is down. We don't want to test with down nodes
+#And no live node should be specified down by the system
+
+
+print "-----------------------------------------------------------"
+
+# check that scr_prerun works
+p=Popen([scrbin+'/scr_prerun'])
+p.wait()
+if p.returncode != 0:
+    print ".....scr_prerun returned an error code"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# check that scr_postrun works (w/ empty cache)
+p=Popen([scrbin+'/scr_postrun'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read()
+print output
+find_failure = re.search(".*scr_postrun.*no dataset.*scavange",output)
+if find_failure:
+    print ".....scr_postrun with an empty cache did not properly identify that it could not scavenge."
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# clear the cache, make a new run, and check that scr_postrun scavenges successfully (no rebuild)
+if os.path.exists('/tmp/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun', '-n4', '-N4', '/bin/rm', '-rf', '/tmp/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+if os.path.exists('/ssd/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun', '-n4', '-N4', '/bin/rm', '-rf', '/ssd/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait
+
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output=p.stdout.read()
+print output
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([1,2,3,4,5,6]):
+    print completed_checkpoints
+    print ".....test_api failed before calling scr_postrun"
+    RET=1
+
+#For some reason this is necessary?
+#HYPOTHESIS: something is being written slowly by python, and postrun interferes if called to soon
+time.sleep(2)
+
+p=Popen([scrbin+'/scr_postrun'],stderr=STDOUT, stdout=PIPE)
+p.wait()
+output=p.stdout.read()
+print output
+if p.returncode != 0:
+    print ".....scr_postrun returned an error code"
+    RET=1
+
+p=Popen([scrbin+'/scr_index', '--list'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read()
+print output
+list_line = re.search("\*.*",output)
+if list_line:
+    list_line = list_line.group(0).split()
+    if list_line[1] != "6" or list_line[2] != "YES":
+        print ".....scr_index --list failed or scr_postrun failed to scavenge properly"
+        RET=1
+else:
+    print ".....scr_index --list failed or scr_postrun failed to scavenge properly"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# fake a down node via EXCLUDE_NODES and redo above test (check that rebuild during scavenge works)
+os.environ['SCR_EXCLUDE_NODES']=downnode
+p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()])
+p.wait()
+#already tested that
+
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output=p.stdout.read()
+print output
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([7,8,9,10,11,12]):
+    print completed_checkpoints
+    print ".....test_api failed before calling scr_postrun"
+    RET=1
+
+#For some reason this is necessary?
+#HYPOTHESIS: something is being written slowly by python, and postrun interferes if called to soon
+time.sleep(2)
+
+p=Popen([scrbin+'/scr_postrun'],stderr=STDOUT, stdout=PIPE)
+p.wait()
+output=p.stdout.read()
+print output
+if p.returncode != 0:
+    print ".....scr_postrun returned an error code"
+    RET=1
+
+del os.environ['SCR_EXCLUDE_NODES']
+
+p=Popen([scrbin+'/scr_index', '--list'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read()
+print output
+current_line = re.search("\*.*",output)
+six_line = re.search(".* 6 .*",output)
+if current_line and six_line:
+    current_line = current_line.group(0).split()
+    six_line = six_line.group(0).split()
+    if current_line[1] != "12" or six_line[0] != "6" or six_line[1] != "YES":
+        print ".....scr_index --list failed or scr_postrun failed to scavenge properly"
+        RET=1
+    if current_line[2] != "YES":
+        print ".....scr_postrun failed to rebuild dataset from partial scavenge"
+        RET=1
+else:
+    print ".....scr_index --list failed or scr_postrun failed to scavenge properly"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# delete all files, enable fetch, run again, check that fetch succeeds
+if os.path.exists('/tmp/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun', '-n4', '-N4', '/bin/rm', '-rf', '/tmp/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+if os.path.exists('/ssd/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun', '-n4', '-N4', '/bin/rm', '-rf', '/ssd/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait
+
+p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()])
+p.wait()
+
+os.environ['SCR_FETCH']='1'
+
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output=p.stdout.read()
+print output
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([13,14,15,16,17,18]):
+    print ".....test_api failed to fetch checkpoint 12"
+    RET=1
+attempted_fetch = re.search(".*[Aa]ttempting.*fetch.*dataset.*12",output)
+if not attempted_fetch:
+    print ".....Did not attempt to fetch checkpoint 12. If delete failed,"+\
+                "may have restarted from cache"
+    RET=1
+
+p=Popen([scrbin+'/scr_index', '--list'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read()
+print output
+current_line = re.search("\*.*",output)
+six_line = re.search(".* 6 .*",output)
+if current_line and six_line:
+    current_line = current_line.group(0).split()
+    six_line = six_line.group(0).split()
+    if current_line[1] != "12" or six_line[0] != "6" or six_line[1] != "YES":
+        print ".....scr_index --list failed, index corrupted, or accidental scavenge"
+        RET=1
+    if current_line[2] != "YES":
+        print ".....scr_postrun failed to rebuild dataset from partial scavenge"
+        RET=1
+else:
+    print ".....scr_index --list failed or scr_postrun failed to scavenge properly"
+    RET=1
+num_entries = len(re.findall(".* \d+ .*",output))
+if num_entries != 2:
+    print ".....wrong number of index entries"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# delete all files from 2 nodes, remove halt file, run again, check that distribute fails but fetch succeeds
+if os.path.exists('/tmp/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun','-n2','-N2','/bin/rm','-rf','/tmp/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+if os.path.exists('/ssd/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun','-n2','-N2','/bin/rm','-rf','/ssd/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+
+p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()])
+p.wait()
+
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output=p.stdout.read()
+print output
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([13,14,15,16,17,18]):
+    print ".....test_api failed to fetch checkpoint 12"
+    RET=1
+attempted_fetch = re.search(".*[Aa]ttempting.*fetch.*dataset.*12",output)
+if not attempted_fetch:
+    print ".....Did not attempt to fetch checkpoint 12. Most likily rebuilt"
+    RET=1
+failures = re.findall("[Ff]ailed.*rebuild.*dataset.*\d+",output)
+fail_numbers = []
+for fail_line in failures:
+    failure = re.search("\d+",fail_line)
+    if failure:
+        fail_numbers.append(int(failure.group(0)))
+if set(fail_numbers) != set([17,18]):
+    print ".....Did not fail to rebuild datasets 17 and 18"
+    RET=1
+
+p=Popen([scrbin+'/scr_index', '--list'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read()
+print output
+current_line = re.search("\*.*",output)
+six_line = re.search(".* 6 .*",output)
+if current_line and six_line:
+    current_line = current_line.group(0).split()
+    six_line = six_line.group(0).split()
+    if current_line[1] != "12" or six_line[0] != "6" or six_line[1] != "YES":
+        print ".....scr_index --list failed, index corrupted, or accidental scavenge"
+        RET=1
+    if current_line[2] != "YES":
+        print ".....scr_postrun failed to rebuild dataset from partial scavenge"
+        RET=1
+else:
+    print ".....scr_index --list failed or scr_postrun failed to scavenge properly"
+    RET=1
+num_entries = len(re.findall(".* \d+ .*",output))
+if num_entries != 2:
+    print ".....wrong number of index entries"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# delete all files, corrupt file on disc, run again, check that fetch of current fails but old succeeds
+if os.path.exists('/tmp/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun','-n4','-N4','/bin/rm','-rf','/tmp/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+if os.path.exists('/ssd/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun','-n4','-N4','/bin/rm','-rf','/ssd/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+
+p=Popen(['sed', '-i', 's/\?/i/', os.environ['SCR_INSTALL']+'/share/scr/examples/scr.dataset.12/rank_2.ckpt'])
+p.wait()
+if p.returncode != 0:
+    print ".....Error in sed call"
+    RET=1
+
+p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()])
+p.wait()
+
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output=p.stdout.read()
+print output
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([7,8,9,10,11,12]):
+    print ".....test_api did not properly revert to checkpoint 6"
+    RET=1
+fetch_fail = re.search(".*CRC32.*fetch.*dataset.*12",output)
+if not fetch_fail:
+    print ".....Dataset 12 not properly corrupted"
+    RET=1
+attempted_fetch = re.search(".*[Aa]ttempting.*fetch.*dataset.*6",output)
+if not attempted_fetch:
+    print ".....Did not attempt to fetch checkpoint 6."
+    RET=1
+
+p=Popen([scrbin+'/scr_index', '--list'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read()
+print output
+current_line = re.search("\*.*",output)
+twelve_line = re.search(".* 12 .*",output)
+if current_line and twelve_line:
+    current_line = current_line.group(0).split()
+    twelve_line = twelve_line.group(0).split()
+    if current_line[1] != "6" or twelve_line[0] != "12" or current_line[2] != "YES":
+        print ".....scr_index --list failed or index corrupted"
+        RET=1
+    if twelve_line[1] != "NO":
+        print ".....scr failed to mark dataset 12 as invalid"
+        RET=1
+else:
+    print ".....scr_index --list failed"
+    RET=1
+num_entries = len(re.findall(".* \d+ .*",output))
+if num_entries != 2:
+    print ".....wrong number of index entries"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# remove halt file, enable flush, run again and check that flush succeeds and that postrun realizes that
+p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()])
+p.wait()
+
+os.environ['SCR_FLUSH']='10'
+
+p=Popen(['srun','-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output=p.stdout.read()
+print output
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([13,14,15,16,17,18]):
+    print ".....test_api did not properly continue from checkpoint 12"
+    RET=1
+flush = re.search(".*[Ff]lush.*dataset.*18.*succe",output)
+if not flush:
+    print ".....failed to flush dataset 18."
+    RET=1
+
+p=Popen([scrbin+'/scr_postrun'],stderr=STDOUT, stdout=PIPE)
+p.wait()
+output=p.stdout.read()
+print output
+if p.returncode != 0:
+    print ".....scr_postrun returned an error code"
+    RET=1
+recognized_flush = re.search(".*[Dd]ataset.*already.*flushed",output)
+if not recognized_flush:
+    print ".....scr_postrun did not recognize that dataset 18 had been flushed"
+    RET=1
+
+p=Popen([scrbin+'/scr_index', '--list'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read()
+print output
+current_line = re.search("\*.*",output)
+twelve_line = re.search(".* 12 .*",output)
+six_line = re.search(".* 6 .*",output)
+if current_line and twelve_line and six_line:
+    current_line = current_line.group(0).split()
+    twelve_line = twelve_line.group(0).split()
+    six_line = six_line.group(0).split()
+    if current_line[1] != "18" or twelve_line[0] != "12" or six_line[0] != "6":
+        print ".....scr_index --list failed, incorrect datasets recorded"
+        RET=1
+    if twelve_line[1] != "NO" or six_line[1] != "YES" or current_line[2] != "YES":
+        print ".....scr failed to mark dataset 12 as invalid and datasets 6 and 18 as valid"
+        RET=1
+else:
+    print ".....scr_index --list failed"
+    RET=1
+num_entries = len(re.findall(".* \d+ .*",output))
+if num_entries != 3:
+    print ".....wrong number of index entries"
+    RET=1
+
+print "-----------------------------------------------------------"
+
+# clear cache and check that scr_srun works
+if os.path.exists('/tmp/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun','-n4','-N4','/bin/rm','-rf','/tmp/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+if os.path.exists('/ssd/'+os.environ['USER']+'/scr.'+jobid):
+    p=Popen(['srun','-n4','-N4','/bin/rm','-rf','/ssd/'+os.environ['USER']+'/scr.'+jobid])
+    p.wait()
+
+p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()])
+p.wait()
+
+p=Popen(['rm','-f',os.environ['prefix_files']])
+p.wait
+
+p=Popen([scrbin+'/scr_srun', '-n4', '-N4', './test_api'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read()
+print output
+
+completion_statements = re.findall("Completed checkpoint \d+",output)
+completed_checkpoints = []
+for s in completion_statements:
+    ckpt = re.search("\d+",s)
+    completed_checkpoints.append(int(ckpt.group(0)))
+if set(completed_checkpoints) != set([19,20,21,22,23,24]):
+    print ".....test_api did not properly continue from checkpoint 18"
+    RET=1
+time.sleep(1)
+
+prerun = output.find("scr_prerun")
+if prerun < 0:
+    print ".....scr_srun did not call scr_prerun"
+    RET=1
+postrun = output.find("scr_postrun")
+if postrun < 0:
+    print ".....scr_srun did not call scr_postrun"
+    RET=1
+something_failed = re.search("exit.*[1-9]+",output)
+if something_failed:
+    print ".....scr_srun called a function that returned with error code"
+    RET=1
+if p.returncode != 0:
+    print ".....scr_srun returned an error code"
+    RET=1
+
+
+p=Popen([scrbin+'/scr_index', '--list'],stderr=STDOUT,stdout=PIPE)
+p.wait()
+output = p.stdout.read()
+print output
+current_line = re.search("\*.*",output)
+eighteen_line = re.search(".* 18 .*",output)
+twelve_line = re.search(".* 12 .*",output)
+six_line = re.search(".* 6 .*",output)
+if current_line and eighteen_line and twelve_line and six_line:
+    current_line = current_line.group(0).split()
+    eighteen_line = eighteen_line.group(0).split()
+    twelve_line = twelve_line.group(0).split()
+    six_line = six_line.group(0).split()
+    if current_line[1] != "24" or eighteen_line[0] != "18" or twelve_line[0] != "12" or six_line[0] != "6":
+        print ".....scr_index --list failed, incorrect datasets recorded"
+        RET=1
+    if eighteen_line[1] != "YES" or twelve_line[1] != "NO" or six_line[1] != "YES" or current_line[2] != "YES":
+        print ".....scr failed to mark dataset 12 as invalid and datasets 6, 18, and 24 as valid"
+        RET=1
+else:
+    print ".....scr_index --list failed"
+    RET=1
+num_entries = len(re.findall(".* \d+ .*",output))
+#% entries because flush=10, so 6,12,18,20,24 flush
+if num_entries != 5:
+    print ".....wrong number of index entries"
+    RET=1
+
+
+print "***********************************************************"
+print "***********************************************************"
+
+if RET==0:
+    print "PASSED ALL TESTS"
+else:
+    print "FAILED AT LEAST ONE TEST"
+
+print "***********************************************************"
+print "***********************************************************"
+
+exit(RET)
