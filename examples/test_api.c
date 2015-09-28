@@ -175,7 +175,7 @@ int main (int argc, char* argv[])
     if (read_checkpoint(file, &timestep, buf, filesize)) {
       /* read the file ok, now check that contents are good */
       found_checkpoint = 1;
-      printf("%d: Successfully read checkpoint from %s\n", rank, file);
+      //printf("%d: Successfully read checkpoint from %s\n", rank, file);
       if (!check_buffer(buf, filesize, rank, timestep)) {
         printf("%d: Invalid value in buffer\n", rank);
         MPI_Abort(MPI_COMM_WORLD, 1);
