@@ -1,18 +1,21 @@
 .TH scr 1 "@META_DATE@" "@META_ALIAS@" "@META_NAME@"
 
 .SH DESCRIPTION
-The Scalable Checkpoint / Restart (SCR) library provides an interface that
-codes may use to write out and read in application-level checkpoints in a
-scalable fashion.  In the current implementation, checkpoint files are
-cached in local storage (hard disk or RAM disk) on the compute nodes.
-This technique provides scalable aggregate bandwidth and uses storage
-resources that are fully dedicated to the job.  This approach addresses
-the two common drawbacks of checkpointing a large-scale application to
-a shared parallel file system, namely, limited bandwidth and file system
-contention.  In fact, on current platforms, SCR scales linearly with the
-number of compute nodes.  It has been benchmarked as high as 720GB/s
-on 1094 nodes of Atlas, which is nearly two orders of magnitude faster
-than the parallel file system.
+The Scalable Checkpoint / Restart (SCR) library enables MPI applications
+to utilize distributed storage on Linux clusters to attain high file I/O
+bandwidth for checkpointing and restarting large-scale jobs. With SCR,
+jobs run more efficiently, recompute less work upon a failure, and reduce
+load on critical shared resources such as the parallel file system.
+
+SCR caches checkpoint files in storage local to the compute nodes, and it
+applies a redundancy scheme such that files can be recovered in the event
+of a failure. When a failure occurs, the current run is killed. If there
+are sufficient spare nodes and time remaining in the resource allocation,
+another run may be restarted from the cached checkpoint files. Otherwise,
+the cached checkpoint files are flushed to the parallel file system, and
+the resource allocation is released. With this approach, file I/O
+bandwidth scales linearly with the number of compute nodes. On large
+clusters, SCR is often 100x to 1000x faster than the parallel file system.
 
 .SH SEE ALSO
 \fISCR User Manual\fR
