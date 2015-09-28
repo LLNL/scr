@@ -1,7 +1,11 @@
-There are 2 ways to use the testing scripts in this directory.
+There are 2 ways to use the testing scripts in this directory: 
+fully automated testing and interactive testing. These scripts are 
+written for use on LLNL systems. They will likely require editing
+to run on other systems. Please see the SUPPORT section below for 
+help with editing the scripts.
 
-The first way is to use fully automated testing.
-
+FULLY AUTOMATED TESTING
+---------------------------------
 To use fully automated testing, simply run the
    BUILD_AND_TEST
 bash script with a single argument, the file to which you want output written.
@@ -9,6 +13,8 @@ The BUILD_AND_TEST script will build SCR and run the TEST python script as a bat
 The last thing printed into the output file will be whether the test passed or failed.
 If the output file is a relative path, the path will be interpreted relative to the examples directory, found at $SCR_INSTALL/share/scr/examples
 
+INTERACTIVE TESTING
+---------------------------------
 To use interactive testing, run the
    BUILD_FOR_TESTING
 bash script with a single argument, the maximum length of the interative testing session.
@@ -22,4 +28,6 @@ scripts. These scripts are identical except for language. The TESTING.sh script 
 These commands are not required for interative testing, but if executed in the presented order represent the same tests as the automated TEST script.
 It is also possible to run the automated TEST python script from an interactive testing session.
 
+SUPPORT
+---------------------------------
 If you have any problems running these tests, email scalablecr-discuss@lists.sourceforge.net for assistance.
