@@ -1,14 +1,15 @@
 #!/bin/bash
 #USAGE:
 #Set SCR_PKG, SCR_BUILD, and SCR_INSTALL to fit your system
-#Run with first argument machine on which to run, second argument file to store TEST output
+#Run with output sent to the first command line argument
+if [ $# -ne 1 ]; then echo "This script takes one argument: the path to the output file"; exit 1; fi
 
 # set SCR_PKG to the directory where SCR is cloned
 # set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
 # set SCR_INSTALL to the directory where SCR is installed
-export SCR_PKG="${HOME}/scr/scr"
-export SCR_BUILD="${HOME}/scr/scr-dist"
-export SCR_INSTALL="${SCR_BUILD}/install"
+if [ -z "$SCR_PKG" ]; then export SCR_PKG="${HOME}/scr/scr"; fi
+if [ -z "$SCR_BUILD" ]; then export SCR_BUILD="${HOME}/scr/scr-dist"; fi
+if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="${SCR_BUILD}/install"; fi
 
 # commands to debug various items
 #export TV=/usr/global/tools/totalview/v/totalview.8X.9.9-1/bin/totalview
@@ -19,7 +20,7 @@ export SCR_INSTALL="${SCR_BUILD}/install"
 # NOTE: one must use MPI-2.2 or newer to compile LWGRP and DTCMP
 # e.g., use mvapich2-2.0 or openmpi-1.8.4 or later
 # fetch and build dependencies (LWGRP and DTCMP)
-./buildme_deps
+${SCR_PKG}/buildme_deps
 
 # various CFLAGS for different builds
 # build the dist tarball
@@ -86,5 +87,8 @@ echo "_____________________________________________________________________"
 # run the TEST
 # must be run on a machine with python in the same location as on the target machine
 sed -i 's|^#!.*$|#!'`which python`'|' ${SCR_PKG}/testing/TEST
-msub -V -l nodes=4,partition=$1 -m be -j oe -o $2 ${SCR_PKG}/testing/TEST
-
+msub -V -l nodes=4 -m be -j oe -o $1 ${SCR_PKG}/testing/TEST
+echo "Submitted a batch job to run TEST on 4 nodes with output sent to $1."
+echo "You should shortly receive an email notifying you that the batch job has been submitted."
+echo " You will receive another when it is completed"
+echo "In the meantime you can monitor the output using \"tail -f $1\""

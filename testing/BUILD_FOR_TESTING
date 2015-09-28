@@ -1,9 +1,11 @@
+#!/bin/bash
 # set SCR_PKG to the directory where SCR is cloned
 # set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
 # set SCR_INSTALL to the directory where SCR is installed
-export SCR_PKG="${HOME}/scr/scr"
-export SCR_BUILD="${HOME}/scr/scr-dist"
-export SCR_INSTALL="${SCR_BUILD}/install"
+if [ $# -ne 1 ]; then echo "This script takes one argument: the number of minutes requested for the interactive testing session"; fi
+if [ -z "$SCR_PKG" ]; then export SCR_PKG="${HOME}/scr/scr"; fi
+if [ -z "$SCR_BUILD" ]; then export SCR_BUILD="${HOME}/scr/scr-dist"; fi
+if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="${SCR_BUILD}/install"; fi
 
 # commands to debug various items
 #export TV=/usr/global/tools/totalview/v/totalview.8X.9.9-1/bin/totalview
@@ -14,7 +16,7 @@ export SCR_INSTALL="${SCR_BUILD}/install"
 # NOTE: one must use MPI-2.2 or newer to compile LWGRP and DTCMP
 # e.g., use mvapich2-2.0 or openmpi-1.8.4 or later
 # fetch and build dependencies (LWGRP and DTCMP)
-./buildme_deps
+${SCR_PKG}/buildme_deps
 
 # various CFLAGS for different builds
 # build the dist tarball
@@ -80,3 +82,5 @@ echo "_____________________________________________________________________"
 
 # get an allocation
 mxterm 4 32 $1
+echo "Requested mxterm allocation for 4 nodes, 32 processes, for $1 minutes."
+echo "An interactive window should appear shortly, dependent on current system usage"
