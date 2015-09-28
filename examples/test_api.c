@@ -89,8 +89,10 @@ double getbw(char* name, char* buf, size_t size, int times)
       else {
       	printf("%d: Could not open file %s\n", rank, file);
       }
+      /*
       if( valid )
-      	printf("%d: Written checkpoint to %s\n", rank, file);
+      	printf("%d: Wrote checkpoint to %s\n", rank, file);
+      */
 
       /* mark this checkpoint as complete */
       SCR_Complete_checkpoint(valid);
