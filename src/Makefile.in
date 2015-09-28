@@ -47,7 +47,10 @@ subdir = src
 DIST_COMMON = $(include_HEADERS) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/lx_find_mpi.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/m4/lx_find_mpi.m4 \
 	$(top_srcdir)/m4/lx_header_subst.m4 \
 	$(top_srcdir)/m4/lx_safe_link_ifelse.m4 \
 	$(top_srcdir)/m4/x_ac_byteswap.m4 \
