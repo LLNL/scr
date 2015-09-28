@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/local/env python
 ########
 #MSUB -l nodes=4
 #MSUB -l walltime=600
