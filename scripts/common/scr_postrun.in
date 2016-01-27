@@ -62,7 +62,7 @@ export SCR_NODELIST
 UPNODES=$SCR_NODELIST
 DOWNNODES=`$bindir/scr_list_down_nodes $SCR_NODELIST`
 if [ "$DOWNNODES" ]; then
-  UPNODES=`$bindir/scr_glob_hosts -m $SCR_NODELIST:$DOWNNODES`
+  UPNODES=`$bindir/scr_glob_hosts --minus $SCR_NODELIST:$DOWNNODES`
 fi
 echo "$prog: UPNODES:   $UPNODES"
 

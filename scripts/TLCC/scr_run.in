@@ -60,7 +60,7 @@ fi
 
 # check that this script is running on a node in the job's allocated nodeset
 script_node=`hostname`
-intersection=`$bindir/scr_glob_hosts -i $script_node:$SCR_NODELIST`
+intersection=`$bindir/scr_glob_hosts --intersection $script_node:$SCR_NODELIST`
 if [ -z "$intersection" ] ; then
   echo "$prog: ERROR: scr_run is executing on $script_node, which is not part of the job's nodeset $SCR_NODELIST."
   exit 1
@@ -90,7 +90,7 @@ fi
 
 # start background scr_transfer processes (1 per node) if async flush is enabled
 if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-  nnodes=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
+  nnodes=`$bindir/scr_glob_hosts --count --hosts $SCR_NODELIST`
   srun -W 0 -n${nnodes} -N${nnodes} $bindir/scr_transfer $cntldir/transfer.scrinfo &
 fi
 
@@ -137,7 +137,7 @@ while [ 1 ] ; do
     #   otherwise, use value in nodes file if one exists
     #   otherwise, assume we need all nodes in the allocation
     # to start, assume we need all nodes in the allocation
-    num_needed=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
+    num_needed=`$bindir/scr_glob_hosts --count --hosts $SCR_NODELIST`
     if [ -n "$SCR_MIN_NODES" ]  ; then
       # if SCR_MIN_NODES is set, use that
       num_needed=$SCR_MIN_NODES
@@ -153,14 +153,14 @@ while [ 1 ] ; do
     fi
 
     # check that we have enough nodes left to run the job after excluding all down nodes
-    num_left=`$bindir/scr_glob_hosts -c -m $SCR_NODELIST:$down_nodes`
+    num_left=`$bindir/scr_glob_hosts --count --minus $SCR_NODELIST:$down_nodes`
     if [ $num_left -lt $num_needed ] ; then
       echo "$prog: (Nodes remaining=$num_left) < (Nodes needed=$num_needed), ending run."
       break
     fi
 
     # check that we don't exclude the node this script is running on
-    intersection=`$bindir/scr_glob_hosts -i $script_node:$down_nodes`
+    intersection=`$bindir/scr_glob_hosts --intersection $script_node:$down_nodes`
     if [ -n "$intersection" ] ; then
       echo "$prog: Script node $script_node is in the exclude set on retry $down_nodes, ending run."
       break
@@ -239,7 +239,8 @@ done
 
 # stop scr_transfer processes before we attempt to scavenge
 if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-  $bindir/scr_halt --dir $prefix --immediate
+  # TODO: this doesn't currently do anything
+  $bindir/scr_halt --immediate $prefix
 fi
 
 # make a record of time postrun is started
