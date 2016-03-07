@@ -32,7 +32,7 @@ Required:
 
   * [Date::Manip](http://search.cpan.org/~sbeck/Date-Manip-5.54/lib/Date/Manip.pod) -- Perl module for date/time interpretation
 
-  * [SLURM](http://www.schedmd.com/) -- resource manager
+  * [SLURM](http://slurm.schedmd.com/) -- resource manager
 
 Optional:
 
