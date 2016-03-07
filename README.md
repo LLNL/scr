@@ -41,13 +41,12 @@ Optional:
       Enables a running job to determine how much time it has left
       in its resource allocation.
 
-  * io-watchdog -- tool to catch and terminate hanging jobs
-    http://code.google.com/p/io-watchdog
-    Spawns a thread that can kill an MPI process (and hence
-    the job) when it detects that the process has not written
-    data is some specified amount of time.  This is very useful
-    to catch and kill hanging jobs, so that SCR can restart the
-    job or fetch the latest checkpoint.
+  * [io-watchdog](https://github.com/grondo/io-watchdog) -- tool to catch and terminate hanging jobs
+    * Spawns a thread that can kill an MPI process (and hence
+      the job) when it detects that the process has not written
+      data is some specified amount of time.  This is very useful
+      to catch and kill hanging jobs, so that SCR can restart the
+      job or fetch the latest checkpoint.
 
   * [MySQL](http://www.mysql.com) -- for logging events
 
