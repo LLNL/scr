@@ -1138,6 +1138,9 @@ int SCR_Finalize()
   scr_hash_delete(&scr_groupdesc_hash);
   scr_hash_delete(&scr_reddesc_hash);
 
+  /* Free memory cache of a halt file */
+  scr_hash_delete(&scr_halt_hash);
+
   /* free off our global filemap object */
   scr_filemap_delete(&scr_map);
 
