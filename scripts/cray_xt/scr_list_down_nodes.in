@@ -205,8 +205,8 @@ if (@cachedir_vals > 0) {
 
 # only run this against set of nodes known to be responding
 my @still_up = (sort {
-  my ($num_a) = ($a =~ /^[a-z]*(\d+$)/);
-  my ($num_b) = ($b =~ /^[a-z]*(\d+$)/);
+  my ($num_a) = ($a =~ /^[\D]*(\d+$)/);
+  my ($num_b) = ($b =~ /^[\D]*(\d+$)/);
   return $num_a <=> $num_b;} keys %available);
 my $upnodes = scr_hostlist::compress(@still_up);
 
@@ -236,8 +236,8 @@ if (@still_up > 0) {
 
 # take union of all these sets and sort by node name
 my @failed_nodes = (sort {
-  my ($num_a) = ($a =~ /^[a-z]*(\d+$)/);
-  my ($num_b) = ($b =~ /^[a-z]*(\d+$)/);
+  my ($num_a) = ($a =~ /^[\D]*(\d+$)/);
+  my ($num_b) = ($b =~ /^[\D]*(\d+$)/);
   return $num_a <=> $num_b;} keys %unavailable);
 
 # print any failed nodes to stdout and exit with non-zero

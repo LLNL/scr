@@ -146,7 +146,11 @@ int main (int argc, char* argv[])
   /* time how long it takes to get through init */
   MPI_Barrier(MPI_COMM_WORLD);
   double init_start = MPI_Wtime();
-  SCR_Init();
+  if (SCR_Init() != SCR_SUCCESS){
+    printf("Failed initializing SCR\n");
+    return 1;
+  }
+
   double init_end = MPI_Wtime();
   double secs = init_end - init_start;
   MPI_Barrier(MPI_COMM_WORLD);
