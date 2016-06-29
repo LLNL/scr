@@ -224,6 +224,20 @@ node names are expected to be of the form:
 where clustername is a string of letters common for all nodes,
 and # is the node number, like atlas35 and atlas173.
 
+More generally:
+
+<any non digit characters><any digit characters>
+
+so things like atlas-31, atlas31, or even $$##@$!21 are all valid.
+
+What is currently not valid is something like:
+
+atlas-31vm1
+
+because this breaks the regular expressinos since it only expects digits
+characters after the non digit characters.  This limitation may be further 
+generalized in the future.
+
 The scr_hostlist.pm perl module compresses lists of such nodenames into a
 form like so:
 
