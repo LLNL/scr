@@ -234,7 +234,7 @@ What is currently not valid is something like:
 
 atlas-31vm1
 
-because this breaks the regular expressinos since it only expects digits
+because this breaks the regular expressions since it only expects digits
 characters after the non digit characters.  This limitation may be further 
 generalized in the future.
 
