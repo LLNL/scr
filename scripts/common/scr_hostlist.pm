@@ -22,7 +22,7 @@ sub expand {
   my $machine = undef;
   my @lowhighs = ();
   my $numberLength = 0; # for leading zeros, e.g atlas[0001-0003]
-  if ($nodeset =~ /([a-zA-Z]*)\[([\d,-]+)\]/) {
+  if ($nodeset =~ /([\D]*)\[([\d,-]+)\]/) {
     # hostlist with brackets, e.g., atlas[2-5,28,30]
     $machine = $1;
     my @ranges = split ",", $2;
@@ -46,7 +46,7 @@ sub expand {
     }
   } else {
     # single node hostlist, e.g., atlas2
-    $nodeset =~ /([a-zA-Z]*)(\d+)/;
+    $nodeset =~ /([\D]*)(\d+)/;
     $machine = $1;
     $numberLength = length($2);
     push @lowhighs, $2, $2;
@@ -76,10 +76,10 @@ sub compress {
 
   # pull the machine name from the first node name
   my @numbers = ();
-  my ($machine) = ($_[0] =~ /([a-zA-Z]*)(\d+)/);
+  my ($machine) = ($_[0] =~ /([\D]*)(\d+)/);
   foreach my $host (@_) {
     # get the machine name and node number for this node
-    my ($name, $number) = ($host =~ /([a-zA-Z]*)(\d+)/);
+    my ($name, $number) = ($host =~ /([\D]*)(\d+)/);
 
     # check that all nodes belong to the same machine
     if ($name ne $machine) {
