@@ -277,7 +277,6 @@ static int scr_get_params()
   if (! scr_enabled) {
     return SCR_FAILURE;
   }
-
   /* read in our configuration parameters */
   scr_param_init();
 
@@ -366,12 +365,14 @@ static int scr_get_params()
   /* override default base directory for checkpoint cache */
   if ((value = scr_param_get("SCR_CACHE_BASE")) != NULL) {
     scr_cache_base = scr_path_strdup_reduce_str(value);
+    printf("cache base: %s\n",scr_cache_base);
   } else {
     scr_cache_base = scr_path_strdup_reduce_str(SCR_CACHE_BASE);
   }
 
   /* set maximum number of checkpoints to keep in cache */
   if ((value = scr_param_get("SCR_CACHE_SIZE")) != NULL) {
+    printf("Some are being found: %d\n", atoi(value));
     scr_cache_size = atoi(value);
   }
 
@@ -425,6 +426,7 @@ static int scr_get_params()
   } else {
     scr_group = strdup(SCR_GROUP);
   }
+
 
   /* fill in a hash of redundancy descriptors */
   scr_reddesc_hash = scr_hash_new();
@@ -672,7 +674,6 @@ int SCR_Init()
   if (! scr_enabled) {
     return SCR_FAILURE;
   }
-
 #ifdef HAVE_LIBDTCMP
   /* initialize the DTCMP library for sorting and ranking routines
    * if we're using it */
@@ -683,7 +684,6 @@ int SCR_Init()
     );
   }
 #endif /* HAVE_LIBDTCMP */
-
   /* NOTE: SCR_ENABLE can also be set in a config file, but to read
    * a config file, we must at least create scr_comm_world and call
    * scr_get_params() */
@@ -710,10 +710,8 @@ int SCR_Init()
     );
     MPI_Abort(scr_comm_world, 0);
   }
-
   /* read our configuration: environment variables, config file, etc. */
   scr_get_params();
-
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     /* we dup'd comm_world to broadcast parameters in scr_get_params,
@@ -872,6 +870,15 @@ int SCR_Init()
   /* TODO: should we check for access and required space in cntl
    * directory at this point? */
 
+  /* num_nodes will be used later, this line is moved above cache_dir creation
+   * to make sure scr_my_hostid is set before we try to create directories.
+   * The logic that uses num_nodes can't be moved here because it relies on the
+   * scr_node_file variable computed later */
+  int num_nodes;
+  MPI_Comm_rank(scr_comm_node, &scr_my_rank_host);
+  //MPI_Allreduce(&ranks_across, &num_nodes, 1, MPI_INT, MPI_MAX, scr_comm_world);
+  scr_rank_str(scr_comm_world, scr_my_hostname, &num_nodes, &scr_my_hostid);//
+
   /* create the cache directories */
   for (i=0; i < scr_nreddescs; i++) {
     /* TODO: if checkpoints can be enabled at run time,
@@ -889,6 +896,33 @@ int SCR_Init()
             reddesc->directory, __FILE__, __LINE__
           );
         }
+	
+	/* set up artificially node-local directories if the store view is global */
+	if ( !strcmp(store->view, "GLOBAL")){
+	  /* make sure we can create directories */
+	  if ( ! store->can_mkdir ){
+	    scr_abort(-1, "Cannot use global view storage %s without mkdir enabled: @%s:%d",
+		      store->name, __FILE__, __LINE__);
+
+	  }
+
+	  /* create directory on rank 0 of each node */
+	  int node_rank;
+	  MPI_Comm_rank(scr_comm_node, &node_rank);
+	  if(node_rank == 0){
+	    scr_path* path = scr_path_from_str(reddesc->directory);
+	    scr_path_append_strf(path, "node.%d", scr_my_hostid);
+	    scr_path_reduce(path);
+	    char* path_str = scr_path_strdup(path);
+	    scr_path_delete(&path);
+
+	    scr_mkdir(path_str, S_IRWXU | S_IRWXG);
+
+	    scr_free(&path_str);
+	  }
+
+	}
+	  
       } else {
         scr_abort(-1, "Invalid store for redundancy descriptor @ %s:%d",
           __FILE__, __LINE__
@@ -934,11 +968,9 @@ int SCR_Init()
 
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
   /* record the number of nodes being used in this job to the nodes file */
-  int ranks_across;
-  MPI_Comm_size(scr_comm_node_across, &ranks_across);
-
-  int num_nodes;
-  MPI_Allreduce(&ranks_across, &num_nodes, 1, MPI_INT, MPI_MAX, scr_comm_world);
+  /* Each rank records its node number in the global scr_my_hostid */ 
+  //  int ranks_across;
+  //MPI_Comm_size(scr_comm_node_across, &ranks_across);
   if (scr_my_rank_world == 0) {
     scr_hash* nodes_hash = scr_hash_new();
     scr_hash_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);

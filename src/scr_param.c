@@ -94,6 +94,10 @@ char* scr_param_get(char* name)
   /* otherwise, if parameter is set in user configuration file,
    * return that value */
   value = scr_hash_elem_get_first_val(scr_user_hash, name);
+  /*  printf("Getting user hash\n\n");
+  scr_hash_print(scr_user_hash, 4);
+  printf("\n\nNAME: %s\n", name);
+  printf("This should not be null: %s\n",value);*/
   if (no_user == NULL && value != NULL) {
     return value;
   }

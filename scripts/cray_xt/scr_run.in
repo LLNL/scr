@@ -99,11 +99,20 @@ if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
   aprun -n${nnodes} -N 1 $bindir/scr_transfer $cntldir/transfer.scrinfo &
 fi
 
-# start script to periodically query the time remaining in the job and write the 
-# value to the halt file
-# get its PID so we can kill it at exit time
-$bindir/scr_check_time_remaining &
-check_time_pid=$!
+# Parse checkjob to get the used and maximum job time and compute the end time
+# of the allocation in seconds since the epoch.
+to_seconds () {
+	   h=`echo $1 | cut -d ":" -f 1`
+	   m=`echo $1 | cut -d ":" -f 2`
+	   s=`echo $1 | cut -d ":" -f 3`
+	   echo $((10#$h * 3600 + 10#$m * 60 + 10#$s))
+}
+raw_used_time=`checkjob $PBS_JOBID | grep WallTime: | sed "s/ \+/ /g"| cut -d " " -f 2`
+raw_max_time=`checkjob $PBS_JOBID | grep WallTime: | sed "s/ \+/ /g"| cut -d " " -f 4`
+used_time=`to_seconds $raw_used_time`
+max_time=`to_seconds $raw_max_time`
+current_time=`date +%s`
+export SCR_END_TIME=$(($current_time + $max_time - $used_time))
 
 # enter the run loop
 down_nodes=""

@@ -33,7 +33,7 @@
 #include <sys/time.h>
 
 #define PROG ("scr_retries_halt")
-#define NAME ("halt.scr")
+#define NAME (".scr/halt.scr")
 #define NEED_HALT (0)
 #define DONT_HALT (1)
 

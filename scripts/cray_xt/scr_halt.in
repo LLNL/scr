@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+use lib "/usr/projects/SCR/Date-Manip-6.51/lib";
 use strict;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 use Date::Manip;

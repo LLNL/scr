@@ -113,7 +113,17 @@ sub read_config_file
               print "$self->{prog}: ERROR: Invalid key=value pair detected in $file.\n";
               exit 1;
             }
-            my $value = shift @parts;
+
+#            my $value = shift @parts;
+	    my $raw_value = shift @parts;
+	    my $value = '';
+	    my @value_parts = split(/(\$\w+)|(\${\w+})/, $raw_value);
+	    foreach my $seg (@value_parts)
+	    {
+		next if (not defined($seg));
+		$seg = ($ENV{$1} || '')  if ($seg =~ m/\${?(\w+)}?/);
+		$value .= $seg;
+	    }
 
             # record the key value pair in the hash
             if (defined $master_key) {
