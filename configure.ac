@@ -135,15 +135,24 @@ AC_CONFIG_FILES([ \
   scripts/common/scr_test_runtime \
   scripts/common/scr_param.pm \
   scripts/common/scr_watchdog \
-  scripts/$MACHINE_NAME/Makefile \
-  scripts/$MACHINE_NAME/scr_run \
-  scripts/$MACHINE_NAME/scr_env \
-  scripts/$MACHINE_NAME/scr_halt \
-  scripts/$MACHINE_NAME/scr_list_down_nodes \
-  scripts/$MACHINE_NAME/scr_scavenge \
-  scripts/$MACHINE_NAME/scr_inspect \
-  scripts/$MACHINE_NAME/scr_kill_jobstep \
-  scripts/$MACHINE_NAME/scr_get_jobstep_id \
+  scripts/TLCC/Makefile \
+  scripts/TLCC/scr_run \
+  scripts/TLCC/scr_env \
+  scripts/TLCC/scr_halt \
+  scripts/TLCC/scr_list_down_nodes \
+  scripts/TLCC/scr_scavenge \
+  scripts/TLCC/scr_inspect \
+  scripts/TLCC/scr_kill_jobstep \
+  scripts/TLCC/scr_get_jobstep_id \
+  scripts/cray_xt/Makefile \
+  scripts/cray_xt/scr_run \
+  scripts/cray_xt/scr_env \
+  scripts/cray_xt/scr_halt \
+  scripts/cray_xt/scr_list_down_nodes \
+  scripts/cray_xt/scr_scavenge \
+  scripts/cray_xt/scr_inspect \
+  scripts/cray_xt/scr_kill_jobstep \
+  scripts/cray_xt/scr_get_jobstep_id \
   examples/Makefile \
   examples/makefile.examples \
   doc/Makefile \
