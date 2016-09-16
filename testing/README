@@ -43,6 +43,27 @@ the presented order represent the same tests as the automated TEST script.
 It is also possible to run the automated TEST python script from an interactive 
 testing session.
 
+DISTRIBUTION
+---------------------------------
+
+To verify that current version of SCR is ready for distribution, run the DISTRIBUTION.sh script from the SCR root directory:
+
+```
+        $ cd /path/to/scr/
+        $ ./testing/DISTRIBUTION.sh
+```
+
+Note that no environment variables need to be set.
+A sucessful and valid distribution will end with the following message:
+
+```
+===========================================
+scr-1.1.8 archives ready for distribution: 
+scr-1.1.8.tar.gz
+===========================================
+```
+
+
 SUPPORT
 ---------------------------------
 For help in running or adpating these tests, please email 
