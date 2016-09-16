@@ -1,4 +1,4 @@
-SUBDIRS = common $(MACHINE_NAME)
+SUBDIRS = common TLCC cray_xt
 dist_bin_SCRIPTS = \
 	common/scr_prefix \
 	common/scr_list_dir \
@@ -16,7 +16,7 @@ dist_bin_SCRIPTS = \
 	$(MACHINE_NAME)/scr_env \
 	$(MACHINE_NAME)/scr_halt \
         $(MACHINE_NAME)/scr_kill_jobstep \
-        $(MACHINE_NAME)/scr_get_jobstep_id 
+        $(MACHINE_NAME)/scr_get_jobstep_id
 
 
 dist_pkgdata_DATA = common/scr_param.pm common/scr_hostlist.pm
