@@ -139,6 +139,12 @@ modifying this file, copy it to the location specified in your configure
 step.  The configure option simply informs the SCR install where to
 look for the file, it does not modify or install the file.
 
+### Example Programs
+
+The test programs included in the examples directory will be installed
+to `${SCR_INSTALL}/share/scr/examples`. They are built in this directory
+with `make`.
+
 -----------------------------
 SCR directories
 -----------------------------
