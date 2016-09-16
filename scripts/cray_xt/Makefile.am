@@ -12,3 +12,5 @@ dist_bin_SCRIPTS = \
 install-exec-hook:
 	cp -p $(DESTDIR)$(bindir)/scr_run $(DESTDIR)$(bindir)/scr_aprun
 
+uninstall-hook:
+	-rm $(DESTDIR)$(bindir)/scr_aprun
