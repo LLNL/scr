@@ -9,7 +9,8 @@ dist_examples_DATA = \
 	test_ckpt.C \
 	test_ckpt.F \
 	scr.moab \
-	scr_interpose.moab
+	scr_interpose.moab \
+	README.md
 
 EXTRA_DIST = makefile.examples
 
