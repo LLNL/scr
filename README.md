@@ -30,7 +30,11 @@ Required:
     make install
     ```
 
-  * [Date::Manip](http://search.cpan.org/~sbeck/Date-Manip-5.54/lib/Date/Manip.pod) -- Perl module for date/time interpretation
+  * [Date::Manip](http://search.cpan.org/~sbeck/Date-Manip-6.56) -- Perl module for date/time interpretation
+    e.g.:
+    ```bash
+    yum install perl-Date-Manip
+    ```
 
   * [SLURM](http://slurm.schedmd.com/) -- resource manager
 
@@ -248,3 +252,9 @@ The scr_hostlist.pm perl module compresses lists of such nodenames into a
 form like so:
 
     atlas[31-43,45,48-51]
+
+-----------------------------
+Authors
+-----------------------------
+
+Numerous people have [contributed](https://github.com/llnl/scr/graphs/contributors) to the SCR project.
