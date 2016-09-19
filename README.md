@@ -258,3 +258,11 @@ Authors
 -----------------------------
 
 Numerous people have [contributed](https://github.com/llnl/scr/graphs/contributors) to the SCR project.
+
+To reference SCR in a publication, please cite the following paper:
+
+* Adam Moody, Greg Bronevetsky, Kathryn Mohror, Bronis R. de Supinski, [Design, Modeling, and Evaluation of a Scalable Multi-level Checkpointing System](http://dl.acm.org/citation.cfm?id=1884666), LLNL-CONF-427742, Supercomputing 2010, New Orleans, LA, November 2010.
+
+Additional information and research publications can be found here:
+
+[http://computation.llnl.gov/projects/scalable-checkpoint-restart-for-mpi](http://computation.llnl.gov/projects/scalable-checkpoint-restart-for-mpi)
