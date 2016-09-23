@@ -405,6 +405,10 @@ static int scr_split_sorted(
     }
   }
 
+  /* free scratch buffers */
+  scr_free(&right_buf);
+  scr_free(&left_buf);
+
   /* prepare buffers for our scan operations:
    * group count, flag, rank count, next proc */
   int send_left_ints[4]  = {0,0,1,MPI_PROC_NULL};
