@@ -6,3 +6,8 @@ aclocal.m4
 /m4/
 configure
 autom4te.cache/
+
+## SCR Conf Files
+
+scr.conf
+scr.user.conf
