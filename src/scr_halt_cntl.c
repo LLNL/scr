@@ -294,9 +294,11 @@ int main (int argc, char *argv[])
 
   if (args.list) {
     /* if the user wants to list the values, just read the file, print the values, and exit */
-    if (scr_file_is_readable(halt_file) == SCR_SUCCESS) {
+    char* halt_path = scr_path_strdup(halt_file);
+    if (scr_file_is_readable(halt_path) == SCR_SUCCESS) {
       rc = scr_halt_read(halt_file, data);
     }
+    scr_free(&halt_path);
   } else {
     /* otherwise, we must be setting something */
     if (args.set_checkpoints) {
