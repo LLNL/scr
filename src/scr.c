@@ -365,14 +365,12 @@ static int scr_get_params()
   /* override default base directory for checkpoint cache */
   if ((value = scr_param_get("SCR_CACHE_BASE")) != NULL) {
     scr_cache_base = scr_path_strdup_reduce_str(value);
-    printf("cache base: %s\n",scr_cache_base);
   } else {
     scr_cache_base = scr_path_strdup_reduce_str(SCR_CACHE_BASE);
   }
 
   /* set maximum number of checkpoints to keep in cache */
   if ((value = scr_param_get("SCR_CACHE_SIZE")) != NULL) {
-    printf("Some are being found: %d\n", atoi(value));
     scr_cache_size = atoi(value);
   }
 
@@ -896,7 +894,7 @@ int SCR_Init()
             reddesc->directory, __FILE__, __LINE__
           );
         }
-	
+
 	/* set up artificially node-local directories if the store view is global */
 	if ( !strcmp(store->view, "GLOBAL")){
 	  /* make sure we can create directories */
@@ -922,7 +920,7 @@ int SCR_Init()
 	  }
 
 	}
-	  
+
       } else {
         scr_abort(-1, "Invalid store for redundancy descriptor @ %s:%d",
           __FILE__, __LINE__
@@ -968,7 +966,7 @@ int SCR_Init()
 
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
   /* record the number of nodes being used in this job to the nodes file */
-  /* Each rank records its node number in the global scr_my_hostid */ 
+  /* Each rank records its node number in the global scr_my_hostid */
   //  int ranks_across;
   //MPI_Comm_size(scr_comm_node_across, &ranks_across);
   if (scr_my_rank_world == 0) {
