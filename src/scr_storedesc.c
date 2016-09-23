@@ -159,7 +159,13 @@ static int scr_storedesc_create_from_hash(
   }
 
   /* set the view of the store. Default to PRIVATE */
-  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &(s->view));
+  /* strdup the view if one exists */
+  char* tmp_view;
+  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &tmp_view);
+  if(tmp_view){
+    s->view = strdup(tmp_view);
+  }
+//  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &(s->view));
   if(s->view == NULL){
     s->view = strdup("PRIVATE");
   }
@@ -236,7 +242,7 @@ int scr_storedesc_dir_delete(const scr_storedesc* store, const char* dir)
 
   /* rank 0 deletes the directory */
   int rc = SCR_SUCCESS;
-  if ((store->rank == 0 || (scr_my_rank_host == 0 && !strcmp(store->view, "GLOBAL") ) ) 
+  if ((store->rank == 0 || (scr_my_rank_host == 0 && !strcmp(store->view, "GLOBAL") ) )
       && store->can_mkdir) {
     /* delete directory */
     if (scr_rmdir(dir) != SCR_SUCCESS) {
@@ -339,7 +345,7 @@ int scr_storedescs_create()
       __FILE__, __LINE__
     );
   }
-  
+
   /* determine whether everyone found a valid store descriptor */
   if (! all_valid) {
     return SCR_FAILURE;
