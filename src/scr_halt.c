@@ -94,6 +94,7 @@ int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int d
   /* TODO: sleep and try the open several times if the first fails */
   /* open the halt file for reading */
   mode_t mode_file = scr_getmode(1, 1, 0);
+  //  printf("************************************************%d\n",mode_file);
   int fd = scr_open(file, O_RDWR | O_CREAT, mode_file);
   if (fd < 0) {
     scr_err("Opening file for write: scr_open(%s) errno=%d %s @ %s:%d",

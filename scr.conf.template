@@ -54,13 +54,15 @@ SCR_CNTL_BASE=/tmp
 #   CACHEDIR=<directory_prefix> BYTES=<required_size_in_bytes>
 # e.g.,
 #   CACHEDIR=/tmp BYTES=16000000000
-CACHEDIR=/tmp BYTES=12000000000
-CACHEDIR=/ssd BYTES=27000000000
+CACHEDIR=/scratch1/becker33/cache BYTES=12000000000
+#CACHEDIR=/tmp BYTES=12000000000
+#CACHEDIR=/ssd BYTES=27000000000
 
 # Select the default SCR cache directory.  Specify the
 # <directory_prefix> that matches one of the cache
 # directories in the above list.
-SCR_CACHE_BASE=/tmp
+SCR_CACHE_BASE=/scratch1/becker33/cache
+#SCR_CACHE_BASE=/tmp
 
 
 ###################
@@ -75,3 +77,9 @@ SCR_DB_HOST=host45
 SCR_DB_USER=scr_insert
 SCR_DB_PASS=12345
 SCR_DB_NAME=scr
+
+###################
+# SCR Store Descriptors
+###################
+STORE=/tmp GROUP=NODE COUNT=2
+STORE=/scratch1/becker33/cache GROUP=WORLD VIEW=GLOBAL

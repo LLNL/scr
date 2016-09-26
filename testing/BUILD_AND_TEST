@@ -7,9 +7,12 @@ if [ $# -ne 1 ]; then echo "This script takes one argument: the path to the outp
 # set SCR_PKG to the directory where SCR is cloned
 # set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
 # set SCR_INSTALL to the directory where SCR is installed
-if [ -z "$SCR_PKG" ]; then export SCR_PKG="${HOME}/scr/scr"; fi
-if [ -z "$SCR_BUILD" ]; then export SCR_BUILD="${HOME}/scr/scr-dist"; fi
+if [ -z "$SCR_PKG" ]; then export SCR_PKG="/g/g0/becker33/scr_port/usr/projects/SCR/scr-1.1-8.cray.dev/source/working"; fi
+if [ -z "$SCR_BUILD" ]; then export SCR_BUILD="/g/g0/becker33/scr_port/usr/projects/SCR/scr-1.1-8.cray.dev/source/working-dist"; fi
+#if [ -z "$SCR_BUILD" ]; then export SCR_BUILD="/usr/projects/SCR/TR-installs/scr_dw_with_source"; fi
 if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="${SCR_BUILD}/install"; fi
+#if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="/usr/projects/SCR/TR-installs/scr_dw_with_source/install"; fi
+if [ -z "$SCR_LAUNCH_DIR" ]; then export SCR_LAUNCH_DIR="/p/lscratchd/becker33"; fi
 
 # commands to debug various items
 #export TV=/usr/global/tools/totalview/v/totalview.8X.9.9-1/bin/totalview
@@ -20,13 +23,13 @@ if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="${SCR_BUILD}/install"; fi
 # NOTE: one must use MPI-2.2 or newer to compile LWGRP and DTCMP
 # e.g., use mvapich2-2.0 or openmpi-1.8.4 or later
 # fetch and build dependencies (LWGRP and DTCMP)
-${SCR_PKG}/buildme_deps
+#${SCR_PKG}/buildme_deps
 
 # various CFLAGS for different builds
 # build the dist tarball
-export CFLAGS="-g -O3 -Wall -Werror -DHIDE_TV"
-export CFLAGS="-g -O3 -Wall -DHIDE_TV"
-export CFLAGS="-g -O0 -Wall"
+#export CFLAGS="-g -O3 -Wall -Werror -DHIDE_TV"
+#export CFLAGS="-g -O3 -Wall -DHIDE_TV"
+#export CFLAGS="-g -O0 -Wall"
 
 # BGQ build instructions
 #export CFLAGS="-g -O0 -Wall -Werror -DHIDE_TV -I/bgsys/drivers/V1R1M2/ppc64/comm/sys/include -I/bgsys/drivers/V1R1M2/ppc64 -I/bgsys/drivers/V1R1M2/ppc64/spi/include -I/bgsys/drivers/V1R1M2/ppc64/spi/include/kernel/cnk -I/bg#sys/drivers/V1R1M2/ppc64/comm/xl/include"
@@ -43,13 +46,19 @@ echo "_____________________________________________________________________"
 # Linux build instructions
 #export CFLAGS="-g -O0 -Wall -Werror -DHIDE_TV"
 #export configopts="--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=./deps/install"
-export CFLAGS="-g -O0"
-export configopts="--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql"
+export CFLAGS="-O3 -fPIC "
+#export configopts="--with-machine-name=cray_xt --without-yogrt --with-moab=/opt/MOAB/default --with-file-lock=fnctl CC=cc MPICC=cc --with-scr-cache-base=/tmp/scratch --with-scr-cntl-base=/tmp/scratch --with-scr-config-file=/usr/projects/SCR/installs/mercury.conf --with-pdsh=/usr/projects/SCR/pdsh-2.26-install/bin"
+#export configopts="--with-machine-name=cray_xt --without-yogrt --with-moab=/opt/MOAB/default --with-file-lock=fnctl CC=cc MPICC=cc --with-scr-cache-base=/tmp/scratch --with-scr-cntl-base=/tmp/scratch --with-scr-config-file=/usr/projects/SCR/scr-1.1-8.cray.dev/source/working/scr.conf --with-pdsh=/usr/projects/SCR/pdsh-2.26-install/bin"
+export configopts="--with-machine-name=TLCC --without-yogrt --with-moab=/opt/MOAB/default --with-file-lock=fnctl CC=gcc MPICC=mpicc --with-scr-cache-base=/tmp --with-scr-cntl-base=/tmp --with-scr-config-file=/g/g0/becker33/scr_port/usr/projects/SCR/scr-1.1-8.cray.dev/source/working/scr.conf --with-pdsh=/usr/bin/pdsh"
+#export configopts="--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql"
+echo $configopts
+./configure --prefix=/g/g0/becker33/scr_port/usr/projects/SCR/scr-1.1-8.cray.dev/source/working $configopts
+#./configure --prefix=/usr/projects/SCR/TR-installs/scr_dw_with_source $configopts
 export scrversion="scr-1.1.8"
 cd ${SCR_PKG}
 make distclean
 ./autogen.sh
-./configure --prefix=/usr/local/tools/scr-1.1 $configopts
+./configure $configopts
 make dist
 
 echo "_____________________________________________________________________"
@@ -67,28 +76,39 @@ cd ${SCR_BUILD}
 tar -zxf ${scrversion}.tar.gz
 cd ${scrversion}
 ./configure --prefix=${SCR_INSTALL} $configopts
-make -j4
+make VERBOSE=1 -j4
 make install
 
+echo "_____________________________________________________________________"
+echo "_____________________________________________________________________"
 echo "_____________________________________________________________________"
 
 # cd to examples directory, and check that build of test programs works
 cd ${SCR_INSTALL}/share/scr/examples
 export OPT="-g -O0"
-make
-#cp ~/myscr.conf .scrconf
+export CFLAGS="-g -O0"
+make VERBOSE=1
+cp ${SCR_PKG}/scr.user.conf .scrconf
 
 echo "_____________________________________________________________________"
 
-mpicc -g -O0 -I${SCR_INSTALL}/include -I. -o test_api test_common.o test_api.c -L${SCR_INSTALL}/lib -lscr -lscr_base -lscr -lscr_base -L/usr/local/tools/zlib-1.2.6/lib -lz
+#mpicc -g -O0 -I${SCR_INSTALL}/include -I. -o test_api test_common.c test_api.c -L${SCR_INSTALL}/lib -lscr -L/usr/local/tools/zlib-1.2.6/lib -lz
 
 echo "_____________________________________________________________________"
 
 # run the TEST
 # must be run on a machine with python in the same location as on the target machine
-sed -i 's|^#!.*$|#!'`which python`'|' ${SCR_PKG}/testing/TEST
+#sed -i 's|^#!.*$|#!'`which python`'|' ${SCR_PKG}/testing/TEST
+#cp .scrconf ${SCR_LAUNCH_DIR}/.
+cd ${SCR_LAUNCH_DIR}
 msub -V -l nodes=4 -m be -j oe -o $1 ${SCR_PKG}/testing/TEST
 echo "Submitted a batch job to run TEST on 4 nodes with output sent to $1."
 echo "You should shortly receive an email notifying you that the batch job has been submitted."
 echo " You will receive another when it is completed"
 echo "In the meantime you can monitor the output using \"tail -f $1\""
+
+#sleep 20
+
+#echo ""
+#env | grep "[Jj][Oo][Bb]"
+#echo ${SCR_INSTALL}/bin/scr_env --jobid

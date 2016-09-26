@@ -240,6 +240,5 @@ int main (int argc, char* argv[])
 
   SCR_Finalize();
   MPI_Finalize();
-
   return 0;
 }

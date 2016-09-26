@@ -48,12 +48,17 @@ noinst_HEADERS = \
 	scr_halt.h \
 	queue.h
 
+noinst_LTLIBRARIES = \
+	libscr_cmds.la
+#	libscr_base.la \
+	libscr_cmds.la
+#	libscr_interpose.la
+
 lib_LTLIBRARIES = \
-	libscr_base.la \
-	libscr_cmds.la \
 	libscr.la \
 	libscrf.la 
-#	libscr_interpose.la
+#	libscr_base.la
+
 
 CMDS_INCLUDES = \
 	$(DEFS) \
@@ -63,7 +68,7 @@ CMDS_INCLUDES = \
 	$(MYSQL_CPPFLAGS)
 
 # source files that are used by scr commands and runtime library
-libscr_base_la_SOURCES = \
+#libscr_base_la_SOURCES = \
 	scr_io.c \
 	scr_path.c \
 	scr_compress.c \
@@ -80,16 +85,32 @@ libscr_base_la_SOURCES = \
 	scr_env.c \
 	scr_log.c \
 	scr_halt.c
-libscr_base_la_CFLAGS = $(CMDS_INCLUDES)
-libscr_base_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)
-libscr_base_la_LDFLAGS = -avoid-version
+#libscr_base_la_CFLAGS = $(CMDS_INCLUDES)
+#libscr_base_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)
+#libscr_base_la_LDFLAGS = -avoid-version
 
 # source files that are only used for commands
 libscr_cmds_la_SOURCES = \
 	scr_err_serial.c \
-	scr_config_serial.c
+	scr_config_serial.c \
+	scr_io.c \
+	scr_path.c \
+	scr_compress.c \
+	scr_util.c \
+	scr_hash.c \
+	scr_hash_util.c \
+	tv_data_display.c \
+	scr_filemap.c \
+	scr_index_api.c \
+	scr_meta.c \
+	scr_dataset.c \
+	scr_config.c \
+	scr_param.c \
+	scr_env.c \
+	scr_log.c \
+	scr_halt.c
 libscr_cmds_la_CFLAGS = $(CMDS_INCLUDES)
-libscr_cmds_la_LIBADD = libscr_base.la
+libscr_cmds_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)
 libscr_cmds_la_LDFLAGS = -avoid-version
 
 INCLUDES = \
@@ -122,9 +143,25 @@ libscr_la_SOURCES = \
 	scr_flush.c \
 	scr_flush_sync.c \
 	scr_flush_async.c \
-	scr.c
-libscr_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(MPI_CFLAGS)
-libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) libscr_base.la
+	scr.c \
+	scr_io.c \
+	scr_path.c \
+	scr_compress.c \
+	scr_util.c \
+	scr_hash.c \
+	scr_hash_util.c \
+	tv_data_display.c \
+	scr_filemap.c \
+	scr_index_api.c \
+	scr_meta.c \
+	scr_dataset.c \
+	scr_config.c \
+	scr_param.c \
+	scr_env.c \
+	scr_log.c \
+	scr_halt.c
+libscr_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(MPI_CFLAGS) $(CMDS_INCLUDES)
+libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)#libscr_base.la
 #(avoids numbers at end of library name)
 libscr_la_LDFLAGS = -avoid-version
 #libscr_la_LDFLAGS = -rpath $(DESTDIR)$(libdir)

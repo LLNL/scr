@@ -26,6 +26,8 @@ typedef struct {
   char*    name;      /* name of store */
   int      max_count; /* maximum number of datasets to be stored in device */
   int      can_mkdir; /* flag indicating whether mkdir/rmdir work */
+  char*    type;      /* POSIX|DataWarp|etc indicates available APIs */
+  char*    view;      /* indicates whether store is node-local or global */
   MPI_Comm comm;      /* communicator of processes that can access storage */
   int      rank;      /* local rank of process in communicator */
   int      ranks;     /* number of ranks in communicator */
