@@ -70,11 +70,11 @@ AC_DEFUN([X_AC_GCS], [
             test -f "$d/include/gcs.h" || continue
             for bit in $_x_ac_gcs_libs; do
               test -d "$d/$bit" || continue
-        
+
               _x_ac_gcs_libs_save="$LIBS"
               LIBS="-L$d/$bit -lgcs $LIBS $MPI_CLDFLAGS"
               AC_LINK_IFELSE(
-                AC_LANG_CALL([], [GCS_Comm_split]),
+                [AC_LANG_SOURCE(AC_LANG_CALL([], [GCS_Comm_split]))],
                 AS_VAR_SET([x_ac_cv_gcs_dir], [$d]))
               LIBS="$_x_ac_gcs_libs_save"
               test -n "$x_ac_cv_gcs_dir" && break
