@@ -6,6 +6,8 @@ aclocal.m4
 /m4/
 configure
 autom4te.cache/
+config.h.in
+ltmain.sh
 
 ## SCR Conf Files
 
