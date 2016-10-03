@@ -434,6 +434,20 @@ int main (int argc, char *argv[])
   /* get file io mode */
   mode_t mode_file = scr_getmode(1, 1, 0);
 
+  /* build the control directory name: CNTL_BASE/username/scr.jobid */
+  char *path = strdup(argv[1]);
+  dirname(path);
+  scr_path* path_cntl_prefix = scr_path_from_str(path);
+  char *scr_cntl_prefix = scr_path_strdup(path_cntl_prefix);
+  scr_path_delete(&path_cntl_prefix);
+
+  /* create the control directory */
+  if (scr_mkdir(scr_cntl_prefix, S_IRWXU | S_IRWXG) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to create control directory: %s @ %s:%d",
+      scr_cntl_prefix, __FILE__, __LINE__
+    );
+  }
+
   /* we cache the opened file descriptors to avoid extra opens,
    * seeks, and closes */
   int fd_src = -1;

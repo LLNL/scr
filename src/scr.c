@@ -925,13 +925,6 @@ int SCR_Init()
   scr_transfer_file = scr_path_strdup(path_transfer_file);
   scr_path_delete(&path_transfer_file);
 
-  /* TODO: continue draining a checkpoint if one is in progress
-   * from the previous run, for now, just delete the transfer file
-   * so we'll start over from scratch */
-  if (scr_storedesc_cntl->rank == 0) {
-    scr_file_unlink(scr_transfer_file);
-  }
-
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
   /* record the number of nodes being used in this job to the nodes file */
   int ranks_across;
@@ -964,7 +957,12 @@ int SCR_Init()
 
   /* since we shuffle files around below, stop any ongoing async flush */
   if (scr_flush_async) {
+    /* wait until transfer daemon is stopped */
     scr_flush_async_stop();
+    /* clear out the file */
+    if (scr_storedesc_cntl->rank == 0) {
+      scr_file_unlink(scr_transfer_file);
+    }
   }
 
   /* exit right now if we need to halt */
