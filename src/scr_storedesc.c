@@ -153,7 +153,12 @@ static int scr_storedesc_create_from_hash(
   scr_hash_util_get_int(hash, SCR_CONFIG_KEY_MKDIR, &(s->can_mkdir));
 
   /* set the type of the store. Default to POSIX */
-  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &(s->type));
+  char* tmp_type;
+  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &tmp_type);
+  if(tmp_type){
+    s->type = strdup(tmp_type);
+  }
+//  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &(s->type));
   if(s->type == NULL){
     s->type = strdup("POSIX");
   }
