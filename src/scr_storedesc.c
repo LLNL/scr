@@ -153,7 +153,7 @@ static int scr_storedesc_create_from_hash(
   scr_hash_util_get_int(hash, SCR_CONFIG_KEY_MKDIR, &(s->can_mkdir));
 
   /* set the type of the store. Default to POSIX */
-  char* tmp_type;
+  char* tmp_type = NULL;
   scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &tmp_type);
   if(tmp_type){
     s->type = strdup(tmp_type);
@@ -165,7 +165,7 @@ static int scr_storedesc_create_from_hash(
 
   /* set the view of the store. Default to PRIVATE */
   /* strdup the view if one exists */
-  char* tmp_view;
+  char* tmp_view = NULL;
   scr_hash_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &tmp_view);
   if(tmp_view){
     s->view = strdup(tmp_view);
@@ -332,6 +332,7 @@ int scr_storedescs_create()
 
     /* get the hash for descriptor of specified name */
     scr_hash* hash = scr_hash_get(tmp, name);
+
     if (scr_storedesc_create_from_hash(&scr_storedescs[index], name, index, hash) != SCR_SUCCESS) {
       all_valid = 0;
     }
