@@ -160,8 +160,20 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     if (scr_flush_async_in_progress) {
       /* there's an async flush ongoing, see which dataset is being flushed */
       if (scr_flush_async_dataset_id == scr_dataset_id) {
-        /* we're going to sync flush this same dataset below, so kill it */
-        scr_flush_async_stop(scr_map);
+	/* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
+	/* else wait */
+	/* get the TYPE of the store for checkpoint */
+	/* neither strdup nor free */
+	scr_reddesc* reddesc = scr_reddesc_for_checkpoint(scr_dataset_id,
+							  scr_nreddescs,
+							  scr_reddescs);
+	int storedesc_index = scr_storedescs_index_from_name(reddesc->base);
+	char* type = scr_storedescs[storedesc_index].type;
+	if(!strcmp(type, "DATAWARP") || !strcmp(type, "DW")){
+	  scr_flush_async_wait(scr_map);
+	}else{//if type posix
+	  scr_flush_async_stop();
+	}
       } else {
         /* the async flush is flushing a different dataset, so wait for it */
         scr_flush_async_wait(scr_map);
@@ -171,7 +183,9 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     /* TODO: need to flush any output sets and the latest checkpoint set */
 
     /* flush files if needed */
-    scr_flush_sync(scr_map, scr_checkpoint_id);
+    if(scr_bool_need_flush(scr_checkpoint_id)){
+	scr_flush_sync(scr_map, scr_checkpoint_id);
+    }
 
     /* sync up tasks before exiting (don't want tasks to exit so early that
      * runtime kills others after timeout) */
@@ -1138,8 +1152,20 @@ int SCR_Finalize()
   /* handle any async flush */
   if (scr_flush_async_in_progress) {
     if (scr_flush_async_dataset_id == scr_dataset_id) {
-      /* we're going to sync flush this same checkpoint below, so kill it */
-      scr_flush_async_stop();
+      /* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
+      /* else wait */
+      /* get the TYPE of the store for checkpoint */
+      /* neither strdup nor free */
+      scr_reddesc* reddesc = scr_reddesc_for_checkpoint(scr_dataset_id,
+							scr_nreddescs,
+							scr_reddescs);
+      int storedesc_index = scr_storedescs_index_from_name(reddesc->base);
+      char* type = scr_storedescs[storedesc_index].type;
+      if(!strcmp(type, "DATAWARP") || !strcmp(type, "DW")){
+	scr_flush_async_wait(scr_map);
+      }else{//if type posix
+	scr_flush_async_stop();
+      }
     } else {
       /* the async flush is flushing a different checkpoint, so wait for it */
       scr_flush_async_wait(scr_map);

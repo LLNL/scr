@@ -728,6 +728,7 @@ int scr_flush_async_wait(scr_filemap* map)
 	char* file = scr_hash_elem_key(elem);
 	dw_wait_file_stage(file);
       }
+      scr_flush_async_complete(map, scr_flush_async_dataset_id);
     }
     else if(!strcmp(type, "POSIX")){
       while (scr_bool_is_flushing(scr_flush_async_dataset_id)) {
