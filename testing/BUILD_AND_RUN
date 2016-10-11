@@ -102,13 +102,8 @@ echo "_____________________________________________________________________"
 #cp .scrconf ${SCR_LAUNCH_DIR}/.
 cd ${SCR_LAUNCH_DIR}
 msub -V -q standard -l nodes=4 -m be -j oe -o $2 ${SCR_PKG}/testing/$1
-echo "Submitted a batch job to run TEST on 4 nodes with output sent to $2."
+echo "Submitted a batch job to run $1 on 4 nodes with output sent to $2."
 echo "You should shortly receive an email notifying you that the batch job has been submitted."
 echo " You will receive another when it is completed"
 echo "In the meantime you can monitor the output using \"tail -f $2\""
 
-#sleep 20
-
-#echo ""
-#env | grep "[Jj][Oo][Bb]"
-#echo ${SCR_INSTALL}/bin/scr_env --jobid
