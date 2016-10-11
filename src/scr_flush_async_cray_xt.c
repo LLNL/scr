@@ -345,9 +345,17 @@ int scr_flush_async_start(scr_filemap* map, int id)
 	my_bytes += (double) filesize;
 
 	/* Stage out file */
-	dw_stage_file_out(file, dest_file, DW_STAGE_IMMEDIATE);
+	int stage_out = dw_stage_file_out(file, dest_file, DW_STAGE_IMMEDIATE);
+	if(stage_out != 0){
+	  scr_abort(-1, "Datawarp stage file out failed with error %d @ %s:%d",
+		    -stage_out, __FILE__, __LINE__
+		    );
+	}
 
 	scr_flush_async_num_files++;
+
+        scr_free(&dest_file);
+	scr_path_delete(&path_dest_file);
       }
   }
   else if(!strcmp(type, "POSIX")){
@@ -501,23 +509,23 @@ int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
       int pending = 0;
       int deferred = 0;
       int failed = 0;
-      int* test_complete;
-      int* test_pending;
-      int* test_deferred;
-      int* test_failed;
+      int test_complete;
+      int test_pending;
+      int test_deferred;
+      int test_failed;
       scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
       for (elem = scr_hash_elem_first(files);
 	   elem != NULL;
 	   elem = scr_hash_elem_next(elem))
       {
 	char* file = scr_hash_elem_key(elem);
-	int test = dw_query_file_stage(file, test_complete, test_pending, test_deferred, 
-				       test_failed);
+	int test = dw_query_file_stage(file, &test_complete, &test_pending, &test_deferred, 
+				       &test_failed);
 	if(test == 0){
-	  complete += *test_complete;
-	  pending += *test_pending;
-	  deferred += *test_deferred;
-	  failed += *test_failed;
+	  complete += test_complete;
+	  pending += test_pending;
+	  deferred += test_deferred;
+	  failed += test_failed;
 	}else{
 	  scr_abort(-1, "Datawarp failed with error %d @ %s:%d",
 		    -test, __FILE__, __LINE__
@@ -529,7 +537,7 @@ int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
 		  id, __FILE__, __LINE__
 		  );
       }else if(pending != 0 || deferred != 0){
-	test_complete = 0;
+	transfer_complete = 0;
       }
   }
   else if(!strcmp(type, "POSIX")){
@@ -719,6 +727,7 @@ int scr_flush_async_wait(scr_filemap* map)
     if(!strcmp(type, "DATAWARP") || !strcmp(type, "DW")){
       /* Get the list of files */
       scr_hash_elem* elem = NULL;
+      int dw_wait = 0;
       scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
       for (elem = scr_hash_elem_first(files);
 	   elem != NULL;
@@ -726,7 +735,12 @@ int scr_flush_async_wait(scr_filemap* map)
       {
 	/* Do the wait on each file */
 	char* file = scr_hash_elem_key(elem);
-	dw_wait_file_stage(file);
+	dw_wait = dw_wait_file_stage(file);
+	if (dw_wait != 0){
+	  scr_abort(-1, "Datawarp wait operation failed with error %d @ %s:%d",
+		    -dw_wait, __FILE__, __LINE__
+		    );
+	}
       }
       scr_flush_async_complete(map, scr_flush_async_dataset_id);
     }
