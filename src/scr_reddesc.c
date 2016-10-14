@@ -479,7 +479,7 @@ int scr_reddesc_create_from_hash(
 
   /* set the base directory */
   char* base = scr_cache_base;
-  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_STORE, &base);
+  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_BASE, &base);
   if (base != NULL) {
     /* strdup base after reducing it */
     d->base = scr_path_strdup_reduce_str(base);
