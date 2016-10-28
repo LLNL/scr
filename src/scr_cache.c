@@ -159,7 +159,8 @@ int scr_cache_delete(scr_filemap* map, int id)
   char* base = scr_reddesc_base_from_filemap(map, id, scr_my_rank_world);
   char* dir  = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
   int store_index = scr_storedescs_index_from_name(base);
-  if (store_index >= 0 && store_index < scr_nstoredescs && dir != NULL) {
+  int have_dir = (store_index >= 0 && store_index < scr_nstoredescs && dir != NULL);
+  if (scr_alltrue(have_dir)) {
     /* get store descriptor */
     scr_storedesc* store = &scr_storedescs[store_index];
 
@@ -181,7 +182,14 @@ int scr_cache_delete(scr_filemap* map, int id)
     }
     scr_free(&dataset_dir);
   } else {
-    /* TODO: abort! */
+    /* TODO: We end up here if at least one process does not have it's
+     * reddeesc for this dataset.  We could try to have each process delete
+     * directories directly, or we could use DTCMP to assign a new leader
+     * for each directory to clean up, but we can't call
+     * scr_storedesc_dir_delete() since the barrier in that function
+     * could lead to deadlock.  For now, skip the cleanup, and just leave
+     * the directories in place.  We should run ok, but we may leave
+     * some cruft behind. */
   }
   scr_free(&dir);
   scr_free(&base);
