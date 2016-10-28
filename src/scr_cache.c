@@ -182,7 +182,7 @@ int scr_cache_delete(scr_filemap* map, int id)
     }
     scr_free(&dataset_dir);
   } else {
-    /* TODO: We end up here if at least one process does not have it's
+    /* TODO: We end up here if at least one process does not have its
      * reddeesc for this dataset.  We could try to have each process delete
      * directories directly, or we could use DTCMP to assign a new leader
      * for each directory to clean up, but we can't call
