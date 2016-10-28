@@ -1,5 +1,5 @@
 MPICC     ?= mpicc
-MPICXX    ?= mpiCC
+MPICXX    ?= mpicxx
 MPIF90    ?= mpif90
 OPT       ?= -g -O3
 LIBDIR     = @X_LIBDIR@
