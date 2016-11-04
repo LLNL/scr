@@ -32,6 +32,18 @@ make distclean
 ./configure --prefix=/usr/local/tools/scr-1.1 $configopts
 make dist
 
+# CORAL build instructions
+#setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
+#setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=./deps/install"
+setenv CFLAGS "-g -O0"
+setenv configopts "--with-scr-config-file=/etc/scr.conf  --with-machine-name=LSF"
+setenv scrversion "scr-1.1.8"
+cd ${SCR_PKG}
+make distclean
+./autogen.sh
+./configure --prefix=/usr/local/tools/scr-1.1 $configopts
+make dist
+
 # Linux build instructions
 #setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
 #setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=./deps/install"
@@ -73,6 +85,8 @@ mxterm 4 32 120
 setenv scrbin ${SCR_INSTALL}/bin
 setenv jobid `${scrbin}/scr_env --jobid`
 echo $jobid
+#setenv nodelist `${scrbin}/scr_env --nodes`
+#echo $nodelist
 setenv downnode `${scrbin}/scr_glob_hosts -n 1 -h "$SLURM_NODELIST"`
 echo $downnode
 setenv prefix_files ".scr/flush.scr .scr/halt.scr .scr/nodes.scr"

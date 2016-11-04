@@ -51,7 +51,7 @@
 #include "scr_globals.h"
 #endif /* SCR_MACHINE_TYPE == SCR_PMIX */
 
-#if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT) || (SCR_MACHINE_TYPE == SCR_PMIX)
+#if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT) || (SCR_MACHINE_TYPE == SCR_PMIX) || (SCR_MACHINE_TYPE == SCR_LSF)
 #include <unistd.h> /* gethostname */
 #endif
 
@@ -157,6 +157,16 @@ char* scr_env_jobid()
 
     /* free pmix query structure */
     PMIX_PDATA_FREE(pmix_query_data, 1);
+  #elif SCR_MACHINE_TYPE == SCR_LSF
+    /* read $PBS_JOBID environment variable for jobid string */
+    if ((value = getenv("LSB_JOBID")) != NULL) {
+      jobid = strdup(value);
+      if (jobid == NULL) {
+        scr_err("Failed to allocate memory to record jobid (%s) @ %s:%d",
+                value, __FILE__, __LINE__
+        );
+      }
+    }
   #endif
 
   return jobid;
@@ -167,8 +177,7 @@ char* scr_env_nodename()
 {
   char* name = NULL;
 
-  #if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT) || \
-	  (SCR_MACHINE_TYPE == SCR_PMIX)
+  #if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT) || (SCR_MACHINE_TYPE == SCR_PMIX) || (SCR_MACHINE_TYPE == SCR_LSF)
     /* we just use the string returned by gethostname */
     char hostname[256];
     if (gethostname(hostname, sizeof(hostname)) == 0) {

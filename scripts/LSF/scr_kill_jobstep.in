@@ -1,0 +1,44 @@
+#!/usr/bin/perl -w
+use strict;
+use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+use lib '@X_DATADIR@/scr';
+
+# This script uses the scancel command to kill the job step with the 
+# job step id supplied on the command line
+
+my $prog = "scr_kill_jobstep";
+my $bin = "@X_BINDIR@";
+
+my $killCmd = "scancel";
+
+sub print_usage
+{
+  print "\n";
+  print "  Usage:  $prog -j <jobstepid>\n";
+  print "\n";
+  print "    -j, --jobStepId    The job step id to kill.\n";
+  print "\n";
+  exit 1;
+}
+
+# read in the command line options
+my %conf = ();
+$conf{jobstepid} = undef;
+my $rc = GetOptions (
+  "jobStepId|j=s" => \$conf{jobstepid},
+  "help|h"        => \$conf{help},
+);
+if ($conf{help} or not $rc) {
+  print_usage();
+}
+
+if (not defined $conf{jobstepid}) {
+  print "You must specify the job step id to kill.\n";
+  print_usage();
+}
+
+my $jobid = $conf{jobstepid};
+my $cmd = "$killCmd $jobid";
+print "$cmd\n";
+`$cmd`;
+exit $?;

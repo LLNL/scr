@@ -1,0 +1,299 @@
+#!/usr/bin/perl -w
+use strict;
+use lib '@X_DATADIR@/scr';
+use scr_param;
+use scr_hostlist;
+use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+
+# This utility scavenges files from cache to the parallel file system using pdsh.
+# It checks for pdsh errors in case any nodes should be retried.
+
+# requires: pdsh
+
+my $bindir = "@X_BINDIR@";
+my $prog = "scr_scavenge";
+
+my $pdsh = "@PDSH_EXE@";
+
+# TODO: need to be able to set these defaults via config settings somehow
+# for now just hardcode the values
+my $buf_size = 1024*1024;
+my $crc_flag = "--crc";
+my $container_flag = "--containers";
+
+# lookup buffer size and crc flag via scr_param
+my $param = new scr_param();
+
+my $param_buf_size = $param->get("SCR_FILE_BUF_SIZE");
+if (defined $param_buf_size) {
+  $buf_size = $param_buf_size;
+}
+
+my $param_crc = $param->get("SCR_CRC_ON_FLUSH");
+if (defined $param_crc) {
+  if ($param_crc == 0) {
+    $crc_flag = "";
+  }
+}
+
+my $param_container = $param->get("SCR_USE_CONTAINERS");
+if (defined $param_container) {
+  if ($param_container == 0) {
+    $container_flag = "";
+  }
+}
+
+my $start_time = time();
+
+sub print_usage
+{
+  print "\n";
+  print "  Usage:  $prog [--jobset <nodeset>] [--up <nodeset> | --down <nodeset>] --id <id> --from <dir> --to <dir>\n";
+  print "\n";
+  exit 1;
+}
+
+# tag output files with jobid
+my $jobid = `$bindir/scr_env --jobid`;
+if ($? != 0) {
+  print "$prog: ERROR: Could not determine jobid.\n";
+  exit 1;
+}
+chomp $jobid;
+
+# read node set of job
+my $jobset = `$bindir/scr_env --nodes`;
+if ($? != 0) {
+  print "$prog: ERROR: Could not determine nodeset.\n";
+  exit 1;
+}
+chomp $jobset;
+
+# read in command line arguments
+my %conf = ();
+$conf{nodeset_job}  = $jobset;
+$conf{nodeset_up}   = undef;
+$conf{nodeset_down} = undef;
+$conf{dataset_id}   = undef;
+$conf{dir_from}     = undef;
+$conf{dir_to}       = undef;
+$conf{verbose}      = 0;
+my $rc = GetOptions (
+   "jobset|j=s"  => \$conf{nodeset_job},
+   "up|u=s"      => \$conf{nodeset_up},
+   "down|d=s"    => \$conf{nodeset_down},
+   "id|i=i"      => \$conf{dataset_id},
+   "from|f=s"    => \$conf{dir_from},
+   "to|t=s"      => \$conf{dir_to},
+   "verbose|v"   => sub { $conf{verbose} = 1; },
+);
+if (not $rc) {
+  print_usage();
+}
+
+# check that we have a nodeset for the job and directories to read from / write to
+if ($conf{nodeset_job} eq "" or 
+    not defined $conf{dataset_id} or
+    not defined $conf{dir_from} or
+    not defined $conf{dir_to})
+{
+  print_usage();
+}
+
+# get directories
+my $cntldir    = $conf{dir_from};
+my $datasetdir = $conf{dir_to};
+
+# get nodesets
+my @jobnodes  = scr_hostlist::expand($conf{nodeset_job});
+my @upnodes   = ();
+my @downnodes = ();
+if (defined $conf{nodeset_down}) {
+  @downnodes = scr_hostlist::expand($conf{nodeset_down});
+  @upnodes   = scr_hostlist::diff(\@jobnodes, \@downnodes);
+} elsif (defined $conf{nodeset_up}) {
+  @upnodes   = scr_hostlist::expand($conf{nodeset_up});
+  @downnodes = scr_hostlist::diff(\@jobnodes, \@upnodes);
+} else {
+  @upnodes = @jobnodes;
+}
+
+# format up and down node sets for pdsh command
+my $upnodes = scr_hostlist::compress(@upnodes);
+my $downnodes_spaced = join(" ", @downnodes);
+
+# add dataset id option if one was specified
+# set the dataset flag
+my $dset = "$conf{dataset_id}";
+
+# build the output filenames
+my $output = "$datasetdir/.scr/$prog.pdsh.o" . $jobid;
+my $error  = "$datasetdir/.scr/$prog.pdsh.e" . $jobid;
+
+my $cmd = undef;
+
+# log the start of the scavenge operation
+`$bindir/scr_log_event -T 'SCAVENGE STARTED' -D $dset -S $start_time`;
+
+# gather files via pdsh
+my $partner_flag = "";
+$cmd = "$bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $datasetdir --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced";
+print "$prog: ", scalar(localtime), "\n";
+print "$prog: $pdsh -f 256 -S -w '$upnodes' \"$cmd\" >$output 2>$error\n";
+             `$pdsh -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
+
+# print pdsh output to screen
+if ($conf{verbose}) {
+  if (-r $output) {
+    print "$prog: stdout: cat $output\n";
+    print `cat $output`;
+    print "\n";
+  }
+
+  if (-r $error) {
+    print "$prog: stderr: cat $error\n";
+    print `cat $error`;
+    print "\n";
+  }
+}
+
+# scan output file for list of partners and failed copies
+my %partner = ();
+my @copy_failed = ();
+if (-r $output) {
+  open(OUT, $output);
+  while (my $line = <OUT>) {
+    chomp $line;
+    if ($line =~ /(\w+\d+): Partners: (.*)$/) {
+      #atlas693: atlas693: Partners: atlas690 atlas692
+      my $current_node = $1;
+      my @partner_list = split(/\s+/, $2);
+      foreach my $p (@partner_list) {
+        push @{$partner{$p}}, $current_node;
+      }
+    } elsif ($line =~ /(\w+\d+): Return code: (\d+)/) {
+      #atlas692: atlas692: Return code: 256
+      if ($2 != 0) {
+        push @copy_failed, $1;
+      }
+    }
+  }
+  close(OUT);
+}
+
+# scan error file for pdsh errors
+my %pdsh_failed_nodes = ();
+if (-r $error) {
+  open(ERR, $error);
+  while (my $line = <ERR>) {
+    #pdsh@atlas156: atlas193: mcmd: connect failed: No route to host
+    if ($line =~ /pdsh\@\w+\d+: (\w+\d+):/) {
+      $pdsh_failed_nodes{$1} = 1;
+    }
+    #atlas193: mcmd: connect failed: No route to host
+    if ($line =~ /^(\w+\d+):/) {
+      $pdsh_failed_nodes{$1} = 1;
+    }
+  }
+  close(ERR);
+}
+my @pdsh_failed = (keys %pdsh_failed_nodes);
+
+# if first pdsh failed, try again with new 'failed' nodes list
+if (@copy_failed > 0 or @pdsh_failed > 0) {
+  # consolidate all failed nodes into a single hash
+  my %all_failures = ();
+  foreach my $node (@downnodes) {
+    $all_failures{$node} = 1;
+  }
+  foreach my $node (@pdsh_failed) {
+    $all_failures{$node} = 1;
+  }
+  foreach my $node (@copy_failed) {
+    $all_failures{$node} = 1;
+  }
+
+  # sort all failed nodes and list them in stdout
+  my @failed = (sort {
+    my ($numA) = ($a =~ /\w+(\d+)/);
+    my ($numB) = ($b =~ /\w+(\d+)/);
+    return $numA <=> $numB} keys %all_failures);
+
+  # for each failed node, try to find a partner
+  my $missing_partner_for_failed_node = 0;
+  my %partner_nodes = ();
+  foreach my $node (@failed) {
+    if (defined $partner{$node}) {
+      # scan for a partner which has not failed
+      my $found_one = 0;
+      foreach my $p (@{$partner{$node}}) {
+        if (not defined $all_failures{$p}) {
+          $found_one = 1;
+          $partner_nodes{$p} = 1;
+        }
+      }
+      if (!$found_one) {
+        $missing_partner_for_failed_node = 1;
+      }
+    } else {
+      # don't know any partners for this node
+      $missing_partner_for_failed_node = 1;
+    }
+  }
+
+  # sort partner nodes
+  my @partners = (sort {
+    my ($numA) = ($a =~ /\w+(\d+)/);
+    my ($numB) = ($b =~ /\w+(\d+)/);
+    return $numA <=> $numB} keys %partner_nodes);
+
+  print "$prog: pdsh failed on: ", scalar(scr_hostlist::compress(@failed));
+  print ", trying partners: ", scalar(scr_hostlist::compress(@partners)), "\n\n";
+
+  # run pdsh scr_copy --partner with updated 'failed' list
+  my $new_downnodes_spaced = join(" ", @failed);
+  my $output2 = $output . ".2";
+  my $error2  = $error  . ".2";
+  my $new_upnodes = $upnodes;
+  if ($missing_partner_for_failed_node) {
+    # TODO: when using spare nodes, this will produce a lot of noise
+    # -- just remove an attempt in this case?
+    # we don't know all partners, so run on everyone (subtract out failed nodes)
+    my @new_upnodes = scr_hostlist::diff(\@upnodes, \@failed);
+    $new_upnodes = scr_hostlist::compress(@new_upnodes);
+  } else {
+    # we identified a partner for each failed node, just run on partners
+    $new_upnodes = scr_hostlist::compress(@partners);
+  }
+  $partner_flag = "--partner";
+  $cmd = "$bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $datasetdir --buf $buf_size $crc_flag $partner_flag $container_flag $new_downnodes_spaced";
+  if ($new_upnodes ne "") {
+    print "$prog: $pdsh -f 256 -S -w '$new_upnodes' \"$cmd\" >$output2 2>$error2\n";
+                 `$pdsh -f 256 -S -w '$new_upnodes'  "$cmd"  >$output2 2>$error2`;
+
+    # print pdsh output to screen
+    if ($conf{verbose}) {
+      if (-r $output2) {
+        print "$prog: stdout: cat $output2\n";
+        print `cat $output2`;
+        print "\n";
+      }
+
+      if (-r $error2) {
+        print "$prog: stderr: cat $error2\n";
+        print `cat $error2`;
+        print "\n";
+      }
+    }
+  } else {
+    print "$prog: No partner nodes identified\n";
+  }
+}
+
+# TODO: if we knew the total bytes, we could register a transfer here in addition to an event
+# get a timestamp for logging timing values
+my $end_time = time();
+my $diff_time = $end_time - $start_time;
+`$bindir/scr_log_event -T 'SCAVENGE COMPLETED' -D $dset -S $start_time -L $diff_time`;
+
+exit 0;

@@ -1,0 +1,256 @@
+#!/usr/bin/perl -w
+use strict;
+use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+use Date::Manip;
+
+my $bindir = "@X_BINDIR@";
+my $prog = "scr_halt";
+
+# requires: squeue, scontrol, scancel, umask (shell command)
+
+# use absolute paths to internal commands
+my $bash  = "/bin/bash";
+my $mkdir = "/bin/mkdir";
+my $rm    = "/bin/rm";
+my $echo  = "/bin/echo";
+my $umask = "umask"; # shell command
+
+my %conf = ();
+
+$conf{usage} = <<EOF
+
+  $prog -- set or modify halt conditions for an SCR job
+
+  Usage:  $prog [options] [prefixdir ...]
+
+  Options:
+    -c, --checkpoints=N
+          Halt job after N checkpoints.
+    -b, --before=TIME
+          Halt job before specified TIME.  Uses SCR_HALT_SECONDS if set.
+    -a, --after=TIME
+          Halt job after specified TIME.
+    -i, --immediate
+          Halt job immediately.
+    -s, --seconds=N
+          Set or reset SCR_HALT_SECONDS for active job.
+
+    -l, --list
+          List the current halt conditions specified for a job or jobs.
+
+    --unset-checkpoints
+          Unset any checkpoint halt condition.
+    --unset-before
+          Unset any halt before condition.
+    --unset-after
+          Unset halt after condition.
+    --unset-seconds
+          Unset halt seconds.
+    --unset-reason
+          Unset the current halt reason.
+
+    -r, --remove
+          Remove halt file.
+
+    -v, --verbose
+          Increase verbosity.
+    -h, --help
+          Print usage.
+
+TIME arguments are parsed using the perl Date::Manip(3pm) package, and thus
+may be specified in one of many formats. Examples include '12pm',
+'yesterday,noon', '12/25-15:30:33', and so on. See the Date::Manip(3pm)
+manpage for more examples.
+
+If no directory is specified, the current working directory is used.
+
+EOF
+;
+
+# Initialize Date::Manip
+Date_Init();
+
+# print usage and exit
+sub print_usage {
+  print STDOUT $conf{usage};
+  exit 1;
+}
+
+# read in environment variables and command line options
+$conf{checkpoints} = undef;
+$conf{before}      = undef;
+$conf{after}       = undef;
+$conf{immdiate}    = 0;
+$conf{seconds}     = undef;
+$conf{list}        = undef;
+$conf{unset_checkpoints} = undef;
+$conf{unset_before}      = undef;
+$conf{unset_after}       = undef;
+$conf{unset_seconds}     = undef;
+$conf{unset_reason}      = undef;
+$conf{remove}      = 0;
+$conf{verbose}     = 0;
+$conf{help}        = 0;
+my $rc = GetOptions (
+  "checkpoints|c=i" => \$conf{checkpoints},
+  "before|b=s"  => \$conf{before},
+  "after|a=s"   => \$conf{after},
+  "immediate|i" => \$conf{immediate},
+  "seconds|s=i" => \$conf{seconds},
+  "list|l"      => \$conf{list},
+  "unset-checkpoints" => \$conf{unset_checkpoints},
+  "unset-before"      => \$conf{unset_before},
+  "unset-after"       => \$conf{unset_after},
+  "unset-seconds"     => \$conf{unset_seconds},
+  "unset-reason"      => \$conf{unset_reason},
+  "remove|r"    => \$conf{remove},
+  "verbose|v"   => \$conf{verbose},
+  "help|h"      => \$conf{help},
+);
+if ($conf{help} or not $rc) {
+  print_usage();
+}
+
+# get the directories
+my @dirs = ();
+if (@ARGV >= 1) {
+  # if find some arguments on the command line, assume they are target directories
+  @dirs = @ARGV;
+} else {
+  # use current working directory if none specified
+  my $dir = `pwd`;
+  $rc = $?;
+  if ($rc == 0) {
+    chomp $dir;
+    push @dirs, $dir;
+  }
+}
+
+# check that we got a direcotry
+if (@dirs == 0) {
+  print_usage();
+}
+
+my $ret = 0;
+
+# commands to build halt file
+my @halt_conditions = ();
+
+# halt after X checkpoints
+if (defined $conf{checkpoints}) {
+  my $checkpoints_left = $conf{checkpoints};
+  # TODO: check that a valid value was given
+  push @halt_conditions, "-c $checkpoints_left";
+}
+
+# halt before time
+if (defined $conf{before}) {
+  my $date = ParseDate($conf{before});
+  if (not defined $date or not $date) {
+    print "$prog: ERROR: Invalid time specified in --before: $conf{before}\n";
+    exit 1;
+  }
+  my $secs = UnixDate($date,"%s");
+#  print "$prog: Exit before: " . localtime($secs) . "\n";
+  push @halt_conditions, "-b $secs";
+}
+
+# halt after time
+if (defined $conf{after}) {
+  my $date = ParseDate($conf{after});
+  if (not defined $date or not $date) {
+    print "$prog: ERROR: Invalid time specified in --after: $conf{after}\n";
+    exit 1;
+  }
+  my $secs = UnixDate($date,"%s");
+#  print "$prog: Exit after: " . localtime($secs) . "\n";
+  push @halt_conditions, "-a $secs";
+}
+
+# set (reset) SCR_HALT_SECONDS value
+if (defined $conf{seconds}) {
+  my $halt_seconds = $conf{seconds};
+  # TODO: check that a valid value was given
+  push @halt_conditions, "-s $halt_seconds";
+}
+
+# list halt options
+if (defined $conf{list}) {
+  push @halt_conditions, "-l";
+}
+
+# push options to unset any values
+if (defined $conf{unset_checkpoints}) {
+  push @halt_conditions, "-xc";
+}
+if (defined $conf{unset_before}) {
+  push @halt_conditions, "-xb";
+}
+if (defined $conf{unset_after}) {
+  push @halt_conditions, "-xa";
+}
+if (defined $conf{unset_seconds}) {
+  push @halt_conditions, "-xs";
+}
+if (defined $conf{unset_reason}) {
+  push @halt_conditions, "-xr";
+}
+
+# if we were not given any conditions, set the exit reason to JOB_HALTED
+if (not @halt_conditions or $conf{immediate}) {
+  push @halt_conditions, "-r JOB_HALTED";
+}
+
+# the -r option overrides everything else
+if ($conf{remove}) {
+  @halt_conditions = ();
+}
+
+# create a halt file on each node
+foreach my $dir (@dirs) {
+  my $rc = 0;
+
+  print "Updating halt file in $dir\n";
+
+  # build the name of the halt file
+  my $halt_file = "$dir/.scr/halt.scr";
+
+  # TODO: Set halt file permissions so system admins can modify them
+  my $halt_cmd = "";
+  if (@halt_conditions) {
+    # create the halt file with specified conditions
+    my $halt_file_options = join(" ", @halt_conditions);
+#    $halt_cmd = "$bash -c \"$mkdir -p $dir/.scr; $bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
+    $halt_cmd = "$bash -c \"$bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
+  } else {
+    # remove the halt file
+    $halt_cmd = "$bash -c \"$rm -f $halt_file\"";
+  }
+
+  # execute the command
+  if ($conf{verbose}) {
+    print "\n$halt_cmd\n";
+  }
+  my $output = `$halt_cmd`;
+  $rc = $?;
+  if ($rc != 0) {
+    print "\n";
+    print "$prog: ERROR: Failed to update halt file for $dir\n";
+    $ret = 1;
+  }
+
+  # print output to screen
+  chomp $output;
+  print "\n$output\n";
+}
+
+# TODO: would like to protect against killing a job in the middle of a checkpoint if possible
+
+# kill job if immediate was set
+if ($conf{immediate}) {
+  # TODO: lookup active jobid for given prefix directory and halt job based on system
+  print "$prog: ERROR: --immediate option not yet supported\n";
+  exit 1;
+}
+
+exit $ret;

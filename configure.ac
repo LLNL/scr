@@ -164,6 +164,15 @@ AC_CONFIG_FILES([ \
   scripts/PMIX/scr_inspect \
   scripts/PMIX/scr_kill_jobstep \
   scripts/PMIX/scr_get_jobstep_id \
+  scripts/LSF/Makefile \
+  scripts/LSF/scr_run \
+  scripts/LSF/scr_env \
+  scripts/LSF/scr_halt \
+  scripts/LSF/scr_list_down_nodes \
+  scripts/LSF/scr_scavenge \
+  scripts/LSF/scr_inspect \
+  scripts/LSF/scr_kill_jobstep \
+  scripts/LSF/scr_get_jobstep_id \
   examples/Makefile \
   examples/makefile.examples \
   doc/Makefile \

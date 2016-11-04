@@ -1,0 +1,176 @@
+#!/usr/bin/perl -w
+use strict;
+use lib '@X_DATADIR@/scr';
+use scr_hostlist;
+use Getopt::Long qw/ :config gnu_getopt ignore_case /;
+
+# This file will flush files from cache to the parallel file system using pdsh.
+# It checks for pdsh errors in case any nodes should be retried.
+
+# requires: pdsh
+
+my $bindir = "@X_BINDIR@";
+my $prog = "scr_inspect";
+
+my $pdsh = "@PDSH_EXE@";
+
+sub print_usage
+{
+  print "\n";
+  print "  Usage:  $prog [--up <nodeset>] --from <cntldir>\n";
+  print "\n";
+  exit 1;
+}
+
+# tag output files with jobid
+my $jobid = `$bindir/scr_env --jobid`;
+if ($? != 0) {
+  print "$prog: ERROR: Could not determine jobid.\n";
+  exit 1;
+}
+chomp $jobid;
+
+# read node set of job
+my $jobset = `$bindir/scr_env --nodes`;
+if ($? != 0) {
+  print "$prog: ERROR: Could not determine nodeset.\n";
+  exit 1;
+}
+chomp $jobset;
+
+# read in command line arguments
+my %conf = ();
+$conf{nodeset_job}   = $jobset;
+$conf{nodeset_up}    = undef;
+$conf{nodeset_down}  = undef;
+$conf{dir_from}      = undef;
+$conf{verbose}       = 0;
+my $rc = GetOptions (
+   "jobset|j=s"  => \$conf{nodeset_job},
+   "up|u=s"      => \$conf{nodeset_up},
+   "down|d=s"    => \$conf{nodeset_down},
+   "from|f=s"    => \$conf{dir_from},
+   "verbose|v"   => sub { $conf{verbose} = 1; },
+);
+if (not $rc) {
+  print_usage();
+}
+
+# get directories
+my $cntldir   = $conf{dir_from};
+
+# get nodesets
+my @jobnodes  = scr_hostlist::expand($conf{nodeset_job});
+my @upnodes   = ();
+my @downnodes = ();
+if (defined $conf{nodeset_down}) {
+  @downnodes = scr_hostlist::expand($conf{nodeset_down});
+  @upnodes   = scr_hostlist::diff(\@jobnodes, \@downnodes);
+} elsif (defined $conf{nodeset_up}) {
+  @upnodes   = scr_hostlist::expand($conf{nodeset_up});
+  @downnodes = scr_hostlist::diff(\@jobnodes, \@upnodes);
+} else {
+  @upnodes = @jobnodes;
+}
+
+# format up and down node sets for pdsh command
+my $upnodes   = scr_hostlist::compress(@upnodes);
+
+# TODO: should check that .scr direcotry exists
+# build the output filenames
+my $pwd = `pwd`;
+chomp $pwd;
+my $output = "$pwd/.scr/$prog.pdsh.o" . $jobid;
+my $error  = "$pwd/.scr/$prog.pdsh.e" . $jobid;
+unlink $output;
+unlink $error;
+
+my $cmd = undef;
+
+# gather files via pdsh
+my $filemap = "$cntldir/filemap.scrinfo";
+$cmd = "$bindir/scr_inspect_cache $filemap";
+`$pdsh -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
+
+# scan output file for list of partners and failed copies
+my %groups = ();
+my %types = ();
+if (-r $output) {
+  # open the file, exit with error if we can't
+  open(OUT, $output) or exit 1;
+
+  # read through each line
+  while (my $line = <OUT>) {
+    chomp $line;
+    if ($line =~ /DSET=(\d+) RANK=(\d+) TYPE=(\w+) GROUPS=(\d+) GROUP_ID=(\d+) GROUP_SIZE=(\d+) GROUP_RANK=(\d+)/) {
+      my $dset = $1;
+      my $rank = $2;
+      my $type = $3;
+      my $ngroups = $4;
+      my $group_id = $5;
+      my $group_size = $6;
+      my $group_rank = $7;
+      $groups{$dset}{ids}{$group_id}{ranks}{$group_rank} = 1;
+      $groups{$dset}{ids}{$group_id}{size} = $group_size;
+      $groups{$dset}{groups} = $ngroups;
+      $types{$dset} = $type;
+    }
+  }
+
+  # close the file
+  close(OUT);
+}
+
+# starting with the most recent dataset, check whether we have (or may be able to recover) all files
+my @possible_dsets = ();
+my @dsets = (sort {$b <=> $a} keys %groups);
+foreach my $dset (@dsets) {
+  # get the expected number of groups and the dataset type
+  my $expected_groups = $groups{$dset}{groups};
+  my $type = $types{$dset};
+
+  # count the number of groups we find, and the number we can't recover
+  my $num_groups = 0;
+  my $missing_groups = 0;
+  foreach my $group (sort {$a <=> $b} keys %{$groups{$dset}{ids}}) {
+    # add this group to our running total, and get its size
+    $num_groups++;
+    my $group_size = $groups{$dset}{ids}{$group}{size};
+
+    # count the number of ranks we're missing from this dataset
+    my @missing_ranks = ();
+    for(my $i=0; $i < $group_size; $i++) {
+      if (not defined $groups{$dset}{ids}{$group}{ranks}{$i}) {
+        push @missing_ranks, $i;
+      }
+    }
+
+    # determine whether we are missing too many ranks from this group based on the dataset type
+    my $missing_too_many = 0;
+    if (($type eq "LOCAL" or $type eq "PARTNER") and @missing_ranks > 0) {
+      $missing_too_many = 1;
+    } elsif ($type eq "XOR" and @missing_ranks > 1) {
+      $missing_too_many = 1;
+    }
+
+    # if we're missing too many ranks from this group, add it to the total
+    if ($missing_too_many) {
+      $missing_groups++;
+    } else {
+    }
+  }
+
+  # if we have a chance to recover files from all groups of this dataset, add it to the list
+  if ($num_groups == $expected_groups and $missing_groups == 0) {
+    push @possible_dsets, $dset;
+  }
+}
+
+# list the datasets we have a shot of recovering
+if (@possible_dsets > 0) {
+  print join(" ", @possible_dsets), "\n";
+  exit 0;
+}
+
+# failed to find a full dataset to even attempt
+exit 1;
