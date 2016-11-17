@@ -3,7 +3,9 @@ dist_examples_DATA = \
 	test_common.c \
 	test_common.h \
 	test_api.c \
+	test_api_file.c \
 	test_api_multiple.c \
+	test_api_multiple_file.c \
 	test_interpose.c \
 	test_interpose_multiple.c \
 	test_ckpt.C \

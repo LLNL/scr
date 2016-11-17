@@ -17,6 +17,7 @@ sub print_usage
   print "    -h, --hosts <hosts>         Use this Host list.\n";
   print "    -m, --minus <s1:s2>         Elements of s1 not in s2.\n";
   print "    -i, --intersection <s1:s2>  Intersection of s1 and s2 hosts.\n";
+  print "    -C, --compress <csv hostlist>  simply compress the csv hostlist\n";
   print "\n";
   exit 1;
 }
@@ -28,12 +29,15 @@ $conf{nth}          = undef;
 $conf{hosts}        = undef;
 $conf{minus}        = undef;
 $conf{intersection} = undef;
+$conf{compress}     = undef;
+
 my $rc = GetOptions (
   "count|c"          => \$conf{count},
   "nth|n=i"          => \$conf{nth},
   "hosts|h=s"        => \$conf{hosts},
   "minus|m=s"        => \$conf{minus},
   "intersection|i=s" => \$conf{intersection},
+  "compress|C=s"     => \$conf{compress},
 );
 if ($conf{help} or not $rc) {
   print_usage();
@@ -70,6 +74,12 @@ if (defined $conf{hosts}) {
   } else {
     print_usage();
   }
+}
+
+elsif (defined $conf{compress}) {
+   my @fields = split "," , $conf{compress};
+   print scr_hostlist::compress(@fields);
+   exit 0;
 }
 
 # if nothing set the nodeset, print usage

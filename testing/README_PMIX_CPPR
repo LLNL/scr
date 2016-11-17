@@ -1,0 +1,27 @@
+How to run/use the PMIx and CPPR test scripts (Basic Acceptance Tests):
+scr_base.sh is a shell script that contains exports and paths to the build being tested
+scr_bat_wrapper.py is the python script that is used to kick off the tests and setup/teardown
+launch_dvm.sh is a script that launches the orte-dvm for submitting jobs
+launch_cppr.sh is a script that launches the cppr daemon
+stop_cppr.sh is a script that shuts down the cppr daemon
+submit_command.sh is used to submit the jobscript to the orte-dvm
+jobscript_simple.sh is the jobscript to actually run the tests
+PMIX_TEST is the script that contains all the tests
+
+The basic flow of running the tests is:
+usage is: python scr_bat_wrapper.py <path to build> <csv hostlist>
+
+this will do the following:
+1. start the orte-dvm and cppr daemon with the corresponding scripts
+2. submit the jobscript with submit_command.sh
+3. block until the tests complete
+4. scan the output file to see if the tests completed successfully
+5. shutdown the cppr daemon and the orte-dvm
+6. report test status and exit
+
+a report of all the logs from the test run will be contained in test_output.txt
+
+Configurations: 
+these tests can either be run on the PMIx only build of SCR or on a build which is configured with PMIx and CPPR
+
+Author: Christopher Holguin <christopher.a.holguin@intel.com>

@@ -9,6 +9,27 @@
  * Please also read this file: LICENSE.TXT.
 */
 
+/* All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the BSD-3 license which accompanies this
+ * distribution in LICENSE.TXT
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3  License in
+ * LICENSE.TXT for more details.
+ *
+ * GOVERNMENT LICENSE RIGHTS-OPEN SOURCE SOFTWARE
+ * The Government's rights to use, modify, reproduce, release, perform,
+ * display, or disclose this software are subject to the terms of the BSD-3
+ * License as provided in Contract No. B609815.
+ * Any reproduction of computer software, computer software documentation, or
+ * portions thereof marked with this legend must also reproduce the markings.
+ *
+ * Author: Christopher Holguin <christopher.a.holguin@intel.com>
+ *
+ * (C) Copyright 2015-2016 Intel Corporation.
+ */
+
 #ifndef SCR_UTIL_H
 #define SCR_UTIL_H
 
@@ -43,10 +64,10 @@ char* scr_strdupf(const char* format, ...);
 
 
 /* returns the current linux timestamp (in microseconds) */
-int64_t scr_time_usecs();
+int64_t scr_time_usecs(void);
 
 /* returns the current linux timestamp (secs + usecs since epoch) as a double */
-double scr_seconds();
+double scr_seconds(void);
 
 
 /* pack an unsigned 16 bit value to specified buffer in network order */

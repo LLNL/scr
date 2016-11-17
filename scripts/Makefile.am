@@ -1,4 +1,4 @@
-SUBDIRS = common TLCC cray_xt
+SUBDIRS = common TLCC cray_xt PMIX
 dist_bin_SCRIPTS = \
 	common/scr_prefix \
 	common/scr_list_dir \

@@ -31,33 +31,45 @@ int  timestep = 0;
 
 int main (int argc, char* argv[])
 {
+  char *path_to_stdout = NULL;
   int scr_retval;
-  if (argc != 1 && argc != 4) {
-    printf("Usage: test_correctness [filesize times sleep_secs]\n");
-    return 1;
+  /* check that we got an appropriate number of arguments */
+  if (argc == 2) {
+    path_to_stdout = argv[1];
   }
-
-  if (argc > 1) {
+  else if(argc == 5){
     filesize = (size_t) atol(argv[1]);
     times = atoi(argv[2]);
     seconds = atoi(argv[3]);
+    path_to_stdout = argv[4];
   }
-
+  else{
+    printf("Usage: test_api_file [filesize times sleep_secs path_to_stdout]\n");
+    printf("OR: test_api_file [ path_to_stdout]\n");
+    exit(1);
+  }
+  
   MPI_Init(&argc, &argv);
 
   int rank = -1, size = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+  /* open file for stdout */
+  printf("new stdout filename: \"%s\"\n", path_to_stdout);
+  fflush(stdout);
+  freopen(path_to_stdout, "a+", stdout);
+  MPI_Barrier(MPI_COMM_WORLD);
+
   /* time how long it takes to get through init */
   MPI_Barrier(MPI_COMM_WORLD);
 
   double init_start = MPI_Wtime();
   if (SCR_Init() != SCR_SUCCESS){
-    printf("Failed initializing SCR\n");
-    return 1;
+    printf("FAILED INITIALIZING SCR\n");
+    fclose(stdout);
+    return -1;
   }
-
   double init_end = MPI_Wtime();
   double secs = init_end - init_start;
 
@@ -108,6 +120,8 @@ int main (int argc, char* argv[])
       // check that contents are good
       if (!check_buffer(buf, filesizes[i], rank + 2*i, timestep)) {
         printf("!!!!CORRUPTION!!!! Rank %d, File %s: Invalid value in buffer\n", rank, file);
+        fflush(stdout);
+        fclose(stdout);
         MPI_Abort(MPI_COMM_WORLD, 1);
         return 1;
       }
@@ -121,6 +135,7 @@ int main (int argc, char* argv[])
   MPI_Allreduce(&found_checkpoint, &all_found_checkpoint, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
   if (!all_found_checkpoint && rank == 0) {
     printf("At least one rank (perhaps all) did not find its checkpoint\n");
+    fflush(stdout);
   }
 
   // check that everyone is at the same timestep
@@ -137,6 +152,8 @@ int main (int argc, char* argv[])
   MPI_Allreduce(&timestep_o, &timestep_or,  1, MPI_INT, MPI_BOR,  MPI_COMM_WORLD);
   if (timestep_and != timestep_or) {
     printf("%d: Timesteps don't agree: timestep %d\n", rank, timestep);
+    fflush(stdout);
+    fclose(stdout);
     return 1;
   }
   timestep = timestep_and;
@@ -158,39 +175,39 @@ int main (int argc, char* argv[])
       printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
              rank, scr_retval, __FILE__, __LINE__);
     }
-    for (i=0; i < num_files; i++) {
-      int valid = 0;
-      char file[2094];
-      scr_retval = SCR_Route_file(files[i], file);
-      if(scr_retval != SCR_SUCCESS){
-        printf("%d: failed calling SCR_Route_file(): %d: @%s:%d\n",
-               rank, scr_retval, __FILE__, __LINE__);
-      }
-      int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-      if (fd_me > 0) {
-        valid = 1;
-        
-        // write the checkpoint
-        rc = write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
-        if (rc < 0) { valid = 0; }
-        
-        rc = fsync(fd_me);
-        if (rc < 0) { valid = 0; }
-        
-        // make sure the close is without error
-        rc = close(fd_me);
-        if (rc < 0) { valid = 0; }
-      }
-      if (!valid) { all_valid = 0; }
-    }
-    scr_retval = SCR_Complete_checkpoint(all_valid);
+  for (i=0; i < num_files; i++) {
+    int valid = 0;
+    char file[2094];
+    scr_retval = SCR_Route_file(files[i], file);
     if(scr_retval != SCR_SUCCESS){
-      printf("%d: failed calling SCR_Complete_checkpoint(): %d: @%s:%d\n",
+      printf("%d: failed calling SCR_route_file(): %d: @%s:%d\n",
              rank, scr_retval, __FILE__, __LINE__);
     }
-    if (rank == 0) { printf("Completed checkpoint %d.\n", timestep); fflush(stdout); }
+    int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (fd_me > 0) {
+      valid = 1;
 
-    timestep++;
+      // write the checkpoint
+      rc = write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
+      if (rc < 0) { valid = 0; }
+
+      rc = fsync(fd_me);
+      if (rc < 0) { valid = 0; }
+
+      // make sure the close is without error
+      rc = close(fd_me);
+      if (rc < 0) { valid = 0; }
+    }
+    if (!valid) { all_valid = 0; }
+  }
+  scr_retval = SCR_Complete_checkpoint(all_valid);
+  if(scr_retval != SCR_SUCCESS){
+    printf("%d: failed calling SCR_Complete_checkpoint(): %d: @%s:%d\n",
+           rank, scr_retval, __FILE__, __LINE__);
+  }
+  if (rank == 0) { printf("Completed checkpoint %d.\n", timestep); fflush(stdout); }
+
+  timestep++;
   }
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -200,8 +217,6 @@ int main (int argc, char* argv[])
     for(t=0; t < times; t++) {
       int rc;
       int all_valid = 1;
-      
-
       scr_retval = SCR_Start_checkpoint();
       if(scr_retval != SCR_SUCCESS){
         printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
@@ -272,9 +287,8 @@ int main (int argc, char* argv[])
     printf("%d: failed calling SCR_Finalize(): %d: @%s:%d\n",
            rank, scr_retval, __FILE__, __LINE__);
   }
-
   MPI_Finalize();
 
-
+  fclose(stdout);
   return 0;
 }

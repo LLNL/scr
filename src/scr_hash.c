@@ -9,6 +9,27 @@
  * Please also read this file: LICENSE.TXT.
 */
 
+/* All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the BSD-3 license which accompanies this
+ * distribution in LICENSE.TXT
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3  License in
+ * LICENSE.TXT for more details.
+ *
+ * GOVERNMENT LICENSE RIGHTS-OPEN SOURCE SOFTWARE
+ * The Government's rights to use, modify, reproduce, release, perform,
+ * display, or disclose this software are subject to the terms of the BSD-3
+ * License as provided in Contract No. B609815.
+ * Any reproduction of computer software, computer software documentation, or
+ * portions thereof marked with this legend must also reproduce the markings.
+ *
+ * Author: Christopher Holguin <christopher.a.holguin@intel.com>
+ *
+ * (C) Copyright 2015-2016 Intel Corporation.
+ */
+
 /* Defines a recursive hash data structure, where at the top level,
  * there is a list of elements indexed by string.  Each
  * of these elements in turn consists of a list of elements
@@ -1691,6 +1712,52 @@ int scr_hash_print(const scr_hash* hash, int indent)
   }
   return SCR_SUCCESS;
 }
+
+/* logs specified hash element to stdout for debugging */
+static int scr_hash_elem_log(const scr_hash_elem* elem, int log_level, int indent)
+{
+        char tmp[SCR_MAX_FILENAME];
+        int i;
+        for (i=0; i<indent; i++) {
+                tmp[i] = ' ';
+        }
+        tmp[indent] = '\0';
+
+        if (elem != NULL) {
+                if (elem->key != NULL) {
+                        scr_dbg(log_level, "%s%s\n", tmp, elem->key);
+                } else {
+                        scr_dbg(log_level, "%sNULL KEY\n", tmp);
+                }
+                scr_hash_log(elem->hash, log_level, indent);
+        } else {
+                scr_dbg(log_level, "%sNULL ELEMENT\n", tmp);
+        }
+        return SCR_SUCCESS;
+}
+
+/* prints specified hash to stdout for debugging */
+int scr_hash_log(const scr_hash* hash, int log_level, int indent)
+{
+        char tmp[SCR_MAX_FILENAME];
+        int i;
+        for (i=0; i<indent; i++) {
+                tmp[i] = ' ';
+        }
+        tmp[indent] = '\0';
+
+        if (hash != NULL) {
+                scr_hash_elem* elem;
+                LIST_FOREACH(elem, hash, pointers) {
+                        scr_hash_elem_log(elem, log_level, indent+2);
+                }
+        } else {
+                scr_dbg(log_level, "%sNULL LIST\n", tmp);
+        }
+        return SCR_SUCCESS;
+}
+
+
 
 #ifndef HIDE_TV
 /*

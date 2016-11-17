@@ -10,19 +10,28 @@ use strict;
 #
 # Author:  Adam Moody (moody20@llnl.gov)
 
+
 # Returns a list of hostnames, give a hostlist string
 # expand("rhea[2-4,6]") returns ('rhea2','rhea3','rhea4','rhea6')
+
+# modified by Christopher Holguin <christopher.a.holguin@intel.com>
+#   notes: there are 2 new features 1) it now supports hostnames like rhea-1
+#     and 2) rhea-1vm1
+
+
 sub expand {
   # read in our hostlist, should be first parameter
   if (@_ != 1) {
     return undef;
   }
   my $nodeset = shift @_;
-
+  # produce our list of nodes
+  my @nodes = ();
   my $machine = undef;
   my @lowhighs = ();
+  my @single_nodes = ();
   my $numberLength = 0; # for leading zeros, e.g atlas[0001-0003]
-  if ($nodeset =~ /([\D]*)\[([\d,-]+)\]/) {
+  if ($nodeset =~ /([\D]*)\[([\d,-]+)\](.*)/) {
     # hostlist with brackets, e.g., atlas[2-5,28,30]
     $machine = $1;
     my @ranges = split ",", $2;
@@ -33,37 +42,53 @@ sub expand {
         # low-to-high range
         $low  = $1;
         $high = $2;
+        #if the lowest number starts with 0
+        if($numberLength == 0 and index($low,"0") == 0){ 
+            $numberLength = length($low);
+        }
       } else {
         # single element range
-        $low  = $range;
-        $high = $range;
+        push @single_nodes, $range;
+        #if the lowest number starts with 0
+        if($numberLength == 0 and index($range,"0") == 0){ 
+            $numberLength = length($range);
+        }
+        
+        next;
       }
-      #if the lowest number starts with 0
-      if($numberLength == 0 and index($low,"0") == 0){ 
-         $numberLength = length($low);
-      }
+
       push @lowhighs, $low, $high;
+    }
+
+    if($3 ne ""){
+        my $temp_csv = $3;
+        $temp_csv = substr($temp_csv, 1, length($temp_csv));
+        my @extra_ranges = split ",", $temp_csv;
+        push @nodes, @extra_ranges;
     }
   } else {
     # single node hostlist, e.g., atlas2
-    $nodeset =~ /([\D]*)(\d+)/;
+    $nodeset =~ /([\D]*)(\d+.*)/;
     $machine = $1;
     $numberLength = length($2);
-    push @lowhighs, $2, $2;
+    push @single_nodes, $2;
   }
 
-  # produce our list of nodes
-  my @nodes = ();
+
   while(@lowhighs) {
     my $low  = shift @lowhighs;
     my $high = shift @lowhighs;
     for(my $i = $low; $i <= $high; $i++) {
       my $nodenumber = sprintf("%0*d", $numberLength, $i);
-      #print $nodenumber;
       push @nodes, $machine . $nodenumber;
     }
   }
-
+  while(@single_nodes){
+      my $temp = shift @single_nodes;
+      my $nodenumber = sprintf("%0*s", $numberLength, $temp);
+      push @nodes, $machine . $temp;
+  }
+  
   return @nodes;
 }
 
@@ -76,18 +101,27 @@ sub compress {
 
   # pull the machine name from the first node name
   my @numbers = ();
-  my ($machine) = ($_[0] =~ /([\D]*)(\d+)/);
+  my @vmnumbers = ();
+  my ($machine) = ($_[0] =~ /([\D]*)(\d+.*)/);
   foreach my $host (@_) {
     # get the machine name and node number for this node
-    my ($name, $number) = ($host =~ /([\D]*)(\d+)/);
+    my ($name, $number) = ($host =~ /([\D]*)(\d+.*)/);
 
     # check that all nodes belong to the same machine
     if ($name ne $machine) {
       return undef;
     }
+    my ($temp_comp) = ($number =~ /([\d]+)/);
+    if ( $number eq $temp_comp ){
+        # record the number
+        push @numbers, $number;
+    }
+    else{
+        # we have a machine number with letters attached, so add to 
+        # separate list (we're not going to truly compress these)
+        push @vmnumbers, $machine . $number;
+    }
 
-    # record the number
-    push @numbers, $number;
   }
 
   # order the nodes by number
@@ -113,14 +147,25 @@ sub compress {
     $low  = $high;
     $last = $low;
   }
-  if($last > $low) {
-    push @ranges, $low . "-" . $last;
-  } else {
-    push @ranges, $low;
+  if(@sorted > 0 ){
+      if($last > $low) {
+          push @ranges, $low . "-" . $last;
+      } else {
+          push @ranges, $low;
+      }
+  }
+  my $csv_vals = "";
+  if(@vmnumbers > 0){
+      $csv_vals = ",";
+      $csv_vals .= join(",", @vmnumbers);
+  }
+
+  if(@ranges == 0 && $csv_vals ne ""){
+      return  substr($csv_vals, 1, length($csv_vals));
   }
 
   # join the ranges with commas and return the compressed hostlist
-  return $machine . "[" . join(",", @ranges) . "]";
+  return $machine . "[" . join(",", @ranges) . "]" . $csv_vals;
 }
 
 # Given references to two lists, subtract elements in list 2 from list 1 and return remainder

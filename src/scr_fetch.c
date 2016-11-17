@@ -9,6 +9,27 @@
  * Please also read this file: LICENSE.TXT.
 */
 
+/* All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the BSD-3 license which accompanies this
+ * distribution in LICENSE.TXT
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3  License in
+ * LICENSE.TXT for more details.
+ *
+ * GOVERNMENT LICENSE RIGHTS-OPEN SOURCE SOFTWARE
+ * The Government's rights to use, modify, reproduce, release, perform,
+ * display, or disclose this software are subject to the terms of the BSD-3
+ * License as provided in Contract No. B609815.
+ * Any reproduction of computer software, computer software documentation, or
+ * portions thereof marked with this legend must also reproduce the markings.
+ *
+ * Author: Christopher Holguin <christopher.a.holguin@intel.com>
+ *
+ * (C) Copyright 2015-2016 Intel Corporation.
+ */
+
 #include "scr_globals.h"
 
 /*
@@ -56,7 +77,9 @@ static int scr_fetch_file(
     crc_p = &crc;
   }
   rc = scr_file_copy(src_file, dst_file, scr_file_buf_size, crc_p);
-
+  if(rc == SCR_SUCCESS){
+    scr_dbg(1, "scr fetched file %s %d:%s", src_file, __LINE__, __FILE__);
+  }
   /* check that crc matches crc stored in meta */
   uLong meta_crc;
   if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
@@ -609,11 +632,12 @@ static int scr_fetch_summary(
 {
   /* assume that we won't succeed in our fetch attempt */
   int rc = SCR_SUCCESS;
-
+  scr_dbg(1, "scr_fetch_summary at %d:%s", __LINE__, __FILE__);
   /* check whether summary file exists and is readable */
   if (scr_my_rank_world == 0) {
     /* check that we can access the directory */
     if (scr_file_is_readable(summary_dir) != SCR_SUCCESS) {
+
       scr_err("Failed to access summary directory %s @ %s:%d",
         summary_dir, __FILE__, __LINE__
       );
@@ -626,7 +650,6 @@ static int scr_fetch_summary(
   if (rc != SCR_SUCCESS) {
     return rc;
   }
-
   /* add path to file list */
   scr_hash_util_set_str(file_list, SCR_KEY_PATH, summary_dir);
 
@@ -720,7 +743,7 @@ static int scr_fetch_summary(
       scr_lseek(file, fd, offset, SEEK_SET);
       ssize_t readsize = scr_hash_read_fd(file, fd, save);
       if (readsize < 0) {
-        scr_err("Failed to read rank2file map file %s @ %s:%d",
+          scr_err("Failed to read rank2file map file %s @ %s:%d",
           file, __FILE__, __LINE__
         );
         rc = SCR_FAILURE;
@@ -757,6 +780,7 @@ static int scr_fetch_summary(
 
   /* check that everyone read the data ok */
   if (! scr_alltrue(rc == SCR_SUCCESS)) {
+    scr_dbg(1, "scr_fetch_summary FAILURE at %d:%s", __LINE__, __FILE__);
     rc = SCR_FAILURE;
     goto cleanup_hashes;
   }
@@ -774,14 +798,17 @@ static int scr_fetch_summary(
     /* the key is the source rank, which we don't care about,
      * the info we need is in the element hash */
     scr_hash* elem_hash = scr_hash_elem_hash(elem);
-
+    scr_dbg(1, "scr_fetch_summary print at %d:%s", __LINE__, __FILE__);
+    scr_hash_log(elem_hash, 1, 0);
     /* get pointer to file hash */
     scr_hash* file_hash = scr_hash_get(elem_hash, SCR_SUMMARY_6_KEY_FILE);
     if (file_hash != NULL) {
       /* TODO: parse summary file format */
+      scr_dbg(1, "scr_fetch_summary at %d:%s", __LINE__, __FILE__);
       scr_hash_merge(file_list, elem_hash);
     } else {
-      rc = SCR_FAILURE;
+            //rc = SCR_FAILURE;
+      scr_dbg(1, "scr_fetch_summary NO FILES FOR THIS RANK at %d:%s", __LINE__, __FILE__);
     }
   }
 
@@ -818,6 +845,7 @@ static int scr_fetch_summary(
 
   /* check that everyone read the data ok */
   if (! scr_alltrue(rc == SCR_SUCCESS)) {
+    scr_dbg(1, "scr_fetch_summary FINAL FAILURE at %d:%s", __LINE__, __FILE__);
     rc = SCR_FAILURE;
     goto cleanup_hashes;
   }
@@ -999,6 +1027,7 @@ static int scr_fetch_files(
         scr_log_event("FETCH FAILED", fetch_dir, NULL, &now, &time_diff);
       }
     }
+    scr_dbg(1, "dataset id in fetch: %d", id);
     scr_hash_delete(&file_list);
     scr_free(&fetch_dir);
     return SCR_FAILURE;
@@ -1016,7 +1045,6 @@ static int scr_fetch_files(
     scr_free(&fetch_dir);
     return SCR_FAILURE;
   }
-
   /* delete any existing files for this dataset id (do this before
    * filemap_read) */
   scr_cache_delete(map, id);
@@ -1229,7 +1257,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
         /* set the dataset and checkpoint ids */
         scr_dataset_id = dset_id;
         scr_checkpoint_id = ckpt_id;
-
+        scr_dbg(1, "after successful fetch, dset is %d, ckpt is %d", dset_id, ckpt_id);
         /* we succeeded in fetching this checkpoint, set current to
          * point to it, and stop fetching */
         if (scr_my_rank_world == 0) {
