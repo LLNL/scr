@@ -64,7 +64,35 @@ if (defined $conf{user}) {
   }
 } elsif (defined $conf{nodes}) {
   # print the nodeset of the current job in 'atlas[30-33,35,45-53]' form
-  if (defined $ENV{LSB_HOSTS}) {
+  if (defined $ENV{LSB_DJOB_HOSTFILE}) {
+    # LSB_HOSTS would be easier, but it gets truncated at some limit
+    # only reliable way to build this list is to process file specified
+    # by LSB_DJOB_HOSTFILE
+
+    # get the file name and read the file
+    my $hostfile = $ENV{LSB_DJOB_HOSTFILE};
+    my $hoststr = "";
+    if (-r $hostfile) {
+      # got a file, try to read it
+      my $hoststr = `cat $hostfile`;
+      if ($? != 0) {
+        # failed to read file
+        exit 1;
+      }
+    }
+
+    # build set of unique hostnames, one hostname per line
+    chomp $hoststr;
+    my @hosts = split('\n', $hoststr);
+    my %hosts_unique = {};
+    foreach my $host (@hosts) {
+      $hosts_unique{$host} = 1;
+    }
+
+    # compress list and print it
+    my $hostlist = scr_hostlist::compress(keys %hosts_unique);
+    print "$hostlist\n";
+  } elsif (defined $ENV{LSB_HOSTS}) {
     my $hostlist = scr_hostlist::compress($ENV{LSB_HOSTS});
     print "$hostlist\n";
     # or, with jobid: squeue -j <jobid> -ho %N
