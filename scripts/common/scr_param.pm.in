@@ -205,4 +205,65 @@ sub get_hash
   return undef;
 }
 
+# convert byte string like 2kb, 1.5m, 200GB, 1.4T to integer value
+sub abtoull
+{
+  my $self = shift;
+  my $str  = shift;
+
+  # break string into number and units
+  my $number = undef;
+  my $units  = undef;
+  if ($str =~ /^(\d+\.\d+)(\D+)$/) {
+    # got something like "2.5GB"
+    $number = $1;
+    $units  = $2;
+  } elsif ($str =~ /^(\d+)(\D+)$/) {
+    # got something like "2GB"
+    $number = $1;
+    $units  = $2;
+  } else {
+    # just take what the user has verbatim
+    $number = $str;
+  }
+
+  # parse units if we have them
+  my $factor = undef;
+  if (defined $units) {
+    if ($units =~ /^[bB]$/) {
+      $factor = 1;
+    } elsif ($units =~ /^[kK][bB]?$/) {
+      $factor = 1024;
+    } elsif ($units =~ /^[mM][bB]?$/) {
+      $factor = 1024 * 1024;
+    } elsif ($units =~ /^[gG][bB]?$/) {
+      $factor = 1024 * 1024 * 1024;
+    } elsif ($units =~ /^[tT][bB]?$/) {
+      $factor = 1024 * 1024 * 1024 * 1024;
+    } elsif ($units =~ /^[pP][bB]?$/) {
+      $factor = 1024 * 1024 * 1024 * 1024 * 1024;
+    } elsif ($units =~ /^[eE][bB]?$/) {
+      $factor = 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
+    } else {
+      # TODO: print error?
+      # unknown unit string
+    }
+  }
+
+  # set value to number portion
+  my $val = $number;
+  if (defined $factor) {
+    # multiply by factor if we have one
+    $val *= $factor;
+  } elsif (defined $units) {
+    # got a units string, but couldn't parse it
+    $val = "0";
+  }
+
+  # chop off any trailing decimals
+  $val = int($val);
+
+  return $val;
+}
+
 1;

@@ -166,6 +166,7 @@ if ($? == 0) {
     if (defined $cntldirs and defined $$cntldirs{$base} and defined $$cntldirs{$base}{"BYTES"}) {
       my $size = (keys %{$$cntldirs{$base}{"BYTES"}})[0];
       if (defined $size) {
+        $size = $param->abtoull($size);
         $val = "$base:$size";
       }
     }
@@ -189,6 +190,7 @@ if ($? == 0) {
     if (defined $cachedirs and defined $$cachedirs{$base} and defined $$cachedirs{$base}{"BYTES"}) {
       my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
       if (defined $size) {
+        $size = $param->abtoull($size);
         $val = "$base:$size";
       }
     }
