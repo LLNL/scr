@@ -51,7 +51,6 @@ static scr_hash* scr_flush_async_hash = NULL;
 /* records the number of files this process must flush */
 static int scr_flush_async_num_files = 0;
 
-
 /*
 =========================================
 Globals and helper functions needed if libcppr is present
@@ -62,7 +61,7 @@ Globals and helper functions needed if libcppr is present
  * pointers that can be switched out based upon which underlying file movement
  * service is being used */
 #ifdef HAVE_LIBCPPR
-struct scr_cppr_info{
+struct scr_cppr_info {
   char *src_dir;
   char *dst_dir;
   char *filename;
@@ -77,12 +76,12 @@ struct scr_cppr_info{
 /* global to contain all metadata for a cppr op
  * please see below; an index in this array contains the metadata for a handle
  * in the cppr_ops array*/
-static struct scr_cppr_info *scr_flush_async_cppr_metadata = NULL;
+static struct scr_cppr_info* scr_flush_async_cppr_metadata = NULL;
 
 /* global to contain only the CPPR op handles
  * the index in this array is the same index to use in the
  * scr_flush_async_cppr_metadata array for the metadata related to a given handle */
-static struct cppr_op_info *cppr_ops = NULL;
+static struct cppr_op_info* cppr_ops = NULL;
 
 /* global to contain the current count of cppr ops */
 static int scr_flush_async_cppr_index = 0;
@@ -102,21 +101,24 @@ static void __free_scr_cppr_info(struct scr_cppr_info *metadata_ptr,
                                  struct cppr_op_info *handles_ptr,
                                  const int length)
 {
-  struct scr_cppr_info *tmp_ptr = NULL;
+  struct scr_cppr_info* tmp_ptr = NULL;
   int i;
-  if(metadata_ptr != NULL){
-    for(i=0; i < length; i++){
+  if (metadata_ptr != NULL) {
+    for (i = 0; i < length; i++) {
       tmp_ptr = &metadata_ptr[i];
-      if(tmp_ptr->alloced == true){
+
+      if (tmp_ptr->alloced == true) {
         free(tmp_ptr->src_dir);
         free(tmp_ptr->dst_dir);
         free(tmp_ptr->filename);
       }
     }
+
     free(metadata_ptr);
     metadata_ptr = NULL;
   }
-  if(handles_ptr != NULL){
+
+  if (handles_ptr != NULL) {
     free(handles_ptr);
     handles_ptr = NULL;
   }
@@ -148,7 +150,6 @@ static int scr_flush_async_file_dequeue(scr_hash* hash1, scr_hash* hash2)
   return SCR_SUCCESS;
 }
 
-
 /*
 =========================================
 CPPR Asynchronous flush wrapper functions
@@ -159,20 +160,21 @@ CPPR Asynchronous flush wrapper functions
 /* check whether the flush from cache to parallel file system has completed */
 static int scr_cppr_flush_async_test(scr_filemap* map, int id, double* bytes)
 {
-/* CPPR: essentially test the grp
- * cppr_return_t cppr_test_all(uint32_t count, struct cppr_op_info info[]);
- * each rank 0 on a node needs to call test_all, then report that in
- * transfer_complete, then call scr_alltrue(transfer_complete)
- * make sure transfer_complete is set to 1 in all non 0 ranks
- */
+  /* CPPR: essentially test the grp
+   * cppr_return_t cppr_test_all(uint32_t count, struct cppr_op_info info[]);
+   * each rank 0 on a node needs to call test_all, then report that in
+   * transfer_complete, then call scr_alltrue(transfer_complete)
+   * make sure transfer_complete is set to 1 in all non 0 ranks
+   */
+
   /* assume the transfer is complete */
   int transfer_complete = 1;
 
   /* current operation for easier access */
-  struct scr_cppr_info *current_cppr_metadata = NULL;
+  struct scr_cppr_info* current_cppr_metadata = NULL;
 
   /* current handle for easier access */
-  struct cppr_op_info *current_cppr_handle = NULL;
+  struct cppr_op_info* current_cppr_handle = NULL;
 
   cppr_return_t cppr_retval;
 
@@ -184,40 +186,40 @@ static int scr_cppr_flush_async_test(scr_filemap* map, int id, double* bytes)
     return SCR_FAILURE;
   }
   scr_dbg(1,"scr_cppr_flush_async_test called @ %s:%d\n",
-          __FILE__, __LINE__);
-
+          __FILE__, __LINE__
+  );
 
   /* have master on each node check whether the flush is complete */
   double bytes_written = 0.0;
   if (scr_storedesc_cntl->rank == 0) {
-
-    int i;
     cppr_retval = cppr_test_all(scr_flush_async_cppr_index + 1, cppr_ops);
-    if( cppr_retval != CPPR_SUCCESS){
+    if (cppr_retval != CPPR_SUCCESS) {
       scr_dbg(0, "CPPR ERROR WITH initial call to cppr_test(): %d",
-              cppr_retval);
+              cppr_retval
+      );
       return SCR_FAILURE;
     }
 
     /* loop through all the responses and check status */
-    for(i=0; i < scr_flush_async_cppr_index; i++){
+    int i;
+    for (i = 0; i < scr_flush_async_cppr_index; i++) {
       scr_dbg(1, "cppr async test being called for index %d", i);
 
       /* set the current pointer to the correct index */
       current_cppr_metadata = &scr_flush_async_cppr_metadata[i];
       current_cppr_handle = &cppr_ops[i];
 
-      if(current_cppr_metadata->has_completed == true){
+      if (current_cppr_metadata->has_completed == true) {
+        /* can skip this handle because it was already marked complete */
         scr_dbg(1, "handle [%d] %x %s was marked complete", i,
                 current_cppr_handle->handle,
-                current_cppr_metadata->filename);
-        /* can skip this handle because it was already marked complete */
+                current_cppr_metadata->filename
+        );
         continue;
-      }
-      /* check the state of the handle */
-      else{
+      } else {
+        /* check the state of the handle */
         /* check the status */
-        if(current_cppr_handle->status == CPPR_STATUS_COMPLETE){
+        if (current_cppr_handle->status == CPPR_STATUS_COMPLETE) {
           /* mark as complete */
           current_cppr_metadata->has_completed = true;
           scr_dbg(1,
@@ -226,30 +228,29 @@ static int scr_cppr_flush_async_test(scr_filemap* map, int id, double* bytes)
                   i,
                   current_cppr_metadata->filename,
                   __LINE__,
-                  __FILE__);
+                  __FILE__
+          );
 
           /* check for bad values: */
-          if(current_cppr_handle->retcode != CPPR_SUCCESS){
+          if (current_cppr_handle->retcode != CPPR_SUCCESS) {
             scr_dbg(1, "CPPR cppr_test unsuccessful async flush for '%s' %d",
                     current_cppr_metadata->filename,
-                    current_cppr_handle->retcode);
-          }
-          /* the file was transferred successfully */
-          else{
+                    current_cppr_handle->retcode
+            );
+          } else {
+            /* the file was transferred successfully */
             bytes_written += current_cppr_metadata->filesize;
             scr_dbg(0, "#bold CPPR successfully transfered file '%s' in async mode",
-                    current_cppr_metadata->filename);
+                    current_cppr_metadata->filename
+            );
           }
-        }
-        /* if the operation is still executing, handle accordingly */
-        else if(current_cppr_handle->retcode ==
-                CPPR_OP_EXECUTING){
+        } else if (current_cppr_handle->retcode == CPPR_OP_EXECUTING) {
+          /* if the operation is still executing, handle accordingly */
           /* calculate bytes written */
           double percent_written = (double)
                   (current_cppr_handle->progress) / 100;
 
-          /* bytes_written += percent_written *
-current_cppr_metadata->filesize; */
+          /* bytes_written += percent_written * current_cppr_metadata->filesize; */
           transfer_complete = 0;
           scr_dbg(1,"cppr op status is EXECUTING for file '%s'; percent: \
 (int %d, double %f), bytes written %f @ %d:%s",
@@ -258,10 +259,9 @@ current_cppr_metadata->filesize; */
                   percent_written,
                   bytes_written,
                   __LINE__,
-                  __FILE__);
-
-        }
-        else{
+                  __FILE__
+          );
+        } else {
           scr_dbg(0,"CPPR ERROR UNHANDLED: cppr_test: unhandled values for \
 src:'%s', dst:'%s', file:'%s' status %d and retcode %d; handle:[%d]: %x",
                   current_cppr_metadata->src_dir,
@@ -270,7 +270,8 @@ src:'%s', dst:'%s', file:'%s' status %d and retcode %d; handle:[%d]: %x",
                   current_cppr_handle->status,
                   current_cppr_handle->retcode,
                   i,
-                  current_cppr_handle->handle);
+                  current_cppr_handle->handle
+          );
         }
       }
     }
@@ -281,15 +282,15 @@ src:'%s', dst:'%s', file:'%s' status %d and retcode %d; handle:[%d]: %x",
 
   /* determine whether the transfer is complete on all tasks */
   if (scr_alltrue(transfer_complete)) {
-          if (scr_my_rank_world == 0) {
-                  scr_dbg(0,
-                          "#demo CPPR successfully transferred dset %d", id);
-          }
-          return SCR_SUCCESS;
+    if (scr_my_rank_world == 0) {
+      scr_dbg(0, "#demo CPPR successfully transferred dset %d", id);
+    }
+    return SCR_SUCCESS;
   }
   scr_dbg(1, "about to return failure from scr_cppr_flush_async_test @ %d:%s",
           __LINE__,
-          __FILE__);
+          __FILE__
+  );
   return SCR_FAILURE;
 }
 
@@ -300,6 +301,7 @@ static int scr_cppr_flush_async_complete(scr_filemap* map, int id)
 
   scr_dbg(0,"scr_cppr_flush_async_complete called @ %s:%d\n",
           __FILE__, __LINE__);
+
   /* if user has disabled flush, return failure */
   if (scr_flush <= 0) {
     return SCR_FAILURE;
@@ -341,6 +343,7 @@ static int scr_cppr_flush_async_complete(scr_filemap* map, int id)
       scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, filesize);
     }
     scr_dbg(1, "filesize is %d at %d:%s", filesize,  __LINE__, __FILE__);
+
     /* record the crc32 if one was computed */
     uLong flush_crc32;
     if (scr_meta_get_crc32(meta, &flush_crc32) == SCR_SUCCESS) {
@@ -358,10 +361,12 @@ static int scr_cppr_flush_async_complete(scr_filemap* map, int id)
   if (scr_storedesc_cntl->rank == 0) {
           __free_scr_cppr_info(scr_flush_async_cppr_metadata,
                                cppr_ops,
-                               scr_flush_async_cppr_index);
+                               scr_flush_async_cppr_index
+          );
           scr_dbg(1, "scr_cppr_flush_async_complete is at %d:%s",
                   __LINE__,
-                  __FILE__);
+                  __FILE__
+          );
           scr_flush_async_cppr_index = 0;
           scr_cppr_currently_alloced = 0;
           scr_flush_async_cppr_metadata = NULL;
@@ -406,16 +411,19 @@ static int scr_cppr_flush_async_complete(scr_filemap* map, int id)
                       NULL,
                       &id,
                       &now,
-                      &time_diff);
+                      &time_diff
+        );
       }
     } else {
       /* the flush failed, this is more serious so print an error message */
       scr_err("-----------FAILED:scr_flush_async_complete: Flush failed %d:%s",
               __LINE__,
-              __FILE__);
+              __FILE__
+      );
       scr_dbg(1, "scr_cppr_flush_async_complete is at FAILURE %d:%s",
               __LINE__,
-              __FILE__);
+              __FILE__
+      );
 
       /* log details of flush */
       if (scr_log_enable) {
@@ -424,6 +432,7 @@ static int scr_cppr_flush_async_complete(scr_filemap* map, int id)
       }
     }
   }
+
   return flushed;
 }
 
@@ -438,18 +447,21 @@ static int scr_cppr_flush_async_wait(scr_filemap* map)
       scr_dbg(0, "scr_cppr_flush_async_test being called in cppr_async_wait \
 @ %d:%s", __LINE__, __FILE__);
       if (scr_cppr_flush_async_test(map, scr_flush_async_dataset_id, &bytes) ==
-          SCR_SUCCESS) {
+          SCR_SUCCESS)
+      {
         /* complete the flush */
         scr_cppr_flush_async_complete(map, scr_flush_async_dataset_id);
         scr_dbg(1, "scr_cppr_flush_async_wait() completed @%d:%s",
                 __LINE__,
-                __FILE__);
+                __FILE__
+        );
       } else {
         /* otherwise, sleep to get out of the way */
         if (scr_my_rank_world == 0) {
           scr_dbg(0, "Flush of checkpoint %d is %d%% complete",
                   scr_flush_async_dataset_id,
-                  (int) (bytes / scr_flush_async_bytes * 100.0) );
+                  (int) (bytes / scr_flush_async_bytes * 100.0)
+          );
         }
         usleep(10*1000*1000);
       }
@@ -461,7 +473,6 @@ static int scr_cppr_flush_async_wait(scr_filemap* map)
 /* stop all ongoing asynchronous flush operations */
 static int scr_cppr_flush_async_stop(void)
 {
-
   /* if user has disabled flush, return failure */
   if (scr_flush <= 0) {
     return SCR_FAILURE;
@@ -479,7 +490,8 @@ static int scr_cppr_flush_async_stop(void)
   if (scr_storedesc_cntl->rank == 0) {
           __free_scr_cppr_info(scr_flush_async_cppr_metadata,
                                cppr_ops,
-                               scr_flush_async_cppr_index);
+                               scr_flush_async_cppr_index
+          );
 
           scr_flush_async_cppr_index = 0;
           scr_cppr_currently_alloced = 0;
@@ -540,7 +552,8 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
                     NULL,
                     &id,
                     &scr_flush_async_timestamp_start,
-                    NULL);
+                    NULL
+      );
     }
   }
 
@@ -564,7 +577,8 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
                       "Failed to prepare flush",
                       &id,
                       &now,
-                      &time_diff);
+                      &time_diff
+        );
       }
     }
     scr_hash_delete(&scr_flush_async_file_list);
@@ -591,7 +605,8 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
     /* get directory to flush file to */
     char* dest_dir;
     if (scr_hash_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) !=
-        SCR_SUCCESS) {
+        SCR_SUCCESS)
+    {
       continue;
     }
 
@@ -645,10 +660,10 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
      * and merge with our data */
     int i;
     for (i=1; i < scr_storedesc_cntl->ranks; i++) {
-            scr_hash* h = scr_hash_new();
-            scr_hash_recv(h, i, scr_storedesc_cntl->comm);
-            scr_hash_merge(scr_flush_async_hash, h);
-            scr_hash_delete(&h);
+      scr_hash* h = scr_hash_new();
+      scr_hash_recv(h, i, scr_storedesc_cntl->comm);
+      scr_hash_merge(scr_flush_async_hash, h);
+      scr_hash_delete(&h);
     }
     scr_dbg(3,"hash output printed: \n");
     scr_hash_log(scr_flush_async_hash, 3, 0);
@@ -662,21 +677,23 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
     int writers;
     MPI_Comm_size(scr_comm_node_across, &writers);
 
-
     /* allocate the cppr hash (free them when shutting down)
      * first check to ensure it is NULL.  if it is not NULL, this may be the
      * case if an asyncflush failed. need to free it first if not NULL  */
-    if(scr_flush_async_cppr_metadata != NULL){
-            scr_dbg(3, "#bold WHY FREE METADATA AGAIN?? ");
+    if (scr_flush_async_cppr_metadata != NULL) {
+      scr_dbg(3, "#bold WHY FREE METADATA AGAIN?? ");
       __free_scr_cppr_info(scr_flush_async_cppr_metadata,
                            cppr_ops,
-                           scr_flush_async_cppr_index);
+                           scr_flush_async_cppr_index
+      );
     }
+
     scr_dbg(3, "#bold about to calloc @%d", __LINE__);
     scr_flush_async_cppr_metadata = calloc(scr_flush_async_cppr_alloc,
                                       sizeof(struct scr_cppr_info));
     scr_dbg(3, "#bold after calloc @%d", __LINE__);
-    if(scr_flush_async_cppr_metadata == NULL){
+
+    if (scr_flush_async_cppr_metadata == NULL) {
       scr_dbg(1,"couldn't allocate enough memory for cppr operation \
 metadata");
       return SCR_FAILURE;
@@ -685,7 +702,7 @@ metadata");
     cppr_ops = calloc(scr_flush_async_cppr_alloc,
                       sizeof(struct cppr_op_info));
 
-    if(cppr_ops == NULL){
+    if (cppr_ops == NULL) {
       scr_dbg(1,"couldn't allocate enough memory for cppr operation \
 handles");
       return SCR_FAILURE;
@@ -710,7 +727,8 @@ handles");
       /* get directory to flush file to */
       char* dest_dir;
       if (scr_hash_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) !=
-          SCR_SUCCESS) {
+          SCR_SUCCESS)
+      {
         continue;
       }
 
@@ -719,7 +737,7 @@ handles");
 
       /* get just the file name */
       char *plain_filename = NULL;
-      if(scr_meta_get_filename(meta, &plain_filename) != SCR_SUCCESS){
+      if (scr_meta_get_filename(meta, &plain_filename) != SCR_SUCCESS) {
         scr_dbg(0,"couldn't get the file name from meta '%s'", file);
         continue;
       }
@@ -754,11 +772,11 @@ handles");
 
         char* dest_file = scr_path_strdup(path_dest_file);
 
-        if(scr_path_dirname(path_dest_file) != SCR_SUCCESS){
+        if (scr_path_dirname(path_dest_file) != SCR_SUCCESS) {
           return SCR_FAILURE;
         }
 
-        if(full_path == NULL || basename_path == NULL || dest_file == NULL){
+        if (full_path == NULL || basename_path == NULL || dest_file == NULL) {
           scr_dbg(1,"CPPR error allocating for the file paths");
           return SCR_FAILURE;
         }
@@ -767,66 +785,72 @@ filename: '%s' src path? '%s'\n", full_path,
                 basename_path,
                 dest_file,
                 plain_filename,
-                only_path_dest);
+                only_path_dest
+        );
 
-        if((scr_flush_async_cppr_index+1) >=
-           (scr_cppr_currently_alloced * scr_flush_async_cppr_alloc)){
-              scr_dbg(1, "CPPR reallocating the CPPR handles array @ %d:%s",
-                      __LINE__, __FILE__);
-              int bytes_currently_used = 0;
+        if ((scr_flush_async_cppr_index+1) >=
+            (scr_cppr_currently_alloced * scr_flush_async_cppr_alloc))
+        {
+          scr_dbg(1, "CPPR reallocating the CPPR handles array @ %d:%s",
+                  __LINE__, __FILE__
+          );
+          int bytes_currently_used = 0;
 
-              /* increment the counter to indicate another alloc has happened */
-              scr_cppr_currently_alloced++;
+          /* increment the counter to indicate another alloc has happened */
+          scr_cppr_currently_alloced++;
 
-              /* reallocate the cppr metadata array */
-              int new_size_to_alloc = sizeof(struct scr_cppr_info) *
-                      scr_flush_async_cppr_alloc *
-                      scr_cppr_currently_alloced;
-              void *new_ptr = realloc((void *)scr_flush_async_cppr_metadata,
-                                      new_size_to_alloc);
-              if(new_ptr == NULL){
-                scr_dbg(1, "not enough mem for CPPR metadata @ %d:%s",
-                        __LINE__, __FILE__);
-                scr_cppr_currently_alloced--;
-                return SCR_FAILURE;
-              }
-              /* update the pointer */
-              scr_flush_async_cppr_metadata = (struct scr_cppr_info *)new_ptr;
+          /* reallocate the cppr metadata array */
+          int new_size_to_alloc = sizeof(struct scr_cppr_info) *
+                  scr_flush_async_cppr_alloc *
+                  scr_cppr_currently_alloced;
+          void *new_ptr = realloc((void *)scr_flush_async_cppr_metadata,
+                                  new_size_to_alloc);
+          if (new_ptr == NULL) {
+            scr_dbg(1, "not enough mem for CPPR metadata @ %d:%s",
+                    __LINE__, __FILE__
+            );
+            scr_cppr_currently_alloced--;
+            return SCR_FAILURE;
+          }
 
-              /* clear out only the newly allocated space */
-              bytes_currently_used = (scr_flush_async_cppr_index+1)*
-                                      sizeof(struct scr_cppr_info);
-              memset((void *) scr_flush_async_cppr_metadata +
-                     bytes_currently_used,
-                     0x00,
-                     new_size_to_alloc - bytes_currently_used );
+          /* update the pointer */
+          scr_flush_async_cppr_metadata = (struct scr_cppr_info *)new_ptr;
 
-              /* realloc the cppr handles array */
-              new_size_to_alloc = sizeof(struct cppr_op_info) *
-                      scr_flush_async_cppr_alloc *
-                      scr_cppr_currently_alloced;
+          /* clear out only the newly allocated space */
+          bytes_currently_used = (scr_flush_async_cppr_index+1)*
+                                  sizeof(struct scr_cppr_info);
+          memset((void *) scr_flush_async_cppr_metadata +
+                 bytes_currently_used,
+                 0x00,
+                 new_size_to_alloc - bytes_currently_used );
 
-              /* clear the new_ptr before reusing it */
-              new_ptr = NULL;
+          /* realloc the cppr handles array */
+          new_size_to_alloc = sizeof(struct cppr_op_info) *
+                  scr_flush_async_cppr_alloc *
+                  scr_cppr_currently_alloced;
 
-              new_ptr = realloc((void *) cppr_ops, new_size_to_alloc);
-              if(new_ptr == NULL){
-                      scr_dbg(1, "not enough mem for CPPR handles @ %d:%s",
-                              __LINE__, __FILE__);
-                      scr_cppr_currently_alloced--;
-                      return SCR_FAILURE;
-              }
-              /* update the pointer */
-              cppr_ops = (struct cppr_op_info *) new_ptr;
+          /* clear the new_ptr before reusing it */
+          new_ptr = NULL;
 
-              /* clear out the newly allocated space */
-              bytes_currently_used = (scr_flush_async_cppr_index+1)*
-                                      sizeof(struct cppr_op_info);
-              memset((void *) cppr_ops + bytes_currently_used,
-                     0x00,
-                     new_size_to_alloc - bytes_currently_used);
+          new_ptr = realloc((void *) cppr_ops, new_size_to_alloc);
+          if (new_ptr == NULL) {
+            scr_dbg(1, "not enough mem for CPPR handles @ %d:%s",
+                    __LINE__, __FILE__
+            );
+            scr_cppr_currently_alloced--;
+            return SCR_FAILURE;
+          }
+          /* update the pointer */
+          cppr_ops = (struct cppr_op_info *) new_ptr;
 
-              scr_dbg(1, "CPPR reallocate done @ %d:%s", __LINE__, __FILE__);
+          /* clear out the newly allocated space */
+          bytes_currently_used = (scr_flush_async_cppr_index+1)*
+                                  sizeof(struct cppr_op_info);
+          memset((void *) cppr_ops + bytes_currently_used,
+                 0x00,
+                 new_size_to_alloc - bytes_currently_used);
+
+          scr_dbg(1, "CPPR reallocate done @ %d:%s", __LINE__, __FILE__);
         }
 
         scr_dbg(1, "executing cppr_mv for %s", plain_filename);
@@ -841,20 +865,21 @@ filename: '%s' src path? '%s'\n", full_path,
         scr_flush_async_cppr_metadata[scr_flush_async_cppr_index].alloced =
                 true;
 
-        if(cppr_mv(&(cppr_ops[scr_flush_async_cppr_index].handle),
-                   CPPR_GLOBAL_COOKIE,
-                   CPPR_FLAG_TRACK_PROGRESS,
-                   NULL,
-                   dest_dir,
-                   only_path_dest,
-                   plain_filename) != CPPR_SUCCESS){
-
+        if (cppr_mv(&(cppr_ops[scr_flush_async_cppr_index].handle),
+            CPPR_GLOBAL_COOKIE,
+            CPPR_FLAG_TRACK_PROGRESS,
+            NULL,
+            dest_dir,
+            only_path_dest,
+            plain_filename) != CPPR_SUCCESS)
+        {
           scr_dbg(0, "----CPPR FAILED KICKING OFF MV FOR: %s", basename_path);
           return SCR_FAILURE;
         }
         scr_dbg(1, "cppr handle array position %d is value %x",
                 scr_flush_async_cppr_index,
-                cppr_ops[scr_flush_async_cppr_index].handle);
+                cppr_ops[scr_flush_async_cppr_index].handle
+        );
 
         /* critical to update the handle counter */
         scr_flush_async_cppr_index++;
@@ -864,13 +889,13 @@ filename: '%s' src path? '%s'\n", full_path,
         scr_free(&full_path);
         scr_free(&basename_path);
         scr_path_delete(&path_dest_file);
-      }
-      else{
+      } else {
         /* confirmed the bug?? */
         scr_dbg(0,"ERROR NEED TO CHECK THIS why was this value null BUG \
 confirmed?: %s\n", file);
       }
     }
+
     /* delete the hash */
     scr_hash_delete(&hash);
   } else {
@@ -881,7 +906,6 @@ confirmed?: %s\n", file);
   /* get the total number of bytes to write */
   scr_flush_async_bytes = 0.0;
   MPI_Allreduce(&my_bytes, &scr_flush_async_bytes, 1, MPI_DOUBLE, MPI_SUM, scr_comm_world);
-
 
   /* make sure all processes have started before we leave */
   MPI_Barrier(scr_comm_world);
@@ -895,7 +919,6 @@ END: CPPR Asynchronous flush wrapper functions
 ========================================
 */
 #endif /* HAVE_LIBCPPR */
-
 
 /*
 =========================================

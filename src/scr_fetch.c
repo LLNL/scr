@@ -77,9 +77,10 @@ static int scr_fetch_file(
     crc_p = &crc;
   }
   rc = scr_file_copy(src_file, dst_file, scr_file_buf_size, crc_p);
-  if(rc == SCR_SUCCESS){
+  if (rc == SCR_SUCCESS) {
     scr_dbg(1, "scr fetched file %s %d:%s", src_file, __LINE__, __FILE__);
   }
+
   /* check that crc matches crc stored in meta */
   uLong meta_crc;
   if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
@@ -632,7 +633,9 @@ static int scr_fetch_summary(
 {
   /* assume that we won't succeed in our fetch attempt */
   int rc = SCR_SUCCESS;
+
   scr_dbg(1, "scr_fetch_summary at %d:%s", __LINE__, __FILE__);
+
   /* check whether summary file exists and is readable */
   if (scr_my_rank_world == 0) {
     /* check that we can access the directory */
@@ -743,7 +746,7 @@ static int scr_fetch_summary(
       scr_lseek(file, fd, offset, SEEK_SET);
       ssize_t readsize = scr_hash_read_fd(file, fd, save);
       if (readsize < 0) {
-          scr_err("Failed to read rank2file map file %s @ %s:%d",
+        scr_err("Failed to read rank2file map file %s @ %s:%d",
           file, __FILE__, __LINE__
         );
         rc = SCR_FAILURE;
@@ -798,7 +801,9 @@ static int scr_fetch_summary(
     /* the key is the source rank, which we don't care about,
      * the info we need is in the element hash */
     scr_hash* elem_hash = scr_hash_elem_hash(elem);
+
     scr_dbg(1, "scr_fetch_summary print at %d:%s", __LINE__, __FILE__);
+
     scr_hash_log(elem_hash, 1, 0);
     /* get pointer to file hash */
     scr_hash* file_hash = scr_hash_get(elem_hash, SCR_SUMMARY_6_KEY_FILE);
@@ -1028,6 +1033,7 @@ static int scr_fetch_files(
       }
     }
     scr_dbg(1, "dataset id in fetch: %d", id);
+
     scr_hash_delete(&file_list);
     scr_free(&fetch_dir);
     return SCR_FAILURE;
@@ -1258,6 +1264,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
         scr_dataset_id = dset_id;
         scr_checkpoint_id = ckpt_id;
         scr_dbg(1, "after successful fetch, dset is %d, ckpt is %d", dset_id, ckpt_id);
+
         /* we succeeded in fetching this checkpoint, set current to
          * point to it, and stop fetching */
         if (scr_my_rank_world == 0) {

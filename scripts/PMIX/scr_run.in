@@ -7,11 +7,10 @@
 libdir="@X_LIBDIR@"
 bindir="@X_BINDIR@"
 __have_libcppr="@HAVE_LIBCPPR@"
+
 # if SCR is disabled, just do a normal run and exit
 if [ "$SCR_ENABLE" == "0" ] ; then
-    #don't try srun in pmix machine :)
-    #srun "$@"
-    $bindir/scr_pmix_spawn $@
+  $bindir/scr_pmix_spawn $@
   exit $?
 fi
 
@@ -65,7 +64,6 @@ fi
 # no need to check that this script is running on a node in the job's allocated nodeset
 # as Aurora is a cray-style machine with a MOM node
 script_node=`hostname`
-
 
 # get the control directory
 cntldir=`$bindir/scr_list_dir control`
@@ -255,7 +253,7 @@ if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
   if [ "$__have_libcppr" != "1" ] ; then
       $bindir/scr_halt --immediate $prefix
   else
-      #don't need to launch async daemon
+      # don't need to launch async daemon
       echo "#demo Didn't try to shutdown async daemon because CPPR is present\n"
   fi
   

@@ -100,9 +100,10 @@ int main (int argc, char* argv[])
   for (i=0; i < num_files; i++) {
     char file[2094];
     scr_retval = SCR_Route_file(files[i], file);
-    if(scr_retval != SCR_SUCCESS){
+    if (scr_retval != SCR_SUCCESS) {
       printf("%d: failed calling SCR_Route_file(): %d: @%s:%d\n",
-             rank, scr_retval, __FILE__, __LINE__);
+             rank, scr_retval, __FILE__, __LINE__
+      );
     }
     if (read_checkpoint(file, &timestep, buf, filesizes[i])) {
       // check that contents are good
@@ -154,17 +155,19 @@ int main (int argc, char* argv[])
     int rc;
     int all_valid = 1;
     scr_retval = SCR_Start_checkpoint();
-    if(scr_retval != SCR_SUCCESS){
+    if (scr_retval != SCR_SUCCESS) {
       printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
-             rank, scr_retval, __FILE__, __LINE__);
+             rank, scr_retval, __FILE__, __LINE__
+      );
     }
     for (i=0; i < num_files; i++) {
       int valid = 0;
       char file[2094];
       scr_retval = SCR_Route_file(files[i], file);
-      if(scr_retval != SCR_SUCCESS){
+      if (scr_retval != SCR_SUCCESS) {
         printf("%d: failed calling SCR_Route_file(): %d: @%s:%d\n",
-               rank, scr_retval, __FILE__, __LINE__);
+               rank, scr_retval, __FILE__, __LINE__
+        );
       }
       int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
       if (fd_me > 0) {
@@ -184,9 +187,10 @@ int main (int argc, char* argv[])
       if (!valid) { all_valid = 0; }
     }
     scr_retval = SCR_Complete_checkpoint(all_valid);
-    if(scr_retval != SCR_SUCCESS){
+    if (scr_retval != SCR_SUCCESS) {
       printf("%d: failed calling SCR_Complete_checkpoint(): %d: @%s:%d\n",
-             rank, scr_retval, __FILE__, __LINE__);
+             rank, scr_retval, __FILE__, __LINE__
+      );
     }
     if (rank == 0) { printf("Completed checkpoint %d.\n", timestep); fflush(stdout); }
 
@@ -201,19 +205,20 @@ int main (int argc, char* argv[])
       int rc;
       int all_valid = 1;
       
-
       scr_retval = SCR_Start_checkpoint();
-      if(scr_retval != SCR_SUCCESS){
+      if (scr_retval != SCR_SUCCESS) {
         printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
-               rank, scr_retval, __FILE__, __LINE__);
+               rank, scr_retval, __FILE__, __LINE__
+        );
       }
       for (i=0; i < num_files; i++) {
         int valid = 0;
         char file[2094];
         scr_retval = SCR_Route_file(files[i], file);
-        if(scr_retval != SCR_SUCCESS){
+        if (scr_retval != SCR_SUCCESS) {
           printf("%d: failed calling SCR_Route_file(): %d: @%s:%d\n",
-                 rank, scr_retval, __FILE__, __LINE__);
+                 rank, scr_retval, __FILE__, __LINE__
+          );
         }
         int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
         if (fd_me > 0) {
@@ -234,9 +239,10 @@ int main (int argc, char* argv[])
         if (!valid) { all_valid = 0; }
       }
       scr_retval = SCR_Complete_checkpoint(all_valid);
-      if(scr_retval != SCR_SUCCESS){
+      if (scr_retval != SCR_SUCCESS) {
         printf("%d: failed calling SCR_Complete_checkpoint(): %d: @%s:%d\n",
-               rank, scr_retval, __FILE__, __LINE__);
+               rank, scr_retval, __FILE__, __LINE__
+        );
       }
       if (rank == 0) { printf("Completed checkpoint %d.\n", timestep); fflush(stdout); }
       
@@ -268,9 +274,10 @@ int main (int argc, char* argv[])
   if (filesizes != NULL) { free(filesizes); filesizes = NULL; }
 
   scr_retval = SCR_Finalize();
-  if(scr_retval != SCR_SUCCESS){
+  if (scr_retval != SCR_SUCCESS) {
     printf("%d: failed calling SCR_Finalize(): %d: @%s:%d\n",
-           rank, scr_retval, __FILE__, __LINE__);
+           rank, scr_retval, __FILE__, __LINE__
+    );
   }
 
   MPI_Finalize();

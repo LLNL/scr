@@ -21,13 +21,12 @@ my $pdsh = "@PDSH_EXE@";
 
 my $cppr_lib = "@CPPR_LDFLAGS@";
 if ($cppr_lib ne ""){
-    #need to remove "-L" from the string
-    if($cppr_lib =~ /^-L/){
-        $cppr_lib = substr($cppr_lib, 2, length($cppr_lib));
-    }
-    else{
-        $cppr_lib = "";
-    }
+  # need to remove "-L" from the string
+  if ($cppr_lib =~ /^-L/) {
+    $cppr_lib = substr($cppr_lib, 2, length($cppr_lib));
+  } else {
+    $cppr_lib = "";
+  }
 }
 
 # TODO: need to be able to set these defaults via config settings somehow

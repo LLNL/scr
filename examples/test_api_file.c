@@ -55,18 +55,20 @@ double getbw(char* name, char* buf, size_t size, int times)
 
       /* instruct SCR we are starting the next checkpoint */
       scr_retval = SCR_Start_checkpoint();
-      if(scr_retval != SCR_SUCCESS){
-              printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
-                     rank, scr_retval, __FILE__, __LINE__);
+      if (scr_retval != SCR_SUCCESS) {
+        printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
+               rank, scr_retval, __FILE__, __LINE__
+        );
       }
 
       /* get the file name to write our checkpoint file to */
       char newname[SCR_MAX_FILENAME];
       sprintf(newname, "timestep.%d/%s", timestep, name);
       scr_retval = SCR_Route_file(newname, file);
-      if(scr_retval != SCR_SUCCESS){
-              printf("%d: failed calling SCR_Route_file(): %d: @%s:%d\n",
-                     rank, scr_retval, __FILE__, __LINE__);
+      if (scr_retval != SCR_SUCCESS) {
+        printf("%d: failed calling SCR_Route_file(): %d: @%s:%d\n",
+               rank, scr_retval, __FILE__, __LINE__
+        );
       }
 
       /* open the file and write the checkpoint */
@@ -106,9 +108,10 @@ double getbw(char* name, char* buf, size_t size, int times)
 
       /* mark this checkpoint as complete */
       scr_retval = SCR_Complete_checkpoint(valid);
-      if(scr_retval != SCR_SUCCESS){
-              printf("%d: failed calling SCR_Complete_checkpoint: %d: @%s:%d\n",
-                     rank, scr_retval, __FILE__, __LINE__);
+      if (scr_retval != SCR_SUCCESS) {
+        printf("%d: failed calling SCR_Complete_checkpoint: %d: @%s:%d\n",
+               rank, scr_retval, __FILE__, __LINE__
+        );
       }
       if (rank == 0) {
         printf("Completed checkpoint %d.\n", timestep);

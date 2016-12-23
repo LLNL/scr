@@ -44,6 +44,7 @@
 #ifdef HAVE_LIBCPPR
 #include "cppr.h"
 #endif
+
 /*
 =========================================
 Halt logic
@@ -188,7 +189,6 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     if (scr_flush_async_in_progress) {
       /* there's an async flush ongoing, see which dataset is being flushed */
       if (scr_flush_async_dataset_id == scr_dataset_id) {
-        
 #ifdef HAVE_LIBCPPR
         /* it's faster to wait on async flush if we have CPPR  */
         scr_flush_async_wait(scr_map);
@@ -196,7 +196,6 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
         /* we're going to sync flush this same dataset below, so kill it */
         scr_flush_async_stop();
 #endif
-      
       } else {
         /* the async flush is flushing a different dataset, so wait for it */
         scr_flush_async_wait(scr_map);
@@ -209,22 +208,25 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
     /* flush files if needed */
     scr_flush_sync(scr_map, scr_checkpoint_id);
-    if(scr_flush_async){
+
+    if (scr_flush_async) {
       scr_flush_async_shutdown();
     }
+
     /* sync up tasks before exiting (don't want tasks to exit so early that
      * runtime kills others after timeout) */
     MPI_Barrier(scr_comm_world);
 
 #ifdef HAVE_LIBPMIX
-
-    int retval;
-    retval = PMIx_Fence(NULL, 0, NULL, 0);
-    if(retval != PMIX_SUCCESS){
-	    scr_err("pmix fence failed: %d, rank: %d, host: %s @ %s:%d",
-                    retval, scr_pmix_proc.rank, scr_my_hostname, 
-                    __FILE__, __LINE__);
+    /* sync procs in pmix before shutdown */
+    int retval = PMIx_Fence(NULL, 0, NULL, 0);
+    if (retval != PMIX_SUCCESS) {
+      scr_err("pmix fence failed: %d, rank: %d, host: %s @ %s:%d",
+              retval, scr_pmix_proc.rank, scr_my_hostname, 
+              __FILE__, __LINE__
+      );
     }
+
 /*
     scr_dbg(0, "about to call pmix notify in HALT: pmix rank: %d", scr_pmix_proc.rank);
     retval = PMIx_Notify_event(-1,
@@ -232,24 +234,25 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
                       PMIX_RANGE_GLOBAL,
                       NULL, 0,
                       NULL, (void *)NULL);
-
-    if(retval != PMIX_SUCCESS){
-            scr_dbg(0, "error calling pmix_notify_event: %d", retval);
+    if (retval != PMIX_SUCCESS) {
+      scr_dbg(0, "error calling pmix_notify_event: %d", retval);
     }
 */
+
+    /* shutdown pmix */
     retval = PMIx_Finalize(NULL, 0);
-    if(retval != PMIX_SUCCESS){
-	    scr_err("pmix finalize failed: %d, rank: %d, host: %s @ %s:%d",
-                    retval, scr_pmix_proc.rank, scr_my_hostname,
-                    __FILE__, __LINE__);
+    if (retval != PMIX_SUCCESS) {
+      scr_err("pmix finalize failed: %d, rank: %d, host: %s @ %s:%d",
+              retval, scr_pmix_proc.rank, scr_my_hostname,
+              __FILE__, __LINE__
+      );
     }
-    
     
     /* TODO: remove this once ompi has a fix?? */
     MPI_Barrier(scr_comm_world);
     MPI_Finalize();
-    
 #endif /* HAVE_LIBPMIX */
+
     /* and exit the job */
     exit(0);
   }
@@ -765,15 +768,13 @@ int SCR_Init()
 
 /* sanity check to ensure both libpmix and machine type SCR_PMIX are enabled */
 #if (SCR_MACHINE_TYPE == SCR_PMIX)
-  
 #ifndef HAVE_LIBPMIX
   /* bad news - specified pmix machine type but no libpmix! */
   scr_abort(-1, 
-	    "can't have pmix machine type without --with-pmix in configure!");
+    "can't have pmix machine type without --with-pmix in configure!"
+  );
 #endif /* HAVE_LIBPMIX */
-
   /* this is the valid case - nothing needs to be printed here */
-
 #endif /* SCR_MACHINE_TYPE == SCR_PMIX */
 
   /* create a context for the library */
@@ -994,21 +995,22 @@ int SCR_Init()
 #if (SCR_MACHINE_TYPE == SCR_PMIX)
   /* init pmix */
   int retval = PMIx_Init(&scr_pmix_proc, NULL, 0);
-  if(retval != PMIX_SUCCESS){
-          scr_err("PMIX initialized FAIL: %d @ %s:%d\n", retval, __FILE__, 
-                  __LINE__);
-          return SCR_FAILURE;
+  if (retval != PMIX_SUCCESS) {
+    scr_err("PMIX initialized FAIL: %d @ %s:%d\n", retval, __FILE__, 
+            __LINE__
+    );
+    return SCR_FAILURE;
   }
   scr_dbg(1, "pmix initialized successfully @ %s:%d", __FILE__, __LINE__);
 #endif /* SCR_MACHINE_TYPE == SCR_PMIX */
 
 #ifdef HAVE_LIBCPPR
   /* attempt to init cppr */
-  int cppr_ret;
-  cppr_ret = cppr_status();
-  if(cppr_ret != CPPR_SUCCESS){
-    scr_abort(-1,"libcppr cppr_status() failed: %d '%s' @ %s:%d",
-        cppr_ret, cppr_err_to_str(cppr_ret), __FILE__, __LINE__);
+  int cppr_ret = cppr_status();
+  if (cppr_ret != CPPR_SUCCESS) {
+    scr_abort(-1, "libcppr cppr_status() failed: %d '%s' @ %s:%d",
+              cppr_ret, cppr_err_to_str(cppr_ret), __FILE__, __LINE__
+    );
   }
   scr_dbg(0, "#bold CPPR is present @ %s:%d", __FILE__, __LINE__);
 #else
@@ -1230,7 +1232,6 @@ int SCR_Finalize()
       /* we're going to sync flush this same checkpoint below, so kill it */
       scr_flush_async_stop();
 #endif
-
     } else {
       /* the async flush is flushing a different checkpoint, so wait for it */
       scr_flush_async_wait(scr_map);
@@ -1317,19 +1318,20 @@ int SCR_Finalize()
 #endif /* HAVE_LIBDTCMP */
 
 #ifdef HAVE_LIBPMIX
-  int retval;
-
-  retval = PMIx_Fence(NULL, 0, NULL, 0);
-  
-  if(retval != PMIX_SUCCESS){
+  /* sync procs in pmix before shutdown */
+  int retval = PMIx_Fence(NULL, 0, NULL, 0);
+  if (retval != PMIX_SUCCESS) {
     scr_err("failure fencing: %d, rank: %d @ %s:%d",
-            retval, scr_pmix_proc.rank, __FILE__, __LINE__);
+            retval, scr_pmix_proc.rank, __FILE__, __LINE__
+    );
   }
   
+  /* shutdown pmix */
   retval = PMIx_Finalize(NULL, 0);
-  if(retval != PMIX_SUCCESS){
+  if (retval != PMIX_SUCCESS) {
     scr_err("pmix finalize failed in scr_finalize: %d, rank: %d\n @ %s:%d",
-            retval, scr_pmix_proc.rank, __FILE__, __LINE__);
+            retval, scr_pmix_proc.rank, __FILE__, __LINE__
+    );
   }
 #endif /* HAVE_LIBPMIX */
 

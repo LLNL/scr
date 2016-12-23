@@ -318,19 +318,22 @@ scr_hash* read_transfer_file()
   if (value != NULL) {
     if (strcmp(value, SCR_TRANSFER_KEY_COMMAND_EXIT) == 0) {
       /* close files and exit */
-      scr_dbg(0,"scr_transfer instructed to exit @%s:%d\n", __FILE__,
-                    __LINE__);
+      scr_dbg(0,"scr_transfer instructed to exit @%s:%d\n",
+              __FILE__, __LINE__
+      );
       set_transfer_file_state(SCR_TRANSFER_KEY_STATE_EXIT, 0);
       keep_running = 0;
     } else if (strcmp(value, SCR_TRANSFER_KEY_COMMAND_STOP) == 0) {
       /* just stop, nothing else to do here */
-      scr_dbg(0,"scr_transfer instructed to STOP @%s:%d\n", __FILE__,
-              __LINE__);      
+      scr_dbg(0,"scr_transfer instructed to STOP @%s:%d\n",
+              __FILE__, __LINE__
+       );
     } else if (strcmp(value, SCR_TRANSFER_KEY_COMMAND_RUN) == 0) {
       /* found the RUN command, if the DONE flag is not set,
        * set our state to running and update the transfer file */
-      scr_dbg(0,"scr_transfer instructed to RUN @%s:%d\n", __FILE__,
-                    __LINE__);
+      scr_dbg(0,"scr_transfer instructed to RUN @%s:%d\n",
+              __FILE__, __LINE__
+      );
       if (!done) {
         state = RUNNING;
         set_transfer_file_state(SCR_TRANSFER_KEY_STATE_RUN, 0);
@@ -445,10 +448,7 @@ int main (int argc, char *argv[])
   /* this program is a noop if we have libcppr, as libcppr
    * will do the file transfers asynchronously for us  */
   scr_dbg(1,"scr_transfer shutting down since libcppr is present\n");
-
-
 #else
-
   /* check that we were given at least one argument
    * (the transfer file name) */
   if (argc != 2) {
@@ -760,7 +760,7 @@ int main (int argc, char *argv[])
     free(scr_transfer_file);
     scr_transfer_file = NULL;
   }
-
 #endif /* HAVE_LIBCPPR */
+
   return 0;
 }

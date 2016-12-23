@@ -14,10 +14,10 @@ sub print_usage
   print "  Options:\n";
   print "    -c, --count                 Print the number of hosts.\n";
   print "    -n, --nth <num>             Output the Nth host (1=lo, -1=hi).\n";
-  print "    -h, --hosts <hosts>         Use this Host list.\n";
+  print "    -h, --hosts <hosts>         Use this hostlist.\n";
   print "    -m, --minus <s1:s2>         Elements of s1 not in s2.\n";
   print "    -i, --intersection <s1:s2>  Intersection of s1 and s2 hosts.\n";
-  print "    -C, --compress <csv hostlist>  simply compress the csv hostlist\n";
+  print "    -C, --compress <csv hosts>  Compress the csv hostlist\n";
   print "\n";
   exit 1;
 }
@@ -74,12 +74,10 @@ if (defined $conf{hosts}) {
   } else {
     print_usage();
   }
-}
-
-elsif (defined $conf{compress}) {
-   my @fields = split "," , $conf{compress};
-   print scr_hostlist::compress(@fields);
-   exit 0;
+} elsif (defined $conf{compress}) {
+  my @fields = split(",", $conf{compress});
+  print scr_hostlist::compress(@fields);
+  exit 0;
 }
 
 # if nothing set the nodeset, print usage
