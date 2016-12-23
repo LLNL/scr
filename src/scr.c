@@ -24,6 +24,7 @@ Halt logic
 
 #define SCR_TEST_AND_HALT (1)
 #define SCR_TEST_BUT_DONT_HALT (2)
+#define SCR_FINALIZE_CALLED "SCR_FINALIZE_CALLED"
 
 /* writes entry to halt file to indicate that SCR should exit job at first opportunity */
 static int scr_halt(const char* reason)
@@ -88,15 +89,19 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     char* reason;
     if (scr_hash_util_get_str(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON, &reason) == SCR_SUCCESS) {
       if (strcmp(reason, "") != 0) {
-        /* since reason points at the EXIT_REASON string in the halt hash, and since
-         * scr_halt() resets this value, we need to copy the current reason */
-        char* tmp_reason = strdup(reason);
-        if (halt_cond == SCR_TEST_AND_HALT && tmp_reason != NULL) {
-          scr_dbg(0, "Job exiting: Reason: %s.", tmp_reason);
-          scr_halt(tmp_reason);
+        /* got a reason, but let's ignore SCR_FINALIZE_CALLED if it's set
+         * and assume user restarted intentionally */
+        if (strcmp(reason, SCR_FINALIZE_CALLED) != 0) {
+          /* since reason points at the EXIT_REASON string in the halt hash, and since
+           * scr_halt() resets this value, we need to copy the current reason */
+          char* tmp_reason = strdup(reason);
+          if (halt_cond == SCR_TEST_AND_HALT && tmp_reason != NULL) {
+            scr_dbg(0, "Job exiting: Reason: %s.", tmp_reason);
+            scr_halt(tmp_reason);
+          }
+          scr_free(&tmp_reason);
+          need_to_halt = 1;
         }
-        scr_free(&tmp_reason);
-        need_to_halt = 1;
       }
     }
 
@@ -1098,7 +1103,7 @@ int SCR_Finalize()
     scr_time_compute_end = MPI_Wtime();
 
     /* if we reach SCR_Finalize, assume that we should not restart the job */
-    scr_halt("SCR_FINALIZE_CALLED");
+    scr_halt(SCR_FINALIZE_CALLED);
   }
 
   /* TODO: flush any output sets and latest checkpoint set if needed */

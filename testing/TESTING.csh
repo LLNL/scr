@@ -100,31 +100,24 @@ rm -f ${prefix_files}
 # check that a run works
 srun -n4 -N4 ./test_api
 
-# check that the next run bails out due to SCR_FINALIZE_CALLED
+# run again, check that checkpoints continue where last run left off
 srun -n4 -N4 ./test_api
 
-# remove halt file and run again, check that checkpoints continue where last run left off
-${scrbin}/scr_halt -r `pwd`
-srun -n4 -N4 ./test_api
-
-# delete all files from /ssd on rank 0, remove halt file, run again, check that rebuild works
+# delete all files from /ssd on rank 0, run again, check that rebuild works
 rm -rf /tmp/${USER}/scr.$jobid
 rm -rf /ssd/${USER}/scr.$jobid
-${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 
-# delete latest checkpoint directory from two nodes, remove halt file, run again,
+# delete latest checkpoint directory from two nodes, run again,
 # check that rebuild works for older checkpoint
 srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid/scr.dataset.18
 srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/scr.dataset.18
 srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/scr.dataset.18
-${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 
-# delete all files from all nodes, remove halt file, run again, check that run starts over
+# delete all files from all nodes, run again, check that run starts over
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
-${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 
 # clear the cache and control directory
@@ -182,7 +175,6 @@ ${scrbin}/scr_index --list
 
 # fake a down node via EXCLUDE_NODES and redo above test (check that rebuild during scavenge works)
 setenv SCR_EXCLUDE_NODES $downnode
-${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_postrun
 unsetenv SCR_EXCLUDE_NODES
@@ -191,15 +183,13 @@ ${scrbin}/scr_index --list
 # delete all files, enable fetch, run again, check that fetch succeeds
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
-${scrbin}/scr_halt -r `pwd`
 setenv SCR_FETCH 1
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
-# delete all files from 2 nodes, remove halt file, run again, check that distribute fails but fetch succeeds
+# delete all files from 2 nodes, run again, check that distribute fails but fetch succeeds
 srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid
-${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
@@ -208,12 +198,10 @@ srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 vi -b ${SCR_INSTALL}/share/scr/examples/scr.dataset.12/rank_2.ckpt
 # change some characters and save file (:wq)
-${scrbin}/scr_halt -r `pwd`
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
-# remove halt file, enable flush, run again and check that flush succeeds and that postrun realizes that
-${scrbin}/scr_halt -r `pwd`
+#enable flush, run again and check that flush succeeds and that postrun realizes that
 setenv SCR_FLUSH 10
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_postrun
@@ -225,4 +213,3 @@ srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
 ${scrbin}/scr_srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
-
