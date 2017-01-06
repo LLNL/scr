@@ -193,11 +193,14 @@ static int scr_cppr_flush_async_test(scr_filemap* map, int id, double* bytes)
   double bytes_written = 0.0;
   if (scr_storedesc_cntl->rank == 0) {
     cppr_retval = cppr_test_all(scr_flush_async_cppr_index + 1, cppr_ops);
+
+    /* if this fails, treat it as just an incomplete transfer for now */
     if (cppr_retval != CPPR_SUCCESS) {
       scr_dbg(0, "CPPR ERROR WITH initial call to cppr_test(): %d",
               cppr_retval
       );
-      return SCR_FAILURE;
+      transfer_complete = 0;
+      goto mpi_collectives;
     }
 
     /* loop through all the responses and check status */
@@ -277,6 +280,7 @@ src:'%s', dst:'%s', file:'%s' status %d and retcode %d; handle:[%d]: %x",
     }
   }
 
+mpi_collectives:
   /* compute the total number of bytes written */
   MPI_Allreduce(&bytes_written, bytes, 1, MPI_DOUBLE, MPI_SUM, scr_comm_world);
 
