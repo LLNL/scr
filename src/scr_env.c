@@ -145,13 +145,13 @@ char* scr_env_jobid()
     if (retval == PMIX_SUCCESS) {
       /* got it, strdup the value from pmix */
       jobid = strdup(pmix_query_data[0].value.data.string);
-      scr_dbg(1, "pmix query for jobid success '%s'\n", jobid);
+      scr_dbg(1, "PMIx_Lookup for jobid success '%s'", jobid);
     } else {
       /* failed to get our jobid from pmix, make one up */
       char *pmix_hardcoded_id = "pmix_hardcoded_jobid";
       jobid = strdup(pmix_hardcoded_id);
-      scr_dbg(1, "error with pmix jobid: %d, using hardcoded jobid '%s'\n",
-              retval, jobid
+      scr_dbg(1, "PMIx_Lookup for jobid failed: rc=%d, using hardcoded jobid '%s'",
+        retval, jobid
       );
     }
 

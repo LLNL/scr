@@ -208,8 +208,9 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     }
 
     /* TODO: need to flush any output sets and the latest checkpoint set */
-    scr_dbg(0,"flush sync called due to need to halt @%s:%d\n", __FILE__,
-            __LINE__);
+    scr_dbg(0, "flush sync called due to need to halt @ %s:%d",
+      __FILE__, __LINE__
+    );
 
     /* flush files if needed */
     scr_flush_sync(scr_map, scr_checkpoint_id);
@@ -226,9 +227,8 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     /* sync procs in pmix before shutdown */
     int retval = PMIx_Fence(NULL, 0, NULL, 0);
     if (retval != PMIX_SUCCESS) {
-      scr_err("pmix fence failed: %d, rank: %d, host: %s @ %s:%d",
-              retval, scr_pmix_proc.rank, scr_my_hostname, 
-              __FILE__, __LINE__
+      scr_err("PMIx_Fence failed: rc=%d, rank: %d @ %s:%d",
+        retval, scr_pmix_proc.rank, __FILE__, __LINE__
       );
     }
 
@@ -247,9 +247,8 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     /* shutdown pmix */
     retval = PMIx_Finalize(NULL, 0);
     if (retval != PMIX_SUCCESS) {
-      scr_err("pmix finalize failed: %d, rank: %d, host: %s @ %s:%d",
-              retval, scr_pmix_proc.rank, scr_my_hostname,
-              __FILE__, __LINE__
+      scr_err("PMIx_Finalize failed: rc=%d, rank: %d @ %s:%d",
+        retval, scr_pmix_proc.rank, __FILE__, __LINE__
       );
     }
     
@@ -280,7 +279,7 @@ static int scr_check_flush(scr_filemap* map)
     if (scr_checkpoint_id > 0 && scr_checkpoint_id % scr_flush == 0) {
       /* need to flush this checkpoint, determine whether to use async or sync flush */
       if (scr_flush_async) {
-        scr_dbg(0, "ASYNC flush attempt @%s:%d\n", __FILE__, __LINE__);;
+        scr_dbg(0, "ASYNC flush attempt @ %s:%d", __FILE__, __LINE__);;
         /* check that we don't start an async flush if one is already in progress */
         if (scr_flush_async_in_progress) {
           /* we need to flush the current checkpoint, however, another flush is ongoing,
@@ -292,7 +291,7 @@ static int scr_check_flush(scr_filemap* map)
         scr_flush_async_start(map, scr_checkpoint_id);
       } else {
         /* synchronously flush the current checkpoint */
-        scr_dbg(0, "sync flush attempt @%s:%d\n", __FILE__, __LINE__);
+        scr_dbg(0, "SYNC flush attempt @ %s:%d", __FILE__, __LINE__);
         scr_flush_sync(map, scr_checkpoint_id);
       }
     }
@@ -1001,12 +1000,12 @@ int SCR_Init()
   /* init pmix */
   int retval = PMIx_Init(&scr_pmix_proc, NULL, 0);
   if (retval != PMIX_SUCCESS) {
-    scr_err("PMIX initialized FAIL: %d @ %s:%d\n", retval, __FILE__, 
-            __LINE__
+    scr_err("PMIx_Init failed: rc=%d @ %s:%d",
+      retval, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
-  scr_dbg(1, "pmix initialized successfully @ %s:%d", __FILE__, __LINE__);
+  scr_dbg(1, "PMIx_Init succeeded @ %s:%d", __FILE__, __LINE__);
 #endif /* SCR_MACHINE_TYPE == SCR_PMIX */
 
 #ifdef HAVE_LIBCPPR
@@ -1119,13 +1118,11 @@ int SCR_Init()
       /* check whether we need to flush data */
       if (scr_flush_on_restart) {
         /* always flush on restart if scr_flush_on_restart is set */
-        scr_dbg(1, "sync flush attempt on restart \
-@%s:%d\n", __FILE__, __LINE__);
+        scr_dbg(1, "sync flush attempt on restart @ %s:%d", __FILE__, __LINE__);
         scr_flush_sync(scr_map, scr_checkpoint_id);
       } else {
         /* otherwise, flush only if we need to flush */
-        scr_dbg(1, "scr_check_flush attempt on restart \
-@%s:%d\n", __FILE__, __LINE__);
+        scr_dbg(1, "scr_check_flush attempt on restart @ %s:%d", __FILE__, __LINE__);
         scr_check_flush(scr_map);
       }
     }
@@ -1152,7 +1149,7 @@ int SCR_Init()
   if (rc != SCR_SUCCESS && scr_fetch) {
     /* sets scr_dataset_id and scr_checkpoint_id upon success */
     rc = scr_fetch_sync(scr_map, &fetch_attempted);
-    scr_dbg(0, "scr_fetch_sync attempted on restart\n");
+    scr_dbg(0, "scr_fetch_sync attempted on restart");
   }
 
   /* TODO: there is some risk here of cleaning the cache when we shouldn't
@@ -1171,7 +1168,7 @@ int SCR_Init()
   if (rc != SCR_SUCCESS) {
     /* if a fetch was attempted but failed, print a warning */
     if (scr_my_rank_world == 0 && fetch_attempted) {
-      scr_err("Failed to fetch checkpoint set into cache. Restarting from the beginning @ %s:%d.",
+      scr_err("Failed to fetch checkpoint set into cache. Restarting from the beginning @ %s:%d",
         __FILE__, __LINE__
       );
     }
@@ -1245,8 +1242,7 @@ int SCR_Finalize()
 
   /* flush checkpoint set if we need to */
   if (scr_bool_need_flush(scr_checkpoint_id)) {
-    scr_dbg(1, "sync flush attempt in SCR_Finalize @%s:%d\n",
-            __FILE__, __LINE__);
+    scr_dbg(1, "sync flush attempt in SCR_Finalize @ %s:%d", __FILE__, __LINE__);
     scr_flush_sync(scr_map, scr_checkpoint_id);
   }
 
@@ -1326,16 +1322,16 @@ int SCR_Finalize()
   /* sync procs in pmix before shutdown */
   int retval = PMIx_Fence(NULL, 0, NULL, 0);
   if (retval != PMIX_SUCCESS) {
-    scr_err("failure fencing: %d, rank: %d @ %s:%d",
-            retval, scr_pmix_proc.rank, __FILE__, __LINE__
+    scr_err("PMIx_Fence failed: rc=%d, rank: %d @ %s:%d",
+      retval, scr_pmix_proc.rank, __FILE__, __LINE__
     );
   }
   
   /* shutdown pmix */
   retval = PMIx_Finalize(NULL, 0);
   if (retval != PMIX_SUCCESS) {
-    scr_err("pmix finalize failed in scr_finalize: %d, rank: %d\n @ %s:%d",
-            retval, scr_pmix_proc.rank, __FILE__, __LINE__
+    scr_err("PMIx_Finalize failed: rc=%d, rank: %d @ %s:%d",
+      retval, scr_pmix_proc.rank, __FILE__, __LINE__
     );
   }
 #endif /* HAVE_LIBPMIX */

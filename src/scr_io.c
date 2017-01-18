@@ -133,7 +133,7 @@ int scr_open(const char* file, int flags, ...)
   }
   if (fd < 0) {
     scr_dbg(1, "Opening file: open(%s) errno=%d %s @ %s:%d",
-            file, errno, strerror(errno), __FILE__, __LINE__
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
 
     /* try again */
@@ -151,7 +151,7 @@ int scr_open(const char* file, int flags, ...)
     /* if we still don't have a valid file, consider it an error */
     if (fd < 0) {
       scr_err("Opening file: open(%s) errno=%d %s @ %s:%d",
-              file, errno, strerror(errno), __FILE__, __LINE__
+        file, errno, strerror(errno), __FILE__, __LINE__
       );
     }
   }
@@ -164,8 +164,8 @@ int scr_close(const char* file, int fd)
   /* fsync first */
   if (fsync(fd) < 0) {
     /* print warning that fsync failed */
-    scr_dbg(2, "Failed to fsync file descriptor: %s errno=%d %s @ file %s:%d",
-            file, errno, strerror(errno), __FILE__, __LINE__
+    scr_dbg(2, "Failed to fsync file descriptor: %s errno=%d %s @ %s:%d",
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
   }
 
@@ -173,7 +173,7 @@ int scr_close(const char* file, int fd)
   if (close(fd) != 0) {
     /* hit an error, print message */
     scr_err("Closing file descriptor %d for file %s: errno=%d %s @ %s:%d",
-            fd, file, errno, strerror(errno), __FILE__, __LINE__
+      fd, file, errno, strerror(errno), __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -186,7 +186,7 @@ int scr_file_lock_read(const char* file, int fd)
   #ifdef SCR_FILE_LOCK_USE_FLOCK
     if (flock(fd, LOCK_SH) != 0) {
       scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %s @ %s:%d",
-              file, fd, LOCK_SH, errno, strerror(errno), __FILE__, __LINE__
+        file, fd, LOCK_SH, errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -201,7 +201,7 @@ int scr_file_lock_read(const char* file, int fd)
 
     if(fcntl(fd, F_SETLK, &lck) < 0) {
       scr_err("Failed to acquire file read lock on %s: fnctl(%d, %d) errno=%d %s @ %s:%d",
-              file, fd, F_RDLCK, errno, strerror(errno), __FILE__, __LINE__
+        file, fd, F_RDLCK, errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -215,7 +215,7 @@ int scr_file_lock_write(const char* file, int fd)
   #ifdef SCR_FILE_LOCK_USE_FLOCK
     if (flock(fd, LOCK_EX) != 0) {
       scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %s @ %s:%d",
-              file, fd, LOCK_EX, errno, strerror(errno), __FILE__, __LINE__
+        file, fd, LOCK_EX, errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -230,7 +230,7 @@ int scr_file_lock_write(const char* file, int fd)
 
     if(fcntl(fd, F_SETLK, &lck) < 0) {
       scr_err("Failed to acquire file read lock on %s: fnctl(%d, %d) errno=%d %s @ %s:%d",
-              file, fd, F_WRLCK, errno, strerror(errno), __FILE__, __LINE__
+        file, fd, F_WRLCK, errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -244,7 +244,7 @@ int scr_file_unlock(const char* file, int fd)
   #ifdef SCR_FILE_LOCK_USE_FLOCK
     if (flock(fd, LOCK_UN) != 0) {
       scr_err("Failed to acquire file lock on %s: flock(%d, %d) errno=%d %s @ %s:%d",
-              file, fd, LOCK_UN, errno, strerror(errno), __FILE__, __LINE__
+        file, fd, LOCK_UN, errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -259,7 +259,7 @@ int scr_file_unlock(const char* file, int fd)
 
     if(fcntl(fd, F_SETLK, &lck) < 0) {
       scr_err("Failed to acquire file read lock on %s: fnctl(%d, %d) errno=%d %s @ %s:%d",
-              file, fd, F_UNLCK, errno, strerror(errno), __FILE__, __LINE__
+        file, fd, F_UNLCK, errno, strerror(errno), __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -275,7 +275,7 @@ int scr_open_with_lock(const char* file, int flags, mode_t mode)
   int fd = scr_open(file, flags, mode);
   if (fd < 0) {
     scr_err("Opening file for write: scr_open(%s) errno=%d %s @ %s:%d",
-            file, errno, strerror(errno), __FILE__, __LINE__
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
     return fd;
   }
@@ -341,12 +341,12 @@ ssize_t scr_read(const char* file, int fd, void* buf, size_t size)
       if (retries) {
         /* print an error and try again */
         scr_err("Error reading %s: read(%d, %x, %ld) errno=%d %s @ %s:%d",
-                file, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
+          file, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
         );
       } else {
         /* too many failed retries, give up */
         scr_err("Giving up read of %s: read(%d, %x, %ld) errno=%d %s @ %s:%d",
-	        file, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
+	  file, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
         );
         exit(1);
       }
@@ -368,7 +368,7 @@ ssize_t scr_write(const char* file, int fd, const void* buf, size_t size)
     } else if (rc == 0) {
       /* something bad happened, print an error and abort */
       scr_err("Error writing %s: write(%d, %x, %ld) returned 0 @ %s:%d",
-	      file, fd, (char*) buf + n, size - n, __FILE__, __LINE__
+	file, fd, (char*) buf + n, size - n, __FILE__, __LINE__
       );
       exit(1);
     } else { /* (rc < 0) */
@@ -382,12 +382,12 @@ ssize_t scr_write(const char* file, int fd, const void* buf, size_t size)
       if (retries) {
         /* print an error and try again */
         scr_err("Error writing %s: write(%d, %x, %ld) errno=%d %s @ %s:%d",
-                file, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
+          file, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
         );
       } else {
         /* too many failed retries, give up */
         scr_err("Giving up write to %s: write(%d, %x, %ld) errno=%d %s @ %s:%d",
-                file, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
+          file, fd, (char*) buf + n, size - n, errno, strerror(errno), __FILE__, __LINE__
         );
         exit(1);
       }
@@ -420,12 +420,12 @@ ssize_t scr_read_attempt(const char* file, int fd, void* buf, size_t size)
       if (retries) {
         /* print an error and try again */
         scr_err("Error reading file %s errno=%d %s @ %s:%d",
-                file, errno, strerror(errno), __FILE__, __LINE__
+          file, errno, strerror(errno), __FILE__, __LINE__
         );
       } else {
         /* too many failed retries, give up */
         scr_err("Giving up read on file %s errno=%d %s @ %s:%d",
-	        file, errno, strerror(errno), __FILE__, __LINE__
+	  file, errno, strerror(errno), __FILE__, __LINE__
         );
         return -1;
       }
@@ -447,7 +447,7 @@ ssize_t scr_write_attempt(const char* file, int fd, const void* buf, size_t size
     } else if (rc == 0) {
       /* something bad happened, print an error and abort */
       scr_err("Error writing file %s write returned 0 @ %s:%d",
-	      file, __FILE__, __LINE__
+        file, __FILE__, __LINE__
       );
       return -1;
     } else { /* (rc < 0) */
@@ -461,12 +461,12 @@ ssize_t scr_write_attempt(const char* file, int fd, const void* buf, size_t size
       if (retries) {
         /* print an error and try again */
         scr_err("Error writing file %s errno=%d %s @ %s:%d",
-                file, errno, strerror(errno), __FILE__, __LINE__
+          file, errno, strerror(errno), __FILE__, __LINE__
         );
       } else {
         /* too many failed retries, give up */
         scr_err("Giving up write of file %s errno=%d %s @ %s:%d",
-                file, errno, strerror(errno), __FILE__, __LINE__
+          file, errno, strerror(errno), __FILE__, __LINE__
         );
         return -1;
       }
@@ -501,7 +501,7 @@ ssize_t scr_read_line(const char* file, int fd, char* buf, size_t size)
     } else { /* nread < 0 */
       /* we hit an error */
       scr_err("Error reading from file %s @ %s:%d",
-              file, __FILE__, __LINE__
+        file, __FILE__, __LINE__
       );
       return -1;
     }
@@ -513,7 +513,7 @@ ssize_t scr_read_line(const char* file, int fd, char* buf, size_t size)
   /* if we exit the while loop but didn't find the end of the line, the buffer was too small */
   if (!found_end) {
     scr_err("Buffer too small to read line from file %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     return -1;
   }
@@ -537,7 +537,7 @@ ssize_t scr_writef(const char* file, int fd, const char* format, ...)
     /* TODO: instead of throwing a fatal error, we could allocate a bigger buffer and try again */
 
     scr_err("Buffer too small to hold formatted string for file %s @ %s:%d",
-            file, __FILE__, __LINE__
+      file, __FILE__, __LINE__
     );
     exit(1);
   }
@@ -571,7 +571,7 @@ int scr_read_pad_n(int n, char** files, int* fds,
       if (lseek(fds[i], pos, SEEK_SET) == (off_t)-1) {
         /* our seek failed, return an error */
         scr_err("Failed to seek to byte %lu in %s @ %s:%d",
-                pos, files[i], __FILE__, __LINE__
+          pos, files[i], __FILE__, __LINE__
         );
         return SCR_FAILURE;
       }
@@ -601,7 +601,7 @@ int scr_read_pad_n(int n, char** files, int* fds,
       if (lseek(fds[i], pos, SEEK_SET) == (off_t)-1) {
         /* our seek failed, return an error */
         scr_err("Failed to seek to byte %lu in %s @ %s:%d",
-                pos, files[i], __FILE__, __LINE__
+          pos, files[i], __FILE__, __LINE__
         );
         return SCR_FAILURE;
       }
@@ -638,7 +638,7 @@ int scr_write_pad_n(int n, char** files, int* fds,
       if (lseek(fds[i], pos, SEEK_SET) == (off_t)-1) {
         /* our seek failed, return an error */
         scr_err("Failed to seek to byte %lu in %s @ %s:%d",
-                pos, files[i], __FILE__, __LINE__
+          pos, files[i], __FILE__, __LINE__
         );
         return SCR_FAILURE;
       }
@@ -668,7 +668,7 @@ int scr_write_pad_n(int n, char** files, int* fds,
       if (lseek(fds[i], pos, SEEK_SET) == (off_t)-1) {
         /* our seek failed, return an error */
         scr_err("Failed to seek to byte %lu in %s @ %s:%d",
-                pos, files[i], __FILE__, __LINE__
+          pos, files[i], __FILE__, __LINE__
         );
         return SCR_FAILURE;
       }
@@ -706,8 +706,8 @@ int scr_file_exists(const char* file)
   if (access(file, F_OK) < 0) {
     /* TODO: would be nice to print a message here, but
      *       functions calling this expect it to be quiet
-    scr_dbg(2, "File does not exist: %s errno=%d %s @ file %s:%d",
-            file, errno, strerror(errno), __FILE__, __LINE__
+    scr_dbg(2, "File does not exist: %s errno=%d %s @ %s:%d",
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
     */
     return SCR_FAILURE;
@@ -722,8 +722,8 @@ int scr_file_is_readable(const char* file)
   if (access(file, R_OK) < 0) {
     /* TODO: would be nice to print a message here, but
      *       functions calling this expect it to be quiet
-    scr_dbg(2, "File not readable: %s errno=%d %s @ file %s:%d",
-            file, errno, strerror(errno), __FILE__, __LINE__
+    scr_dbg(2, "File not readable: %s errno=%d %s @ %s:%d",
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
     */
     return SCR_FAILURE;
@@ -738,8 +738,8 @@ int scr_file_is_writeable(const char* file)
   if (access(file, W_OK) < 0) {
     /* TODO: would be nice to print a message here, but
      *       functions calling this expect it to be quiet
-    scr_dbg(2, "File not writeable: %s errno=%d %s @ file %s:%d",
-            file, errno, strerror(errno), __FILE__, __LINE__
+    scr_dbg(2, "File not writeable: %s errno=%d %s @ %s:%d",
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
     */
     return SCR_FAILURE;
@@ -751,8 +751,8 @@ int scr_file_is_writeable(const char* file)
 int scr_file_unlink(const char* file)
 {
   if (unlink(file) != 0) {
-    scr_dbg(2, "Failed to delete file: %s errno=%d %s @ file %s:%d",
-            file, errno, strerror(errno), __FILE__, __LINE__
+    scr_dbg(2, "Failed to delete file: %s errno=%d %s @ %s:%d",
+      file, errno, strerror(errno), __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -773,8 +773,8 @@ int scr_crc32(const char* filename, uLong* crc)
   /* open the file for reading */
   int fd = scr_open(filename, O_RDONLY);
   if (fd < 0) {
-    scr_dbg(1, "Failed to open file to compute crc: %s errno=%d @ file %s:%d",
-            filename, errno, __FILE__, __LINE__
+    scr_dbg(1, "Failed to open file to compute crc: %s errno=%d @ %s:%d",
+      filename, errno, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -792,8 +792,8 @@ int scr_crc32(const char* filename, uLong* crc)
 
   /* if we got an error, don't print anything and bailout */
   if (nread < 0) {
-    scr_dbg(1, "Error while reading file to compute crc: %s @ file %s:%d",
-            filename, __FILE__, __LINE__
+    scr_dbg(1, "Error while reading file to compute crc: %s @ %s:%d",
+      filename, __FILE__, __LINE__
     );
     close(fd);
     return SCR_FAILURE;
@@ -844,14 +844,14 @@ int scr_mkdir(const char* dir, mode_t mode)
         return SCR_SUCCESS;
       } else {
         scr_err("Creating directory: mkdir(%s, %x) path=%s errno=%d %s @ %s:%d",
-                dir, mode, path, errno, strerror(errno), __FILE__, __LINE__
+          dir, mode, path, errno, strerror(errno), __FILE__, __LINE__
         );
         rc = SCR_FAILURE;
       }
     }
   } else {
     scr_err("Cannot write to directory: %s @ %s:%d",
-            path, __FILE__, __LINE__
+      path, __FILE__, __LINE__
     );
     rc = SCR_FAILURE;
   }
@@ -929,8 +929,8 @@ int scr_file_copy(
   );
 
   if (cppr_retval == CPPR_SUCCESS) {
-    scr_dbg(0,"#bold file %s copied successfully using CPPR @%s:%d\n",
-            dst_file, __FILE__, __LINE__
+    scr_dbg(0,"#bold file %s copied successfully using CPPR @ %s:%d",
+      dst_file, __FILE__, __LINE__
     );
     return SCR_SUCCESS;
   } else {
@@ -939,7 +939,7 @@ cppr cppr_err=%d @ %s:%d", cppr_retval, __FILE__, __LINE__
     );
   }
 #else
-  scr_dbg(0,"#bold file %s to be copied using SCR\n", dst_file);
+  scr_dbg(0,"#bold file %s to be copied using SCR", dst_file);
 #endif /* HAVE_LIBCPPR */
 
   /* open src_file for reading */
@@ -1140,8 +1140,8 @@ this %d vs %d  %s vs %s @ %s:%d",
   }
 
 
-  scr_dbg(1, "cppr mv dst_prefix: '%s', src_prefix '%s'\n dst_file '%s' \
-src_file '%s'\n",
+  scr_dbg(1, "cppr mv dst_prefix: '%s', src_prefix '%s' dst_file '%s' \
+src_file '%s'",
     dst_prefix, src_prefix,
     dst_file + dst_prefix_len, 
     src_file + src_prefix_len
@@ -1164,7 +1164,7 @@ src_file '%s'\n",
 
   if (cppr_retval != CPPR_SUCCESS) {
     scr_dbg(0,"REQUEST to move file with CPPR failed due to \
-%d:'%s''%s' @%s:%d",
+%d:'%s''%s' @ %s:%d",
       cppr_retval, cppr_err_to_str(cppr_retval),
       cppr_err_to_desc(cppr_retval),
       __FILE__, __LINE__
@@ -1177,7 +1177,7 @@ src_file '%s'\n",
   if (crc != NULL) {
     int crc_retval = scr_crc32(dst_file, crc);
     if (crc_retval != SCR_SUCCESS) {
-      scr_err("error computing crc value: %d @ %s:%d\n",
+      scr_err("error computing crc value: %d @ %s:%d",
         crc_retval, __FILE__, __LINE__
       );
     }

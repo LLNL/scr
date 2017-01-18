@@ -78,7 +78,7 @@ static int scr_fetch_file(
   }
   rc = scr_file_copy(src_file, dst_file, scr_file_buf_size, crc_p);
   if (rc == SCR_SUCCESS) {
-    scr_dbg(1, "scr fetched file %s %d:%s", src_file, __LINE__, __FILE__);
+    scr_dbg(1, "scr fetched file %s @ %s:%d", src_file, __FILE__, __LINE__);
   }
 
   /* check that crc matches crc stored in meta */
@@ -634,7 +634,7 @@ static int scr_fetch_summary(
   /* assume that we won't succeed in our fetch attempt */
   int rc = SCR_SUCCESS;
 
-  scr_dbg(1, "scr_fetch_summary at %d:%s", __LINE__, __FILE__);
+  scr_dbg(1, "scr_fetch_summary @ %s:%d", __FILE__, __LINE__);
 
   /* check whether summary file exists and is readable */
   if (scr_my_rank_world == 0) {
@@ -783,7 +783,7 @@ static int scr_fetch_summary(
 
   /* check that everyone read the data ok */
   if (! scr_alltrue(rc == SCR_SUCCESS)) {
-    scr_dbg(1, "scr_fetch_summary FAILURE at %d:%s", __LINE__, __FILE__);
+    scr_dbg(1, "scr_fetch_summary FAILURE @ %s:%d", __FILE__, __LINE__);
     rc = SCR_FAILURE;
     goto cleanup_hashes;
   }
@@ -802,18 +802,18 @@ static int scr_fetch_summary(
      * the info we need is in the element hash */
     scr_hash* elem_hash = scr_hash_elem_hash(elem);
 
-    scr_dbg(1, "scr_fetch_summary print at %d:%s", __LINE__, __FILE__);
+    scr_dbg(1, "scr_fetch_summary print @ %s:%d", __FILE__, __LINE__);
 
     scr_hash_log(elem_hash, 1, 0);
     /* get pointer to file hash */
     scr_hash* file_hash = scr_hash_get(elem_hash, SCR_SUMMARY_6_KEY_FILE);
     if (file_hash != NULL) {
       /* TODO: parse summary file format */
-      scr_dbg(1, "scr_fetch_summary at %d:%s", __LINE__, __FILE__);
+      scr_dbg(1, "scr_fetch_summary @ %s:%d", __FILE__, __LINE__);
       scr_hash_merge(file_list, elem_hash);
     } else {
             //rc = SCR_FAILURE;
-      scr_dbg(1, "scr_fetch_summary NO FILES FOR THIS RANK at %d:%s", __LINE__, __FILE__);
+      scr_dbg(1, "scr_fetch_summary NO FILES FOR THIS RANK @ %s:%d", __FILE__, __LINE__);
     }
   }
 
@@ -850,7 +850,7 @@ static int scr_fetch_summary(
 
   /* check that everyone read the data ok */
   if (! scr_alltrue(rc == SCR_SUCCESS)) {
-    scr_dbg(1, "scr_fetch_summary FINAL FAILURE at %d:%s", __LINE__, __FILE__);
+    scr_dbg(1, "scr_fetch_summary FINAL FAILURE @ %s:%d", __FILE__, __LINE__);
     rc = SCR_FAILURE;
     goto cleanup_hashes;
   }

@@ -1421,7 +1421,7 @@ int scr_cache_rebuild(scr_filemap* map)
 
     if (distribute_attempted) {
       if (rc == SCR_SUCCESS) {
-        scr_dbg(0, "Scalable restart succeeded for checkpoint %d, took %f secs",
+        scr_dbg(1, "Scalable restart succeeded for checkpoint %d, took %f secs",
           scr_checkpoint_id, time_diff
         );
         if (scr_log_enable) {
@@ -1429,7 +1429,7 @@ int scr_cache_rebuild(scr_filemap* map)
         }
       } else {
         /* scr_checkpoint_id is not defined */
-        scr_dbg(0, "Scalable restart failed, took %f secs", time_diff);
+        scr_dbg(1, "Scalable restart failed, took %f secs", time_diff);
         if (scr_log_enable) {
           scr_log_event("RESTART FAILED", NULL, NULL, &time_t_start, &time_diff);
         }
