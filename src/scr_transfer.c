@@ -9,6 +9,27 @@
  * Please also read this file: LICENSE.TXT.
 */
 
+/* All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the BSD-3 license which accompanies this
+ * distribution in LICENSE.TXT
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3  License in
+ * LICENSE.TXT for more details.
+ *
+ * GOVERNMENT LICENSE RIGHTS-OPEN SOURCE SOFTWARE
+ * The Government's rights to use, modify, reproduce, release, perform,
+ * display, or disclose this software are subject to the terms of the BSD-3
+ * License as provided in Contract No. B609815.
+ * Any reproduction of computer software, computer software documentation, or
+ * portions thereof marked with this legend must also reproduce the markings.
+ *
+ * Author: Christopher Holguin <christopher.a.holguin@intel.com>
+ *
+ * (C) Copyright 2015-2016 Intel Corporation.
+ */
+
 /*
  * The scr_transfer program is a deamon process that SCR launches as
  * one process per compute node.  It sleeps in the background, waking
@@ -297,12 +318,22 @@ scr_hash* read_transfer_file()
   if (value != NULL) {
     if (strcmp(value, SCR_TRANSFER_KEY_COMMAND_EXIT) == 0) {
       /* close files and exit */
+      scr_dbg(0,"scr_transfer instructed to exit @%s:%d\n",
+              __FILE__, __LINE__
+      );
+      set_transfer_file_state(SCR_TRANSFER_KEY_STATE_EXIT, 0);
       keep_running = 0;
     } else if (strcmp(value, SCR_TRANSFER_KEY_COMMAND_STOP) == 0) {
       /* just stop, nothing else to do here */
+      scr_dbg(0,"scr_transfer instructed to STOP @%s:%d\n",
+              __FILE__, __LINE__
+       );
     } else if (strcmp(value, SCR_TRANSFER_KEY_COMMAND_RUN) == 0) {
       /* found the RUN command, if the DONE flag is not set,
        * set our state to running and update the transfer file */
+      scr_dbg(0,"scr_transfer instructed to RUN @%s:%d\n",
+              __FILE__, __LINE__
+      );
       if (!done) {
         state = RUNNING;
         set_transfer_file_state(SCR_TRANSFER_KEY_STATE_RUN, 0);
@@ -412,6 +443,12 @@ int read_params()
 
 int main (int argc, char *argv[])
 {
+
+#ifdef HAVE_LIBCPPR
+  /* this program is a noop if we have libcppr, as libcppr
+   * will do the file transfers asynchronously for us  */
+  scr_dbg(1,"scr_transfer shutting down since libcppr is present\n");
+#else
   /* check that we were given at least one argument
    * (the transfer file name) */
   if (argc != 2) {
@@ -697,6 +734,8 @@ int main (int argc, char *argv[])
           close_files(new_file_src, &fd_src, new_file_dst, &fd_dst);
           clear_parameters(&new_file_src, &new_file_dst, &new_position);
           clear_parameters(&old_file_src, &old_file_dst, &old_position);
+          scr_dbg(0,"transfered file successfully using async process @%s:%d\n",
+                  __FILE__, __LINE__);
         }
       } else {
         /* TODO: we may have an error
@@ -721,6 +760,7 @@ int main (int argc, char *argv[])
     free(scr_transfer_file);
     scr_transfer_file = NULL;
   }
+#endif /* HAVE_LIBCPPR */
 
   return 0;
 }

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -34,8 +35,8 @@ double getbw(char* name, char* buf, size_t size, int times)
 {
   char file[SCR_MAX_FILENAME];
   double bw = 0.0;
-
   int scr_retval;
+
   if (times > 0) {
     /* start the timer */
     double time_start = MPI_Wtime();
@@ -59,6 +60,7 @@ double getbw(char* name, char* buf, size_t size, int times)
                rank, scr_retval, __FILE__, __LINE__
         );
       }
+
       /* get the file name to write our checkpoint file to */
       char newname[SCR_MAX_FILENAME];
       sprintf(newname, "timestep.%d/%s", timestep, name);
@@ -137,20 +139,25 @@ double getbw(char* name, char* buf, size_t size, int times)
 
   return bw;
 }
-
 int main (int argc, char* argv[])
 {
-  /* check that we got an appropriate number of arguments */
-  if (argc != 1 && argc != 4) {
-    printf("Usage: test_correctness [filesize times sleep_secs]\n");
-    return 1;
-  }
 
-  /* read parameters from command line, if any */
-  if (argc > 1) {
+  char *path_to_stdout = NULL;
+
+  /* check that we got an appropriate number of arguments */
+  if (argc == 2) {
+    path_to_stdout = argv[1];
+  }
+  else if(argc == 5){
     filesize = (size_t) atol(argv[1]);
     times = atoi(argv[2]);
     seconds = atoi(argv[3]);
+    path_to_stdout = argv[4];
+  }
+  else{
+    printf("Usage: test_api_file [filesize times sleep_secs path_to_stdout]\n");
+    printf("OR: test_api_file [ path_to_stdout]\n");
+    exit(1);
   }
 
   MPI_Init(&argc, &argv);
@@ -158,17 +165,26 @@ int main (int argc, char* argv[])
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &ranks);
 
+  /* open file for stdout */  
+  printf("new stdout filename: \"%s\"\n", path_to_stdout);
+  fflush(stdout);
+  freopen(path_to_stdout, "a+", stdout);
+  MPI_Barrier(MPI_COMM_WORLD);
+  
+
   /* time how long it takes to get through init */
   MPI_Barrier(MPI_COMM_WORLD);
+  printf("%d: rank startup before scr_init\n", rank);
   double init_start = MPI_Wtime();
   if (SCR_Init() != SCR_SUCCESS){
-    printf("Failed initializing SCR\n");
-    return 1;
+    printf("FAILED INITIALIZING SCR\n");
+    fclose(stdout);
+    return -1;
   }
-
   double init_end = MPI_Wtime();
   double secs = init_end - init_start;
   MPI_Barrier(MPI_COMM_WORLD);
+  printf("%d: rank startup after scr_init\n", rank);
 
   /* compute and print the init stats */
   double secsmin, secsmax, secssum;
@@ -194,10 +210,11 @@ int main (int argc, char* argv[])
     if (read_checkpoint(file, &timestep, buf, filesize)) {
       /* read the file ok, now check that contents are good */
       found_checkpoint = 1;
-      //printf("%d: Successfully read checkpoint from %s\n", rank, file);
+      printf("%d: Successfully read checkpoint from %s\n", rank, file);
       if (!check_buffer(buf, filesize, rank, timestep)) {
         printf("%d: Invalid value in buffer\n", rank);
         MPI_Abort(MPI_COMM_WORLD, 1);
+	fclose(stdout);
         return 1;
       }
     } else {
@@ -219,6 +236,7 @@ int main (int argc, char* argv[])
   MPI_Allreduce(&timestep, &timestep_or,  1, MPI_INT, MPI_BOR,  MPI_COMM_WORLD);
   if (timestep_and != timestep_or) {
     printf("%d: Timesteps don't agree: timestep %d\n", rank, timestep);
+    fclose(stdout);
     return 1;
   }
 
@@ -255,6 +273,6 @@ int main (int argc, char* argv[])
 
   SCR_Finalize();
   MPI_Finalize();
-
+  fclose(stdout);
   return 0;
 }

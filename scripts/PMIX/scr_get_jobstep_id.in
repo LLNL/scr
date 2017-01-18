@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+
+# TODO: cppr/pmix notes - this script is only used when launching the watchdog process.  Have not tested this
+
+
+my $pid=$ARGV[0];
+my $user=`scr_env -u`;
+chomp($user);
+my $jobid=`scr_env -j`;
+chomp($jobid);
+# get job steps for this user and job, order by decreasing job step
+# so first one should be the one we are looking for
+# -h means print no header, so just the data in this order:
+# STEPID         NAME PARTITION     USER      TIME NODELIST
+my $cmd="";
+
+my @output=`$cmd`;
+
+my $currjobid=-1; # the return value will be -1 if not found
+
+print "$currjobid\n";
+
+exit 0;
+

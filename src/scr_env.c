@@ -9,6 +9,27 @@
  * Please also read this file: LICENSE.TXT.
 */
 
+/* All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the BSD-3 license which accompanies this
+ * distribution in LICENSE.TXT
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3  License in
+ * LICENSE.TXT for more details.
+ *
+ * GOVERNMENT LICENSE RIGHTS-OPEN SOURCE SOFTWARE
+ * The Government's rights to use, modify, reproduce, release, perform,
+ * display, or disclose this software are subject to the terms of the BSD-3
+ * License as provided in Contract No. B609815.
+ * Any reproduction of computer software, computer software documentation, or
+ * portions thereof marked with this legend must also reproduce the markings.
+ *
+ * Author: Christopher Holguin <christopher.a.holguin@intel.com>
+ *
+ * (C) Copyright 2015-2016 Intel Corporation.
+ */
+
 /* This implements the scr_err.h interface, but for serial jobs,
  * like the SCR utilities. */
 
@@ -25,7 +46,12 @@
 #include "yogrt.h"
 #endif /* HAVE_LIBYOGRT */
 
-#if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT)
+#if SCR_MACHINE_TYPE == SCR_PMIX
+#include "pmix.h"
+#include "scr_globals.h"
+#endif /* SCR_MACHINE_TYPE == SCR_PMIX */
+
+#if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT) || (SCR_MACHINE_TYPE == SCR_PMIX)
 #include <unistd.h> /* gethostname */
 #endif
 
@@ -104,6 +130,33 @@ char* scr_env_jobid()
         );
       }
     }
+  #elif SCR_MACHINE_TYPE == SCR_PMIX
+    /* todo: must replace this in the scr_env script as well */
+    pmix_pdata_t *pmix_query_data = NULL;
+    PMIX_PDATA_CREATE(pmix_query_data, 1);
+
+    /* todo: pmix_pdata_destroy ?? */
+
+    /* specify that we want our jobid from pmix */
+    strncpy(pmix_query_data[0].key, PMIX_JOBID, PMIX_MAX_KEYLEN);
+
+    /* query pmix for our job id */
+    pmix_status_t retval = PMIx_Lookup(pmix_query_data, 1, NULL, 0);
+    if (retval == PMIX_SUCCESS) {
+      /* got it, strdup the value from pmix */
+      jobid = strdup(pmix_query_data[0].value.data.string);
+      scr_dbg(1, "pmix query for jobid success '%s'\n", jobid);
+    } else {
+      /* failed to get our jobid from pmix, make one up */
+      char *pmix_hardcoded_id = "pmix_hardcoded_jobid";
+      jobid = strdup(pmix_hardcoded_id);
+      scr_dbg(1, "error with pmix jobid: %d, using hardcoded jobid '%s'\n",
+              retval, jobid
+      );
+    }
+
+    /* free pmix query structure */
+    PMIX_PDATA_FREE(pmix_query_data, 1);
   #endif
 
   return jobid;
@@ -114,7 +167,8 @@ char* scr_env_nodename()
 {
   char* name = NULL;
 
-  #if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT)
+  #if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT) || \
+	  (SCR_MACHINE_TYPE == SCR_PMIX)
     /* we just use the string returned by gethostname */
     char hostname[256];
     if (gethostname(hostname, sizeof(hostname)) == 0) {

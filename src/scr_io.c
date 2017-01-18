@@ -9,8 +9,32 @@
  * Please also read this file: LICENSE.TXT.
 */
 
+/* All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the BSD-3 license which accompanies this
+ * distribution in LICENSE.TXT
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3  License in
+ * LICENSE.TXT for more details.
+ *
+ * GOVERNMENT LICENSE RIGHTS-OPEN SOURCE SOFTWARE
+ * The Government's rights to use, modify, reproduce, release, perform,
+ * display, or disclose this software are subject to the terms of the BSD-3
+ * License as provided in Contract No. B609815.
+ * Any reproduction of computer software, computer software documentation, or
+ * portions thereof marked with this legend must also reproduce the markings.
+ *
+ * Author: Christopher Holguin <christopher.a.holguin@intel.com>
+ *
+ * (C) Copyright 2015-2016 Intel Corporation.
+ */
+
 /* Implements a reliable open/read/write/close interface via open and close.
  * Implements directory manipulation functions. */
+
+/* Please note todos in the cppr section; an optimization of using CPPR apis is 
+ * planned for upcoming work */
 
 #include "scr_conf.h"
 #include "scr.h"
@@ -45,6 +69,18 @@
 
 /* gettimeofday */
 #include <sys/time.h>
+
+/*  use libcppr to copy files if available */
+#ifdef HAVE_LIBCPPR
+#include "cppr.h"
+/* internal wrapper function for CPPR */
+cppr_return_t _scr_cppr_file_copy(
+  const char* src_file,
+  const char* dst_file, 
+  unsigned long buf_size,
+  uLong* crc
+);
+#endif
 
 /*
 =========================================
@@ -885,6 +921,27 @@ int scr_file_copy(
     return SCR_FAILURE;
   }
 
+  int rc = SCR_SUCCESS;
+
+#ifdef HAVE_LIBCPPR
+  cppr_return_t cppr_retval = _scr_cppr_file_copy(
+    src_file, dst_file, buf_size, crc
+  );
+
+  if (cppr_retval == CPPR_SUCCESS) {
+    scr_dbg(0,"#bold file %s copied successfully using CPPR @%s:%d\n",
+            dst_file, __FILE__, __LINE__
+    );
+    return SCR_SUCCESS;
+  } else {
+    scr_dbg(0,"Couldn't move file with cppr, attempting move without \
+cppr cppr_err=%d @ %s:%d", cppr_retval, __FILE__, __LINE__
+    );
+  }
+#else
+  scr_dbg(0,"#bold file %s to be copied using SCR\n", dst_file);
+#endif /* HAVE_LIBCPPR */
+
   /* open src_file for reading */
   int src_fd = scr_open(src_file, O_RDONLY);
   if (src_fd < 0) {
@@ -928,8 +985,6 @@ int scr_file_copy(
   if (crc != NULL) {
     *crc = crc32(0L, Z_NULL, 0);
   }
-
-  int rc = SCR_SUCCESS;
 
   /* write chunks */
   int copying = 1;
@@ -983,6 +1038,151 @@ int scr_file_copy(
   if (rc != SCR_SUCCESS) {
     unlink(dst_file);
   }
+#ifdef HAVE_LIBCPPR
+  else {
+    scr_err("File moved successfully without CPPR, WHAT HAPPENED??\
+ @ %s:%d", __FILE__, __LINE__
+    );
+  }
+#endif
 
   return rc;
 }
+
+#ifdef HAVE_LIBCPPR
+cppr_return_t _scr_cppr_file_copy(
+  const char* src_file,
+  const char* dst_file,
+  unsigned long buf_size,
+  uLong* crc)
+{
+  int src_len = 0;
+  int dst_len = 0;
+
+  int src_prefix_len = 0;
+  int dst_prefix_len = 0;
+
+  int src_filename_len = 0;
+  int dst_filename_len = 0;
+
+  /* get pointer to the first / found starting from the end of the string */
+  char* src_prefix_end = strrchr(src_file, '/');
+  char* dst_prefix_end = strrchr(dst_file, '/'); 
+
+  if (src_prefix_end == NULL || dst_prefix_end == NULL) {
+    scr_err("couldn't find '/' in the src or dest file, so couldn't determine prefix\
+ using cppr SRC:'%s' DST:'%s' @ %s:%d",
+      src_file, dst_file, __FILE__, __LINE__
+    );
+    return CPPR_UNDEFINED;
+  }
+
+  /* get length of entire string */
+  src_len = strlen(src_file);
+  dst_len = strlen(dst_file);
+  
+  /* calculate length of just the prefix, add 1 to include the trailing / */
+  src_prefix_len = src_prefix_end - src_file;
+  dst_prefix_len = dst_prefix_end - dst_file;
+  src_prefix_len++;
+  dst_prefix_len++;
+
+  /* calculate the length of just the file, subtract 1 to not include the
+   * '/' in the filename */
+  src_filename_len = src_len - src_prefix_len;
+  dst_filename_len = dst_len - dst_prefix_len;
+  src_filename_len--;
+  dst_filename_len--;
+  if (src_filename_len <= 0 || dst_filename_len <= 0) {
+    scr_err(" length of src (%d) or dest (%d) filename <= 0 \
+@ %s:%d",
+      src_filename_len, dst_filename_len, __FILE__, __LINE__
+    );
+    return CPPR_UNDEFINED;
+
+  }
+
+  /* check to see if the actual file name lengths match */
+  if (src_filename_len !=  dst_filename_len) {
+    scr_err("name of src and dst file don't match in length, CPPR can't handle \
+this %d vs %d  %s vs %s @ %s:%d",
+      src_filename_len, dst_filename_len, src_file, dst_file, __FILE__, __LINE__
+    );
+
+    return CPPR_UNDEFINED;
+  }
+
+  /* need to get the substrings for src and dest prefix */
+  char* src_prefix = calloc(sizeof(char), src_prefix_len + 1);
+  char* dst_prefix = calloc(sizeof(char), dst_prefix_len + 1);
+
+  if (src_prefix == NULL || dst_prefix == NULL) {
+    scr_err("couldn't allocate memory for the prefix and destination strings @\
+ %s:%d",
+      __FILE__, __LINE__
+    );
+    return CPPR_UNDEFINED;
+  }
+
+  strncpy(src_prefix, src_file, src_prefix_len);
+  strncpy(dst_prefix, dst_file, dst_prefix_len);
+
+  /*  we know that the lengths match, so this is safe */
+  if (memcmp( (src_file + src_prefix_len), (dst_file + dst_prefix_len), 
+	      (src_len - src_prefix_len) ) != 0)
+  {
+    scr_err("the end file names don't match: %s %s @ %s:%d", 
+      (src_file + src_len), (dst_file + dst_len), __FILE__, __LINE__
+    );
+    free(src_prefix);
+    free(dst_prefix);
+    return CPPR_UNDEFINED;
+  }
+
+
+  scr_dbg(1, "cppr mv dst_prefix: '%s', src_prefix '%s'\n dst_file '%s' \
+src_file '%s'\n",
+    dst_prefix, src_prefix,
+    dst_file + dst_prefix_len, 
+    src_file + src_prefix_len
+  );
+  
+  /* TODO: this is not the most "efficient" use of the CPPR API 
+   * it would be better to kick off file moves in the functions that
+   * call scr_file_copy, (using cppr_mv) and then call cppr_wait()
+   * here.  This will take some refactoring and is on the todo list
+   * for the CPPR team */
+
+  /* TODO: need to get the users umask, similar to scr_getmode() ?*/
+  /* TODO: need to add O_CREAT|O_WRONLY|O_TRUNC so overwrite works */
+  cppr_return_t cppr_retval = cppr_mv_wait(
+    0, 0, NULL, dst_prefix, src_prefix, src_file + src_prefix_len
+  ); 
+
+  free(src_prefix);
+  free(dst_prefix);
+
+  if (cppr_retval != CPPR_SUCCESS) {
+    scr_dbg(0,"REQUEST to move file with CPPR failed due to \
+%d:'%s''%s' @%s:%d",
+      cppr_retval, cppr_err_to_str(cppr_retval),
+      cppr_err_to_desc(cppr_retval),
+      __FILE__, __LINE__
+    );
+    return cppr_retval;
+  }
+
+  /* TODO: CPPR we need to figure out if CPPR can support this */
+  /* perform crc check if necessary */
+  if (crc != NULL) {
+    int crc_retval = scr_crc32(dst_file, crc);
+    if (crc_retval != SCR_SUCCESS) {
+      scr_err("error computing crc value: %d @ %s:%d\n",
+        crc_retval, __FILE__, __LINE__
+      );
+    }
+  }
+
+  return cppr_retval;
+}
+#endif /* HAVE_LIBCPPR */

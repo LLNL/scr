@@ -9,6 +9,27 @@
  * Please also read this file: LICENSE.TXT.
 */
 
+/* All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the BSD-3 license which accompanies this
+ * distribution in LICENSE.TXT
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3  License in
+ * LICENSE.TXT for more details.
+ *
+ * GOVERNMENT LICENSE RIGHTS-OPEN SOURCE SOFTWARE
+ * The Government's rights to use, modify, reproduce, release, perform,
+ * display, or disclose this software are subject to the terms of the BSD-3
+ * License as provided in Contract No. B609815.
+ * Any reproduction of computer software, computer software documentation, or
+ * portions thereof marked with this legend must also reproduce the markings.
+ *
+ * Author: Christopher Holguin <christopher.a.holguin@intel.com>
+ *
+ * (C) Copyright 2015-2016 Intel Corporation.
+ */
+
 #ifndef SCR_DATASET_H
 #define SCR_DATASET_H
 
@@ -30,7 +51,7 @@ Allocate, delete, and copy functions
 */
 
 /* allocate a new dataset object */
-scr_dataset* scr_dataset_new();
+scr_dataset* scr_dataset_new(void);
 
 /* free memory assigned to dataset object */
 int scr_dataset_delete(scr_dataset** ptr_dataset);

@@ -47,6 +47,8 @@ AC_PROG_LIBTOOL
 #X_AC_MRNET
 #X_AC_LAUNCHMON
 X_AC_PROG_PDSH
+X_AC_CPPR
+X_AC_PMIX
 
 ##
 # Checks for header files.
@@ -153,6 +155,15 @@ AC_CONFIG_FILES([ \
   scripts/cray_xt/scr_inspect \
   scripts/cray_xt/scr_kill_jobstep \
   scripts/cray_xt/scr_get_jobstep_id \
+  scripts/PMIX/Makefile \
+  scripts/PMIX/scr_run \
+  scripts/PMIX/scr_env \
+  scripts/PMIX/scr_halt \
+  scripts/PMIX/scr_list_down_nodes \
+  scripts/PMIX/scr_scavenge \
+  scripts/PMIX/scr_inspect \
+  scripts/PMIX/scr_kill_jobstep \
+  scripts/PMIX/scr_get_jobstep_id \
   examples/Makefile \
   examples/makefile.examples \
   doc/Makefile \

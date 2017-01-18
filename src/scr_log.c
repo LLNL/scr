@@ -9,6 +9,27 @@
  * Please also read this file: LICENSE.TXT.
 */
 
+/* All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the BSD-3 license which accompanies this
+ * distribution in LICENSE.TXT
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3  License in
+ * LICENSE.TXT for more details.
+ *
+ * GOVERNMENT LICENSE RIGHTS-OPEN SOURCE SOFTWARE
+ * The Government's rights to use, modify, reproduce, release, perform,
+ * display, or disclose this software are subject to the terms of the BSD-3
+ * License as provided in Contract No. B609815.
+ * Any reproduction of computer software, computer software documentation, or
+ * portions thereof marked with this legend must also reproduce the markings.
+ *
+ * Author: Christopher Holguin <christopher.a.holguin@intel.com>
+ *
+ * (C) Copyright 2015-2016 Intel Corporation.
+ */
+
 /* Implements a logging interface for SCR events and file transfer operations */
 
 #include "scr_conf.h"
@@ -841,6 +862,10 @@ int scr_log_event(const char* type, const char* note, const int* dset, const tim
   if (scr_db_enable) {
     rc = scr_mysql_log_event(type, note, dset, start, secs);
   }
+  struct tm *timeinfo;
+  timeinfo = localtime(start);
+  //TODO cppr check null
+  scr_dbg(1,"scr_log_event: type %s, note %s, dset %d, start %s, secs %f", type, note, dset, asctime(timeinfo), secs);
   return rc;
 }
 
@@ -851,5 +876,10 @@ int scr_log_transfer(const char* type, const char* from, const char* to, const i
   if (scr_db_enable) {
     rc = scr_mysql_log_transfer(type, from, to, dset_id, start, secs, bytes);
   }
+
+  struct tm *timeinfo;
+  timeinfo = localtime(start);
+  //TODO cppr check null
+  scr_dbg(1,"scr_log_transfer: type %s, src %s, dst %s, dset %d, start %s, secs %f, bytes %f", type, from, to, *dset_id, asctime(timeinfo), *secs, *bytes);
   return rc;
 }

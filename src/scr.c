@@ -9,12 +9,41 @@
  * Please also read this file: LICENSE.TXT.
 */
 
+/* All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the BSD-3 license which accompanies this
+ * distribution in LICENSE.TXT
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3  License in
+ * LICENSE.TXT for more details.
+ *
+ * GOVERNMENT LICENSE RIGHTS-OPEN SOURCE SOFTWARE
+ * The Government's rights to use, modify, reproduce, release, perform,
+ * display, or disclose this software are subject to the terms of the BSD-3
+ * License as provided in Contract No. B609815.
+ * Any reproduction of computer software, computer software documentation, or
+ * portions thereof marked with this legend must also reproduce the markings.
+ *
+ * Author: Christopher Holguin <christopher.a.holguin@intel.com>
+ *
+ * (C) Copyright 2015-2016 Intel Corporation.
+ */
+
 #include "scr_globals.h"
 
 /* include the DTCMP library if it's available */
 #ifdef HAVE_LIBDTCMP
 #include "dtcmp.h"
 #endif /* HAVE_LIBDTCMP */
+
+#ifdef HAVE_LIBPMIX
+#include "pmix.h"
+#endif
+
+#ifdef HAVE_LIBCPPR
+#include "cppr.h"
+#endif
 
 /*
 =========================================
@@ -165,8 +194,13 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     if (scr_flush_async_in_progress) {
       /* there's an async flush ongoing, see which dataset is being flushed */
       if (scr_flush_async_dataset_id == scr_dataset_id) {
+#ifdef HAVE_LIBCPPR
+        /* it's faster to wait on async flush if we have CPPR  */
+        scr_flush_async_wait(scr_map);
+#else
         /* we're going to sync flush this same dataset below, so kill it */
-        scr_flush_async_stop(scr_map);
+        scr_flush_async_stop();
+#endif
       } else {
         /* the async flush is flushing a different dataset, so wait for it */
         scr_flush_async_wait(scr_map);
@@ -174,13 +208,55 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     }
 
     /* TODO: need to flush any output sets and the latest checkpoint set */
+    scr_dbg(0,"flush sync called due to need to halt @%s:%d\n", __FILE__,
+            __LINE__);
 
     /* flush files if needed */
     scr_flush_sync(scr_map, scr_checkpoint_id);
 
+    if (scr_flush_async) {
+      scr_flush_async_shutdown();
+    }
+
     /* sync up tasks before exiting (don't want tasks to exit so early that
      * runtime kills others after timeout) */
     MPI_Barrier(scr_comm_world);
+
+#ifdef HAVE_LIBPMIX
+    /* sync procs in pmix before shutdown */
+    int retval = PMIx_Fence(NULL, 0, NULL, 0);
+    if (retval != PMIX_SUCCESS) {
+      scr_err("pmix fence failed: %d, rank: %d, host: %s @ %s:%d",
+              retval, scr_pmix_proc.rank, scr_my_hostname, 
+              __FILE__, __LINE__
+      );
+    }
+
+/*
+    scr_dbg(0, "about to call pmix notify in HALT: pmix rank: %d", scr_pmix_proc.rank);
+    retval = PMIx_Notify_event(-1,
+                      &scr_pmix_proc,
+                      PMIX_RANGE_GLOBAL,
+                      NULL, 0,
+                      NULL, (void *)NULL);
+    if (retval != PMIX_SUCCESS) {
+      scr_dbg(0, "error calling pmix_notify_event: %d", retval);
+    }
+*/
+
+    /* shutdown pmix */
+    retval = PMIx_Finalize(NULL, 0);
+    if (retval != PMIX_SUCCESS) {
+      scr_err("pmix finalize failed: %d, rank: %d, host: %s @ %s:%d",
+              retval, scr_pmix_proc.rank, scr_my_hostname,
+              __FILE__, __LINE__
+      );
+    }
+    
+    /* TODO: remove this once ompi has a fix?? */
+    MPI_Barrier(scr_comm_world);
+    MPI_Finalize();
+#endif /* HAVE_LIBPMIX */
 
     /* and exit the job */
     exit(0);
@@ -204,6 +280,7 @@ static int scr_check_flush(scr_filemap* map)
     if (scr_checkpoint_id > 0 && scr_checkpoint_id % scr_flush == 0) {
       /* need to flush this checkpoint, determine whether to use async or sync flush */
       if (scr_flush_async) {
+        scr_dbg(0, "ASYNC flush attempt @%s:%d\n", __FILE__, __LINE__);;
         /* check that we don't start an async flush if one is already in progress */
         if (scr_flush_async_in_progress) {
           /* we need to flush the current checkpoint, however, another flush is ongoing,
@@ -215,6 +292,7 @@ static int scr_check_flush(scr_filemap* map)
         scr_flush_async_start(map, scr_checkpoint_id);
       } else {
         /* synchronously flush the current checkpoint */
+        scr_dbg(0, "sync flush attempt @%s:%d\n", __FILE__, __LINE__);
         scr_flush_sync(map, scr_checkpoint_id);
       }
     }
@@ -693,6 +771,17 @@ int SCR_Init()
    * a config file, we must at least create scr_comm_world and call
    * scr_get_params() */
 
+/* sanity check to ensure both libpmix and machine type SCR_PMIX are enabled */
+#if (SCR_MACHINE_TYPE == SCR_PMIX)
+#ifndef HAVE_LIBPMIX
+  /* bad news - specified pmix machine type but no libpmix! */
+  scr_abort(-1, 
+    "can't have pmix machine type without --with-pmix in configure!"
+  );
+#endif /* HAVE_LIBPMIX */
+  /* this is the valid case - nothing needs to be printed here */
+#endif /* SCR_MACHINE_TYPE == SCR_PMIX */
+
   /* create a context for the library */
   MPI_Comm_dup(MPI_COMM_WORLD,  &scr_comm_world);
   MPI_Comm_rank(scr_comm_world, &scr_my_rank_world);
@@ -904,9 +993,34 @@ int SCR_Init()
 
   /* TODO: should we check for access and required space in cache
    * directories at this point? */
-
+  
   /* ensure that the control and cache directories are ready */
   MPI_Barrier(scr_comm_world);
+  
+#if (SCR_MACHINE_TYPE == SCR_PMIX)
+  /* init pmix */
+  int retval = PMIx_Init(&scr_pmix_proc, NULL, 0);
+  if (retval != PMIX_SUCCESS) {
+    scr_err("PMIX initialized FAIL: %d @ %s:%d\n", retval, __FILE__, 
+            __LINE__
+    );
+    return SCR_FAILURE;
+  }
+  scr_dbg(1, "pmix initialized successfully @ %s:%d", __FILE__, __LINE__);
+#endif /* SCR_MACHINE_TYPE == SCR_PMIX */
+
+#ifdef HAVE_LIBCPPR
+  /* attempt to init cppr */
+  int cppr_ret = cppr_status();
+  if (cppr_ret != CPPR_SUCCESS) {
+    scr_abort(-1, "libcppr cppr_status() failed: %d '%s' @ %s:%d",
+              cppr_ret, cppr_err_to_str(cppr_ret), __FILE__, __LINE__
+    );
+  }
+  scr_dbg(0, "#bold CPPR is present @ %s:%d", __FILE__, __LINE__);
+#else
+  scr_dbg(0, "#bold CPPR is NOT present @ %s:%d", __FILE__, __LINE__);
+#endif /* HAVE_LIBCPPR */
 
   /* place the halt, flush, and nodes files in the prefix directory */
   scr_halt_file = scr_path_from_str(scr_prefix_scr);
@@ -1005,9 +1119,13 @@ int SCR_Init()
       /* check whether we need to flush data */
       if (scr_flush_on_restart) {
         /* always flush on restart if scr_flush_on_restart is set */
+        scr_dbg(1, "sync flush attempt on restart \
+@%s:%d\n", __FILE__, __LINE__);
         scr_flush_sync(scr_map, scr_checkpoint_id);
       } else {
         /* otherwise, flush only if we need to flush */
+        scr_dbg(1, "scr_check_flush attempt on restart \
+@%s:%d\n", __FILE__, __LINE__);
         scr_check_flush(scr_map);
       }
     }
@@ -1034,6 +1152,7 @@ int SCR_Init()
   if (rc != SCR_SUCCESS && scr_fetch) {
     /* sets scr_dataset_id and scr_checkpoint_id upon success */
     rc = scr_fetch_sync(scr_map, &fetch_attempted);
+    scr_dbg(0, "scr_fetch_sync attempted on restart\n");
   }
 
   /* TODO: there is some risk here of cleaning the cache when we shouldn't
@@ -1111,8 +1230,13 @@ int SCR_Finalize()
   /* handle any async flush */
   if (scr_flush_async_in_progress) {
     if (scr_flush_async_dataset_id == scr_dataset_id) {
+#ifdef HAVE_LIBCPPR
+      /* if we have CPPR, async flush is faster than sync flush, so let it finish */
+      scr_flush_async_wait(scr_map);
+#else
       /* we're going to sync flush this same checkpoint below, so kill it */
       scr_flush_async_stop();
+#endif
     } else {
       /* the async flush is flushing a different checkpoint, so wait for it */
       scr_flush_async_wait(scr_map);
@@ -1121,7 +1245,13 @@ int SCR_Finalize()
 
   /* flush checkpoint set if we need to */
   if (scr_bool_need_flush(scr_checkpoint_id)) {
+    scr_dbg(1, "sync flush attempt in SCR_Finalize @%s:%d\n",
+            __FILE__, __LINE__);
     scr_flush_sync(scr_map, scr_checkpoint_id);
+  }
+
+  if(scr_flush_async){
+    scr_flush_async_shutdown();
   }
 
   /* disconnect from database */
@@ -1191,6 +1321,24 @@ int SCR_Finalize()
     );
   }
 #endif /* HAVE_LIBDTCMP */
+
+#ifdef HAVE_LIBPMIX
+  /* sync procs in pmix before shutdown */
+  int retval = PMIx_Fence(NULL, 0, NULL, 0);
+  if (retval != PMIX_SUCCESS) {
+    scr_err("failure fencing: %d, rank: %d @ %s:%d",
+            retval, scr_pmix_proc.rank, __FILE__, __LINE__
+    );
+  }
+  
+  /* shutdown pmix */
+  retval = PMIx_Finalize(NULL, 0);
+  if (retval != PMIX_SUCCESS) {
+    scr_err("pmix finalize failed in scr_finalize: %d, rank: %d\n @ %s:%d",
+            retval, scr_pmix_proc.rank, __FILE__, __LINE__
+    );
+  }
+#endif /* HAVE_LIBPMIX */
 
   return SCR_SUCCESS;
 }

@@ -2,6 +2,7 @@
 LIBZ_LDFLAGS = -lz
 
 AM_CFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/config
+AM_CXXFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/config
 
 # headers to be installed in /include subdirectory
 include_HEADERS = \
@@ -60,7 +61,9 @@ CMDS_INCLUDES = \
 	$(DEFAULT_INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) \
 	$(AM_CFLAGS) $(CFLAGS) \
-	$(MYSQL_CPPFLAGS)
+	$(MYSQL_CPPFLAGS) \
+	$(PMIX_CFLAGS) \
+	$(CPPR_CFLAGS)
 
 # source files that are used by scr commands and runtime library
 libscr_base_la_SOURCES = \
@@ -77,18 +80,17 @@ libscr_base_la_SOURCES = \
 	scr_dataset.c \
 	scr_config.c \
 	scr_param.c \
-	scr_env.c \
 	scr_log.c \
 	scr_halt.c
 libscr_base_la_CFLAGS = $(CMDS_INCLUDES)
-libscr_base_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)
+libscr_base_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS) $(CPPR_LDFLAGS) $(CPPR_LIBS) $(PMIX_LDFLAGS)
 libscr_base_la_LDFLAGS = -avoid-version
 
 # source files that are only used for commands
 libscr_cmds_la_SOURCES = \
 	scr_err_serial.c \
 	scr_config_serial.c
-libscr_cmds_la_CFLAGS = $(CMDS_INCLUDES)
+libscr_cmds_la_CFLAGS = $(CMDS_INCLUDES) $(CPPR_CFLAGS)
 libscr_cmds_la_LIBADD = libscr_base.la
 libscr_cmds_la_LDFLAGS = -avoid-version
 
@@ -98,6 +100,7 @@ INCLUDES = \
 	$(AM_CPPFLAGS) $(CPPFLAGS) \
 	$(AM_CFLAGS) $(CFLAGS) \
 	$(YOGRT_CPPFLAGS) \
+	$(CPPR_CFLAGS) \
 	$(MYSQL_CPPFLAGS)
 
 # source files that are used by libraries (include MPI)
@@ -122,9 +125,10 @@ libscr_la_SOURCES = \
 	scr_flush.c \
 	scr_flush_sync.c \
 	scr_flush_async.c \
+	scr_env.c \
 	scr.c
-libscr_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(MPI_CFLAGS)
-libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) libscr_base.la
+libscr_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(PMIX_CFLAGS) $(CPPR_CFLAGS) $(MPI_CFLAGS)
+libscr_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(PMIX_LIBS) $(CPPR_LDFLAGS) $(CPPR_LIBS) $(MPI_CLDFLAGS) libscr_base.la
 #(avoids numbers at end of library name)
 libscr_la_LDFLAGS = -avoid-version
 #libscr_la_LDFLAGS = -rpath $(DESTDIR)$(libdir)
@@ -153,6 +157,14 @@ bin_PROGRAMS = \
 	scr_log_transfer \
 	scr_transfer \
 	scr_index
+
+if INTERNAL_HAVE_LIBPMIX
+  bin_PROGRAMS += scr_pmix_spawn
+
+  scr_pmix_spawn_SOURCES = scr_pmix_spawn.c
+  scr_pmix_spawn_LDADD = $(PMIX_LIBS) $(PMIX_LDFLAGS)
+  scr_pmix_spawn_CFLAGS = $(AM_CFLAGS) $(PMIX_CFLAGS) $(MPI_CFLAGS)
+endif
 
 scr_copy_SOURCES = scr_copy.c
 scr_copy_LDADD = $(LIBZ_LDFLAGS) libscr_cmds.la
