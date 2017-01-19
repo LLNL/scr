@@ -31,8 +31,8 @@
 # in bytes in the following form:
 #   CNTLDIR=<directory_prefix> BYTES=<required_size_in_bytes>
 # e.g.,
-#   CNTLDIR=/tmp BYTES=1000000000
-CNTLDIR=/tmp BYTES=1000000000
+#   CNTLDIR=/tmp BYTES=1GB
+CNTLDIR=/tmp BYTES=1GB
 
 # Select the default SCR control directory.  Specify the
 # <directory_prefix> that matches one of the control
@@ -53,9 +53,9 @@ SCR_CNTL_BASE=/tmp
 # in bytes, in the following form:
 #   CACHEDIR=<directory_prefix> BYTES=<required_size_in_bytes>
 # e.g.,
-#   CACHEDIR=/tmp BYTES=16000000000
-CACHEDIR=/tmp BYTES=12000000000
-CACHEDIR=/ssd BYTES=27000000000
+#   CACHEDIR=/tmp BYTES=16GB
+CACHEDIR=/tmp BYTES=12GB
+CACHEDIR=/ssd BYTES=270GB
 
 # Select the default SCR cache directory.  Specify the
 # <directory_prefix> that matches one of the cache
