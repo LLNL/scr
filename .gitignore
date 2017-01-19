@@ -8,6 +8,12 @@ autom4te.cache/
 config.h.in
 ltmain.sh
 
+m4/libtool.m4
+m4/ltoptions.m4
+m4/ltsugar.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
+
 ## SCR Conf Files
 
 scr.conf
@@ -17,14 +23,6 @@ scr.user.conf
 *.lo
 *.la
 
-scripts/cray_xt/scr_env
-scripts/cray_xt/scr_get_jobstep_id
-scripts/cray_xt/scr_halt
-scripts/cray_xt/scr_inspect
-scripts/cray_xt/scr_kill_jobstep
-scripts/cray_xt/scr_list_down_nodes
-scripts/cray_xt/scr_run
-scripts/cray_xt/scr_scavenge
 src/.deps/
 src/.libs/
 src/Makefile
@@ -48,15 +46,6 @@ testing/scrpidfile
 testing/test_output.txt
 
 scripts/Makefile
-scripts/PMIX/Makefile
-scripts/PMIX/scr_env
-scripts/PMIX/scr_get_jobstep_id
-scripts/PMIX/scr_halt
-scripts/PMIX/scr_inspect
-scripts/PMIX/scr_kill_jobstep
-scripts/PMIX/scr_list_down_nodes
-scripts/PMIX/scr_run
-scripts/PMIX/scr_scavenge
 scripts/TLCC/Makefile
 scripts/TLCC/scr_env
 scripts/TLCC/scr_get_jobstep_id
@@ -66,6 +55,31 @@ scripts/TLCC/scr_kill_jobstep
 scripts/TLCC/scr_list_down_nodes
 scripts/TLCC/scr_run
 scripts/TLCC/scr_scavenge
+scripts/cray_xt/scr_env
+scripts/cray_xt/scr_get_jobstep_id
+scripts/cray_xt/scr_halt
+scripts/cray_xt/scr_inspect
+scripts/cray_xt/scr_kill_jobstep
+scripts/cray_xt/scr_list_down_nodes
+scripts/cray_xt/scr_run
+scripts/cray_xt/scr_scavenge
+scripts/PMIX/Makefile
+scripts/PMIX/scr_env
+scripts/PMIX/scr_get_jobstep_id
+scripts/PMIX/scr_halt
+scripts/PMIX/scr_inspect
+scripts/PMIX/scr_kill_jobstep
+scripts/PMIX/scr_list_down_nodes
+scripts/PMIX/scr_run
+scripts/PMIX/scr_scavenge
+scripts/LSF/scr_env
+scripts/LSF/scr_get_jobstep_id
+scripts/LSF/scr_halt
+scripts/LSF/scr_inspect
+scripts/LSF/scr_kill_jobstep
+scripts/LSF/scr_list_down_nodes
+scripts/LSF/scr_run
+scripts/LSF/scr_scavenge
 scripts/common/Makefile
 scripts/common/scr_check_node
 scripts/common/scr_glob_hosts

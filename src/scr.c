@@ -208,13 +208,14 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     }
 
     /* TODO: need to flush any output sets and the latest checkpoint set */
-    scr_dbg(0, "flush sync called due to need to halt @ %s:%d",
-      __FILE__, __LINE__
-    );
 
     /* flush files if needed */
+    if (scr_my_rank_world == 0) {
+      scr_dbg(2, "sync flush due to need to halt @ %s:%d", __FILE__, __LINE__);
+    }
     scr_flush_sync(scr_map, scr_checkpoint_id);
 
+    /* give our async flush method a chance to shut down */
     if (scr_flush_async) {
       scr_flush_async_shutdown();
     }
@@ -279,7 +280,10 @@ static int scr_check_flush(scr_filemap* map)
     if (scr_checkpoint_id > 0 && scr_checkpoint_id % scr_flush == 0) {
       /* need to flush this checkpoint, determine whether to use async or sync flush */
       if (scr_flush_async) {
-        scr_dbg(0, "ASYNC flush attempt @ %s:%d", __FILE__, __LINE__);;
+        if (scr_my_rank_world == 0) {
+          scr_dbg(2, "async flush attempt @ %s:%d", __FILE__, __LINE__);;
+        }
+
         /* check that we don't start an async flush if one is already in progress */
         if (scr_flush_async_in_progress) {
           /* we need to flush the current checkpoint, however, another flush is ongoing,
@@ -291,7 +295,9 @@ static int scr_check_flush(scr_filemap* map)
         scr_flush_async_start(map, scr_checkpoint_id);
       } else {
         /* synchronously flush the current checkpoint */
-        scr_dbg(0, "SYNC flush attempt @ %s:%d", __FILE__, __LINE__);
+        if (scr_my_rank_world == 0) {
+          scr_dbg(2, "sync flush attempt @ %s:%d", __FILE__, __LINE__);
+        }
         scr_flush_sync(map, scr_checkpoint_id);
       }
     }
@@ -1149,7 +1155,9 @@ int SCR_Init()
   if (rc != SCR_SUCCESS && scr_fetch) {
     /* sets scr_dataset_id and scr_checkpoint_id upon success */
     rc = scr_fetch_sync(scr_map, &fetch_attempted);
-    scr_dbg(0, "scr_fetch_sync attempted on restart");
+    if (scr_my_rank_world == 0) {
+      scr_dbg(2, "scr_fetch_sync attempted on restart");
+    }
   }
 
   /* TODO: there is some risk here of cleaning the cache when we shouldn't
@@ -1242,7 +1250,9 @@ int SCR_Finalize()
 
   /* flush checkpoint set if we need to */
   if (scr_bool_need_flush(scr_checkpoint_id)) {
-    scr_dbg(1, "sync flush attempt in SCR_Finalize @ %s:%d", __FILE__, __LINE__);
+    if (scr_my_rank_world == 0) {
+      scr_dbg(2, "Sync flush in SCR_Finalize @ %s:%d", __FILE__, __LINE__);
+    }
     scr_flush_sync(scr_map, scr_checkpoint_id);
   }
 
@@ -1836,7 +1846,7 @@ int SCR_Complete_checkpoint(int valid)
     }
 
     /* print out a debug message with the result of the copy */
-    scr_dbg(1, "Completed checkpoint %d with return code %d",
+    scr_dbg(2, "Completed checkpoint %d with return code %d",
       scr_checkpoint_id, rc
     );
   }
