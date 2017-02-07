@@ -452,9 +452,6 @@ int main(int argc, char **argv, const char **environ)
         /* set the app to run */
         (void)asprintf(&spawned_app->cmd, "%s", path_to_app);
 
-        /* set argc */
-        spawned_app->argc = spawned_app_argc;
-
         /* set argv for spawned app starting with remaining argv  */
         spawned_app->argv = &argv[optind];
 
