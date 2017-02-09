@@ -61,6 +61,9 @@ int SCR_Route_file(const char* name, char* file);
 /* inform library that the current checkpoint is complete */
 int SCR_Complete_checkpoint(int valid);
 
+/* determine whether SCR has a restart available to read */
+int SCR_Have_restart(int* flag);
+
 /* get and return the SCR version */
 char* SCR_Get_version(void);
 
