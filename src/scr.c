@@ -1969,6 +1969,33 @@ int SCR_Complete_checkpoint(int valid)
   return rc;
 }
 
+/* determine whether SCR has a checkpoint available to read */
+int SCR_Have_restart(int* flag)
+{
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    *flag = 0;
+    return SCR_FAILURE;
+  }
+
+  /* say no if not initialized */
+  if (! scr_initialized) {
+    *flag = 0;
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* TODO: a more proper check would be to examine the filemap, perhaps across ranks */
+
+  /* set flag depending on whether checkpoint_id is greater than 0,
+   * we'll take this to mean that we have a checkpoint in cache */
+  *flag = (scr_checkpoint_id > 0);
+
+  return SCR_SUCCESS;
+}
+
 /* get and return the SCR version */
 char* SCR_Get_version()
 {
