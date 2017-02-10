@@ -28,11 +28,39 @@ extern "C" {
 
 /* see the SCR user manual for full details on these functions */
 
+/*****************
+ * Init and finalize routines
+ ****************/
+
 /* initialize the SCR library */
 int SCR_Init(void);
 
 /* shut down the SCR library */
 int SCR_Finalize(void);
+
+/*****************
+ * File registration
+ ****************/
+
+/* determine the path and filename to be used to open a file */
+int SCR_Route_file(const char* name, char* file);
+
+/*****************
+ * Restart routines
+ ****************/
+
+/* determine whether SCR has a restart available to read */
+int SCR_Have_restart(int* flag);
+
+/* inform library that restart is starting */
+int SCR_Start_restart(void);
+
+/* inform library that the current restart is complete */
+int SCR_Complete_restart(int valid);
+
+/*****************
+ * Checkpoint routines
+ ****************/
 
 /* determine whether a checkpoint should be taken at the current time */
 int SCR_Need_checkpoint(int* flag);
@@ -40,14 +68,12 @@ int SCR_Need_checkpoint(int* flag);
 /* inform library that a new checkpoint is starting */
 int SCR_Start_checkpoint(void);
 
-/* determine the path and filename to be used to open a file */
-int SCR_Route_file(const char* name, char* file);
-
 /* inform library that the current checkpoint is complete */
 int SCR_Complete_checkpoint(int valid);
 
-/* determine whether SCR has a restart available to read */
-int SCR_Have_restart(int* flag);
+/*****************
+ * Environment and configuration routines
+ ****************/
 
 /* get and return the SCR version */
 char* SCR_Get_version(void);
