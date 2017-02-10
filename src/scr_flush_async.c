@@ -238,7 +238,7 @@ static int scr_cppr_flush_async_test(scr_filemap* map, int id, double* bytes)
           } else {
             /* the file was transferred successfully */
             bytes_written += current_cppr_metadata->filesize;
-            scr_dbg(0, "#bold CPPR successfully transfered file '%s' in async mode",
+            scr_dbg(2, "#bold CPPR successfully transfered file '%s' in async mode",
               current_cppr_metadata->filename
             );
           }

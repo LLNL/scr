@@ -1022,9 +1022,7 @@ int SCR_Init()
               cppr_ret, cppr_err_to_str(cppr_ret), __FILE__, __LINE__
     );
   }
-  scr_dbg(0, "#bold CPPR is present @ %s:%d", __FILE__, __LINE__);
-#else
-  scr_dbg(0, "#bold CPPR is NOT present @ %s:%d", __FILE__, __LINE__);
+  scr_dbg(1, "#bold CPPR is present @ %s:%d", __FILE__, __LINE__);
 #endif /* HAVE_LIBCPPR */
 
   /* place the halt, flush, and nodes files in the prefix directory */

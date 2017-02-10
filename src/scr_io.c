@@ -929,17 +929,15 @@ int scr_file_copy(
   );
 
   if (cppr_retval == CPPR_SUCCESS) {
-    scr_dbg(0,"#bold file %s copied successfully using CPPR @ %s:%d",
+    scr_dbg(2,"#bold file %s copied successfully using CPPR @ %s:%d",
       dst_file, __FILE__, __LINE__
     );
     return SCR_SUCCESS;
   } else {
-    scr_dbg(0,"Couldn't move file with cppr, attempting move without \
+    scr_dbg(2,"Couldn't move file with cppr, attempting move without \
 cppr cppr_err=%d @ %s:%d", cppr_retval, __FILE__, __LINE__
     );
   }
-#else
-  scr_dbg(0,"#bold file %s to be copied using SCR", dst_file);
 #endif /* HAVE_LIBCPPR */
 
   /* open src_file for reading */
