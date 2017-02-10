@@ -20,8 +20,8 @@ source $1.build_vars.sh
 #export MCL_LOG_LEVEL=5
 #export MCL_LOG_DIR=/tmp/caholgu1
 export PDSH_RCMD_TYPE=ssh
-export CPPR_PREFIX=$CPPR_CAH_WORKDIR/local
-export LD_LIBRARY_PATH=$CPPR_INST_PATH/lib:$SL_LD_LIBRARY_PATH:$SCR_INST_PATH/lib
+export CNSS_PREFIX=$CPPR_CAH_WORKDIR/local
+export LD_LIBRARY_PATH=$CPPR_INST_PATH/lib:$SL_OMPI_PREFIX/../pmix/lib:$SCR_INST_PATH/lib:$SL_LD_LIBRARY_PATH
 export PATH=$CPPR_INST_PATH/bin:$SL_PATH:$SCR_INST_PATH/bin:~/perl5/bin:/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
 
 export PMIX_NODELIST=$CAH_HOSTLIST

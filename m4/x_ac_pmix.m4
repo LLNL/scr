@@ -80,6 +80,7 @@ AC_DEFUN([X_AC_PMIX], [
         
               _x_ac_pmix_libs_save="$LIBS"
               LIBS="-L$d/$bit -lpmix $LIBS $MPI_CLDFLAGS"
+              CFLAGS="-I$d/include"
               AC_LINK_IFELSE(
                 AC_LANG_PROGRAM([#include <pmix.h>], [PMIx_Init(NULL, NULL, 0)]),
                 AS_VAR_SET([x_ac_cv_pmix_dir], [$d]))
