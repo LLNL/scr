@@ -8,7 +8,7 @@ Written by Adam Moody <moody20@llnl.gov>.
 LLNL-CODE-411039.
 All rights reserved.
 This file is part of The Scalable Checkpoint / Restart (SCR) library.
-For details, see https://sourceforge.net/projects/scalablecr
+For details, see https://github.com/llnl/scr
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
