@@ -1483,6 +1483,9 @@ int SCR_Need_checkpoint(int* flag)
 }
 
 /* informs SCR that a fresh checkpoint set is about to start */
+// SCR_FLAG_CHECKPOINT
+// SCR_FLAG_OUTPUT
+//int SCR_Start_checkpoint(char* name, int flags)
 int SCR_Start_checkpoint()
 {
   /* if not enabled, bail with an error */
@@ -1992,6 +1995,50 @@ int SCR_Have_restart(int* flag)
   /* set flag depending on whether checkpoint_id is greater than 0,
    * we'll take this to mean that we have a checkpoint in cache */
   *flag = (scr_checkpoint_id > 0);
+
+  return SCR_SUCCESS;
+}
+
+/* determine whether SCR has a checkpoint available to read */
+//int SCR_Start_restart(char* name[SCR_MAX_FILENAME])
+int SCR_Start_restart()
+{
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* TODO: placeholder for code if needed */
+
+  return SCR_SUCCESS;
+}
+
+/* determine whether SCR has a checkpoint available to read */
+//int SCR_Complete_restart(int valid)
+int SCR_Complete_restart()
+{
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* TODO: placeholder for code if needed */
 
   return SCR_SUCCESS;
 }
