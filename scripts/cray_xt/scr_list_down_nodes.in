@@ -159,7 +159,7 @@ if (defined $conf{free}) {
 # check that control and cache directories on each node work and are of proper size
 # get the control directory the job will use
 my @cntldir_vals = ();
-my $cntldir_string = `$bindir/scr_list_dir --base control`;
+my $cntldir_string = `$bindir/scr_cntl_dir --base`;
 if ($? == 0) {
   chomp $cntldir_string;
   my @dirs = split(" ", $cntldir_string);
@@ -182,7 +182,7 @@ if (@cntldir_vals > 0) {
 
 # get the cache directory the job will use
 my @cachedir_vals = ();
-my $cachedir_string = `$bindir/scr_list_dir --base cache`;
+my $cachedir_string = `$bindir/scr_cntl_dir --cache --base`;
 if ($? == 0) {
   chomp $cachedir_string;
   my @dirs = split(" ", $cachedir_string);
