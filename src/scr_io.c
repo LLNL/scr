@@ -105,10 +105,9 @@ int scr_open(const char* file, int flags, ...)
     while (tries && fd < 0) {
       usleep(SCR_OPEN_USLEEP);
       if (mode_set) { 
-	fd = open(file, flags, 00777);
-	//        fd = open(file, flags, mode);
+        fd = open(file, flags, mode);
       } else {
-        fd = open(file, flags, 00777);
+        fd = open(file, flags);
       }
       tries--;
     }
