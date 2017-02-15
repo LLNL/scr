@@ -1,6 +1,6 @@
 MPICC     ?= mpicc
-MPICXX    ?= mpiCC
-MPIF90    ?= mpifort
+MPICXX    ?= mpicxx
+MPIF90    ?= mpif90
 OPT       ?= -g -O3
 LIBDIR     = -L@X_LIBDIR@ -L/usr/lib64
 INCLUDES   = -I@X_INCLUDEDIR@ -I/usr/include -I.
