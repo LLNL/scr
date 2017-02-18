@@ -74,7 +74,7 @@ if (defined $conf{user}) {
     my $hoststr = "";
     if (-r $hostfile) {
       # got a file, try to read it
-      my $hoststr = `cat $hostfile`;
+      $hoststr = `cat $hostfile`;
       if ($? != 0) {
         # failed to read file
         exit 1;
@@ -84,7 +84,7 @@ if (defined $conf{user}) {
     # build set of unique hostnames, one hostname per line
     chomp $hoststr;
     my @hosts = split('\n', $hoststr);
-    my %hosts_unique = {};
+    my %hosts_unique;
     foreach my $host (@hosts) {
       $hosts_unique{$host} = 1;
     }
