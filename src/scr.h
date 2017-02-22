@@ -71,7 +71,7 @@ int SCR_Have_restart(int* flag);
 int SCR_Start_restart(void);
 
 /* inform library that the current restart is complete */
-int SCR_Complete_restart(int valid);
+int SCR_Complete_restart(void);
 
 /*****************
  * Checkpoint routines
