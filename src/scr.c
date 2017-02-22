@@ -1999,7 +1999,7 @@ int SCR_Have_restart(int* flag)
   return SCR_SUCCESS;
 }
 
-/* determine whether SCR has a checkpoint available to read */
+/* inform library that restart is starting */
 //int SCR_Start_restart(char* name[SCR_MAX_FILENAME])
 int SCR_Start_restart()
 {
@@ -2021,9 +2021,9 @@ int SCR_Start_restart()
   return SCR_SUCCESS;
 }
 
-/* determine whether SCR has a checkpoint available to read */
+/* inform library that the current restart is complete */
 //int SCR_Complete_restart(int valid)
-int SCR_Complete_restart()
+int SCR_Complete_restart(void)
 {
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
