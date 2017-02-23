@@ -164,6 +164,10 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 	/* else wait */
 	/* get the TYPE of the store for checkpoint */
 	/* neither strdup nor free */
+#ifdef HAVE_LIBCPPR
+	/* it's faster to wait on async flush if we have CPPR  */
+	scr_flush_async_wait(scr_map);
+#else
 	scr_reddesc* reddesc = scr_reddesc_for_checkpoint(scr_dataset_id,
 							  scr_nreddescs,
 							  scr_reddescs);
@@ -174,6 +178,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 	}else{//if type posix
 	  scr_flush_async_stop();
 	}
+#endif
       } else {
         /* the async flush is flushing a different dataset, so wait for it */
         scr_flush_async_wait(scr_map);
@@ -184,7 +189,10 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
     /* flush files if needed */
     if(scr_bool_need_flush(scr_checkpoint_id)){
-	scr_flush_sync(scr_map, scr_checkpoint_id);
+      if(scr_my_rank_world == 0){
+	scr_dbg(2, "sync flush due to need to hald @ %s:%d", __FILE__, __LINE__);
+      }
+      scr_flush_sync(scr_map, scr_checkpoint_id);
     }
 
     /* sync up tasks before exiting (don't want tasks to exit so early that
@@ -1152,6 +1160,10 @@ int SCR_Finalize()
   /* handle any async flush */
   if (scr_flush_async_in_progress) {
     if (scr_flush_async_dataset_id == scr_dataset_id) {
+#ifdef HAVE_LIBCPPR
+      /* if we have CPPR, async flush is faster than sync flush, so let it finish */
+      scr_flush_async_wait(scr_map);
+#else
       /* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
       /* else wait */
       /* get the TYPE of the store for checkpoint */
@@ -1166,6 +1178,7 @@ int SCR_Finalize()
       }else{//if type posix
 	scr_flush_async_stop();
       }
+#endif
     } else {
       /* the async flush is flushing a different checkpoint, so wait for it */
       scr_flush_async_wait(scr_map);
