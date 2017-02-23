@@ -88,7 +88,7 @@ CMDS_INCLUDES = \
 	scr_log.c \
 	scr_halt.c
 #libscr_base_la_CFLAGS = $(CMDS_INCLUDES)
-#libscr_base_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)
+#libscr_base_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS) $(CPPR_LDFLAGS) $(CPPR_LIBS) $(PMIX_LDFLAGS)
 #libscr_base_la_LDFLAGS = -avoid-version
 
 # source files that are only used for commands
@@ -111,8 +111,8 @@ libscr_cmds_la_SOURCES = \
 	scr_env.c \
 	scr_log.c \
 	scr_halt.c
-libscr_cmds_la_CFLAGS = $(CMDS_INCLUDES)
-libscr_cmds_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)
+libscr_cmds_la_CFLAGS = $(CMDS_INCLUDES) $(CPPR_CFLAGS)
+libscr_cmds_la_LIBADD = $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS) $(CPPR_LDFLAGS) $(CPPR_LIBS) $(PMIX_LDFLAGS)
 libscr_cmds_la_LDFLAGS = -avoid-version
 
 INCLUDES = \
@@ -163,8 +163,8 @@ libscr_tlcc_la_SOURCES = \
 	scr_log.c \
 	scr_halt.c
 
-libscr_tlcc_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(MPI_CFLAGS) $(CMDS_INCLUDES)
-libscr_tlcc_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)#libscr_base.la
+libscr_tlcc_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(PMIX_CFLAGS) $(CPPR_CFLAGS) $(MPI_CFLAGS) $(CMDS_INCLUDES)
+libscr_tlcc_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS) $(PMIX_LIBS) $(CPPR_LDFLAGS) $(CPPR_LIBS) #libscr_base.la
 #(avoids numbers at end of library name)
 libscr_tlcc_la_LDFLAGS = -avoid-version
 #libscr_la_LDFLAGS = -rpath $(DESTDIR)$(libdir)
@@ -209,8 +209,8 @@ libscr_cray_xt_la_SOURCES = \
 	scr_log.c \
 	scr_halt.c
 
-libscr_cray_xt_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(MPI_CFLAGS) $(CMDS_INCLUDES)
-libscr_cray_xt_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)#libscr_base.la
+libscr_cray_xt_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(PMIX_CFLAGS) $(CPPR_CFLAGS) $(MPI_CFLAGS) $(CMDS_INCLUDES)
+libscr_cray_xt_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS) $(PMIX_LIBS) $(CPPR_LDFLAGS) $(CPPR_LIBS) #libscr_base.la
 #(avoids numbers at end of library name)
 libscr_cray_xt_la_LDFLAGS = -avoid-version
 #libscr_la_LDFLAGS = -rpath $(DESTDIR)$(libdir)
@@ -218,8 +218,8 @@ libscr_cray_xt_la_LDFLAGS = -avoid-version
 libscr_la_SOURCES =
 libscr_la_LIBADD = libscr$(FILE_EXT).la
 libscr_la_DEPENDENCIES = libscr$(FILE_EXT).la
-libscr_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(MPI_CFLAGS) $(CMDS_INCLUDES)
-libscr_la_LIBADD += $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS)#libscr_base.la
+libscr_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(PMIX_CFLAGS) $(CPPR_CFLAGS) $(MPI_CFLAGS) $(CMDS_INCLUDES)
+libscr_la_LIBADD += $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS) $(PMIX_LIBS) $(CPPR_LDFLAGS) $(CPPR_LDLIBS) #libscr_base.la
 #(avoids numbers at end of library name)
 libscr_la_LDFLAGS = -avoid-version
 
