@@ -95,6 +95,10 @@ char* scr_param_get(char* name)
    * return that value */
   value = scr_hash_elem_get_first_val(scr_user_hash, name);
   if (no_user == NULL && value != NULL) {
+    /* evaluate environment variables */
+    if(*value == '$'){
+      value = strdup(getenv(value+1));
+    }
     return value;
   }
 
@@ -102,6 +106,10 @@ char* scr_param_get(char* name)
    * return that value */
   value = scr_hash_elem_get_first_val(scr_system_hash, name);
   if (value != NULL) {
+    /* evaluate environment variables */
+    if(*value == '$'){
+      value = strdup(getenv(value+1));
+    }
     return value;
   }
 
@@ -133,6 +141,19 @@ scr_hash* scr_param_get_hash(char* name)
    * return that value */
   value_hash = scr_hash_get(scr_user_hash, name);
   if (no_user == NULL && value_hash != NULL) {
+    /* walk value_hash and evaluate environment variables */
+    scr_hash_elem* elem;
+    for (elem = scr_hash_elem_first(value_hash);
+	 elem != NULL;
+	 elem = scr_hash_elem_next(elem)){
+      char* value = scr_hash_elem_key(elem);
+      if(*value == '$'){
+	value = strdup(getenv(value+1));
+	elem->key = value;
+      }
+    }
+
+    /* return the resulting hash */
     hash = scr_hash_new();
     scr_hash_merge(hash, value_hash);
     return hash;
@@ -142,6 +163,19 @@ scr_hash* scr_param_get_hash(char* name)
    * return that value */
   value_hash = scr_hash_get(scr_system_hash, name);
   if (value_hash != NULL) {
+    /* walk value_hash and evaluate environment variables */
+    scr_hash_elem* elem;
+    for (elem = scr_hash_elem_first(value_hash);
+	 elem != NULL;
+	 elem = scr_hash_elem_next(elem)){
+      char* value = scr_hash_elem_key(elem);
+      if(*value == '$'){
+	value = strdup(getenv(value+1));
+	elem->key = value;
+      }
+    }
+
+    /* return the resulting hash */
     hash = scr_hash_new();
     scr_hash_merge(hash, value_hash);
     return hash;

@@ -236,7 +236,7 @@ void scr_free(void* p)
     /* free memory if there is any */
     void* ptr = *(void**)p;
     if (ptr != NULL) {
-      free(ptr);
+       free(ptr);
     }
 
     /* set caller's pointer to NULL */

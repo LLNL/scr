@@ -37,6 +37,18 @@ X_AC_BYTESWAP
 X_AC_MOAB
 
 ##
+# Enable file swapping based on machine name
+##
+case $MACHINE_NAME in
+  *TLCC*) FILE_EXT="_tlcc" ;;
+  *cray_xt*) FILE_EXT="_cray_xt" ;;
+  *) FILE_EXT='' ;;
+esac
+AC_SUBST([FILE_EXT])
+
+
+
+##
 # enable libtool
 ##
 AC_PROG_LIBTOOL
@@ -54,6 +66,11 @@ X_AC_PMIX
 # Checks for header files.
 ##
 AC_HEADER_STDC
+
+##
+# Include MKDIR_P
+##
+AC_PROG_MKDIR_P
 
 ##
 # Checks for typedefs, structures, and compiler characteristics.

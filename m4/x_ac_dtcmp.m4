@@ -70,11 +70,11 @@ AC_DEFUN([X_AC_DTCMP], [
             test -f "$d/include/dtcmp.h" || continue
             for bit in $_x_ac_dtcmp_libs; do
               test -d "$d/$bit" || continue
-        
+
               _x_ac_dtcmp_libs_save="$LIBS"
               LIBS="-L$d/$bit -ldtcmp $LIBS $MPI_CLDFLAGS"
               AC_LINK_IFELSE(
-                AC_LANG_CALL([], [DTCMP_Rank_strings]),
+                [AC_LANG_SOURCE(AC_LANG_CALL([], [DTCMP_Rank_strings]))],
                 AS_VAR_SET([x_ac_cv_dtcmp_dir], [$d]))
               LIBS="$_x_ac_dtcmp_libs_save"
               test -n "$x_ac_cv_dtcmp_dir" && break

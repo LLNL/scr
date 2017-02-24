@@ -17,10 +17,13 @@ Dataset cache functions
 =========================================
 */
 
-static char* scr_cache_dir_from_str(const char* dir, int id)
+static char* scr_cache_dir_from_str(const char* dir, const char* storage_view, int id)
 {
   /* build the dataset directory name */
   scr_path* path = scr_path_from_str(dir);
+  if( !strcmp( storage_view, "GLOBAL") ){
+    scr_path_append_strf(path, "node.%d", scr_my_hostid);
+  }
   scr_path_append_strf(path, "scr.dataset.%d", id);
   scr_path_reduce(path);
   char* str = scr_path_strdup(path);
@@ -28,10 +31,13 @@ static char* scr_cache_dir_from_str(const char* dir, int id)
   return str;
 }
 
-static char* scr_cache_dir_hidden_from_str(const char* dir, int id)
+static char* scr_cache_dir_hidden_from_str(const char* dir, const char* storage_view, int id)
 {
   /* build the dataset directory name */
   scr_path* path = scr_path_from_str(dir);
+  if( !strcmp( storage_view, "GLOBAL") ){
+    scr_path_append_strf(path, "node.%d", scr_my_hostid);
+  }
   scr_path_append_strf(path, "scr.dataset.%d", id);
   scr_path_append_str(path, ".scr");
   scr_path_reduce(path);
@@ -51,8 +57,16 @@ char* scr_cache_dir_get(const scr_reddesc* red, int id)
     );
   }
 
+  /* get the store descripter */
+  scr_storedesc* store = scr_reddesc_get_store(red);
+  if (store == NULL){
+    scr_abort(-1, "attempting to build cache dir for null store @ %s:%d",
+	      __FILE__, __LINE__
+	      );
+  }
+
   /* build the dataset directory name */
-  char* str = scr_cache_dir_from_str(red->directory, id);
+  char* str = scr_cache_dir_from_str(red->directory, store->view, id);
   return str;
 }
 
@@ -68,7 +82,16 @@ char* scr_cache_dir_hidden_get(const scr_reddesc* red, int id)
     );
   }
 
-  char* str = scr_cache_dir_hidden_from_str(red->directory, id);
+  /* get the store descripter */
+  scr_storedesc* store = scr_reddesc_get_store(red);
+  if (store == NULL){
+    scr_abort(-1, "attempting to build cache hidden dir for null store @ %s:%d",
+	      __FILE__, __LINE__
+	      );
+  }
+
+  /* build the hidden directory name */
+  char* str = scr_cache_dir_hidden_from_str(red->directory, store->view, id);
   return str;
 }
 
@@ -164,23 +187,30 @@ int scr_cache_delete(scr_filemap* map, int id)
     /* get store descriptor */
     scr_storedesc* store = &scr_storedescs[store_index];
 
-    /* remove hidden .scr subdirectory from cache */
-    char* dir_scr = scr_cache_dir_hidden_from_str(dir, id);
+    //MPI_Comm store_comm = store->comm;
+    //int store_rank;
+    //MPI_Comm_rank(store_comm, &store_rank);
+
+    //this
+    //if(store->rank == 0){
+      /* remove hidden .scr subdirectory from cache */
+    char* dir_scr = scr_cache_dir_hidden_from_str(dir, store->view, id);
     if (scr_storedesc_dir_delete(store, dir_scr) != SCR_SUCCESS) {
       scr_err("Failed to remove dataset directory: %s @ %s:%d",
-        dir_scr, __FILE__, __LINE__
-      );
+	      dir_scr, __FILE__, __LINE__
+	      );
     }
     scr_free(&dir_scr);
-
+    
     /* remove the dataset directory from cache */
-    char* dataset_dir = scr_cache_dir_from_str(dir, id);
+    char* dataset_dir = scr_cache_dir_from_str(dir, store->view, id);
     if (scr_storedesc_dir_delete(store, dataset_dir) != SCR_SUCCESS) {
       scr_err("Failed to remove dataset directory: %s @ %s:%d",
-        dataset_dir, __FILE__, __LINE__
-      );
+	      dataset_dir, __FILE__, __LINE__
+	      );
     }
     scr_free(&dataset_dir);
+    //}
   } else {
     /* TODO: We end up here if at least one process does not have its
      * reddeesc for this dataset.  We could try to have each process delete

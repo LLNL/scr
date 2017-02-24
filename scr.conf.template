@@ -75,3 +75,8 @@ SCR_DB_HOST=host45
 SCR_DB_USER=scr_insert
 SCR_DB_PASS=12345
 SCR_DB_NAME=scr
+
+###################
+# SCR Store Descriptors
+###################
+STORE=/tmp GROUP=NODE COUNT=2

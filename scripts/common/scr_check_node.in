@@ -95,7 +95,7 @@ foreach my $type ("cntl", "cache") {
         }
 
         # ok, now get drive capacity
-        my $df_kb = `df -a $dir | tail -1 | awk '{print \$$df_arg_pos}' 2>/dev/null`;
+        my $df_kb = `df -aPk $dir | tail -1 | awk '{print \$$df_arg_pos}' 2>/dev/null`;
         chomp $df_kb;
         if ($? != 0) {
           print "FAIL: Could not access directory: $dir\n";

@@ -48,6 +48,8 @@
 /* toupper */
 #include <ctype.h>
 
+#define IS_ENVVAR_CHAR(X) ((X >= 'a' && X <= 'z') || (X >= 'A' && X <= 'Z') || (X == '_'))
+
 /* read in whitespace (spaces and tabs) until we hit a non-whitespace character */
 static int scr_config_read_whitespace(
   FILE* fs, const char* file, int linenum,
@@ -115,6 +117,79 @@ static int scr_config_read_token(
   return SCR_SUCCESS;
 }
 
+/* expand environment variables in the input and output the result
+ * primarily useful for paths in config files*/
+static char *scr_expand_value(char *raw_value)
+{
+  char value[SCR_MAX_FILENAME+1];
+  char envvar[SCR_MAX_FILENAME+1];
+  int i = 0, j = 0;
+  int is_escaped = 0;
+
+  while (raw_value[i] != '\0') {
+    if (j >= SCR_MAX_FILENAME) {
+      scr_err("Path length %s is too long, the maximum length is %d\n", raw_value, SCR_MAX_FILENAME);
+      return NULL;
+    }
+    if (is_escaped) {
+      switch (raw_value[i]) {
+      case 'a': value[j] = '\a'; break;
+      case 'b': value[j] = '\b'; break;
+      case 'f': value[j] = '\f'; break;
+      case 'n': value[j] = '\n'; break;
+      case 'r': value[j] = '\r'; break;
+      case 't': value[j] = '\t'; break;
+      case 'v': value[j] = '\v'; break;
+      default: value[j] = raw_value[i];
+      }
+      is_escaped = 0;
+      i++;
+      j++;
+    }
+    else if (raw_value[i] == '\\') {
+      is_escaped = 1;
+      i++;
+    }
+    else if (raw_value[i] == '$') {
+      char *env_start = raw_value + i + 1;
+      char *env_end = env_start;
+      size_t envvar_len, env_value_len;
+      char *env_value;
+
+      while (IS_ENVVAR_CHAR(*env_end)) env_end++;
+      envvar_len = env_end - env_start;
+      if (envvar_len > SCR_MAX_FILENAME) {
+	scr_err("The environment variable specified by %s is too long, the maximum length is %d\n", raw_value, SCR_MAX_FILENAME);
+	return NULL;
+      }
+      strncpy(envvar, env_start, envvar_len);
+      envvar[envvar_len] = '\0';
+
+      env_value = getenv(envvar);
+      if (!env_value) {
+	scr_err("No environment variable %s is defined, needed to satisfy %s\n", envvar, raw_value);
+	return NULL;
+      }
+      env_value_len = strlen(env_value);
+      if (env_value_len + j > SCR_MAX_FILENAME) {
+	scr_err("File path %s is too long when expanded with %s replacing %s. The maximum length is %d\n", raw_value, env_value, envvar);
+	return NULL;
+      }
+      strncpy(value + j, env_value, env_value_len);
+      i += envvar_len + 1;
+      j += env_value_len;
+    }
+    else {
+      value[j] = raw_value[i];
+      i++;
+      j++;
+    }
+  }
+
+  value[j] = '\0';
+  return strdup(value);
+}
+
 /* read in a key value pair and insert into hash,
  * return hash under value in hash2 pointer,
  * (key)(\s*)(=)(\s*)(value) */
@@ -126,7 +201,8 @@ static int scr_config_read_kv(
   char c = *c_external;
 
   char key[SCR_MAX_FILENAME];
-  char value[SCR_MAX_FILENAME];
+  char raw_value[SCR_MAX_FILENAME];
+  char *value;
 
   /* read in the key token */
   scr_config_read_token(fs, file, linenum, &n, &c, key, sizeof(key));
@@ -148,7 +224,8 @@ static int scr_config_read_kv(
   scr_config_read_whitespace(fs, file, linenum, &n, &c);
 
   /* read in the value token */
-  scr_config_read_token(fs, file, linenum, &n, &c, value, sizeof(value));
+  scr_config_read_token(fs, file, linenum, &n, &c, raw_value, sizeof(raw_value));
+  value = scr_expand_value(raw_value);
 
   /* convert key to upper case */
   int i = 0;

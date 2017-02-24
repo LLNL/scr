@@ -199,6 +199,8 @@ extern double scr_time_compute_start;         /* records the start time of the c
 extern double scr_time_compute_end;           /* records the end time of the current compute phase */
 
 extern char* scr_my_hostname; /* hostname of local process */
+extern int   scr_my_hostid;   /* unique id of the node on which this rank resides */
+extern int   scr_my_rank_host; /* my rank within the node */
 
 extern MPI_Comm scr_comm_world;   /* dup of MPI_COMM_WORLD */
 extern int scr_ranks_world;       /* number of ranks in the job */

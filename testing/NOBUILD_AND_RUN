@@ -1,0 +1,26 @@
+#!/bin/bash
+#USAGE:
+#Set SCR_PKG, SCR_BUILD, and SCR_INSTALL to fit your system
+#Run with output sent to the first command line argument
+if [ $# -ne 2 ]; then echo "This script takes two arguments: the test to run and teh path to the output file"; exit 1; fi
+
+# set SCR_PKG to the directory where SCR is cloned
+# set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
+# set SCR_INSTALL to the directory where SCR is installed
+if [ -z "$SCR_PKG" ]; then export SCR_PKG="/usr/projects/SCR/scr-1.1-8.cray.dev/source/port/working"; fi
+if [ -z "$SCR_BUILD" ]; then export SCR_BUILD="/usr/projects/SCR/scr-1.1-8.cray.dev/source/port/working-dist"; fi
+#if [ -z "$SCR_BUILD" ]; then export SCR_BUILD="/usr/projects/SCR/TR-installs/scr_dw_with_source"; fi
+if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="${SCR_BUILD}/install"; fi
+#if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="/usr/projects/SCR/TR-installs/scr_dw_with_source/install"; fi
+if [ -z "$SCR_LAUNCH_DIR" ]; then export SCR_LAUNCH_DIR="/lustre/ttscratch1/becker33"; fi
+
+cp ${SCR_PKG}/scr.user.conf .scrconf
+
+cd ${SCR_LAUNCH_DIR}
+msub -V -q standard -l nodes=4 -m be -j oe -o $2 ${SCR_PKG}/testing/$1
+echo "Submitted a batch job to run $1 on 4 nodes with output sent to $2."
+echo "You should shortly receive an email notifying you that the batch job has been submitted."
+echo " You will receive another when it is completed"
+echo "In the meantime you can monitor the output using \"tail -f $2\""
+
+

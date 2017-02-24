@@ -137,7 +137,9 @@ time_t scr_timestamp_compute_start;     /* record timestamp of start of compute 
 double scr_time_compute_start;          /* records the start time of the current compute phase */
 double scr_time_compute_end;            /* records the end time of the current compute phase */
 
-char* scr_my_hostname = NULL; /* hostname of local process */
+char* scr_my_hostname  = NULL; /* hostname of local process */
+int   scr_my_hostid    = MPI_PROC_NULL; /* unique identifier of the node on which this rank resides */
+int   scr_my_rank_host = MPI_PROC_NULL; /* my rank within the node */
 
 MPI_Comm scr_comm_world = MPI_COMM_NULL; /* dup of MPI_COMM_WORLD */
 int scr_ranks_world     = 0;             /* number of ranks in the job */
