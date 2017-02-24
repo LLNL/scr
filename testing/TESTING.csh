@@ -36,7 +36,7 @@ make dist
 #setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
 #setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=./deps/install"
 setenv CFLAGS "-g -O0"
-setenv configopts "--with-scr-config-file=/etc/scr.conf  --with-machine-name=LSF"
+setenv configopts "--with-scr-config-file=/etc/scr.conf --with-machine-name=LSF --with-scr-cntl-base=/dev/shm --with-scr-cache-base=/dev/shm"
 setenv scrversion "scr-1.1.8"
 cd ${SCR_PKG}
 make distclean
@@ -84,11 +84,11 @@ mxterm 4 32 120
 # set up initial enviroment for testing
 setenv scrbin ${SCR_INSTALL}/bin
 setenv jobid `${scrbin}/scr_env --jobid`
-echo $jobid
-#setenv nodelist `${scrbin}/scr_env --nodes`
-#echo $nodelist
+echo "$jobid"
+setenv nodelist `${scrbin}/scr_env --nodes`
+echo "$nodelist"
 setenv downnode `${scrbin}/scr_glob_hosts -n 1 -h "$SLURM_NODELIST"`
-echo $downnode
+echo "$downnode"
 setenv prefix_files ".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 
 setenv LD_LIBRARY_PATH ${SCR_INSTALL}/lib:${SCR_PKG}/deps/install/lib
