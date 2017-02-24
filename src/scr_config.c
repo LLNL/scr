@@ -119,13 +119,13 @@ static int scr_config_read_token(
 
 /* expand environment variables in the input and output the result
  * primarily useful for paths in config files*/
-char *scr_expand_value(char *raw_value)
+static char *scr_expand_value(char *raw_value)
 {
   char value[SCR_MAX_FILENAME+1];
   char envvar[SCR_MAX_FILENAME+1];
   int i = 0, j = 0;
   int is_escaped = 0;
-   
+
   while (raw_value[i] != '\0') {
     if (j >= SCR_MAX_FILENAME) {
       scr_err("Path length %s is too long, the maximum length is %d\n", raw_value, SCR_MAX_FILENAME);
