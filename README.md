@@ -40,9 +40,8 @@ Required:
 
 Optional:
 
-  * libyogrt -- your one get remaining time library
-    * Not currently available outside of LLNL.
-      Enables a running job to determine how much time it has left
+  * [libyogrt](https://github.com/LLNL/libyogrt) -- your one get remaining time library
+    * Enables a running job to determine how much time it has left
       in its resource allocation.
 
   * [io-watchdog](https://github.com/grondo/io-watchdog) -- tool to catch and terminate hanging jobs
