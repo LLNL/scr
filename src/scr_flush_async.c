@@ -856,8 +856,8 @@ filename: '%s' src path? '%s'", full_path,
         scr_flush_async_cppr_metadata[scr_flush_async_cppr_index].alloced =
                 true;
 
-        if (cppr_mv(&(cppr_ops[scr_flush_async_cppr_index].handle),
-            CPPR_GLOBAL_COOKIE,
+        if (cppr_mv(&(cppr_ops[scr_flush_async_cppr_index]),
+            NULL,
             CPPR_FLAG_TRACK_PROGRESS,
             NULL,
             dest_dir,
