@@ -1,3 +1,15 @@
+
+# Function to configure binaries (file.in -> file) and install into bin directory
+# Called from the subdirectories added below
+FUNCTION(SCR_INSTALL_BIN file)
+	CONFIGURE_FILE(${file}.in ${file} @ONLY)
+	SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/${file}.in PROPERTIES GENERATED FALSE)
+	SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/${file} PROPERTIES GENERATED TRUE)
+
+	INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${file} DESTINATION bin)
+ENDFUNCTION(SCR_INSTALL_BIN file)
+
+
 # Common Binaries
 ADD_SUBDIRECTORY(common)
 
