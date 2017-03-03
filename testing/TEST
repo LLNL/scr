@@ -92,20 +92,6 @@ if set(completed_checkpoints) != set([1,2,3,4,5,6]):
 
 print "----------------------------------------------------------"
 
-# check that the next run bails out due to SCR_FINALIZE_CALLED
-p=Popen(['srun','-n4', '-N4', TEST_API, SIZE, TIMES, SLEEP],stderr=STDOUT,stdout=PIPE)
-p.wait()
-
-output=p.stdout.read()
-print output
-
-halt_statement = re.search(".*SCR_FINALIZE_CALLED.*",output)
-if not halt_statement:
-    print ".....halt test failed"
-    RET+=1
-
-print "-----------------------------------------------------------"
-
 #time.sleep(60)
 # remove halt file and run again, check that checkpoints continue where last run left off
 p=Popen([scrbin+'/scr_halt', '-r', os.getcwd()], stderr=STDOUT,stdout=PIPE)
