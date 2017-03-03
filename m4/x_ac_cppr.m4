@@ -70,11 +70,11 @@ AC_DEFUN([X_AC_CPPR], [
             test -f "$d/include/cppr.h" || continue
             for bit in $_x_ac_cppr_libs; do
               test -d "$d/$bit" || continue
-        
+
               _x_ac_cppr_libs_save="$LIBS"
               LIBS="-L$d/$bit $LDFLAGS -lcppr $LIBS $MPI_CLDFLAGS"
               AC_LINK_IFELSE(
-                AC_LANG_CALL([], [cppr_status]),
+                [AC_LANG_SOURCE(AC_LANG_CALL([], [cppr_status]))],
                 AS_VAR_SET([x_ac_cv_cppr_dir], [$d]))
               LIBS="$_x_ac_cppr_libs_save"
               test -n "$x_ac_cv_cppr_dir" && break
@@ -97,7 +97,7 @@ AC_DEFUN([X_AC_CPPR], [
       AC_MSG_ERROR([unable to locate libcppr installation])
     fi
     AC_SUBST(HAVE_LIBCPPR, "1")
-    
+
   fi
 
   # propogate the build flags to our makefiles

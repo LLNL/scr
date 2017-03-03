@@ -597,3 +597,9 @@ int scr_flush_async_wait(scr_filemap* map)
   }
   return SCR_SUCCESS;
 }
+
+// TODO: clean-up internal API w.r.t. async init/finalize
+int scr_flush_async_shutdown()
+{
+    return 0;
+}

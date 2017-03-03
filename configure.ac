@@ -36,6 +36,9 @@ X_AC_FILELOCK
 X_AC_BYTESWAP
 X_AC_MOAB
 
+# TODO create an m4
+AM_CONDITIONAL([INTERNAL_HAVE_LIBDATAWARP], [false])
+
 ##
 # Enable file swapping based on machine name
 ##

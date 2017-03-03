@@ -51,11 +51,15 @@ noinst_HEADERS = \
 
 noinst_LTLIBRARIES = \
 	libscr_cmds.la \
-    libscr_tlcc.la \
-    libscr_cray_xt.la
+    libscr_tlcc.la
+#    libscr_cray_xt.la
 #	libscr_base.la \
 	libscr_cmds.la
 #	libscr_interpose.la
+
+if INTERNAL_HAVE_LIBDATAWARP
+	noinst_LTLIBRARIES += libscr_cray_xt.la
+endif
 
 lib_LTLIBRARIES = \
 	libscr.la \
