@@ -213,11 +213,13 @@ libscr_cray_xt_la_SOURCES = \
 	scr_log.c \
 	scr_halt.c
 
+if INTERNAL_HAVE_LIBDATAWARP
 libscr_cray_xt_la_CFLAGS = $(INCLUDES) $(DTCMP_CFLAGS) $(PMIX_CFLAGS) $(CPPR_CFLAGS) $(MPI_CFLAGS) $(CMDS_INCLUDES)
 libscr_cray_xt_la_LIBADD = $(YOGRT_LDFLAGS) $(YOGRT_LIBS) $(DTCMP_LDFLAGS) $(DTCMP_LIBS) $(MPI_CLDFLAGS) $(MYSQL_LDFLAGS) $(MYSQL_LIBS) $(TV_LIBS) $(LIBZ_LDFLAGS) $(PMIX_LIBS) $(CPPR_LDFLAGS) $(CPPR_LIBS) #libscr_base.la
 #(avoids numbers at end of library name)
 libscr_cray_xt_la_LDFLAGS = -avoid-version
 #libscr_la_LDFLAGS = -rpath $(DESTDIR)$(libdir)
+endif
 
 libscr_la_SOURCES =
 libscr_la_LIBADD = libscr$(FILE_EXT).la
