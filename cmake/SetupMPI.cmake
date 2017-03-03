@@ -66,7 +66,7 @@ if (ENABLE_FORTRAN)
         PATHS ${MPI_Fortran_INCLUDE_PATH}
         NO_DEFAULT_PATH
         )
-    
+
     if(mpif_path)
         set(MPI_Fortran_USE_MPIF ON CACHE PATH "")
         message(STATUS "Using MPI Fortran header: mpif.h")
