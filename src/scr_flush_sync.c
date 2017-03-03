@@ -53,7 +53,7 @@ static int scr_flush_a_file(const char* src_file, const char* dst_dir, scr_meta*
   if (crc_valid) {
     uLong crc_meta;
     if (scr_meta_get_crc32(meta, &crc_meta) == SCR_SUCCESS) {
-      if (crc != crc_meta) { 
+      if (crc != crc_meta) {
         /* detected a crc mismatch during the copy */
 
         /* TODO: unlink the copied file */
@@ -206,7 +206,7 @@ static int scr_flush_file_to_containers(
       rc = SCR_FAILURE;
       break;
     }
-    
+
     /* copy data from file into container in chunks */
     unsigned long remaining = segment_length;
     while (remaining > 0) {
@@ -553,7 +553,7 @@ int scr_flush_sync(scr_filemap* map, int id)
   /* if we are flushing something asynchronously, wait on it */
   if (scr_flush_async_in_progress) {
     scr_flush_async_wait(map);
-    
+
     /* the flush we just waited on could be the requested dataset,
      * so perhaps we're already done */
     if (! scr_bool_need_flush(id)) {

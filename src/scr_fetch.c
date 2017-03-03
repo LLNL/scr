@@ -251,7 +251,7 @@ static int scr_fetch_file_from_containers(
       rc = SCR_FAILURE;
       break;
     }
-    
+
     /* copy data from container into file in chunks */
     unsigned long remaining = segment_length;
     while (remaining > 0) {
@@ -388,7 +388,7 @@ static int scr_fetch_files_list(
     scr_path_basename(path_newfile);
     scr_path_prepend_str(path_newfile, dir);
     char* newfile = scr_path_strdup(path_newfile);
-      
+
     /* add the file to our filemap and write it to disk before creating
      * the file, this way we have a record that it may exist before we
      * actually start to fetch it */

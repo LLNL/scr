@@ -33,7 +33,7 @@
 /* Implements a reliable open/read/write/close interface via open and close.
  * Implements directory manipulation functions. */
 
-/* Please note todos in the cppr section; an optimization of using CPPR apis is 
+/* Please note todos in the cppr section; an optimization of using CPPR apis is
  * planned for upcoming work */
 
 #include "scr_conf.h"
@@ -76,7 +76,7 @@
 /* internal wrapper function for CPPR */
 cppr_return_t _scr_cppr_file_copy(
   const char* src_file,
-  const char* dst_file, 
+  const char* dst_file,
   unsigned long buf_size,
   uLong* crc
 );
@@ -126,7 +126,7 @@ int scr_open(const char* file, int flags, ...)
   }
 
   int fd = -1;
-  if (mode_set) { 
+  if (mode_set) {
     fd = open(file, flags, mode);
   } else {
     fd = open(file, flags);
@@ -140,7 +140,7 @@ int scr_open(const char* file, int flags, ...)
     int tries = SCR_OPEN_TRIES;
     while (tries && fd < 0) {
       usleep(SCR_OPEN_USLEEP);
-      if (mode_set) { 
+      if (mode_set) {
         fd = open(file, flags, mode);
       } else {
         fd = open(file, flags);
@@ -286,7 +286,7 @@ int scr_open_with_lock(const char* file, int flags, mode_t mode)
     close(fd);
     return ret;
   }
-     
+
   /* return the opened file descriptor */
   return fd;
 }
@@ -1065,7 +1065,7 @@ cppr_return_t _scr_cppr_file_copy(
 
   /* get pointer to the first / found starting from the end of the string */
   char* src_prefix_end = strrchr(src_file, '/');
-  char* dst_prefix_end = strrchr(dst_file, '/'); 
+  char* dst_prefix_end = strrchr(dst_file, '/');
 
   if (src_prefix_end == NULL || dst_prefix_end == NULL) {
     scr_err("couldn't find '/' in the src or dest file, so couldn't determine prefix\
@@ -1078,7 +1078,7 @@ cppr_return_t _scr_cppr_file_copy(
   /* get length of entire string */
   src_len = strlen(src_file);
   dst_len = strlen(dst_file);
-  
+
   /* calculate length of just the prefix, add 1 to include the trailing / */
   src_prefix_len = src_prefix_end - src_file;
   dst_prefix_len = dst_prefix_end - dst_file;
@@ -1126,10 +1126,10 @@ this %d vs %d  %s vs %s @ %s:%d",
   strncpy(dst_prefix, dst_file, dst_prefix_len);
 
   /*  we know that the lengths match, so this is safe */
-  if (memcmp( (src_file + src_prefix_len), (dst_file + dst_prefix_len), 
+  if (memcmp( (src_file + src_prefix_len), (dst_file + dst_prefix_len),
 	      (src_len - src_prefix_len) ) != 0)
   {
-    scr_err("the end file names don't match: %s %s @ %s:%d", 
+    scr_err("the end file names don't match: %s %s @ %s:%d",
       (src_file + src_len), (dst_file + dst_len), __FILE__, __LINE__
     );
     free(src_prefix);
@@ -1141,11 +1141,11 @@ this %d vs %d  %s vs %s @ %s:%d",
   scr_dbg(1, "cppr mv dst_prefix: '%s', src_prefix '%s' dst_file '%s' \
 src_file '%s'",
     dst_prefix, src_prefix,
-    dst_file + dst_prefix_len, 
+    dst_file + dst_prefix_len,
     src_file + src_prefix_len
   );
-  
-  /* TODO: this is not the most "efficient" use of the CPPR API 
+
+  /* TODO: this is not the most "efficient" use of the CPPR API
    * it would be better to kick off file moves in the functions that
    * call scr_file_copy, (using cppr_mv) and then call cppr_wait()
    * here.  This will take some refactoring and is on the todo list
@@ -1155,7 +1155,7 @@ src_file '%s'",
   /* TODO: need to add O_CREAT|O_WRONLY|O_TRUNC so overwrite works */
   cppr_return_t cppr_retval = cppr_mv_wait(
     0, 0, NULL, dst_prefix, src_prefix, src_file + src_prefix_len
-  ); 
+  );
 
   free(src_prefix);
   free(dst_prefix);
