@@ -39,7 +39,7 @@ AC_DEFUN([X_AC_PMIX], [
     AM_CONDITIONAL([INTERNAL_HAVE_LIBPMIX], false)
   else
     if test "$MACHINE_NAME" != "PMIX"; then
-       AC_MSG_ERROR([you can't enable pmix and use a different machine type other than PMIX_MACHINE_TYPE. --with-pmix and PMIX_MACHINE_TYPE must always be specified together])       
+       AC_MSG_ERROR([you can't enable pmix and use a different machine type other than PMIX_MACHINE_TYPE. --with-pmix and PMIX_MACHINE_TYPE must always be specified together])
     fi
     # user wants libpmix enabled, so let's define it in the source code
     AC_DEFINE([HAVE_LIBPMIX], [1], [Define if libpmix is available])
@@ -77,12 +77,12 @@ AC_DEFUN([X_AC_PMIX], [
             test -f "$d/include/pmix.h" || continue
             for bit in $_x_ac_pmix_libs; do
               test -d "$d/$bit" || continue
-        
+
               _x_ac_pmix_libs_save="$LIBS"
               LIBS="-L$d/$bit -lpmix $LIBS $MPI_CLDFLAGS"
               CFLAGS="-I$d/include"
               AC_LINK_IFELSE(
-                AC_LANG_PROGRAM([#include <pmix.h>], [PMIx_Init(NULL, NULL, 0)]),
+                [AC_LANG_SOURCE(AC_LANG_PROGRAM([#include <pmix.h>], [PMIx_Init(NULL, NULL, 0)]))],
                 AS_VAR_SET([x_ac_cv_pmix_dir], [$d]))
               LIBS="$_x_ac_pmix_libs_save"
               test -n "$x_ac_cv_pmix_dir" && break
