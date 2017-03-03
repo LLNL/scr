@@ -59,6 +59,18 @@ LIST(APPEND libscr_srcs
 	scr_util_mpi.c
 )
 
+# Add vendor specific code based on SCR_ASYNC_API
+
+IF(${SCR_ASYNC_API} STREQUAL "Cray_DataWarp")
+	# TODO: find datawarp on the system!
+	LIST(APPEND libscr_srcs scr_flush_async_cray_xt.c)
+ENDIF(${SCR_ASYNC_API} STREQUAL "Cray_DataWarp")
+
+IF(${SCR_ASYNC_API} STREQUAL "Intel_CPPR")
+	# TODO: find cppr on the system!
+	LIST(APPEND libscr_srcs scr_flush_async_intel.c)
+ENDIF(${SCR_ASYNC_API} STREQUAL "Intel_CPPR")
+
 
 ADD_LIBRARY(SCR ${libscr_srcs} ${libscr_noMPI_scrs})
 INSTALL(TARGETS SCR DESTINATION lib)
