@@ -14,20 +14,44 @@ ENDFUNCTION(SCR_INSTALL_BIN file)
 ADD_SUBDIRECTORY(common)
 
 
-# Binaries which depend on the resource manager
+# Pick the Resource Manager
+SET(cliscr_dir_name "")
 
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
-	ADD_SUBDIRECTORY(TLCC)
+	SET(cliscr_dir_name "TLCC")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
 
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "APRUN")
-	ADD_SUBDIRECTORY(cray_xt)
+	SET(cliscr_dir_name "cray_xt")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "APRUN")
 
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "PMIx")
-	ADD_SUBDIRECTORY(PMIX)
+	SET(cliscr_dir_name "PMIX")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "PMIx")
 
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
-	ADD_SUBDIRECTORY(LSF)
+	SET(cliscr_dir_name "LSF")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
+
+
+IF(${SCR_RESOURCE_MANAGER} STREQUAL "None")
+	MESSAGE("No resource manager selected. Some of the SCR command line interface will not be built.")
+ELSE(${SCR_RESOURCE_MANAGER} STREQUAL "None")
+	# Each of the following must be implemented for all resource managers
+	LIST(APPEND resource_manager_bins
+		scr_run
+		scr_env
+		scr_scavenge
+		scr_inspect
+		scr_list_down_nodes
+		scr_halt
+		scr_kill_jobstep
+		scr_get_jobstep_id
+	)
+
+	FOREACH(bin IN ITEMS ${resource_manager_bins})
+		SCR_INSTALL_BIN(${cliscr_dir_name}/${bin})
+	ENDFOREACH(bin IN ITEMS ${resource_manager_bins})
+ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "None")
+
+
