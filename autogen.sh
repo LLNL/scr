@@ -1,7 +1,7 @@
 #!/bin/sh
 echo "Running aclocal ... "
 aclocal -I config -I m4
-echo "Running libtoolize ... "
+echo "Running libtoolize ... (use glibtoolize on a Mac)"
 libtoolize --automake --copy
 echo "Running autoheader ... "
 autoheader
