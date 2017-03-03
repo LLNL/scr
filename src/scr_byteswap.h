@@ -25,7 +25,12 @@
 #ifndef _SCR_BITS_BYTESWAP_H
 #define _SCR_BITS_BYTESWAP_H 1
 
+#if defined(__APPLE__)
+#include <libkern/OSByteOrder.h>
+#define __bswap_32 OSSwapInt32
+#else
 #include <bits/wordsize.h>
+#endif
 
 /* Swap bytes in 16 bit value.  */
 #define __bswap_constant_16(x) \

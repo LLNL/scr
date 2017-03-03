@@ -175,12 +175,14 @@ static int scr_fetch_file_from_containers(
     return SCR_FAILURE;
   }
 
+#if !defined(__APPLE__)
   /* TODO:
   posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL)
   that tells the kernel that you don't ever need the pages
   from the file again, and it won't bother keeping them in the page cache.
   */
   posix_fadvise(fd_src, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
+#endif
 
   /* TODO: align this buffer */
   /* allocate buffer to read in file chunks */
@@ -234,12 +236,14 @@ static int scr_fetch_file_from_containers(
       break;
     }
 
+#if !defined(__APPLE__)
     /* TODO:
     posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL)
     that tells the kernel that you don't ever need the pages
     from the file again, and it won't bother keeping them in the page cache.
     */
     posix_fadvise(fd_container, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
+#endif
 
     /* seek to offset within container */
     off_t pos = (off_t) container_offset;
@@ -251,7 +255,7 @@ static int scr_fetch_file_from_containers(
       rc = SCR_FAILURE;
       break;
     }
-    
+
     /* copy data from container into file in chunks */
     unsigned long remaining = segment_length;
     while (remaining > 0) {
@@ -388,7 +392,7 @@ static int scr_fetch_files_list(
     scr_path_basename(path_newfile);
     scr_path_prepend_str(path_newfile, dir);
     char* newfile = scr_path_strdup(path_newfile);
-      
+
     /* add the file to our filemap and write it to disk before creating
      * the file, this way we have a record that it may exist before we
      * actually start to fetch it */
