@@ -272,7 +272,7 @@ foreach my $dir (@dirs) {
 #  my ($nodeset, $username) = split(/\s+/, $nodes_and_user);
 
 #  # build the name of the halt file
-#  my $cntldir = `$bindir/scr_cntl_dir --user $username --jobid $jobid`;
+#  my $cntldir = `$bindir/scr_list_dir --user $username --jobid $jobid control`;
 #  chomp $cntldir;
   my $halt_file = "$dir/.scr/halt.scr";
 
