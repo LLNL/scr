@@ -24,7 +24,11 @@
 #endif
 
 /* adds byte swapping routines */
+#if defined(__APPLE__)
+#include "machine/endian.h"
+#else
 #include "endian.h"
+#endif
 
 #ifdef HAVE_BYTESWAP_H
 #include "byteswap.h"
