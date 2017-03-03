@@ -960,6 +960,7 @@ cppr cppr_err=%d @ %s:%d", cppr_retval, __FILE__, __LINE__
     return SCR_FAILURE;
   }
 
+#if !defined(__APPLE__)
   /* TODO:
   posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL)
   that tells the kernel that you don't ever need the pages
@@ -967,6 +968,7 @@ cppr cppr_err=%d @ %s:%d", cppr_retval, __FILE__, __LINE__
   */
   posix_fadvise(src_fd, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
   posix_fadvise(dst_fd, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
+#endif
 
   /* allocate buffer to read in file chunks */
   char* buf = (char*) malloc(buf_size);

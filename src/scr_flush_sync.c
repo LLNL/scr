@@ -128,12 +128,14 @@ static int scr_flush_file_to_containers(
     return SCR_FAILURE;
   }
 
+#if !defined(__APPLE__)
   /* TODO:
   posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL)
   that tells the kernel that you don't ever need the pages
   from the file again, and it won't bother keeping them in the page cache.
   */
   posix_fadvise(fd_src, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
+#endif
 
   /* get the buffer size we'll use to write to the file */
   unsigned long buf_size = scr_file_buf_size;
@@ -189,12 +191,14 @@ static int scr_flush_file_to_containers(
       break;
     }
 
+#if !defined(__APPLE__)
     /* TODO:
     posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL)
     that tells the kernel that you don't ever need the pages
     from the file again, and it won't bother keeping them in the page cache.
     */
     posix_fadvise(fd_container, 0, 0, POSIX_FADV_DONTNEED | POSIX_FADV_SEQUENTIAL);
+#endif
 
     /* seek to offset within container */
     off_t pos = (off_t) container_offset;
