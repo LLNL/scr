@@ -2,6 +2,8 @@
 // config/config.h.in.  Generated from configure.ac by autoheader.
 
 #cmakedefine HAVE_BYTESWAP_H
+#cmakedefine HAVE_LIBDTCMP
+#cmakedefine HAVE_LIBYOGRT
 
 /* Define to 1 if you have the `cppr' library (-lcppr). */
 #cmakedefine HAVE_LIBCPPR
@@ -59,3 +61,6 @@
 #define X_INCLUDEDIR @X_INCLUDEDIR@
 #define X_LIBDIR @X_LIBDIR@
 
+/* PDSH */
+#define PDSH_EXE @PDSH_EXE@
+#define DSHBAK_EXE @DSHBAK_EXE@
