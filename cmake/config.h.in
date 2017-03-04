@@ -3,107 +3,14 @@
 
 #cmakedefine HAVE_BYTESWAP_H
 
-/* Define to 1 if you have the <dlfcn.h> header file. */
-#cmakedefine HAVE_DLFCN_H
-
-/* Define to 1 if you have the <inttypes.h> header file. */
-#cmakedefine HAVE_INTTYPES_H
-
 /* Define to 1 if you have the `cppr' library (-lcppr). */
 #cmakedefine HAVE_LIBCPPR
-
-/* Define to 1 if you have the `dtcmp' library (-ldtcmp). */
-#cmakedefine HAVE_LIBDTCMP
 
 /* Define if libmysql is available */
 #cmakedefine HAVE_LIBMYSQLCLIENT
 
 /* Define to 1 if you have the `pmix' library (-lpmix). */
 #cmakedefine HAVE_LIBPMIX
-
-/* Define to 1 if you have the `yogrt' library (-lyogrt). */
-#cmakedefine HAVE_LIBYOGRT
-
-/* Define to 1 if you have the <memory.h> header file. */
-#cmakedefine HAVE_MEMORY_H
-
-/* Define to 1 if you have a valid installation of MOAB */
-#cmakedefine HAVE_MOAB
-
-/* Define to 1 if you have MPI libs and headers. */
-#cmakedefine HAVE_MPI
-
-/* Define to 1 if you have the <stdint.h> header file. */
-#cmakedefine HAVE_STDINT_H
-
-/* Define to 1 if you have the <stdlib.h> header file. */
-#cmakedefine HAVE_STDLIB_H
-
-/* Define to 1 if you have the <strings.h> header file. */
-#cmakedefine HAVE_STRINGS_H
-
-/* Define to 1 if you have the <string.h> header file. */
-#cmakedefine HAVE_STRING_H
-
-/* Define to 1 if you have the <sys/stat.h> header file. */
-#cmakedefine HAVE_SYS_STAT_H
-
-/* Define to 1 if you have the <sys/types.h> header file. */
-#cmakedefine HAVE_SYS_TYPES_H
-
-/* Define to 1 if you have the <unistd.h> header file. */
-#cmakedefine HAVE_UNISTD_H
-
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
-#cmakedefine LT_OBJDIR
-
-/* Define the project alias string (name-ver or name-ver-rel). */
-#cmakedefine META_ALIAS
-
-/* Define the project author. */
-#cmakedefine META_AUTHOR
-
-/* Define the project release date. */
-#cmakedefine META_DATE
-
-/* Define the libtool library 'age' version information. */
-#cmakedefine META_LT_AGE
-
-/* Define the libtool library 'current' version information. */
-#cmakedefine META_LT_CURRENT
-
-/* Define the libtool library 'revision' version information. */
-#cmakedefine META_LT_REVISION
-
-/* Define the project name. */
-#cmakedefine META_NAME
-
-/* Define the project release. */
-#cmakedefine META_RELEASE
-
-/* Define the project version. */
-#cmakedefine META_VERSION
-
-/* Name of package */
-#cmakedefine PACKAGE
-
-/* Define to the address where bug reports for this package should be sent. */
-#cmakedefine PACKAGE_BUGREPORT
-
-/* Define to the full name of this package. */
-#cmakedefine PACKAGE_NAME
-
-/* Define to the full name and version of this package. */
-#cmakedefine PACKAGE_STRING
-
-/* Define to the one symbol short name of this package. */
-#cmakedefine PACKAGE_TARNAME
-
-/* Define to the home page for this package. */
-#cmakedefine PACKAGE_URL
-
-/* Define to the version of this package. */
-#cmakedefine PACKAGE_VERSION
 
 /* Define for BG/Q machine type. */
 #define SCR_BGQ 5
@@ -147,50 +54,8 @@
 /* Define for TLCC machine type. */
 #define SCR_TLCC 0
 
-/* Define to 1 if you have the ANSI C header files. */
-#cmakedefine STDC_HEADERS
-
-/* Version number of package */
-#cmakedefine VERSION
-
-/* Expansion of the "bindir" installation directory. */
 #define X_BINDIR @X_BINDIR@
+#define X_DATADIR @X_DATADIR@
+#define X_INCLUDEDIR @X_INCLUDEDIR@
+#define X_LIBDIR @X_LIBDIR@
 
-/* Expansion of the "datadir" installation directory. */
-#cmakedefine X_DATADIR
-
-/* Expansion of the "exec_prefix" installation directory. */
-#cmakedefine X_EXEC_PREFIX
-
-/* Expansion of the "includedir" installation directory. */
-#cmakedefine X_INCLUDEDIR
-
-/* Expansion of the "infodir" installation directory. */
-#cmakedefine X_INFODIR
-
-/* Expansion of the "libdir" installation directory. */
-#cmakedefine X_LIBDIR
-
-/* Expansion of the "libexecdir" installation directory. */
-#cmakedefine X_LIBEXECDIR
-
-/* Expansion of the "localstatedir" installation directory. */
-#cmakedefine X_LOCALSTATEDIR
-
-/* Expansion of the "mandir" installation directory. */
-#cmakedefine X_MANDIR
-
-/* Expansion of the "oldincludedir" installation directory. */
-#cmakedefine X_OLDINCLUDEDIR
-
-/* Expansion of the "prefix" installation directory. */
-#cmakedefine X_PREFIX
-
-/* Expansion of the "sbindir" installation directory. */
-#cmakedefine X_SBINDIR
-
-/* Expansion of the "sharedstatedir" installation directory. */
-#cmakedefine X_SHAREDSTATEDIR
-
-/* Expansion of the "sysconfdir" installation directory. */
-#cmakedefine X_SYSCONFDIR
