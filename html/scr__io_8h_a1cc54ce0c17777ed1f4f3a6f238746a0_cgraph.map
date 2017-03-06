@@ -1,0 +1,16 @@
+<map id="scr_uncompress_in_place" name="scr_uncompress_in_place">
+<area shape="rect" id="node2" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="425,181,488,207"/>
+<area shape="rect" id="node3" href="$scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="264,304,340,329"/>
+<area shape="rect" id="node6" href="$scr__io_8c.html#a24ba95b0ca313a422c74b2967995c408" title="scr_read" alt="" coords="265,156,338,181"/>
+<area shape="rect" id="node7" href="$scr__io_8c.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="263,353,341,379"/>
+<area shape="rect" id="node9" href="$scr__util_8c.html#a3080444bf37203aeac828b42b6175e5d" title="scr_unpack_uint32_t" alt="" coords="230,205,374,231"/>
+<area shape="rect" id="node10" href="$scr__util_8c.html#a094844b05dd173886a3959ca6fa560e8" title="scr_unpack_uint16_t" alt="" coords="230,255,374,280"/>
+<area shape="rect" id="node11" href="$scr__util_8c.html#a19c8f8cf03b5aafe6ef765bf10225525" title="scr_unpack_uint64_t" alt="" coords="230,5,374,31"/>
+<area shape="rect" id="node12" href="$scr__util_8c.html#a439ed3526c2206c412b9a1ceba76ce00" title="scr_align_malloc" alt="" coords="241,403,362,428"/>
+<area shape="rect" id="node13" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="422,477,491,503"/>
+<area shape="rect" id="node14" href="$scr__io_8c.html#a27758db29a346b82f975b6b46474ef92" title="scr_write" alt="" coords="264,55,339,80"/>
+<area shape="rect" id="node15" href="$scr__util_8c.html#a65b4eb3428557c6d70b5eaf7c5dffdcf" title="scr_align_free" alt="" coords="249,452,354,477"/>
+<area shape="rect" id="node4" href="$scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="431,280,482,305"/>
+<area shape="rect" id="node5" href="$scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="422,329,491,355"/>
+<area shape="rect" id="node8" href="$scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="430,379,483,404"/>
+</map>

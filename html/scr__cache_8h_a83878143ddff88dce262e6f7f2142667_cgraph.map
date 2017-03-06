@@ -1,0 +1,12 @@
+<map id="scr_cache_dir_create" name="scr_cache_dir_create">
+<area shape="rect" id="node2" href="$scr__reddesc_8c.html#a0e78b5318b5cf93fe53a21958a9ce25d" title="scr_reddesc_get_store" alt="" coords="428,34,585,59"/>
+<area shape="rect" id="node3" href="$scr__cache_8c.html#a5be6e24b65542c81e5ca1b8a559ba56b" title="scr_cache_dir_get" alt="" coords="226,34,356,59"/>
+<area shape="rect" id="node4" href="$scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="468,83,545,109"/>
+<area shape="rect" id="node5" href="$scr__storedesc_8c.html#a07e73fe89d3fb04e624ae2e7163f935d" title="scr_storedesc_dir_create" alt="" coords="205,185,377,210"/>
+<area shape="rect" id="node9" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="633,231,702,257"/>
+<area shape="rect" id="node11" href="$scr__cache_8c.html#a6230ae5aa7c595209969c237394b79bc" title="scr_cache_dir_hidden_get" alt="" coords="202,83,380,109"/>
+<area shape="rect" id="node6" href="$scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="472,206,541,231"/>
+<area shape="rect" id="node7" href="$scr__io_8c.html#a77a3cb88739edd59534decd4c9ed58b4" title="scr_mkdir" alt="" coords="467,157,546,182"/>
+<area shape="rect" id="node8" href="$scr__interpose_8c.html#aee98bbe743c2d14dbaa67f01c3fb9ed5" title="mkdir" alt="" coords="641,182,695,207"/>
+<area shape="rect" id="node10" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="636,133,699,158"/>
+</map>

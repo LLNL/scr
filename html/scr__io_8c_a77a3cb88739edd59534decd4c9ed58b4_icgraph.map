@@ -1,0 +1,8 @@
+<map id="scr_mkdir" name="scr_mkdir">
+<area shape="rect" id="node2" href="$scr__io_8h.html#a77a3cb88739edd59534decd4c9ed58b4" title="scr_mkdir" alt="" coords="132,49,212,74"/>
+<area shape="rect" id="node3" href="$scr__rebuild__xor_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="320,25,370,50"/>
+<area shape="rect" id="node4" href="$scr__storedesc_8h.html#ab6a757feb1f3253a8a095ac9df61e72a" title="scr_storedesc_dir_create" alt="" coords="260,74,431,100"/>
+<area shape="rect" id="node5" href="$scr__cache_8h.html#a83878143ddff88dce262e6f7f2142667" title="scr_cache_dir_create" alt="" coords="479,74,627,100"/>
+<area shape="rect" id="node6" href="$scr_8h.html#a7787ae0072a29dc75652778673a7ffdf" title="SCR_Start_checkpoint" alt="" coords="675,74,832,100"/>
+<area shape="rect" id="node7" href="$scrf_8c.html#a8472bea2ae6f56ae844e9e9009907c81" title="scr_start_checkpoint_" alt="" coords="880,74,1031,100"/>
+</map>

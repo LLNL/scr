@@ -1,0 +1,10 @@
+<map id="scr_reddesc_for_checkpoint" name="scr_reddesc_for_checkpoint">
+<area shape="rect" id="node2" href="$scr_8h.html#a7787ae0072a29dc75652778673a7ffdf" title="SCR_Start_checkpoint" alt="" coords="256,5,412,31"/>
+<area shape="rect" id="node4" href="$scr_8h.html#a077e10ee31340fbc1e6a6e9f35185b7f" title="SCR_Route_file" alt="" coords="276,55,392,80"/>
+<area shape="rect" id="node5" href="$scr_8h.html#ac293a29f5b8fe722dc58c3d7119d8358" title="SCR_Complete_checkpoint" alt="" coords="241,104,427,129"/>
+<area shape="rect" id="node7" href="$scr__flush__async__cray__xt_8c.html#a77fd320fc748349d29c2d9107cf3fba3" title="scr_flush_async_stop" alt="" coords="259,153,409,179"/>
+<area shape="rect" id="node8" href="$scr__flush__async__cray__xt_8c.html#ad1ed1a3310208e9e679059713c4f1f40" title="scr_flush_async_test" alt="" coords="261,203,407,228"/>
+<area shape="rect" id="node9" href="$scr__flush__async__cray__xt_8c.html#a264f812c4418f1138a0d43bc20e01906" title="scr_flush_async_wait" alt="" coords="260,252,408,277"/>
+<area shape="rect" id="node3" href="$scrf_8c.html#a8472bea2ae6f56ae844e9e9009907c81" title="scr_start_checkpoint_" alt="" coords="489,5,640,31"/>
+<area shape="rect" id="node6" href="$scrf_8c.html#aed05040511320c7d629d6975f32d005c" title="scr_complete_checkpoint_" alt="" coords="475,104,654,129"/>
+</map>

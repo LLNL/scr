@@ -1,0 +1,22 @@
+<map id="scr_path_append_str" name="scr_path_append_str">
+<area shape="rect" id="node2" href="$scr__fetch_8h.html#af0be93afd35ec60a32a284dcfbad2b76" title="scr_fetch_sync" alt="" coords="773,320,883,346"/>
+<area shape="rect" id="node3" href="$scr__flush__file_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="244,422,294,447"/>
+<area shape="rect" id="node4" href="$scr__summary_8h.html#a2f523f5e65931c153b15119b37df2854" title="scr_summary_read" alt="" coords="391,19,527,44"/>
+<area shape="rect" id="node8" href="$scr__index_8c.html#ace4855e470ac201e0071e9e54ff394e0" title="scr_summary_write" alt="" coords="390,167,527,192"/>
+<area shape="rect" id="node9" href="$scr__index_8c.html#a6ccf0446fe2564254699b8a342cdd90a" title="scr_scan_file" alt="" coords="220,68,319,94"/>
+<area shape="rect" id="node10" href="$scr__index_8c.html#a452c865a4b98cdda542429e25b78c023" title="scr_scan_files" alt="" coords="406,68,512,94"/>
+<area shape="rect" id="node11" href="$scr__index__api_8h.html#ae3752e25491f9437cb661d00490d25ce" title="scr_index_read" alt="" coords="592,219,704,244"/>
+<area shape="rect" id="node16" href="$scr__index__api_8h.html#a6cabf08c72be09ec64c622e78f11aaff" title="scr_index_write" alt="" coords="591,270,705,295"/>
+<area shape="rect" id="node17" href="$scr__path_8h.html#aa7091b0056f2cb329d76c9cfac19bed8" title="scr_path_relative" alt="" coords="208,118,331,143"/>
+<area shape="rect" id="node19" href="$scr__path__mpi_8h.html#aaf2f50b6c065af6d01016313ead19f7d" title="scr_path_bcast" alt="" coords="213,320,325,346"/>
+<area shape="rect" id="node20" href="$scr__reddesc_8h.html#abafe357e682b88e7da73703261bd7b78" title="scr_reddesc_create\l_from_hash" alt="" coords="200,471,338,510"/>
+<area shape="rect" id="node5" href="$scr__index_8c.html#af1c0a221b455f0be8be0e248487d4a64" title="scr_summary_build" alt="" coords="579,72,716,98"/>
+<area shape="rect" id="node6" href="$scr__index_8c.html#a2c27b391ed473dd4c9cd876ce41145db" title="index_add_dir" alt="" coords="775,74,881,99"/>
+<area shape="rect" id="node7" href="$scr__index_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="940,172,990,198"/>
+<area shape="rect" id="node12" href="$scr__index_8c.html#ac85b91fe148d58d3f689cadf267fda66" title="is_complete" alt="" coords="782,123,874,148"/>
+<area shape="rect" id="node13" href="$scr__index_8c.html#aa4241faeb566c18583d5da2b97d4a53c" title="index_list" alt="" coords="790,172,867,198"/>
+<area shape="rect" id="node14" href="$scr__index_8c.html#a5e1629582297afbf42d5292b5d9ee299" title="index_remove_dir" alt="" coords="764,271,892,296"/>
+<area shape="rect" id="node15" href="$scr__index_8c.html#aa1ca1fec6972e3999bd184146b9dd106" title="index_current_dir" alt="" coords="766,222,890,247"/>
+<area shape="rect" id="node18" href="$scr__rebuild__xor_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="434,118,484,143"/>
+<area shape="rect" id="node21" href="$scr__reddesc_8h.html#a3ed69bdfa8ddf561e5c43988e0ca23b3" title="scr_reddescs_create" alt="" coords="386,478,531,503"/>
+</map>

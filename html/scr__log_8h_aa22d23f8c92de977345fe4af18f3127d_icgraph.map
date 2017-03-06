@@ -1,0 +1,10 @@
+<map id="scr_log_seconds" name="scr_log_seconds">
+<area shape="rect" id="node2" href="$scr_8h.html#a7787ae0072a29dc75652778673a7ffdf" title="SCR_Start_checkpoint" alt="" coords="175,5,331,31"/>
+<area shape="rect" id="node4" href="$scr_8h.html#ac293a29f5b8fe722dc58c3d7119d8358" title="SCR_Complete_checkpoint" alt="" coords="379,155,564,180"/>
+<area shape="rect" id="node6" href="$scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="188,107,318,132"/>
+<area shape="rect" id="node7" href="$scr__flush__sync_8h.html#a2b4130779c9fc1578fc96fee563bd7d4" title="scr_flush_sync" alt="" coords="198,156,308,181"/>
+<area shape="rect" id="node8" href="$scr__log__event_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="228,205,278,231"/>
+<area shape="rect" id="node9" href="$scr__reddesc__apply_8h.html#a6f90b9ae9f0dedd374854c6b2ee2db7e" title="scr_reddesc_apply" alt="" coords="186,255,319,280"/>
+<area shape="rect" id="node3" href="$scrf_8c.html#a8472bea2ae6f56ae844e9e9009907c81" title="scr_start_checkpoint_" alt="" coords="396,5,547,31"/>
+<area shape="rect" id="node5" href="$scrf_8c.html#aed05040511320c7d629d6975f32d005c" title="scr_complete_checkpoint_" alt="" coords="612,155,791,180"/>
+</map>

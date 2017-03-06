@@ -1,0 +1,14 @@
+<map id="scr_file_copy" name="scr_file_copy">
+<area shape="rect" id="node2" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="503,273,566,298"/>
+<area shape="rect" id="node3" href="$scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="500,97,569,122"/>
+<area shape="rect" id="node4" href="$scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="351,46,428,71"/>
+<area shape="rect" id="node6" href="$scr__io_8c.html#a9e94f39d8ce07b0d99ac644305d77d88" title="scr_getmode" alt="" coords="167,450,265,475"/>
+<area shape="rect" id="node7" href="$scr__io_8c.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="351,198,428,223"/>
+<area shape="rect" id="node9" href="$scr__io_8c.html#af8ba39af14e8945f8c69f3e33cc74c7d" title="scr_read_attempt" alt="" coords="327,349,452,374"/>
+<area shape="rect" id="node10" href="$scr__io_8c.html#a7e0783f5e14a6cec17e80d92c663ccde" title="scr_write_attempt" alt="" coords="152,298,279,323"/>
+<area shape="rect" id="node11" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="181,499,251,525"/>
+<area shape="rect" id="node12" href="$scr__io_8c.html#a8398cfffaea53f470a5321ad66a63998" title="scr_crc32" alt="" coords="176,159,255,185"/>
+<area shape="rect" id="node5" href="$scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="509,46,560,71"/>
+<area shape="rect" id="node8" href="$scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="508,173,561,198"/>
+<area shape="rect" id="node13" href="$scr__io_8c.html#a24ba95b0ca313a422c74b2967995c408" title="scr_read" alt="" coords="353,247,426,273"/>
+</map>

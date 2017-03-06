@@ -1,0 +1,5 @@
+<map id="read_checkpoint" name="read_checkpoint">
+<area shape="rect" id="node2" href="$scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="196,5,247,31"/>
+<area shape="rect" id="node3" href="$test__common_8c.html#a54c799562e247b14eb67d42d0d85fbea" title="reliable_read" alt="" coords="173,55,271,80"/>
+<area shape="rect" id="node4" href="$scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="195,104,248,129"/>
+</map>

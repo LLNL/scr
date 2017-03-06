@@ -1,0 +1,6 @@
+<map id="scr_mkdir" name="scr_mkdir">
+<area shape="rect" id="node2" href="$scr__io_8c.html#a77a3cb88739edd59534decd4c9ed58b4" title="scr_mkdir" alt="" coords="132,51,212,76"/>
+<area shape="rect" id="node3" href="$scr__interpose_8c.html#aee98bbe743c2d14dbaa67f01c3fb9ed5" title="mkdir" alt="" coords="267,14,321,39"/>
+<area shape="rect" id="node4" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="260,83,329,108"/>
+<area shape="rect" id="node5" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="263,132,326,158"/>
+</map>

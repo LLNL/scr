@@ -1,0 +1,6 @@
+<map id="read_params" name="read_params">
+<area shape="rect" id="node2" href="$scr__param_8c.html#a3b9016bb02304c579611e2229f39d5a8" title="scr_param_init" alt="" coords="154,5,263,31"/>
+<area shape="rect" id="node3" href="$scr__param_8c.html#a006e0798786c3c3cb535308891c50a48" title="scr_param_get" alt="" coords="153,55,263,80"/>
+<area shape="rect" id="node4" href="$scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="311,55,413,80"/>
+<area shape="rect" id="node5" href="$scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="461,55,599,80"/>
+</map>

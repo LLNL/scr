@@ -1,0 +1,7 @@
+<map id="scr_write" name="scr_write">
+<area shape="rect" id="node2" href="$scr__io_8h.html#ac6f08fd91b0d1f5f659f6144f595cb46" title="scr_compress_in_place" alt="" coords="135,5,297,31"/>
+<area shape="rect" id="node3" href="$scr__io_8h.html#aa0a1a49ef1f65dd4b911885736dbc3be" title="scr_compress" alt="" coords="164,55,268,80"/>
+<area shape="rect" id="node4" href="$scr__io_8h.html#a1cc54ce0c17777ed1f4f3a6f238746a0" title="scr_uncompress_in_place" alt="" coords="128,104,304,129"/>
+<area shape="rect" id="node5" href="$scr__io_8h.html#a46d89e2e22b58a62368ba5f374b9280f" title="scr_uncompress" alt="" coords="157,153,276,179"/>
+<area shape="rect" id="node6" href="$scr__io_8h.html#a63b164db2ef6e45f9e0a01cc51d347d9" title="scr_writef" alt="" coords="177,203,255,228"/>
+</map>

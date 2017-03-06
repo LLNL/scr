@@ -1,0 +1,11 @@
+<map id="scr_filemap_delete" name="scr_filemap_delete">
+<area shape="rect" id="node2" href="$scr__cache_8h.html#ad878586242fd6abee4bd87695b15a19b" title="scr_cache_clean" alt="" coords="198,5,319,31"/>
+<area shape="rect" id="node4" href="$scr__cache__rebuild_8h.html#ac512e74afe061169739beaa2d7f08f47" title="scr_scatter_filemaps" alt="" coords="187,55,330,80"/>
+<area shape="rect" id="node5" href="$scr__index_8c.html#a6ccf0446fe2564254699b8a342cdd90a" title="scr_scan_file" alt="" coords="209,104,308,129"/>
+<area shape="rect" id="node10" href="$scr__rebuild__xor_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="233,153,283,179"/>
+<area shape="rect" id="node3" href="$scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="378,5,508,31"/>
+<area shape="rect" id="node6" href="$scr__index_8c.html#a452c865a4b98cdda542429e25b78c023" title="scr_scan_files" alt="" coords="390,104,496,129"/>
+<area shape="rect" id="node7" href="$scr__index_8c.html#af1c0a221b455f0be8be0e248487d4a64" title="scr_summary_build" alt="" coords="556,104,693,129"/>
+<area shape="rect" id="node8" href="$scr__index_8c.html#a2c27b391ed473dd4c9cd876ce41145db" title="index_add_dir" alt="" coords="741,104,846,129"/>
+<area shape="rect" id="node9" href="$scr__index_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="894,104,944,129"/>
+</map>

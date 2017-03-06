@@ -1,0 +1,7 @@
+<map id="scr_path_strdup_reduce_str" name="scr_path_strdup_reduce_str">
+<area shape="rect" id="node2" href="$scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="241,5,369,31"/>
+<area shape="rect" id="node3" href="$scr__path_8c.html#a4f90a011aab44e714f5c78cab352ab16" title="scr_path_reduce" alt="" coords="245,55,365,80"/>
+<area shape="rect" id="node4" href="$scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="247,104,364,129"/>
+<area shape="rect" id="node6" href="$scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3" title="scr_path_delete" alt="" coords="247,153,363,179"/>
+<area shape="rect" id="node5" href="$scr__path_8c.html#a53dcddedf48597afebf3b6123c323f11" title="scr_path_strlen" alt="" coords="417,104,530,129"/>
+</map>

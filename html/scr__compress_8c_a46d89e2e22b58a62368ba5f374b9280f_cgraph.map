@@ -1,0 +1,17 @@
+<map id="scr_uncompress" name="scr_uncompress">
+<area shape="rect" id="node2" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="368,203,431,228"/>
+<area shape="rect" id="node3" href="$scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="207,29,283,55"/>
+<area shape="rect" id="node6" href="$scr__io_8c.html#a9e94f39d8ce07b0d99ac644305d77d88" title="scr_getmode" alt="" coords="195,427,294,452"/>
+<area shape="rect" id="node7" href="$scr__io_8c.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="206,79,283,104"/>
+<area shape="rect" id="node9" href="$scr__io_8c.html#a24ba95b0ca313a422c74b2967995c408" title="scr_read" alt="" coords="208,377,281,403"/>
+<area shape="rect" id="node10" href="$scr__util_8c.html#a3080444bf37203aeac828b42b6175e5d" title="scr_unpack_uint32_t" alt="" coords="172,128,317,153"/>
+<area shape="rect" id="node11" href="$scr__util_8c.html#a094844b05dd173886a3959ca6fa560e8" title="scr_unpack_uint16_t" alt="" coords="172,177,317,203"/>
+<area shape="rect" id="node12" href="$scr__util_8c.html#a19c8f8cf03b5aafe6ef765bf10225525" title="scr_unpack_uint64_t" alt="" coords="172,227,317,252"/>
+<area shape="rect" id="node13" href="$scr__util_8c.html#a439ed3526c2206c412b9a1ceba76ce00" title="scr_align_malloc" alt="" coords="184,476,305,501"/>
+<area shape="rect" id="node14" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="365,552,434,577"/>
+<area shape="rect" id="node15" href="$scr__io_8c.html#a27758db29a346b82f975b6b46474ef92" title="scr_write" alt="" coords="207,276,282,301"/>
+<area shape="rect" id="node16" href="$scr__util_8c.html#a65b4eb3428557c6d70b5eaf7c5dffdcf" title="scr_align_free" alt="" coords="192,577,297,603"/>
+<area shape="rect" id="node4" href="$scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="374,5,425,31"/>
+<area shape="rect" id="node5" href="$scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="365,55,434,80"/>
+<area shape="rect" id="node8" href="$scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="373,104,426,129"/>
+</map>

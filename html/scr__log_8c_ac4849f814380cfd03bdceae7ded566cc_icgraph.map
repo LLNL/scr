@@ -1,0 +1,5 @@
+<map id="scr_mysql_quote_seconds" name="scr_mysql_quote_seconds">
+<area shape="rect" id="node2" href="$scr__log_8c.html#afc44a7d3c45a316852c25356907dcd5b" title="scr_mysql_log_event" alt="" coords="239,5,385,31"/>
+<area shape="rect" id="node3" href="$scr__log_8c.html#a1bd96a1ed5e74620249876a66fab0498" title="scr_mysql_log_transfer" alt="" coords="233,55,392,80"/>
+<area shape="rect" id="node4" href="$scr__log_8c.html#a8f4de4a3cdcf37cef1dbd42a94dc8589" title="scr_mysql_register_job" alt="" coords="233,104,391,129"/>
+</map>

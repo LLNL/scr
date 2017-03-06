@@ -1,0 +1,11 @@
+<map id="scr_file_unlink" name="scr_file_unlink">
+<area shape="rect" id="node2" href="$scr__cache_8h.html#aad73a7c3725399357251f3fc6dc0bf4a" title="scr_cache_delete" alt="" coords="168,5,294,31"/>
+<area shape="rect" id="node5" href="$scr__cache_8h.html#afefc04b18f0f67b46e5f6d2fbb7dcae1" title="scr_cache_purge" alt="" coords="367,56,491,81"/>
+<area shape="rect" id="node6" href="$scr__cache_8h.html#a5129a0ef4f85004ab2b699e326fb8ca0" title="scr_unlink_rank" alt="" coords="174,107,288,132"/>
+<area shape="rect" id="node7" href="$scr__cache_8h.html#ad878586242fd6abee4bd87695b15a19b" title="scr_cache_clean" alt="" coords="170,156,292,181"/>
+<area shape="rect" id="node9" href="$scr__cache__rebuild_8h.html#ac512e74afe061169739beaa2d7f08f47" title="scr_scatter_filemaps" alt="" coords="159,205,303,231"/>
+<area shape="rect" id="node10" href="$scr__rebuild__xor_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="206,255,256,280"/>
+<area shape="rect" id="node3" href="$scr_8h.html#a7787ae0072a29dc75652778673a7ffdf" title="SCR_Start_checkpoint" alt="" coords="351,5,507,31"/>
+<area shape="rect" id="node4" href="$scrf_8c.html#a8472bea2ae6f56ae844e9e9009907c81" title="scr_start_checkpoint_" alt="" coords="555,5,706,31"/>
+<area shape="rect" id="node8" href="$scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="364,156,494,181"/>
+</map>

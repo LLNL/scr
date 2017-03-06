@@ -1,0 +1,8 @@
+<map id="scr_open_with_lock" name="scr_open_with_lock">
+<area shape="rect" id="node2" href="$scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="219,53,295,79"/>
+<area shape="rect" id="node5" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="373,104,436,129"/>
+<area shape="rect" id="node6" href="$scr__io_8c.html#ac03431c36c0e79527e325db0092b3109" title="scr_file_lock_write" alt="" coords="192,155,322,180"/>
+<area shape="rect" id="node7" href="$scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="231,204,283,229"/>
+<area shape="rect" id="node3" href="$scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="379,5,430,31"/>
+<area shape="rect" id="node4" href="$scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="370,55,439,80"/>
+</map>

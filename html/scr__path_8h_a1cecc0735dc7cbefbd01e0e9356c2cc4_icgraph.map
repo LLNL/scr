@@ -1,0 +1,12 @@
+<map id="scr_path_strcpy" name="scr_path_strcpy">
+<area shape="rect" id="node2" href="$scr__cache__rebuild_8h.html#a6b6aca6cf8cd03b30e48836474b07c48" title="scr_swap_file_names" alt="" coords="169,55,318,80"/>
+<area shape="rect" id="node3" href="$scr__filemap_8h.html#a4b41fba51585611a375556c0aff06e75" title="scr_filemap_write" alt="" coords="181,104,306,129"/>
+<area shape="rect" id="node4" href="$scr_8h.html#a7787ae0072a29dc75652778673a7ffdf" title="SCR_Start_checkpoint" alt="" coords="381,5,537,31"/>
+<area shape="rect" id="node6" href="$scr_8h.html#ac293a29f5b8fe722dc58c3d7119d8358" title="SCR_Complete_checkpoint" alt="" coords="366,55,551,80"/>
+<area shape="rect" id="node8" href="$scr__cache_8h.html#a5129a0ef4f85004ab2b699e326fb8ca0" title="scr_unlink_rank" alt="" coords="402,104,516,129"/>
+<area shape="rect" id="node9" href="$scr__cache_8h.html#ad878586242fd6abee4bd87695b15a19b" title="scr_cache_clean" alt="" coords="398,153,520,179"/>
+<area shape="rect" id="node11" href="$scr__cache__rebuild_8h.html#ac512e74afe061169739beaa2d7f08f47" title="scr_scatter_filemaps" alt="" coords="387,203,531,228"/>
+<area shape="rect" id="node5" href="$scrf_8c.html#a8472bea2ae6f56ae844e9e9009907c81" title="scr_start_checkpoint_" alt="" coords="614,5,765,31"/>
+<area shape="rect" id="node7" href="$scrf_8c.html#aed05040511320c7d629d6975f32d005c" title="scr_complete_checkpoint_" alt="" coords="599,55,779,80"/>
+<area shape="rect" id="node10" href="$scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="624,153,754,179"/>
+</map>

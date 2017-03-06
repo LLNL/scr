@@ -1,0 +1,9 @@
+<map id="scr_log_event" name="scr_log_event">
+<area shape="rect" id="node2" href="$scr_8h.html#a7787ae0072a29dc75652778673a7ffdf" title="SCR_Start_checkpoint" alt="" coords="172,5,328,31"/>
+<area shape="rect" id="node4" href="$scr_8h.html#ac293a29f5b8fe722dc58c3d7119d8358" title="SCR_Complete_checkpoint" alt="" coords="158,55,343,80"/>
+<area shape="rect" id="node6" href="$scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="185,104,315,129"/>
+<area shape="rect" id="node7" href="$scr__flush__sync_8h.html#a2b4130779c9fc1578fc96fee563bd7d4" title="scr_flush_sync" alt="" coords="195,153,305,179"/>
+<area shape="rect" id="node8" href="$scr__log__event_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="225,203,275,228"/>
+<area shape="rect" id="node3" href="$scrf_8c.html#a8472bea2ae6f56ae844e9e9009907c81" title="scr_start_checkpoint_" alt="" coords="405,5,556,31"/>
+<area shape="rect" id="node5" href="$scrf_8c.html#aed05040511320c7d629d6975f32d005c" title="scr_complete_checkpoint_" alt="" coords="391,55,570,80"/>
+</map>

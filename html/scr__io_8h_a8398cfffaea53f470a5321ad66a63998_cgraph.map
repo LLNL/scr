@@ -1,0 +1,9 @@
+<map id="scr_crc32" name="scr_crc32">
+<area shape="rect" id="node2" href="$scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="133,55,209,80"/>
+<area shape="rect" id="node4" href="$scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="258,5,327,31"/>
+<area shape="rect" id="node6" href="$scr__io_8c.html#a24ba95b0ca313a422c74b2967995c408" title="scr_read" alt="" coords="135,104,208,129"/>
+<area shape="rect" id="node7" href="$scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="266,179,319,204"/>
+<area shape="rect" id="node8" href="$scr__io_8c.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="132,153,210,179"/>
+<area shape="rect" id="node3" href="$scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="267,55,318,80"/>
+<area shape="rect" id="node5" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="261,104,324,129"/>
+</map>

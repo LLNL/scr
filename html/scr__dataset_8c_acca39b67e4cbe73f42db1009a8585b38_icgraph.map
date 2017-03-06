@@ -1,0 +1,11 @@
+<map id="scr_dataset_new" name="scr_dataset_new">
+<area shape="rect" id="node2" href="$scr_8h.html#a7787ae0072a29dc75652778673a7ffdf" title="SCR_Start_checkpoint" alt="" coords="190,5,346,31"/>
+<area shape="rect" id="node4" href="$scr_8h.html#ac293a29f5b8fe722dc58c3d7119d8358" title="SCR_Complete_checkpoint" alt="" coords="175,55,361,80"/>
+<area shape="rect" id="node6" href="$scr__index_8c.html#a6ccf0446fe2564254699b8a342cdd90a" title="scr_scan_file" alt="" coords="218,104,318,129"/>
+<area shape="rect" id="node3" href="$scrf_8c.html#a8472bea2ae6f56ae844e9e9009907c81" title="scr_start_checkpoint_" alt="" coords="423,5,574,31"/>
+<area shape="rect" id="node5" href="$scrf_8c.html#aed05040511320c7d629d6975f32d005c" title="scr_complete_checkpoint_" alt="" coords="409,55,588,80"/>
+<area shape="rect" id="node7" href="$scr__index_8c.html#a452c865a4b98cdda542429e25b78c023" title="scr_scan_files" alt="" coords="445,104,551,129"/>
+<area shape="rect" id="node8" href="$scr__index_8c.html#af1c0a221b455f0be8be0e248487d4a64" title="scr_summary_build" alt="" coords="636,104,773,129"/>
+<area shape="rect" id="node9" href="$scr__index_8c.html#a2c27b391ed473dd4c9cd876ce41145db" title="index_add_dir" alt="" coords="821,104,926,129"/>
+<area shape="rect" id="node10" href="$scr__index_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="974,104,1024,129"/>
+</map>
