@@ -22,14 +22,8 @@
 #define SCR_CNTL_BASE @SCR_CNTL_BASE@
 #define SCR_CONFIG_FILE @SCR_CONFIG_FILE@
 
-/* We should use flock for locking files */
-#cmakedefine SCR_FILE_LOCK_USE_FLOCK
-
-/* We should use fcntl for locking files */
-#cmakedefine SCR_FILE_LOCK_USE_FNCTL
-
-/* Do not attempt to lock files */
-#cmakedefine SCR_FILE_LOCK_USE_NONE
+// File Locking
+#define SCR_FILE_LOCK_USE_@SCR_FILE_LOCK@
 
 /* Specify the type of machine. */
 #cmakedefine SCR_MACHINE_NAME
