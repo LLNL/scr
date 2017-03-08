@@ -22,6 +22,12 @@
 // File Locking
 #define SCR_FILE_LOCK_USE_@SCR_FILE_LOCK@
 
+// Resource Manager
+#define SCR_RESOURCE_MANAGER_@SCR_RESOURCE_MANAGER@
+
+// Flush ASYNC API
+#define SCR_FLUSH_ASYNC_@SCR_ASYNC_API@
+
 /* Specify the type of machine. */
 #cmakedefine SCR_MACHINE_NAME
 #cmakedefine SCR_MACHINE_TYPE @SCR_MACHINE_TYPE@
