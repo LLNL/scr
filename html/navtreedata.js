@@ -16,7 +16,7 @@ var NAVTREE =
       [ "Globals", "globals.html", [
         [ "All", "globals.html", "globals_dup" ],
         [ "Functions", "globals_func.html", "globals_func" ],
-        [ "Variables", "globals_vars.html", null ],
+        [ "Variables", "globals_vars.html", "globals_vars" ],
         [ "Typedefs", "globals_type.html", null ],
         [ "Enumerations", "globals_enum.html", null ],
         [ "Enumerator", "globals_eval.html", null ],
@@ -29,13 +29,14 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"scr__conf_8h.html#a0917db1c9c2083bc8c1e17f6c2dbf8fb",
-"scr__filemap_8h.html#abc47b251377319846d330b14990553b8",
-"scr__globals_8h.html#af5bc1154d82829c8f5f181916c5fb8d1",
-"scr__hash_8h.html#ad085f581eac659c44f8846d13f21f761",
-"scr__io_8h.html#ad1d014c1d74d4b41689a0b025377b6cb",
-"scr__reddesc_8c.html#ada162fc5af0f03ac7eabf3b4bd62c938",
-"structscr__reddesc.html#aaa2fae125feca2b4de4f3f7640c76ce4"
+"scr__cache__rebuild_8c_source.html",
+"scr__filemap_8c.html#ab30e2fd3b5871a3334e3cf99142b5e95",
+"scr__globals_8c.html#ac33a9d391f7980b70dc3d5c61200273f",
+"scr__hash_8h.html#a38f27db47d9a619859a6309bc2f4244a",
+"scr__index__api_8c.html#aadba575e660de40c988c14a8b42c40c1",
+"scr__meta_8c_source.html",
+"scr__split_8c.html#ac03df1baa4dea157c3d4e7319d81ffa4aa50dd70fa708e60fd5cdd6308a75f78c",
+"structscr__reddesc__xor.html#a383806b4b7cc98634cc1b1514c5dcc2c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

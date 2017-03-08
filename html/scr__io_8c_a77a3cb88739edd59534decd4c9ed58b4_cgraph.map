@@ -1,5 +1,9 @@
 <map id="scr_mkdir" name="scr_mkdir">
-<area shape="rect" id="node2" href="$scr__interpose_8c.html#aee98bbe743c2d14dbaa67f01c3fb9ed5" title="mkdir" alt="" coords="140,5,194,31"/>
-<area shape="rect" id="node3" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="132,55,202,80"/>
-<area shape="rect" id="node4" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="136,104,199,129"/>
+<area shape="rect" id="node2" href="$scr__interpose_8c.html#aee98bbe743c2d14dbaa67f01c3fb9ed5" title="mkdir" alt="" coords="140,33,194,59"/>
+<area shape="rect" id="node7" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="132,83,202,108"/>
+<area shape="rect" id="node8" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="136,132,199,157"/>
+<area shape="rect" id="node3" href="$scr__interpose_8c.html#abd7f1b7f379e3e9349dfb51b11560d6c" title="scr_interpose_init" alt="" coords="252,5,378,31"/>
+<area shape="rect" id="node5" href="$scr__interpose_8c.html#abed27275d612401597629a94164d5d09" title="scri_is_checkpoint\l_dirname" alt="" coords="250,55,380,93"/>
+<area shape="rect" id="node4" href="$scr__interpose_8c.html#a4b8cc8d253c7457aeb0cd97d711362ef" title="mydlsym" alt="" coords="453,5,527,31"/>
+<area shape="rect" id="node6" href="$scr__interpose_8c.html#a10340dd74e89b9214128dc8bbc4f99c4" title="scri_file_matches" alt="" coords="428,61,553,87"/>
 </map>

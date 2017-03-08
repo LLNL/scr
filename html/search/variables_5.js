@@ -7,5 +7,7 @@ var searchData=
   ['event_5fnote',['event_note',['../structarglist.html#a73d78d4be43a89ef70fa68c295c1feec',1,'arglist']]],
   ['event_5fsecs',['event_secs',['../structarglist.html#a7c5054aba0bcd98063359c07385b6907',1,'arglist']]],
   ['event_5fstart',['event_start',['../structarglist.html#a78abbdbaf50dd09073983c8ef87165d4',1,'arglist']]],
-  ['event_5ftype',['event_type',['../structarglist.html#a2540254aaf69c21bdcc8e3db41dd47ce',1,'arglist']]]
+  ['event_5ftype',['event_type',['../structarglist.html#a2540254aaf69c21bdcc8e3db41dd47ce',1,'arglist']]],
+  ['exa',['exa',['../scr__util_8c.html#ac4f7f8430b11ece981ae66bc8c81e40c',1,'scr_util.c']]],
+  ['experimental',['experimental',['../scr__pmix__spawn_8c.html#ab386ea4911a963a1113b0c2c2ac72194',1,'scr_pmix_spawn.c']]]
 ];

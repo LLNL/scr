@@ -1,0 +1,20 @@
+<map id="user_config_path" name="user_config_path">
+<area shape="rect" id="node2" href="$scr__io_8c.html#a94b23ab2cb79ee52b94d74fb5767f20a" title="scr_getcwd" alt="" coords="206,56,295,82"/>
+<area shape="rect" id="node3" href="$scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="1166,283,1243,308"/>
+<area shape="rect" id="node4" href="$scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="591,232,720,258"/>
+<area shape="rect" id="node11" href="$scr__path_8c.html#a5a3c9b429f11dee33bfa5f1800b0add2" title="scr_path_append_str" alt="" coords="177,220,324,246"/>
+<area shape="rect" id="node14" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="813,511,882,536"/>
+<area shape="rect" id="node15" href="$scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="192,562,309,587"/>
+<area shape="rect" id="node18" href="$scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3" title="scr_path_delete" alt="" coords="397,511,513,536"/>
+<area shape="rect" id="node5" href="$scr__path_8c.html#aef3435cd07f05129d7370e8914f49e41" title="scr_path_alloc" alt="" coords="794,207,901,232"/>
+<area shape="rect" id="node7" href="$scr__path_8c.html#a3b10140983d2b41d10a5fef8acadd214" title="scr_path_elem_alloc" alt="" coords="776,158,920,183"/>
+<area shape="rect" id="node9" href="$scr__path_8c.html#a53234b237d1f111f2126bab24be03064" title="scr_path_elem_insert" alt="" coords="773,308,922,334"/>
+<area shape="rect" id="node6" href="$scr__path_8c.html#acc7fb12c3f1f5fd521bcbe08b583e103" title="scr_path_init" alt="" coords="996,207,1093,232"/>
+<area shape="rect" id="node8" href="$scr__path_8c.html#a9308356656673b71ae1839db059a6bb8" title="scr_path_elem_init" alt="" coords="978,158,1111,183"/>
+<area shape="rect" id="node10" href="$scr__path_8c.html#ac23d9ba015580024cc018c6f8d19f1fb" title="scr_path_elem_index" alt="" coords="970,359,1118,384"/>
+<area shape="rect" id="node12" href="$scr__path_8c.html#a1aba3dca8fe99f643c30c604bc7774cf" title="scr_path_insert_str" alt="" coords="388,283,522,308"/>
+<area shape="rect" id="node13" href="$scr__path_8c.html#a88dcc466fa4c7955290e7d7bb0678d6e" title="scr_path_combine" alt="" coords="591,359,721,384"/>
+<area shape="rect" id="node16" href="$scr__path_8c.html#a53dcddedf48597afebf3b6123c323f11" title="scr_path_strlen" alt="" coords="399,611,511,636"/>
+<area shape="rect" id="node17" href="$scr__path_8c.html#af3eb4d09806351c6b2d3a6310842db83" title="scr_path_strcpy_internal" alt="" coords="372,562,538,587"/>
+<area shape="rect" id="node19" href="$scr__path_8c.html#ab47d085ffd9bd95e229eac7a938c37a8" title="scr_path_elem_free" alt="" coords="586,511,725,536"/>
+</map>

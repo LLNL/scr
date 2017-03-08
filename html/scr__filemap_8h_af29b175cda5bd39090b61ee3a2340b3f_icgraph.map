@@ -1,0 +1,8 @@
+<map id="scr_filemap_remove_rank" name="scr_filemap_remove_rank">
+<area shape="rect" id="node2" href="$scr__filemap_8h.html#addafed2ab83007e83532b937eea52b98" title="scr_filemap_extract_rank" alt="" coords="228,31,398,56"/>
+<area shape="rect" id="node3" href="$scr__cache__rebuild_8h.html#ac512e74afe061169739beaa2d7f08f47" title="scr_scatter_filemaps" alt="" coords="446,31,590,56"/>
+<area shape="rect" id="node4" href="$scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="638,31,713,56"/>
+<area shape="rect" id="node5" href="$scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="761,5,838,31"/>
+<area shape="rect" id="node7" href="$scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="764,55,835,80"/>
+<area shape="rect" id="node6" href="$scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="886,5,957,31"/>
+</map>

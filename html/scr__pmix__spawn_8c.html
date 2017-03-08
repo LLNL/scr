@@ -116,17 +116,43 @@ Macros</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:a36b22b6ec8693c5e19ca70f3404ac784"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a36b22b6ec8693c5e19ca70f3404ac784">error_helper</a> (pmix_status_t status, char *host, char *note)</td></tr>
+<tr class="separator:a36b22b6ec8693c5e19ca70f3404ac784"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a829bfb265d4c130b3a6389cb8f215b86"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a829bfb265d4c130b3a6389cb8f215b86">errhandler_cb</a> (size_t evtHdlr_reg_id, pmix_status_t status, const pmix_proc_t *source, pmix_info_t info[], size_t ninfo, pmix_info_t *results, size_t nresults, pmix_event_notification_cbfunc_fn_t cbfunc, void *cbdata)</td></tr>
+<tr class="separator:a829bfb265d4c130b3a6389cb8f215b86"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a957702559bbd7d989790e6f37872c981"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a957702559bbd7d989790e6f37872c981">errhandler_reg_callbk</a> (pmix_status_t status, size_t errhandler_ref, void *cbdata)</td></tr>
+<tr class="separator:a957702559bbd7d989790e6f37872c981"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5bf09dfb0ab6fdd6e55d13253f5653f1"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a5bf09dfb0ab6fdd6e55d13253f5653f1">fence_helper</a> (void)</td></tr>
 <tr class="separator:a5bf09dfb0ab6fdd6e55d13253f5653f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6f31ef5424a386bcff1a8437a0961912"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a6f31ef5424a386bcff1a8437a0961912">print_usage</a> (char *exe)</td></tr>
 <tr class="separator:a6f31ef5424a386bcff1a8437a0961912"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8c6d28a947cfadca308b245a65afdf76"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a8c6d28a947cfadca308b245a65afdf76">spawn_process</a> (const int spawned_argc, const char **spawned_argv, const int spawned_env_vars_count, const char **spawned_env_vars, const int size_of_job_info_array, pmix_info_t **info_array_for_job, const int size_of_array_for_app, pmix_info_t **info_array_for_app, int *returned_pid)</td></tr>
 <tr class="separator:a8c6d28a947cfadca308b245a65afdf76"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af73b2f6ac17973d48dc27e188729e3aa"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#af73b2f6ac17973d48dc27e188729e3aa">parse_all_scr_envs</a> (char ***env_array, const char **_environ)</td></tr>
+<tr class="separator:af73b2f6ac17973d48dc27e188729e3aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a025300df46d7f614c3f249d548988999"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a025300df46d7f614c3f249d548988999">append_to_env_array</a> (const char *keyandval, char ***env_array)</td></tr>
+<tr class="separator:a025300df46d7f614c3f249d548988999"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad1f91a1a65a0411fca6fd3ee48050d42"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#ad1f91a1a65a0411fca6fd3ee48050d42">printer_func</a> (char **array)</td></tr>
+<tr class="separator:ad1f91a1a65a0411fca6fd3ee48050d42"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6425b6506dd7f4a412fbdeba92fb9fcb"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a6425b6506dd7f4a412fbdeba92fb9fcb">finalize_array</a> (char **array)</td></tr>
+<tr class="separator:a6425b6506dd7f4a412fbdeba92fb9fcb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acdfc8bc1bc3380e91b66651b0221f911"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#acdfc8bc1bc3380e91b66651b0221f911">handle_standard_env_var</a> (const char *name, char ***env_array)</td></tr>
+<tr class="separator:acdfc8bc1bc3380e91b66651b0221f911"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3578c46b7bb9a3f36982056f5fe1ee4d"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a3578c46b7bb9a3f36982056f5fe1ee4d">append_to_info_array</a> (const char *key, void *value, pmix_info_t **info_array)</td></tr>
+<tr class="separator:a3578c46b7bb9a3f36982056f5fe1ee4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a42ebc916049c20670442b3f8d1826989"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989">main</a> (int argc, char **argv, const char **environ)</td></tr>
 <tr class="separator:a42ebc916049c20670442b3f8d1826989"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
+<tr class="memitem:a2294c5f4d95c8af84681d8c47b5a5405"><td class="memItemLeft" align="right" valign="top">static pmix_proc_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a2294c5f4d95c8af84681d8c47b5a5405">main_proc</a></td></tr>
+<tr class="separator:a2294c5f4d95c8af84681d8c47b5a5405"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad4598dd212ec51c37b4b7456bdb33027"><td class="memItemLeft" align="right" valign="top">static pmix_proc_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#ad4598dd212ec51c37b4b7456bdb33027">tool_proc</a></td></tr>
+<tr class="separator:ad4598dd212ec51c37b4b7456bdb33027"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8eb9801c02d44a71f00af338232d580b"><td class="memItemLeft" align="right" valign="top">static volatile bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a8eb9801c02d44a71f00af338232d580b">done_flag</a> = false</td></tr>
+<tr class="separator:a8eb9801c02d44a71f00af338232d580b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab386ea4911a963a1113b0c2c2ac72194"><td class="memItemLeft" align="right" valign="top">static volatile bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#ab386ea4911a963a1113b0c2c2ac72194">experimental</a> = false</td></tr>
+<tr class="separator:ab386ea4911a963a1113b0c2c2ac72194"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a31fd0e150afdbc6ba86ab6cfa0fd8278"><td class="memItemLeft" align="right" valign="top">char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a31fd0e150afdbc6ba86ab6cfa0fd8278">hostn</a> [500]</td></tr>
 <tr class="separator:a31fd0e150afdbc6ba86ab6cfa0fd8278"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9d6a0e5517724fe71f35c72977b8fbcc"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a9d6a0e5517724fe71f35c72977b8fbcc">errhandler_ref_number</a> = 0</td></tr>
@@ -135,6 +161,8 @@ Variables</h2></td></tr>
 <tr class="separator:adb67da159ed4cd8a0407cfd5f83d6235"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a58508929f5dec3b8d693dda10e6bd4c2"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#a58508929f5dec3b8d693dda10e6bd4c2">_g_counter</a> = 0</td></tr>
 <tr class="separator:a58508929f5dec3b8d693dda10e6bd4c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad659c3806ef88da4ccbcd8a24d95d44b"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#ad659c3806ef88da4ccbcd8a24d95d44b">verbose_print</a></td></tr>
+<tr class="separator:ad659c3806ef88da4ccbcd8a24d95d44b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acc157c822072afbbe3a9acc3ab8947e7"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__pmix__spawn_8c.html#acc157c822072afbbe3a9acc3ab8947e7">SCR_STRING</a> = &quot;SCR&quot;</td></tr>
 <tr class="separator:acc157c822072afbbe3a9acc3ab8947e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -188,6 +216,306 @@ Variables</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="a025300df46d7f614c3f249d548988999"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a025300df46d7f614c3f249d548988999">&sect;&nbsp;</a></span>append_to_env_array()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void append_to_env_array </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>keyandval</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char ***&#160;</td>
+          <td class="paramname"><em>env_array</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00739">739</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_a025300df46d7f614c3f249d548988999_cgraph.png" border="0" usemap="#scr__pmix__spawn_8c_a025300df46d7f614c3f249d548988999_cgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_a025300df46d7f614c3f249d548988999_cgraph" id="scr__pmix__spawn_8c_a025300df46d7f614c3f249d548988999_cgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#ad1f91a1a65a0411fca6fd3ee48050d42" title="printer_func" alt="" coords="204,5,296,31"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_a025300df46d7f614c3f249d548988999_icgraph.png" border="0" usemap="#scr__pmix__spawn_8c_a025300df46d7f614c3f249d548988999_icgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_a025300df46d7f614c3f249d548988999_icgraph" id="scr__pmix__spawn_8c_a025300df46d7f614c3f249d548988999_icgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#af73b2f6ac17973d48dc27e188729e3aa" title="parse_all_scr_envs" alt="" coords="224,5,360,31"/>
+<area shape="rect" id="node4" href="scr__pmix__spawn_8c.html#acdfc8bc1bc3380e91b66651b0221f911" title="handle_standard_env_var" alt="" coords="204,55,380,80"/>
+<area shape="rect" id="node3" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989" title="main" alt="" coords="428,31,478,56"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a3578c46b7bb9a3f36982056f5fe1ee4d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3578c46b7bb9a3f36982056f5fe1ee4d">&sect;&nbsp;</a></span>append_to_info_array()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static void append_to_info_array </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>key</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>value</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">pmix_info_t **&#160;</td>
+          <td class="paramname"><em>info_array</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a829bfb265d4c130b3a6389cb8f215b86"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a829bfb265d4c130b3a6389cb8f215b86">&sect;&nbsp;</a></span>errhandler_cb()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static void errhandler_cb </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>evtHdlr_reg_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">pmix_status_t&#160;</td>
+          <td class="paramname"><em>status</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const pmix_proc_t *&#160;</td>
+          <td class="paramname"><em>source</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">pmix_info_t&#160;</td>
+          <td class="paramname"><em>info</em>[], </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>ninfo</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">pmix_info_t *&#160;</td>
+          <td class="paramname"><em>results</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>nresults</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">pmix_event_notification_cbfunc_fn_t&#160;</td>
+          <td class="paramname"><em>cbfunc</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>cbdata</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00075">75</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_a829bfb265d4c130b3a6389cb8f215b86_icgraph.png" border="0" usemap="#scr__pmix__spawn_8c_a829bfb265d4c130b3a6389cb8f215b86_icgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_a829bfb265d4c130b3a6389cb8f215b86_icgraph" id="scr__pmix__spawn_8c_a829bfb265d4c130b3a6389cb8f215b86_icgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989" title="main" alt="" coords="157,5,207,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a957702559bbd7d989790e6f37872c981"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a957702559bbd7d989790e6f37872c981">&sect;&nbsp;</a></span>errhandler_reg_callbk()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static void errhandler_reg_callbk </td>
+          <td>(</td>
+          <td class="paramtype">pmix_status_t&#160;</td>
+          <td class="paramname"><em>status</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>errhandler_ref</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>cbdata</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00124">124</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_a957702559bbd7d989790e6f37872c981_cgraph.png" border="0" usemap="#scr__pmix__spawn_8c_a957702559bbd7d989790e6f37872c981_cgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_a957702559bbd7d989790e6f37872c981_cgraph" id="scr__pmix__spawn_8c_a957702559bbd7d989790e6f37872c981_cgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a36b22b6ec8693c5e19ca70f3404ac784" title="error_helper" alt="" coords="206,5,300,31"/>
+<area shape="rect" id="node3" href="scr__pmix__spawn_8c.html#a5bf09dfb0ab6fdd6e55d13253f5653f1" title="fence_helper" alt="" coords="204,55,302,80"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_a957702559bbd7d989790e6f37872c981_icgraph.png" border="0" usemap="#scr__pmix__spawn_8c_a957702559bbd7d989790e6f37872c981_icgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_a957702559bbd7d989790e6f37872c981_icgraph" id="scr__pmix__spawn_8c_a957702559bbd7d989790e6f37872c981_icgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989" title="main" alt="" coords="204,5,254,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a36b22b6ec8693c5e19ca70f3404ac784"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a36b22b6ec8693c5e19ca70f3404ac784">&sect;&nbsp;</a></span>error_helper()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static void error_helper </td>
+          <td>(</td>
+          <td class="paramtype">pmix_status_t&#160;</td>
+          <td class="paramname"><em>status</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>host</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>note</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00065">65</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_a36b22b6ec8693c5e19ca70f3404ac784_icgraph.png" border="0" usemap="#scr__pmix__spawn_8c_a36b22b6ec8693c5e19ca70f3404ac784_icgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_a36b22b6ec8693c5e19ca70f3404ac784_icgraph" id="scr__pmix__spawn_8c_a36b22b6ec8693c5e19ca70f3404ac784_icgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a957702559bbd7d989790e6f37872c981" title="errhandler_reg_callbk" alt="" coords="147,5,298,31"/>
+<area shape="rect" id="node3" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989" title="main" alt="" coords="346,31,396,56"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="a5bf09dfb0ab6fdd6e55d13253f5653f1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5bf09dfb0ab6fdd6e55d13253f5653f1">&sect;&nbsp;</a></span>fence_helper()</h2>
 
@@ -205,6 +533,106 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00664">664</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_a5bf09dfb0ab6fdd6e55d13253f5653f1_icgraph.png" border="0" usemap="#scr__pmix__spawn_8c_a5bf09dfb0ab6fdd6e55d13253f5653f1_icgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_a5bf09dfb0ab6fdd6e55d13253f5653f1_icgraph" id="scr__pmix__spawn_8c_a5bf09dfb0ab6fdd6e55d13253f5653f1_icgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a957702559bbd7d989790e6f37872c981" title="errhandler_reg_callbk" alt="" coords="152,5,302,31"/>
+<area shape="rect" id="node3" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989" title="main" alt="" coords="350,31,400,56"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a6425b6506dd7f4a412fbdeba92fb9fcb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6425b6506dd7f4a412fbdeba92fb9fcb">&sect;&nbsp;</a></span>finalize_array()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void finalize_array </td>
+          <td>(</td>
+          <td class="paramtype">char **&#160;</td>
+          <td class="paramname"><em>array</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00872">872</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_a6425b6506dd7f4a412fbdeba92fb9fcb_icgraph.png" border="0" usemap="#scr__pmix__spawn_8c_a6425b6506dd7f4a412fbdeba92fb9fcb_icgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_a6425b6506dd7f4a412fbdeba92fb9fcb_icgraph" id="scr__pmix__spawn_8c_a6425b6506dd7f4a412fbdeba92fb9fcb_icgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989" title="main" alt="" coords="154,5,204,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="acdfc8bc1bc3380e91b66651b0221f911"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acdfc8bc1bc3380e91b66651b0221f911">&sect;&nbsp;</a></span>handle_standard_env_var()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static void handle_standard_env_var </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char ***&#160;</td>
+          <td class="paramname"><em>env_array</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00900">900</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_acdfc8bc1bc3380e91b66651b0221f911_cgraph.png" border="0" usemap="#scr__pmix__spawn_8c_acdfc8bc1bc3380e91b66651b0221f911_cgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_acdfc8bc1bc3380e91b66651b0221f911_cgraph" id="scr__pmix__spawn_8c_acdfc8bc1bc3380e91b66651b0221f911_cgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a025300df46d7f614c3f249d548988999" title="append_to_env_array" alt="" coords="229,5,380,31"/>
+<area shape="rect" id="node3" href="scr__pmix__spawn_8c.html#ad1f91a1a65a0411fca6fd3ee48050d42" title="printer_func" alt="" coords="428,5,520,31"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_acdfc8bc1bc3380e91b66651b0221f911_icgraph.png" border="0" usemap="#scr__pmix__spawn_8c_acdfc8bc1bc3380e91b66651b0221f911_icgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_acdfc8bc1bc3380e91b66651b0221f911_icgraph" id="scr__pmix__spawn_8c_acdfc8bc1bc3380e91b66651b0221f911_icgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989" title="main" alt="" coords="229,5,279,31"/>
+</map>
+</div>
 
 </div>
 </div>
@@ -241,6 +669,78 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00185">185</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_a42ebc916049c20670442b3f8d1826989_cgraph.png" border="0" usemap="#scr__pmix__spawn_8c_a42ebc916049c20670442b3f8d1826989_cgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_a42ebc916049c20670442b3f8d1826989_cgraph" id="scr__pmix__spawn_8c_a42ebc916049c20670442b3f8d1826989_cgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a6f31ef5424a386bcff1a8437a0961912" title="print_usage" alt="" coords="146,5,237,31"/>
+<area shape="rect" id="node3" href="scr__pmix__spawn_8c.html#acdfc8bc1bc3380e91b66651b0221f911" title="handle_standard_env_var" alt="" coords="104,55,279,80"/>
+<area shape="rect" id="node6" href="scr__pmix__spawn_8c.html#a36b22b6ec8693c5e19ca70f3404ac784" title="error_helper" alt="" coords="356,180,450,205"/>
+<area shape="rect" id="node7" href="scr__pmix__spawn_8c.html#a5bf09dfb0ab6fdd6e55d13253f5653f1" title="fence_helper" alt="" coords="353,279,452,304"/>
+<area shape="rect" id="node8" href="scr__pmix__spawn_8c.html#af73b2f6ac17973d48dc27e188729e3aa" title="parse_all_scr_envs" alt="" coords="123,104,259,129"/>
+<area shape="rect" id="node9" href="scr__pmix__spawn_8c.html#a6425b6506dd7f4a412fbdeba92fb9fcb" title="finalize_array" alt="" coords="141,255,242,280"/>
+<area shape="rect" id="node10" href="scr__pmix__spawn_8c.html#a829bfb265d4c130b3a6389cb8f215b86" title="errhandler_cb" alt="" coords="140,304,243,329"/>
+<area shape="rect" id="node11" href="scr__pmix__spawn_8c.html#a957702559bbd7d989790e6f37872c981" title="errhandler_reg_callbk" alt="" coords="116,205,266,231"/>
+<area shape="rect" id="node4" href="scr__pmix__spawn_8c.html#a025300df46d7f614c3f249d548988999" title="append_to_env_array" alt="" coords="327,80,478,105"/>
+<area shape="rect" id="node5" href="scr__pmix__spawn_8c.html#ad1f91a1a65a0411fca6fd3ee48050d42" title="printer_func" alt="" coords="526,80,618,105"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="af73b2f6ac17973d48dc27e188729e3aa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af73b2f6ac17973d48dc27e188729e3aa">&sect;&nbsp;</a></span>parse_all_scr_envs()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void parse_all_scr_envs </td>
+          <td>(</td>
+          <td class="paramtype">char ***&#160;</td>
+          <td class="paramname"><em>env_array</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char **&#160;</td>
+          <td class="paramname"><em>_environ</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00699">699</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_af73b2f6ac17973d48dc27e188729e3aa_cgraph.png" border="0" usemap="#scr__pmix__spawn_8c_af73b2f6ac17973d48dc27e188729e3aa_cgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_af73b2f6ac17973d48dc27e188729e3aa_cgraph" id="scr__pmix__spawn_8c_af73b2f6ac17973d48dc27e188729e3aa_cgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a025300df46d7f614c3f249d548988999" title="append_to_env_array" alt="" coords="190,5,341,31"/>
+<area shape="rect" id="node3" href="scr__pmix__spawn_8c.html#ad1f91a1a65a0411fca6fd3ee48050d42" title="printer_func" alt="" coords="389,5,480,31"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_af73b2f6ac17973d48dc27e188729e3aa_icgraph.png" border="0" usemap="#scr__pmix__spawn_8c_af73b2f6ac17973d48dc27e188729e3aa_icgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_af73b2f6ac17973d48dc27e188729e3aa_icgraph" id="scr__pmix__spawn_8c_af73b2f6ac17973d48dc27e188729e3aa_icgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989" title="main" alt="" coords="190,5,240,31"/>
+</map>
+</div>
 
 </div>
 </div>
@@ -261,6 +761,53 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00135">135</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_a6f31ef5424a386bcff1a8437a0961912_icgraph.png" border="0" usemap="#scr__pmix__spawn_8c_a6f31ef5424a386bcff1a8437a0961912_icgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_a6f31ef5424a386bcff1a8437a0961912_icgraph" id="scr__pmix__spawn_8c_a6f31ef5424a386bcff1a8437a0961912_icgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989" title="main" alt="" coords="144,5,195,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ad1f91a1a65a0411fca6fd3ee48050d42"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad1f91a1a65a0411fca6fd3ee48050d42">&sect;&nbsp;</a></span>printer_func()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void printer_func </td>
+          <td>(</td>
+          <td class="paramtype">char **&#160;</td>
+          <td class="paramname"><em>array</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00852">852</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__pmix__spawn_8c_ad1f91a1a65a0411fca6fd3ee48050d42_icgraph.png" border="0" usemap="#scr__pmix__spawn_8c_ad1f91a1a65a0411fca6fd3ee48050d42_icgraph" alt=""/></div>
+<map name="scr__pmix__spawn_8c_ad1f91a1a65a0411fca6fd3ee48050d42_icgraph" id="scr__pmix__spawn_8c_ad1f91a1a65a0411fca6fd3ee48050d42_icgraph">
+<area shape="rect" id="node2" href="scr__pmix__spawn_8c.html#a025300df46d7f614c3f249d548988999" title="append_to_env_array" alt="" coords="145,31,296,56"/>
+<area shape="rect" id="node3" href="scr__pmix__spawn_8c.html#af73b2f6ac17973d48dc27e188729e3aa" title="parse_all_scr_envs" alt="" coords="364,5,500,31"/>
+<area shape="rect" id="node5" href="scr__pmix__spawn_8c.html#acdfc8bc1bc3380e91b66651b0221f911" title="handle_standard_env_var" alt="" coords="344,55,520,80"/>
+<area shape="rect" id="node4" href="scr__pmix__spawn_8c.html#a42ebc916049c20670442b3f8d1826989" title="main" alt="" coords="568,31,618,56"/>
+</map>
+</div>
 
 </div>
 </div>
@@ -369,6 +916,30 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a8eb9801c02d44a71f00af338232d580b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8eb9801c02d44a71f00af338232d580b">&sect;&nbsp;</a></span>done_flag</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">volatile bool done_flag = false</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00057">57</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+
+</div>
+</div>
 <a id="a9d6a0e5517724fe71f35c72977b8fbcc"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a9d6a0e5517724fe71f35c72977b8fbcc">&sect;&nbsp;</a></span>errhandler_ref_number</h2>
 
@@ -382,6 +953,30 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00060">60</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+
+</div>
+</div>
+<a id="ab386ea4911a963a1113b0c2c2ac72194"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab386ea4911a963a1113b0c2c2ac72194">&sect;&nbsp;</a></span>experimental</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">volatile bool experimental = false</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00058">58</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
 
 </div>
 </div>
@@ -401,6 +996,30 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a2294c5f4d95c8af84681d8c47b5a5405"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2294c5f4d95c8af84681d8c47b5a5405">&sect;&nbsp;</a></span>main_proc</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">pmix_proc_t main_proc</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00055">55</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+
+</div>
+</div>
 <a id="acc157c822072afbbe3a9acc3ab8947e7"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acc157c822072afbbe3a9acc3ab8947e7">&sect;&nbsp;</a></span>SCR_STRING</h2>
 
@@ -414,6 +1033,54 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00183">183</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+
+</div>
+</div>
+<a id="ad4598dd212ec51c37b4b7456bdb33027"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad4598dd212ec51c37b4b7456bdb33027">&sect;&nbsp;</a></span>tool_proc</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">pmix_proc_t tool_proc</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00056">56</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
+
+</div>
+</div>
+<a id="ad659c3806ef88da4ccbcd8a24d95d44b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad659c3806ef88da4ccbcd8a24d95d44b">&sect;&nbsp;</a></span>verbose_print</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool verbose_print</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__pmix__spawn_8c_source.html#l00063">63</a> of file <a class="el" href="scr__pmix__spawn_8c_source.html">scr_pmix_spawn.c</a>.</p>
 
 </div>
 </div>

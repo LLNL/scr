@@ -1,4 +1,9 @@
 <map id="scr_filemap_clear" name="scr_filemap_clear">
-<area shape="rect" id="node2" href="$scr__cache_8h.html#ad878586242fd6abee4bd87695b15a19b" title="scr_cache_clean" alt="" coords="179,5,301,31"/>
-<area shape="rect" id="node3" href="$scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="349,5,478,31"/>
+<area shape="rect" id="node2" href="$scr__cache_8h.html#ad878586242fd6abee4bd87695b15a19b" title="scr_cache_clean" alt="" coords="179,31,301,56"/>
+<area shape="rect" id="node3" href="$scr__cache__rebuild_8c.html#afe7888498e6ad652c09fcf7fea2cc1d2" title="scr_distribute_files" alt="" coords="349,5,480,31"/>
+<area shape="rect" id="node4" href="$scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="528,31,658,56"/>
+<area shape="rect" id="node5" href="$scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="706,31,781,56"/>
+<area shape="rect" id="node6" href="$scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="829,5,906,31"/>
+<area shape="rect" id="node8" href="$scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="832,55,903,80"/>
+<area shape="rect" id="node7" href="$scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="954,5,1024,31"/>
 </map>

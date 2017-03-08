@@ -158,6 +158,20 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:ae4f9d74fa3c7d345925c2c700b7a09d7"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__split_8c.html#ae4f9d74fa3c7d345925c2c700b7a09d7">scr_cmp_int</a> (const void *a_void, const void *b_void, size_t offset)</td></tr>
+<tr class="separator:ae4f9d74fa3c7d345925c2c700b7a09d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac36bcbf246df1248c2f1cd18f0c41773"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__split_8c.html#ac36bcbf246df1248c2f1cd18f0c41773">scr_cmp_str</a> (const void *a, const void *b, size_t offset)</td></tr>
+<tr class="separator:ac36bcbf246df1248c2f1cd18f0c41773"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aef8340971655cd9b27c1860c44778ff8"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__split_8c.html#aef8340971655cd9b27c1860c44778ff8">scr_cmp_str_int</a> (const void *a, const void *b, size_t offset)</td></tr>
+<tr class="separator:aef8340971655cd9b27c1860c44778ff8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a560e4f24291398af01f6453bea4e7fd6"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__split_8c.html#a560e4f24291398af01f6453bea4e7fd6">scr_sort_bitonic_merge</a> (void *value, void *scratch, MPI_Datatype type, size_t type_size, size_t offset, int(*compare)(const void *, const void *, size_t), int start, int num, int direction, MPI_Comm comm, int tag)</td></tr>
+<tr class="separator:a560e4f24291398af01f6453bea4e7fd6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a24041ef030b08ba848f5f85c37a2a7d3"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__split_8c.html#a24041ef030b08ba848f5f85c37a2a7d3">scr_sort_bitonic_sort</a> (void *value, void *scratch, MPI_Datatype type, size_t type_size, size_t offset, int(*compare)(const void *, const void *, size_t), int start, int num, int direction, MPI_Comm comm, int tag)</td></tr>
+<tr class="separator:a24041ef030b08ba848f5f85c37a2a7d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aff9e351f8acbff32a21a6d49c31ea96a"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__split_8c.html#aff9e351f8acbff32a21a6d49c31ea96a">scr_sort_bitonic</a> (void *value, MPI_Datatype type, size_t type_size, size_t data_offset, int(*compare)(const void *, const void *, size_t), MPI_Comm comm, int tag)</td></tr>
+<tr class="separator:aff9e351f8acbff32a21a6d49c31ea96a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2ad86b7b89507d80c97c50fcd59f2294"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__split_8c.html#a2ad86b7b89507d80c97c50fcd59f2294">scr_split_sorted</a> (const void *value, MPI_Datatype type, size_t type_size, size_t data_offset, int(*compare)(const void *, const void *, size_t), MPI_Comm comm, int tag1, int tag2, int recv_ints[7])</td></tr>
+<tr class="separator:a2ad86b7b89507d80c97c50fcd59f2294"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3352565655578c37da1249486f816f29"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__split_8c.html#a3352565655578c37da1249486f816f29">scr_rank_str</a> (MPI_Comm comm, const char *str, int *groups, int *groupid)</td></tr>
 <tr class="separator:a3352565655578c37da1249486f816f29"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -210,6 +224,181 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="ae4f9d74fa3c7d345925c2c700b7a09d7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae4f9d74fa3c7d345925c2c700b7a09d7">&sect;&nbsp;</a></span>scr_cmp_int()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_cmp_int </td>
+          <td>(</td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>a_void</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>b_void</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>offset</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__split_8c_source.html#l00030">30</a> of file <a class="el" href="scr__split_8c_source.html">scr_split.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_ae4f9d74fa3c7d345925c2c700b7a09d7_icgraph.png" border="0" usemap="#scr__split_8c_ae4f9d74fa3c7d345925c2c700b7a09d7_icgraph" alt=""/></div>
+<map name="scr__split_8c_ae4f9d74fa3c7d345925c2c700b7a09d7_icgraph" id="scr__split_8c_ae4f9d74fa3c7d345925c2c700b7a09d7_icgraph">
+<area shape="rect" id="node2" href="scr__split_8c.html#a2ad86b7b89507d80c97c50fcd59f2294" title="scr_split_sorted" alt="" coords="147,32,261,57"/>
+<area shape="rect" id="node3" href="scr__split_8h.html#a3352565655578c37da1249486f816f29" title="scr_rank_str" alt="" coords="309,32,404,57"/>
+<area shape="rect" id="node4" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="861,31,936,56"/>
+<area shape="rect" id="node8" href="scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="452,53,605,92"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="984,5,1061,31"/>
+<area shape="rect" id="node7" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="987,55,1058,80"/>
+<area shape="rect" id="node6" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="1109,5,1180,31"/>
+<area shape="rect" id="node9" href="scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="653,56,813,81"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ac36bcbf246df1248c2f1cd18f0c41773"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac36bcbf246df1248c2f1cd18f0c41773">&sect;&nbsp;</a></span>scr_cmp_str()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_cmp_str </td>
+          <td>(</td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>a</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>b</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>offset</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__split_8c_source.html#l00048">48</a> of file <a class="el" href="scr__split_8c_source.html">scr_split.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_ac36bcbf246df1248c2f1cd18f0c41773_icgraph.png" border="0" usemap="#scr__split_8c_ac36bcbf246df1248c2f1cd18f0c41773_icgraph" alt=""/></div>
+<map name="scr__split_8c_ac36bcbf246df1248c2f1cd18f0c41773_icgraph" id="scr__split_8c_ac36bcbf246df1248c2f1cd18f0c41773_icgraph">
+<area shape="rect" id="node2" href="scr__split_8h.html#a3352565655578c37da1249486f816f29" title="scr_rank_str" alt="" coords="147,32,242,57"/>
+<area shape="rect" id="node3" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="699,31,774,56"/>
+<area shape="rect" id="node7" href="scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="290,53,443,92"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="822,5,899,31"/>
+<area shape="rect" id="node6" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="825,55,896,80"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="947,5,1018,31"/>
+<area shape="rect" id="node8" href="scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="491,56,651,81"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="aef8340971655cd9b27c1860c44778ff8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aef8340971655cd9b27c1860c44778ff8">&sect;&nbsp;</a></span>scr_cmp_str_int()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_cmp_str_int </td>
+          <td>(</td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>a</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>b</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>offset</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__split_8c_source.html#l00068">68</a> of file <a class="el" href="scr__split_8c_source.html">scr_split.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_aef8340971655cd9b27c1860c44778ff8_icgraph.png" border="0" usemap="#scr__split_8c_aef8340971655cd9b27c1860c44778ff8_icgraph" alt=""/></div>
+<map name="scr__split_8c_aef8340971655cd9b27c1860c44778ff8_icgraph" id="scr__split_8c_aef8340971655cd9b27c1860c44778ff8_icgraph">
+<area shape="rect" id="node2" href="scr__split_8h.html#a3352565655578c37da1249486f816f29" title="scr_rank_str" alt="" coords="169,32,263,57"/>
+<area shape="rect" id="node3" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="721,31,795,56"/>
+<area shape="rect" id="node7" href="scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="311,53,465,92"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="843,5,921,31"/>
+<area shape="rect" id="node6" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="847,55,918,80"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="969,5,1039,31"/>
+<area shape="rect" id="node8" href="scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="513,56,673,81"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="a3352565655578c37da1249486f816f29"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3352565655578c37da1249486f816f29">&sect;&nbsp;</a></span>scr_rank_str()</h2>
 
@@ -250,12 +439,454 @@ Functions</h2></td></tr>
 
 <p>Definition at line <a class="el" href="scr__split_8c_source.html#l00581">581</a> of file <a class="el" href="scr__split_8c_source.html">scr_split.c</a>.</p>
 <div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_a3352565655578c37da1249486f816f29_cgraph.png" border="0" usemap="#scr__split_8c_a3352565655578c37da1249486f816f29_cgraph" alt=""/></div>
+<map name="scr__split_8c_a3352565655578c37da1249486f816f29_cgraph" id="scr__split_8c_a3352565655578c37da1249486f816f29_cgraph">
+<area shape="rect" id="node2" href="scr__split_8c.html#aff9e351f8acbff32a21a6d49c31ea96a" title="scr_sort_bitonic" alt="" coords="311,5,426,31"/>
+<area shape="rect" id="node5" href="scr__split_8c.html#aef8340971655cd9b27c1860c44778ff8" title="scr_cmp_str_int" alt="" coords="148,31,263,56"/>
+<area shape="rect" id="node6" href="scr__split_8c.html#a2ad86b7b89507d80c97c50fcd59f2294" title="scr_split_sorted" alt="" coords="148,80,263,105"/>
+<area shape="rect" id="node9" href="scr__split_8c.html#ac36bcbf246df1248c2f1cd18f0c41773" title="scr_cmp_str" alt="" coords="159,129,253,155"/>
+<area shape="rect" id="node3" href="scr__split_8c.html#a24041ef030b08ba848f5f85c37a2a7d3" title="scr_sort_bitonic_sort" alt="" coords="474,5,619,31"/>
+<area shape="rect" id="node4" href="scr__split_8c.html#a560e4f24291398af01f6453bea4e7fd6" title="scr_sort_bitonic_merge" alt="" coords="667,5,826,31"/>
+<area shape="rect" id="node7" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="334,55,404,80"/>
+<area shape="rect" id="node8" href="scr__split_8c.html#ae4f9d74fa3c7d345925c2c700b7a09d7" title="scr_cmp_int" alt="" coords="322,104,415,129"/>
+</map>
+</div>
+<div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="scr__split_8c_a3352565655578c37da1249486f816f29_icgraph.png" border="0" usemap="#scr__split_8c_a3352565655578c37da1249486f816f29_icgraph" alt=""/></div>
 <map name="scr__split_8c_a3352565655578c37da1249486f816f29_icgraph" id="scr__split_8c_a3352565655578c37da1249486f816f29_icgraph">
-<area shape="rect" id="node2" href="scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="148,5,301,44"/>
-<area shape="rect" id="node3" href="scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="349,12,509,37"/>
+<area shape="rect" id="node2" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="557,31,632,56"/>
+<area shape="rect" id="node6" href="scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="148,53,301,92"/>
+<area shape="rect" id="node3" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="680,5,758,31"/>
+<area shape="rect" id="node5" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="683,55,754,80"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="806,5,876,31"/>
+<area shape="rect" id="node7" href="scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="349,56,509,81"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="aff9e351f8acbff32a21a6d49c31ea96a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aff9e351f8acbff32a21a6d49c31ea96a">&sect;&nbsp;</a></span>scr_sort_bitonic()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_sort_bitonic </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>value</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">MPI_Datatype&#160;</td>
+          <td class="paramname"><em>type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>type_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>data_offset</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int(*)(const void *, const void *, size_t)&#160;</td>
+          <td class="paramname"><em>compare</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">MPI_Comm&#160;</td>
+          <td class="paramname"><em>comm</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>tag</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__split_8c_source.html#l00243">243</a> of file <a class="el" href="scr__split_8c_source.html">scr_split.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_aff9e351f8acbff32a21a6d49c31ea96a_cgraph.png" border="0" usemap="#scr__split_8c_aff9e351f8acbff32a21a6d49c31ea96a_cgraph" alt=""/></div>
+<map name="scr__split_8c_aff9e351f8acbff32a21a6d49c31ea96a_cgraph" id="scr__split_8c_aff9e351f8acbff32a21a6d49c31ea96a_cgraph">
+<area shape="rect" id="node2" href="scr__split_8c.html#a24041ef030b08ba848f5f85c37a2a7d3" title="scr_sort_bitonic_sort" alt="" coords="168,5,312,31"/>
+<area shape="rect" id="node3" href="scr__split_8c.html#a560e4f24291398af01f6453bea4e7fd6" title="scr_sort_bitonic_merge" alt="" coords="360,5,520,31"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_aff9e351f8acbff32a21a6d49c31ea96a_icgraph.png" border="0" usemap="#scr__split_8c_aff9e351f8acbff32a21a6d49c31ea96a_icgraph" alt=""/></div>
+<map name="scr__split_8c_aff9e351f8acbff32a21a6d49c31ea96a_icgraph" id="scr__split_8c_aff9e351f8acbff32a21a6d49c31ea96a_icgraph">
+<area shape="rect" id="node2" href="scr__split_8c.html#a2ad86b7b89507d80c97c50fcd59f2294" title="scr_split_sorted" alt="" coords="168,7,283,32"/>
+<area shape="rect" id="node3" href="scr__split_8h.html#a3352565655578c37da1249486f816f29" title="scr_rank_str" alt="" coords="331,32,425,57"/>
+<area shape="rect" id="node4" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="883,31,957,56"/>
+<area shape="rect" id="node8" href="scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="473,53,627,92"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="1005,5,1083,31"/>
+<area shape="rect" id="node7" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="1009,55,1080,80"/>
+<area shape="rect" id="node6" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="1131,5,1201,31"/>
+<area shape="rect" id="node9" href="scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="675,56,835,81"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a560e4f24291398af01f6453bea4e7fd6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a560e4f24291398af01f6453bea4e7fd6">&sect;&nbsp;</a></span>scr_sort_bitonic_merge()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_sort_bitonic_merge </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>value</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>scratch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">MPI_Datatype&#160;</td>
+          <td class="paramname"><em>type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>type_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>offset</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int(*)(const void *, const void *, size_t)&#160;</td>
+          <td class="paramname"><em>compare</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>start</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>num</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>direction</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">MPI_Comm&#160;</td>
+          <td class="paramname"><em>comm</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>tag</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__split_8c_source.html#l00095">95</a> of file <a class="el" href="scr__split_8c_source.html">scr_split.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_a560e4f24291398af01f6453bea4e7fd6_icgraph.png" border="0" usemap="#scr__split_8c_a560e4f24291398af01f6453bea4e7fd6_icgraph" alt=""/></div>
+<map name="scr__split_8c_a560e4f24291398af01f6453bea4e7fd6_icgraph" id="scr__split_8c_a560e4f24291398af01f6453bea4e7fd6_icgraph">
+<area shape="rect" id="node2" href="scr__split_8c.html#a24041ef030b08ba848f5f85c37a2a7d3" title="scr_sort_bitonic_sort" alt="" coords="213,32,358,57"/>
+<area shape="rect" id="node3" href="scr__split_8c.html#aff9e351f8acbff32a21a6d49c31ea96a" title="scr_sort_bitonic" alt="" coords="406,32,520,57"/>
+<area shape="rect" id="node4" href="scr__split_8c.html#a2ad86b7b89507d80c97c50fcd59f2294" title="scr_split_sorted" alt="" coords="568,7,683,32"/>
+<area shape="rect" id="node5" href="scr__split_8h.html#a3352565655578c37da1249486f816f29" title="scr_rank_str" alt="" coords="731,32,826,57"/>
+<area shape="rect" id="node6" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="1283,31,1358,56"/>
+<area shape="rect" id="node10" href="scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="874,53,1027,92"/>
+<area shape="rect" id="node7" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="1406,5,1483,31"/>
+<area shape="rect" id="node9" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="1409,55,1480,80"/>
+<area shape="rect" id="node8" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="1531,5,1601,31"/>
+<area shape="rect" id="node11" href="scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="1075,56,1235,81"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a24041ef030b08ba848f5f85c37a2a7d3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a24041ef030b08ba848f5f85c37a2a7d3">&sect;&nbsp;</a></span>scr_sort_bitonic_sort()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_sort_bitonic_sort </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>value</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>scratch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">MPI_Datatype&#160;</td>
+          <td class="paramname"><em>type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>type_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>offset</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int(*)(const void *, const void *, size_t)&#160;</td>
+          <td class="paramname"><em>compare</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>start</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>num</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>direction</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">MPI_Comm&#160;</td>
+          <td class="paramname"><em>comm</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>tag</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__split_8c_source.html#l00190">190</a> of file <a class="el" href="scr__split_8c_source.html">scr_split.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_a24041ef030b08ba848f5f85c37a2a7d3_cgraph.png" border="0" usemap="#scr__split_8c_a24041ef030b08ba848f5f85c37a2a7d3_cgraph" alt=""/></div>
+<map name="scr__split_8c_a24041ef030b08ba848f5f85c37a2a7d3_cgraph" id="scr__split_8c_a24041ef030b08ba848f5f85c37a2a7d3_cgraph">
+<area shape="rect" id="node2" href="scr__split_8c.html#a560e4f24291398af01f6453bea4e7fd6" title="scr_sort_bitonic_merge" alt="" coords="198,5,358,31"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_a24041ef030b08ba848f5f85c37a2a7d3_icgraph.png" border="0" usemap="#scr__split_8c_a24041ef030b08ba848f5f85c37a2a7d3_icgraph" alt=""/></div>
+<map name="scr__split_8c_a24041ef030b08ba848f5f85c37a2a7d3_icgraph" id="scr__split_8c_a24041ef030b08ba848f5f85c37a2a7d3_icgraph">
+<area shape="rect" id="node2" href="scr__split_8c.html#aff9e351f8acbff32a21a6d49c31ea96a" title="scr_sort_bitonic" alt="" coords="198,32,312,57"/>
+<area shape="rect" id="node3" href="scr__split_8c.html#a2ad86b7b89507d80c97c50fcd59f2294" title="scr_split_sorted" alt="" coords="360,7,475,32"/>
+<area shape="rect" id="node4" href="scr__split_8h.html#a3352565655578c37da1249486f816f29" title="scr_rank_str" alt="" coords="523,32,618,57"/>
+<area shape="rect" id="node5" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="1075,31,1150,56"/>
+<area shape="rect" id="node9" href="scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="666,53,819,92"/>
+<area shape="rect" id="node6" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="1198,5,1275,31"/>
+<area shape="rect" id="node8" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="1201,55,1272,80"/>
+<area shape="rect" id="node7" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="1323,5,1394,31"/>
+<area shape="rect" id="node10" href="scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="867,56,1027,81"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a2ad86b7b89507d80c97c50fcd59f2294"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2ad86b7b89507d80c97c50fcd59f2294">&sect;&nbsp;</a></span>scr_split_sorted()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_split_sorted </td>
+          <td>(</td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>value</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">MPI_Datatype&#160;</td>
+          <td class="paramname"><em>type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>type_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>data_offset</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int(*)(const void *, const void *, size_t)&#160;</td>
+          <td class="paramname"><em>compare</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">MPI_Comm&#160;</td>
+          <td class="paramname"><em>comm</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>tag1</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>tag2</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>recv_ints</em>[7]&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__split_8c_source.html#l00299">299</a> of file <a class="el" href="scr__split_8c_source.html">scr_split.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_a2ad86b7b89507d80c97c50fcd59f2294_cgraph.png" border="0" usemap="#scr__split_8c_a2ad86b7b89507d80c97c50fcd59f2294_cgraph" alt=""/></div>
+<map name="scr__split_8c_a2ad86b7b89507d80c97c50fcd59f2294_cgraph" id="scr__split_8c_a2ad86b7b89507d80c97c50fcd59f2294_cgraph">
+<area shape="rect" id="node2" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="191,5,260,31"/>
+<area shape="rect" id="node3" href="scr__split_8c.html#aff9e351f8acbff32a21a6d49c31ea96a" title="scr_sort_bitonic" alt="" coords="168,55,283,80"/>
+<area shape="rect" id="node6" href="scr__split_8c.html#ae4f9d74fa3c7d345925c2c700b7a09d7" title="scr_cmp_int" alt="" coords="179,104,272,129"/>
+<area shape="rect" id="node4" href="scr__split_8c.html#a24041ef030b08ba848f5f85c37a2a7d3" title="scr_sort_bitonic_sort" alt="" coords="331,55,475,80"/>
+<area shape="rect" id="node5" href="scr__split_8c.html#a560e4f24291398af01f6453bea4e7fd6" title="scr_sort_bitonic_merge" alt="" coords="523,55,683,80"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__split_8c_a2ad86b7b89507d80c97c50fcd59f2294_icgraph.png" border="0" usemap="#scr__split_8c_a2ad86b7b89507d80c97c50fcd59f2294_icgraph" alt=""/></div>
+<map name="scr__split_8c_a2ad86b7b89507d80c97c50fcd59f2294_icgraph" id="scr__split_8c_a2ad86b7b89507d80c97c50fcd59f2294_icgraph">
+<area shape="rect" id="node2" href="scr__split_8h.html#a3352565655578c37da1249486f816f29" title="scr_rank_str" alt="" coords="168,32,263,57"/>
+<area shape="rect" id="node3" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="720,31,795,56"/>
+<area shape="rect" id="node7" href="scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="311,53,464,92"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="843,5,920,31"/>
+<area shape="rect" id="node6" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="846,55,917,80"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="968,5,1038,31"/>
+<area shape="rect" id="node8" href="scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="512,56,672,81"/>
 </map>
 </div>
 

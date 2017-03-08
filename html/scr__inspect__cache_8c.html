@@ -130,6 +130,8 @@ Include dependency graph for scr_inspect_cache.c:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:ae162124631c2ab55eb04dc8035f74c65"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__inspect__cache_8c.html#ae162124631c2ab55eb04dc8035f74c65">scr_bool_have_file</a> (const <a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *map, int dset, int rank, const char *file)</td></tr>
+<tr class="separator:ae162124631c2ab55eb04dc8035f74c65"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ddf1224851353fc92bfbff6f499fa97"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__inspect__cache_8c.html#a0ddf1224851353fc92bfbff6f499fa97">main</a> (int argc, char *argv[])</td></tr>
 <tr class="separator:a0ddf1224851353fc92bfbff6f499fa97"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -137,6 +139,8 @@ Functions</h2></td></tr>
 Variables</h2></td></tr>
 <tr class="memitem:af22ff4ab7a026e6c3b4b08eafb2df027"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__inspect__cache_8c.html#af22ff4ab7a026e6c3b4b08eafb2df027">buffer_size</a> = 128*1024</td></tr>
 <tr class="separator:af22ff4ab7a026e6c3b4b08eafb2df027"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a01246b8553fc7f73571e2a2f1a37dbd0"><td class="memItemLeft" align="right" valign="top">static char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__inspect__cache_8c.html#a01246b8553fc7f73571e2a2f1a37dbd0">scr_my_hostname</a> [<a class="el" href="scr_8h.html#ac389a817410379b3f9be65b38cc667a2">SCR_MAX_FILENAME</a>]</td></tr>
+<tr class="separator:a01246b8553fc7f73571e2a2f1a37dbd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a0ddf1224851353fc92bfbff6f499fa97"></a>
@@ -171,7 +175,162 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="scr__inspect__cache_8c_a0ddf1224851353fc92bfbff6f499fa97_cgraph.png" border="0" usemap="#scr__inspect__cache_8c_a0ddf1224851353fc92bfbff6f499fa97_cgraph" alt=""/></div>
 <map name="scr__inspect__cache_8c_a0ddf1224851353fc92bfbff6f499fa97_cgraph" id="scr__inspect__cache_8c_a0ddf1224851353fc92bfbff6f499fa97_cgraph">
-<area shape="rect" id="node2" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="104,5,232,31"/>
+<area shape="rect" id="node2" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="120,104,249,129"/>
+<area shape="rect" id="node7" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="591,408,654,433"/>
+<area shape="rect" id="node8" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="569,735,676,760"/>
+<area shape="rect" id="node9" href="scr__hash_8c.html#a25e52a465ce2e498d08312a81d24c64b" title="scr_hash_read_path" alt="" coords="113,559,256,584"/>
+<area shape="rect" id="node15" href="scr__filemap_8c.html#a89fa81e5f9c67c2256cce4784a04561c" title="scr_filemap_new" alt="" coords="341,660,462,685"/>
+<area shape="rect" id="node16" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="995,1341,1135,1367"/>
+<area shape="rect" id="node17" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="1014,1617,1116,1643"/>
+<area shape="rect" id="node19" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="551,1064,695,1089"/>
+<area shape="rect" id="node20" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="995,1064,1135,1089"/>
+<area shape="rect" id="node21" href="scr__filemap_8c.html#ae0eb0d49bb74e616d307cad18d159f46" title="scr_filemap_read" alt="" coords="122,433,246,459"/>
+<area shape="rect" id="node22" href="scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3" title="scr_path_delete" alt="" coords="343,861,460,887"/>
+<area shape="rect" id="node24" href="scr__filemap_8c.html#affa3110a9f3427fd3c01fa64792023ab" title="scr_filemap_merge" alt="" coords="117,1139,252,1164"/>
+<area shape="rect" id="node26" href="scr__filemap_8c.html#ae8a6b6d165e33b79770cfd948b98a227" title="scr_filemap_delete" alt="" coords="118,949,251,975"/>
+<area shape="rect" id="node28" href="scr__filemap_8c.html#a46929d57580e53dea8c8cc30c7947f28" title="scr_filemap_first_dataset" alt="" coords="538,1795,708,1820"/>
+<area shape="rect" id="node30" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db" title="scr_hash_elem_key_int" alt="" coords="104,1289,265,1315"/>
+<area shape="rect" id="node31" href="scr__filemap_8c.html#a9240b7064679b95aa299ec5b584e0ff3" title="scr_filemap_first_rank\l_by_dataset" alt="" coords="547,1567,699,1605"/>
+<area shape="rect" id="node34" href="scr__filemap_8c.html#a3f9546cc4d5af07d447dcc574f8baa38" title="scr_filemap_get_expected\l_files" alt="" coords="313,1489,490,1528"/>
+<area shape="rect" id="node37" href="scr__hash_8c.html#a99382903ff0fc7140f8ccf4a779cc69f" title="scr_hash_elem_get_first_val" alt="" coords="756,1241,947,1267"/>
+<area shape="rect" id="node38" href="scr__filemap_8c.html#ab22108f89cba5be40459acc13091a716" title="scr_filemap_num_files" alt="" coords="107,1705,261,1731"/>
+<area shape="rect" id="node41" href="scr__filemap_8c.html#a140d9c51b2303de9cc2094e86472eb10" title="scr_filemap_first_file" alt="" coords="113,1655,256,1680"/>
+<area shape="rect" id="node42" href="scr__inspect__cache_8c.html#ae162124631c2ab55eb04dc8035f74c65" title="scr_bool_have_file" alt="" coords="118,1240,251,1265"/>
+<area shape="rect" id="node43" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="367,1440,436,1465"/>
+<area shape="rect" id="node50" href="scr__filemap_8c.html#aa50c9846fc7767928a0431bea9667b0f" title="scr_filemap_get_desc" alt="" coords="109,1539,260,1564"/>
+<area shape="rect" id="node3" href="scr__path_8c.html#aef3435cd07f05129d7370e8914f49e41" title="scr_path_alloc" alt="" coords="348,104,455,129"/>
+<area shape="rect" id="node4" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="584,105,661,131"/>
+<area shape="rect" id="node5" href="scr__path_8c.html#a3b10140983d2b41d10a5fef8acadd214" title="scr_path_elem_alloc" alt="" coords="330,5,473,31"/>
+<area shape="rect" id="node6" href="scr__path_8c.html#a53234b237d1f111f2126bab24be03064" title="scr_path_elem_insert" alt="" coords="327,55,476,80"/>
+<area shape="rect" id="node10" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42" title="scr_path_is_null" alt="" coords="343,559,460,584"/>
+<area shape="rect" id="node11" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="343,509,460,535"/>
+<area shape="rect" id="node12" href="scr__hash_8c.html#a611b35805a9cfe8bead3ef4c6b073427" title="scr_hash_read" alt="" coords="347,408,456,433"/>
+<area shape="rect" id="node14" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="816,811,886,836"/>
+<area shape="rect" id="node13" href="scr__io_8c.html#ad780fd6d5cd75b94f79faf080a56afd6" title="scr_file_is_readable" alt="" coords="553,459,693,484"/>
+<area shape="rect" id="node18" href="scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="1183,1617,1321,1643"/>
+<area shape="rect" id="node23" href="scr__path_8c.html#ab47d085ffd9bd95e229eac7a938c37a8" title="scr_path_elem_free" alt="" coords="553,861,692,887"/>
+<area shape="rect" id="node25" href="scr__hash_8c.html#a78ae32fb1287349ef9e15f65963fbbe8" title="scr_hash_merge" alt="" coords="341,1139,462,1164"/>
+<area shape="rect" id="node27" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="563,912,682,937"/>
+<area shape="rect" id="node29" href="scr__filemap_8c.html#abd859c1763f2251a4b9f1ea228fc8587" title="scr_filemap_get_dh" alt="" coords="782,1795,920,1820"/>
+<area shape="rect" id="node32" href="scr__filemap_8c.html#a41547949bea98acd70e2284c2c8f1f02" title="scr_filemap_get_d" alt="" coords="786,1491,916,1516"/>
+<area shape="rect" id="node33" href="scr__filemap_8c.html#a5aae649e43901548f1dadb1987579dd4" title="scr_filemap_get_rh" alt="" coords="784,1592,918,1617"/>
+<area shape="rect" id="node35" href="scr__filemap_8c.html#ad697ef6e1db56964db61847281e14d7b" title="scr_filemap_get_rd" alt="" coords="555,1501,690,1527"/>
+<area shape="rect" id="node36" href="scr__hash__util_8c.html#a81bf08b86e7326e4c34e3214bc167944" title="scr_hash_util_get_int" alt="" coords="549,1317,696,1343"/>
+<area shape="rect" id="node39" href="scr__filemap_8c.html#a7d4996ccc26f1b8ee1e785e1cc6851e3" title="scr_filemap_get_fh" alt="" coords="334,1705,468,1731"/>
+<area shape="rect" id="node40" href="scr__hash_8c.html#a7f739bf35cf802ca603f6625bd186836" title="scr_hash_size" alt="" coords="348,1755,455,1780"/>
+<area shape="rect" id="node44" href="scr__meta_8c.html#a5d0f5573d68b9fd860469fd2437d9ae7" title="scr_meta_new" alt="" coords="347,709,455,735"/>
+<area shape="rect" id="node45" href="scr__filemap_8c.html#a62326773d11fb78c0f2db8a07bc1ea26" title="scr_filemap_get_meta" alt="" coords="775,1389,927,1415"/>
+<area shape="rect" id="node46" href="scr__meta_8c.html#ad946d93641bc7658dd450018bde928f5" title="scr_meta_delete" alt="" coords="342,963,461,988"/>
+<area shape="rect" id="node47" href="scr__meta_8c.html#ac066ba8e604c414698847173fb618038" title="scr_meta_is_complete" alt="" coords="324,1289,479,1315"/>
+<area shape="rect" id="node48" href="scr__meta_8c.html#a42579e4349102397c527d52627b3bb17" title="scr_meta_get_checkpoint" alt="" coords="315,1339,488,1364"/>
+<area shape="rect" id="node49" href="scr__meta_8c.html#a1adeab1159bd385b642edfd170cd2400" title="scr_meta_get_rank" alt="" coords="334,1240,469,1265"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ae162124631c2ab55eb04dc8035f74c65"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae162124631c2ab55eb04dc8035f74c65">&sect;&nbsp;</a></span>scr_bool_have_file()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_bool_have_file </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *&#160;</td>
+          <td class="paramname"><em>map</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>dset</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>rank</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__inspect__cache_8c_source.html#l00043">43</a> of file <a class="el" href="scr__inspect__cache_8c_source.html">scr_inspect_cache.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__inspect__cache_8c_ae162124631c2ab55eb04dc8035f74c65_cgraph.png" border="0" usemap="#scr__inspect__cache_8c_ae162124631c2ab55eb04dc8035f74c65_cgraph" alt=""/></div>
+<map name="scr__inspect__cache_8c_ae162124631c2ab55eb04dc8035f74c65_cgraph" id="scr__inspect__cache_8c_ae162124631c2ab55eb04dc8035f74c65_cgraph">
+<area shape="rect" id="node2" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="238,42,307,67"/>
+<area shape="rect" id="node3" href="scr__io_8c.html#ad780fd6d5cd75b94f79faf080a56afd6" title="scr_file_is_readable" alt="" coords="203,91,342,116"/>
+<area shape="rect" id="node4" href="scr__meta_8c.html#a5d0f5573d68b9fd860469fd2437d9ae7" title="scr_meta_new" alt="" coords="688,140,796,166"/>
+<area shape="rect" id="node7" href="scr__filemap_8c.html#a62326773d11fb78c0f2db8a07bc1ea26" title="scr_filemap_get_meta" alt="" coords="196,439,349,464"/>
+<area shape="rect" id="node32" href="scr__meta_8c.html#ad946d93641bc7658dd450018bde928f5" title="scr_meta_delete" alt="" coords="443,703,563,728"/>
+<area shape="rect" id="node33" href="scr__meta_8c.html#ac066ba8e604c414698847173fb618038" title="scr_meta_is_complete" alt="" coords="195,291,350,316"/>
+<area shape="rect" id="node36" href="scr__meta_8c.html#a42579e4349102397c527d52627b3bb17" title="scr_meta_get_checkpoint" alt="" coords="186,340,359,366"/>
+<area shape="rect" id="node37" href="scr__meta_8c.html#a1adeab1159bd385b642edfd170cd2400" title="scr_meta_get_rank" alt="" coords="205,390,340,415"/>
+<area shape="rect" id="node38" href="scr__meta_8c.html#a644ab238da166bd31985c8335a1c2384" title="scr_meta_get_ranks" alt="" coords="201,242,344,267"/>
+<area shape="rect" id="node39" href="scr__io_8c.html#ad1d014c1d74d4b41689a0b025377b6cb" title="scr_file_size" alt="" coords="225,488,320,514"/>
+<area shape="rect" id="node40" href="scr__meta_8c.html#a9055c3fdc4e2a096f2ad5b5916c40a42" title="scr_meta_get_filesize" alt="" coords="197,192,348,218"/>
+<area shape="rect" id="node5" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="911,140,1019,166"/>
+<area shape="rect" id="node6" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1324,90,1387,115"/>
+<area shape="rect" id="node8" href="scr__filemap_8c.html#a6f4438dc667ba5a7f8e3464d508c708e" title="scr_filemap_get_rdf" alt="" coords="433,832,572,858"/>
+<area shape="rect" id="node14" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="1683,451,1784,476"/>
+<area shape="rect" id="node17" href="scr__meta_8c.html#a0f7c8c6c35d3294424ae182bdb8871a1" title="scr_meta_copy" alt="" coords="447,444,559,470"/>
+<area shape="rect" id="node9" href="scr__filemap_8c.html#a7d4996ccc26f1b8ee1e785e1cc6851e3" title="scr_filemap_get_fh" alt="" coords="675,832,809,858"/>
+<area shape="rect" id="node10" href="scr__filemap_8c.html#ad697ef6e1db56964db61847281e14d7b" title="scr_filemap_get_rd" alt="" coords="897,807,1032,832"/>
+<area shape="rect" id="node11" href="scr__filemap_8c.html#a7aa6fb77a8d6a03fa49a9445c0704df6" title="scr_filemap_get_r" alt="" coords="1101,758,1228,783"/>
+<area shape="rect" id="node16" href="scr__filemap_8c.html#a41547949bea98acd70e2284c2c8f1f02" title="scr_filemap_get_d" alt="" coords="1099,807,1229,832"/>
+<area shape="rect" id="node12" href="scr__hash_8c.html#a75cecd07c198cf8918de107efe08faf1" title="scr_hash_get_kv_int" alt="" coords="1284,758,1428,783"/>
+<area shape="rect" id="node13" href="scr__hash_8c.html#a0d4cd6227bbc29d659dfae3d34462bdc" title="scr_hash_get_kv" alt="" coords="1494,670,1616,695"/>
+<area shape="rect" id="node15" href="scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="1832,488,1970,514"/>
+<area shape="rect" id="node18" href="scr__hash_8c.html#add851f8aa3c61277a117370f15fe87f1" title="scr_hash_unset_all" alt="" coords="674,594,810,619"/>
+<area shape="rect" id="node25" href="scr__hash_8c.html#a78ae32fb1287349ef9e15f65963fbbe8" title="scr_hash_merge" alt="" coords="681,444,802,470"/>
+<area shape="rect" id="node19" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="895,394,1035,419"/>
+<area shape="rect" id="node20" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="893,594,1037,619"/>
+<area shape="rect" id="node21" href="scr__hash_8c.html#a963886c1fb9bfa935c22f85f5bf4799c" title="scr_hash_elem_extract\l_by_addr" alt="" coords="885,692,1044,731"/>
+<area shape="rect" id="node22" href="scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="887,643,1043,668"/>
+<area shape="rect" id="node23" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1321,622,1391,647"/>
+<area shape="rect" id="node24" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="1105,647,1224,672"/>
+<area shape="rect" id="node26" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="895,292,1035,318"/>
+<area shape="rect" id="node27" href="scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="915,544,1015,570"/>
+<area shape="rect" id="node31" href="scr__hash_8c.html#a2e9358957d5f0e8963c5097557e0c04d" title="scr_hash_elem_hash" alt="" coords="891,495,1039,520"/>
+<area shape="rect" id="node28" href="scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="1476,539,1635,564"/>
+<area shape="rect" id="node29" href="scr__hash_8c.html#a8a814803dc735def5f84d78135eeed7b" title="scr_hash_elem_new" alt="" coords="1092,495,1236,520"/>
+<area shape="rect" id="node30" href="scr__hash_8c.html#a05ca10e6665c616a860c1780a46ede68" title="scr_hash_elem_init" alt="" coords="1096,394,1232,419"/>
+<area shape="rect" id="node34" href="scr__hash__util_8c.html#a81bf08b86e7326e4c34e3214bc167944" title="scr_hash_util_get_int" alt="" coords="429,292,576,318"/>
+<area shape="rect" id="node35" href="scr__hash_8c.html#a99382903ff0fc7140f8ccf4a779cc69f" title="scr_hash_elem_get_first_val" alt="" coords="646,292,837,318"/>
+<area shape="rect" id="node41" href="scr__hash__util_8c.html#afe6a4bb84c0d13a580a0c2c264f3474d" title="scr_hash_util_get_bytecount" alt="" coords="407,192,598,218"/>
+<area shape="rect" id="node42" href="scr__hash_8c.html#af5e3ceb1f25bab8d0ff49a06788bb565" title="scr_hash_get_val" alt="" coords="679,192,805,218"/>
+<area shape="rect" id="node43" href="scr__hash_8c.html#a7f739bf35cf802ca603f6625bd186836" title="scr_hash_size" alt="" coords="912,39,1018,64"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__inspect__cache_8c_ae162124631c2ab55eb04dc8035f74c65_icgraph.png" border="0" usemap="#scr__inspect__cache_8c_ae162124631c2ab55eb04dc8035f74c65_icgraph" alt=""/></div>
+<map name="scr__inspect__cache_8c_ae162124631c2ab55eb04dc8035f74c65_icgraph" id="scr__inspect__cache_8c_ae162124631c2ab55eb04dc8035f74c65_icgraph">
+<area shape="rect" id="node2" href="scr__inspect__cache_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="186,5,236,31"/>
 </map>
 </div>
 
@@ -191,6 +350,30 @@ Here is the call graph for this function:</div>
 </div><div class="memdoc">
 
 <p>Definition at line <a class="el" href="scr__inspect__cache_8c_source.html#l00038">38</a> of file <a class="el" href="scr__inspect__cache_8c_source.html">scr_inspect_cache.c</a>.</p>
+
+</div>
+</div>
+<a id="a01246b8553fc7f73571e2a2f1a37dbd0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a01246b8553fc7f73571e2a2f1a37dbd0">&sect;&nbsp;</a></span>scr_my_hostname</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">char scr_my_hostname[<a class="el" href="scr_8h.html#ac389a817410379b3f9be65b38cc667a2">SCR_MAX_FILENAME</a>]</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__inspect__cache_8c_source.html#l00040">40</a> of file <a class="el" href="scr__inspect__cache_8c_source.html">scr_inspect_cache.c</a>.</p>
 
 </div>
 </div>

@@ -132,6 +132,18 @@ Macros</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:a2f60bba0bf7591707dab0f1300c742f8"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__config_8c.html#a2f60bba0bf7591707dab0f1300c742f8">scr_config_read_whitespace</a> (FILE *fs, const char *file, int linenum, int *n_external, char *c_external)</td></tr>
+<tr class="separator:a2f60bba0bf7591707dab0f1300c742f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abf6797671d6254fdaad8d4d5b1a74117"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__config_8c.html#abf6797671d6254fdaad8d4d5b1a74117">scr_config_read_token</a> (FILE *fs, const char *file, int linenum, int *n_external, char *c_external, char *token, int size)</td></tr>
+<tr class="separator:abf6797671d6254fdaad8d4d5b1a74117"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ace834f7a48c044bd57b1b5a53a94151d"><td class="memItemLeft" align="right" valign="top">static char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__config_8c.html#ace834f7a48c044bd57b1b5a53a94151d">scr_expand_value</a> (char *raw_value)</td></tr>
+<tr class="separator:ace834f7a48c044bd57b1b5a53a94151d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a33c8234844703a61ccdc4fb4e97b9c54"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__config_8c.html#a33c8234844703a61ccdc4fb4e97b9c54">scr_config_read_kv</a> (FILE *fs, const char *file, int linenum, int *n_external, char *c_external, <a class="el" href="scr__hash_8h.html#a156421ff04df90c18ac11ce24b48f5b7">scr_hash</a> *hash, <a class="el" href="scr__hash_8h.html#a156421ff04df90c18ac11ce24b48f5b7">scr_hash</a> **hash2)</td></tr>
+<tr class="separator:a33c8234844703a61ccdc4fb4e97b9c54"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6278a7f243a640ae1e50e69369b1cfb4"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__config_8c.html#a6278a7f243a640ae1e50e69369b1cfb4">scr_config_read_comment</a> (FILE *fs, const char *file, int linenum, int *n_external, char *c_external)</td></tr>
+<tr class="separator:a6278a7f243a640ae1e50e69369b1cfb4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa7d7a8611d571728978b3c222a91439b"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__config_8c.html#aa7d7a8611d571728978b3c222a91439b">scr_config_read_line</a> (FILE *fs, const char *file, int linenum, int *n_external, char *c_external, <a class="el" href="scr__hash_8h.html#a156421ff04df90c18ac11ce24b48f5b7">scr_hash</a> *hash)</td></tr>
+<tr class="separator:aa7d7a8611d571728978b3c222a91439b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7a6e327b1146cabc9070da98189d1226"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__config_8c.html#a7a6e327b1146cabc9070da98189d1226">scr_config_read_common</a> (const char *file, <a class="el" href="scr__hash_8h.html#a156421ff04df90c18ac11ce24b48f5b7">scr_hash</a> *hash)</td></tr>
 <tr class="separator:a7a6e327b1146cabc9070da98189d1226"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -157,6 +169,72 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="a6278a7f243a640ae1e50e69369b1cfb4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6278a7f243a640ae1e50e69369b1cfb4">&sect;&nbsp;</a></span>scr_config_read_comment()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_config_read_comment </td>
+          <td>(</td>
+          <td class="paramtype">FILE *&#160;</td>
+          <td class="paramname"><em>fs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>linenum</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>n_external</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>c_external</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__config_8c_source.html#l00247">247</a> of file <a class="el" href="scr__config_8c_source.html">scr_config.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__config_8c_a6278a7f243a640ae1e50e69369b1cfb4_icgraph.png" border="0" usemap="#scr__config_8c_a6278a7f243a640ae1e50e69369b1cfb4_icgraph" alt=""/></div>
+<map name="scr__config_8c_a6278a7f243a640ae1e50e69369b1cfb4_icgraph" id="scr__config_8c_a6278a7f243a640ae1e50e69369b1cfb4_icgraph">
+<area shape="rect" id="node2" href="scr__config_8c.html#aa7d7a8611d571728978b3c222a91439b" title="scr_config_read_line" alt="" coords="232,5,376,31"/>
+<area shape="rect" id="node3" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="424,5,599,31"/>
+<area shape="rect" id="node4" href="scr__config__mpi_8c.html#af398821d27b073238d2200147d141573" title="scr_config_read" alt="" coords="647,5,763,31"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="a7a6e327b1146cabc9070da98189d1226"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7a6e327b1146cabc9070da98189d1226">&sect;&nbsp;</a></span>scr_config_read_common()</h2>
 
@@ -189,9 +267,55 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="scr__config_8c_a7a6e327b1146cabc9070da98189d1226_cgraph.png" border="0" usemap="#scr__config_8c_a7a6e327b1146cabc9070da98189d1226_cgraph" alt=""/></div>
 <map name="scr__config_8c_a7a6e327b1146cabc9070da98189d1226_cgraph" id="scr__config_8c_a7a6e327b1146cabc9070da98189d1226_cgraph">
-<area shape="rect" id="node2" href="scr__io_8c.html#ad780fd6d5cd75b94f79faf080a56afd6" title="scr_file_is_readable" alt="" coords="228,5,368,31"/>
-<area shape="rect" id="node3" href="scr__interpose_8c.html#a3f9b52a165c4c6a3b099ec5a2615adad" title="fopen" alt="" coords="271,55,325,80"/>
-<area shape="rect" id="node4" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="267,104,329,129"/>
+<area shape="rect" id="node2" href="scr__io_8c.html#ad780fd6d5cd75b94f79faf080a56afd6" title="scr_file_is_readable" alt="" coords="812,5,952,31"/>
+<area shape="rect" id="node3" href="scr__interpose_8c.html#a3f9b52a165c4c6a3b099ec5a2615adad" title="fopen" alt="" coords="229,989,284,1015"/>
+<area shape="rect" id="node14" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1270,1615,1332,1640"/>
+<area shape="rect" id="node39" href="scr__config_8c.html#aa7d7a8611d571728978b3c222a91439b" title="scr_config_read_line" alt="" coords="575,1689,720,1715"/>
+<area shape="rect" id="node45" href="scr__interpose_8c.html#acdc6eb76dd2def25905610c9a28eb346" title="fclose" alt="" coords="228,1333,284,1359"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#abd7f1b7f379e3e9349dfb51b11560d6c" title="scr_interpose_init" alt="" coords="357,1197,483,1223"/>
+<area shape="rect" id="node6" href="scr__interpose_8c.html#a3b1f5e31696f3b780622ed6e8abfdb88" title="scri_is_checkpoint\l_filename" alt="" coords="354,665,485,704"/>
+<area shape="rect" id="node8" href="scr__interpose_8c.html#a3ca735fbe8e4e2f11b0b9c9a6cbc8fdf" title="scri_start_checkpoint" alt="" coords="346,1084,493,1109"/>
+<area shape="rect" id="node15" href="scr_8c.html#a32663736ac649e2bb4054624532409f1" title="SCR_Route_file" alt="" coords="589,709,706,735"/>
+<area shape="rect" id="node38" href="scr__interpose_8c.html#a80a415e83756aa3c129f4d2b988d5700" title="scri_add_checkpoint\l_fstream" alt="" coords="348,763,491,801"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#a4b8cc8d253c7457aeb0cd97d711362ef" title="mydlsym" alt="" coords="611,1197,685,1223"/>
+<area shape="rect" id="node7" href="scr__interpose_8c.html#a541b0a62de28f9a11fc8f68d28d3f723" title="scri_index_by_filename" alt="" coords="567,660,728,685"/>
+<area shape="rect" id="node9" href="scr_8c.html#a8d5fa9b2627ab77cd53e423299a1d1b1" title="SCR_Start_checkpoint" alt="" coords="569,1113,726,1139"/>
+<area shape="rect" id="node10" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="1263,608,1339,633"/>
+<area shape="rect" id="node11" href="scr__reddesc_8c.html#a3e173728272a327e026536bf0d4c9fb6" title="scr_reddesc_for_checkpoint" alt="" coords="788,1164,976,1189"/>
+<area shape="rect" id="node12" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1266,835,1336,860"/>
+<area shape="rect" id="node13" href="scr__filemap_8c.html#a4b41fba51585611a375556c0aff06e75" title="scr_filemap_write" alt="" coords="820,1213,945,1239"/>
+<area shape="rect" id="node16" href="scr_8c.html#a65cf86bf28f6cdc7842e883f52b1a177" title="scr_route_file" alt="" coords="831,659,933,684"/>
+<area shape="rect" id="node17" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="1055,557,1184,583"/>
+<area shape="rect" id="node18" href="scr__path_8c.html#a42fdd631c165e163a4fc953a72ccaccc" title="scr_path_prepend_str" alt="" coords="1044,607,1195,632"/>
+<area shape="rect" id="node19" href="scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3" title="scr_path_delete" alt="" coords="1061,759,1177,784"/>
+<area shape="rect" id="node20" href="scr__filemap_8c.html#a7a5e9a9c0c2720594159c967b5b5d9e2" title="scr_filemap_add_file" alt="" coords="810,307,954,332"/>
+<area shape="rect" id="node22" href="scr__meta_8c.html#a5d0f5573d68b9fd860469fd2437d9ae7" title="scr_meta_new" alt="" coords="1065,1375,1173,1400"/>
+<area shape="rect" id="node23" href="scr__filemap_8c.html#a62326773d11fb78c0f2db8a07bc1ea26" title="scr_filemap_get_meta" alt="" coords="806,1063,958,1088"/>
+<area shape="rect" id="node24" href="scr__meta_8c.html#ab4ac4c77ca4bce630a2b34a0e000baaa" title="scr_meta_set_filename" alt="" coords="803,507,962,532"/>
+<area shape="rect" id="node25" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="1061,232,1178,257"/>
+<area shape="rect" id="node26" href="scr__meta_8c.html#ad7e3b3c489f9679a7d475173e15334fe" title="scr_meta_set_filetype" alt="" coords="807,356,958,381"/>
+<area shape="rect" id="node27" href="scr__meta_8c.html#ab250e61c8a0bcc50f99b8c146a903b7f" title="scr_meta_set_complete" alt="" coords="801,1361,964,1387"/>
+<area shape="rect" id="node28" href="scr__meta_8c.html#ad3acef442f4bc67a3800030fabce71c0" title="scr_meta_set_ranks" alt="" coords="811,811,953,836"/>
+<area shape="rect" id="node29" href="scr__meta_8c.html#a4c81125a29a91e3a5917619b9e6e3ebe" title="scr_meta_set_orig" alt="" coords="817,405,948,431"/>
+<area shape="rect" id="node30" href="scr__path_8c.html#a9ca24383f44a12664bd8f4ec3a83200f" title="scr_path_is_absolute" alt="" coords="808,860,956,885"/>
+<area shape="rect" id="node31" href="scr__io_8c.html#a94b23ab2cb79ee52b94d74fb5767f20a" title="scr_getcwd" alt="" coords="1075,808,1164,833"/>
+<area shape="rect" id="node32" href="scr__path_8c.html#a4f90a011aab44e714f5c78cab352ab16" title="scr_path_reduce" alt="" coords="1059,76,1180,101"/>
+<area shape="rect" id="node33" href="scr__path_8c.html#aa5fa230924c235d4672781f784753a85" title="scr_path_cut" alt="" coords="1071,145,1168,171"/>
+<area shape="rect" id="node34" href="scr__meta_8c.html#a68c6921ca0e5432f80cbec011fba75b8" title="scr_meta_set_origpath" alt="" coords="804,208,961,233"/>
+<area shape="rect" id="node35" href="scr__meta_8c.html#a7f52012c47119414b5835432ef302d70" title="scr_meta_set_origname" alt="" coords="800,257,964,283"/>
+<area shape="rect" id="node36" href="scr__filemap_8c.html#a20bea7986a4c790bdb7d67a066451e7f" title="scr_filemap_set_meta" alt="" coords="806,1263,958,1288"/>
+<area shape="rect" id="node37" href="scr__meta_8c.html#ad946d93641bc7658dd450018bde928f5" title="scr_meta_delete" alt="" coords="822,1312,942,1337"/>
+<area shape="rect" id="node21" href="scr__hash_8c.html#aaa2f6071e810686b19545854d5e92a9d" title="scr_hash_set_kv" alt="" coords="1059,356,1180,381"/>
+<area shape="rect" id="node40" href="scr__config_8c.html#a2f60bba0bf7591707dab0f1300c742f8" title="scr_config_read_whitespace" alt="" coords="1024,1765,1215,1791"/>
+<area shape="rect" id="node41" href="scr__config_8c.html#a6278a7f243a640ae1e50e69369b1cfb4" title="scr_config_read_comment" alt="" coords="793,1765,971,1791"/>
+<area shape="rect" id="node42" href="scr__config_8c.html#a33c8234844703a61ccdc4fb4e97b9c54" title="scr_config_read_kv" alt="" coords="814,1664,951,1689"/>
+<area shape="rect" id="node43" href="scr__config_8c.html#abf6797671d6254fdaad8d4d5b1a74117" title="scr_config_read_token" alt="" coords="1041,1615,1197,1640"/>
+<area shape="rect" id="node44" href="scr__config_8c.html#ace834f7a48c044bd57b1b5a53a94151d" title="scr_expand_value" alt="" coords="1055,1664,1184,1689"/>
+<area shape="rect" id="node46" href="scr__interpose_8c.html#a40edff1045b9e2e638a498f039643c43" title="scri_is_checkpoint\l_fstream" alt="" coords="354,1447,485,1485"/>
+<area shape="rect" id="node47" href="scr__interpose_8c.html#a51bffb2891ed1e3bd9bdbe3a31a5d076" title="scri_index_by_fstream" alt="" coords="570,1391,725,1416"/>
+<area shape="rect" id="node48" href="scr__interpose_8c.html#a478a20d5d061bf161b47c8da844d031c" title="scri_complete_checkpoint" alt="" coords="332,1283,507,1308"/>
+<area shape="rect" id="node50" href="scr__interpose_8c.html#a0d0cb1e7f28ddc0227218feae9f7ba2f" title="scri_drop_checkpoint\l_fstream" alt="" coords="346,1384,493,1423"/>
+<area shape="rect" id="node49" href="scr_8c.html#ac293a29f5b8fe722dc58c3d7119d8358" title="SCR_Complete_checkpoint" alt="" coords="555,1312,740,1337"/>
 </map>
 </div>
 <div class="dynheader">
@@ -200,6 +324,402 @@ Here is the caller graph for this function:</div>
 <div class="center"><img src="scr__config_8c_a7a6e327b1146cabc9070da98189d1226_icgraph.png" border="0" usemap="#scr__config_8c_a7a6e327b1146cabc9070da98189d1226_icgraph" alt=""/></div>
 <map name="scr__config_8c_a7a6e327b1146cabc9070da98189d1226_icgraph" id="scr__config_8c_a7a6e327b1146cabc9070da98189d1226_icgraph">
 <area shape="rect" id="node2" href="scr__config__mpi_8c.html#af398821d27b073238d2200147d141573" title="scr_config_read" alt="" coords="228,5,344,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a33c8234844703a61ccdc4fb4e97b9c54"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a33c8234844703a61ccdc4fb4e97b9c54">&sect;&nbsp;</a></span>scr_config_read_kv()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_config_read_kv </td>
+          <td>(</td>
+          <td class="paramtype">FILE *&#160;</td>
+          <td class="paramname"><em>fs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>linenum</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>n_external</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>c_external</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="scr__hash_8h.html#a156421ff04df90c18ac11ce24b48f5b7">scr_hash</a> *&#160;</td>
+          <td class="paramname"><em>hash</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="scr__hash_8h.html#a156421ff04df90c18ac11ce24b48f5b7">scr_hash</a> **&#160;</td>
+          <td class="paramname"><em>hash2</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__config_8c_source.html#l00196">196</a> of file <a class="el" href="scr__config_8c_source.html">scr_config.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__config_8c_a33c8234844703a61ccdc4fb4e97b9c54_cgraph.png" border="0" usemap="#scr__config_8c_a33c8234844703a61ccdc4fb4e97b9c54_cgraph" alt=""/></div>
+<map name="scr__config_8c_a33c8234844703a61ccdc4fb4e97b9c54_cgraph" id="scr__config_8c_a33c8234844703a61ccdc4fb4e97b9c54_cgraph">
+<area shape="rect" id="node2" href="scr__config_8c.html#abf6797671d6254fdaad8d4d5b1a74117" title="scr_config_read_token" alt="" coords="429,40,585,65"/>
+<area shape="rect" id="node3" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="886,65,949,91"/>
+<area shape="rect" id="node4" href="scr__config_8c.html#a2f60bba0bf7591707dab0f1300c742f8" title="scr_config_read_whitespace" alt="" coords="190,191,381,216"/>
+<area shape="rect" id="node5" href="scr__config_8c.html#ace834f7a48c044bd57b1b5a53a94151d" title="scr_expand_value" alt="" coords="221,91,350,116"/>
+<area shape="rect" id="node6" href="scr__hash_8c.html#aaa2f6071e810686b19545854d5e92a9d" title="scr_hash_set_kv" alt="" coords="225,141,346,167"/>
+<area shape="rect" id="node7" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="456,141,557,167"/>
+<area shape="rect" id="node9" href="scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="456,216,557,241"/>
+<area shape="rect" id="node16" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="453,265,560,291"/>
+<area shape="rect" id="node8" href="scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="849,191,987,216"/>
+<area shape="rect" id="node10" href="scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="633,241,792,267"/>
+<area shape="rect" id="node11" href="scr__hash_8c.html#a8a814803dc735def5f84d78135eeed7b" title="scr_hash_elem_new" alt="" coords="641,291,784,316"/>
+<area shape="rect" id="node12" href="scr__hash_8c.html#a05ca10e6665c616a860c1780a46ede68" title="scr_hash_elem_init" alt="" coords="644,192,781,217"/>
+<area shape="rect" id="node13" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="653,340,772,365"/>
+<area shape="rect" id="node14" href="scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="840,340,996,365"/>
+<area shape="rect" id="node15" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1044,365,1113,391"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__config_8c_a33c8234844703a61ccdc4fb4e97b9c54_icgraph.png" border="0" usemap="#scr__config_8c_a33c8234844703a61ccdc4fb4e97b9c54_icgraph" alt=""/></div>
+<map name="scr__config_8c_a33c8234844703a61ccdc4fb4e97b9c54_icgraph" id="scr__config_8c_a33c8234844703a61ccdc4fb4e97b9c54_icgraph">
+<area shape="rect" id="node2" href="scr__config_8c.html#aa7d7a8611d571728978b3c222a91439b" title="scr_config_read_line" alt="" coords="190,5,335,31"/>
+<area shape="rect" id="node3" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="383,5,557,31"/>
+<area shape="rect" id="node4" href="scr__config__mpi_8c.html#af398821d27b073238d2200147d141573" title="scr_config_read" alt="" coords="605,5,722,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="aa7d7a8611d571728978b3c222a91439b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa7d7a8611d571728978b3c222a91439b">&sect;&nbsp;</a></span>scr_config_read_line()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_config_read_line </td>
+          <td>(</td>
+          <td class="paramtype">FILE *&#160;</td>
+          <td class="paramname"><em>fs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>linenum</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>n_external</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>c_external</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="scr__hash_8h.html#a156421ff04df90c18ac11ce24b48f5b7">scr_hash</a> *&#160;</td>
+          <td class="paramname"><em>hash</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__config_8c_source.html#l00265">265</a> of file <a class="el" href="scr__config_8c_source.html">scr_config.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__config_8c_aa7d7a8611d571728978b3c222a91439b_cgraph.png" border="0" usemap="#scr__config_8c_aa7d7a8611d571728978b3c222a91439b_cgraph" alt=""/></div>
+<map name="scr__config_8c_aa7d7a8611d571728978b3c222a91439b_cgraph" id="scr__config_8c_aa7d7a8611d571728978b3c222a91439b_cgraph">
+<area shape="rect" id="node2" href="scr__config_8c.html#a2f60bba0bf7591707dab0f1300c742f8" title="scr_config_read_whitespace" alt="" coords="424,129,614,155"/>
+<area shape="rect" id="node3" href="scr__config_8c.html#a6278a7f243a640ae1e50e69369b1cfb4" title="scr_config_read_comment" alt="" coords="198,180,376,205"/>
+<area shape="rect" id="node4" href="scr__config_8c.html#a33c8234844703a61ccdc4fb4e97b9c54" title="scr_config_read_kv" alt="" coords="218,229,355,255"/>
+<area shape="rect" id="node5" href="scr__config_8c.html#abf6797671d6254fdaad8d4d5b1a74117" title="scr_config_read_token" alt="" coords="662,229,819,255"/>
+<area shape="rect" id="node6" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1120,255,1183,280"/>
+<area shape="rect" id="node7" href="scr__config_8c.html#ace834f7a48c044bd57b1b5a53a94151d" title="scr_expand_value" alt="" coords="455,331,584,356"/>
+<area shape="rect" id="node8" href="scr__hash_8c.html#aaa2f6071e810686b19545854d5e92a9d" title="scr_hash_set_kv" alt="" coords="459,179,580,204"/>
+<area shape="rect" id="node9" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="690,31,791,56"/>
+<area shape="rect" id="node11" href="scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="690,129,791,155"/>
+<area shape="rect" id="node18" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="687,179,794,204"/>
+<area shape="rect" id="node10" href="scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="1083,5,1220,31"/>
+<area shape="rect" id="node12" href="scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="867,31,1026,56"/>
+<area shape="rect" id="node13" href="scr__hash_8c.html#a8a814803dc735def5f84d78135eeed7b" title="scr_hash_elem_new" alt="" coords="874,80,1018,105"/>
+<area shape="rect" id="node14" href="scr__hash_8c.html#a05ca10e6665c616a860c1780a46ede68" title="scr_hash_elem_init" alt="" coords="878,179,1014,204"/>
+<area shape="rect" id="node15" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="887,129,1006,155"/>
+<area shape="rect" id="node16" href="scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="1074,129,1229,155"/>
+<area shape="rect" id="node17" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1277,155,1347,180"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__config_8c_aa7d7a8611d571728978b3c222a91439b_icgraph.png" border="0" usemap="#scr__config_8c_aa7d7a8611d571728978b3c222a91439b_icgraph" alt=""/></div>
+<map name="scr__config_8c_aa7d7a8611d571728978b3c222a91439b_icgraph" id="scr__config_8c_aa7d7a8611d571728978b3c222a91439b_icgraph">
+<area shape="rect" id="node2" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="198,5,372,31"/>
+<area shape="rect" id="node3" href="scr__config__mpi_8c.html#af398821d27b073238d2200147d141573" title="scr_config_read" alt="" coords="420,5,537,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="abf6797671d6254fdaad8d4d5b1a74117"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abf6797671d6254fdaad8d4d5b1a74117">&sect;&nbsp;</a></span>scr_config_read_token()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_config_read_token </td>
+          <td>(</td>
+          <td class="paramtype">FILE *&#160;</td>
+          <td class="paramname"><em>fs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>linenum</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>n_external</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>c_external</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>token</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__config_8c_source.html#l00072">72</a> of file <a class="el" href="scr__config_8c_source.html">scr_config.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__config_8c_abf6797671d6254fdaad8d4d5b1a74117_cgraph.png" border="0" usemap="#scr__config_8c_abf6797671d6254fdaad8d4d5b1a74117_cgraph" alt=""/></div>
+<map name="scr__config_8c_abf6797671d6254fdaad8d4d5b1a74117_cgraph" id="scr__config_8c_abf6797671d6254fdaad8d4d5b1a74117_cgraph">
+<area shape="rect" id="node2" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="210,5,272,31"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__config_8c_abf6797671d6254fdaad8d4d5b1a74117_icgraph.png" border="0" usemap="#scr__config_8c_abf6797671d6254fdaad8d4d5b1a74117_icgraph" alt=""/></div>
+<map name="scr__config_8c_abf6797671d6254fdaad8d4d5b1a74117_icgraph" id="scr__config_8c_abf6797671d6254fdaad8d4d5b1a74117_icgraph">
+<area shape="rect" id="node2" href="scr__config_8c.html#a33c8234844703a61ccdc4fb4e97b9c54" title="scr_config_read_kv" alt="" coords="210,5,347,31"/>
+<area shape="rect" id="node3" href="scr__config_8c.html#aa7d7a8611d571728978b3c222a91439b" title="scr_config_read_line" alt="" coords="395,5,539,31"/>
+<area shape="rect" id="node4" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="587,5,762,31"/>
+<area shape="rect" id="node5" href="scr__config__mpi_8c.html#af398821d27b073238d2200147d141573" title="scr_config_read" alt="" coords="810,5,926,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a2f60bba0bf7591707dab0f1300c742f8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2f60bba0bf7591707dab0f1300c742f8">&sect;&nbsp;</a></span>scr_config_read_whitespace()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_config_read_whitespace </td>
+          <td>(</td>
+          <td class="paramtype">FILE *&#160;</td>
+          <td class="paramname"><em>fs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>linenum</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>n_external</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>c_external</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__config_8c_source.html#l00054">54</a> of file <a class="el" href="scr__config_8c_source.html">scr_config.c</a>.</p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__config_8c_a2f60bba0bf7591707dab0f1300c742f8_icgraph.png" border="0" usemap="#scr__config_8c_a2f60bba0bf7591707dab0f1300c742f8_icgraph" alt=""/></div>
+<map name="scr__config_8c_a2f60bba0bf7591707dab0f1300c742f8_icgraph" id="scr__config_8c_a2f60bba0bf7591707dab0f1300c742f8_icgraph">
+<area shape="rect" id="node2" href="scr__config_8c.html#a33c8234844703a61ccdc4fb4e97b9c54" title="scr_config_read_kv" alt="" coords="244,5,381,31"/>
+<area shape="rect" id="node3" href="scr__config_8c.html#aa7d7a8611d571728978b3c222a91439b" title="scr_config_read_line" alt="" coords="429,31,573,56"/>
+<area shape="rect" id="node4" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="621,31,796,56"/>
+<area shape="rect" id="node5" href="scr__config__mpi_8c.html#af398821d27b073238d2200147d141573" title="scr_config_read" alt="" coords="844,31,960,56"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ace834f7a48c044bd57b1b5a53a94151d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ace834f7a48c044bd57b1b5a53a94151d">&sect;&nbsp;</a></span>scr_expand_value()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static char* scr_expand_value </td>
+          <td>(</td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>raw_value</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__config_8c_source.html#l00122">122</a> of file <a class="el" href="scr__config_8c_source.html">scr_config.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__config_8c_ace834f7a48c044bd57b1b5a53a94151d_cgraph.png" border="0" usemap="#scr__config_8c_ace834f7a48c044bd57b1b5a53a94151d_cgraph" alt=""/></div>
+<map name="scr__config_8c_ace834f7a48c044bd57b1b5a53a94151d_cgraph" id="scr__config_8c_ace834f7a48c044bd57b1b5a53a94151d_cgraph">
+<area shape="rect" id="node2" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="183,5,246,31"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__config_8c_ace834f7a48c044bd57b1b5a53a94151d_icgraph.png" border="0" usemap="#scr__config_8c_ace834f7a48c044bd57b1b5a53a94151d_icgraph" alt=""/></div>
+<map name="scr__config_8c_ace834f7a48c044bd57b1b5a53a94151d_icgraph" id="scr__config_8c_ace834f7a48c044bd57b1b5a53a94151d_icgraph">
+<area shape="rect" id="node2" href="scr__config_8c.html#a33c8234844703a61ccdc4fb4e97b9c54" title="scr_config_read_kv" alt="" coords="183,5,320,31"/>
+<area shape="rect" id="node3" href="scr__config_8c.html#aa7d7a8611d571728978b3c222a91439b" title="scr_config_read_line" alt="" coords="368,5,512,31"/>
+<area shape="rect" id="node4" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="560,5,735,31"/>
+<area shape="rect" id="node5" href="scr__config__mpi_8c.html#af398821d27b073238d2200147d141573" title="scr_config_read" alt="" coords="783,5,899,31"/>
 </map>
 </div>
 

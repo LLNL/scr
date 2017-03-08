@@ -1,10 +1,16 @@
 <map id="scr_dataset_set_name" name="scr_dataset_set_name">
-<area shape="rect" id="node2" href="$scr__hash__util_8c.html#a1ee4cd04817223b67377afba756d10db" title="scr_hash_util_set_str" alt="" coords="210,44,357,69"/>
-<area shape="rect" id="node3" href="$scr__hash_8c.html#a5f36326bf5682a4ad267f693436c5e62" title="scr_hash_unset" alt="" coords="408,5,523,31"/>
-<area shape="rect" id="node6" href="$scr__hash_8c.html#aaa2f6071e810686b19545854d5e92a9d" title="scr_hash_set_kv" alt="" coords="405,68,526,93"/>
-<area shape="rect" id="node4" href="$scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="730,43,889,68"/>
-<area shape="rect" id="node5" href="$scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="937,68,1074,93"/>
-<area shape="rect" id="node7" href="$scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="758,92,860,117"/>
-<area shape="rect" id="node8" href="$scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="578,43,678,68"/>
-<area shape="rect" id="node9" href="$scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="574,144,682,169"/>
+<area shape="rect" id="node2" href="$scr__hash__util_8c.html#a1ee4cd04817223b67377afba756d10db" title="scr_hash_util_set_str" alt="" coords="210,129,357,155"/>
+<area shape="rect" id="node3" href="$scr__hash_8c.html#a5f36326bf5682a4ad267f693436c5e62" title="scr_hash_unset" alt="" coords="408,80,523,105"/>
+<area shape="rect" id="node9" href="$scr__hash_8c.html#aaa2f6071e810686b19545854d5e92a9d" title="scr_hash_set_kv" alt="" coords="405,155,526,180"/>
+<area shape="rect" id="node4" href="$scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="778,81,937,107"/>
+<area shape="rect" id="node6" href="$scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="574,29,730,55"/>
+<area shape="rect" id="node5" href="$scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="985,229,1123,255"/>
+<area shape="rect" id="node7" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1019,5,1089,31"/>
+<area shape="rect" id="node8" href="$scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="798,31,917,56"/>
+<area shape="rect" id="node10" href="$scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="601,229,703,255"/>
+<area shape="rect" id="node11" href="$scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="602,180,702,205"/>
+<area shape="rect" id="node15" href="$scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="598,131,706,156"/>
+<area shape="rect" id="node12" href="$scr__hash_8c.html#a8a814803dc735def5f84d78135eeed7b" title="scr_hash_elem_new" alt="" coords="786,131,929,156"/>
+<area shape="rect" id="node13" href="$scr__hash_8c.html#a05ca10e6665c616a860c1780a46ede68" title="scr_hash_elem_init" alt="" coords="789,180,925,205"/>
+<area shape="rect" id="node14" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1022,180,1085,205"/>
 </map>

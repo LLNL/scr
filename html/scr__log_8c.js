@@ -20,5 +20,12 @@ var scr__log_8c =
     [ "scr_mysql_read_job", "scr__log_8c.html#a9b31a1e977e0c1a979270a66213d4d61", null ],
     [ "scr_mysql_read_write_id", "scr__log_8c.html#ac4c6247a3c1300311e0c77f1ff183778", null ],
     [ "scr_mysql_register_job", "scr__log_8c.html#a8f4de4a3cdcf37cef1dbd42a94dc8589", null ],
-    [ "scr_mysql_type_id", "scr__log_8c.html#a48b8b8e05b032e0511a8412c82567fcc", null ]
+    [ "scr_mysql_type_id", "scr__log_8c.html#a48b8b8e05b032e0511a8412c82567fcc", null ],
+    [ "scr_db_debug", "scr__log_8c.html#a13e0018121ed3db701c4c947b92863de", null ],
+    [ "scr_db_enable", "scr__log_8c.html#a56de9714c4b88b2c5a672c1f27fe5273", null ],
+    [ "scr_db_host", "scr__log_8c.html#a3bd5f7c53964ef258872fbb4715cf3a5", null ],
+    [ "scr_db_jobid", "scr__log_8c.html#a16c8c0619f3d41ca407271139a6a65b9", null ],
+    [ "scr_db_name", "scr__log_8c.html#a754caad2bc6954bab2996fd9b3424b4a", null ],
+    [ "scr_db_pass", "scr__log_8c.html#a9ff5f085a2869f152bc48ead67e794c9", null ],
+    [ "scr_db_user", "scr__log_8c.html#a9c84058f488c67447e1b1f27ae4041c0", null ]
 ];

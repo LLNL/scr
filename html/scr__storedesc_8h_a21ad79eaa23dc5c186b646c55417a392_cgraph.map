@@ -1,0 +1,6 @@
+<map id="scr_storedescs_free" name="scr_storedescs_free">
+<area shape="rect" id="node2" href="$scr__storedesc_8c.html#a74063512aa89662fafdc419c75940b33" title="scr_storedesc_free" alt="" coords="195,55,329,80"/>
+<area shape="rect" id="node3" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="407,5,477,31"/>
+<area shape="rect" id="node4" href="$scr__storedesc_8c.html#a36b1bd85271fc77ba3386d3373d39cf4" title="scr_storedesc_init" alt="" coords="377,55,506,80"/>
+<area shape="rect" id="node5" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="554,55,617,80"/>
+</map>

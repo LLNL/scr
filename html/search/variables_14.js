@@ -6,5 +6,6 @@ var searchData=
   ['value_5fcheckpoints',['value_checkpoints',['../structarglist.html#af596e4f240f30a1319e66fa836d350cc',1,'arglist']]],
   ['value_5freason',['value_reason',['../structarglist.html#ae903cc77b38d6d3f1799f462fc34da47',1,'arglist']]],
   ['value_5fseconds',['value_seconds',['../structarglist.html#a5864502b4253f98046be631dcee27348',1,'arglist']]],
+  ['verbose_5fprint',['verbose_print',['../scr__pmix__spawn_8c.html#ad659c3806ef88da4ccbcd8a24d95d44b',1,'scr_pmix_spawn.c']]],
   ['view',['view',['../structscr__storedesc.html#a8bf1075ad39b5b8e6a75ce8e65c12512',1,'scr_storedesc']]]
 ];

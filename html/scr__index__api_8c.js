@@ -14,6 +14,7 @@ var scr__index__api_8c =
     [ "scr_index_set_complete", "scr__index__api_8c.html#a32116a622be5d739bf7c061e5b2a290d", null ],
     [ "scr_index_set_current", "scr__index__api_8c.html#ad82edaff983d7e8afbaa7ba900d44901", null ],
     [ "scr_index_set_dataset", "scr__index__api_8c.html#affb82ace9e5f4fe06d0ce5e136d6a914", null ],
+    [ "scr_index_set_directory", "scr__index__api_8c.html#af5e716c32c1f1637508b322bd3cba135", null ],
     [ "scr_index_unset_current", "scr__index__api_8c.html#ac539449d348214d1724f8a7cdbc5002e", null ],
     [ "scr_index_write", "scr__index__api_8c.html#a6cabf08c72be09ec64c622e78f11aaff", null ]
 ];

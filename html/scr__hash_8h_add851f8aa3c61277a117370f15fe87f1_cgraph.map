@@ -2,4 +2,7 @@
 <area shape="rect" id="node2" href="$scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="199,5,339,31"/>
 <area shape="rect" id="node3" href="$scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="197,55,341,80"/>
 <area shape="rect" id="node4" href="$scr__hash_8c.html#a963886c1fb9bfa935c22f85f5bf4799c" title="scr_hash_elem_extract\l_by_addr" alt="" coords="190,104,349,143"/>
+<area shape="rect" id="node5" href="$scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="191,167,347,192"/>
+<area shape="rect" id="node6" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="564,141,633,167"/>
+<area shape="rect" id="node7" href="$scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="397,167,516,192"/>
 </map>

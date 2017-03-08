@@ -14,5 +14,11 @@ var scr__util_8c =
     [ "scr_time_usecs", "scr__util_8c.html#a7dd0ef88efe2e3d7757a54564e68f635", null ],
     [ "scr_unpack_uint16_t", "scr__util_8c.html#a094844b05dd173886a3959ca6fa560e8", null ],
     [ "scr_unpack_uint32_t", "scr__util_8c.html#a3080444bf37203aeac828b42b6175e5d", null ],
-    [ "scr_unpack_uint64_t", "scr__util_8c.html#a19c8f8cf03b5aafe6ef765bf10225525", null ]
+    [ "scr_unpack_uint64_t", "scr__util_8c.html#a19c8f8cf03b5aafe6ef765bf10225525", null ],
+    [ "exa", "scr__util_8c.html#ac4f7f8430b11ece981ae66bc8c81e40c", null ],
+    [ "giga", "scr__util_8c.html#a33ee5616138deadb03f465c9dbc03833", null ],
+    [ "kilo", "scr__util_8c.html#afa45a726901508c75de9ee846730523e", null ],
+    [ "mega", "scr__util_8c.html#a5d20227b45568a4ccbf0d56cbdae9ee1", null ],
+    [ "peta", "scr__util_8c.html#ab2b3d725b2ee551b1a83655f7a9f9498", null ],
+    [ "tera", "scr__util_8c.html#aaee98f27120a73a207ef332211065f94", null ]
 ];

@@ -1,4 +1,7 @@
 <map id="scr_hash_unset" name="scr_hash_unset">
-<area shape="rect" id="node2" href="$scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="169,5,328,31"/>
+<area shape="rect" id="node2" href="$scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="169,19,328,44"/>
+<area shape="rect" id="node4" href="$scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="171,81,326,107"/>
 <area shape="rect" id="node3" href="$scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="376,5,514,31"/>
+<area shape="rect" id="node5" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="562,81,631,107"/>
+<area shape="rect" id="node6" href="$scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="385,107,504,132"/>
 </map>

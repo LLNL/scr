@@ -1,0 +1,9 @@
+<map id="scri_index_by_fstream" name="scri_index_by_fstream">
+<area shape="rect" id="node2" href="$scr__interpose_8c.html#a40edff1045b9e2e638a498f039643c43" title="scri_is_checkpoint\l_fstream" alt="" coords="217,5,347,44"/>
+<area shape="rect" id="node3" href="$scr__interpose_8c.html#acdc6eb76dd2def25905610c9a28eb346" title="fclose" alt="" coords="403,69,460,95"/>
+<area shape="rect" id="node8" href="$scr__interpose_8c.html#a0d0cb1e7f28ddc0227218feae9f7ba2f" title="scri_drop_checkpoint\l_fstream" alt="" coords="208,120,355,159"/>
+<area shape="rect" id="node4" href="$scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="508,41,682,67"/>
+<area shape="rect" id="node6" href="$scr__summary_8c.html#a43569963aa3d667f68e7a2cdadf35b37" title="scr_summary_read_v4\l_to_v5" alt="" coords="516,91,673,129"/>
+<area shape="rect" id="node5" href="$scr__config__mpi_8c.html#af398821d27b073238d2200147d141573" title="scr_config_read" alt="" coords="740,41,856,67"/>
+<area shape="rect" id="node7" href="$scr__summary_8c.html#a2f523f5e65931c153b15119b37df2854" title="scr_summary_read" alt="" coords="730,97,866,123"/>
+</map>

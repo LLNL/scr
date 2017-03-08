@@ -1,0 +1,7 @@
+<map id="scr_index_mark_failed" name="scr_index_mark_failed">
+<area shape="rect" id="node2" href="$scr__fetch_8h.html#af0be93afd35ec60a32a284dcfbad2b76" title="scr_fetch_sync" alt="" coords="208,31,318,56"/>
+<area shape="rect" id="node3" href="$scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="366,31,441,56"/>
+<area shape="rect" id="node4" href="$scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="489,5,567,31"/>
+<area shape="rect" id="node6" href="$scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="492,55,563,80"/>
+<area shape="rect" id="node5" href="$scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="615,5,685,31"/>
+</map>

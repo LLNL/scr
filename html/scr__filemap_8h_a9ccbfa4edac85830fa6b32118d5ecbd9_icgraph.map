@@ -1,3 +1,9 @@
 <map id="scr_filemap_first_dataset_by_rank" name="scr_filemap_first_dataset_by_rank">
-<area shape="rect" id="node2" href="$scr__filemap_8h.html#af29b175cda5bd39090b61ee3a2340b3f" title="scr_filemap_remove_rank" alt="" coords="223,12,398,37"/>
+<area shape="rect" id="node2" href="$scr__filemap_8h.html#af29b175cda5bd39090b61ee3a2340b3f" title="scr_filemap_remove_rank" alt="" coords="223,5,398,31"/>
+<area shape="rect" id="node3" href="$scr__filemap_8h.html#addafed2ab83007e83532b937eea52b98" title="scr_filemap_extract_rank" alt="" coords="446,31,616,56"/>
+<area shape="rect" id="node4" href="$scr__cache__rebuild_8h.html#ac512e74afe061169739beaa2d7f08f47" title="scr_scatter_filemaps" alt="" coords="664,31,807,56"/>
+<area shape="rect" id="node5" href="$scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="855,31,930,56"/>
+<area shape="rect" id="node6" href="$scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="978,5,1056,31"/>
+<area shape="rect" id="node8" href="$scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="982,55,1053,80"/>
+<area shape="rect" id="node7" href="$scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="1104,5,1174,31"/>
 </map>

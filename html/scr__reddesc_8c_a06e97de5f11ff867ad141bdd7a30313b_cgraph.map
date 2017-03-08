@@ -1,0 +1,6 @@
+<map id="scr_reddesc_create_partner" name="scr_reddesc_create_partner">
+<area shape="rect" id="node2" href="$scr__util__mpi_8c.html#a9a1fab6a45653be528670776082921fa" title="scr_set_partners" alt="" coords="192,5,312,31"/>
+<area shape="rect" id="node4" href="$scr__err_8h.html#ad7170f21350a53d8d0ae34cd773e435a" title="scr_warn" alt="" coords="214,55,290,80"/>
+<area shape="rect" id="node5" href="$scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="218,104,286,129"/>
+<area shape="rect" id="node3" href="$scr__util__mpi_8c.html#a11a25d65a96d370f230a395c9d4d1374" title="scr_str_sendrecv" alt="" coords="360,5,483,31"/>
+</map>

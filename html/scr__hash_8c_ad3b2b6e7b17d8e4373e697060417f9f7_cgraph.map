@@ -1,4 +1,10 @@
 <map id="scr_hash_set" name="scr_hash_set">
 <area shape="rect" id="node2" href="$scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="154,5,313,31"/>
-<area shape="rect" id="node3" href="$scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="361,5,499,31"/>
+<area shape="rect" id="node4" href="$scr__hash_8c.html#a8a814803dc735def5f84d78135eeed7b" title="scr_hash_elem_new" alt="" coords="162,55,305,80"/>
+<area shape="rect" id="node5" href="$scr__hash_8c.html#a05ca10e6665c616a860c1780a46ede68" title="scr_hash_elem_init" alt="" coords="165,104,302,129"/>
+<area shape="rect" id="node7" href="$scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="174,153,293,179"/>
+<area shape="rect" id="node3" href="$scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="370,5,508,31"/>
+<area shape="rect" id="node6" href="$scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="407,104,470,129"/>
+<area shape="rect" id="node8" href="$scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="361,153,517,179"/>
+<area shape="rect" id="node9" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="565,179,634,204"/>
 </map>

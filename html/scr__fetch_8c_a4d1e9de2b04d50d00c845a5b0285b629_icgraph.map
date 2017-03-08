@@ -1,0 +1,8 @@
+<map id="scr_fetch_data" name="scr_fetch_data">
+<area shape="rect" id="node2" href="$scr__fetch_8c.html#a5f1ac3ca7b0907ebe6bd74abb5959dbc" title="scr_fetch_files" alt="" coords="162,31,269,56"/>
+<area shape="rect" id="node3" href="$scr__fetch_8h.html#af0be93afd35ec60a32a284dcfbad2b76" title="scr_fetch_sync" alt="" coords="317,31,427,56"/>
+<area shape="rect" id="node4" href="$scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="475,31,550,56"/>
+<area shape="rect" id="node5" href="$scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="598,5,675,31"/>
+<area shape="rect" id="node7" href="$scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="601,55,672,80"/>
+<area shape="rect" id="node6" href="$scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="723,5,794,31"/>
+</map>

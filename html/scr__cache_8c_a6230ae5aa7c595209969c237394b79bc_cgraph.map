@@ -1,4 +1,25 @@
 <map id="scr_cache_dir_hidden_get" name="scr_cache_dir_hidden_get">
-<area shape="rect" id="node2" href="$scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="271,5,348,31"/>
-<area shape="rect" id="node3" href="$scr__reddesc_8c.html#a0e78b5318b5cf93fe53a21958a9ce25d" title="scr_reddesc_get_store" alt="" coords="231,55,388,80"/>
+<area shape="rect" id="node2" href="$scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="1437,389,1514,414"/>
+<area shape="rect" id="node3" href="$scr__reddesc_8c.html#a0e78b5318b5cf93fe53a21958a9ce25d" title="scr_reddesc_get_store" alt="" coords="231,129,388,154"/>
+<area shape="rect" id="node4" href="$scr__cache_8c.html#a24516c52fe9386cf3147c5a194ea7b10" title="scr_cache_dir_hidden\l_from_str" alt="" coords="234,250,385,289"/>
+<area shape="rect" id="node5" href="$scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="854,358,983,384"/>
+<area shape="rect" id="node12" href="$scr__path_8c.html#a2f28f6921435c92e296674367530de80" title="scr_path_append_strf" alt="" coords="436,364,586,389"/>
+<area shape="rect" id="node17" href="$scr__path_8c.html#a5a3c9b429f11dee33bfa5f1800b0add2" title="scr_path_append_str" alt="" coords="438,465,584,490"/>
+<area shape="rect" id="node18" href="$scr__path_8c.html#a4f90a011aab44e714f5c78cab352ab16" title="scr_path_reduce" alt="" coords="657,137,778,162"/>
+<area shape="rect" id="node21" href="$scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="453,668,570,693"/>
+<area shape="rect" id="node24" href="$scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3" title="scr_path_delete" alt="" coords="660,206,776,232"/>
+<area shape="rect" id="node6" href="$scr__path_8c.html#aef3435cd07f05129d7370e8914f49e41" title="scr_path_alloc" alt="" coords="1057,213,1164,238"/>
+<area shape="rect" id="node8" href="$scr__path_8c.html#a3b10140983d2b41d10a5fef8acadd214" title="scr_path_elem_alloc" alt="" coords="1039,262,1182,288"/>
+<area shape="rect" id="node10" href="$scr__path_8c.html#a53234b237d1f111f2126bab24be03064" title="scr_path_elem_insert" alt="" coords="1036,364,1185,389"/>
+<area shape="rect" id="node7" href="$scr__path_8c.html#acc7fb12c3f1f5fd521bcbe08b583e103" title="scr_path_init" alt="" coords="1263,213,1360,238"/>
+<area shape="rect" id="node9" href="$scr__path_8c.html#a9308356656673b71ae1839db059a6bb8" title="scr_path_elem_init" alt="" coords="1244,262,1378,288"/>
+<area shape="rect" id="node11" href="$scr__path_8c.html#ac23d9ba015580024cc018c6f8d19f1fb" title="scr_path_elem_index" alt="" coords="1237,465,1385,490"/>
+<area shape="rect" id="node13" href="$scr__path_8c.html#a69f7b325d30808ef303e871260ded0df" title="scr_path_alloc_strf" alt="" coords="651,364,784,389"/>
+<area shape="rect" id="node14" href="$scr__path_8c.html#a1aba3dca8fe99f643c30c604bc7774cf" title="scr_path_insert_str" alt="" coords="650,465,785,490"/>
+<area shape="rect" id="node16" href="$scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1076,164,1145,189"/>
+<area shape="rect" id="node15" href="$scr__path_8c.html#a88dcc466fa4c7955290e7d7bb0678d6e" title="scr_path_combine" alt="" coords="853,465,984,490"/>
+<area shape="rect" id="node19" href="$scr__path_8c.html#a885c81210f02ac6ae99d71450ab3dc3a" title="scr_path_elem_extract" alt="" coords="1233,62,1389,88"/>
+<area shape="rect" id="node20" href="$scr__path_8c.html#ab47d085ffd9bd95e229eac7a938c37a8" title="scr_path_elem_free" alt="" coords="849,164,988,189"/>
+<area shape="rect" id="node22" href="$scr__path_8c.html#a53dcddedf48597afebf3b6123c323f11" title="scr_path_strlen" alt="" coords="661,668,774,693"/>
+<area shape="rect" id="node23" href="$scr__path_8c.html#af3eb4d09806351c6b2d3a6310842db83" title="scr_path_strcpy_internal" alt="" coords="634,717,801,742"/>
 </map>

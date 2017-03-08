@@ -11,5 +11,12 @@ var scr__transfer_8c =
     [ "read_params", "scr__transfer_8c.html#a01181f82f7ec4652ac46f21ae9fb4b00", null ],
     [ "read_transfer_file", "scr__transfer_8c.html#af3ef4fac503ac2b47ebd6d1856fbb94f", null ],
     [ "set_transfer_file_state", "scr__transfer_8c.html#a54036eadb13e84bb6c7bbd7f7a557800", null ],
-    [ "update_transfer_file", "scr__transfer_8c.html#a1e01d4cfb9564b02a3ff8714b8b6fd75", null ]
+    [ "update_transfer_file", "scr__transfer_8c.html#a1e01d4cfb9564b02a3ff8714b8b6fd75", null ],
+    [ "bytes_per_second", "scr__transfer_8c.html#a574934463b3b94bf619f6f7740da5e4e", null ],
+    [ "keep_running", "scr__transfer_8c.html#adab48fd845b19d6ca0b8a07b95bdbc62", null ],
+    [ "percent_runtime", "scr__transfer_8c.html#a580d8b01380846b2694fdf4a6780c799", null ],
+    [ "scr_file_buf_size", "scr__transfer_8c.html#a90063810e8ede75d746fd3fa5674c4d7", null ],
+    [ "scr_transfer_file", "scr__transfer_8c.html#a0d2df9c003e3196ed419f874f124cc92", null ],
+    [ "scr_transfer_secs", "scr__transfer_8c.html#a47e9fbe4e1e5678545530e7162843d55", null ],
+    [ "state", "scr__transfer_8c.html#a89f234133d3efe315836311cbf21c64b", null ]
 ];

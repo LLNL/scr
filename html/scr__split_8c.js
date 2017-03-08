@@ -15,5 +15,12 @@ var scr__split_8c =
       [ "SCAN_COUNT", "scr__split_8c.html#ac03df1baa4dea157c3d4e7319d81ffa4ab1d9e7aeed257055f34e3c69b9050602", null ],
       [ "SCAN_NEXT", "scr__split_8c.html#ac03df1baa4dea157c3d4e7319d81ffa4a695adf4d0b995e35f0ea0b22d987145d", null ]
     ] ],
-    [ "scr_rank_str", "scr__split_8c.html#a3352565655578c37da1249486f816f29", null ]
+    [ "scr_cmp_int", "scr__split_8c.html#ae4f9d74fa3c7d345925c2c700b7a09d7", null ],
+    [ "scr_cmp_str", "scr__split_8c.html#ac36bcbf246df1248c2f1cd18f0c41773", null ],
+    [ "scr_cmp_str_int", "scr__split_8c.html#aef8340971655cd9b27c1860c44778ff8", null ],
+    [ "scr_rank_str", "scr__split_8c.html#a3352565655578c37da1249486f816f29", null ],
+    [ "scr_sort_bitonic", "scr__split_8c.html#aff9e351f8acbff32a21a6d49c31ea96a", null ],
+    [ "scr_sort_bitonic_merge", "scr__split_8c.html#a560e4f24291398af01f6453bea4e7fd6", null ],
+    [ "scr_sort_bitonic_sort", "scr__split_8c.html#a24041ef030b08ba848f5f85c37a2a7d3", null ],
+    [ "scr_split_sorted", "scr__split_8c.html#a2ad86b7b89507d80c97c50fcd59f2294", null ]
 ];

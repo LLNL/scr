@@ -113,16 +113,25 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__util_8c.html#ad781b07a2823c43e1f1ea9e0ee1942d7">scr_util.c</a>
 , <a class="el" href="scr__util_8h.html#ad781b07a2823c43e1f1ea9e0ee1942d7">scr_util.h</a>
 </li>
+<li>scr_bool_check_halt_and_decrement()
+: <a class="el" href="scr_8c.html#a2f2e30e2357ad1899390c8fc24180c8c">scr.c</a>
+</li>
 <li>scr_bool_flush_file()
 : <a class="el" href="scr__flush_8c.html#a5012eb74882d88e9606f6b3ee8f0eefa">scr_flush.c</a>
 </li>
 <li>scr_bool_have_file()
 : <a class="el" href="scr__cache_8c.html#aaacb9becaf9fd89abf7611988abd3bf8">scr_cache.c</a>
 , <a class="el" href="scr__cache_8h.html#aaacb9becaf9fd89abf7611988abd3bf8">scr_cache.h</a>
+, <a class="el" href="scr__copy_8c.html#a6fa5096c5eb5356e2819eaab4934b5ec">scr_copy.c</a>
+, <a class="el" href="scr__inspect__cache_8c.html#ae162124631c2ab55eb04dc8035f74c65">scr_inspect_cache.c</a>
 </li>
 <li>scr_bool_have_files()
 : <a class="el" href="scr__cache_8c.html#af2c99710cd2067604a10ec1c42ae5aaf">scr_cache.c</a>
 , <a class="el" href="scr__cache_8h.html#af2c99710cd2067604a10ec1c42ae5aaf">scr_cache.h</a>
+, <a class="el" href="scr__copy_8c.html#a91e985faa65a34c03fa2ff8fb108e3e3">scr_copy.c</a>
+</li>
+<li>scr_bool_have_xor_file()
+: <a class="el" href="scr__reddesc__recover_8c.html#a1b0062a3bcf694dde84a2512efcb9973">scr_reddesc_recover.c</a>
 </li>
 <li>scr_bool_is_flushing()
 : <a class="el" href="scr__flush__file__mpi_8c.html#a27b73a9674bd842332f13cb7fe22bc23">scr_flush_file_mpi.c</a>
@@ -145,12 +154,18 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__cache_8h.html#aad73a7c3725399357251f3fc6dc0bf4a">scr_cache.h</a>
 </li>
 <li>scr_cache_dir_create()
-: <a class="el" href="scr__cache_8h.html#a83878143ddff88dce262e6f7f2142667">scr_cache.h</a>
-, <a class="el" href="scr__cache_8c.html#a906a8eefe4abdef25be405db6de880eb">scr_cache.c</a>
+: <a class="el" href="scr__cache_8c.html#a906a8eefe4abdef25be405db6de880eb">scr_cache.c</a>
+, <a class="el" href="scr__cache_8h.html#a83878143ddff88dce262e6f7f2142667">scr_cache.h</a>
+</li>
+<li>scr_cache_dir_from_str()
+: <a class="el" href="scr__cache_8c.html#af39064fd34198a108c6d398475c8fdb5">scr_cache.c</a>
 </li>
 <li>scr_cache_dir_get()
 : <a class="el" href="scr__cache_8c.html#a5be6e24b65542c81e5ca1b8a559ba56b">scr_cache.c</a>
 , <a class="el" href="scr__cache_8h.html#a4605bda2c403a3269e3191b64efd329e">scr_cache.h</a>
+</li>
+<li>scr_cache_dir_hidden_from_str()
+: <a class="el" href="scr__cache_8c.html#a24516c52fe9386cf3147c5a194ea7b10">scr_cache.c</a>
 </li>
 <li>scr_cache_dir_hidden_get()
 : <a class="el" href="scr__cache_8c.html#a6230ae5aa7c595209969c237394b79bc">scr_cache.c</a>
@@ -164,6 +179,9 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__cache__rebuild_8c.html#a57607eb8ed7eae0be81845423c46a6c7">scr_cache_rebuild.c</a>
 , <a class="el" href="scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7">scr_cache_rebuild.h</a>
 </li>
+<li>scr_check_flush()
+: <a class="el" href="scr_8c.html#a6ec253a2f630087639d7ec65b5e04b11">scr.c</a>
+</li>
 <li>scr_close()
 : <a class="el" href="scr__io_8c.html#a4885353fd1c6a274557e27586913de0c">scr_io.c</a>
 , <a class="el" href="scr__io_8h.html#a4885353fd1c6a274557e27586913de0c">scr_io.h</a>
@@ -171,6 +189,15 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 <li>scr_close_with_unlock()
 : <a class="el" href="scr__io_8c.html#ad1a8edf4dacf737dc0f6adbe38b9e759">scr_io.c</a>
 , <a class="el" href="scr__io_8h.html#ad1a8edf4dacf737dc0f6adbe38b9e759">scr_io.h</a>
+</li>
+<li>scr_cmp_int()
+: <a class="el" href="scr__split_8c.html#ae4f9d74fa3c7d345925c2c700b7a09d7">scr_split.c</a>
+</li>
+<li>scr_cmp_str()
+: <a class="el" href="scr__split_8c.html#ac36bcbf246df1248c2f1cd18f0c41773">scr_split.c</a>
+</li>
+<li>scr_cmp_str_int()
+: <a class="el" href="scr__split_8c.html#aef8340971655cd9b27c1860c44778ff8">scr_split.c</a>
 </li>
 <li>SCR_Complete_checkpoint()
 : <a class="el" href="scr_8c.html#ac293a29f5b8fe722dc58c3d7119d8358">scr.c</a>
@@ -188,22 +215,38 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__compress_8h.html#ac14e4a7992c41376ee28c9a3e2181048">scr_compress.h</a>
 </li>
 <li>scr_compress_in_place()
-: <a class="el" href="scr__compress_8c.html#ac6f08fd91b0d1f5f659f6144f595cb46">scr_compress.c</a>
-, <a class="el" href="scr__compress_8h.html#ac6f08fd91b0d1f5f659f6144f595cb46">scr_compress.h</a>
+: <a class="el" href="scr__compress_8h.html#ac6f08fd91b0d1f5f659f6144f595cb46">scr_compress.h</a>
 , <a class="el" href="scr__io_8h.html#ac6f08fd91b0d1f5f659f6144f595cb46">scr_io.h</a>
+, <a class="el" href="scr__compress_8c.html#ac6f08fd91b0d1f5f659f6144f595cb46">scr_compress.c</a>
 </li>
 <li>scr_compute_crc()
 : <a class="el" href="scr__cache_8c.html#a315c8fb4af5d85bd45b98bcb9f98ea06">scr_cache.c</a>
 , <a class="el" href="scr__cache_8h.html#a315c8fb4af5d85bd45b98bcb9f98ea06">scr_cache.h</a>
+, <a class="el" href="scr__rebuild__xor_8c.html#afeb3026f536680adbb7f4affd5abcb48">scr_rebuild_xor.c</a>
 </li>
 <li>scr_config_read()
 : <a class="el" href="scr__config_8h.html#af398821d27b073238d2200147d141573">scr_config.h</a>
 , <a class="el" href="scr__config__mpi_8c.html#af398821d27b073238d2200147d141573">scr_config_mpi.c</a>
 , <a class="el" href="scr__config__serial_8c.html#af398821d27b073238d2200147d141573">scr_config_serial.c</a>
 </li>
+<li>scr_config_read_comment()
+: <a class="el" href="scr__config_8c.html#a6278a7f243a640ae1e50e69369b1cfb4">scr_config.c</a>
+</li>
 <li>scr_config_read_common()
 : <a class="el" href="scr__config_8c.html#a7a6e327b1146cabc9070da98189d1226">scr_config.c</a>
 , <a class="el" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226">scr_config.h</a>
+</li>
+<li>scr_config_read_kv()
+: <a class="el" href="scr__config_8c.html#a33c8234844703a61ccdc4fb4e97b9c54">scr_config.c</a>
+</li>
+<li>scr_config_read_line()
+: <a class="el" href="scr__config_8c.html#aa7d7a8611d571728978b3c222a91439b">scr_config.c</a>
+</li>
+<li>scr_config_read_token()
+: <a class="el" href="scr__config_8c.html#abf6797671d6254fdaad8d4d5b1a74117">scr_config.c</a>
+</li>
+<li>scr_config_read_whitespace()
+: <a class="el" href="scr__config_8c.html#a2f60bba0bf7591707dab0f1300c742f8">scr_config.c</a>
 </li>
 <li>scr_container_get_name_offset_length()
 : <a class="el" href="scr__fetch_8c.html#a02b6f520824ba4d387ae0669755c18ca">scr_fetch.c</a>
@@ -212,6 +255,9 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 <li>scr_crc32()
 : <a class="el" href="scr__io_8c.html#a8398cfffaea53f470a5321ad66a63998">scr_io.c</a>
 , <a class="el" href="scr__io_8h.html#a8398cfffaea53f470a5321ad66a63998">scr_io.h</a>
+</li>
+<li>scr_cstr2fstr()
+: <a class="el" href="scrf_8c.html#a784099e0204013ad90d301eabef5848d">scrf.c</a>
 </li>
 <li>scr_dataset_build_name()
 : <a class="el" href="scr__flush_8c.html#ad66b4cb391ab5580ab58fd519ec89290">scr_flush.c</a>
@@ -318,6 +364,15 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__err__mpi_8c.html#ac124858aff0b069cbf887a8c716b5b43">scr_err_mpi.c</a>
 , <a class="el" href="scr__err__serial_8c.html#ac124858aff0b069cbf887a8c716b5b43">scr_err_serial.c</a>
 </li>
+<li>scr_distribute_datasets()
+: <a class="el" href="scr__cache__rebuild_8c.html#a9f7b5a42ba0d582f047e9440e9626a2b">scr_cache_rebuild.c</a>
+</li>
+<li>scr_distribute_files()
+: <a class="el" href="scr__cache__rebuild_8c.html#afe7888498e6ad652c09fcf7fea2cc1d2">scr_cache_rebuild.c</a>
+</li>
+<li>scr_distribute_reddescs()
+: <a class="el" href="scr__cache__rebuild_8c.html#a49522f9f86df80a67860921aba30696e">scr_cache_rebuild.c</a>
+</li>
 <li>scr_env_cluster()
 : <a class="el" href="scr__env_8c.html#a6d3e6582465adc24ec61d262405c7e98">scr_env.c</a>
 , <a class="el" href="scr__env_8h.html#a56df48408b711868d1674d0c9c20cb29">scr_env.h</a>
@@ -335,13 +390,37 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__env_8h.html#a0ab0c8ed5105f0620c310d2e771c8672">scr_env.h</a>
 </li>
 <li>scr_env_username()
-: <a class="el" href="scr__env_8h.html#af29bdb46391c9920b70856c7e3b42e58">scr_env.h</a>
-, <a class="el" href="scr__env_8c.html#a0727abcd44cd58ab2213f3ea6cdbfb9f">scr_env.c</a>
+: <a class="el" href="scr__env_8c.html#a0727abcd44cd58ab2213f3ea6cdbfb9f">scr_env.c</a>
+, <a class="el" href="scr__env_8h.html#af29bdb46391c9920b70856c7e3b42e58">scr_env.h</a>
 </li>
 <li>scr_err()
 : <a class="el" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580">scr_err.h</a>
 , <a class="el" href="scr__err__mpi_8c.html#a62fd87502b6702faf7d17e12c3b38580">scr_err_mpi.c</a>
 , <a class="el" href="scr__err__serial_8c.html#a62fd87502b6702faf7d17e12c3b38580">scr_err_serial.c</a>
+</li>
+<li>scr_expand_value()
+: <a class="el" href="scr__config_8c.html#ace834f7a48c044bd57b1b5a53a94151d">scr_config.c</a>
+</li>
+<li>scr_fetch_data()
+: <a class="el" href="scr__fetch_8c.html#a4d1e9de2b04d50d00c845a5b0285b629">scr_fetch.c</a>
+</li>
+<li>scr_fetch_file()
+: <a class="el" href="scr__fetch_8c.html#a4dfca6cdd3e9d756559e966cf97db0c4">scr_fetch.c</a>
+</li>
+<li>scr_fetch_file_from_containers()
+: <a class="el" href="scr__fetch_8c.html#a6e325071198e919ffe2cd0136c9d5bed">scr_fetch.c</a>
+</li>
+<li>scr_fetch_files()
+: <a class="el" href="scr__fetch_8c.html#a5f1ac3ca7b0907ebe6bd74abb5959dbc">scr_fetch.c</a>
+</li>
+<li>scr_fetch_files_list()
+: <a class="el" href="scr__fetch_8c.html#a3b8b6fcc48e061322f4a67f6c247027f">scr_fetch.c</a>
+</li>
+<li>scr_fetch_rank2file_map()
+: <a class="el" href="scr__fetch_8c.html#a76aa1a1536f9b54e328d9fc67b904db0">scr_fetch.c</a>
+</li>
+<li>scr_fetch_summary()
+: <a class="el" href="scr__fetch_8c.html#ade8ee294248b324f07c2d2cd5c182998">scr_fetch.c</a>
 </li>
 <li>scr_fetch_sync()
 : <a class="el" href="scr__fetch_8c.html#af0be93afd35ec60a32a284dcfbad2b76">scr_fetch.c</a>
@@ -419,6 +498,9 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__filemap_8c.html#a9240b7064679b95aa299ec5b584e0ff3">scr_filemap.c</a>
 , <a class="el" href="scr__filemap_8h.html#a9240b7064679b95aa299ec5b584e0ff3">scr_filemap.h</a>
 </li>
+<li>scr_filemap_get_d()
+: <a class="el" href="scr__filemap_8c.html#a41547949bea98acd70e2284c2c8f1f02">scr_filemap.c</a>
+</li>
 <li>scr_filemap_get_dataset()
 : <a class="el" href="scr__filemap_8c.html#a27f9a0e0652b95c2ac2a796ad218957a">scr_filemap.c</a>
 , <a class="el" href="scr__filemap_8h.html#a27f9a0e0652b95c2ac2a796ad218957a">scr_filemap.h</a>
@@ -427,9 +509,15 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__filemap_8c.html#aa50c9846fc7767928a0431bea9667b0f">scr_filemap.c</a>
 , <a class="el" href="scr__filemap_8h.html#aa50c9846fc7767928a0431bea9667b0f">scr_filemap.h</a>
 </li>
+<li>scr_filemap_get_dh()
+: <a class="el" href="scr__filemap_8c.html#abd859c1763f2251a4b9f1ea228fc8587">scr_filemap.c</a>
+</li>
 <li>scr_filemap_get_expected_files()
 : <a class="el" href="scr__filemap_8c.html#a3f9546cc4d5af07d447dcc574f8baa38">scr_filemap.c</a>
 , <a class="el" href="scr__filemap_8h.html#a3f9546cc4d5af07d447dcc574f8baa38">scr_filemap.h</a>
+</li>
+<li>scr_filemap_get_fh()
+: <a class="el" href="scr__filemap_8c.html#a7d4996ccc26f1b8ee1e785e1cc6851e3">scr_filemap.c</a>
 </li>
 <li>scr_filemap_get_flushdesc()
 : <a class="el" href="scr__filemap_8c.html#abab535e2c398b03458017a5815a7754d">scr_filemap.c</a>
@@ -438,6 +526,18 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 <li>scr_filemap_get_meta()
 : <a class="el" href="scr__filemap_8c.html#a62326773d11fb78c0f2db8a07bc1ea26">scr_filemap.c</a>
 , <a class="el" href="scr__filemap_8h.html#a62326773d11fb78c0f2db8a07bc1ea26">scr_filemap.h</a>
+</li>
+<li>scr_filemap_get_r()
+: <a class="el" href="scr__filemap_8c.html#a7aa6fb77a8d6a03fa49a9445c0704df6">scr_filemap.c</a>
+</li>
+<li>scr_filemap_get_rd()
+: <a class="el" href="scr__filemap_8c.html#ad697ef6e1db56964db61847281e14d7b">scr_filemap.c</a>
+</li>
+<li>scr_filemap_get_rdf()
+: <a class="el" href="scr__filemap_8c.html#a6f4438dc667ba5a7f8e3464d508c708e">scr_filemap.c</a>
+</li>
+<li>scr_filemap_get_rh()
+: <a class="el" href="scr__filemap_8c.html#a5aae649e43901548f1dadb1987579dd4">scr_filemap.c</a>
 </li>
 <li>scr_filemap_have_rank()
 : <a class="el" href="scr__filemap_8c.html#ad7a5ba909c1416dc8e6178df538ad93a">scr_filemap.c</a>
@@ -535,6 +635,9 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__filemap_8c.html#a20bea7986a4c790bdb7d67a066451e7f">scr_filemap.c</a>
 , <a class="el" href="scr__filemap_8h.html#a20bea7986a4c790bdb7d67a066451e7f">scr_filemap.h</a>
 </li>
+<li>scr_filemap_set_rd()
+: <a class="el" href="scr__filemap_8c.html#aff8472e5e6e46720460e3fd75e5112f8">scr_filemap.c</a>
+</li>
 <li>scr_filemap_unset_dataset()
 : <a class="el" href="scr__filemap_8c.html#a9043f486e257bc336243c6405584957b">scr_filemap.c</a>
 , <a class="el" href="scr__filemap_8h.html#a9043f486e257bc336243c6405584957b">scr_filemap.h</a>
@@ -551,6 +654,9 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__filemap_8c.html#a7257ab5f11a2c75db02b39d592e668bf">scr_filemap.c</a>
 , <a class="el" href="scr__filemap_8h.html#a7257ab5f11a2c75db02b39d592e668bf">scr_filemap.h</a>
 </li>
+<li>scr_filemap_unset_if_empty()
+: <a class="el" href="scr__filemap_8c.html#a07488073c9a46f93314aef550546f5e6">scr_filemap.c</a>
+</li>
 <li>scr_filemap_unset_meta()
 : <a class="el" href="scr__filemap_8c.html#a6acbdcff41a0ecf5943021ccfd364753">scr_filemap.c</a>
 , <a class="el" href="scr__filemap_8h.html#a6acbdcff41a0ecf5943021ccfd364753">scr_filemap.h</a>
@@ -566,11 +672,37 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 <li>scr_finalize_()
 : <a class="el" href="scrf_8c.html#a71f82f31ad7efbc49b43ec98a70a2f15">scrf.c</a>
 </li>
+<li>scr_find_subdir()
+: <a class="el" href="scr__flush_8c.html#afd35487413f454a1478d555e2b94834e">scr_flush.c</a>
+</li>
+<li>scr_flush_a_file()
+: <a class="el" href="scr__flush__sync_8c.html#afe4b1d5436785b10f8660752d8e2f918">scr_flush_sync.c</a>
+</li>
+<li>scr_flush_async_command_set()
+: <a class="el" href="scr__flush__async_8c.html#a258a4a4dcba678a94fe75d02ab3f8fae">scr_flush_async.c</a>
+, <a class="el" href="scr__flush__async__cray__xt_8c.html#a258a4a4dcba678a94fe75d02ab3f8fae">scr_flush_async_cray_xt.c</a>
+, <a class="el" href="scr__flush__async__tlcc_8c.html#a258a4a4dcba678a94fe75d02ab3f8fae">scr_flush_async_tlcc.c</a>
+</li>
 <li>scr_flush_async_complete()
 : <a class="el" href="scr__flush__async_8c.html#a2eb8c71b88274816f104a6a6e3387318">scr_flush_async.c</a>
 , <a class="el" href="scr__flush__async_8h.html#a2eb8c71b88274816f104a6a6e3387318">scr_flush_async.h</a>
 , <a class="el" href="scr__flush__async__cray__xt_8c.html#a2eb8c71b88274816f104a6a6e3387318">scr_flush_async_cray_xt.c</a>
 , <a class="el" href="scr__flush__async__tlcc_8c.html#a2eb8c71b88274816f104a6a6e3387318">scr_flush_async_tlcc.c</a>
+</li>
+<li>scr_flush_async_file_clear_all()
+: <a class="el" href="scr__flush__async_8c.html#adfb70b223dce1a0620c3113c448b0da5">scr_flush_async.c</a>
+, <a class="el" href="scr__flush__async__cray__xt_8c.html#adfb70b223dce1a0620c3113c448b0da5">scr_flush_async_cray_xt.c</a>
+, <a class="el" href="scr__flush__async__tlcc_8c.html#adfb70b223dce1a0620c3113c448b0da5">scr_flush_async_tlcc.c</a>
+</li>
+<li>scr_flush_async_file_dequeue()
+: <a class="el" href="scr__flush__async_8c.html#afb056959b0b28f27f54464f0ec81c36c">scr_flush_async.c</a>
+, <a class="el" href="scr__flush__async__cray__xt_8c.html#afb056959b0b28f27f54464f0ec81c36c">scr_flush_async_cray_xt.c</a>
+, <a class="el" href="scr__flush__async__tlcc_8c.html#afb056959b0b28f27f54464f0ec81c36c">scr_flush_async_tlcc.c</a>
+</li>
+<li>scr_flush_async_file_test()
+: <a class="el" href="scr__flush__async_8c.html#aa3ba9945a8dc45944ba9720a5699d58b">scr_flush_async.c</a>
+, <a class="el" href="scr__flush__async__cray__xt_8c.html#aa3ba9945a8dc45944ba9720a5699d58b">scr_flush_async_cray_xt.c</a>
+, <a class="el" href="scr__flush__async__tlcc_8c.html#aa3ba9945a8dc45944ba9720a5699d58b">scr_flush_async_tlcc.c</a>
 </li>
 <li>scr_flush_async_shutdown()
 : <a class="el" href="scr__flush__async_8c.html#a4b4f00b775b69a3450e1716e65123f4e">scr_flush_async.c</a>
@@ -583,11 +715,16 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__flush__async__cray__xt_8c.html#afe843d88c516ab6e82716ea69e283165">scr_flush_async_cray_xt.c</a>
 , <a class="el" href="scr__flush__async__tlcc_8c.html#afe843d88c516ab6e82716ea69e283165">scr_flush_async_tlcc.c</a>
 </li>
+<li>scr_flush_async_state_wait()
+: <a class="el" href="scr__flush__async_8c.html#a53521f8812a79862d1ce14ac0c80c19c">scr_flush_async.c</a>
+, <a class="el" href="scr__flush__async__cray__xt_8c.html#a53521f8812a79862d1ce14ac0c80c19c">scr_flush_async_cray_xt.c</a>
+, <a class="el" href="scr__flush__async__tlcc_8c.html#a53521f8812a79862d1ce14ac0c80c19c">scr_flush_async_tlcc.c</a>
+</li>
 <li>scr_flush_async_stop()
-: <a class="el" href="scr__flush__async__cray__xt_8c.html#a77fd320fc748349d29c2d9107cf3fba3">scr_flush_async_cray_xt.c</a>
-, <a class="el" href="scr__flush__async__tlcc_8c.html#a77fd320fc748349d29c2d9107cf3fba3">scr_flush_async_tlcc.c</a>
-, <a class="el" href="scr__flush__async_8c.html#a77fd320fc748349d29c2d9107cf3fba3">scr_flush_async.c</a>
+: <a class="el" href="scr__flush__async_8c.html#a77fd320fc748349d29c2d9107cf3fba3">scr_flush_async.c</a>
 , <a class="el" href="scr__flush__async_8h.html#a17fb6843a3a2685a4580450fec260aa7">scr_flush_async.h</a>
+, <a class="el" href="scr__flush__async__cray__xt_8c.html#a77fd320fc748349d29c2d9107cf3fba3">scr_flush_async_cray_xt.c</a>
+, <a class="el" href="scr__flush__async__tlcc_8c.html#a77fd320fc748349d29c2d9107cf3fba3">scr_flush_async_tlcc.c</a>
 </li>
 <li>scr_flush_async_test()
 : <a class="el" href="scr__flush__async_8c.html#ad1ed1a3310208e9e679059713c4f1f40">scr_flush_async.c</a>
@@ -604,6 +741,15 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 <li>scr_flush_complete()
 : <a class="el" href="scr__flush_8c.html#a5914a671c3269ab7ba3e320acf573d2a">scr_flush.c</a>
 , <a class="el" href="scr__flush_8h.html#a5914a671c3269ab7ba3e320acf573d2a">scr_flush.h</a>
+</li>
+<li>scr_flush_create_containers()
+: <a class="el" href="scr__flush_8c.html#af28714454fc5d54858e4e2ec7a80197f">scr_flush.c</a>
+</li>
+<li>scr_flush_create_dirs()
+: <a class="el" href="scr__flush_8c.html#a6980e7ce04844d47a2671529d52761b7">scr_flush.c</a>
+</li>
+<li>scr_flush_data()
+: <a class="el" href="scr__flush__sync_8c.html#aeda69d060161fa1bde8b66bdab290892">scr_flush_sync.c</a>
 </li>
 <li>scr_flush_file_dataset_remove()
 : <a class="el" href="scr__flush__file__mpi_8c.html#a6f8c12fbeb03978da22c985c7a1aab1c">scr_flush_file_mpi.c</a>
@@ -629,12 +775,36 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__flush__file__mpi_8c.html#aa409d28399e3477a0a7b13b5a8b5d35b">scr_flush_file_mpi.c</a>
 , <a class="el" href="scr__flush__file__mpi_8h.html#ac88b84c2d2ee6348e5f8bf597dac7350">scr_flush_file_mpi.h</a>
 </li>
+<li>scr_flush_file_to_containers()
+: <a class="el" href="scr__flush__sync_8c.html#a70abd90a0fa010cd3d7fc9f278f36085">scr_flush_sync.c</a>
+</li>
+<li>scr_flush_files_list()
+: <a class="el" href="scr__flush__sync_8c.html#aeb16ba46866720fcb5c565ddb38ce477">scr_flush_sync.c</a>
+</li>
+<li>scr_flush_identify()
+: <a class="el" href="scr__flush_8c.html#ac3f6423d146b6583bed38c3f54a6933f">scr_flush.c</a>
+</li>
+<li>scr_flush_identify_containers()
+: <a class="el" href="scr__flush_8c.html#a16ed27d8ed0358aa5733e5a1ed7508f1">scr_flush.c</a>
+</li>
+<li>scr_flush_identify_dirs()
+: <a class="el" href="scr__flush_8c.html#a4905c5cf5b3700220ae43b6101148a4b">scr_flush.c</a>
+</li>
+<li>scr_flush_identify_files()
+: <a class="el" href="scr__flush_8c.html#a400ee2fe66e60d80caa5b430f36072b3">scr_flush.c</a>
+</li>
 <li>scr_flush_pick_writer()
 : <a class="el" href="scr__flush_8c.html#a3e23be527795036b46ae29b35f53302b">scr_flush.c</a>
 </li>
 <li>scr_flush_prepare()
 : <a class="el" href="scr__flush_8c.html#a31c8a4b53d66fe99451b4b4945d86078">scr_flush.c</a>
 , <a class="el" href="scr__flush_8h.html#a31c8a4b53d66fe99451b4b4945d86078">scr_flush.h</a>
+</li>
+<li>scr_flush_summary()
+: <a class="el" href="scr__flush_8c.html#ac5987d0809f438da546819b5e83e66df">scr_flush.c</a>
+</li>
+<li>scr_flush_summary_map()
+: <a class="el" href="scr__flush_8c.html#aa3af40734f130984b524116918591cae">scr_flush.c</a>
 </li>
 <li>scr_flush_sync()
 : <a class="el" href="scr__flush__sync_8c.html#a2b4130779c9fc1578fc96fee563bd7d4">scr_flush_sync.c</a>
@@ -650,6 +820,12 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 <li>scr_free()
 : <a class="el" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038">scr_util.c</a>
 , <a class="el" href="scr__util_8h.html#ad4388b4b985b1c6214a9889c18ef991d">scr_util.h</a>
+</li>
+<li>scr_fstr2cstr()
+: <a class="el" href="scrf_8c.html#a030edd16849170469531bc1b7a3778ff">scrf.c</a>
+</li>
+<li>scr_get_params()
+: <a class="el" href="scr_8c.html#a023c1a8e116bc1bed5ac848d7ed11941">scr.c</a>
 </li>
 <li>SCR_Get_version()
 : <a class="el" href="scr_8c.html#aa2a6b95e976aac5e787bbab4a1078c4a">scr.c</a>
@@ -690,6 +866,9 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__groupdesc_8c.html#a733c185f005e81385d9049dba4606fac">scr_groupdesc.c</a>
 , <a class="el" href="scr__groupdesc_8h.html#a733c185f005e81385d9049dba4606fac">scr_groupdesc.h</a>
 </li>
+<li>scr_halt()
+: <a class="el" href="scr_8c.html#aae1dd31cc8716454d44f6107f55908a0">scr.c</a>
+</li>
 <li>scr_halt_read()
 : <a class="el" href="scr__halt_8c.html#a768be43a27ab9543cd4ff57a0d8b22bc">scr_halt.c</a>
 , <a class="el" href="scr__halt_8h.html#a859b037f65c9b3732c23f261cba32ba0">scr_halt.h</a>
@@ -705,9 +884,24 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__hash__mpi_8c.html#ad7f7e46b92e37ef431a3fbb3cb4c3b56">scr_hash_mpi.c</a>
 , <a class="el" href="scr__hash__mpi_8h.html#ad7f7e46b92e37ef431a3fbb3cb4c3b56">scr_hash_mpi.h</a>
 </li>
+<li>scr_hash_cmp_fn_int_asc()
+: <a class="el" href="scr__hash_8c.html#a262bd55d0ca72202cd93da1ee1d598ab">scr_hash.c</a>
+</li>
+<li>scr_hash_cmp_fn_int_desc()
+: <a class="el" href="scr__hash_8c.html#a8ea12a53cc52cf896baf3e00ad6a6b2a">scr_hash.c</a>
+</li>
+<li>scr_hash_cmp_fn_str_asc()
+: <a class="el" href="scr__hash_8c.html#a6d9dfbeb6466dfd0dad386c30b75f9de">scr_hash.c</a>
+</li>
+<li>scr_hash_cmp_fn_str_desc()
+: <a class="el" href="scr__hash_8c.html#af39a6368ca676f2a1290de797aeea0b1">scr_hash.c</a>
+</li>
 <li>scr_hash_delete()
 : <a class="el" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0">scr_hash.c</a>
 , <a class="el" href="scr__hash_8h.html#a8d332aef5600a97119ea223b4c9573b0">scr_hash.h</a>
+</li>
+<li>scr_hash_elem_delete()
+: <a class="el" href="scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5">scr_hash.c</a>
 </li>
 <li>scr_hash_elem_extract()
 : <a class="el" href="scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56">scr_hash.c</a>
@@ -737,6 +931,9 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__hash_8c.html#a2e9358957d5f0e8963c5097557e0c04d">scr_hash.c</a>
 , <a class="el" href="scr__hash_8h.html#a2e9358957d5f0e8963c5097557e0c04d">scr_hash.h</a>
 </li>
+<li>scr_hash_elem_init()
+: <a class="el" href="scr__hash_8c.html#a05ca10e6665c616a860c1780a46ede68">scr_hash.c</a>
+</li>
 <li>scr_hash_elem_key()
 : <a class="el" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a">scr_hash.c</a>
 , <a class="el" href="scr__hash_8h.html#afccf7b1fd8a70db8fa968ad6ccd1514a">scr_hash.h</a>
@@ -745,9 +942,27 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db">scr_hash.c</a>
 , <a class="el" href="scr__hash_8h.html#ac545090df1c2aa518cc2e4760e00e5db">scr_hash.h</a>
 </li>
+<li>scr_hash_elem_log()
+: <a class="el" href="scr__hash_8c.html#a1b6a74ee517693b1bd6c6683f2a6a83b">scr_hash.c</a>
+</li>
+<li>scr_hash_elem_new()
+: <a class="el" href="scr__hash_8c.html#a8a814803dc735def5f84d78135eeed7b">scr_hash.c</a>
+</li>
 <li>scr_hash_elem_next()
 : <a class="el" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7">scr_hash.c</a>
 , <a class="el" href="scr__hash_8h.html#a9317a9a568df6806df5b978b8ae7aef7">scr_hash.h</a>
+</li>
+<li>scr_hash_elem_pack()
+: <a class="el" href="scr__hash_8c.html#ac5235f81bef50b0b8dc5e750b9020a72">scr_hash.c</a>
+</li>
+<li>scr_hash_elem_pack_size()
+: <a class="el" href="scr__hash_8c.html#a698725123e4cd3476e7a247d5ce0fe1c">scr_hash.c</a>
+</li>
+<li>scr_hash_elem_print()
+: <a class="el" href="scr__hash_8c.html#a072edbf70bfca47c2fcaba86e78899e6">scr_hash.c</a>
+</li>
+<li>scr_hash_elem_unpack()
+: <a class="el" href="scr__hash_8c.html#a1db676976bc663903cb6570222d04f16">scr_hash.c</a>
 </li>
 <li>scr_hash_exchange()
 : <a class="el" href="scr__hash__mpi_8c.html#a89fc486f344a5b6da47ff2ba7033fdb2">scr_hash_mpi.c</a>
@@ -756,6 +971,9 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 <li>scr_hash_exchange_direction()
 : <a class="el" href="scr__hash__mpi_8c.html#a65ed4ee8f1e626ddf1b42c4d1c0d6fea">scr_hash_mpi.c</a>
 , <a class="el" href="scr__hash__mpi_8h.html#a88f406db4f0371267afeace43c5fcff7">scr_hash_mpi.h</a>
+</li>
+<li>scr_hash_exchange_direction_hops()
+: <a class="el" href="scr__hash__mpi_8c.html#ad178e6d62c8029544a52a985e9c965c9">scr_hash_mpi.c</a>
 </li>
 <li>scr_hash_extract()
 : <a class="el" href="scr__hash_8c.html#a83de7eb838e830fc1a8bcfe6b129692a">scr_hash.c</a>
@@ -933,8 +1151,8 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__hash__util_8h.html#aa159b3f6e43dba01ca22bf80b06616e8">scr_hash_util.h</a>
 </li>
 <li>scr_hash_util_set_int()
-: <a class="el" href="scr__hash__util_8c.html#a7e69d6f1f5a780e436f73514d0983b16">scr_hash_util.c</a>
-, <a class="el" href="scr__hash__util_8h.html#a7e69d6f1f5a780e436f73514d0983b16">scr_hash_util.h</a>
+: <a class="el" href="scr__hash__util_8h.html#a7e69d6f1f5a780e436f73514d0983b16">scr_hash_util.h</a>
+, <a class="el" href="scr__hash__util_8c.html#a7e69d6f1f5a780e436f73514d0983b16">scr_hash_util.c</a>
 </li>
 <li>scr_hash_util_set_int64()
 : <a class="el" href="scr__hash__util_8c.html#aca1ed692a2b4a4dd2e8745fb56005a47">scr_hash_util.c</a>
@@ -957,16 +1175,16 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__hash_8h.html#a260ddc617bc70902f447add32bc033ee">scr_hash.h</a>
 </li>
 <li>scr_hash_write_fd()
-: <a class="el" href="scr__hash_8c.html#a7530d50facac329797e488e3a5806493">scr_hash.c</a>
-, <a class="el" href="scr__hash_8h.html#a7530d50facac329797e488e3a5806493">scr_hash.h</a>
+: <a class="el" href="scr__hash_8h.html#a7530d50facac329797e488e3a5806493">scr_hash.h</a>
+, <a class="el" href="scr__hash_8c.html#a7530d50facac329797e488e3a5806493">scr_hash.c</a>
 </li>
 <li>scr_hash_write_path()
 : <a class="el" href="scr__hash_8c.html#ac16e675f9fb0397c78a803a189539408">scr_hash.c</a>
 , <a class="el" href="scr__hash_8h.html#a4f103f2f000e8222e4789a22be3a3733">scr_hash.h</a>
 </li>
 <li>scr_hash_write_persist()
-: <a class="el" href="scr__hash_8c.html#a107596170da304cbf96e685ebaea8662">scr_hash.c</a>
-, <a class="el" href="scr__hash_8h.html#a107596170da304cbf96e685ebaea8662">scr_hash.h</a>
+: <a class="el" href="scr__hash_8h.html#a107596170da304cbf96e685ebaea8662">scr_hash.h</a>
+, <a class="el" href="scr__hash_8c.html#a107596170da304cbf96e685ebaea8662">scr_hash.c</a>
 </li>
 <li>scr_index_add_dir()
 : <a class="el" href="scr__index__api_8c.html#aadba575e660de40c988c14a8b42c40c1">scr_index_api.c</a>
@@ -981,24 +1199,24 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__index__api_8h.html#a45f57eeb400e7075ce30c1b411e65e3b">scr_index_api.h</a>
 </li>
 <li>scr_index_get_id_by_dir()
-: <a class="el" href="scr__index__api_8c.html#afe1865d3e89a06ba3be28499900ea0a6">scr_index_api.c</a>
-, <a class="el" href="scr__index__api_8h.html#afe1865d3e89a06ba3be28499900ea0a6">scr_index_api.h</a>
+: <a class="el" href="scr__index__api_8h.html#afe1865d3e89a06ba3be28499900ea0a6">scr_index_api.h</a>
+, <a class="el" href="scr__index__api_8c.html#afe1865d3e89a06ba3be28499900ea0a6">scr_index_api.c</a>
 </li>
 <li>scr_index_get_most_recent_complete()
 : <a class="el" href="scr__index__api_8c.html#a249925fc820f53b29b466a5a9749af8b">scr_index_api.c</a>
 , <a class="el" href="scr__index__api_8h.html#a249925fc820f53b29b466a5a9749af8b">scr_index_api.h</a>
 </li>
 <li>scr_index_mark_failed()
-: <a class="el" href="scr__index__api_8c.html#a2ecf161ed2c2cf098413f3e683fcdb70">scr_index_api.c</a>
-, <a class="el" href="scr__index__api_8h.html#a2ecf161ed2c2cf098413f3e683fcdb70">scr_index_api.h</a>
+: <a class="el" href="scr__index__api_8h.html#a2ecf161ed2c2cf098413f3e683fcdb70">scr_index_api.h</a>
+, <a class="el" href="scr__index__api_8c.html#a2ecf161ed2c2cf098413f3e683fcdb70">scr_index_api.c</a>
 </li>
 <li>scr_index_mark_fetched()
 : <a class="el" href="scr__index__api_8c.html#a942b8a6e720744eeeaf12ffe66209032">scr_index_api.c</a>
 , <a class="el" href="scr__index__api_8h.html#a942b8a6e720744eeeaf12ffe66209032">scr_index_api.h</a>
 </li>
 <li>scr_index_mark_flushed()
-: <a class="el" href="scr__index__api_8c.html#a65d8621b7b372f789c2482a157574fd4">scr_index_api.c</a>
-, <a class="el" href="scr__index__api_8h.html#a65d8621b7b372f789c2482a157574fd4">scr_index_api.h</a>
+: <a class="el" href="scr__index__api_8h.html#a65d8621b7b372f789c2482a157574fd4">scr_index_api.h</a>
+, <a class="el" href="scr__index__api_8c.html#a65d8621b7b372f789c2482a157574fd4">scr_index_api.c</a>
 </li>
 <li>scr_index_read()
 : <a class="el" href="scr__index__api_8c.html#ae3752e25491f9437cb661d00490d25ce">scr_index_api.c</a>
@@ -1013,12 +1231,15 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__index__api_8h.html#a32116a622be5d739bf7c061e5b2a290d">scr_index_api.h</a>
 </li>
 <li>scr_index_set_current()
-: <a class="el" href="scr__index__api_8c.html#ad82edaff983d7e8afbaa7ba900d44901">scr_index_api.c</a>
-, <a class="el" href="scr__index__api_8h.html#ad82edaff983d7e8afbaa7ba900d44901">scr_index_api.h</a>
+: <a class="el" href="scr__index__api_8h.html#ad82edaff983d7e8afbaa7ba900d44901">scr_index_api.h</a>
+, <a class="el" href="scr__index__api_8c.html#ad82edaff983d7e8afbaa7ba900d44901">scr_index_api.c</a>
 </li>
 <li>scr_index_set_dataset()
 : <a class="el" href="scr__index__api_8c.html#affb82ace9e5f4fe06d0ce5e136d6a914">scr_index_api.c</a>
 , <a class="el" href="scr__index__api_8h.html#affb82ace9e5f4fe06d0ce5e136d6a914">scr_index_api.h</a>
+</li>
+<li>scr_index_set_directory()
+: <a class="el" href="scr__index__api_8c.html#af5e716c32c1f1637508b322bd3cba135">scr_index_api.c</a>
 </li>
 <li>scr_index_unset_current()
 : <a class="el" href="scr__index__api_8c.html#ac539449d348214d1724f8a7cdbc5002e">scr_index_api.c</a>
@@ -1038,29 +1259,32 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 <li>scr_inspect_scan()
 : <a class="el" href="scr__index_8c.html#a7aa81db632a698c18853f9a1907347c3">scr_index.c</a>
 </li>
+<li>scr_interpose_init()
+: <a class="el" href="scr__interpose_8c.html#abd7f1b7f379e3e9349dfb51b11560d6c">scr_interpose.c</a>
+</li>
 <li>scr_log_event()
 : <a class="el" href="scr__log_8c.html#a72914344a7b4a498a62e68e9eca27a8a">scr_log.c</a>
 , <a class="el" href="scr__log_8h.html#a994bec3b2608a1033f9a3a20cab79353">scr_log.h</a>
 </li>
 <li>scr_log_finalize()
-: <a class="el" href="scr__log_8c.html#ab1e22b09f9fba898a1bb2b4340d31783">scr_log.c</a>
-, <a class="el" href="scr__log_8h.html#a173e5e4f0bece34d52f138c83f99b229">scr_log.h</a>
+: <a class="el" href="scr__log_8h.html#a173e5e4f0bece34d52f138c83f99b229">scr_log.h</a>
+, <a class="el" href="scr__log_8c.html#ab1e22b09f9fba898a1bb2b4340d31783">scr_log.c</a>
 </li>
 <li>scr_log_halt()
 : <a class="el" href="scr__log_8c.html#a6d26d64e9cf51aba0acf51efac7e748d">scr_log.c</a>
 , <a class="el" href="scr__log_8h.html#accfbbe23bbdbddad7478a23f91a8bcc5">scr_log.h</a>
 </li>
 <li>scr_log_init()
-: <a class="el" href="scr__log_8c.html#a4d22fb5939140400c98f4ba236df1dd5">scr_log.c</a>
-, <a class="el" href="scr__log_8h.html#a2b2624b6e43a940de26de869b8c83524">scr_log.h</a>
+: <a class="el" href="scr__log_8h.html#a2b2624b6e43a940de26de869b8c83524">scr_log.h</a>
+, <a class="el" href="scr__log_8c.html#a4d22fb5939140400c98f4ba236df1dd5">scr_log.c</a>
 </li>
 <li>scr_log_job()
 : <a class="el" href="scr__log_8c.html#afc4990aa5a9be5066707ed4d989a82ab">scr_log.c</a>
 , <a class="el" href="scr__log_8h.html#afc4990aa5a9be5066707ed4d989a82ab">scr_log.h</a>
 </li>
 <li>scr_log_run()
-: <a class="el" href="scr__log_8c.html#a2c18fd294222ec86d3e745d45135a8c8">scr_log.c</a>
-, <a class="el" href="scr__log_8h.html#a2c18fd294222ec86d3e745d45135a8c8">scr_log.h</a>
+: <a class="el" href="scr__log_8h.html#a2c18fd294222ec86d3e745d45135a8c8">scr_log.h</a>
+, <a class="el" href="scr__log_8c.html#a2c18fd294222ec86d3e745d45135a8c8">scr_log.c</a>
 </li>
 <li>scr_log_seconds()
 : <a class="el" href="scr__log_8c.html#ac07f948645eff40e5cf8e505b4526442">scr_log.c</a>
@@ -1075,40 +1299,40 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__io_8h.html#ac4247e2874174b804bf4a5419d4a0178">scr_io.h</a>
 </li>
 <li>scr_malloc()
-: <a class="el" href="scr__util_8c.html#adb02e8ef9d7c0508da25a6001476cfb1">scr_util.c</a>
-, <a class="el" href="scr__util_8h.html#adb02e8ef9d7c0508da25a6001476cfb1">scr_util.h</a>
+: <a class="el" href="scr__util_8h.html#adb02e8ef9d7c0508da25a6001476cfb1">scr_util.h</a>
+, <a class="el" href="scr__util_8c.html#adb02e8ef9d7c0508da25a6001476cfb1">scr_util.c</a>
 </li>
 <li>scr_meta_check_checkpoint()
 : <a class="el" href="scr__meta_8c.html#a1282c4e9866d5a016bc03a02c5111c63">scr_meta.c</a>
 , <a class="el" href="scr__meta_8h.html#ade40d1bf344c7a4d4bcba72e6874e7e0">scr_meta.h</a>
 </li>
 <li>scr_meta_check_filename()
-: <a class="el" href="scr__meta_8c.html#a12ab6e07d3527210fd375ac373a922b5">scr_meta.c</a>
-, <a class="el" href="scr__meta_8h.html#a12ab6e07d3527210fd375ac373a922b5">scr_meta.h</a>
+: <a class="el" href="scr__meta_8h.html#a12ab6e07d3527210fd375ac373a922b5">scr_meta.h</a>
+, <a class="el" href="scr__meta_8c.html#a12ab6e07d3527210fd375ac373a922b5">scr_meta.c</a>
 </li>
 <li>scr_meta_check_filesize()
 : <a class="el" href="scr__meta_8c.html#a2d1403188849e9a6485c951f3630674a">scr_meta.c</a>
 , <a class="el" href="scr__meta_8h.html#a2d1403188849e9a6485c951f3630674a">scr_meta.h</a>
 </li>
 <li>scr_meta_check_filetype()
-: <a class="el" href="scr__meta_8c.html#adf40f22d7070529ae3ea17b536c52e52">scr_meta.c</a>
-, <a class="el" href="scr__meta_8h.html#adf40f22d7070529ae3ea17b536c52e52">scr_meta.h</a>
+: <a class="el" href="scr__meta_8h.html#adf40f22d7070529ae3ea17b536c52e52">scr_meta.h</a>
+, <a class="el" href="scr__meta_8c.html#adf40f22d7070529ae3ea17b536c52e52">scr_meta.c</a>
 </li>
 <li>scr_meta_check_rank()
 : <a class="el" href="scr__meta_8c.html#a6e13c82e6c89af8b15931b41a6db1071">scr_meta.c</a>
 , <a class="el" href="scr__meta_8h.html#a6e13c82e6c89af8b15931b41a6db1071">scr_meta.h</a>
 </li>
 <li>scr_meta_check_ranks()
-: <a class="el" href="scr__meta_8h.html#a9e04212a52d731f43f0a491487631157">scr_meta.h</a>
-, <a class="el" href="scr__meta_8c.html#a9e04212a52d731f43f0a491487631157">scr_meta.c</a>
+: <a class="el" href="scr__meta_8c.html#a9e04212a52d731f43f0a491487631157">scr_meta.c</a>
+, <a class="el" href="scr__meta_8h.html#a9e04212a52d731f43f0a491487631157">scr_meta.h</a>
 </li>
 <li>scr_meta_copy()
 : <a class="el" href="scr__meta_8c.html#a0f7c8c6c35d3294424ae182bdb8871a1">scr_meta.c</a>
 , <a class="el" href="scr__meta_8h.html#a0f7c8c6c35d3294424ae182bdb8871a1">scr_meta.h</a>
 </li>
 <li>scr_meta_delete()
-: <a class="el" href="scr__meta_8c.html#ad946d93641bc7658dd450018bde928f5">scr_meta.c</a>
-, <a class="el" href="scr__meta_8h.html#ad946d93641bc7658dd450018bde928f5">scr_meta.h</a>
+: <a class="el" href="scr__meta_8h.html#ad946d93641bc7658dd450018bde928f5">scr_meta.h</a>
+, <a class="el" href="scr__meta_8c.html#ad946d93641bc7658dd450018bde928f5">scr_meta.c</a>
 </li>
 <li>scr_meta_get_checkpoint()
 : <a class="el" href="scr__meta_8c.html#a42579e4349102397c527d52627b3bb17">scr_meta.c</a>
@@ -1123,20 +1347,20 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__meta_8h.html#aeb80e393ea5fae02ba40acd005d5b357">scr_meta.h</a>
 </li>
 <li>scr_meta_get_filename()
-: <a class="el" href="scr__meta_8h.html#ae1365cef72f1d38f76ca653eefe2416b">scr_meta.h</a>
-, <a class="el" href="scr__meta_8c.html#ae1365cef72f1d38f76ca653eefe2416b">scr_meta.c</a>
+: <a class="el" href="scr__meta_8c.html#ae1365cef72f1d38f76ca653eefe2416b">scr_meta.c</a>
+, <a class="el" href="scr__meta_8h.html#ae1365cef72f1d38f76ca653eefe2416b">scr_meta.h</a>
 </li>
 <li>scr_meta_get_filesize()
 : <a class="el" href="scr__meta_8c.html#a9055c3fdc4e2a096f2ad5b5916c40a42">scr_meta.c</a>
 , <a class="el" href="scr__meta_8h.html#a9055c3fdc4e2a096f2ad5b5916c40a42">scr_meta.h</a>
 </li>
 <li>scr_meta_get_filetype()
-: <a class="el" href="scr__meta_8h.html#a8cc7b01b0f257065ff5dfc32dc72b9b0">scr_meta.h</a>
-, <a class="el" href="scr__meta_8c.html#a8cc7b01b0f257065ff5dfc32dc72b9b0">scr_meta.c</a>
+: <a class="el" href="scr__meta_8c.html#a8cc7b01b0f257065ff5dfc32dc72b9b0">scr_meta.c</a>
+, <a class="el" href="scr__meta_8h.html#a8cc7b01b0f257065ff5dfc32dc72b9b0">scr_meta.h</a>
 </li>
 <li>scr_meta_get_orig()
-: <a class="el" href="scr__meta_8h.html#a8c86f8b75a07a792de8ab2c48be54c9b">scr_meta.h</a>
-, <a class="el" href="scr__meta_8c.html#a8c86f8b75a07a792de8ab2c48be54c9b">scr_meta.c</a>
+: <a class="el" href="scr__meta_8c.html#a8c86f8b75a07a792de8ab2c48be54c9b">scr_meta.c</a>
+, <a class="el" href="scr__meta_8h.html#a8c86f8b75a07a792de8ab2c48be54c9b">scr_meta.h</a>
 </li>
 <li>scr_meta_get_origname()
 : <a class="el" href="scr__meta_8h.html#a9bbee3a57141f2f101037066daeded12">scr_meta.h</a>
@@ -1151,20 +1375,20 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__meta_8c.html#a1adeab1159bd385b642edfd170cd2400">scr_meta.c</a>
 </li>
 <li>scr_meta_get_ranks()
-: <a class="el" href="scr__meta_8h.html#a644ab238da166bd31985c8335a1c2384">scr_meta.h</a>
-, <a class="el" href="scr__meta_8c.html#a644ab238da166bd31985c8335a1c2384">scr_meta.c</a>
+: <a class="el" href="scr__meta_8c.html#a644ab238da166bd31985c8335a1c2384">scr_meta.c</a>
+, <a class="el" href="scr__meta_8h.html#a644ab238da166bd31985c8335a1c2384">scr_meta.h</a>
 </li>
 <li>scr_meta_is_complete()
-: <a class="el" href="scr__meta_8h.html#ac066ba8e604c414698847173fb618038">scr_meta.h</a>
-, <a class="el" href="scr__meta_8c.html#ac066ba8e604c414698847173fb618038">scr_meta.c</a>
+: <a class="el" href="scr__meta_8c.html#ac066ba8e604c414698847173fb618038">scr_meta.c</a>
+, <a class="el" href="scr__meta_8h.html#ac066ba8e604c414698847173fb618038">scr_meta.h</a>
 </li>
 <li>scr_meta_new()
-: <a class="el" href="scr__meta_8c.html#a5d0f5573d68b9fd860469fd2437d9ae7">scr_meta.c</a>
-, <a class="el" href="scr__meta_8h.html#ad4cc25dddc2e12840a4c70c99849da99">scr_meta.h</a>
+: <a class="el" href="scr__meta_8h.html#ad4cc25dddc2e12840a4c70c99849da99">scr_meta.h</a>
+, <a class="el" href="scr__meta_8c.html#a5d0f5573d68b9fd860469fd2437d9ae7">scr_meta.c</a>
 </li>
 <li>scr_meta_set_checkpoint()
-: <a class="el" href="scr__meta_8h.html#aabdd30ebe5484b44ded406ae759f40a5">scr_meta.h</a>
-, <a class="el" href="scr__meta_8c.html#aabdd30ebe5484b44ded406ae759f40a5">scr_meta.c</a>
+: <a class="el" href="scr__meta_8c.html#aabdd30ebe5484b44ded406ae759f40a5">scr_meta.c</a>
+, <a class="el" href="scr__meta_8h.html#aabdd30ebe5484b44ded406ae759f40a5">scr_meta.h</a>
 </li>
 <li>scr_meta_set_complete()
 : <a class="el" href="scr__meta_8c.html#ab250e61c8a0bcc50f99b8c146a903b7f">scr_meta.c</a>
@@ -1175,8 +1399,8 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__meta_8c.html#a358bca0b2612e262ce418220c4616611">scr_meta.c</a>
 </li>
 <li>scr_meta_set_filename()
-: <a class="el" href="scr__meta_8h.html#ab4ac4c77ca4bce630a2b34a0e000baaa">scr_meta.h</a>
-, <a class="el" href="scr__meta_8c.html#ab4ac4c77ca4bce630a2b34a0e000baaa">scr_meta.c</a>
+: <a class="el" href="scr__meta_8c.html#ab4ac4c77ca4bce630a2b34a0e000baaa">scr_meta.c</a>
+, <a class="el" href="scr__meta_8h.html#ab4ac4c77ca4bce630a2b34a0e000baaa">scr_meta.h</a>
 </li>
 <li>scr_meta_set_filesize()
 : <a class="el" href="scr__meta_8h.html#add431683f782d2d546482dce3ed364ef">scr_meta.h</a>
@@ -1187,8 +1411,8 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__meta_8c.html#ad7e3b3c489f9679a7d475173e15334fe">scr_meta.c</a>
 </li>
 <li>scr_meta_set_orig()
-: <a class="el" href="scr__meta_8h.html#a4c81125a29a91e3a5917619b9e6e3ebe">scr_meta.h</a>
-, <a class="el" href="scr__meta_8c.html#a4c81125a29a91e3a5917619b9e6e3ebe">scr_meta.c</a>
+: <a class="el" href="scr__meta_8c.html#a4c81125a29a91e3a5917619b9e6e3ebe">scr_meta.c</a>
+, <a class="el" href="scr__meta_8h.html#a4c81125a29a91e3a5917619b9e6e3ebe">scr_meta.h</a>
 </li>
 <li>scr_meta_set_origname()
 : <a class="el" href="scr__meta_8c.html#a7f52012c47119414b5835432ef302d70">scr_meta.c</a>
@@ -1250,8 +1474,8 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__log_8c.html#a48b8b8e05b032e0511a8412c82567fcc">scr_log.c</a>
 </li>
 <li>SCR_Need_checkpoint()
-: <a class="el" href="scr_8c.html#a32328b8e855df6003a5c6086c32b3ca4">scr.c</a>
-, <a class="el" href="scr_8h.html#a32328b8e855df6003a5c6086c32b3ca4">scr.h</a>
+: <a class="el" href="scr_8h.html#a32328b8e855df6003a5c6086c32b3ca4">scr.h</a>
+, <a class="el" href="scr_8c.html#a32328b8e855df6003a5c6086c32b3ca4">scr.c</a>
 </li>
 <li>scr_need_checkpoint_()
 : <a class="el" href="scrf_8c.html#ab056f6604c489ed64a07fa0ef6f50a3e">scrf.c</a>
@@ -1261,8 +1485,8 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__cache_8c.html#a9b78ed322767c74c576f52f817e113e5">scr_cache.c</a>
 </li>
 <li>scr_open()
-: <a class="el" href="scr__io_8h.html#aa12dcef50ffd1e4731cba46bfabb9734">scr_io.h</a>
-, <a class="el" href="scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734">scr_io.c</a>
+: <a class="el" href="scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734">scr_io.c</a>
+, <a class="el" href="scr__io_8h.html#aa12dcef50ffd1e4731cba46bfabb9734">scr_io.h</a>
 </li>
 <li>scr_open_with_lock()
 : <a class="el" href="scr__io_8h.html#acd78c3c9dd280af6d12bb3a0f829f99f">scr_io.h</a>
@@ -1273,12 +1497,12 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__util_8h.html#a7fa8af1b09b7dec8ff139742cc612ccd">scr_util.h</a>
 </li>
 <li>scr_pack_uint32_t()
-: <a class="el" href="scr__util_8c.html#a2c76b0b0c1949d3fa857773f504f766d">scr_util.c</a>
-, <a class="el" href="scr__util_8h.html#a2c76b0b0c1949d3fa857773f504f766d">scr_util.h</a>
+: <a class="el" href="scr__util_8h.html#a2c76b0b0c1949d3fa857773f504f766d">scr_util.h</a>
+, <a class="el" href="scr__util_8c.html#a2c76b0b0c1949d3fa857773f504f766d">scr_util.c</a>
 </li>
 <li>scr_pack_uint64_t()
-: <a class="el" href="scr__util_8c.html#a195c03524a38091143ac32ac5daed225">scr_util.c</a>
-, <a class="el" href="scr__util_8h.html#a195c03524a38091143ac32ac5daed225">scr_util.h</a>
+: <a class="el" href="scr__util_8h.html#a195c03524a38091143ac32ac5daed225">scr_util.h</a>
+, <a class="el" href="scr__util_8c.html#a195c03524a38091143ac32ac5daed225">scr_util.c</a>
 </li>
 <li>scr_param_finalize()
 : <a class="el" href="scr__param_8h.html#ae188819bb45b1b5916ec00284839e2b3">scr_param.h</a>
@@ -1293,8 +1517,14 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__param_8c.html#a66298a87015cf54cfd741070ea99d844">scr_param.c</a>
 </li>
 <li>scr_param_init()
-: <a class="el" href="scr__param_8h.html#a57346f9ee59818879fac72351abbbbfd">scr_param.h</a>
-, <a class="el" href="scr__param_8c.html#a3b9016bb02304c579611e2229f39d5a8">scr_param.c</a>
+: <a class="el" href="scr__param_8c.html#a3b9016bb02304c579611e2229f39d5a8">scr_param.c</a>
+, <a class="el" href="scr__param_8h.html#a57346f9ee59818879fac72351abbbbfd">scr_param.h</a>
+</li>
+<li>scr_path_alloc()
+: <a class="el" href="scr__path_8c.html#aef3435cd07f05129d7370e8914f49e41">scr_path.c</a>
+</li>
+<li>scr_path_alloc_strf()
+: <a class="el" href="scr__path_8c.html#a69f7b325d30808ef303e871260ded0df">scr_path.c</a>
 </li>
 <li>scr_path_append()
 : <a class="el" href="scr__path_8h.html#a4a8a50db029fd9428bb9e4288d364718">scr_path.h</a>
@@ -1305,48 +1535,75 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__path_8c.html#a5a3c9b429f11dee33bfa5f1800b0add2">scr_path.c</a>
 </li>
 <li>scr_path_append_strf()
-: <a class="el" href="scr__path_8h.html#a2f28f6921435c92e296674367530de80">scr_path.h</a>
-, <a class="el" href="scr__path_8c.html#a2f28f6921435c92e296674367530de80">scr_path.c</a>
+: <a class="el" href="scr__path_8c.html#a2f28f6921435c92e296674367530de80">scr_path.c</a>
+, <a class="el" href="scr__path_8h.html#a2f28f6921435c92e296674367530de80">scr_path.h</a>
 </li>
 <li>scr_path_basename()
-: <a class="el" href="scr__path_8c.html#a4166be3e4ca2dbc5b50c6e0d94d49f01">scr_path.c</a>
-, <a class="el" href="scr__path_8h.html#a4166be3e4ca2dbc5b50c6e0d94d49f01">scr_path.h</a>
+: <a class="el" href="scr__path_8h.html#a4166be3e4ca2dbc5b50c6e0d94d49f01">scr_path.h</a>
+, <a class="el" href="scr__path_8c.html#a4166be3e4ca2dbc5b50c6e0d94d49f01">scr_path.c</a>
 </li>
 <li>scr_path_bcast()
 : <a class="el" href="scr__path__mpi_8h.html#aaf2f50b6c065af6d01016313ead19f7d">scr_path_mpi.h</a>
 , <a class="el" href="scr__path__mpi_8c.html#aaf2f50b6c065af6d01016313ead19f7d">scr_path_mpi.c</a>
+</li>
+<li>scr_path_combine()
+: <a class="el" href="scr__path_8c.html#a88dcc466fa4c7955290e7d7bb0678d6e">scr_path.c</a>
 </li>
 <li>scr_path_components()
 : <a class="el" href="scr__path_8c.html#a56cf477e3539a25398b1908a05877981">scr_path.c</a>
 , <a class="el" href="scr__path_8h.html#a56cf477e3539a25398b1908a05877981">scr_path.h</a>
 </li>
 <li>scr_path_cut()
-: <a class="el" href="scr__path_8h.html#aa5fa230924c235d4672781f784753a85">scr_path.h</a>
-, <a class="el" href="scr__path_8c.html#aa5fa230924c235d4672781f784753a85">scr_path.c</a>
+: <a class="el" href="scr__path_8c.html#aa5fa230924c235d4672781f784753a85">scr_path.c</a>
+, <a class="el" href="scr__path_8h.html#aa5fa230924c235d4672781f784753a85">scr_path.h</a>
 </li>
 <li>scr_path_delete()
-: <a class="el" href="scr__path_8h.html#a07f0c7e95414d2048aa4b2d1ff2eabb3">scr_path.h</a>
-, <a class="el" href="scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3">scr_path.c</a>
+: <a class="el" href="scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3">scr_path.c</a>
+, <a class="el" href="scr__path_8h.html#a07f0c7e95414d2048aa4b2d1ff2eabb3">scr_path.h</a>
 </li>
 <li>scr_path_dirname()
-: <a class="el" href="scr__path_8h.html#aa214a892e22add43914a5192680c5818">scr_path.h</a>
-, <a class="el" href="scr__path_8c.html#aa214a892e22add43914a5192680c5818">scr_path.c</a>
+: <a class="el" href="scr__path_8c.html#aa214a892e22add43914a5192680c5818">scr_path.c</a>
+, <a class="el" href="scr__path_8h.html#aa214a892e22add43914a5192680c5818">scr_path.h</a>
 </li>
 <li>scr_path_dup()
 : <a class="el" href="scr__path_8h.html#a8a9496384e058b3b4e7fef11c42eba32">scr_path.h</a>
 , <a class="el" href="scr__path_8c.html#a8a9496384e058b3b4e7fef11c42eba32">scr_path.c</a>
+</li>
+<li>scr_path_elem_alloc()
+: <a class="el" href="scr__path_8c.html#a3b10140983d2b41d10a5fef8acadd214">scr_path.c</a>
+</li>
+<li>scr_path_elem_dup()
+: <a class="el" href="scr__path_8c.html#a37ab5de729443bcb4231380d6d6fbd9c">scr_path.c</a>
+</li>
+<li>scr_path_elem_extract()
+: <a class="el" href="scr__path_8c.html#a885c81210f02ac6ae99d71450ab3dc3a">scr_path.c</a>
+</li>
+<li>scr_path_elem_free()
+: <a class="el" href="scr__path_8c.html#ab47d085ffd9bd95e229eac7a938c37a8">scr_path.c</a>
+</li>
+<li>scr_path_elem_index()
+: <a class="el" href="scr__path_8c.html#ac23d9ba015580024cc018c6f8d19f1fb">scr_path.c</a>
+</li>
+<li>scr_path_elem_init()
+: <a class="el" href="scr__path_8c.html#a9308356656673b71ae1839db059a6bb8">scr_path.c</a>
+</li>
+<li>scr_path_elem_insert()
+: <a class="el" href="scr__path_8c.html#a53234b237d1f111f2126bab24be03064">scr_path.c</a>
 </li>
 <li>scr_path_from_str()
 : <a class="el" href="scr__path_8h.html#a40ea4c0382a8da6fd0a2399fe39e2ca5">scr_path.h</a>
 , <a class="el" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5">scr_path.c</a>
 </li>
 <li>scr_path_from_strf()
-: <a class="el" href="scr__path_8c.html#aa22bbe594fa2bb6e564ce7c3e7bfb014">scr_path.c</a>
-, <a class="el" href="scr__path_8h.html#aa22bbe594fa2bb6e564ce7c3e7bfb014">scr_path.h</a>
+: <a class="el" href="scr__path_8h.html#aa22bbe594fa2bb6e564ce7c3e7bfb014">scr_path.h</a>
+, <a class="el" href="scr__path_8c.html#aa22bbe594fa2bb6e564ce7c3e7bfb014">scr_path.c</a>
+</li>
+<li>scr_path_init()
+: <a class="el" href="scr__path_8c.html#acc7fb12c3f1f5fd521bcbe08b583e103">scr_path.c</a>
 </li>
 <li>scr_path_insert()
-: <a class="el" href="scr__path_8h.html#ac7ebab25d4257be4285c361c705e1d76">scr_path.h</a>
-, <a class="el" href="scr__path_8c.html#a64fc91b89c482669f8d2b86292b3706b">scr_path.c</a>
+: <a class="el" href="scr__path_8c.html#a64fc91b89c482669f8d2b86292b3706b">scr_path.c</a>
+, <a class="el" href="scr__path_8h.html#ac7ebab25d4257be4285c361c705e1d76">scr_path.h</a>
 </li>
 <li>scr_path_insert_str()
 : <a class="el" href="scr__path_8c.html#a1aba3dca8fe99f643c30c604bc7774cf">scr_path.c</a>
@@ -1365,8 +1622,8 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__path_8h.html#ac3ff93f0040873b816e1da1eb8910f85">scr_path.h</a>
 </li>
 <li>scr_path_is_null()
-: <a class="el" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42">scr_path.c</a>
-, <a class="el" href="scr__path_8h.html#aa877891ace313cb9a050b20f32257c42">scr_path.h</a>
+: <a class="el" href="scr__path_8h.html#aa877891ace313cb9a050b20f32257c42">scr_path.h</a>
+, <a class="el" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42">scr_path.c</a>
 </li>
 <li>scr_path_new()
 : <a class="el" href="scr__path_8h.html#a8f66b2006e670f886afebe9b363cccd1">scr_path.h</a>
@@ -1377,36 +1634,39 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__path_8h.html#afe07469bcd9d3605dd1771d8cd99230a">scr_path.h</a>
 </li>
 <li>scr_path_prepend_str()
-: <a class="el" href="scr__path_8h.html#a42fdd631c165e163a4fc953a72ccaccc">scr_path.h</a>
-, <a class="el" href="scr__path_8c.html#a42fdd631c165e163a4fc953a72ccaccc">scr_path.c</a>
+: <a class="el" href="scr__path_8c.html#a42fdd631c165e163a4fc953a72ccaccc">scr_path.c</a>
+, <a class="el" href="scr__path_8h.html#a42fdd631c165e163a4fc953a72ccaccc">scr_path.h</a>
 </li>
 <li>scr_path_prepend_strf()
 : <a class="el" href="scr__path_8c.html#a0575b5eb405382ec6bbc5175fbe2f940">scr_path.c</a>
 , <a class="el" href="scr__path_8h.html#a0575b5eb405382ec6bbc5175fbe2f940">scr_path.h</a>
 </li>
 <li>scr_path_reduce()
-: <a class="el" href="scr__path_8h.html#a4f90a011aab44e714f5c78cab352ab16">scr_path.h</a>
-, <a class="el" href="scr__path_8c.html#a4f90a011aab44e714f5c78cab352ab16">scr_path.c</a>
+: <a class="el" href="scr__path_8c.html#a4f90a011aab44e714f5c78cab352ab16">scr_path.c</a>
+, <a class="el" href="scr__path_8h.html#a4f90a011aab44e714f5c78cab352ab16">scr_path.h</a>
 </li>
 <li>scr_path_relative()
 : <a class="el" href="scr__path_8c.html#aa7091b0056f2cb329d76c9cfac19bed8">scr_path.c</a>
 , <a class="el" href="scr__path_8h.html#aa7091b0056f2cb329d76c9cfac19bed8">scr_path.h</a>
 </li>
 <li>scr_path_slice()
-: <a class="el" href="scr__path_8h.html#a631c36c8a8f4becadd606338ea506bd8">scr_path.h</a>
-, <a class="el" href="scr__path_8c.html#a631c36c8a8f4becadd606338ea506bd8">scr_path.c</a>
+: <a class="el" href="scr__path_8c.html#a631c36c8a8f4becadd606338ea506bd8">scr_path.c</a>
+, <a class="el" href="scr__path_8h.html#a631c36c8a8f4becadd606338ea506bd8">scr_path.h</a>
 </li>
 <li>scr_path_strcpy()
-: <a class="el" href="scr__path_8c.html#a1cecc0735dc7cbefbd01e0e9356c2cc4">scr_path.c</a>
-, <a class="el" href="scr__path_8h.html#a1cecc0735dc7cbefbd01e0e9356c2cc4">scr_path.h</a>
+: <a class="el" href="scr__path_8h.html#a1cecc0735dc7cbefbd01e0e9356c2cc4">scr_path.h</a>
+, <a class="el" href="scr__path_8c.html#a1cecc0735dc7cbefbd01e0e9356c2cc4">scr_path.c</a>
+</li>
+<li>scr_path_strcpy_internal()
+: <a class="el" href="scr__path_8c.html#af3eb4d09806351c6b2d3a6310842db83">scr_path.c</a>
 </li>
 <li>scr_path_strdup()
 : <a class="el" href="scr__path_8h.html#ab121aedc3aaca4d1c0cd240912d858cd">scr_path.h</a>
 , <a class="el" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd">scr_path.c</a>
 </li>
 <li>scr_path_strdup_reduce_str()
-: <a class="el" href="scr__path_8c.html#a63ab98651c7dbe4410455b5de5aaddb7">scr_path.c</a>
-, <a class="el" href="scr__path_8h.html#a63ab98651c7dbe4410455b5de5aaddb7">scr_path.h</a>
+: <a class="el" href="scr__path_8h.html#a63ab98651c7dbe4410455b5de5aaddb7">scr_path.h</a>
+, <a class="el" href="scr__path_8c.html#a63ab98651c7dbe4410455b5de5aaddb7">scr_path.c</a>
 </li>
 <li>scr_path_strlen()
 : <a class="el" href="scr__path_8h.html#a53dcddedf48597afebf3b6123c323f11">scr_path.h</a>
@@ -1417,12 +1677,12 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__path_8h.html#a97b7dd3fa72f32b3c09b900c35e68072">scr_path.h</a>
 </li>
 <li>scr_rank_str()
-: <a class="el" href="scr__split_8h.html#a3352565655578c37da1249486f816f29">scr_split.h</a>
-, <a class="el" href="scr__split_8c.html#a3352565655578c37da1249486f816f29">scr_split.c</a>
+: <a class="el" href="scr__split_8c.html#a3352565655578c37da1249486f816f29">scr_split.c</a>
+, <a class="el" href="scr__split_8h.html#a3352565655578c37da1249486f816f29">scr_split.h</a>
 </li>
 <li>scr_read()
-: <a class="el" href="scr__io_8c.html#a24ba95b0ca313a422c74b2967995c408">scr_io.c</a>
-, <a class="el" href="scr__io_8h.html#a24ba95b0ca313a422c74b2967995c408">scr_io.h</a>
+: <a class="el" href="scr__io_8h.html#a24ba95b0ca313a422c74b2967995c408">scr_io.h</a>
+, <a class="el" href="scr__io_8c.html#a24ba95b0ca313a422c74b2967995c408">scr_io.c</a>
 </li>
 <li>scr_read_attempt()
 : <a class="el" href="scr__io_8c.html#af8ba39af14e8945f8c69f3e33cc74c7d">scr_io.c</a>
@@ -1443,55 +1703,88 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__index_8c.html#aff5d9acbc23f65549a46af5ca24530de">scr_index.c</a>
 </li>
 <li>scr_reddesc_apply()
-: <a class="el" href="scr__reddesc__apply_8h.html#a6f90b9ae9f0dedd374854c6b2ee2db7e">scr_reddesc_apply.h</a>
-, <a class="el" href="scr__reddesc__apply_8c.html#a6f90b9ae9f0dedd374854c6b2ee2db7e">scr_reddesc_apply.c</a>
+: <a class="el" href="scr__reddesc__apply_8c.html#a6f90b9ae9f0dedd374854c6b2ee2db7e">scr_reddesc_apply.c</a>
+, <a class="el" href="scr__reddesc__apply_8h.html#a6f90b9ae9f0dedd374854c6b2ee2db7e">scr_reddesc_apply.h</a>
+</li>
+<li>scr_reddesc_apply_partner()
+: <a class="el" href="scr__reddesc__apply_8c.html#a6a6373e14b1f64bdba7ee474d6013faa">scr_reddesc_apply.c</a>
+</li>
+<li>scr_reddesc_apply_xor()
+: <a class="el" href="scr__reddesc__apply_8c.html#a694fa91a75accb24a25e019b0db21bac">scr_reddesc_apply.c</a>
 </li>
 <li>scr_reddesc_base_from_filemap()
-: <a class="el" href="scr__reddesc_8h.html#a900867864afecf42107684658306bf97">scr_reddesc.h</a>
-, <a class="el" href="scr__reddesc_8c.html#a900867864afecf42107684658306bf97">scr_reddesc.c</a>
+: <a class="el" href="scr__reddesc_8c.html#a900867864afecf42107684658306bf97">scr_reddesc.c</a>
+, <a class="el" href="scr__reddesc_8h.html#a900867864afecf42107684658306bf97">scr_reddesc.h</a>
 </li>
 <li>scr_reddesc_create_from_filemap()
 : <a class="el" href="scr__reddesc_8h.html#a507c5a77523c671a148c83190f807315">scr_reddesc.h</a>
 , <a class="el" href="scr__reddesc_8c.html#ac6544ae725431823283044f35eddbb05">scr_reddesc.c</a>
 </li>
 <li>scr_reddesc_create_from_hash()
-: <a class="el" href="scr__reddesc_8h.html#abafe357e682b88e7da73703261bd7b78">scr_reddesc.h</a>
-, <a class="el" href="scr__reddesc_8c.html#a3bf22b10e4598c883fbb4edf3a791b71">scr_reddesc.c</a>
+: <a class="el" href="scr__reddesc_8c.html#a3bf22b10e4598c883fbb4edf3a791b71">scr_reddesc.c</a>
+, <a class="el" href="scr__reddesc_8h.html#abafe357e682b88e7da73703261bd7b78">scr_reddesc.h</a>
+</li>
+<li>scr_reddesc_create_partner()
+: <a class="el" href="scr__reddesc_8c.html#a06e97de5f11ff867ad141bdd7a30313b">scr_reddesc.c</a>
+</li>
+<li>scr_reddesc_create_xor()
+: <a class="el" href="scr__reddesc_8c.html#a3b3e24d2d6a52da64ebee4beed6ada7d">scr_reddesc.c</a>
 </li>
 <li>scr_reddesc_dir_from_filemap()
-: <a class="el" href="scr__reddesc_8h.html#a20c0fad959a174aa834a7e08678c1a66">scr_reddesc.h</a>
-, <a class="el" href="scr__reddesc_8c.html#a20c0fad959a174aa834a7e08678c1a66">scr_reddesc.c</a>
+: <a class="el" href="scr__reddesc_8c.html#a20c0fad959a174aa834a7e08678c1a66">scr_reddesc.c</a>
+, <a class="el" href="scr__reddesc_8h.html#a20c0fad959a174aa834a7e08678c1a66">scr_reddesc.h</a>
 </li>
 <li>scr_reddesc_for_checkpoint()
-: <a class="el" href="scr__reddesc_8c.html#a3e173728272a327e026536bf0d4c9fb6">scr_reddesc.c</a>
-, <a class="el" href="scr__reddesc_8h.html#a3e173728272a327e026536bf0d4c9fb6">scr_reddesc.h</a>
+: <a class="el" href="scr__reddesc_8h.html#a3e173728272a327e026536bf0d4c9fb6">scr_reddesc.h</a>
+, <a class="el" href="scr__reddesc_8c.html#a3e173728272a327e026536bf0d4c9fb6">scr_reddesc.c</a>
 </li>
 <li>scr_reddesc_free()
 : <a class="el" href="scr__reddesc_8c.html#aa5a0fc9fd6c0854cde2cc169a94b1dc9">scr_reddesc.c</a>
 , <a class="el" href="scr__reddesc_8h.html#a104a7028114f86c0325362c19bc8b452">scr_reddesc.h</a>
 </li>
+<li>scr_reddesc_free_partner()
+: <a class="el" href="scr__reddesc_8c.html#abe976ca22526d26acff6324c2fbe3271">scr_reddesc.c</a>
+</li>
+<li>scr_reddesc_free_xor()
+: <a class="el" href="scr__reddesc_8c.html#ac01bcc3f5d2400b807dda6962316f1e7">scr_reddesc.c</a>
+</li>
 <li>scr_reddesc_get_store()
 : <a class="el" href="scr__reddesc_8h.html#a0e78b5318b5cf93fe53a21958a9ce25d">scr_reddesc.h</a>
 , <a class="el" href="scr__reddesc_8c.html#a0e78b5318b5cf93fe53a21958a9ce25d">scr_reddesc.c</a>
+</li>
+<li>scr_reddesc_group_id()
+: <a class="el" href="scr__reddesc_8c.html#a58c05d105ae11e54d7110eb05bb57aa8">scr_reddesc.c</a>
 </li>
 <li>scr_reddesc_init()
 : <a class="el" href="scr__reddesc_8c.html#a17523c94e3cbc3de365e961e23b4b941">scr_reddesc.c</a>
 , <a class="el" href="scr__reddesc_8h.html#adcb6114adb3ad9994671ce715d1e5ebf">scr_reddesc.h</a>
 </li>
 <li>scr_reddesc_recover()
-: <a class="el" href="scr__reddesc__recover_8h.html#a4153e6d06861201523b1d4ddb3265783">scr_reddesc_recover.h</a>
-, <a class="el" href="scr__reddesc__recover_8c.html#a4153e6d06861201523b1d4ddb3265783">scr_reddesc_recover.c</a>
+: <a class="el" href="scr__reddesc__recover_8c.html#a4153e6d06861201523b1d4ddb3265783">scr_reddesc_recover.c</a>
+, <a class="el" href="scr__reddesc__recover_8h.html#a4153e6d06861201523b1d4ddb3265783">scr_reddesc_recover.h</a>
+</li>
+<li>scr_reddesc_recover_xor()
+: <a class="el" href="scr__reddesc__recover_8c.html#a7ab16b4ec6d5a5a5f6801ac481677ebd">scr_reddesc_recover.c</a>
+</li>
+<li>scr_reddesc_recover_xor_attempt()
+: <a class="el" href="scr__reddesc__recover_8c.html#a0a443b8b7a1322b7dca51eed727f0bde">scr_reddesc_recover.c</a>
 </li>
 <li>scr_reddesc_restore_from_hash()
 : <a class="el" href="scr__reddesc_8c.html#ada162fc5af0f03ac7eabf3b4bd62c938">scr_reddesc.c</a>
+</li>
+<li>scr_reddesc_split_across()
+: <a class="el" href="scr__reddesc_8c.html#aac38de4cc81e0a1fa98fbd73a8260216">scr_reddesc.c</a>
 </li>
 <li>scr_reddesc_store_to_hash()
 : <a class="el" href="scr__reddesc_8c.html#a2d12f634c5c9e687ea9f96f9a5e2a368">scr_reddesc.c</a>
 , <a class="el" href="scr__reddesc_8h.html#afae5b8dda50e7b5221554a047132b6c3">scr_reddesc.h</a>
 </li>
+<li>scr_reddesc_type_int_from_str()
+: <a class="el" href="scr__reddesc_8c.html#ad7f91496d9d4595779439312b56f6286">scr_reddesc.c</a>
+</li>
 <li>scr_reddesc_val_from_filemap()
-: <a class="el" href="scr__reddesc_8h.html#a2ff6d1675139d083cd42af11f626cbee">scr_reddesc.h</a>
-, <a class="el" href="scr__reddesc_8c.html#a2ff6d1675139d083cd42af11f626cbee">scr_reddesc.c</a>
+: <a class="el" href="scr__reddesc_8c.html#a2ff6d1675139d083cd42af11f626cbee">scr_reddesc.c</a>
+, <a class="el" href="scr__reddesc_8h.html#a2ff6d1675139d083cd42af11f626cbee">scr_reddesc.h</a>
 </li>
 <li>scr_reddescs_create()
 : <a class="el" href="scr__reddesc_8h.html#a3ed69bdfa8ddf561e5c43988e0ca23b3">scr_reddesc.h</a>
@@ -1509,6 +1802,9 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr_8c.html#a32663736ac649e2bb4054624532409f1">scr.c</a>
 , <a class="el" href="scr_8h.html#a077e10ee31340fbc1e6a6e9f35185b7f">scr.h</a>
 </li>
+<li>scr_route_file()
+: <a class="el" href="scr_8c.html#a65cf86bf28f6cdc7842e883f52b1a177">scr.c</a>
+</li>
 <li>scr_route_file_()
 : <a class="el" href="scrf_8c.html#af6bc55f874a514bda8e3ba1d64d51678">scrf.c</a>
 </li>
@@ -1523,12 +1819,24 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__cache__rebuild_8c.html#ac512e74afe061169739beaa2d7f08f47">scr_cache_rebuild.c</a>
 </li>
 <li>scr_seconds()
-: <a class="el" href="scr__util_8c.html#a1615ee9fa938ccccb8b120aedffb1e4a">scr_util.c</a>
-, <a class="el" href="scr__util_8h.html#aefb983edcfbc5521737ac88c101bc552">scr_util.h</a>
+: <a class="el" href="scr__util_8h.html#aefb983edcfbc5521737ac88c101bc552">scr_util.h</a>
+, <a class="el" href="scr__util_8c.html#a1615ee9fa938ccccb8b120aedffb1e4a">scr_util.c</a>
 </li>
 <li>scr_set_partners()
-: <a class="el" href="scr__util__mpi_8c.html#a9a1fab6a45653be528670776082921fa">scr_util_mpi.c</a>
-, <a class="el" href="scr__util__mpi_8h.html#a9a1fab6a45653be528670776082921fa">scr_util_mpi.h</a>
+: <a class="el" href="scr__util__mpi_8h.html#a9a1fab6a45653be528670776082921fa">scr_util_mpi.h</a>
+, <a class="el" href="scr__util__mpi_8c.html#a9a1fab6a45653be528670776082921fa">scr_util_mpi.c</a>
+</li>
+<li>scr_sort_bitonic()
+: <a class="el" href="scr__split_8c.html#aff9e351f8acbff32a21a6d49c31ea96a">scr_split.c</a>
+</li>
+<li>scr_sort_bitonic_merge()
+: <a class="el" href="scr__split_8c.html#a560e4f24291398af01f6453bea4e7fd6">scr_split.c</a>
+</li>
+<li>scr_sort_bitonic_sort()
+: <a class="el" href="scr__split_8c.html#a24041ef030b08ba848f5f85c37a2a7d3">scr_split.c</a>
+</li>
+<li>scr_split_sorted()
+: <a class="el" href="scr__split_8c.html#a2ad86b7b89507d80c97c50fcd59f2294">scr_split.c</a>
 </li>
 <li>SCR_Start_checkpoint()
 : <a class="el" href="scr_8h.html#a7787ae0072a29dc75652778673a7ffdf">scr.h</a>
@@ -1537,13 +1845,25 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 <li>scr_start_checkpoint_()
 : <a class="el" href="scrf_8c.html#a8472bea2ae6f56ae844e9e9009907c81">scrf.c</a>
 </li>
+<li>scr_storedesc_copy()
+: <a class="el" href="scr__storedesc_8c.html#a2cf05f71d2a0a12b6badf01e5e715c98">scr_storedesc.c</a>
+</li>
+<li>scr_storedesc_create_from_hash()
+: <a class="el" href="scr__storedesc_8c.html#a64adcaf5750503376d0e7651193832b8">scr_storedesc.c</a>
+</li>
 <li>scr_storedesc_dir_create()
-: <a class="el" href="scr__storedesc_8h.html#ab6a757feb1f3253a8a095ac9df61e72a">scr_storedesc.h</a>
-, <a class="el" href="scr__storedesc_8c.html#a07e73fe89d3fb04e624ae2e7163f935d">scr_storedesc.c</a>
+: <a class="el" href="scr__storedesc_8c.html#a07e73fe89d3fb04e624ae2e7163f935d">scr_storedesc.c</a>
+, <a class="el" href="scr__storedesc_8h.html#ab6a757feb1f3253a8a095ac9df61e72a">scr_storedesc.h</a>
 </li>
 <li>scr_storedesc_dir_delete()
-: <a class="el" href="scr__storedesc_8c.html#ad59ac1542eb461402310f08400cf5294">scr_storedesc.c</a>
-, <a class="el" href="scr__storedesc_8h.html#a975ad841ad39c8f60d4abde4b35face0">scr_storedesc.h</a>
+: <a class="el" href="scr__storedesc_8h.html#a975ad841ad39c8f60d4abde4b35face0">scr_storedesc.h</a>
+, <a class="el" href="scr__storedesc_8c.html#ad59ac1542eb461402310f08400cf5294">scr_storedesc.c</a>
+</li>
+<li>scr_storedesc_free()
+: <a class="el" href="scr__storedesc_8c.html#a74063512aa89662fafdc419c75940b33">scr_storedesc.c</a>
+</li>
+<li>scr_storedesc_init()
+: <a class="el" href="scr__storedesc_8c.html#a36b1bd85271fc77ba3386d3373d39cf4">scr_storedesc.c</a>
 </li>
 <li>scr_storedescs_create()
 : <a class="el" href="scr__storedesc_8c.html#acac07dbb4f2092d481d2b845519df49a">scr_storedesc.c</a>
@@ -1558,8 +1878,8 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__storedesc_8c.html#ae33b2c17d4f99c3ffa7f043288527c5e">scr_storedesc.c</a>
 </li>
 <li>scr_str_bcast()
-: <a class="el" href="scr__util__mpi_8h.html#a8c1c6640a96d3e39e3649074d4c629c7">scr_util_mpi.h</a>
-, <a class="el" href="scr__util__mpi_8c.html#a8c1c6640a96d3e39e3649074d4c629c7">scr_util_mpi.c</a>
+: <a class="el" href="scr__util__mpi_8c.html#a8c1c6640a96d3e39e3649074d4c629c7">scr_util_mpi.c</a>
+, <a class="el" href="scr__util__mpi_8h.html#a8c1c6640a96d3e39e3649074d4c629c7">scr_util_mpi.h</a>
 </li>
 <li>scr_str_recv()
 : <a class="el" href="scr__util__mpi_8c.html#a4a63caa83c4248db4393f1562024ba5a">scr_util_mpi.c</a>
@@ -1576,21 +1896,36 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 , <a class="el" href="scr__util_8h.html#ac04ed1367760b3062f65afe074b56b4b">scr_util.h</a>
 </li>
 <li>scr_strn_bcast()
-: <a class="el" href="scr__util__mpi_8h.html#af45ac939ffcf43f67c4ba402d32353de">scr_util_mpi.h</a>
-, <a class="el" href="scr__util__mpi_8c.html#af45ac939ffcf43f67c4ba402d32353de">scr_util_mpi.c</a>
+: <a class="el" href="scr__util__mpi_8c.html#af45ac939ffcf43f67c4ba402d32353de">scr_util_mpi.c</a>
+, <a class="el" href="scr__util__mpi_8h.html#af45ac939ffcf43f67c4ba402d32353de">scr_util_mpi.h</a>
 </li>
 <li>scr_summary_build()
 : <a class="el" href="scr__index_8c.html#af1c0a221b455f0be8be0e248487d4a64">scr_index.c</a>
 </li>
+<li>scr_summary_check_v5()
+: <a class="el" href="scr__summary_8c.html#ac75b7c2a6bff0b76b6f8a0e044a9df3b">scr_summary.c</a>
+</li>
+<li>scr_summary_convert_v5_to_v6()
+: <a class="el" href="scr__summary_8c.html#a4de08a650ed0077e122177195564ab16">scr_summary.c</a>
+</li>
 <li>scr_summary_read()
-: <a class="el" href="scr__summary_8h.html#a2f523f5e65931c153b15119b37df2854">scr_summary.h</a>
+: <a class="el" href="scr__index_8c.html#af2ab8c68eb22f64b1d41c88b8cd46666">scr_index.c</a>
+, <a class="el" href="scr__summary_8h.html#a2f523f5e65931c153b15119b37df2854">scr_summary.h</a>
 , <a class="el" href="scr__summary_8c.html#a2f523f5e65931c153b15119b37df2854">scr_summary.c</a>
-, <a class="el" href="scr__index_8c.html#af2ab8c68eb22f64b1d41c88b8cd46666">scr_index.c</a>
+</li>
+<li>scr_summary_read_v4_to_v5()
+: <a class="el" href="scr__summary_8c.html#a43569963aa3d667f68e7a2cdadf35b37">scr_summary.c</a>
+</li>
+<li>scr_summary_read_v5()
+: <a class="el" href="scr__summary_8c.html#a5cfd78d721ef8b3557580f63396b520a">scr_summary.c</a>
+</li>
+<li>scr_summary_read_v6()
+: <a class="el" href="scr__summary_8c.html#a366f5fe82d5ef61821c5852f07a36b1b">scr_summary.c</a>
 </li>
 <li>scr_summary_write()
-: <a class="el" href="scr__summary_8c.html#a19fa75290515ed96d7069d8f50cff91f">scr_summary.c</a>
-, <a class="el" href="scr__index_8c.html#ace4855e470ac201e0071e9e54ff394e0">scr_index.c</a>
+: <a class="el" href="scr__index_8c.html#ace4855e470ac201e0071e9e54ff394e0">scr_index.c</a>
 , <a class="el" href="scr__summary_8h.html#a19fa75290515ed96d7069d8f50cff91f">scr_summary.h</a>
+, <a class="el" href="scr__summary_8c.html#a19fa75290515ed96d7069d8f50cff91f">scr_summary.c</a>
 </li>
 <li>scr_swap_file_names()
 : <a class="el" href="scr__cache__rebuild_8c.html#a6b6aca6cf8cd03b30e48836474b07c48">scr_cache_rebuild.c</a>
@@ -1600,59 +1935,119 @@ $(document).ready(function(){initNavTree('globals_func_s.html','');});
 : <a class="el" href="scr__cache__rebuild_8c.html#ae197f807bb7b3771a4275e5df111b44b">scr_cache_rebuild.c</a>
 , <a class="el" href="scr__cache__rebuild_8h.html#ae197f807bb7b3771a4275e5df111b44b">scr_cache_rebuild.h</a>
 </li>
+<li>scr_swap_files_copy()
+: <a class="el" href="scr__cache__rebuild_8c.html#a5b11561317b0e19b469618475565f8af">scr_cache_rebuild.c</a>
+</li>
+<li>scr_swap_files_move()
+: <a class="el" href="scr__cache__rebuild_8c.html#ae3a1fac8dab364fe7bbbf9a5e1d3ba99">scr_cache_rebuild.c</a>
+</li>
 <li>scr_time_usecs()
-: <a class="el" href="scr__util_8h.html#a612d104be8fc23ab47970c6b750eafc6">scr_util.h</a>
-, <a class="el" href="scr__util_8c.html#a7dd0ef88efe2e3d7757a54564e68f635">scr_util.c</a>
+: <a class="el" href="scr__util_8c.html#a7dd0ef88efe2e3d7757a54564e68f635">scr_util.c</a>
+, <a class="el" href="scr__util_8h.html#a612d104be8fc23ab47970c6b750eafc6">scr_util.h</a>
 </li>
 <li>scr_uncompress()
-: <a class="el" href="scr__compress_8h.html#a46d89e2e22b58a62368ba5f374b9280f">scr_compress.h</a>
-, <a class="el" href="scr__io_8h.html#a46d89e2e22b58a62368ba5f374b9280f">scr_io.h</a>
+: <a class="el" href="scr__io_8h.html#a46d89e2e22b58a62368ba5f374b9280f">scr_io.h</a>
 , <a class="el" href="scr__compress_8c.html#a46d89e2e22b58a62368ba5f374b9280f">scr_compress.c</a>
+, <a class="el" href="scr__compress_8h.html#a46d89e2e22b58a62368ba5f374b9280f">scr_compress.h</a>
 </li>
 <li>scr_uncompress_buf()
 : <a class="el" href="scr__compress_8h.html#a0b67ed992c429784fa343b81edc52a4f">scr_compress.h</a>
 </li>
 <li>scr_uncompress_in_place()
-: <a class="el" href="scr__compress_8h.html#a1cc54ce0c17777ed1f4f3a6f238746a0">scr_compress.h</a>
+: <a class="el" href="scr__compress_8c.html#a1cc54ce0c17777ed1f4f3a6f238746a0">scr_compress.c</a>
 , <a class="el" href="scr__io_8h.html#a1cc54ce0c17777ed1f4f3a6f238746a0">scr_io.h</a>
-, <a class="el" href="scr__compress_8c.html#a1cc54ce0c17777ed1f4f3a6f238746a0">scr_compress.c</a>
+, <a class="el" href="scr__compress_8h.html#a1cc54ce0c17777ed1f4f3a6f238746a0">scr_compress.h</a>
 </li>
 <li>scr_unlink_rank()
-: <a class="el" href="scr__cache_8h.html#a5129a0ef4f85004ab2b699e326fb8ca0">scr_cache.h</a>
-, <a class="el" href="scr__cache_8c.html#a5129a0ef4f85004ab2b699e326fb8ca0">scr_cache.c</a>
+: <a class="el" href="scr__cache_8c.html#a5129a0ef4f85004ab2b699e326fb8ca0">scr_cache.c</a>
+, <a class="el" href="scr__cache_8h.html#a5129a0ef4f85004ab2b699e326fb8ca0">scr_cache.h</a>
 </li>
 <li>scr_unpack_uint16_t()
-: <a class="el" href="scr__util_8h.html#a094844b05dd173886a3959ca6fa560e8">scr_util.h</a>
-, <a class="el" href="scr__util_8c.html#a094844b05dd173886a3959ca6fa560e8">scr_util.c</a>
+: <a class="el" href="scr__util_8c.html#a094844b05dd173886a3959ca6fa560e8">scr_util.c</a>
+, <a class="el" href="scr__util_8h.html#a094844b05dd173886a3959ca6fa560e8">scr_util.h</a>
 </li>
 <li>scr_unpack_uint32_t()
-: <a class="el" href="scr__util_8h.html#a3080444bf37203aeac828b42b6175e5d">scr_util.h</a>
-, <a class="el" href="scr__util_8c.html#a3080444bf37203aeac828b42b6175e5d">scr_util.c</a>
+: <a class="el" href="scr__util_8c.html#a3080444bf37203aeac828b42b6175e5d">scr_util.c</a>
+, <a class="el" href="scr__util_8h.html#a3080444bf37203aeac828b42b6175e5d">scr_util.h</a>
 </li>
 <li>scr_unpack_uint64_t()
 : <a class="el" href="scr__util_8h.html#a19c8f8cf03b5aafe6ef765bf10225525">scr_util.h</a>
 , <a class="el" href="scr__util_8c.html#a19c8f8cf03b5aafe6ef765bf10225525">scr_util.c</a>
 </li>
 <li>scr_warn()
-: <a class="el" href="scr__err__serial_8c.html#ad7170f21350a53d8d0ae34cd773e435a">scr_err_serial.c</a>
+: <a class="el" href="scr__err_8h.html#ad7170f21350a53d8d0ae34cd773e435a">scr_err.h</a>
+, <a class="el" href="scr__err__serial_8c.html#ad7170f21350a53d8d0ae34cd773e435a">scr_err_serial.c</a>
 , <a class="el" href="scr__err__mpi_8c.html#ad7170f21350a53d8d0ae34cd773e435a">scr_err_mpi.c</a>
-, <a class="el" href="scr__err_8h.html#ad7170f21350a53d8d0ae34cd773e435a">scr_err.h</a>
 </li>
 <li>scr_write()
 : <a class="el" href="scr__io_8c.html#a27758db29a346b82f975b6b46474ef92">scr_io.c</a>
 , <a class="el" href="scr__io_8h.html#a27758db29a346b82f975b6b46474ef92">scr_io.h</a>
 </li>
 <li>scr_write_attempt()
-: <a class="el" href="scr__io_8h.html#a7e0783f5e14a6cec17e80d92c663ccde">scr_io.h</a>
-, <a class="el" href="scr__io_8c.html#a7e0783f5e14a6cec17e80d92c663ccde">scr_io.c</a>
+: <a class="el" href="scr__io_8c.html#a7e0783f5e14a6cec17e80d92c663ccde">scr_io.c</a>
+, <a class="el" href="scr__io_8h.html#a7e0783f5e14a6cec17e80d92c663ccde">scr_io.h</a>
 </li>
 <li>scr_write_pad_n()
-: <a class="el" href="scr__io_8h.html#a7fff8d576664133476f06a3dfa3aead9">scr_io.h</a>
-, <a class="el" href="scr__io_8c.html#a7fff8d576664133476f06a3dfa3aead9">scr_io.c</a>
+: <a class="el" href="scr__io_8c.html#a7fff8d576664133476f06a3dfa3aead9">scr_io.c</a>
+, <a class="el" href="scr__io_8h.html#a7fff8d576664133476f06a3dfa3aead9">scr_io.h</a>
 </li>
 <li>scr_writef()
 : <a class="el" href="scr__io_8h.html#a63b164db2ef6e45f9e0a01cc51d347d9">scr_io.h</a>
 , <a class="el" href="scr__io_8c.html#a63b164db2ef6e45f9e0a01cc51d347d9">scr_io.c</a>
+</li>
+<li>scri_add_checkpoint_fd()
+: <a class="el" href="scr__interpose_8c.html#afca6a25b14d674fa41161178f096c465">scr_interpose.c</a>
+</li>
+<li>scri_add_checkpoint_fstream()
+: <a class="el" href="scr__interpose_8c.html#a80a415e83756aa3c129f4d2b988d5700">scr_interpose.c</a>
+</li>
+<li>scri_complete_checkpoint()
+: <a class="el" href="scr__interpose_8c.html#a478a20d5d061bf161b47c8da844d031c">scr_interpose.c</a>
+</li>
+<li>scri_define_checkpoint_dirname_regex()
+: <a class="el" href="scr__interpose_8c.html#a241c85caec4c70943a5c86c37351a398">scr_interpose.c</a>
+</li>
+<li>scri_define_checkpoint_filename_regex()
+: <a class="el" href="scr__interpose_8c.html#acfada0bbf4cd7d020b0618c959af5007">scr_interpose.c</a>
+</li>
+<li>scri_define_checkpoint_filename_regex_by_rank()
+: <a class="el" href="scr__interpose_8c.html#a11ea327ee201ca484a21930e9552a8fb">scr_interpose.c</a>
+</li>
+<li>scri_define_checkpoint_files()
+: <a class="el" href="scr__interpose_8c.html#a36e6ff090481b7c9b35d6bc941105741">scr_interpose.c</a>
+</li>
+<li>scri_drop_checkpoint_fd()
+: <a class="el" href="scr__interpose_8c.html#a0ddcc0a94e31343d67e315122caa0768">scr_interpose.c</a>
+</li>
+<li>scri_drop_checkpoint_fstream()
+: <a class="el" href="scr__interpose_8c.html#a0d0cb1e7f28ddc0227218feae9f7ba2f">scr_interpose.c</a>
+</li>
+<li>scri_file_matches()
+: <a class="el" href="scr__interpose_8c.html#a10340dd74e89b9214128dc8bbc4f99c4">scr_interpose.c</a>
+</li>
+<li>scri_index_by_fd()
+: <a class="el" href="scr__interpose_8c.html#a67f364dac479044821d0e226311dd49c">scr_interpose.c</a>
+</li>
+<li>scri_index_by_filename()
+: <a class="el" href="scr__interpose_8c.html#a541b0a62de28f9a11fc8f68d28d3f723">scr_interpose.c</a>
+</li>
+<li>scri_index_by_fstream()
+: <a class="el" href="scr__interpose_8c.html#a51bffb2891ed1e3bd9bdbe3a31a5d076">scr_interpose.c</a>
+</li>
+<li>scri_is_checkpoint_dirname()
+: <a class="el" href="scr__interpose_8c.html#abed27275d612401597629a94164d5d09">scr_interpose.c</a>
+</li>
+<li>scri_is_checkpoint_fd()
+: <a class="el" href="scr__interpose_8c.html#ad35fa250c8566e3463b518a6bff23da1">scr_interpose.c</a>
+</li>
+<li>scri_is_checkpoint_filename()
+: <a class="el" href="scr__interpose_8c.html#a3b1f5e31696f3b780622ed6e8abfdb88">scr_interpose.c</a>
+</li>
+<li>scri_is_checkpoint_fstream()
+: <a class="el" href="scr__interpose_8c.html#a40edff1045b9e2e638a498f039643c43">scr_interpose.c</a>
+</li>
+<li>scri_start_checkpoint()
+: <a class="el" href="scr__interpose_8c.html#a3ca735fbe8e4e2f11b0b9c9a6cbc8fdf">scr_interpose.c</a>
 </li>
 <li>set_transfer_file_state()
 : <a class="el" href="scr__transfer_8c.html#a54036eadb13e84bb6c7bbd7f7a557800">scr_transfer.c</a>

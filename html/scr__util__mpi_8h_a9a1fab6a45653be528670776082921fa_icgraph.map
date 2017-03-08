@@ -1,0 +1,14 @@
+<map id="scr_set_partners" name="scr_set_partners">
+<area shape="rect" id="node2" href="$scr__reddesc_8c.html#a06e97de5f11ff867ad141bdd7a30313b" title="scr_reddesc_create\l_partner" alt="" coords="187,9,325,48"/>
+<area shape="rect" id="node13" href="$scr__reddesc_8c.html#a3b3e24d2d6a52da64ebee4beed6ada7d" title="scr_reddesc_create_xor" alt="" coords="174,72,338,97"/>
+<area shape="rect" id="node3" href="$scr__reddesc_8h.html#abafe357e682b88e7da73703261bd7b78" title="scr_reddesc_create\l_from_hash" alt="" coords="389,5,527,44"/>
+<area shape="rect" id="node9" href="$scr__reddesc_8c.html#ada162fc5af0f03ac7eabf3b4bd62c938" title="scr_reddesc_restore\l_from_hash" alt="" coords="386,68,529,107"/>
+<area shape="rect" id="node4" href="$scr__reddesc_8h.html#a3ed69bdfa8ddf561e5c43988e0ca23b3" title="scr_reddescs_create" alt="" coords="772,15,917,40"/>
+<area shape="rect" id="node5" href="$scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="1151,43,1226,68"/>
+<area shape="rect" id="node6" href="$scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="1274,17,1352,43"/>
+<area shape="rect" id="node8" href="$scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="1277,67,1348,92"/>
+<area shape="rect" id="node7" href="$scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="1400,17,1470,43"/>
+<area shape="rect" id="node10" href="$scr__reddesc_8h.html#a507c5a77523c671a148c83190f807315" title="scr_reddesc_create\l_from_filemap" alt="" coords="577,65,716,104"/>
+<area shape="rect" id="node11" href="$scr__cache__rebuild_8c.html#a49522f9f86df80a67860921aba30696e" title="scr_distribute_reddescs" alt="" coords="764,69,926,95"/>
+<area shape="rect" id="node12" href="$scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="974,68,1103,93"/>
+</map>

@@ -1,4 +1,8 @@
 <map id="scr_rank_str" name="scr_rank_str">
-<area shape="rect" id="node2" href="$scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="148,5,301,44"/>
-<area shape="rect" id="node3" href="$scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="349,12,509,37"/>
+<area shape="rect" id="node2" href="$scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="557,31,632,56"/>
+<area shape="rect" id="node6" href="$scr__groupdesc_8c.html#a3777150cac5b06f6a02aab2b9108e1a1" title="scr_groupdesc_create\l_by_str" alt="" coords="148,53,301,92"/>
+<area shape="rect" id="node3" href="$scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="680,5,758,31"/>
+<area shape="rect" id="node5" href="$scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="683,55,754,80"/>
+<area shape="rect" id="node4" href="$scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="806,5,876,31"/>
+<area shape="rect" id="node7" href="$scr__groupdesc_8h.html#a9c2f89169626e2e9fcca01e629c476ca" title="scr_groupdescs_create" alt="" coords="349,56,509,81"/>
 </map>

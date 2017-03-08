@@ -1,3 +1,4 @@
 <map id="scr_path_strdup" name="scr_path_strdup">
-<area shape="rect" id="node2" href="$scr__path_8c.html#a53dcddedf48597afebf3b6123c323f11" title="scr_path_strlen" alt="" coords="170,5,283,31"/>
+<area shape="rect" id="node2" href="$scr__path_8c.html#a53dcddedf48597afebf3b6123c323f11" title="scr_path_strlen" alt="" coords="197,5,310,31"/>
+<area shape="rect" id="node3" href="$scr__path_8c.html#af3eb4d09806351c6b2d3a6310842db83" title="scr_path_strcpy_internal" alt="" coords="170,55,337,80"/>
 </map>

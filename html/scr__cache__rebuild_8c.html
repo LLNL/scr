@@ -142,10 +142,20 @@ Macros</h2></td></tr>
 Functions</h2></td></tr>
 <tr class="memitem:a6b6aca6cf8cd03b30e48836474b07c48"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__cache__rebuild_8c.html#a6b6aca6cf8cd03b30e48836474b07c48">scr_swap_file_names</a> (const char *file_send, int rank_send, char *file_recv, size_t size_recv, int rank_recv, const char *dir_recv, MPI_Comm comm)</td></tr>
 <tr class="separator:a6b6aca6cf8cd03b30e48836474b07c48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5b11561317b0e19b469618475565f8af"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__cache__rebuild_8c.html#a5b11561317b0e19b469618475565f8af">scr_swap_files_copy</a> (int have_outgoing, const char *file_send, <a class="el" href="scr__meta_8h.html#a1caef3e8ddc020309db3f7a53cb15ee4">scr_meta</a> *meta_send, int rank_send, uLong *crc32_send, int have_incoming, const char *file_recv, <a class="el" href="scr__meta_8h.html#a1caef3e8ddc020309db3f7a53cb15ee4">scr_meta</a> *meta_recv, int rank_recv, uLong *crc32_recv, MPI_Comm comm)</td></tr>
+<tr class="separator:a5b11561317b0e19b469618475565f8af"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae3a1fac8dab364fe7bbbf9a5e1d3ba99"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__cache__rebuild_8c.html#ae3a1fac8dab364fe7bbbf9a5e1d3ba99">scr_swap_files_move</a> (int have_outgoing, const char *file_send, <a class="el" href="scr__meta_8h.html#a1caef3e8ddc020309db3f7a53cb15ee4">scr_meta</a> *meta_send, int rank_send, uLong *crc32_send, int have_incoming, const char *file_recv, <a class="el" href="scr__meta_8h.html#a1caef3e8ddc020309db3f7a53cb15ee4">scr_meta</a> *meta_recv, int rank_recv, uLong *crc32_recv, MPI_Comm comm)</td></tr>
+<tr class="separator:ae3a1fac8dab364fe7bbbf9a5e1d3ba99"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae197f807bb7b3771a4275e5df111b44b"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__cache__rebuild_8c.html#ae197f807bb7b3771a4275e5df111b44b">scr_swap_files</a> (int swap_type, const char *file_send, <a class="el" href="scr__meta_8h.html#a1caef3e8ddc020309db3f7a53cb15ee4">scr_meta</a> *meta_send, int rank_send, const char *file_recv, <a class="el" href="scr__meta_8h.html#a1caef3e8ddc020309db3f7a53cb15ee4">scr_meta</a> *meta_recv, int rank_recv, MPI_Comm comm)</td></tr>
 <tr class="separator:ae197f807bb7b3771a4275e5df111b44b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac512e74afe061169739beaa2d7f08f47"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__cache__rebuild_8c.html#ac512e74afe061169739beaa2d7f08f47">scr_scatter_filemaps</a> (<a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *my_map)</td></tr>
 <tr class="separator:ac512e74afe061169739beaa2d7f08f47"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9f7b5a42ba0d582f047e9440e9626a2b"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__cache__rebuild_8c.html#a9f7b5a42ba0d582f047e9440e9626a2b">scr_distribute_datasets</a> (<a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *map, int id)</td></tr>
+<tr class="separator:a9f7b5a42ba0d582f047e9440e9626a2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a49522f9f86df80a67860921aba30696e"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__cache__rebuild_8c.html#a49522f9f86df80a67860921aba30696e">scr_distribute_reddescs</a> (<a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *map, int id, <a class="el" href="structscr__reddesc.html">scr_reddesc</a> *red)</td></tr>
+<tr class="separator:a49522f9f86df80a67860921aba30696e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afe7888498e6ad652c09fcf7fea2cc1d2"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__cache__rebuild_8c.html#afe7888498e6ad652c09fcf7fea2cc1d2">scr_distribute_files</a> (<a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *map, const <a class="el" href="structscr__reddesc.html">scr_reddesc</a> *red, int id)</td></tr>
+<tr class="separator:afe7888498e6ad652c09fcf7fea2cc1d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a57607eb8ed7eae0be81845423c46a6c7"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__cache__rebuild_8c.html#a57607eb8ed7eae0be81845423c46a6c7">scr_cache_rebuild</a> (<a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *map)</td></tr>
 <tr class="separator:a57607eb8ed7eae0be81845423c46a6c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a50a03a9f781a26b9978b3ae354313942"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="scr__cache__rebuild_8c.html#a50a03a9f781a26b9978b3ae354313942">scr_flush_file_rebuild</a> (const <a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *map)</td></tr>
@@ -207,55 +217,396 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="scr__cache__rebuild_8c_a57607eb8ed7eae0be81845423c46a6c7_cgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a57607eb8ed7eae0be81845423c46a6c7_cgraph" alt=""/></div>
 <map name="scr__cache__rebuild_8c_a57607eb8ed7eae0be81845423c46a6c7_cgraph" id="scr__cache__rebuild_8c_a57607eb8ed7eae0be81845423c46a6c7_cgraph">
-<area shape="rect" id="node2" href="scr__log_8c.html#ac07f948645eff40e5cf8e505b4526442" title="scr_log_seconds" alt="" coords="208,548,329,573"/>
-<area shape="rect" id="node3" href="scr__cache_8c.html#ad878586242fd6abee4bd87695b15a19b" title="scr_cache_clean" alt="" coords="208,839,329,864"/>
-<area shape="rect" id="node14" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="670,841,739,867"/>
-<area shape="rect" id="node48" href="scr__filemap_8c.html#afca51befcb7f651a08030503c3eea1ba" title="scr_filemap_list_datasets" alt="" coords="183,888,354,913"/>
-<area shape="rect" id="node49" href="scr__cache_8c.html#a9b78ed322767c74c576f52f817e113e5" title="scr_next_dataset" alt="" coords="207,937,330,963"/>
-<area shape="rect" id="node50" href="scr__log_8c.html#a72914344a7b4a498a62e68e9eca27a8a" title="scr_log_event" alt="" coords="216,987,321,1012"/>
-<area shape="rect" id="node4" href="scr__filemap_8c.html#a89fa81e5f9c67c2256cce4784a04561c" title="scr_filemap_new" alt="" coords="644,96,765,121"/>
-<area shape="rect" id="node5" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="1095,245,1202,271"/>
-<area shape="rect" id="node7" href="scr__filemap_8c.html#a46929d57580e53dea8c8cc30c7947f28" title="scr_filemap_first_dataset" alt="" coords="406,1116,575,1141"/>
-<area shape="rect" id="node8" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="1076,987,1220,1012"/>
-<area shape="rect" id="node9" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db" title="scr_hash_elem_key_int" alt="" coords="410,1165,571,1191"/>
-<area shape="rect" id="node10" href="scr__filemap_8c.html#a9240b7064679b95aa299ec5b584e0ff3" title="scr_filemap_first_rank\l_by_dataset" alt="" coords="415,1215,566,1253"/>
-<area shape="rect" id="node11" href="scr__filemap_8c.html#a140d9c51b2303de9cc2094e86472eb10" title="scr_filemap_first_file" alt="" coords="419,1277,562,1303"/>
-<area shape="rect" id="node12" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="1078,685,1218,711"/>
-<area shape="rect" id="node13" href="scr__cache_8c.html#aaacb9becaf9fd89abf7611988abd3bf8" title="scr_bool_have_file" alt="" coords="424,548,557,573"/>
-<area shape="rect" id="node16" href="scr__meta_8c.html#a5d0f5573d68b9fd860469fd2437d9ae7" title="scr_meta_new" alt="" coords="650,247,758,272"/>
-<area shape="rect" id="node17" href="scr__filemap_8c.html#a62326773d11fb78c0f2db8a07bc1ea26" title="scr_filemap_get_meta" alt="" coords="628,901,781,927"/>
-<area shape="rect" id="node18" href="scr__meta_8c.html#ad946d93641bc7658dd450018bde928f5" title="scr_meta_delete" alt="" coords="644,496,764,521"/>
-<area shape="rect" id="node19" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="866,440,985,465"/>
-<area shape="rect" id="node27" href="scr__filemap_8c.html#aa50c9846fc7767928a0431bea9667b0f" title="scr_filemap_get_desc" alt="" coords="415,1327,566,1352"/>
-<area shape="rect" id="node28" href="scr__filemap_8c.html#a2e87ffd39eda80682d0479795cd6b6a0" title="scr_filemap_set_desc" alt="" coords="415,1376,566,1401"/>
-<area shape="rect" id="node29" href="scr__filemap_8c.html#a27f9a0e0652b95c2ac2a796ad218957a" title="scr_filemap_get_dataset" alt="" coords="407,1425,574,1451"/>
-<area shape="rect" id="node30" href="scr__filemap_8c.html#a6163ec90420b87f754349bb261506313" title="scr_filemap_set_dataset" alt="" coords="407,1475,573,1500"/>
-<area shape="rect" id="node31" href="scr__filemap_8c.html#a3f9546cc4d5af07d447dcc574f8baa38" title="scr_filemap_get_expected\l_files" alt="" coords="402,1524,579,1563"/>
-<area shape="rect" id="node32" href="scr__filemap_8c.html#ab22108f89cba5be40459acc13091a716" title="scr_filemap_num_files" alt="" coords="413,1587,567,1612"/>
-<area shape="rect" id="node33" href="scr__filemap_8c.html#a065dc389cc19bd24caa4a7f4f1d767d8" title="scr_filemap_set_expected\l_files" alt="" coords="402,699,579,737"/>
-<area shape="rect" id="node34" href="scr__io_8c.html#a8cf06f71c585cab86838bf7d73a75f5f" title="scr_file_unlink" alt="" coords="437,649,543,675"/>
-<area shape="rect" id="node35" href="scr__filemap_8c.html#a7a5e9a9c0c2720594159c967b5b5d9e2" title="scr_filemap_add_file" alt="" coords="419,813,562,839"/>
-<area shape="rect" id="node36" href="scr__filemap_8c.html#a20bea7986a4c790bdb7d67a066451e7f" title="scr_filemap_set_meta" alt="" coords="415,863,566,888"/>
-<area shape="rect" id="node37" href="scr__filemap_8c.html#a47960eefe1e327c8710bca95c0a3c780" title="scr_filemap_clear" alt="" coords="641,1065,767,1091"/>
-<area shape="rect" id="node41" href="scr__filemap_8c.html#affa3110a9f3427fd3c01fa64792023ab" title="scr_filemap_merge" alt="" coords="637,345,772,371"/>
-<area shape="rect" id="node44" href="scr__filemap_8c.html#a4b41fba51585611a375556c0aff06e75" title="scr_filemap_write" alt="" coords="428,209,553,235"/>
-<area shape="rect" id="node47" href="scr__filemap_8c.html#ae8a6b6d165e33b79770cfd948b98a227" title="scr_filemap_delete" alt="" coords="638,447,771,472"/>
-<area shape="rect" id="node6" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="894,183,957,208"/>
-<area shape="rect" id="node15" href="scr__io_8c.html#ad780fd6d5cd75b94f79faf080a56afd6" title="scr_file_is_readable" alt="" coords="634,693,774,719"/>
-<area shape="rect" id="node20" href="scr__meta_8c.html#ac066ba8e604c414698847173fb618038" title="scr_meta_is_complete" alt="" coords="627,743,782,768"/>
-<area shape="rect" id="node22" href="scr__meta_8c.html#a1adeab1159bd385b642edfd170cd2400" title="scr_meta_get_rank" alt="" coords="637,792,772,817"/>
-<area shape="rect" id="node23" href="scr__meta_8c.html#a644ab238da166bd31985c8335a1c2384" title="scr_meta_get_ranks" alt="" coords="633,644,775,669"/>
-<area shape="rect" id="node24" href="scr__io_8c.html#ad1d014c1d74d4b41689a0b025377b6cb" title="scr_file_size" alt="" coords="657,595,752,620"/>
-<area shape="rect" id="node25" href="scr__meta_8c.html#a9055c3fdc4e2a096f2ad5b5916c40a42" title="scr_meta_get_filesize" alt="" coords="629,545,779,571"/>
-<area shape="rect" id="node21" href="scr__hash__util_8c.html#a81bf08b86e7326e4c34e3214bc167944" title="scr_hash_util_get_int" alt="" coords="851,743,999,768"/>
-<area shape="rect" id="node26" href="scr__hash__util_8c.html#afe6a4bb84c0d13a580a0c2c264f3474d" title="scr_hash_util_get_bytecount" alt="" coords="830,545,1021,571"/>
-<area shape="rect" id="node38" href="scr__hash_8c.html#add851f8aa3c61277a117370f15fe87f1" title="scr_hash_unset_all" alt="" coords="857,1065,993,1091"/>
-<area shape="rect" id="node39" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="1078,1036,1219,1061"/>
-<area shape="rect" id="node40" href="scr__hash_8c.html#a963886c1fb9bfa935c22f85f5bf4799c" title="scr_hash_elem_extract\l_by_addr" alt="" coords="1069,1085,1228,1124"/>
-<area shape="rect" id="node42" href="scr__hash_8c.html#a78ae32fb1287349ef9e15f65963fbbe8" title="scr_hash_merge" alt="" coords="865,377,985,403"/>
-<area shape="rect" id="node43" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="1098,377,1199,403"/>
-<area shape="rect" id="node45" href="scr__hash_8c.html#ac16e675f9fb0397c78a803a189539408" title="scr_hash_write_path" alt="" coords="632,296,776,321"/>
-<area shape="rect" id="node46" href="scr__path_8c.html#a1cecc0735dc7cbefbd01e0e9356c2cc4" title="scr_path_strcpy" alt="" coords="647,197,762,223"/>
+<area shape="rect" id="node2" href="scr__log_8c.html#ac07f948645eff40e5cf8e505b4526442" title="scr_log_seconds" alt="" coords="197,69,318,95"/>
+<area shape="rect" id="node3" href="scr__cache_8c.html#ad878586242fd6abee4bd87695b15a19b" title="scr_cache_clean" alt="" coords="400,1535,521,1560"/>
+<area shape="rect" id="node15" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="869,2461,938,2487"/>
+<area shape="rect" id="node20" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1250,2745,1319,2771"/>
+<area shape="rect" id="node36" href="scr__filemap_8c.html#afca51befcb7f651a08030503c3eea1ba" title="scr_filemap_list_datasets" alt="" coords="593,2845,764,2871"/>
+<area shape="rect" id="node38" href="scr__cache_8c.html#a9b78ed322767c74c576f52f817e113e5" title="scr_next_dataset" alt="" coords="196,3349,319,3375"/>
+<area shape="rect" id="node39" href="scr__log_8c.html#a72914344a7b4a498a62e68e9eca27a8a" title="scr_log_event" alt="" coords="409,2595,513,2620"/>
+<area shape="rect" id="node41" href="scr__cache__rebuild_8c.html#a9f7b5a42ba0d582f047e9440e9626a2b" title="scr_distribute_datasets" alt="" coords="382,681,540,707"/>
+<area shape="rect" id="node43" href="scr__cache__rebuild_8c.html#a49522f9f86df80a67860921aba30696e" title="scr_distribute_reddescs" alt="" coords="380,525,542,551"/>
+<area shape="rect" id="node44" href="scr__cache_8c.html#a906a8eefe4abdef25be405db6de880eb" title="scr_cache_dir_create" alt="" coords="183,3251,332,3276"/>
+<area shape="rect" id="node45" href="scr__cache__rebuild_8c.html#afe7888498e6ad652c09fcf7fea2cc1d2" title="scr_distribute_files" alt="" coords="191,2127,323,2152"/>
+<area shape="rect" id="node46" href="scr__reddesc__recover_8c.html#a4153e6d06861201523b1d4ddb3265783" title="scr_reddesc_recover" alt="" coords="388,2644,534,2669"/>
+<area shape="rect" id="node47" href="scr__flush__file__mpi_8c.html#aa59205530719b3a3c13f2a55b8977da0" title="scr_flush_file_location_set" alt="" coords="815,245,993,271"/>
+<area shape="rect" id="node48" href="scr__flush__file__mpi_8c.html#a579d4a42e8e876b54af22aeeac7d763e" title="scr_flush_file_location\l_unset" alt="" coords="827,295,980,333"/>
+<area shape="rect" id="node49" href="scr__reddesc_8c.html#aa5a0fc9fd6c0854cde2cc169a94b1dc9" title="scr_reddesc_free" alt="" coords="195,3300,319,3325"/>
+<area shape="rect" id="node50" href="scr__cache_8c.html#aad73a7c3725399357251f3fc6dc0bf4a" title="scr_cache_delete" alt="" coords="398,2693,524,2719"/>
+<area shape="rect" id="node4" href="scr__filemap_8c.html#a89fa81e5f9c67c2256cce4784a04561c" title="scr_filemap_new" alt="" coords="843,1144,964,1169"/>
+<area shape="rect" id="node5" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="1068,637,1175,663"/>
+<area shape="rect" id="node7" href="scr__filemap_8c.html#a46929d57580e53dea8c8cc30c7947f28" title="scr_filemap_first_dataset" alt="" coords="594,1915,763,1940"/>
+<area shape="rect" id="node9" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="1049,2872,1193,2897"/>
+<area shape="rect" id="node10" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db" title="scr_hash_elem_key_int" alt="" coords="1041,2947,1202,2972"/>
+<area shape="rect" id="node11" href="scr__filemap_8c.html#a9240b7064679b95aa299ec5b584e0ff3" title="scr_filemap_first_rank\l_by_dataset" alt="" coords="602,2329,754,2368"/>
+<area shape="rect" id="node12" href="scr__filemap_8c.html#a140d9c51b2303de9cc2094e86472eb10" title="scr_filemap_first_file" alt="" coords="607,2441,750,2467"/>
+<area shape="rect" id="node13" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="608,2392,748,2417"/>
+<area shape="rect" id="node14" href="scr__cache_8c.html#aaacb9becaf9fd89abf7611988abd3bf8" title="scr_bool_have_file" alt="" coords="612,1245,745,1271"/>
+<area shape="rect" id="node16" href="scr__meta_8c.html#a5d0f5573d68b9fd860469fd2437d9ae7" title="scr_meta_new" alt="" coords="850,1336,958,1361"/>
+<area shape="rect" id="node17" href="scr__filemap_8c.html#a62326773d11fb78c0f2db8a07bc1ea26" title="scr_filemap_get_meta" alt="" coords="827,1560,980,1585"/>
+<area shape="rect" id="node18" href="scr__meta_8c.html#ad946d93641bc7658dd450018bde928f5" title="scr_meta_delete" alt="" coords="844,1095,964,1120"/>
+<area shape="rect" id="node19" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="1062,301,1181,327"/>
+<area shape="rect" id="node21" href="scr__filemap_8c.html#aa50c9846fc7767928a0431bea9667b0f" title="scr_filemap_get_desc" alt="" coords="603,791,754,816"/>
+<area shape="rect" id="node22" href="scr__filemap_8c.html#a2e87ffd39eda80682d0479795cd6b6a0" title="scr_filemap_set_desc" alt="" coords="603,525,753,551"/>
+<area shape="rect" id="node23" href="scr__filemap_8c.html#a27f9a0e0652b95c2ac2a796ad218957a" title="scr_filemap_get_dataset" alt="" coords="595,840,762,865"/>
+<area shape="rect" id="node24" href="scr__filemap_8c.html#a6163ec90420b87f754349bb261506313" title="scr_filemap_set_dataset" alt="" coords="595,992,761,1017"/>
+<area shape="rect" id="node25" href="scr__filemap_8c.html#a3f9546cc4d5af07d447dcc574f8baa38" title="scr_filemap_get_expected\l_files" alt="" coords="590,1397,767,1436"/>
+<area shape="rect" id="node26" href="scr__filemap_8c.html#ab22108f89cba5be40459acc13091a716" title="scr_filemap_num_files" alt="" coords="601,1964,755,1989"/>
+<area shape="rect" id="node28" href="scr__filemap_8c.html#a065dc389cc19bd24caa4a7f4f1d767d8" title="scr_filemap_set_expected\l_files" alt="" coords="590,2013,766,2052"/>
+<area shape="rect" id="node29" href="scr__io_8c.html#a8cf06f71c585cab86838bf7d73a75f5f" title="scr_file_unlink" alt="" coords="625,2543,731,2568"/>
+<area shape="rect" id="node30" href="scr__filemap_8c.html#a7a5e9a9c0c2720594159c967b5b5d9e2" title="scr_filemap_add_file" alt="" coords="607,2076,750,2101"/>
+<area shape="rect" id="node31" href="scr__filemap_8c.html#a20bea7986a4c790bdb7d67a066451e7f" title="scr_filemap_set_meta" alt="" coords="602,1712,754,1737"/>
+<area shape="rect" id="node32" href="scr__filemap_8c.html#a47960eefe1e327c8710bca95c0a3c780" title="scr_filemap_clear" alt="" coords="615,1460,741,1485"/>
+<area shape="rect" id="node33" href="scr__filemap_8c.html#affa3110a9f3427fd3c01fa64792023ab" title="scr_filemap_merge" alt="" coords="611,1509,746,1535"/>
+<area shape="rect" id="node34" href="scr__filemap_8c.html#a4b41fba51585611a375556c0aff06e75" title="scr_filemap_write" alt="" coords="616,1611,741,1636"/>
+<area shape="rect" id="node35" href="scr__filemap_8c.html#ae8a6b6d165e33b79770cfd948b98a227" title="scr_filemap_delete" alt="" coords="837,196,970,221"/>
+<area shape="rect" id="node6" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1090,1428,1153,1453"/>
+<area shape="rect" id="node8" href="scr__filemap_8c.html#abd859c1763f2251a4b9f1ea228fc8587" title="scr_filemap_get_dh" alt="" coords="835,2845,973,2871"/>
+<area shape="rect" id="node27" href="scr__hash_8c.html#a7f739bf35cf802ca603f6625bd186836" title="scr_hash_size" alt="" coords="1068,993,1175,1019"/>
+<area shape="rect" id="node37" href="scr__hash_8c.html#a38ca5a31e1d7cc0666d15ceaf9a8b651" title="scr_hash_list_int" alt="" coords="843,2796,964,2821"/>
+<area shape="rect" id="node40" href="scr__log_8c.html#afc44a7d3c45a316852c25356907dcd5b" title="scr_mysql_log_event" alt="" coords="605,2796,752,2821"/>
+<area shape="rect" id="node42" href="scr__filemap_8c.html#aa748bf2f41ed9df1ad5f7cfe66659eb3" title="scr_filemap_list_ranks\l_by_dataset" alt="" coords="602,728,755,767"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_a57607eb8ed7eae0be81845423c46a6c7_icgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a57607eb8ed7eae0be81845423c46a6c7_icgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_a57607eb8ed7eae0be81845423c46a6c7_icgraph" id="scr__cache__rebuild_8c_a57607eb8ed7eae0be81845423c46a6c7_icgraph">
+<area shape="rect" id="node2" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="183,31,258,56"/>
+<area shape="rect" id="node3" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="306,5,383,31"/>
+<area shape="rect" id="node5" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="309,55,380,80"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="431,5,501,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a9f7b5a42ba0d582f047e9440e9626a2b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9f7b5a42ba0d582f047e9440e9626a2b">&sect;&nbsp;</a></span>scr_distribute_datasets()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_distribute_datasets </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *&#160;</td>
+          <td class="paramname"><em>map</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__cache__rebuild_8c_source.html#l00661">661</a> of file <a class="el" href="scr__cache__rebuild_8c_source.html">scr_cache_rebuild.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_a9f7b5a42ba0d582f047e9440e9626a2b_cgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a9f7b5a42ba0d582f047e9440e9626a2b_cgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_a9f7b5a42ba0d582f047e9440e9626a2b_cgraph" id="scr__cache__rebuild_8c_a9f7b5a42ba0d582f047e9440e9626a2b_cgraph">
+<area shape="rect" id="node2" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="1083,1221,1190,1247"/>
+<area shape="rect" id="node3" href="scr__filemap_8c.html#aa748bf2f41ed9df1ad5f7cfe66659eb3" title="scr_filemap_list_ranks\l_by_dataset" alt="" coords="433,119,586,157"/>
+<area shape="rect" id="node10" href="scr__hash_8c.html#a7f739bf35cf802ca603f6625bd186836" title="scr_hash_size" alt="" coords="866,5,973,31"/>
+<area shape="rect" id="node15" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1310,1575,1373,1600"/>
+<area shape="rect" id="node16" href="scr__filemap_8c.html#a27f9a0e0652b95c2ac2a796ad218957a" title="scr_filemap_get_dataset" alt="" coords="212,253,378,279"/>
+<area shape="rect" id="node19" href="scr__hash_8c.html#a78ae32fb1287349ef9e15f65963fbbe8" title="scr_hash_merge" alt="" coords="651,593,772,619"/>
+<area shape="rect" id="node25" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="1077,743,1196,768"/>
+<area shape="rect" id="node27" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1468,768,1537,793"/>
+<area shape="rect" id="node29" href="scr__util__mpi_8c.html#a4769785d1de0ddb56a24b99530a514f0" title="scr_alltrue" alt="" coords="254,689,336,715"/>
+<area shape="rect" id="node30" href="scr__hash_8c.html#add851f8aa3c61277a117370f15fe87f1" title="scr_hash_unset_all" alt="" coords="643,507,779,532"/>
+<area shape="rect" id="node32" href="scr__hash__mpi_8c.html#ad7f7e46b92e37ef431a3fbb3cb4c3b56" title="scr_hash_bcast" alt="" coords="452,995,567,1020"/>
+<area shape="rect" id="node40" href="scr__filemap_8c.html#a6163ec90420b87f754349bb261506313" title="scr_filemap_set_dataset" alt="" coords="426,716,592,741"/>
+<area shape="rect" id="node44" href="scr__filemap_8c.html#a4b41fba51585611a375556c0aff06e75" title="scr_filemap_write" alt="" coords="233,1448,358,1473"/>
+<area shape="rect" id="node4" href="scr__filemap_8c.html#a41547949bea98acd70e2284c2c8f1f02" title="scr_filemap_get_d" alt="" coords="646,153,776,179"/>
+<area shape="rect" id="node6" href="scr__filemap_8c.html#a5aae649e43901548f1dadb1987579dd4" title="scr_filemap_get_rh" alt="" coords="644,104,779,129"/>
+<area shape="rect" id="node9" href="scr__hash_8c.html#a38ca5a31e1d7cc0666d15ceaf9a8b651" title="scr_hash_list_int" alt="" coords="651,55,772,80"/>
+<area shape="rect" id="node5" href="scr__hash_8c.html#a75cecd07c198cf8918de107efe08faf1" title="scr_hash_get_kv_int" alt="" coords="848,153,991,179"/>
+<area shape="rect" id="node7" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="869,228,970,253"/>
+<area shape="rect" id="node8" href="scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="1273,485,1411,511"/>
+<area shape="rect" id="node11" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="849,495,990,520"/>
+<area shape="rect" id="node12" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="847,544,992,569"/>
+<area shape="rect" id="node13" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db" title="scr_hash_elem_key_int" alt="" coords="839,55,1000,80"/>
+<area shape="rect" id="node14" href="scr__hash_8c.html#a262bd55d0ca72202cd93da1ee1d598ab" title="scr_hash_cmp_fn_int_asc" alt="" coords="831,104,1008,129"/>
+<area shape="rect" id="node17" href="scr__filemap_8c.html#ad697ef6e1db56964db61847281e14d7b" title="scr_filemap_get_rd" alt="" coords="442,203,577,228"/>
+<area shape="rect" id="node18" href="scr__filemap_8c.html#a7aa6fb77a8d6a03fa49a9445c0704df6" title="scr_filemap_get_r" alt="" coords="648,203,775,228"/>
+<area shape="rect" id="node20" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="850,643,990,668"/>
+<area shape="rect" id="node21" href="scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="869,741,970,767"/>
+<area shape="rect" id="node28" href="scr__hash_8c.html#a2e9358957d5f0e8963c5097557e0c04d" title="scr_hash_elem_hash" alt="" coords="846,593,994,619"/>
+<area shape="rect" id="node22" href="scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="1057,641,1216,667"/>
+<area shape="rect" id="node23" href="scr__hash_8c.html#a8a814803dc735def5f84d78135eeed7b" title="scr_hash_elem_new" alt="" coords="1065,817,1208,843"/>
+<area shape="rect" id="node24" href="scr__hash_8c.html#a05ca10e6665c616a860c1780a46ede68" title="scr_hash_elem_init" alt="" coords="1068,1172,1205,1197"/>
+<area shape="rect" id="node26" href="scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="1264,717,1420,743"/>
+<area shape="rect" id="node31" href="scr__hash_8c.html#a963886c1fb9bfa935c22f85f5bf4799c" title="scr_hash_elem_extract\l_by_addr" alt="" coords="840,380,999,419"/>
+<area shape="rect" id="node33" href="scr__hash_8c.html#ad357333633b1f7a7c4ae3e2acf61cdb7" title="scr_hash_pack_size" alt="" coords="640,995,782,1020"/>
+<area shape="rect" id="node35" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="673,1499,750,1524"/>
+<area shape="rect" id="node36" href="scr__hash_8c.html#a1aad093ce7d82caa3686a6e984580c07" title="scr_hash_pack" alt="" coords="656,1044,767,1069"/>
+<area shape="rect" id="node38" href="scr__hash_8c.html#af8b42baf95c208f505ebf66b55643b0a" title="scr_hash_unpack" alt="" coords="648,1247,774,1272"/>
+<area shape="rect" id="node34" href="scr__hash_8c.html#a698725123e4cd3476e7a247d5ce0fe1c" title="scr_hash_elem_pack_size" alt="" coords="830,995,1009,1020"/>
+<area shape="rect" id="node37" href="scr__hash_8c.html#ac5235f81bef50b0b8dc5e750b9020a72" title="scr_hash_elem_pack" alt="" coords="846,1044,993,1069"/>
+<area shape="rect" id="node39" href="scr__hash_8c.html#a1db676976bc663903cb6570222d04f16" title="scr_hash_elem_unpack" alt="" coords="839,1247,1001,1272"/>
+<area shape="rect" id="node41" href="scr__filemap_8c.html#aff8472e5e6e46720460e3fd75e5112f8" title="scr_filemap_set_rd" alt="" coords="644,817,778,843"/>
+<area shape="rect" id="node43" href="scr__hash_8c.html#a5f36326bf5682a4ad267f693436c5e62" title="scr_hash_unset" alt="" coords="862,692,977,717"/>
+<area shape="rect" id="node42" href="scr__hash_8c.html#aa31efec60b6897b0b4c4835da9471a0f" title="scr_hash_set_kv_int" alt="" coords="848,843,991,868"/>
+<area shape="rect" id="node45" href="scr__hash_8c.html#ac16e675f9fb0397c78a803a189539408" title="scr_hash_write_path" alt="" coords="437,1399,581,1424"/>
+<area shape="rect" id="node50" href="scr__path_8c.html#a1cecc0735dc7cbefbd01e0e9356c2cc4" title="scr_path_strcpy" alt="" coords="452,1499,567,1524"/>
+<area shape="rect" id="node46" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42" title="scr_path_is_null" alt="" coords="652,1651,770,1676"/>
+<area shape="rect" id="node47" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="653,1449,770,1475"/>
+<area shape="rect" id="node48" href="scr__hash_8c.html#a199735d48cc57b023994af50a3f402e8" title="scr_hash_write" alt="" coords="1081,1549,1192,1575"/>
+<area shape="rect" id="node49" href="scr__util_8c.html#a3080444bf37203aeac828b42b6175e5d" title="scr_unpack_uint32_t" alt="" coords="1064,1600,1209,1625"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_a9f7b5a42ba0d582f047e9440e9626a2b_icgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a9f7b5a42ba0d582f047e9440e9626a2b_icgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_a9f7b5a42ba0d582f047e9440e9626a2b_icgraph" id="scr__cache__rebuild_8c_a9f7b5a42ba0d582f047e9440e9626a2b_icgraph">
+<area shape="rect" id="node2" href="scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="212,31,341,56"/>
+<area shape="rect" id="node3" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="389,31,464,56"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="512,5,590,31"/>
+<area shape="rect" id="node6" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="515,55,586,80"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="638,5,708,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="afe7888498e6ad652c09fcf7fea2cc1d2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afe7888498e6ad652c09fcf7fea2cc1d2">&sect;&nbsp;</a></span>scr_distribute_files()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_distribute_files </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *&#160;</td>
+          <td class="paramname"><em>map</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structscr__reddesc.html">scr_reddesc</a> *&#160;</td>
+          <td class="paramname"><em>red</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__cache__rebuild_8c_source.html#l00837">837</a> of file <a class="el" href="scr__cache__rebuild_8c_source.html">scr_cache_rebuild.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_afe7888498e6ad652c09fcf7fea2cc1d2_cgraph.png" border="0" usemap="#scr__cache__rebuild_8c_afe7888498e6ad652c09fcf7fea2cc1d2_cgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_afe7888498e6ad652c09fcf7fea2cc1d2_cgraph" id="scr__cache__rebuild_8c_afe7888498e6ad652c09fcf7fea2cc1d2_cgraph">
+<area shape="rect" id="node2" href="scr__cache_8c.html#ad878586242fd6abee4bd87695b15a19b" title="scr_cache_clean" alt="" coords="213,1160,335,1186"/>
+<area shape="rect" id="node4" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="856,671,963,696"/>
+<area shape="rect" id="node5" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="878,846,941,871"/>
+<area shape="rect" id="node7" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="648,1056,789,1082"/>
+<area shape="rect" id="node8" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="427,1576,571,1602"/>
+<area shape="rect" id="node9" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db" title="scr_hash_elem_key_int" alt="" coords="419,595,580,620"/>
+<area shape="rect" id="node12" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="429,1776,569,1802"/>
+<area shape="rect" id="node14" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="684,1727,753,1752"/>
+<area shape="rect" id="node15" href="scr__meta_8c.html#a5d0f5573d68b9fd860469fd2437d9ae7" title="scr_meta_new" alt="" coords="665,646,773,671"/>
+<area shape="rect" id="node16" href="scr__filemap_8c.html#a62326773d11fb78c0f2db8a07bc1ea26" title="scr_filemap_get_meta" alt="" coords="642,1312,795,1338"/>
+<area shape="rect" id="node17" href="scr__meta_8c.html#ad946d93641bc7658dd450018bde928f5" title="scr_meta_delete" alt="" coords="659,1362,779,1387"/>
+<area shape="rect" id="node18" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="850,1211,969,1236"/>
+<area shape="rect" id="node19" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1017,2268,1086,2294"/>
+<area shape="rect" id="node25" href="scr__filemap_8c.html#ab22108f89cba5be40459acc13091a716" title="scr_filemap_num_files" alt="" coords="422,1527,576,1552"/>
+<area shape="rect" id="node26" href="scr__filemap_8c.html#a065dc389cc19bd24caa4a7f4f1d767d8" title="scr_filemap_set_expected\l_files" alt="" coords="411,1878,587,1916"/>
+<area shape="rect" id="node28" href="scr__filemap_8c.html#a7a5e9a9c0c2720594159c967b5b5d9e2" title="scr_filemap_add_file" alt="" coords="428,1940,571,1966"/>
+<area shape="rect" id="node29" href="scr__filemap_8c.html#a20bea7986a4c790bdb7d67a066451e7f" title="scr_filemap_set_meta" alt="" coords="423,343,575,368"/>
+<area shape="rect" id="node30" href="scr__filemap_8c.html#a4b41fba51585611a375556c0aff06e75" title="scr_filemap_write" alt="" coords="437,948,562,974"/>
+<area shape="rect" id="node31" href="scr__filemap_8c.html#aa748bf2f41ed9df1ad5f7cfe66659eb3" title="scr_filemap_list_ranks\l_by_dataset" alt="" coords="197,2594,351,2632"/>
+<area shape="rect" id="node32" href="scr__util__mpi_8c.html#a4769785d1de0ddb56a24b99530a514f0" title="scr_alltrue" alt="" coords="233,2656,315,2682"/>
+<area shape="rect" id="node33" href="scr__cache_8c.html#af2c99710cd2067604a10ec1c42ae5aaf" title="scr_bool_have_files" alt="" coords="204,1578,344,1603"/>
+<area shape="rect" id="node34" href="scr__hash_8c.html#a5cbcf5d65ca321c46896c1c34fb50666" title="scr_hash_setf" alt="" coords="667,191,771,216"/>
+<area shape="rect" id="node35" href="scr__hash__mpi_8c.html#a89fc486f344a5b6da47ff2ba7033fdb2" title="scr_hash_exchange" alt="" coords="204,520,344,546"/>
+<area shape="rect" id="node36" href="scr__hash_8c.html#a2e9358957d5f0e8963c5097557e0c04d" title="scr_hash_elem_hash" alt="" coords="425,546,573,571"/>
+<area shape="rect" id="node37" href="scr__filemap_8c.html#a4be725e668edcc5e25cecff54f8f139b" title="scr_filemap_list_files" alt="" coords="202,1715,346,1740"/>
+<area shape="rect" id="node38" href="scr__meta_8c.html#adf40f22d7070529ae3ea17b536c52e52" title="scr_meta_check_filetype" alt="" coords="190,2706,358,2731"/>
+<area shape="rect" id="node39" href="scr__cache_8c.html#a5be6e24b65542c81e5ca1b8a559ba56b" title="scr_cache_dir_get" alt="" coords="209,2755,339,2780"/>
+<area shape="rect" id="node40" href="scr__cache_8c.html#a6230ae5aa7c595209969c237394b79bc" title="scr_cache_dir_hidden_get" alt="" coords="185,2804,363,2830"/>
+<area shape="rect" id="node41" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="435,2342,564,2367"/>
+<area shape="rect" id="node42" href="scr__path_8c.html#a4166be3e4ca2dbc5b50c6e0d94d49f01" title="scr_path_basename" alt="" coords="428,2443,570,2468"/>
+<area shape="rect" id="node43" href="scr__path_8c.html#a42fdd631c165e163a4fc953a72ccaccc" title="scr_path_prepend_str" alt="" coords="424,2492,575,2518"/>
+<area shape="rect" id="node44" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="215,2854,332,2879"/>
+<area shape="rect" id="node45" href="scr__filemap_8c.html#a92ed87248200a643a1497acddd12c967" title="scr_filemap_remove_file" alt="" coords="416,1990,582,2015"/>
+<area shape="rect" id="node46" href="scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3" title="scr_path_delete" alt="" coords="441,2292,557,2318"/>
+<area shape="rect" id="node47" href="scr__cache_8c.html#a5129a0ef4f85004ab2b699e326fb8ca0" title="scr_unlink_rank" alt="" coords="217,1771,331,1796"/>
+<area shape="rect" id="node48" href="scr__hash__mpi_8c.html#a90dd9073c9aa0d5246fef70f738f5d6b" title="scr_hash_sendrecv" alt="" coords="431,2243,568,2268"/>
+<area shape="rect" id="node49" href="scr__cache__rebuild_8c.html#a6b6aca6cf8cd03b30e48836474b07c48" title="scr_swap_file_names" alt="" coords="199,2391,349,2416"/>
+<area shape="rect" id="node50" href="scr__cache__rebuild_8c.html#ae197f807bb7b3771a4275e5df111b44b" title="scr_swap_files" alt="" coords="220,2188,328,2214"/>
+<area shape="rect" id="node3" href="scr__filemap_8c.html#a89fa81e5f9c67c2256cce4784a04561c" title="scr_filemap_new" alt="" coords="658,846,779,871"/>
+<area shape="rect" id="node6" href="scr__filemap_8c.html#a46929d57580e53dea8c8cc30c7947f28" title="scr_filemap_first_dataset" alt="" coords="415,1110,584,1135"/>
+<area shape="rect" id="node10" href="scr__filemap_8c.html#a9240b7064679b95aa299ec5b584e0ff3" title="scr_filemap_first_rank\l_by_dataset" alt="" coords="423,998,575,1036"/>
+<area shape="rect" id="node11" href="scr__filemap_8c.html#a140d9c51b2303de9cc2094e86472eb10" title="scr_filemap_first_file" alt="" coords="428,1626,571,1651"/>
+<area shape="rect" id="node13" href="scr__cache_8c.html#aaacb9becaf9fd89abf7611988abd3bf8" title="scr_bool_have_file" alt="" coords="433,1312,566,1338"/>
+<area shape="rect" id="node20" href="scr__filemap_8c.html#aa50c9846fc7767928a0431bea9667b0f" title="scr_filemap_get_desc" alt="" coords="424,899,575,924"/>
+<area shape="rect" id="node21" href="scr__filemap_8c.html#a2e87ffd39eda80682d0479795cd6b6a0" title="scr_filemap_set_desc" alt="" coords="644,747,794,772"/>
+<area shape="rect" id="node22" href="scr__filemap_8c.html#a27f9a0e0652b95c2ac2a796ad218957a" title="scr_filemap_get_dataset" alt="" coords="416,1060,583,1086"/>
+<area shape="rect" id="node23" href="scr__filemap_8c.html#a6163ec90420b87f754349bb261506313" title="scr_filemap_set_dataset" alt="" coords="636,796,802,822"/>
+<area shape="rect" id="node24" href="scr__filemap_8c.html#a3f9546cc4d5af07d447dcc574f8baa38" title="scr_filemap_get_expected\l_files" alt="" coords="411,1464,588,1503"/>
+<area shape="rect" id="node27" href="scr__io_8c.html#a8cf06f71c585cab86838bf7d73a75f5f" title="scr_file_unlink" alt="" coords="446,1727,552,1752"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_afe7888498e6ad652c09fcf7fea2cc1d2_icgraph.png" border="0" usemap="#scr__cache__rebuild_8c_afe7888498e6ad652c09fcf7fea2cc1d2_icgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_afe7888498e6ad652c09fcf7fea2cc1d2_icgraph" id="scr__cache__rebuild_8c_afe7888498e6ad652c09fcf7fea2cc1d2_icgraph">
+<area shape="rect" id="node2" href="scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="185,31,315,56"/>
+<area shape="rect" id="node3" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="363,31,437,56"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="485,5,563,31"/>
+<area shape="rect" id="node6" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="489,55,560,80"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="611,5,681,31"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a49522f9f86df80a67860921aba30696e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a49522f9f86df80a67860921aba30696e">&sect;&nbsp;</a></span>scr_distribute_reddescs()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_distribute_reddescs </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="scr__filemap_8h.html#a77ce4a95bb8840c02e6aa4123ca7d55e">scr_filemap</a> *&#160;</td>
+          <td class="paramname"><em>map</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structscr__reddesc.html">scr_reddesc</a> *&#160;</td>
+          <td class="paramname"><em>red</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__cache__rebuild_8c_source.html#l00748">748</a> of file <a class="el" href="scr__cache__rebuild_8c_source.html">scr_cache_rebuild.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_a49522f9f86df80a67860921aba30696e_cgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a49522f9f86df80a67860921aba30696e_cgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_a49522f9f86df80a67860921aba30696e_cgraph" id="scr__cache__rebuild_8c_a49522f9f86df80a67860921aba30696e_cgraph">
+<area shape="rect" id="node2" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="944,1611,1051,1636"/>
+<area shape="rect" id="node3" href="scr__filemap_8c.html#aa748bf2f41ed9df1ad5f7cfe66659eb3" title="scr_filemap_list_ranks\l_by_dataset" alt="" coords="215,334,369,372"/>
+<area shape="rect" id="node10" href="scr__hash_8c.html#a7f739bf35cf802ca603f6625bd186836" title="scr_hash_size" alt="" coords="734,247,841,272"/>
+<area shape="rect" id="node11" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="927,499,1068,524"/>
+<area shape="rect" id="node15" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1373,2396,1436,2422"/>
+<area shape="rect" id="node16" href="scr__filemap_8c.html#aa50c9846fc7767928a0431bea9667b0f" title="scr_filemap_get_desc" alt="" coords="459,1232,610,1258"/>
+<area shape="rect" id="node25" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="1140,1356,1259,1382"/>
+<area shape="rect" id="node27" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1531,1382,1600,1407"/>
+<area shape="rect" id="node28" href="scr__hash_8c.html#a2e9358957d5f0e8963c5097557e0c04d" title="scr_hash_elem_hash" alt="" coords="924,703,1072,728"/>
+<area shape="rect" id="node29" href="scr__hash_8c.html#a5cbcf5d65ca321c46896c1c34fb50666" title="scr_hash_setf" alt="" coords="735,1636,840,1662"/>
+<area shape="rect" id="node31" href="scr__util__mpi_8c.html#a4769785d1de0ddb56a24b99530a514f0" title="scr_alltrue" alt="" coords="746,1890,829,1915"/>
+<area shape="rect" id="node32" href="scr__hash__mpi_8c.html#a89fc486f344a5b6da47ff2ba7033fdb2" title="scr_hash_exchange" alt="" coords="222,879,362,904"/>
+<area shape="rect" id="node36" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="258,1931,326,1956"/>
+<area shape="rect" id="node37" href="scr__filemap_8c.html#a2e87ffd39eda80682d0479795cd6b6a0" title="scr_filemap_set_desc" alt="" coords="459,1364,609,1390"/>
+<area shape="rect" id="node40" href="scr__filemap_8c.html#a4b41fba51585611a375556c0aff06e75" title="scr_filemap_write" alt="" coords="230,2108,355,2134"/>
+<area shape="rect" id="node49" href="scr__reddesc_8c.html#ac6544ae725431823283044f35eddbb05" title="scr_reddesc_create\l_from_filemap" alt="" coords="223,1670,361,1708"/>
+<area shape="rect" id="node4" href="scr__filemap_8c.html#a41547949bea98acd70e2284c2c8f1f02" title="scr_filemap_get_d" alt="" coords="933,95,1063,120"/>
+<area shape="rect" id="node6" href="scr__filemap_8c.html#a5aae649e43901548f1dadb1987579dd4" title="scr_filemap_get_rh" alt="" coords="467,448,601,474"/>
+<area shape="rect" id="node9" href="scr__hash_8c.html#a38ca5a31e1d7cc0666d15ceaf9a8b651" title="scr_hash_list_int" alt="" coords="474,347,594,372"/>
+<area shape="rect" id="node5" href="scr__hash_8c.html#a75cecd07c198cf8918de107efe08faf1" title="scr_hash_get_kv_int" alt="" coords="1128,904,1271,930"/>
+<area shape="rect" id="node7" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="947,1156,1048,1182"/>
+<area shape="rect" id="node8" href="scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="1336,1483,1474,1508"/>
+<area shape="rect" id="node12" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="926,752,1070,778"/>
+<area shape="rect" id="node13" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db" title="scr_hash_elem_key_int" alt="" coords="707,702,868,727"/>
+<area shape="rect" id="node14" href="scr__hash_8c.html#a262bd55d0ca72202cd93da1ee1d598ab" title="scr_hash_cmp_fn_int_asc" alt="" coords="700,296,876,322"/>
+<area shape="rect" id="node17" href="scr__filemap_8c.html#ad697ef6e1db56964db61847281e14d7b" title="scr_filemap_get_rd" alt="" coords="720,955,855,980"/>
+<area shape="rect" id="node19" href="scr__hash_8c.html#a78ae32fb1287349ef9e15f65963fbbe8" title="scr_hash_merge" alt="" coords="727,1182,848,1207"/>
+<area shape="rect" id="node18" href="scr__filemap_8c.html#a7aa6fb77a8d6a03fa49a9445c0704df6" title="scr_filemap_get_r" alt="" coords="934,955,1061,980"/>
+<area shape="rect" id="node20" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="928,1206,1068,1231"/>
+<area shape="rect" id="node21" href="scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="947,1508,1048,1534"/>
+<area shape="rect" id="node22" href="scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="1120,1508,1279,1534"/>
+<area shape="rect" id="node23" href="scr__hash_8c.html#a8a814803dc735def5f84d78135eeed7b" title="scr_hash_elem_new" alt="" coords="1128,1558,1271,1583"/>
+<area shape="rect" id="node24" href="scr__hash_8c.html#a05ca10e6665c616a860c1780a46ede68" title="scr_hash_elem_init" alt="" coords="1131,1635,1268,1660"/>
+<area shape="rect" id="node26" href="scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="1327,1407,1483,1432"/>
+<area shape="rect" id="node30" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="959,1788,1036,1814"/>
+<area shape="rect" id="node33" href="scr__hash__mpi_8c.html#ad178e6d62c8029544a52a985e9c965c9" title="scr_hash_exchange_direction_hops" alt="" coords="417,955,652,980"/>
+<area shape="rect" id="node34" href="scr__hash_8c.html#aa31efec60b6897b0b4c4835da9471a0f" title="scr_hash_set_kv_int" alt="" coords="926,1255,1069,1280"/>
+<area shape="rect" id="node35" href="scr__hash__mpi_8c.html#a90dd9073c9aa0d5246fef70f738f5d6b" title="scr_hash_sendrecv" alt="" coords="719,1332,856,1358"/>
+<area shape="rect" id="node38" href="scr__filemap_8c.html#aff8472e5e6e46720460e3fd75e5112f8" title="scr_filemap_set_rd" alt="" coords="721,1283,855,1308"/>
+<area shape="rect" id="node39" href="scr__hash_8c.html#a5f36326bf5682a4ad267f693436c5e62" title="scr_hash_unset" alt="" coords="940,1458,1056,1483"/>
+<area shape="rect" id="node41" href="scr__hash_8c.html#ac16e675f9fb0397c78a803a189539408" title="scr_hash_write_path" alt="" coords="462,2219,606,2244"/>
+<area shape="rect" id="node48" href="scr__path_8c.html#a1cecc0735dc7cbefbd01e0e9356c2cc4" title="scr_path_strcpy" alt="" coords="476,2042,592,2067"/>
+<area shape="rect" id="node42" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42" title="scr_path_is_null" alt="" coords="729,2042,846,2067"/>
+<area shape="rect" id="node43" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="729,2244,846,2270"/>
+<area shape="rect" id="node44" href="scr__hash_8c.html#a199735d48cc57b023994af50a3f402e8" title="scr_hash_write" alt="" coords="1144,2347,1255,2372"/>
+<area shape="rect" id="node45" href="scr__util_8c.html#a3080444bf37203aeac828b42b6175e5d" title="scr_unpack_uint32_t" alt="" coords="1127,2396,1272,2422"/>
+<area shape="rect" id="node46" href="scr__util_8c.html#a094844b05dd173886a3959ca6fa560e8" title="scr_unpack_uint16_t" alt="" coords="1127,2446,1272,2471"/>
+<area shape="rect" id="node47" href="scr__util_8c.html#a19c8f8cf03b5aafe6ef765bf10225525" title="scr_unpack_uint64_t" alt="" coords="1127,2496,1272,2522"/>
+<area shape="rect" id="node50" href="scr__reddesc_8c.html#ada162fc5af0f03ac7eabf3b4bd62c938" title="scr_reddesc_restore\l_from_hash" alt="" coords="463,1828,606,1867"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_a49522f9f86df80a67860921aba30696e_icgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a49522f9f86df80a67860921aba30696e_icgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_a49522f9f86df80a67860921aba30696e_icgraph" id="scr__cache__rebuild_8c_a49522f9f86df80a67860921aba30696e_icgraph">
+<area shape="rect" id="node2" href="scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="215,31,345,56"/>
+<area shape="rect" id="node3" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="393,31,468,56"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="516,5,593,31"/>
+<area shape="rect" id="node6" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="519,55,590,80"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="641,5,712,31"/>
 </map>
 </div>
 
@@ -283,55 +634,66 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="scr__cache__rebuild_8c_a50a03a9f781a26b9978b3ae354313942_cgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a50a03a9f781a26b9978b3ae354313942_cgraph" alt=""/></div>
 <map name="scr__cache__rebuild_8c_a50a03a9f781a26b9978b3ae354313942_cgraph" id="scr__cache__rebuild_8c_a50a03a9f781a26b9978b3ae354313942_cgraph">
-<area shape="rect" id="node2" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="1005,1061,1113,1087"/>
-<area shape="rect" id="node3" href="scr__hash_8c.html#a25e52a465ce2e498d08312a81d24c64b" title="scr_hash_read_path" alt="" coords="214,980,357,1005"/>
-<area shape="rect" id="node18" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="817,156,886,181"/>
-<area shape="rect" id="node24" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="1008,1259,1110,1284"/>
-<area shape="rect" id="node29" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="792,1057,911,1083"/>
-<area shape="rect" id="node32" href="scr__hash_8c.html#a38ca5a31e1d7cc0666d15ceaf9a8b651" title="scr_hash_list_int" alt="" coords="791,1357,912,1383"/>
-<area shape="rect" id="node35" href="scr__filemap_8c.html#afca51befcb7f651a08030503c3eea1ba" title="scr_filemap_list_datasets" alt="" coords="200,1485,371,1511"/>
-<area shape="rect" id="node36" href="scr__hash_8c.html#ab5c422845d73c9f63e9014ce6e8bc726" title="scr_hash_unset_kv_int" alt="" coords="207,1384,364,1409"/>
-<area shape="rect" id="node37" href="scr__hash_8c.html#a6bf1dbdf14d36f420b9cdfb302fc4221" title="scr_hash_unset_kv" alt="" coords="783,1435,920,1460"/>
-<area shape="rect" id="node39" href="scr__hash_8c.html#aa31efec60b6897b0b4c4835da9471a0f" title="scr_hash_set_kv_int" alt="" coords="214,1232,357,1257"/>
-<area shape="rect" id="node40" href="scr__hash_8c.html#aaa2f6071e810686b19545854d5e92a9d" title="scr_hash_set_kv" alt="" coords="791,1159,912,1184"/>
-<area shape="rect" id="node41" href="scr__hash_8c.html#ac16e675f9fb0397c78a803a189539408" title="scr_hash_write_path" alt="" coords="213,561,358,587"/>
-<area shape="rect" id="node4" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42" title="scr_path_is_null" alt="" coords="419,980,537,1005"/>
-<area shape="rect" id="node5" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="419,1029,536,1055"/>
-<area shape="rect" id="node7" href="scr__hash_8c.html#a611b35805a9cfe8bead3ef4c6b073427" title="scr_hash_read" alt="" coords="423,744,533,769"/>
-<area shape="rect" id="node6" href="scr__path_8c.html#a53dcddedf48597afebf3b6123c323f11" title="scr_path_strlen" alt="" coords="598,1029,711,1055"/>
-<area shape="rect" id="node8" href="scr__io_8c.html#ad780fd6d5cd75b94f79faf080a56afd6" title="scr_file_is_readable" alt="" coords="585,768,725,793"/>
-<area shape="rect" id="node9" href="scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="617,669,693,695"/>
-<area shape="rect" id="node12" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1236,380,1299,405"/>
-<area shape="rect" id="node13" href="scr__hash_8c.html#adeb97fdfd67e573bebfbf175cc4eb9a0" title="scr_hash_read_fd" alt="" coords="591,612,719,637"/>
-<area shape="rect" id="node30" href="scr__io_8c.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="616,719,693,744"/>
-<area shape="rect" id="node10" href="scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="826,755,877,780"/>
-<area shape="rect" id="node11" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="817,804,886,829"/>
-<area shape="rect" id="node14" href="scr__io_8c.html#af8ba39af14e8945f8c69f3e33cc74c7d" title="scr_read_attempt" alt="" coords="789,552,914,577"/>
-<area shape="rect" id="node15" href="scr__util_8c.html#a3080444bf37203aeac828b42b6175e5d" title="scr_unpack_uint32_t" alt="" coords="779,503,924,528"/>
-<area shape="rect" id="node16" href="scr__util_8c.html#a094844b05dd173886a3959ca6fa560e8" title="scr_unpack_uint16_t" alt="" coords="779,355,924,380"/>
-<area shape="rect" id="node17" href="scr__util_8c.html#a19c8f8cf03b5aafe6ef765bf10225525" title="scr_unpack_uint64_t" alt="" coords="779,404,924,429"/>
-<area shape="rect" id="node19" href="scr__hash_8c.html#af8b42baf95c208f505ebf66b55643b0a" title="scr_hash_unpack" alt="" coords="788,453,914,479"/>
-<area shape="rect" id="node20" href="scr__hash_8c.html#a78ae32fb1287349ef9e15f65963fbbe8" title="scr_hash_merge" alt="" coords="791,1232,912,1257"/>
-<area shape="rect" id="node21" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="989,1357,1129,1383"/>
-<area shape="rect" id="node22" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="987,1308,1131,1333"/>
-<area shape="rect" id="node23" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="989,1160,1129,1185"/>
-<area shape="rect" id="node26" href="scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="1009,1111,1109,1136"/>
-<area shape="rect" id="node28" href="scr__hash_8c.html#a2e9358957d5f0e8963c5097557e0c04d" title="scr_hash_elem_hash" alt="" coords="985,1209,1133,1235"/>
-<area shape="rect" id="node25" href="scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="1395,1233,1533,1259"/>
-<area shape="rect" id="node27" href="scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="1188,1208,1347,1233"/>
-<area shape="rect" id="node31" href="scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="825,905,878,931"/>
-<area shape="rect" id="node33" href="scr__hash_8c.html#a7f739bf35cf802ca603f6625bd186836" title="scr_hash_size" alt="" coords="1006,1456,1112,1481"/>
-<area shape="rect" id="node34" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db" title="scr_hash_elem_key_int" alt="" coords="978,1407,1140,1432"/>
-<area shape="rect" id="node38" href="scr__hash_8c.html#a5f36326bf5682a4ad267f693436c5e62" title="scr_hash_unset" alt="" coords="1001,1505,1117,1531"/>
-<area shape="rect" id="node42" href="scr__hash_8c.html#a199735d48cc57b023994af50a3f402e8" title="scr_hash_write" alt="" coords="422,409,533,435"/>
-<area shape="rect" id="node43" href="scr__io_8c.html#a9e94f39d8ce07b0d99ac644305d77d88" title="scr_getmode" alt="" coords="605,409,704,435"/>
-<area shape="rect" id="node44" href="scr__hash_8c.html#a7530d50facac329797e488e3a5806493" title="scr_hash_write_fd" alt="" coords="590,55,719,80"/>
-<area shape="rect" id="node45" href="scr__hash_8c.html#a107596170da304cbf96e685ebaea8662" title="scr_hash_write_persist" alt="" coords="773,55,930,80"/>
-<area shape="rect" id="node50" href="scr__io_8c.html#a7e0783f5e14a6cec17e80d92c663ccde" title="scr_write_attempt" alt="" coords="996,203,1122,228"/>
-<area shape="rect" id="node46" href="scr__hash_8c.html#a83d8396b3824bbab73fe2d8e9d9b0aa0" title="scr_hash_persist_size" alt="" coords="982,153,1136,179"/>
-<area shape="rect" id="node47" href="scr__util_8c.html#a2c76b0b0c1949d3fa857773f504f766d" title="scr_pack_uint32_t" alt="" coords="994,55,1124,80"/>
-<area shape="rect" id="node48" href="scr__util_8c.html#a7fa8af1b09b7dec8ff139742cc612ccd" title="scr_pack_uint16_t" alt="" coords="994,104,1124,129"/>
-<area shape="rect" id="node49" href="scr__util_8c.html#a195c03524a38091143ac32ac5daed225" title="scr_pack_uint64_t" alt="" coords="994,5,1124,31"/>
+<area shape="rect" id="node2" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="1258,753,1365,778"/>
+<area shape="rect" id="node3" href="scr__hash_8c.html#a25e52a465ce2e498d08312a81d24c64b" title="scr_hash_read_path" alt="" coords="207,94,350,120"/>
+<area shape="rect" id="node19" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1643,1156,1712,1181"/>
+<area shape="rect" id="node28" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="1045,1460,1147,1485"/>
+<area shape="rect" id="node32" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="1252,1206,1371,1232"/>
+<area shape="rect" id="node36" href="scr__hash_8c.html#a38ca5a31e1d7cc0666d15ceaf9a8b651" title="scr_hash_list_int" alt="" coords="827,1561,948,1586"/>
+<area shape="rect" id="node40" href="scr__filemap_8c.html#afca51befcb7f651a08030503c3eea1ba" title="scr_filemap_list_datasets" alt="" coords="597,1510,768,1536"/>
+<area shape="rect" id="node42" href="scr__hash_8c.html#ab5c422845d73c9f63e9014ce6e8bc726" title="scr_hash_unset_kv_int" alt="" coords="200,1409,358,1434"/>
+<area shape="rect" id="node43" href="scr__hash_8c.html#a6bf1dbdf14d36f420b9cdfb302fc4221" title="scr_hash_unset_kv" alt="" coords="820,1409,956,1434"/>
+<area shape="rect" id="node45" href="scr__hash_8c.html#aa31efec60b6897b0b4c4835da9471a0f" title="scr_hash_set_kv_int" alt="" coords="406,1206,549,1232"/>
+<area shape="rect" id="node46" href="scr__hash_8c.html#aaa2f6071e810686b19545854d5e92a9d" title="scr_hash_set_kv" alt="" coords="827,1257,948,1282"/>
+<area shape="rect" id="node47" href="scr__hash_8c.html#ac16e675f9fb0397c78a803a189539408" title="scr_hash_write_path" alt="" coords="610,802,754,828"/>
+<area shape="rect" id="node4" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42" title="scr_path_is_null" alt="" coords="829,94,947,120"/>
+<area shape="rect" id="node5" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="829,144,946,169"/>
+<area shape="rect" id="node8" href="scr__hash_8c.html#a611b35805a9cfe8bead3ef4c6b073427" title="scr_hash_read" alt="" coords="422,221,532,246"/>
+<area shape="rect" id="node6" href="scr__path_8c.html#a53dcddedf48597afebf3b6123c323f11" title="scr_path_strlen" alt="" coords="1040,144,1152,169"/>
+<area shape="rect" id="node7" href="scr__path_8c.html#af3eb4d09806351c6b2d3a6310842db83" title="scr_path_strcpy_internal" alt="" coords="1013,94,1179,120"/>
+<area shape="rect" id="node9" href="scr__io_8c.html#ad780fd6d5cd75b94f79faf080a56afd6" title="scr_file_is_readable" alt="" coords="612,196,752,221"/>
+<area shape="rect" id="node10" href="scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="1274,196,1350,221"/>
+<area shape="rect" id="node13" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1486,448,1549,473"/>
+<area shape="rect" id="node14" href="scr__hash_8c.html#adeb97fdfd67e573bebfbf175cc4eb9a0" title="scr_hash_read_fd" alt="" coords="618,549,746,574"/>
+<area shape="rect" id="node35" href="scr__io_8c.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="1273,245,1351,270"/>
+<area shape="rect" id="node11" href="scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="1492,196,1543,221"/>
+<area shape="rect" id="node12" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="1483,245,1551,270"/>
+<area shape="rect" id="node15" href="scr__io_8c.html#af8ba39af14e8945f8c69f3e33cc74c7d" title="scr_read_attempt" alt="" coords="1249,346,1374,372"/>
+<area shape="rect" id="node16" href="scr__util_8c.html#a3080444bf37203aeac828b42b6175e5d" title="scr_unpack_uint32_t" alt="" coords="816,500,960,525"/>
+<area shape="rect" id="node17" href="scr__util_8c.html#a094844b05dd173886a3959ca6fa560e8" title="scr_unpack_uint16_t" alt="" coords="816,549,960,574"/>
+<area shape="rect" id="node18" href="scr__util_8c.html#a19c8f8cf03b5aafe6ef765bf10225525" title="scr_unpack_uint64_t" alt="" coords="816,650,960,676"/>
+<area shape="rect" id="node20" href="scr__hash_8c.html#af8b42baf95c208f505ebf66b55643b0a" title="scr_hash_unpack" alt="" coords="825,853,951,878"/>
+<area shape="rect" id="node24" href="scr__hash_8c.html#a78ae32fb1287349ef9e15f65963fbbe8" title="scr_hash_merge" alt="" coords="827,1105,948,1130"/>
+<area shape="rect" id="node21" href="scr__hash_8c.html#a8a814803dc735def5f84d78135eeed7b" title="scr_hash_elem_new" alt="" coords="1240,878,1384,904"/>
+<area shape="rect" id="node22" href="scr__hash_8c.html#a1db676976bc663903cb6570222d04f16" title="scr_hash_elem_unpack" alt="" coords="1015,802,1177,828"/>
+<area shape="rect" id="node23" href="scr__hash_8c.html#a05ca10e6665c616a860c1780a46ede68" title="scr_hash_elem_init" alt="" coords="1244,802,1380,828"/>
+<area shape="rect" id="node25" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="1026,1509,1166,1534"/>
+<area shape="rect" id="node26" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="1024,1558,1168,1584"/>
+<area shape="rect" id="node27" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="1026,1105,1166,1130"/>
+<area shape="rect" id="node30" href="scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="1046,1206,1146,1232"/>
+<area shape="rect" id="node34" href="scr__hash_8c.html#a2e9358957d5f0e8963c5097557e0c04d" title="scr_hash_elem_hash" alt="" coords="1022,1056,1170,1081"/>
+<area shape="rect" id="node29" href="scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="1448,1333,1586,1358"/>
+<area shape="rect" id="node31" href="scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="1232,1308,1391,1333"/>
+<area shape="rect" id="node33" href="scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="1439,1206,1595,1232"/>
+<area shape="rect" id="node37" href="scr__hash_8c.html#a7f739bf35cf802ca603f6625bd186836" title="scr_hash_size" alt="" coords="1043,1608,1149,1633"/>
+<area shape="rect" id="node38" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db" title="scr_hash_elem_key_int" alt="" coords="1015,1657,1177,1682"/>
+<area shape="rect" id="node39" href="scr__hash_8c.html#a262bd55d0ca72202cd93da1ee1d598ab" title="scr_hash_cmp_fn_int_asc" alt="" coords="1008,1706,1184,1732"/>
+<area shape="rect" id="node41" href="scr__filemap_8c.html#abd859c1763f2251a4b9f1ea228fc8587" title="scr_filemap_get_dh" alt="" coords="819,1510,957,1536"/>
+<area shape="rect" id="node44" href="scr__hash_8c.html#a5f36326bf5682a4ad267f693436c5e62" title="scr_hash_unset" alt="" coords="1038,1358,1154,1384"/>
+<area shape="rect" id="node48" href="scr__hash_8c.html#a199735d48cc57b023994af50a3f402e8" title="scr_hash_write" alt="" coords="1041,600,1152,625"/>
+<area shape="rect" id="node49" href="scr__io_8c.html#a9e94f39d8ce07b0d99ac644305d77d88" title="scr_getmode" alt="" coords="1263,650,1361,676"/>
+<area shape="rect" id="node50" href="scr__hash_8c.html#a7530d50facac329797e488e3a5806493" title="scr_hash_write_fd" alt="" coords="1452,902,1582,928"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_a50a03a9f781a26b9978b3ae354313942_icgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a50a03a9f781a26b9978b3ae354313942_icgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_a50a03a9f781a26b9978b3ae354313942_icgraph" id="scr__cache__rebuild_8c_a50a03a9f781a26b9978b3ae354313942_icgraph">
+<area shape="rect" id="node2" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="200,31,275,56"/>
+<area shape="rect" id="node3" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="323,5,400,31"/>
+<area shape="rect" id="node5" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="326,55,397,80"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="448,5,519,31"/>
 </map>
 </div>
 
@@ -359,55 +721,66 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="scr__cache__rebuild_8c_ac512e74afe061169739beaa2d7f08f47_cgraph.png" border="0" usemap="#scr__cache__rebuild_8c_ac512e74afe061169739beaa2d7f08f47_cgraph" alt=""/></div>
 <map name="scr__cache__rebuild_8c_ac512e74afe061169739beaa2d7f08f47_cgraph" id="scr__cache__rebuild_8c_ac512e74afe061169739beaa2d7f08f47_cgraph">
-<area shape="rect" id="node2" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="1030,753,1137,778"/>
-<area shape="rect" id="node3" href="scr__filemap_8c.html#a89fa81e5f9c67c2256cce4784a04561c" title="scr_filemap_new" alt="" coords="427,879,548,905"/>
-<area shape="rect" id="node5" href="scr__hash_8c.html#a25e52a465ce2e498d08312a81d24c64b" title="scr_hash_read_path" alt="" coords="211,1209,354,1234"/>
-<area shape="rect" id="node17" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="854,1209,924,1234"/>
-<area shape="rect" id="node19" href="scr__hash_8c.html#a78ae32fb1287349ef9e15f65963fbbe8" title="scr_hash_merge" alt="" coords="829,297,950,322"/>
-<area shape="rect" id="node20" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="1013,94,1154,119"/>
-<area shape="rect" id="node21" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="1011,145,1156,170"/>
-<area shape="rect" id="node22" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="1013,322,1153,347"/>
-<area shape="rect" id="node23" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="1033,497,1134,522"/>
-<area shape="rect" id="node28" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="830,2094,949,2119"/>
-<area shape="rect" id="node30" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="218,1550,346,1575"/>
-<area shape="rect" id="node31" href="scr__filemap_8c.html#ae0eb0d49bb74e616d307cad18d159f46" title="scr_filemap_read" alt="" coords="220,1347,344,1373"/>
-<area shape="rect" id="node32" href="scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3" title="scr_path_delete" alt="" coords="224,1599,340,1625"/>
-<area shape="rect" id="node33" href="scr__filemap_8c.html#affa3110a9f3427fd3c01fa64792023ab" title="scr_filemap_merge" alt="" coords="420,423,555,449"/>
-<area shape="rect" id="node34" href="scr__filemap_8c.html#ae8a6b6d165e33b79770cfd948b98a227" title="scr_filemap_delete" alt="" coords="421,2159,554,2185"/>
-<area shape="rect" id="node35" href="scr__io_8c.html#a8cf06f71c585cab86838bf7d73a75f5f" title="scr_file_unlink" alt="" coords="434,2222,540,2247"/>
-<area shape="rect" id="node36" href="scr__filemap_8c.html#af54de624305bc1923b2d6c48f82bb1fc" title="scr_filemap_num_ranks" alt="" coords="201,1649,364,1674"/>
-<area shape="rect" id="node37" href="scr__filemap_8c.html#a4b41fba51585611a375556c0aff06e75" title="scr_filemap_write" alt="" coords="220,1045,345,1070"/>
-<area shape="rect" id="node38" href="scr__hash_8c.html#ac16e675f9fb0397c78a803a189539408" title="scr_hash_write_path" alt="" coords="415,1437,560,1462"/>
-<area shape="rect" id="node43" href="scr__filemap_8c.html#ad7a5ba909c1416dc8e6178df538ad93a" title="scr_filemap_have_rank" alt="" coords="202,1698,362,1723"/>
-<area shape="rect" id="node44" href="scr__filemap_8c.html#addafed2ab83007e83532b937eea52b98" title="scr_filemap_extract_rank" alt="" coords="197,854,367,879"/>
-<area shape="rect" id="node45" href="scr__hash_8c.html#a54ffb7a8eea915965bd586c212e6f5f7" title="scr_hash_getf" alt="" coords="636,753,741,778"/>
-<area shape="rect" id="node46" href="scr__hash_8c.html#a5cbcf5d65ca321c46896c1c34fb50666" title="scr_hash_setf" alt="" coords="636,702,740,727"/>
-<area shape="rect" id="node47" href="scr__filemap_8c.html#a8adb6d6184ed084380cb578b22c3c8b4" title="scr_filemap_list_ranks" alt="" coords="205,1747,359,1773"/>
-<area shape="rect" id="node48" href="scr__hash_8c.html#aaa2f6071e810686b19545854d5e92a9d" title="scr_hash_set_kv" alt="" coords="828,449,950,474"/>
-<area shape="rect" id="node49" href="scr__hash__mpi_8c.html#a89fc486f344a5b6da47ff2ba7033fdb2" title="scr_hash_exchange" alt="" coords="417,271,558,297"/>
-<area shape="rect" id="node4" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1052,1642,1115,1667"/>
-<area shape="rect" id="node6" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42" title="scr_path_is_null" alt="" coords="629,1158,747,1183"/>
-<area shape="rect" id="node7" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="630,1310,747,1335"/>
-<area shape="rect" id="node9" href="scr__hash_8c.html#a611b35805a9cfe8bead3ef4c6b073427" title="scr_hash_read" alt="" coords="433,1918,542,1943"/>
-<area shape="rect" id="node8" href="scr__path_8c.html#a53dcddedf48597afebf3b6123c323f11" title="scr_path_strlen" alt="" coords="833,1285,945,1310"/>
-<area shape="rect" id="node10" href="scr__io_8c.html#ad780fd6d5cd75b94f79faf080a56afd6" title="scr_file_is_readable" alt="" coords="618,2070,758,2095"/>
-<area shape="rect" id="node11" href="scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="851,2018,927,2043"/>
-<area shape="rect" id="node13" href="scr__hash_8c.html#adeb97fdfd67e573bebfbf175cc4eb9a0" title="scr_hash_read_fd" alt="" coords="624,1614,752,1639"/>
-<area shape="rect" id="node29" href="scr__io_8c.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="850,1969,928,1994"/>
-<area shape="rect" id="node12" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="1049,2018,1118,2043"/>
-<area shape="rect" id="node14" href="scr__util_8c.html#a3080444bf37203aeac828b42b6175e5d" title="scr_unpack_uint32_t" alt="" coords="817,1465,961,1490"/>
-<area shape="rect" id="node15" href="scr__util_8c.html#a094844b05dd173886a3959ca6fa560e8" title="scr_unpack_uint16_t" alt="" coords="817,1566,961,1591"/>
-<area shape="rect" id="node16" href="scr__util_8c.html#a19c8f8cf03b5aafe6ef765bf10225525" title="scr_unpack_uint64_t" alt="" coords="817,1667,961,1693"/>
-<area shape="rect" id="node18" href="scr__hash_8c.html#af8b42baf95c208f505ebf66b55643b0a" title="scr_hash_unpack" alt="" coords="826,1717,952,1742"/>
-<area shape="rect" id="node25" href="scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="1033,410,1134,435"/>
-<area shape="rect" id="node27" href="scr__hash_8c.html#a2e9358957d5f0e8963c5097557e0c04d" title="scr_hash_elem_hash" alt="" coords="1009,221,1157,246"/>
-<area shape="rect" id="node24" href="scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="1413,467,1550,493"/>
-<area shape="rect" id="node26" href="scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="1205,417,1365,442"/>
-<area shape="rect" id="node41" href="scr__path_8c.html#a1cecc0735dc7cbefbd01e0e9356c2cc4" title="scr_path_strcpy" alt="" coords="430,1082,545,1107"/>
-<area shape="rect" id="node39" href="scr__hash_8c.html#a199735d48cc57b023994af50a3f402e8" title="scr_hash_write" alt="" coords="633,1766,744,1791"/>
-<area shape="rect" id="node40" href="scr__io_8c.html#a9e94f39d8ce07b0d99ac644305d77d88" title="scr_getmode" alt="" coords="840,1766,938,1791"/>
-<area shape="rect" id="node42" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="851,753,928,778"/>
-<area shape="rect" id="node50" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db" title="scr_hash_elem_key_int" alt="" coords="608,297,769,322"/>
+<area shape="rect" id="node2" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="1065,955,1173,981"/>
+<area shape="rect" id="node3" href="scr__filemap_8c.html#a89fa81e5f9c67c2256cce4784a04561c" title="scr_filemap_new" alt="" coords="442,841,563,866"/>
+<area shape="rect" id="node5" href="scr__hash_8c.html#a25e52a465ce2e498d08312a81d24c64b" title="scr_hash_read_path" alt="" coords="211,411,354,437"/>
+<area shape="rect" id="node10" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1623,437,1692,462"/>
+<area shape="rect" id="node11" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="860,1259,1000,1285"/>
+<area shape="rect" id="node12" href="scr__hash_8c.html#afc0ee5d5cf84227084a7870a8a83e78b" title="scr_hash_get" alt="" coords="1068,1565,1170,1590"/>
+<area shape="rect" id="node14" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="858,1573,1002,1598"/>
+<area shape="rect" id="node15" href="scr__hash_8c.html#afccf7b1fd8a70db8fa968ad6ccd1514a" title="scr_hash_elem_key" alt="" coords="860,1006,1000,1031"/>
+<area shape="rect" id="node16" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="658,387,787,413"/>
+<area shape="rect" id="node21" href="scr__filemap_8c.html#ae0eb0d49bb74e616d307cad18d159f46" title="scr_filemap_read" alt="" coords="220,234,344,259"/>
+<area shape="rect" id="node22" href="scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3" title="scr_path_delete" alt="" coords="1244,57,1361,82"/>
+<area shape="rect" id="node24" href="scr__filemap_8c.html#affa3110a9f3427fd3c01fa64792023ab" title="scr_filemap_merge" alt="" coords="215,1145,349,1170"/>
+<area shape="rect" id="node25" href="scr__hash_8c.html#a78ae32fb1287349ef9e15f65963fbbe8" title="scr_hash_merge" alt="" coords="662,1118,783,1143"/>
+<area shape="rect" id="node27" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="1243,689,1362,714"/>
+<area shape="rect" id="node29" href="scr__filemap_8c.html#ae8a6b6d165e33b79770cfd948b98a227" title="scr_filemap_delete" alt="" coords="1052,739,1186,765"/>
+<area shape="rect" id="node30" href="scr__io_8c.html#a8cf06f71c585cab86838bf7d73a75f5f" title="scr_file_unlink" alt="" coords="229,993,335,1018"/>
+<area shape="rect" id="node32" href="scr__filemap_8c.html#af54de624305bc1923b2d6c48f82bb1fc" title="scr_filemap_num_ranks" alt="" coords="201,1886,364,1911"/>
+<area shape="rect" id="node35" href="scr__filemap_8c.html#a4b41fba51585611a375556c0aff06e75" title="scr_filemap_write" alt="" coords="220,613,345,638"/>
+<area shape="rect" id="node36" href="scr__hash_8c.html#ac16e675f9fb0397c78a803a189539408" title="scr_hash_write_path" alt="" coords="430,663,575,689"/>
+<area shape="rect" id="node38" href="scr__filemap_8c.html#ad7a5ba909c1416dc8e6178df538ad93a" title="scr_filemap_have_rank" alt="" coords="643,1839,802,1865"/>
+<area shape="rect" id="node40" href="scr__filemap_8c.html#addafed2ab83007e83532b937eea52b98" title="scr_filemap_extract_rank" alt="" coords="197,1497,367,1522"/>
+<area shape="rect" id="node42" href="scr__hash_8c.html#aaa2f6071e810686b19545854d5e92a9d" title="scr_hash_set_kv" alt="" coords="869,1309,991,1334"/>
+<area shape="rect" id="node47" href="scr__hash_8c.html#a54ffb7a8eea915965bd586c212e6f5f7" title="scr_hash_getf" alt="" coords="877,2037,982,2062"/>
+<area shape="rect" id="node48" href="scr__hash_8c.html#a5cbcf5d65ca321c46896c1c34fb50666" title="scr_hash_setf" alt="" coords="878,1107,982,1133"/>
+<area shape="rect" id="node49" href="scr__filemap_8c.html#a8adb6d6184ed084380cb578b22c3c8b4" title="scr_filemap_list_ranks" alt="" coords="205,1935,359,1961"/>
+<area shape="rect" id="node50" href="scr__hash__mpi_8c.html#a89fc486f344a5b6da47ff2ba7033fdb2" title="scr_hash_exchange" alt="" coords="432,1347,573,1373"/>
+<area shape="rect" id="node4" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="691,437,754,462"/>
+<area shape="rect" id="node6" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42" title="scr_path_is_null" alt="" coords="664,486,782,511"/>
+<area shape="rect" id="node7" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="664,338,781,363"/>
+<area shape="rect" id="node8" href="scr__hash_8c.html#a611b35805a9cfe8bead3ef4c6b073427" title="scr_hash_read" alt="" coords="448,259,557,285"/>
+<area shape="rect" id="node9" href="scr__io_8c.html#ad780fd6d5cd75b94f79faf080a56afd6" title="scr_file_is_readable" alt="" coords="653,198,793,223"/>
+<area shape="rect" id="node13" href="scr__hash_8c.html#a957dc74862ee2c9f9913e9d80fad4b95" title="scr_hash_elem_get" alt="" coords="1234,1565,1371,1590"/>
+<area shape="rect" id="node17" href="scr__path_8c.html#aef3435cd07f05129d7370e8914f49e41" title="scr_path_alloc" alt="" coords="876,385,984,410"/>
+<area shape="rect" id="node18" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="1080,537,1157,562"/>
+<area shape="rect" id="node19" href="scr__path_8c.html#a3b10140983d2b41d10a5fef8acadd214" title="scr_path_elem_alloc" alt="" coords="858,335,1002,361"/>
+<area shape="rect" id="node20" href="scr__path_8c.html#a53234b237d1f111f2126bab24be03064" title="scr_path_elem_insert" alt="" coords="855,486,1004,511"/>
+<area shape="rect" id="node23" href="scr__path_8c.html#ab47d085ffd9bd95e229eac7a938c37a8" title="scr_path_elem_free" alt="" coords="1427,107,1567,133"/>
+<area shape="rect" id="node26" href="scr__hash_8c.html#ad3b2b6e7b17d8e4373e697060417f9f7" title="scr_hash_set" alt="" coords="1069,1133,1169,1158"/>
+<area shape="rect" id="node28" href="scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="1419,638,1575,663"/>
+<area shape="rect" id="node31" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="468,993,537,1018"/>
+<area shape="rect" id="node33" href="scr__filemap_8c.html#a5aae649e43901548f1dadb1987579dd4" title="scr_filemap_get_rh" alt="" coords="435,1935,570,1961"/>
+<area shape="rect" id="node34" href="scr__hash_8c.html#a7f739bf35cf802ca603f6625bd186836" title="scr_hash_size" alt="" coords="449,1886,556,1911"/>
+<area shape="rect" id="node37" href="scr__path_8c.html#a1cecc0735dc7cbefbd01e0e9356c2cc4" title="scr_path_strcpy" alt="" coords="445,614,560,639"/>
+<area shape="rect" id="node39" href="scr__filemap_8c.html#a7aa6fb77a8d6a03fa49a9445c0704df6" title="scr_filemap_get_r" alt="" coords="866,1738,994,1763"/>
+<area shape="rect" id="node41" href="scr__hash_8c.html#aa31efec60b6897b0b4c4835da9471a0f" title="scr_hash_set_kv_int" alt="" coords="651,1473,794,1498"/>
+<area shape="rect" id="node43" href="scr__filemap_8c.html#a9ccbfa4edac85830fa6b32118d5ecbd9" title="scr_filemap_first_dataset\l_by_rank" alt="" coords="638,1623,807,1662"/>
+<area shape="rect" id="node44" href="scr__hash_8c.html#ac545090df1c2aa518cc2e4760e00e5db" title="scr_hash_elem_key_int" alt="" coords="642,1522,803,1547"/>
+<area shape="rect" id="node45" href="scr__filemap_8c.html#aff8472e5e6e46720460e3fd75e5112f8" title="scr_filemap_set_rd" alt="" coords="436,1471,570,1497"/>
+<area shape="rect" id="node46" href="scr__filemap_8c.html#af29b175cda5bd39090b61ee3a2340b3f" title="scr_filemap_remove_rank" alt="" coords="415,1573,590,1598"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_ac512e74afe061169739beaa2d7f08f47_icgraph.png" border="0" usemap="#scr__cache__rebuild_8c_ac512e74afe061169739beaa2d7f08f47_icgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_ac512e74afe061169739beaa2d7f08f47_icgraph" id="scr__cache__rebuild_8c_ac512e74afe061169739beaa2d7f08f47_icgraph">
+<area shape="rect" id="node2" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="197,31,272,56"/>
+<area shape="rect" id="node3" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="320,5,397,31"/>
+<area shape="rect" id="node5" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="323,55,394,80"/>
+<area shape="rect" id="node4" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="445,5,516,31"/>
 </map>
 </div>
 
@@ -475,18 +848,83 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="scr__cache__rebuild_8c_a6b6aca6cf8cd03b30e48836474b07c48_cgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a6b6aca6cf8cd03b30e48836474b07c48_cgraph" alt=""/></div>
 <map name="scr__cache__rebuild_8c_a6b6aca6cf8cd03b30e48836474b07c48_cgraph" id="scr__cache__rebuild_8c_a6b6aca6cf8cd03b30e48836474b07c48_cgraph">
-<area shape="rect" id="node2" href="scr__util__mpi_8c.html#a11a25d65a96d370f230a395c9d4d1374" title="scr_str_sendrecv" alt="" coords="217,5,340,31"/>
-<area shape="rect" id="node3" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="585,132,713,157"/>
-<area shape="rect" id="node4" href="scr__path_8c.html#a4166be3e4ca2dbc5b50c6e0d94d49f01" title="scr_path_basename" alt="" coords="207,107,349,132"/>
-<area shape="rect" id="node6" href="scr__path_8c.html#a42fdd631c165e163a4fc953a72ccaccc" title="scr_path_prepend_str" alt="" coords="203,156,354,181"/>
-<area shape="rect" id="node9" href="scr__path_8c.html#a1cecc0735dc7cbefbd01e0e9356c2cc4" title="scr_path_strcpy" alt="" coords="221,205,336,231"/>
-<area shape="rect" id="node12" href="scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3" title="scr_path_delete" alt="" coords="220,255,337,280"/>
-<area shape="rect" id="node13" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="244,304,313,329"/>
-<area shape="rect" id="node5" href="scr__path_8c.html#a631c36c8a8f4becadd606338ea506bd8" title="scr_path_slice" alt="" coords="416,107,523,132"/>
-<area shape="rect" id="node7" href="scr__path_8c.html#a1aba3dca8fe99f643c30c604bc7774cf" title="scr_path_insert_str" alt="" coords="402,156,537,181"/>
-<area shape="rect" id="node8" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="611,181,687,207"/>
-<area shape="rect" id="node10" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42" title="scr_path_is_null" alt="" coords="410,257,528,283"/>
-<area shape="rect" id="node11" href="scr__path_8c.html#a53dcddedf48597afebf3b6123c323f11" title="scr_path_strlen" alt="" coords="413,307,526,332"/>
+<area shape="rect" id="node2" href="scr__util__mpi_8c.html#a11a25d65a96d370f230a395c9d4d1374" title="scr_str_sendrecv" alt="" coords="217,156,340,181"/>
+<area shape="rect" id="node3" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="622,131,750,156"/>
+<area shape="rect" id="node11" href="scr__path_8c.html#a4166be3e4ca2dbc5b50c6e0d94d49f01" title="scr_path_basename" alt="" coords="207,460,349,485"/>
+<area shape="rect" id="node14" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="843,359,913,384"/>
+<area shape="rect" id="node15" href="scr__path_8c.html#a42fdd631c165e163a4fc953a72ccaccc" title="scr_path_prepend_str" alt="" coords="203,283,354,308"/>
+<area shape="rect" id="node18" href="scr__path_8c.html#a1cecc0735dc7cbefbd01e0e9356c2cc4" title="scr_path_strcpy" alt="" coords="221,561,336,587"/>
+<area shape="rect" id="node22" href="scr__path_8c.html#a07f0c7e95414d2048aa4b2d1ff2eabb3" title="scr_path_delete" alt="" coords="427,347,543,372"/>
+<area shape="rect" id="node4" href="scr__path_8c.html#aef3435cd07f05129d7370e8914f49e41" title="scr_path_alloc" alt="" coords="824,5,932,31"/>
+<area shape="rect" id="node6" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="1197,232,1273,257"/>
+<area shape="rect" id="node7" href="scr__path_8c.html#a3b10140983d2b41d10a5fef8acadd214" title="scr_path_elem_alloc" alt="" coords="806,55,950,80"/>
+<area shape="rect" id="node9" href="scr__path_8c.html#a53234b237d1f111f2126bab24be03064" title="scr_path_elem_insert" alt="" coords="804,156,953,181"/>
+<area shape="rect" id="node5" href="scr__path_8c.html#acc7fb12c3f1f5fd521bcbe08b583e103" title="scr_path_init" alt="" coords="1026,5,1123,31"/>
+<area shape="rect" id="node8" href="scr__path_8c.html#a9308356656673b71ae1839db059a6bb8" title="scr_path_elem_init" alt="" coords="1008,55,1141,80"/>
+<area shape="rect" id="node10" href="scr__path_8c.html#ac23d9ba015580024cc018c6f8d19f1fb" title="scr_path_elem_index" alt="" coords="1001,257,1149,283"/>
+<area shape="rect" id="node12" href="scr__path_8c.html#a631c36c8a8f4becadd606338ea506bd8" title="scr_path_slice" alt="" coords="432,460,539,485"/>
+<area shape="rect" id="node13" href="scr__path_8c.html#ab47d085ffd9bd95e229eac7a938c37a8" title="scr_path_elem_free" alt="" coords="617,359,756,384"/>
+<area shape="rect" id="node16" href="scr__path_8c.html#a1aba3dca8fe99f643c30c604bc7774cf" title="scr_path_insert_str" alt="" coords="418,257,553,283"/>
+<area shape="rect" id="node17" href="scr__path_8c.html#a88dcc466fa4c7955290e7d7bb0678d6e" title="scr_path_combine" alt="" coords="621,257,751,283"/>
+<area shape="rect" id="node19" href="scr__path_8c.html#aa877891ace313cb9a050b20f32257c42" title="scr_path_is_null" alt="" coords="426,561,544,587"/>
+<area shape="rect" id="node20" href="scr__path_8c.html#a53dcddedf48597afebf3b6123c323f11" title="scr_path_strlen" alt="" coords="429,611,541,636"/>
+<area shape="rect" id="node21" href="scr__path_8c.html#af3eb4d09806351c6b2d3a6310842db83" title="scr_path_strcpy_internal" alt="" coords="402,660,569,685"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_a6b6aca6cf8cd03b30e48836474b07c48_icgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a6b6aca6cf8cd03b30e48836474b07c48_icgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_a6b6aca6cf8cd03b30e48836474b07c48_icgraph" id="scr__cache__rebuild_8c_a6b6aca6cf8cd03b30e48836474b07c48_icgraph">
+<area shape="rect" id="node2" href="scr__cache__rebuild_8c.html#afe7888498e6ad652c09fcf7fea2cc1d2" title="scr_distribute_files" alt="" coords="435,5,566,31"/>
+<area shape="rect" id="node8" href="scr__reddesc__apply_8c.html#a6a6373e14b1f64bdba7ee474d6013faa" title="scr_reddesc_apply_partner" alt="" coords="203,88,386,113"/>
+<area shape="rect" id="node3" href="scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="873,49,1003,75"/>
+<area shape="rect" id="node4" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="2251,301,2326,327"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="2374,276,2451,301"/>
+<area shape="rect" id="node7" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="2377,325,2448,351"/>
+<area shape="rect" id="node6" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="2499,276,2570,301"/>
+<area shape="rect" id="node9" href="scr__reddesc__apply_8h.html#a6f90b9ae9f0dedd374854c6b2ee2db7e" title="scr_reddesc_apply" alt="" coords="434,139,567,164"/>
+<area shape="rect" id="node10" href="scr_8h.html#ac293a29f5b8fe722dc58c3d7119d8358" title="SCR_Complete_checkpoint" alt="" coords="615,327,800,352"/>
+<area shape="rect" id="node23" href="scr__fetch_8c.html#a5f1ac3ca7b0907ebe6bd74abb5959dbc" title="scr_fetch_files" alt="" coords="1906,580,2012,605"/>
+<area shape="rect" id="node50" href="scr__reddesc__recover_8h.html#a4153e6d06861201523b1d4ddb3265783" title="scr_reddesc_recover" alt="" coords="635,49,781,75"/>
+<area shape="rect" id="node11" href="scr__interpose_8c.html#a478a20d5d061bf161b47c8da844d031c" title="scri_complete_checkpoint" alt="" coords="850,327,1025,352"/>
+<area shape="rect" id="node49" href="scrf_8c.html#aed05040511320c7d629d6975f32d005c" title="scr_complete_checkpoint_" alt="" coords="848,376,1027,401"/>
+<area shape="rect" id="node12" href="scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="1077,327,1130,352"/>
+<area shape="rect" id="node46" href="scr__interpose_8c.html#acdc6eb76dd2def25905610c9a28eb346" title="fclose" alt="" coords="1075,903,1132,928"/>
+<area shape="rect" id="node13" href="scr__io_8h.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="1228,853,1306,879"/>
+<area shape="rect" id="node36" href="scr__io_8h.html#a8398cfffaea53f470a5321ad66a63998" title="scr_crc32" alt="" coords="1464,201,1543,227"/>
+<area shape="rect" id="node44" href="scr__io_8h.html#acd78c3c9dd280af6d12bb3a0f829f99f" title="scr_open_with_lock" alt="" coords="1198,327,1336,352"/>
+<area shape="rect" id="node14" href="scr__cache__rebuild_8c.html#a5b11561317b0e19b469618475565f8af" title="scr_swap_files_copy" alt="" coords="1432,804,1576,829"/>
+<area shape="rect" id="node15" href="scr__cache__rebuild_8c.html#ae3a1fac8dab364fe7bbbf9a5e1d3ba99" title="scr_swap_files_move" alt="" coords="1429,853,1578,879"/>
+<area shape="rect" id="node16" href="scr__io_8h.html#ac6f08fd91b0d1f5f659f6144f595cb46" title="scr_compress_in_place" alt="" coords="1423,903,1584,928"/>
+<area shape="rect" id="node17" href="scr__io_8h.html#aa0a1a49ef1f65dd4b911885736dbc3be" title="scr_compress" alt="" coords="1452,952,1556,977"/>
+<area shape="rect" id="node18" href="scr__io_8h.html#a1cc54ce0c17777ed1f4f3a6f238746a0" title="scr_uncompress_in_place" alt="" coords="1416,1001,1592,1027"/>
+<area shape="rect" id="node19" href="scr__io_8h.html#a46d89e2e22b58a62368ba5f374b9280f" title="scr_uncompress" alt="" coords="1444,1051,1563,1076"/>
+<area shape="rect" id="node20" href="scr__fetch_8c.html#a6e325071198e919ffe2cd0136c9d5bed" title="scr_fetch_file_from\l_containers" alt="" coords="1437,1100,1571,1139"/>
+<area shape="rect" id="node21" href="scr__fetch_8c.html#a76aa1a1536f9b54e328d9fc67b904db0" title="scr_fetch_rank2file_map" alt="" coords="1420,555,1587,580"/>
+<area shape="rect" id="node22" href="scr__fetch_8c.html#ade8ee294248b324f07c2d2cd5c182998" title="scr_fetch_summary" alt="" coords="1670,580,1808,605"/>
+<area shape="rect" id="node25" href="scr__flush_8c.html#af28714454fc5d54858e4e2ec7a80197f" title="scr_flush_create_containers" alt="" coords="1410,1163,1598,1188"/>
+<area shape="rect" id="node26" href="scr__flush_8c.html#aa3af40734f130984b524116918591cae" title="scr_flush_summary_map" alt="" coords="1419,755,1589,780"/>
+<area shape="rect" id="node27" href="scr__flush_8c.html#ac5987d0809f438da546819b5e83e66df" title="scr_flush_summary" alt="" coords="1671,1132,1808,1157"/>
+<area shape="rect" id="node28" href="scr__flush__sync_8c.html#a70abd90a0fa010cd3d7fc9f278f36085" title="scr_flush_file_to_containers" alt="" coords="1410,1212,1597,1237"/>
+<area shape="rect" id="node29" href="scr__halt_8h.html#a859b037f65c9b3732c23f261cba32ba0" title="scr_halt_read" alt="" coords="1453,1261,1555,1287"/>
+<area shape="rect" id="node30" href="scr__halt_8h.html#a5aa58602e54238669c9dba67214c7c5b" title="scr_halt_sync_and_decrement" alt="" coords="1402,1311,1605,1336"/>
+<area shape="rect" id="node31" href="scr__halt__cntl_8c.html#a9e176b6e6f1fe52dfad03f5fe6c39b4e" title="scr_halt_sync_and_set" alt="" coords="1425,1360,1583,1385"/>
+<area shape="rect" id="node32" href="scr__hash_8h.html#a199735d48cc57b023994af50a3f402e8" title="scr_hash_write" alt="" coords="1448,1409,1559,1435"/>
+<area shape="rect" id="node33" href="scr__hash_8h.html#a611b35805a9cfe8bead3ef4c6b073427" title="scr_hash_read" alt="" coords="1449,1459,1558,1484"/>
+<area shape="rect" id="node34" href="scr__io_8h.html#ad1a8edf4dacf737dc0f6adbe38b9e759" title="scr_close_with_unlock" alt="" coords="1426,403,1581,428"/>
+<area shape="rect" id="node38" href="scr__reddesc__apply_8c.html#a694fa91a75accb24a25e019b0db21bac" title="scr_reddesc_apply_xor" alt="" coords="1879,177,2038,203"/>
+<area shape="rect" id="node39" href="scr__reddesc__recover_8c.html#a7ab16b4ec6d5a5a5f6801ac481677ebd" title="scr_reddesc_recover_xor" alt="" coords="1873,353,2045,379"/>
+<area shape="rect" id="node41" href="scr__io_8h.html#a602b8ce59d5b401b0ebf1f30a1824ee9" title="scr_file_copy" alt="" coords="1690,276,1789,301"/>
+<area shape="rect" id="node42" href="scr__rebuild__xor_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="1479,705,1529,731"/>
+<area shape="rect" id="node43" href="scr__transfer_8c.html#ac796a08477aa55ee679088b7746a4e42" title="close_files" alt="" coords="1462,656,1546,681"/>
+<area shape="rect" id="node24" href="scr__fetch_8h.html#af0be93afd35ec60a32a284dcfbad2b76" title="scr_fetch_sync" alt="" coords="2093,327,2203,352"/>
+<area shape="rect" id="node35" href="scr__hash_8h.html#aa0b9856ae3fecf0adb4e2cc923ae1419" title="scr_hash_read_with_lock" alt="" coords="1653,377,1825,403"/>
+<area shape="rect" id="node37" href="scr__cache_8h.html#a315c8fb4af5d85bd45b98bcb9f98ea06" title="scr_compute_crc" alt="" coords="1678,177,1801,203"/>
+<area shape="rect" id="node40" href="scr__crc32_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="1714,227,1764,252"/>
+<area shape="rect" id="node45" href="scr__hash_8h.html#a400a8b731df26a468996211ff0181a07" title="scr_hash_lock_open_read" alt="" coords="1415,251,1593,276"/>
+<area shape="rect" id="node47" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="1180,903,1354,928"/>
+<area shape="rect" id="node48" href="scr__summary_8c.html#a43569963aa3d667f68e7a2cdadf35b37" title="scr_summary_read_v4\l_to_v5" alt="" coords="1188,952,1345,991"/>
 </map>
 </div>
 
@@ -560,16 +998,519 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="scr__cache__rebuild_8c_ae197f807bb7b3771a4275e5df111b44b_cgraph.png" border="0" usemap="#scr__cache__rebuild_8c_ae197f807bb7b3771a4275e5df111b44b_cgraph" alt=""/></div>
 <map name="scr__cache__rebuild_8c_ae197f807bb7b3771a4275e5df111b44b_cgraph" id="scr__cache__rebuild_8c_ae197f807bb7b3771a4275e5df111b44b_cgraph">
-<area shape="rect" id="node2" href="scr__hash__mpi_8c.html#a90dd9073c9aa0d5246fef70f738f5d6b" title="scr_hash_sendrecv" alt="" coords="162,179,299,204"/>
-<area shape="rect" id="node3" href="scr__hash_8c.html#add851f8aa3c61277a117370f15fe87f1" title="scr_hash_unset_all" alt="" coords="350,55,486,80"/>
-<area shape="rect" id="node7" href="scr__hash_8c.html#ad357333633b1f7a7c4ae3e2acf61cdb7" title="scr_hash_pack_size" alt="" coords="347,104,489,129"/>
-<area shape="rect" id="node8" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="380,153,457,179"/>
-<area shape="rect" id="node9" href="scr__hash_8c.html#a1aad093ce7d82caa3686a6e984580c07" title="scr_hash_pack" alt="" coords="363,203,474,228"/>
-<area shape="rect" id="node10" href="scr__hash_8c.html#af8b42baf95c208f505ebf66b55643b0a" title="scr_hash_unpack" alt="" coords="355,252,481,277"/>
-<area shape="rect" id="node11" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="383,301,453,327"/>
-<area shape="rect" id="node4" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="546,5,687,31"/>
-<area shape="rect" id="node5" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="545,55,689,80"/>
-<area shape="rect" id="node6" href="scr__hash_8c.html#a963886c1fb9bfa935c22f85f5bf4799c" title="scr_hash_elem_extract\l_by_addr" alt="" coords="537,104,696,143"/>
+<area shape="rect" id="node2" href="scr__hash__mpi_8c.html#a90dd9073c9aa0d5246fef70f738f5d6b" title="scr_hash_sendrecv" alt="" coords="177,152,314,177"/>
+<area shape="rect" id="node20" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1052,451,1114,476"/>
+<area shape="rect" id="node21" href="scr__cache__rebuild_8c.html#a5b11561317b0e19b469618475565f8af" title="scr_swap_files_copy" alt="" coords="173,652,318,677"/>
+<area shape="rect" id="node29" href="scr__meta_8c.html#ab250e61c8a0bcc50f99b8c146a903b7f" title="scr_meta_set_complete" alt="" coords="1002,916,1164,941"/>
+<area shape="rect" id="node40" href="scr__meta_8c.html#aeb80e393ea5fae02ba40acd005d5b357" title="scr_meta_get_crc32" alt="" coords="377,452,519,477"/>
+<area shape="rect" id="node46" href="scr__cache__rebuild_8c.html#ae3a1fac8dab364fe7bbbf9a5e1d3ba99" title="scr_swap_files_move" alt="" coords="171,751,320,776"/>
+<area shape="rect" id="node47" href="scr__io_8c.html#ad1d014c1d74d4b41689a0b025377b6cb" title="scr_file_size" alt="" coords="400,1049,495,1075"/>
+<area shape="rect" id="node49" href="scr__meta_8c.html#a2d1403188849e9a6485c951f3630674a" title="scr_meta_check_filesize" alt="" coords="162,325,329,351"/>
+<area shape="rect" id="node3" href="scr__hash_8c.html#add851f8aa3c61277a117370f15fe87f1" title="scr_hash_unset_all" alt="" coords="811,108,947,133"/>
+<area shape="rect" id="node8" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1779,264,1848,289"/>
+<area shape="rect" id="node10" href="scr__hash_8c.html#ad357333633b1f7a7c4ae3e2acf61cdb7" title="scr_hash_pack_size" alt="" coords="377,51,519,76"/>
+<area shape="rect" id="node12" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="1045,704,1121,729"/>
+<area shape="rect" id="node13" href="scr__hash_8c.html#a1aad093ce7d82caa3686a6e984580c07" title="scr_hash_pack" alt="" coords="392,152,503,177"/>
+<area shape="rect" id="node15" href="scr__hash_8c.html#af8b42baf95c208f505ebf66b55643b0a" title="scr_hash_unpack" alt="" coords="385,225,511,251"/>
+<area shape="rect" id="node4" href="scr__hash_8c.html#a84b31776cc346b517aa03a07c2fa338b" title="scr_hash_elem_first" alt="" coords="1013,213,1153,239"/>
+<area shape="rect" id="node5" href="scr__hash_8c.html#a9317a9a568df6806df5b978b8ae7aef7" title="scr_hash_elem_next" alt="" coords="1011,164,1155,189"/>
+<area shape="rect" id="node6" href="scr__hash_8c.html#a963886c1fb9bfa935c22f85f5bf4799c" title="scr_hash_elem_extract\l_by_addr" alt="" coords="1003,101,1163,140"/>
+<area shape="rect" id="node7" href="scr__hash_8c.html#a0a8583101112f61e7d0085e1a0cf38b5" title="scr_hash_elem_delete" alt="" coords="1406,213,1562,239"/>
+<area shape="rect" id="node9" href="scr__hash_8c.html#a8d332aef5600a97119ea223b4c9573b0" title="scr_hash_delete" alt="" coords="1612,213,1731,239"/>
+<area shape="rect" id="node11" href="scr__hash_8c.html#a698725123e4cd3476e7a247d5ce0fe1c" title="scr_hash_elem_pack_size" alt="" coords="573,51,752,76"/>
+<area shape="rect" id="node14" href="scr__hash_8c.html#ac5235f81bef50b0b8dc5e750b9020a72" title="scr_hash_elem_pack" alt="" coords="589,152,736,177"/>
+<area shape="rect" id="node16" href="scr__hash_8c.html#a8a814803dc735def5f84d78135eeed7b" title="scr_hash_elem_new" alt="" coords="591,201,734,227"/>
+<area shape="rect" id="node17" href="scr__hash_8c.html#a1db676976bc663903cb6570222d04f16" title="scr_hash_elem_unpack" alt="" coords="581,251,743,276"/>
+<area shape="rect" id="node18" href="scr__hash_8c.html#a2d06e9a9e1a0d88f73553b8bffdd0f72" title="scr_hash_new" alt="" coords="1618,615,1725,640"/>
+<area shape="rect" id="node19" href="scr__hash_8c.html#a05ca10e6665c616a860c1780a46ede68" title="scr_hash_elem_init" alt="" coords="811,300,947,325"/>
+<area shape="rect" id="node22" href="scr__util_8c.html#a439ed3526c2206c412b9a1ceba76ce00" title="scr_align_malloc" alt="" coords="387,800,508,825"/>
+<area shape="rect" id="node23" href="scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="410,751,486,776"/>
+<area shape="rect" id="node35" href="scr__io_8c.html#a9e94f39d8ce07b0d99ac644305d77d88" title="scr_getmode" alt="" coords="399,652,497,677"/>
+<area shape="rect" id="node36" href="scr__io_8c.html#a24ba95b0ca313a422c74b2967995c408" title="scr_read" alt="" coords="411,501,484,527"/>
+<area shape="rect" id="node37" href="scr__io_8c.html#a27758db29a346b82f975b6b46474ef92" title="scr_write" alt="" coords="410,603,485,628"/>
+<area shape="rect" id="node38" href="scr__io_8c.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="409,701,487,727"/>
+<area shape="rect" id="node43" href="scr__meta_8c.html#a358bca0b2612e262ce418220c4616611" title="scr_meta_set_crc32" alt="" coords="377,849,518,875"/>
+<area shape="rect" id="node45" href="scr__util_8c.html#a65b4eb3428557c6d70b5eaf7c5dffdcf" title="scr_align_free" alt="" coords="395,1000,500,1025"/>
+<area shape="rect" id="node24" href="scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="637,905,688,931"/>
+<area shape="rect" id="node34" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="628,804,697,829"/>
+<area shape="rect" id="node25" href="scr__interpose_8c.html#abd7f1b7f379e3e9349dfb51b11560d6c" title="scr_interpose_init" alt="" coords="816,805,942,831"/>
+<area shape="rect" id="node26" href="scr__interpose_8c.html#a3b1f5e31696f3b780622ed6e8abfdb88" title="scri_is_checkpoint\l_filename" alt="" coords="814,904,944,943"/>
+<area shape="rect" id="node27" href="scr__interpose_8c.html#a3ca735fbe8e4e2f11b0b9c9a6cbc8fdf" title="scri_start_checkpoint" alt="" coords="806,855,952,880"/>
+<area shape="rect" id="node28" href="scr_8c.html#a32663736ac649e2bb4054624532409f1" title="SCR_Route_file" alt="" coords="821,967,938,992"/>
+<area shape="rect" id="node30" href="scr__hash_8c.html#a5f36326bf5682a4ad267f693436c5e62" title="scr_hash_unset" alt="" coords="1227,867,1343,892"/>
+<area shape="rect" id="node32" href="scr__hash_8c.html#aa31efec60b6897b0b4c4835da9471a0f" title="scr_hash_set_kv_int" alt="" coords="1214,916,1356,941"/>
+<area shape="rect" id="node31" href="scr__hash_8c.html#a6f3011addb5868ed12bf97387eb23e56" title="scr_hash_elem_extract" alt="" coords="1404,867,1564,892"/>
+<area shape="rect" id="node33" href="scr__hash_8c.html#aaa2f6071e810686b19545854d5e92a9d" title="scr_hash_set_kv" alt="" coords="1423,916,1545,941"/>
+<area shape="rect" id="node39" href="scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="636,755,689,780"/>
+<area shape="rect" id="node41" href="scr__hash__util_8c.html#a68a18cfbcb1220938eb382f2ff4f71ab" title="scr_hash_util_get_crc32" alt="" coords="579,349,745,375"/>
+<area shape="rect" id="node42" href="scr__hash_8c.html#af5e3ceb1f25bab8d0ff49a06788bb565" title="scr_hash_get_val" alt="" coords="816,349,942,375"/>
+<area shape="rect" id="node44" href="scr__hash__util_8c.html#af59388c68ea37b7732be5357c096c48b" title="scr_hash_util_set_crc32" alt="" coords="1000,867,1166,892"/>
+<area shape="rect" id="node48" href="scr__io_8c.html#a8cf06f71c585cab86838bf7d73a75f5f" title="scr_file_unlink" alt="" coords="395,899,501,924"/>
+<area shape="rect" id="node50" href="scr__hash__util_8c.html#afe6a4bb84c0d13a580a0c2c264f3474d" title="scr_hash_util_get_bytecount" alt="" coords="567,300,758,325"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_ae197f807bb7b3771a4275e5df111b44b_icgraph.png" border="0" usemap="#scr__cache__rebuild_8c_ae197f807bb7b3771a4275e5df111b44b_icgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_ae197f807bb7b3771a4275e5df111b44b_icgraph" id="scr__cache__rebuild_8c_ae197f807bb7b3771a4275e5df111b44b_icgraph">
+<area shape="rect" id="node2" href="scr__cache__rebuild_8c.html#afe7888498e6ad652c09fcf7fea2cc1d2" title="scr_distribute_files" alt="" coords="394,5,526,31"/>
+<area shape="rect" id="node8" href="scr__reddesc__apply_8c.html#a6a6373e14b1f64bdba7ee474d6013faa" title="scr_reddesc_apply_partner" alt="" coords="162,88,345,113"/>
+<area shape="rect" id="node3" href="scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="832,49,962,75"/>
+<area shape="rect" id="node4" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="2210,301,2285,327"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="2333,276,2411,301"/>
+<area shape="rect" id="node7" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="2336,325,2407,351"/>
+<area shape="rect" id="node6" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="2459,276,2529,301"/>
+<area shape="rect" id="node9" href="scr__reddesc__apply_8h.html#a6f90b9ae9f0dedd374854c6b2ee2db7e" title="scr_reddesc_apply" alt="" coords="393,139,526,164"/>
+<area shape="rect" id="node10" href="scr_8h.html#ac293a29f5b8fe722dc58c3d7119d8358" title="SCR_Complete_checkpoint" alt="" coords="574,327,759,352"/>
+<area shape="rect" id="node23" href="scr__fetch_8c.html#a5f1ac3ca7b0907ebe6bd74abb5959dbc" title="scr_fetch_files" alt="" coords="1865,580,1971,605"/>
+<area shape="rect" id="node50" href="scr__reddesc__recover_8h.html#a4153e6d06861201523b1d4ddb3265783" title="scr_reddesc_recover" alt="" coords="594,49,740,75"/>
+<area shape="rect" id="node11" href="scr__interpose_8c.html#a478a20d5d061bf161b47c8da844d031c" title="scri_complete_checkpoint" alt="" coords="810,327,984,352"/>
+<area shape="rect" id="node49" href="scrf_8c.html#aed05040511320c7d629d6975f32d005c" title="scr_complete_checkpoint_" alt="" coords="807,376,987,401"/>
+<area shape="rect" id="node12" href="scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="1036,327,1089,352"/>
+<area shape="rect" id="node46" href="scr__interpose_8c.html#acdc6eb76dd2def25905610c9a28eb346" title="fclose" alt="" coords="1035,903,1091,928"/>
+<area shape="rect" id="node13" href="scr__io_8h.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="1187,853,1265,879"/>
+<area shape="rect" id="node36" href="scr__io_8h.html#a8398cfffaea53f470a5321ad66a63998" title="scr_crc32" alt="" coords="1423,201,1503,227"/>
+<area shape="rect" id="node44" href="scr__io_8h.html#acd78c3c9dd280af6d12bb3a0f829f99f" title="scr_open_with_lock" alt="" coords="1157,327,1295,352"/>
+<area shape="rect" id="node14" href="scr__cache__rebuild_8c.html#a5b11561317b0e19b469618475565f8af" title="scr_swap_files_copy" alt="" coords="1391,804,1535,829"/>
+<area shape="rect" id="node15" href="scr__cache__rebuild_8c.html#ae3a1fac8dab364fe7bbbf9a5e1d3ba99" title="scr_swap_files_move" alt="" coords="1389,853,1537,879"/>
+<area shape="rect" id="node16" href="scr__io_8h.html#ac6f08fd91b0d1f5f659f6144f595cb46" title="scr_compress_in_place" alt="" coords="1382,903,1544,928"/>
+<area shape="rect" id="node17" href="scr__io_8h.html#aa0a1a49ef1f65dd4b911885736dbc3be" title="scr_compress" alt="" coords="1411,952,1515,977"/>
+<area shape="rect" id="node18" href="scr__io_8h.html#a1cc54ce0c17777ed1f4f3a6f238746a0" title="scr_uncompress_in_place" alt="" coords="1375,1001,1551,1027"/>
+<area shape="rect" id="node19" href="scr__io_8h.html#a46d89e2e22b58a62368ba5f374b9280f" title="scr_uncompress" alt="" coords="1403,1051,1523,1076"/>
+<area shape="rect" id="node20" href="scr__fetch_8c.html#a6e325071198e919ffe2cd0136c9d5bed" title="scr_fetch_file_from\l_containers" alt="" coords="1396,1100,1530,1139"/>
+<area shape="rect" id="node21" href="scr__fetch_8c.html#a76aa1a1536f9b54e328d9fc67b904db0" title="scr_fetch_rank2file_map" alt="" coords="1380,555,1546,580"/>
+<area shape="rect" id="node22" href="scr__fetch_8c.html#ade8ee294248b324f07c2d2cd5c182998" title="scr_fetch_summary" alt="" coords="1629,580,1767,605"/>
+<area shape="rect" id="node25" href="scr__flush_8c.html#af28714454fc5d54858e4e2ec7a80197f" title="scr_flush_create_containers" alt="" coords="1369,1163,1557,1188"/>
+<area shape="rect" id="node26" href="scr__flush_8c.html#aa3af40734f130984b524116918591cae" title="scr_flush_summary_map" alt="" coords="1378,755,1548,780"/>
+<area shape="rect" id="node27" href="scr__flush_8c.html#ac5987d0809f438da546819b5e83e66df" title="scr_flush_summary" alt="" coords="1630,1132,1767,1157"/>
+<area shape="rect" id="node28" href="scr__flush__sync_8c.html#a70abd90a0fa010cd3d7fc9f278f36085" title="scr_flush_file_to_containers" alt="" coords="1370,1212,1556,1237"/>
+<area shape="rect" id="node29" href="scr__halt_8h.html#a859b037f65c9b3732c23f261cba32ba0" title="scr_halt_read" alt="" coords="1412,1261,1514,1287"/>
+<area shape="rect" id="node30" href="scr__halt_8h.html#a5aa58602e54238669c9dba67214c7c5b" title="scr_halt_sync_and_decrement" alt="" coords="1361,1311,1564,1336"/>
+<area shape="rect" id="node31" href="scr__halt__cntl_8c.html#a9e176b6e6f1fe52dfad03f5fe6c39b4e" title="scr_halt_sync_and_set" alt="" coords="1384,1360,1542,1385"/>
+<area shape="rect" id="node32" href="scr__hash_8h.html#a199735d48cc57b023994af50a3f402e8" title="scr_hash_write" alt="" coords="1407,1409,1518,1435"/>
+<area shape="rect" id="node33" href="scr__hash_8h.html#a611b35805a9cfe8bead3ef4c6b073427" title="scr_hash_read" alt="" coords="1408,1459,1518,1484"/>
+<area shape="rect" id="node34" href="scr__io_8h.html#ad1a8edf4dacf737dc0f6adbe38b9e759" title="scr_close_with_unlock" alt="" coords="1386,403,1540,428"/>
+<area shape="rect" id="node38" href="scr__reddesc__apply_8c.html#a694fa91a75accb24a25e019b0db21bac" title="scr_reddesc_apply_xor" alt="" coords="1838,177,1998,203"/>
+<area shape="rect" id="node39" href="scr__reddesc__recover_8c.html#a7ab16b4ec6d5a5a5f6801ac481677ebd" title="scr_reddesc_recover_xor" alt="" coords="1832,353,2004,379"/>
+<area shape="rect" id="node41" href="scr__io_8h.html#a602b8ce59d5b401b0ebf1f30a1824ee9" title="scr_file_copy" alt="" coords="1649,276,1748,301"/>
+<area shape="rect" id="node42" href="scr__rebuild__xor_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="1438,705,1488,731"/>
+<area shape="rect" id="node43" href="scr__transfer_8c.html#ac796a08477aa55ee679088b7746a4e42" title="close_files" alt="" coords="1421,656,1505,681"/>
+<area shape="rect" id="node24" href="scr__fetch_8h.html#af0be93afd35ec60a32a284dcfbad2b76" title="scr_fetch_sync" alt="" coords="2052,327,2162,352"/>
+<area shape="rect" id="node35" href="scr__hash_8h.html#aa0b9856ae3fecf0adb4e2cc923ae1419" title="scr_hash_read_with_lock" alt="" coords="1612,377,1784,403"/>
+<area shape="rect" id="node37" href="scr__cache_8h.html#a315c8fb4af5d85bd45b98bcb9f98ea06" title="scr_compute_crc" alt="" coords="1637,177,1760,203"/>
+<area shape="rect" id="node40" href="scr__crc32_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="1673,227,1723,252"/>
+<area shape="rect" id="node45" href="scr__hash_8h.html#a400a8b731df26a468996211ff0181a07" title="scr_hash_lock_open_read" alt="" coords="1374,251,1552,276"/>
+<area shape="rect" id="node47" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="1139,903,1313,928"/>
+<area shape="rect" id="node48" href="scr__summary_8c.html#a43569963aa3d667f68e7a2cdadf35b37" title="scr_summary_read_v4\l_to_v5" alt="" coords="1148,952,1305,991"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a5b11561317b0e19b469618475565f8af"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5b11561317b0e19b469618475565f8af">&sect;&nbsp;</a></span>scr_swap_files_copy()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_swap_files_copy </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>have_outgoing</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file_send</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="scr__meta_8h.html#a1caef3e8ddc020309db3f7a53cb15ee4">scr_meta</a> *&#160;</td>
+          <td class="paramname"><em>meta_send</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>rank_send</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uLong *&#160;</td>
+          <td class="paramname"><em>crc32_send</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>have_incoming</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file_recv</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="scr__meta_8h.html#a1caef3e8ddc020309db3f7a53cb15ee4">scr_meta</a> *&#160;</td>
+          <td class="paramname"><em>meta_recv</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>rank_recv</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uLong *&#160;</td>
+          <td class="paramname"><em>crc32_recv</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">MPI_Comm&#160;</td>
+          <td class="paramname"><em>comm</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__cache__rebuild_8c_source.html#l00097">97</a> of file <a class="el" href="scr__cache__rebuild_8c_source.html">scr_cache_rebuild.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_a5b11561317b0e19b469618475565f8af_cgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a5b11561317b0e19b469618475565f8af_cgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_a5b11561317b0e19b469618475565f8af_cgraph" id="scr__cache__rebuild_8c_a5b11561317b0e19b469618475565f8af_cgraph">
+<area shape="rect" id="node2" href="scr__util_8c.html#a439ed3526c2206c412b9a1ceba76ce00" title="scr_align_malloc" alt="" coords="208,5,329,31"/>
+<area shape="rect" id="node3" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="1271,812,1348,837"/>
+<area shape="rect" id="node4" href="scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="231,1260,307,1285"/>
+<area shape="rect" id="node35" href="scr__io_8c.html#a9e94f39d8ce07b0d99ac644305d77d88" title="scr_getmode" alt="" coords="220,1519,318,1544"/>
+<area shape="rect" id="node36" href="scr__io_8c.html#a24ba95b0ca313a422c74b2967995c408" title="scr_read" alt="" coords="434,1871,507,1896"/>
+<area shape="rect" id="node37" href="scr__io_8c.html#a27758db29a346b82f975b6b46474ef92" title="scr_write" alt="" coords="231,1312,306,1337"/>
+<area shape="rect" id="node38" href="scr__io_8c.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="230,1368,308,1393"/>
+<area shape="rect" id="node44" href="scr__meta_8c.html#aeb80e393ea5fae02ba40acd005d5b357" title="scr_meta_get_crc32" alt="" coords="198,1417,340,1443"/>
+<area shape="rect" id="node47" href="scr__meta_8c.html#a358bca0b2612e262ce418220c4616611" title="scr_meta_set_crc32" alt="" coords="400,444,541,469"/>
+<area shape="rect" id="node50" href="scr__util_8c.html#a65b4eb3428557c6d70b5eaf7c5dffdcf" title="scr_align_free" alt="" coords="418,756,523,781"/>
+<area shape="rect" id="node5" href="scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="445,1259,496,1284"/>
+<area shape="rect" id="node14" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="1095,1267,1164,1292"/>
+<area shape="rect" id="node21" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1098,1645,1161,1671"/>
+<area shape="rect" id="node6" href="scr__interpose_8c.html#abd7f1b7f379e3e9349dfb51b11560d6c" title="scr_interpose_init" alt="" coords="626,1419,752,1444"/>
+<area shape="rect" id="node8" href="scr__interpose_8c.html#a3b1f5e31696f3b780622ed6e8abfdb88" title="scri_is_checkpoint\l_filename" alt="" coords="624,1304,754,1343"/>
+<area shape="rect" id="node10" href="scr__interpose_8c.html#a3ca735fbe8e4e2f11b0b9c9a6cbc8fdf" title="scri_start_checkpoint" alt="" coords="616,1205,762,1231"/>
+<area shape="rect" id="node15" href="scr_8c.html#a32663736ac649e2bb4054624532409f1" title="SCR_Route_file" alt="" coords="631,736,748,761"/>
+<area shape="rect" id="node34" href="scr__interpose_8c.html#afca6a25b14d674fa41161178f096c465" title="scri_add_checkpoint_fd" alt="" coords="608,1255,770,1280"/>
+<area shape="rect" id="node7" href="scr__interpose_8c.html#a4b8cc8d253c7457aeb0cd97d711362ef" title="mydlsym" alt="" coords="869,1419,943,1444"/>
+<area shape="rect" id="node9" href="scr__interpose_8c.html#a541b0a62de28f9a11fc8f68d28d3f723" title="scri_index_by_filename" alt="" coords="826,1317,986,1343"/>
+<area shape="rect" id="node11" href="scr_8c.html#a8d5fa9b2627ab77cd53e423299a1d1b1" title="SCR_Start_checkpoint" alt="" coords="828,1167,984,1192"/>
+<area shape="rect" id="node12" href="scr__reddesc_8c.html#a3e173728272a327e026536bf0d4c9fb6" title="scr_reddesc_for_checkpoint" alt="" coords="1035,1116,1223,1141"/>
+<area shape="rect" id="node13" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1095,685,1164,711"/>
+<area shape="rect" id="node16" href="scr_8c.html#a65cf86bf28f6cdc7842e883f52b1a177" title="scr_route_file" alt="" coords="855,1015,957,1040"/>
+<area shape="rect" id="node17" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="1065,964,1194,989"/>
+<area shape="rect" id="node18" href="scr__path_8c.html#a42fdd631c165e163a4fc953a72ccaccc" title="scr_path_prepend_str" alt="" coords="1054,1065,1205,1091"/>
+<area shape="rect" id="node19" href="scr__filemap_8c.html#a7a5e9a9c0c2720594159c967b5b5d9e2" title="scr_filemap_add_file" alt="" coords="834,863,978,888"/>
+<area shape="rect" id="node20" href="scr__meta_8c.html#a5d0f5573d68b9fd860469fd2437d9ae7" title="scr_meta_new" alt="" coords="852,1216,960,1241"/>
+<area shape="rect" id="node22" href="scr__filemap_8c.html#a62326773d11fb78c0f2db8a07bc1ea26" title="scr_filemap_get_meta" alt="" coords="830,611,982,636"/>
+<area shape="rect" id="node23" href="scr__meta_8c.html#ab4ac4c77ca4bce630a2b34a0e000baaa" title="scr_meta_set_filename" alt="" coords="826,660,985,685"/>
+<area shape="rect" id="node24" href="scr__path_8c.html#ab121aedc3aaca4d1c0cd240912d858cd" title="scr_path_strdup" alt="" coords="1071,585,1188,611"/>
+<area shape="rect" id="node26" href="scr__meta_8c.html#ad7e3b3c489f9679a7d475173e15334fe" title="scr_meta_set_filetype" alt="" coords="830,509,981,535"/>
+<area shape="rect" id="node27" href="scr__meta_8c.html#ab250e61c8a0bcc50f99b8c146a903b7f" title="scr_meta_set_complete" alt="" coords="824,309,987,335"/>
+<area shape="rect" id="node28" href="scr__meta_8c.html#ad3acef442f4bc67a3800030fabce71c0" title="scr_meta_set_ranks" alt="" coords="835,359,977,384"/>
+<area shape="rect" id="node29" href="scr__meta_8c.html#a4c81125a29a91e3a5917619b9e6e3ebe" title="scr_meta_set_orig" alt="" coords="840,460,971,485"/>
+<area shape="rect" id="node30" href="scr__path_8c.html#a9ca24383f44a12664bd8f4ec3a83200f" title="scr_path_is_absolute" alt="" coords="832,761,980,787"/>
+<area shape="rect" id="node31" href="scr__io_8c.html#a94b23ab2cb79ee52b94d74fb5767f20a" title="scr_getcwd" alt="" coords="1085,215,1174,240"/>
+<area shape="rect" id="node32" href="scr__path_8c.html#a4f90a011aab44e714f5c78cab352ab16" title="scr_path_reduce" alt="" coords="1069,284,1190,309"/>
+<area shape="rect" id="node33" href="scr__path_8c.html#aa5fa230924c235d4672781f784753a85" title="scr_path_cut" alt="" coords="1081,812,1178,837"/>
+<area shape="rect" id="node25" href="scr__hash_8c.html#a5f36326bf5682a4ad267f693436c5e62" title="scr_hash_unset" alt="" coords="1072,409,1187,435"/>
+<area shape="rect" id="node39" href="scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="445,1595,497,1620"/>
+<area shape="rect" id="node40" href="scr__interpose_8c.html#ad35fa250c8566e3463b518a6bff23da1" title="scri_is_checkpoint_fd" alt="" coords="615,1571,763,1596"/>
+<area shape="rect" id="node41" href="scr__interpose_8c.html#a67f364dac479044821d0e226311dd49c" title="scri_index_by_fd" alt="" coords="845,1620,967,1645"/>
+<area shape="rect" id="node42" href="scr__interpose_8c.html#a478a20d5d061bf161b47c8da844d031c" title="scri_complete_checkpoint" alt="" coords="602,1669,776,1695"/>
+<area shape="rect" id="node43" href="scr__interpose_8c.html#a0ddcc0a94e31343d67e315122caa0768" title="scri_drop_checkpoint_fd" alt="" coords="606,1620,772,1645"/>
+<area shape="rect" id="node45" href="scr__hash__util_8c.html#a68a18cfbcb1220938eb382f2ff4f71ab" title="scr_hash_util_get_crc32" alt="" coords="388,1821,554,1847"/>
+<area shape="rect" id="node46" href="scr__hash_8c.html#af5e3ceb1f25bab8d0ff49a06788bb565" title="scr_hash_get_val" alt="" coords="626,1821,752,1847"/>
+<area shape="rect" id="node48" href="scr__hash__util_8c.html#af59388c68ea37b7732be5357c096c48b" title="scr_hash_util_set_crc32" alt="" coords="607,208,772,233"/>
+<area shape="rect" id="node49" href="scr__hash_8c.html#a5cbcf5d65ca321c46896c1c34fb50666" title="scr_hash_setf" alt="" coords="854,107,958,132"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_a5b11561317b0e19b469618475565f8af_icgraph.png" border="0" usemap="#scr__cache__rebuild_8c_a5b11561317b0e19b469618475565f8af_icgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_a5b11561317b0e19b469618475565f8af_icgraph" id="scr__cache__rebuild_8c_a5b11561317b0e19b469618475565f8af_icgraph">
+<area shape="rect" id="node2" href="scr__cache__rebuild_8h.html#ae197f807bb7b3771a4275e5df111b44b" title="scr_swap_files" alt="" coords="198,120,306,145"/>
+<area shape="rect" id="node3" href="scr__cache__rebuild_8c.html#afe7888498e6ad652c09fcf7fea2cc1d2" title="scr_distribute_files" alt="" coords="586,5,718,31"/>
+<area shape="rect" id="node9" href="scr__reddesc__apply_8c.html#a6a6373e14b1f64bdba7ee474d6013faa" title="scr_reddesc_apply_partner" alt="" coords="354,157,537,183"/>
+<area shape="rect" id="node4" href="scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="1025,43,1154,68"/>
+<area shape="rect" id="node5" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="2403,600,2477,625"/>
+<area shape="rect" id="node6" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="2525,575,2603,600"/>
+<area shape="rect" id="node8" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="2529,624,2600,649"/>
+<area shape="rect" id="node7" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="2651,575,2721,600"/>
+<area shape="rect" id="node10" href="scr__reddesc__apply_8h.html#a6f90b9ae9f0dedd374854c6b2ee2db7e" title="scr_reddesc_apply" alt="" coords="585,183,719,208"/>
+<area shape="rect" id="node11" href="scr_8h.html#ac293a29f5b8fe722dc58c3d7119d8358" title="SCR_Complete_checkpoint" alt="" coords="767,345,952,371"/>
+<area shape="rect" id="node23" href="scr__fetch_8c.html#a5f1ac3ca7b0907ebe6bd74abb5959dbc" title="scr_fetch_files" alt="" coords="2057,1307,2164,1332"/>
+<area shape="rect" id="node50" href="scr__reddesc__recover_8h.html#a4153e6d06861201523b1d4ddb3265783" title="scr_reddesc_recover" alt="" coords="786,43,932,68"/>
+<area shape="rect" id="node12" href="scr__interpose_8c.html#a478a20d5d061bf161b47c8da844d031c" title="scri_complete_checkpoint" alt="" coords="1002,345,1177,371"/>
+<area shape="rect" id="node49" href="scrf_8c.html#aed05040511320c7d629d6975f32d005c" title="scr_complete_checkpoint_" alt="" coords="1000,395,1179,420"/>
+<area shape="rect" id="node13" href="scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="1229,345,1281,371"/>
+<area shape="rect" id="node46" href="scr__interpose_8c.html#acdc6eb76dd2def25905610c9a28eb346" title="fclose" alt="" coords="1227,859,1283,884"/>
+<area shape="rect" id="node14" href="scr__io_8h.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="1380,809,1457,835"/>
+<area shape="rect" id="node36" href="scr__io_8h.html#a8398cfffaea53f470a5321ad66a63998" title="scr_crc32" alt="" coords="1616,345,1695,371"/>
+<area shape="rect" id="node44" href="scr__io_8h.html#acd78c3c9dd280af6d12bb3a0f829f99f" title="scr_open_with_lock" alt="" coords="1349,295,1488,320"/>
+<area shape="rect" id="node15" href="scr__cache__rebuild_8c.html#ae3a1fac8dab364fe7bbbf9a5e1d3ba99" title="scr_swap_files_move" alt="" coords="1581,244,1730,269"/>
+<area shape="rect" id="node16" href="scr__io_8h.html#ac6f08fd91b0d1f5f659f6144f595cb46" title="scr_compress_in_place" alt="" coords="1575,1257,1736,1283"/>
+<area shape="rect" id="node17" href="scr__io_8h.html#aa0a1a49ef1f65dd4b911885736dbc3be" title="scr_compress" alt="" coords="1603,1307,1707,1332"/>
+<area shape="rect" id="node18" href="scr__io_8h.html#a1cc54ce0c17777ed1f4f3a6f238746a0" title="scr_uncompress_in_place" alt="" coords="1567,1356,1743,1381"/>
+<area shape="rect" id="node19" href="scr__io_8h.html#a46d89e2e22b58a62368ba5f374b9280f" title="scr_uncompress" alt="" coords="1596,1405,1715,1431"/>
+<area shape="rect" id="node20" href="scr__fetch_8c.html#a6e325071198e919ffe2cd0136c9d5bed" title="scr_fetch_file_from\l_containers" alt="" coords="1588,496,1722,535"/>
+<area shape="rect" id="node21" href="scr__fetch_8c.html#a76aa1a1536f9b54e328d9fc67b904db0" title="scr_fetch_rank2file_map" alt="" coords="1572,1159,1739,1184"/>
+<area shape="rect" id="node22" href="scr__fetch_8c.html#ade8ee294248b324f07c2d2cd5c182998" title="scr_fetch_summary" alt="" coords="1822,1307,1959,1332"/>
+<area shape="rect" id="node25" href="scr__flush_8c.html#af28714454fc5d54858e4e2ec7a80197f" title="scr_flush_create_containers" alt="" coords="1561,559,1749,584"/>
+<area shape="rect" id="node26" href="scr__flush_8c.html#aa3af40734f130984b524116918591cae" title="scr_flush_summary_map" alt="" coords="1570,860,1740,885"/>
+<area shape="rect" id="node27" href="scr__flush_8c.html#ac5987d0809f438da546819b5e83e66df" title="scr_flush_summary" alt="" coords="1822,959,1959,984"/>
+<area shape="rect" id="node28" href="scr__flush__sync_8c.html#a70abd90a0fa010cd3d7fc9f278f36085" title="scr_flush_file_to_containers" alt="" coords="1562,608,1749,633"/>
+<area shape="rect" id="node29" href="scr__halt_8h.html#a859b037f65c9b3732c23f261cba32ba0" title="scr_halt_read" alt="" coords="1604,709,1706,735"/>
+<area shape="rect" id="node30" href="scr__halt_8h.html#a5aa58602e54238669c9dba67214c7c5b" title="scr_halt_sync_and_decrement" alt="" coords="1554,759,1757,784"/>
+<area shape="rect" id="node31" href="scr__halt__cntl_8c.html#a9e176b6e6f1fe52dfad03f5fe6c39b4e" title="scr_halt_sync_and_set" alt="" coords="1576,909,1734,935"/>
+<area shape="rect" id="node32" href="scr__hash_8h.html#a199735d48cc57b023994af50a3f402e8" title="scr_hash_write" alt="" coords="1600,959,1711,984"/>
+<area shape="rect" id="node33" href="scr__hash_8h.html#a611b35805a9cfe8bead3ef4c6b073427" title="scr_hash_read" alt="" coords="1601,1008,1710,1033"/>
+<area shape="rect" id="node34" href="scr__io_8h.html#ad1a8edf4dacf737dc0f6adbe38b9e759" title="scr_close_with_unlock" alt="" coords="1578,395,1733,420"/>
+<area shape="rect" id="node38" href="scr__reddesc__apply_8c.html#a694fa91a75accb24a25e019b0db21bac" title="scr_reddesc_apply_xor" alt="" coords="2031,247,2190,272"/>
+<area shape="rect" id="node39" href="scr__reddesc__recover_8c.html#a7ab16b4ec6d5a5a5f6801ac481677ebd" title="scr_reddesc_recover_xor" alt="" coords="2025,552,2196,577"/>
+<area shape="rect" id="node41" href="scr__io_8h.html#a602b8ce59d5b401b0ebf1f30a1824ee9" title="scr_file_copy" alt="" coords="1841,395,1940,420"/>
+<area shape="rect" id="node42" href="scr__rebuild__xor_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="1630,1208,1680,1233"/>
+<area shape="rect" id="node43" href="scr__transfer_8c.html#ac796a08477aa55ee679088b7746a4e42" title="close_files" alt="" coords="1614,1109,1697,1135"/>
+<area shape="rect" id="node24" href="scr__fetch_8h.html#af0be93afd35ec60a32a284dcfbad2b76" title="scr_fetch_sync" alt="" coords="2244,625,2355,651"/>
+<area shape="rect" id="node35" href="scr__hash_8h.html#aa0b9856ae3fecf0adb4e2cc923ae1419" title="scr_hash_read_with_lock" alt="" coords="1805,345,1977,371"/>
+<area shape="rect" id="node37" href="scr__cache_8h.html#a315c8fb4af5d85bd45b98bcb9f98ea06" title="scr_compute_crc" alt="" coords="1829,247,1952,272"/>
+<area shape="rect" id="node40" href="scr__crc32_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="1866,296,1916,321"/>
+<area shape="rect" id="node45" href="scr__hash_8h.html#a400a8b731df26a468996211ff0181a07" title="scr_hash_lock_open_read" alt="" coords="1566,195,1744,220"/>
+<area shape="rect" id="node47" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="1331,859,1506,884"/>
+<area shape="rect" id="node48" href="scr__summary_8c.html#a43569963aa3d667f68e7a2cdadf35b37" title="scr_summary_read_v4\l_to_v5" alt="" coords="1340,908,1497,947"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ae3a1fac8dab364fe7bbbf9a5e1d3ba99"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae3a1fac8dab364fe7bbbf9a5e1d3ba99">&sect;&nbsp;</a></span>scr_swap_files_move()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static int scr_swap_files_move </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>have_outgoing</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file_send</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="scr__meta_8h.html#a1caef3e8ddc020309db3f7a53cb15ee4">scr_meta</a> *&#160;</td>
+          <td class="paramname"><em>meta_send</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>rank_send</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uLong *&#160;</td>
+          <td class="paramname"><em>crc32_send</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>have_incoming</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file_recv</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="scr__meta_8h.html#a1caef3e8ddc020309db3f7a53cb15ee4">scr_meta</a> *&#160;</td>
+          <td class="paramname"><em>meta_recv</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>rank_recv</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uLong *&#160;</td>
+          <td class="paramname"><em>crc32_recv</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">MPI_Comm&#160;</td>
+          <td class="paramname"><em>comm</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="scr__cache__rebuild_8c_source.html#l00225">225</a> of file <a class="el" href="scr__cache__rebuild_8c_source.html">scr_cache_rebuild.c</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_ae3a1fac8dab364fe7bbbf9a5e1d3ba99_cgraph.png" border="0" usemap="#scr__cache__rebuild_8c_ae3a1fac8dab364fe7bbbf9a5e1d3ba99_cgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_ae3a1fac8dab364fe7bbbf9a5e1d3ba99_cgraph" id="scr__cache__rebuild_8c_ae3a1fac8dab364fe7bbbf9a5e1d3ba99_cgraph">
+<area shape="rect" id="node2" href="scr__util_8c.html#a439ed3526c2206c412b9a1ceba76ce00" title="scr_align_malloc" alt="" coords="213,5,334,31"/>
+<area shape="rect" id="node3" href="scr__err_8h.html#a06a252c8b740698452846d5604f58f4d" title="scr_abort" alt="" coords="1276,589,1353,615"/>
+<area shape="rect" id="node4" href="scr__io_8c.html#ad1d014c1d74d4b41689a0b025377b6cb" title="scr_file_size" alt="" coords="226,1156,321,1181"/>
+<area shape="rect" id="node5" href="scr__io_8c.html#aa12dcef50ffd1e4731cba46bfabb9734" title="scr_open" alt="" coords="235,907,311,932"/>
+<area shape="rect" id="node34" href="scr__io_8c.html#a9e94f39d8ce07b0d99ac644305d77d88" title="scr_getmode" alt="" coords="224,1205,322,1231"/>
+<area shape="rect" id="node35" href="scr__io_8c.html#a24ba95b0ca313a422c74b2967995c408" title="scr_read" alt="" coords="439,1667,512,1692"/>
+<area shape="rect" id="node36" href="scr__io_8c.html#a27758db29a346b82f975b6b46474ef92" title="scr_write" alt="" coords="236,1055,311,1080"/>
+<area shape="rect" id="node37" href="scr__io_8c.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="234,1005,312,1031"/>
+<area shape="rect" id="node43" href="scr__io_8c.html#a8cf06f71c585cab86838bf7d73a75f5f" title="scr_file_unlink" alt="" coords="422,107,528,132"/>
+<area shape="rect" id="node44" href="scr__meta_8c.html#aeb80e393ea5fae02ba40acd005d5b357" title="scr_meta_get_crc32" alt="" coords="202,956,344,981"/>
+<area shape="rect" id="node47" href="scr__meta_8c.html#a358bca0b2612e262ce418220c4616611" title="scr_meta_set_crc32" alt="" coords="405,664,546,689"/>
+<area shape="rect" id="node50" href="scr__util_8c.html#a65b4eb3428557c6d70b5eaf7c5dffdcf" title="scr_align_free" alt="" coords="423,157,528,183"/>
+<area shape="rect" id="node6" href="scr__interpose_8c.html#a079d60801c18155ac2ec1707b56867fb" title="open" alt="" coords="450,993,501,1019"/>
+<area shape="rect" id="node15" href="scr__err_8h.html#ac124858aff0b069cbf887a8c716b5b43" title="scr_dbg" alt="" coords="1099,196,1168,221"/>
+<area shape="rect" id="node22" href="scr__err_8h.html#a62fd87502b6702faf7d17e12c3b38580" title="scr_err" alt="" coords="1102,1515,1165,1540"/>
+<area shape="rect" id="node7" href="scr__interpose_8c.html#abd7f1b7f379e3e9349dfb51b11560d6c" title="scr_interpose_init" alt="" coords="631,1265,756,1291"/>
+<area shape="rect" id="node9" href="scr__interpose_8c.html#a3b1f5e31696f3b780622ed6e8abfdb88" title="scri_is_checkpoint\l_filename" alt="" coords="628,1029,759,1068"/>
+<area shape="rect" id="node11" href="scr__interpose_8c.html#a3ca735fbe8e4e2f11b0b9c9a6cbc8fdf" title="scri_start_checkpoint" alt="" coords="620,360,767,385"/>
+<area shape="rect" id="node16" href="scr_8c.html#a32663736ac649e2bb4054624532409f1" title="SCR_Route_file" alt="" coords="635,885,752,911"/>
+<area shape="rect" id="node33" href="scr__interpose_8c.html#afca6a25b14d674fa41161178f096c465" title="scri_add_checkpoint_fd" alt="" coords="613,1140,774,1165"/>
+<area shape="rect" id="node8" href="scr__interpose_8c.html#a4b8cc8d253c7457aeb0cd97d711362ef" title="mydlsym" alt="" coords="873,1413,947,1439"/>
+<area shape="rect" id="node10" href="scr__interpose_8c.html#a541b0a62de28f9a11fc8f68d28d3f723" title="scri_index_by_filename" alt="" coords="830,1312,991,1337"/>
+<area shape="rect" id="node12" href="scr_8c.html#a8d5fa9b2627ab77cd53e423299a1d1b1" title="SCR_Start_checkpoint" alt="" coords="832,259,988,284"/>
+<area shape="rect" id="node13" href="scr__reddesc_8c.html#a3e173728272a327e026536bf0d4c9fb6" title="scr_reddesc_for_checkpoint" alt="" coords="1040,411,1228,436"/>
+<area shape="rect" id="node14" href="scr__util_8c.html#ac98c81a6ad646b461300f7a1c792c038" title="scr_free" alt="" coords="1099,487,1169,512"/>
+<area shape="rect" id="node17" href="scr_8c.html#a65cf86bf28f6cdc7842e883f52b1a177" title="scr_route_file" alt="" coords="860,1161,961,1187"/>
+<area shape="rect" id="node18" href="scr__path_8c.html#a40ea4c0382a8da6fd0a2399fe39e2ca5" title="scr_path_from_str" alt="" coords="1069,1111,1198,1136"/>
+<area shape="rect" id="node19" href="scr__path_8c.html#a42fdd631c165e163a4fc953a72ccaccc" title="scr_path_prepend_str" alt="" coords="1058,1212,1209,1237"/>
+<area shape="rect" id="node20" href="scr__filemap_8c.html#a7a5e9a9c0c2720594159c967b5b5d9e2" title="scr_filemap_add_file" alt="" coords="839,960,982,985"/>
+<area shape="rect" id="node21" href="scr__meta_8c.html#a5d0f5573d68b9fd860469fd2437d9ae7" title="scr_meta_new" alt="" coords="856,1263,964,1288"/>
+<area shape="rect" id="node23" href="scr__filemap_8c.html#a62326773d11fb78c0f2db8a07bc1ea26" title="scr_filemap_get_meta" alt="" coords="834,861,987,887"/>
+<area shape="rect" id="node24" href="scr__meta_8c.html#ab4ac4c77ca4bce630a2b34a0e000baaa" title="scr_meta_set_filename" alt="" coords="831,812,990,837"/>
+<area shape="rect" id="node26" href="scr__meta_8c.html#ad7e3b3c489f9679a7d475173e15334fe" title="scr_meta_set_filetype" alt="" coords="835,1009,986,1035"/>
+<area shape="rect" id="node27" href="scr__meta_8c.html#ab250e61c8a0bcc50f99b8c146a903b7f" title="scr_meta_set_complete" alt="" coords="829,664,992,689"/>
+<area shape="rect" id="node28" href="scr__meta_8c.html#ad3acef442f4bc67a3800030fabce71c0" title="scr_meta_set_ranks" alt="" coords="840,713,981,739"/>
+<area shape="rect" id="node29" href="scr__meta_8c.html#a4c81125a29a91e3a5917619b9e6e3ebe" title="scr_meta_set_orig" alt="" coords="845,763,976,788"/>
+<area shape="rect" id="node30" href="scr__path_8c.html#a9ca24383f44a12664bd8f4ec3a83200f" title="scr_path_is_absolute" alt="" coords="837,911,984,936"/>
+<area shape="rect" id="node31" href="scr__io_8c.html#a94b23ab2cb79ee52b94d74fb5767f20a" title="scr_getcwd" alt="" coords="1089,564,1178,589"/>
+<area shape="rect" id="node32" href="scr__path_8c.html#a4f90a011aab44e714f5c78cab352ab16" title="scr_path_reduce" alt="" coords="1073,613,1194,639"/>
+<area shape="rect" id="node25" href="scr__hash_8c.html#a5f36326bf5682a4ad267f693436c5e62" title="scr_hash_unset" alt="" coords="1076,737,1192,763"/>
+<area shape="rect" id="node38" href="scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="449,1389,501,1415"/>
+<area shape="rect" id="node39" href="scr__interpose_8c.html#ad35fa250c8566e3463b518a6bff23da1" title="scri_is_checkpoint_fd" alt="" coords="619,1364,768,1389"/>
+<area shape="rect" id="node40" href="scr__interpose_8c.html#a67f364dac479044821d0e226311dd49c" title="scri_index_by_fd" alt="" coords="850,1515,971,1540"/>
+<area shape="rect" id="node41" href="scr__interpose_8c.html#a478a20d5d061bf161b47c8da844d031c" title="scri_complete_checkpoint" alt="" coords="606,1515,781,1540"/>
+<area shape="rect" id="node42" href="scr__interpose_8c.html#a0ddcc0a94e31343d67e315122caa0768" title="scri_drop_checkpoint_fd" alt="" coords="611,1413,776,1439"/>
+<area shape="rect" id="node45" href="scr__hash__util_8c.html#a68a18cfbcb1220938eb382f2ff4f71ab" title="scr_hash_util_get_crc32" alt="" coords="392,1291,558,1316"/>
+<area shape="rect" id="node46" href="scr__hash_8c.html#af5e3ceb1f25bab8d0ff49a06788bb565" title="scr_hash_get_val" alt="" coords="631,1315,756,1340"/>
+<area shape="rect" id="node48" href="scr__hash__util_8c.html#af59388c68ea37b7732be5357c096c48b" title="scr_hash_util_set_crc32" alt="" coords="611,461,776,487"/>
+<area shape="rect" id="node49" href="scr__hash_8c.html#a5cbcf5d65ca321c46896c1c34fb50666" title="scr_hash_setf" alt="" coords="858,360,962,385"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="scr__cache__rebuild_8c_ae3a1fac8dab364fe7bbbf9a5e1d3ba99_icgraph.png" border="0" usemap="#scr__cache__rebuild_8c_ae3a1fac8dab364fe7bbbf9a5e1d3ba99_icgraph" alt=""/></div>
+<map name="scr__cache__rebuild_8c_ae3a1fac8dab364fe7bbbf9a5e1d3ba99_icgraph" id="scr__cache__rebuild_8c_ae3a1fac8dab364fe7bbbf9a5e1d3ba99_icgraph">
+<area shape="rect" id="node2" href="scr__cache__rebuild_8h.html#ae197f807bb7b3771a4275e5df111b44b" title="scr_swap_files" alt="" coords="202,120,311,145"/>
+<area shape="rect" id="node3" href="scr__cache__rebuild_8c.html#afe7888498e6ad652c09fcf7fea2cc1d2" title="scr_distribute_files" alt="" coords="591,5,722,31"/>
+<area shape="rect" id="node9" href="scr__reddesc__apply_8c.html#a6a6373e14b1f64bdba7ee474d6013faa" title="scr_reddesc_apply_partner" alt="" coords="359,157,542,183"/>
+<area shape="rect" id="node4" href="scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="1029,43,1159,68"/>
+<area shape="rect" id="node5" href="scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="2407,600,2482,625"/>
+<area shape="rect" id="node6" href="scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="2530,575,2607,600"/>
+<area shape="rect" id="node8" href="scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="2533,624,2604,649"/>
+<area shape="rect" id="node7" href="scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="2655,575,2726,600"/>
+<area shape="rect" id="node10" href="scr__reddesc__apply_8h.html#a6f90b9ae9f0dedd374854c6b2ee2db7e" title="scr_reddesc_apply" alt="" coords="590,183,723,208"/>
+<area shape="rect" id="node11" href="scr_8h.html#ac293a29f5b8fe722dc58c3d7119d8358" title="SCR_Complete_checkpoint" alt="" coords="771,345,956,371"/>
+<area shape="rect" id="node23" href="scr__fetch_8c.html#a5f1ac3ca7b0907ebe6bd74abb5959dbc" title="scr_fetch_files" alt="" coords="2062,1307,2168,1332"/>
+<area shape="rect" id="node50" href="scr__reddesc__recover_8h.html#a4153e6d06861201523b1d4ddb3265783" title="scr_reddesc_recover" alt="" coords="791,43,937,68"/>
+<area shape="rect" id="node12" href="scr__interpose_8c.html#a478a20d5d061bf161b47c8da844d031c" title="scri_complete_checkpoint" alt="" coords="1006,345,1181,371"/>
+<area shape="rect" id="node49" href="scrf_8c.html#aed05040511320c7d629d6975f32d005c" title="scr_complete_checkpoint_" alt="" coords="1004,395,1183,420"/>
+<area shape="rect" id="node13" href="scr__interpose_8c.html#aafbcde67669a1b96577e735ddebd8634" title="close" alt="" coords="1233,345,1286,371"/>
+<area shape="rect" id="node46" href="scr__interpose_8c.html#acdc6eb76dd2def25905610c9a28eb346" title="fclose" alt="" coords="1231,859,1288,884"/>
+<area shape="rect" id="node14" href="scr__io_8h.html#a4885353fd1c6a274557e27586913de0c" title="scr_close" alt="" coords="1384,809,1462,835"/>
+<area shape="rect" id="node36" href="scr__io_8h.html#a8398cfffaea53f470a5321ad66a63998" title="scr_crc32" alt="" coords="1620,345,1699,371"/>
+<area shape="rect" id="node44" href="scr__io_8h.html#acd78c3c9dd280af6d12bb3a0f829f99f" title="scr_open_with_lock" alt="" coords="1354,295,1492,320"/>
+<area shape="rect" id="node15" href="scr__cache__rebuild_8c.html#a5b11561317b0e19b469618475565f8af" title="scr_swap_files_copy" alt="" coords="1588,244,1732,269"/>
+<area shape="rect" id="node16" href="scr__io_8h.html#ac6f08fd91b0d1f5f659f6144f595cb46" title="scr_compress_in_place" alt="" coords="1579,1257,1740,1283"/>
+<area shape="rect" id="node17" href="scr__io_8h.html#aa0a1a49ef1f65dd4b911885736dbc3be" title="scr_compress" alt="" coords="1608,1307,1712,1332"/>
+<area shape="rect" id="node18" href="scr__io_8h.html#a1cc54ce0c17777ed1f4f3a6f238746a0" title="scr_uncompress_in_place" alt="" coords="1572,1356,1748,1381"/>
+<area shape="rect" id="node19" href="scr__io_8h.html#a46d89e2e22b58a62368ba5f374b9280f" title="scr_uncompress" alt="" coords="1600,1405,1719,1431"/>
+<area shape="rect" id="node20" href="scr__fetch_8c.html#a6e325071198e919ffe2cd0136c9d5bed" title="scr_fetch_file_from\l_containers" alt="" coords="1593,496,1727,535"/>
+<area shape="rect" id="node21" href="scr__fetch_8c.html#a76aa1a1536f9b54e328d9fc67b904db0" title="scr_fetch_rank2file_map" alt="" coords="1576,1159,1743,1184"/>
+<area shape="rect" id="node22" href="scr__fetch_8c.html#ade8ee294248b324f07c2d2cd5c182998" title="scr_fetch_summary" alt="" coords="1826,1307,1964,1332"/>
+<area shape="rect" id="node25" href="scr__flush_8c.html#af28714454fc5d54858e4e2ec7a80197f" title="scr_flush_create_containers" alt="" coords="1566,559,1754,584"/>
+<area shape="rect" id="node26" href="scr__flush_8c.html#aa3af40734f130984b524116918591cae" title="scr_flush_summary_map" alt="" coords="1575,860,1745,885"/>
+<area shape="rect" id="node27" href="scr__flush_8c.html#ac5987d0809f438da546819b5e83e66df" title="scr_flush_summary" alt="" coords="1827,959,1964,984"/>
+<area shape="rect" id="node28" href="scr__flush__sync_8c.html#a70abd90a0fa010cd3d7fc9f278f36085" title="scr_flush_file_to_containers" alt="" coords="1566,608,1753,633"/>
+<area shape="rect" id="node29" href="scr__halt_8h.html#a859b037f65c9b3732c23f261cba32ba0" title="scr_halt_read" alt="" coords="1609,709,1711,735"/>
+<area shape="rect" id="node30" href="scr__halt_8h.html#a5aa58602e54238669c9dba67214c7c5b" title="scr_halt_sync_and_decrement" alt="" coords="1558,759,1761,784"/>
+<area shape="rect" id="node31" href="scr__halt__cntl_8c.html#a9e176b6e6f1fe52dfad03f5fe6c39b4e" title="scr_halt_sync_and_set" alt="" coords="1581,909,1739,935"/>
+<area shape="rect" id="node32" href="scr__hash_8h.html#a199735d48cc57b023994af50a3f402e8" title="scr_hash_write" alt="" coords="1604,959,1715,984"/>
+<area shape="rect" id="node33" href="scr__hash_8h.html#a611b35805a9cfe8bead3ef4c6b073427" title="scr_hash_read" alt="" coords="1605,1008,1715,1033"/>
+<area shape="rect" id="node34" href="scr__io_8h.html#ad1a8edf4dacf737dc0f6adbe38b9e759" title="scr_close_with_unlock" alt="" coords="1582,395,1737,420"/>
+<area shape="rect" id="node38" href="scr__reddesc__apply_8c.html#a694fa91a75accb24a25e019b0db21bac" title="scr_reddesc_apply_xor" alt="" coords="2035,247,2194,272"/>
+<area shape="rect" id="node39" href="scr__reddesc__recover_8c.html#a7ab16b4ec6d5a5a5f6801ac481677ebd" title="scr_reddesc_recover_xor" alt="" coords="2029,552,2201,577"/>
+<area shape="rect" id="node41" href="scr__io_8h.html#a602b8ce59d5b401b0ebf1f30a1824ee9" title="scr_file_copy" alt="" coords="1846,395,1945,420"/>
+<area shape="rect" id="node42" href="scr__rebuild__xor_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="1635,1208,1685,1233"/>
+<area shape="rect" id="node43" href="scr__transfer_8c.html#ac796a08477aa55ee679088b7746a4e42" title="close_files" alt="" coords="1618,1109,1702,1135"/>
+<area shape="rect" id="node24" href="scr__fetch_8h.html#af0be93afd35ec60a32a284dcfbad2b76" title="scr_fetch_sync" alt="" coords="2249,625,2359,651"/>
+<area shape="rect" id="node35" href="scr__hash_8h.html#aa0b9856ae3fecf0adb4e2cc923ae1419" title="scr_hash_read_with_lock" alt="" coords="1809,345,1981,371"/>
+<area shape="rect" id="node37" href="scr__cache_8h.html#a315c8fb4af5d85bd45b98bcb9f98ea06" title="scr_compute_crc" alt="" coords="1834,247,1957,272"/>
+<area shape="rect" id="node40" href="scr__crc32_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title="main" alt="" coords="1870,296,1920,321"/>
+<area shape="rect" id="node45" href="scr__hash_8h.html#a400a8b731df26a468996211ff0181a07" title="scr_hash_lock_open_read" alt="" coords="1571,195,1749,220"/>
+<area shape="rect" id="node47" href="scr__config_8h.html#a7a6e327b1146cabc9070da98189d1226" title="scr_config_read_common" alt="" coords="1336,859,1510,884"/>
+<area shape="rect" id="node48" href="scr__summary_8c.html#a43569963aa3d667f68e7a2cdadf35b37" title="scr_summary_read_v4\l_to_v5" alt="" coords="1344,908,1501,947"/>
 </map>
 </div>
 

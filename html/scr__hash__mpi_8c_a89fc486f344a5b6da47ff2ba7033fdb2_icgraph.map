@@ -1,3 +1,10 @@
 <map id="scr_hash_exchange" name="scr_hash_exchange">
-<area shape="rect" id="node2" href="$scr__cache__rebuild_8h.html#ac512e74afe061169739beaa2d7f08f47" title="scr_scatter_filemaps" alt="" coords="194,5,338,31"/>
+<area shape="rect" id="node2" href="$scr__cache__rebuild_8h.html#ac512e74afe061169739beaa2d7f08f47" title="scr_scatter_filemaps" alt="" coords="404,5,548,31"/>
+<area shape="rect" id="node7" href="$scr__cache__rebuild_8c.html#a49522f9f86df80a67860921aba30696e" title="scr_distribute_reddescs" alt="" coords="194,55,356,80"/>
+<area shape="rect" id="node9" href="$scr__cache__rebuild_8c.html#afe7888498e6ad652c09fcf7fea2cc1d2" title="scr_distribute_files" alt="" coords="209,104,341,129"/>
+<area shape="rect" id="node3" href="$scr_8h.html#a31450e229d605635fcfcb0d9dd4079be" title="SCR_Init" alt="" coords="596,31,670,56"/>
+<area shape="rect" id="node4" href="$scr__interpose_8c.html#afcb485fbb0f059e86dc6f951a32add72" title="_MPI_Init" alt="" coords="718,5,796,31"/>
+<area shape="rect" id="node6" href="$scrf_8c.html#a8b4df1ca6fb7c5b4893f77edf6d15a77" title="scr_init_" alt="" coords="722,55,793,80"/>
+<area shape="rect" id="node5" href="$scr__interpose_8c.html#a85fc482f00c52ec6e5f2503b3b480c56" title="MPI_Init" alt="" coords="844,5,914,31"/>
+<area shape="rect" id="node8" href="$scr__cache__rebuild_8h.html#a57607eb8ed7eae0be81845423c46a6c7" title="scr_cache_rebuild" alt="" coords="411,55,541,80"/>
 </map>
