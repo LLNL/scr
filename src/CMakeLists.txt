@@ -71,18 +71,18 @@ ENDIF(${SCR_ASYNC_API} STREQUAL "Intel_CPPR")
 
 
 # SCR Library
-ADD_LIBRARY(SCR ${libscr_srcs} ${libscr_noMPI_scrs})
-TARGET_LINK_LIBRARIES(SCR ${SCR_EXTERNAL_LIBS})
-INSTALL(TARGETS SCR DESTINATION lib)
+ADD_LIBRARY(scr ${libscr_srcs} ${libscr_noMPI_scrs})
+TARGET_LINK_LIBRARIES(scr ${SCR_EXTERNAL_LIBS})
+INSTALL(TARGETS scr DESTINATION lib)
 
 # Non-MPI library for CLI
-ADD_LIBRARY(SCR_base ${libscr_noMPI_scrs})
-TARGET_LINK_LIBRARIES(SCR_base SCR)
+ADD_LIBRARY(scr_base ${libscr_noMPI_scrs})
+TARGET_LINK_LIBRARIES(scr_base scr)
 
 # Fortran
 IF(ENABLE_FORTRAN)
-	ADD_LIBRARY(SCRF srcf.c ${libscr_srcs} ${libscr_noMPI_scrs})
-	TARGET_LINK_LIBRARIES(SCRF SCR)
+	ADD_LIBRARY(scrf srcf.c ${libscr_srcs} ${libscr_noMPI_scrs})
+	TARGET_LINK_LIBRARIES(scrf scr)
 ENDIF(ENABLE_FORTRAN)
 
 ###########
