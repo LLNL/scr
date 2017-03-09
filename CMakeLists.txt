@@ -66,6 +66,18 @@ ENDIF(MYSQL_FOUND)
 ## PDSH
 FIND_PACKAGE(PDSH REQUIRED)
 
+# TODO: Remove this setting
+MESSAGE("TODO: Fix SCR_MACHINE_TYPE setting")
+MESSAGE("TODO: For now, manually set value in CMakeLists.txt:72")
+## Possible Options:
+## #define SCR_BGQ 5
+## #define SCR_CRAY_XT 4
+## #define SCR_LSF 3
+## #define SCR_PMIX 2
+## #define SCR_MAC 1
+## #define SCR_TLCC 0
+SET(SCR_MACHINE_TYPE 1)
+
 ## PMIx
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "PMIx")
 	FIND_PACKAGE(PMIX REQUIRED)
