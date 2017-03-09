@@ -17,6 +17,9 @@ LIST(APPEND example_files
 )
 INSTALL(FILES ${example_files} DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/examples)
 
+## TODO: Hack to get autotools appropriate link line for examples
+string(REPLACE ";" " " SCR_LINK_LINE ${SCR_LINK_LINE})
+
 ## Configure & install makefile
 CONFIGURE_FILE(makefile.examples.in makefile.examples @ONLY)
 SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/makefile.examples.in PROPERTIES GENERATED FALSE)
