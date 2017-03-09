@@ -13,3 +13,10 @@ SET(common_bins
 FOREACH(bin IN ITEMS ${common_bins})
 	SCR_INSTALL_BIN(${bin})
 ENDFOREACH(bin IN ITEMS ${common_bins})
+
+## Configure & install .pm files
+CONFIGURE_FILE(scr_param.pm.in scr_param.pm @ONLY)
+SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/scr_param.pm.in PROPERTIES GENERATED FALSE)
+SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/scr_param.pm PROPERTIES GENERATED TRUE)
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/scr_param.pm DESTINATION share/scr)
+INSTALL(FILES scr_hostlist.pm DESTINATION share/scr)
