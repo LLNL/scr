@@ -76,7 +76,7 @@ MESSAGE("TODO: For now, manually set value in CMakeLists.txt:72")
 ## #define SCR_PMIX 2
 ## #define SCR_MAC 1
 ## #define SCR_TLCC 0
-SET(SCR_MACHINE_TYPE 1)
+SET(SCR_MACHINE_TYPE 0)
 
 ## PMIx
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "PMIx")

@@ -61,7 +61,7 @@ static int scr_flush_async_file_test(const scr_hash* hash, double* bytes)
       transfer_complete = 0;
       continue;
     }
-  
+
     /* check whether the number of bytes written is less than the filesize */
     if (written < size) {
       transfer_complete = 0;
@@ -322,7 +322,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
       scr_path_basename(path_dest_file);
       scr_path_prepend_str(path_dest_file, dest_dir);
       char* dest_file = scr_path_strdup(path_dest_file);
-    
+
       scr_hash_util_set_str(transfer_file_hash, SCR_TRANSFER_KEY_DESTINATION,   dest_file);
       scr_hash_util_set_bytecount(transfer_file_hash, SCR_TRANSFER_KEY_SIZE,    filesize);
       scr_hash_util_set_bytecount(transfer_file_hash, SCR_TRANSFER_KEY_WRITTEN, 0);
@@ -331,7 +331,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
       scr_free(&dest_file);
       scr_path_delete(&path_dest_file);
     }
- 
+
     /* add this file to our total count */
     scr_flush_async_num_files++;
   }
