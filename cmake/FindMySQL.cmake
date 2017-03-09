@@ -11,9 +11,14 @@ IF (MYSQL_INCLUDE_DIRS)
   SET(MYSQL_FIND_QUIETLY TRUE)
 ENDIF (MYSQL_INCLUDE_DIRS)
 
+FIND_PATH(MYSQL_PREFIX
+  NAMES include/mysql/mysql.h
+)
+
 FIND_PATH(MYSQL_INCLUDE_DIRS mysql.h
   /usr/local/include/mysql
   /usr/include/mysql
+  HINTS ${MYSQL_PREFIX}/include/mysql
 )
 
 SET(MYSQL_NAMES mysqlclient mysqlclient_r)
@@ -21,6 +26,7 @@ FIND_LIBRARY(MYSQL_LIBRARIES
   NAMES ${MYSQL_NAMES}
   PATHS /usr/lib /usr/local/lib
   PATH_SUFFIXES mysql
+  HINTS ${MYSQL_PREFIX}/lib
 )
 
 IF (MYSQL_INCLUDE_DIRS AND MYSQL_LIBRARIES)
