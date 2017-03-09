@@ -81,8 +81,9 @@ TARGET_LINK_LIBRARIES(scr_base scr)
 
 # Fortran
 IF(ENABLE_FORTRAN)
-	ADD_LIBRARY(scrf srcf.c ${libscr_srcs} ${libscr_noMPI_scrs})
+	ADD_LIBRARY(scrf scrf.c ${libscr_srcs} ${libscr_noMPI_scrs})
 	TARGET_LINK_LIBRARIES(scrf scr)
+	INSTALL(TARGETS scrf DESTINATION ${CMAKE_INSTALL_LIBDIR})
 ENDIF(ENABLE_FORTRAN)
 
 ###########
