@@ -10,7 +10,7 @@ LIST(APPEND libscr_install_headers
 	scr.h
 	scrf.h
 )
-INSTALL(FILES ${libscr_install_headers} DESTINATION include)
+INSTALL(FILES ${libscr_install_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 ## CLI should build without MPI dependence
 LIST(APPEND libscr_noMPI_scrs
@@ -73,7 +73,7 @@ ENDIF(${SCR_ASYNC_API} STREQUAL "Intel_CPPR")
 # SCR Library
 ADD_LIBRARY(scr ${libscr_srcs} ${libscr_noMPI_scrs})
 TARGET_LINK_LIBRARIES(scr ${SCR_EXTERNAL_LIBS})
-INSTALL(TARGETS scr DESTINATION lib)
+INSTALL(TARGETS scr DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # Non-MPI library for CLI
 ADD_LIBRARY(scr_base ${libscr_noMPI_scrs})
@@ -109,6 +109,6 @@ LIST(APPEND cliscr_c_bins
 # Build and install C binaries
 FOREACH(bin IN ITEMS ${cliscr_c_bins})
 	ADD_EXECUTABLE(${bin} ${bin}.c)
-	TARGET_LINK_LIBRARIES(${bin} SCR_base z)
-	INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION bin)
+	TARGET_LINK_LIBRARIES(${bin} scr_base z)
+	INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
 ENDFOREACH(bin IN ITEMS ${cliscr_c_bins})

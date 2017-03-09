@@ -15,10 +15,10 @@ LIST(APPEND example_files
 	scr_interpose.moab
 	README.md
 )
-INSTALL(FILES ${example_files} DESTINATION share/scr/examples)
+INSTALL(FILES ${example_files} DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/examples)
 
 ## Configure & install makefile
 CONFIGURE_FILE(makefile.examples.in makefile.examples @ONLY)
 SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/makefile.examples.in PROPERTIES GENERATED FALSE)
 SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/makefile.examples PROPERTIES GENERATED TRUE)
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/makefile.examples DESTINATION share/scr/examples RENAME makefile)
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/makefile.examples DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/examples RENAME makefile)
