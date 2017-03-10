@@ -16,21 +16,26 @@ ADD_SUBDIRECTORY(common)
 
 # Pick the Resource Manager
 SET(cliscr_dir_name "")
+SET(cliscr_run_name "")
 
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
 	SET(cliscr_dir_name "TLCC")
+	SET(cliscr_run_name "scr_srun")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
 
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "APRUN")
 	SET(cliscr_dir_name "cray_xt")
+	SET(cliscr_run_name "scr_aprun")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "APRUN")
 
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "PMIx")
 	SET(cliscr_dir_name "PMIX")
+	SET(cliscr_run_name "scr_pmix_run_bash")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "PMIx")
 
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
 	SET(cliscr_dir_name "LSF")
+	SET(cliscr_run_name "scr_srun")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
 
 
@@ -52,6 +57,8 @@ ELSE(${SCR_RESOURCE_MANAGER} STREQUAL "None")
 	FOREACH(bin IN ITEMS ${resource_manager_bins})
 		SCR_INSTALL_BIN(${cliscr_dir_name}/${bin})
 	ENDFOREACH(bin IN ITEMS ${resource_manager_bins})
+
+	INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${cliscr_dir_name}/scr_run DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME ${cliscr_run_name})
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "None")
 
 
