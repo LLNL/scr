@@ -89,6 +89,10 @@ AC_C_BIGENDIAN
 ##
 X_AC_CONFIG_SCR
 
+## TEMP: link line
+SCR_LINK_LINE=""
+AC_SUBST([SCR_LINK_LINE])
+
 ##
 # Epilogue.
 ##
