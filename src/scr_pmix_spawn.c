@@ -428,7 +428,7 @@ int main(int argc, char **argv, const char **environ)
 
         /* TODO: setup error handling when implemented in pmix with the
          * following error codes: */
-        /* 
+        /*
         pmix_status_t registered_codes[5];
         registered_codes[0] = PMIX_ERR_JOB_TERMINATED;
         registered_codes[1] = PMIX_ERR_PROC_ABORTED;

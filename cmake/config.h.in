@@ -1,0 +1,49 @@
+// System Specific
+#cmakedefine HAVE_BYTESWAP_H
+
+// Optional Libs
+#cmakedefine HAVE_LIBDTCMP
+#cmakedefine HAVE_LIBYOGRT
+#cmakedefine HAVE_LIBMYSQLCLIENT
+
+// Machine Specific Libs
+#cmakedefine HAVE_LIBPMIX
+#cmakedefine HAVE_LIBCPPR
+#cmakedefine HAVE_DATAWARP
+
+// Build Options
+#cmakedefine HAVE_FORTRAN_API
+
+// SCR-Specific Configured Paths
+#define SCR_CACHE_BASE "@SCR_CACHE_BASE@"
+#define SCR_CNTL_BASE "@SCR_CNTL_BASE@"
+#define SCR_CONFIG_FILE "@SCR_CONFIG_FILE@"
+
+// File Locking
+#define SCR_FILE_LOCK_USE_@SCR_FILE_LOCK@
+
+// Resource Manager
+#define SCR_RESOURCE_MANAGER_@SCR_RESOURCE_MANAGER@
+
+// Flush ASYNC API
+#define SCR_FLUSH_ASYNC_@SCR_ASYNC_API@
+
+/* Specify the type of machine. */
+#cmakedefine SCR_MACHINE_NAME
+#cmakedefine SCR_MACHINE_TYPE @SCR_MACHINE_TYPE@
+
+#define SCR_BGQ 5
+#define SCR_CRAY_XT 4
+#define SCR_LSF 3
+#define SCR_PMIX 2
+#define SCR_MAC 1
+#define SCR_TLCC 0
+
+#define X_BINDIR "@CMAKE_INSTALL_FULL_BINDIR@"
+#define X_DATADIR "@CMAKE_INSTALL_FULL_DATADIR@"
+#define X_INCLUDEDIR "@CMAKE_INSTALL_FULL_INCLUDEDIR@"
+#define X_LIBDIR "@CMAKE_INSTALL_FULL_LIBDIR@"
+
+/* PDSH */
+#define PDSH_EXE "@PDSH_EXE@"
+#define DSHBAK_EXE "@DSHBAK_EXE@"

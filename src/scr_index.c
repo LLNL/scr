@@ -24,11 +24,9 @@ $TV ../src/scr_index_cmd -a `pwd` scr.2010-06-29_17:22:08.1018033.10 &
 
 #define _GNU_SOURCE
 
-/* read in the config.h to pick up any parameters set from configure 
+/* read in the config.h to pick up any parameters set from configure
  * these values will override any settings below */
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include "scr_conf.h"
 #include "scr.h"
@@ -67,7 +65,7 @@ $TV ../src/scr_index_cmd -a `pwd` scr.2010-06-29_17:22:08.1018033.10 &
 #define BUILD_CMD (X_BINDIR"/scr_rebuild_xor")
 
 /* Hash format returned from scr_read_dir
- * 
+ *
  * DIR
  *   <dir1>
  *   <dir2>
@@ -164,7 +162,7 @@ int scr_read_dir(const scr_path* dir, scr_hash* hash)
     );
     scr_free(&dir_str);
     return SCR_FAILURE;
-  } 
+  }
 
   /* read each file from the directory */
   struct dirent* dp = NULL;
@@ -311,8 +309,8 @@ int scr_summary_write(const scr_path* dir, scr_hash* hash)
     const char* rank2file_name = scr_path_strdup(rank2file_rel_path);
     unsigned long offset = 0;
     scr_hash* files_rank_hash = scr_hash_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_RANK, writer);
-    scr_hash_util_set_str(files_rank_hash, SCR_SUMMARY_6_KEY_FILE, rank2file_name);  
-    scr_hash_util_set_bytecount(files_rank_hash, SCR_SUMMARY_6_KEY_OFFSET, offset);  
+    scr_hash_util_set_str(files_rank_hash, SCR_SUMMARY_6_KEY_FILE, rank2file_name);
+    scr_hash_util_set_bytecount(files_rank_hash, SCR_SUMMARY_6_KEY_OFFSET, offset);
     scr_free(&rank2file_name);
     scr_path_delete(&rank2file_rel_path);
 
@@ -337,7 +335,7 @@ int scr_summary_write(const scr_path* dir, scr_hash* hash)
   }
   scr_path_delete(&files_path);
   scr_hash_delete(&files_hash);
-  
+
   /* remove RANK2FILE from summary hash */
   scr_hash_unset(hash, SCR_SUMMARY_6_KEY_RANK2FILE);
 
@@ -1167,7 +1165,7 @@ int scr_scan_files(const scr_path* dir, scr_hash* scan)
     );
     rc = SCR_FAILURE;
     goto cleanup;
-  } 
+  }
 
   /* read each file from the directory */
   struct dirent* dp = NULL;
@@ -1328,7 +1326,7 @@ int is_complete(const scr_path* prefix, const scr_path* subdir)
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  scr_index_read(prefix, index); 
+  scr_index_read(prefix, index);
 
   /* lookup the dataset id based on the directory name */
   int id = 0;
@@ -1614,7 +1612,7 @@ int index_add_dir(const scr_path* prefix, const scr_path* subdir)
   scr_hash* index = scr_hash_new();
 
   /* read index file from the prefix directory */
-  scr_index_read(prefix, index); 
+  scr_index_read(prefix, index);
 
   /* if named directory is already indexed, exit with success */
   int id;
@@ -1633,7 +1631,7 @@ int index_add_dir(const scr_path* prefix, const scr_path* subdir)
       }
     }
     scr_path_delete(&dataset_path);
-    
+
     /* get the dataset hash for this directory */
     scr_dataset* dataset = scr_hash_get(summary, SCR_SUMMARY_6_KEY_DATASET);
     if (dataset != NULL) {
@@ -1645,7 +1643,7 @@ int index_add_dir(const scr_path* prefix, const scr_path* subdir)
           /* write values to the index file */
           scr_index_set_dataset(index, dataset_id, subdir_str, dataset, complete);
           scr_index_mark_flushed(index, dataset_id, subdir_str);
-          scr_index_write(prefix, index); 
+          scr_index_write(prefix, index);
         } else {
           /* failed to read complete flag */
           rc = SCR_FAILURE;
@@ -1658,7 +1656,7 @@ int index_add_dir(const scr_path* prefix, const scr_path* subdir)
       /* failed to find dataset hash in summary file, so we can't index it */
       rc = SCR_FAILURE;
     }
-    
+
     /* free our summary file hash */
     scr_hash_delete(&summary);
   }

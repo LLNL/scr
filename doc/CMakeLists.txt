@@ -1,0 +1,1 @@
+INSTALL(FILES scr_users_manual.pdf DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/doc)

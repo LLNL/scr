@@ -508,7 +508,7 @@ static int scr_split_sorted(
    * minus 1), and the group size is the sum of right-going and
    * left-going counts minus 1 so we don't double counts ourself. */
   send_ints[CHAIN_RANK] = send_right_ints[SCAN_COUNT] - 1;
-  send_ints[CHAIN_SIZE] = send_right_ints[SCAN_COUNT] + 
+  send_ints[CHAIN_SIZE] = send_right_ints[SCAN_COUNT] +
                           send_left_ints[SCAN_COUNT] - 1;
   send_ints[CHAIN_ID]    = send_right_ints[SCAN_COLOR] - 1;
   send_ints[CHAIN_COUNT] = send_right_ints[SCAN_COLOR] +
@@ -628,7 +628,7 @@ int scr_rank_str(MPI_Comm comm, const char* str, int* groups, int* groupid)
   size_t type_size = max_len + sizeof(int);
   size_t data_offset = max_len;
 
-  /* sort our values using bitonic sort algorithm -- 
+  /* sort our values using bitonic sort algorithm --
    * O(log^2 N) communication */
   scr_sort_bitonic(
     buf, type, type_size, data_offset, scr_cmp_str_int,
@@ -640,7 +640,7 @@ int scr_rank_str(MPI_Comm comm, const char* str, int* groups, int* groupid)
    * O(log N) communication */
   int recv_ints[7];
   scr_split_sorted(
-    buf, type, type_size, data_offset, scr_cmp_str, 
+    buf, type, type_size, data_offset, scr_cmp_str,
     comm, tag1, tag2, recv_ints
   );
 

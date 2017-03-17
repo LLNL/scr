@@ -56,7 +56,7 @@
 #include <time.h>
 
 #ifdef HAVE_LIBMYSQLCLIENT
-#include <mysql/mysql.h>
+#include <mysql.h>
 #endif
 
 static int scr_db_enable = 0;    /* whether to log event in SCR log database */

@@ -39,7 +39,7 @@ Globals
 */
 
 /* There are three directories where SCR manages files: control, cache, and prefix.
- * 
+ *
  * The control directory is a fixed location where a job records its state and reads files
  * to interpret commands from the user.  This directory is fixed (hard coded) so that
  * scr utility scripts know where to look to read and write these files.

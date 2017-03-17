@@ -12,11 +12,9 @@
 #ifndef SCR_CONF_H
 #define SCR_CONF_H
 
-/* read in the config.h to pick up any parameters set from configure 
+/* read in the config.h to pick up any parameters set from configure
  * these values will override any settings below */
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 /* =========================================================================
  * Defines for checkpoint copy type later below, don't change this defines.
@@ -54,7 +52,7 @@
 #endif
 
 /* =========================================================================
- * Default config file location, control direcotry, and cache and checkpoint configuration.
+ * Default config file location, control directory, and cache and checkpoint configuration.
  * ========================================================================= */
 
 /* default location for system configuration file */

@@ -787,17 +787,6 @@ int SCR_Init()
    * a config file, we must at least create scr_comm_world and call
    * scr_get_params() */
 
-/* sanity check to ensure both libpmix and machine type SCR_PMIX are enabled */
-#if (SCR_MACHINE_TYPE == SCR_PMIX)
-#ifndef HAVE_LIBPMIX
-  /* bad news - specified pmix machine type but no libpmix! */
-  scr_abort(-1,
-    "can't have pmix machine type without --with-pmix in configure!"
-  );
-#endif /* HAVE_LIBPMIX */
-  /* this is the valid case - nothing needs to be printed here */
-#endif /* SCR_MACHINE_TYPE == SCR_PMIX */
-
   /* create a context for the library */
   MPI_Comm_dup(MPI_COMM_WORLD,  &scr_comm_world);
   MPI_Comm_rank(scr_comm_world, &scr_my_rank_world);
