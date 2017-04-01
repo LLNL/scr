@@ -13,7 +13,7 @@ LIST(APPEND libscr_install_headers
 INSTALL(FILES ${libscr_install_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 ## CLI should build without MPI dependence
-LIST(APPEND libscr_noMPI_scrs
+LIST(APPEND cliscr_noMPI_scrs
 	scr_compress.c
 	scr_config.c
 	scr_config_serial.c
@@ -38,17 +38,30 @@ LIST(APPEND libscr_srcs
 	scr.c
 	scr_cache.c
 	scr_cache_rebuild.c
+	scr_compress.c
+	scr_config.c
 	scr_config_mpi.c
 	scr_dataset.c
+	scr_dataset.c
+	scr_env.c
 	scr_err_mpi.c
 	scr_fetch.c
+	scr_filemap.c
 	scr_flush.c
 	scr_flush_file_mpi.c
 	scr_flush_sync.c
 	scr_globals.c
 	scr_groupdesc.c
+	scr_halt.c
 	scr_hash.c
 	scr_hash_mpi.c
+	scr_hash_util.c
+	scr_index_api.c
+	scr_io.c
+	scr_log.c
+	scr_meta.c
+	scr_param.c
+	scr_path.c
 	scr_path_mpi.c
 	scr_reddesc.c
 	scr_reddesc_apply.c
@@ -56,7 +69,9 @@ LIST(APPEND libscr_srcs
 	scr_split.c
 	scr_storedesc.c
 	scr_summary.c
+	scr_util.c
 	scr_util_mpi.c
+	tv_data_display.c
 )
 
 # Add vendor specific code based on SCR_ASYNC_API
@@ -86,7 +101,7 @@ SET_TARGET_PROPERTIES(scr PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 1)
 INSTALL(TARGETS scr DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # Non-MPI library for CLI
-ADD_LIBRARY(scr_base ${libscr_noMPI_scrs})
+ADD_LIBRARY(scr_base SHARED ${cliscr_noMPI_scrs})
 TARGET_LINK_LIBRARIES(scr_base scr)
 
 # Fortran
