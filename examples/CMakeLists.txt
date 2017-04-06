@@ -17,8 +17,11 @@ LIST(APPEND example_files
 )
 INSTALL(FILES ${example_files} DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/examples)
 
-## TODO: Hack to get autotools appropriate link line for examples
-string(REPLACE ";" " " SCR_LINK_LINE ${SCR_LINK_LINE})
+## static linking means we must pass a link line to our examples
+## TODO: maybe this can be done a better way?
+IF(NOT "${SCR_LINK_LINE}" STREQUAL "")
+        STRING(REPLACE ";" " " SCR_LINK_LINE ${SCR_LINK_LINE})
+ENDIF(NOT "${SCR_LINK_LINE}" STREQUAL "")
 
 ## Configure & install makefile
 CONFIGURE_FILE(makefile.examples.in makefile.examples @ONLY)
