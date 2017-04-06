@@ -4,18 +4,18 @@
 #  DATAWARP_INCLUDE_DIRS - The libdatawarp include directories
 #  DATAWARP_LIBRARIES - The libraries needed to use libdatawarp
 
-FIND_PATH(DATAWARP_PREFIX
+FIND_PATH(WITH_DATAWARP_PREFIX
     NAMES include/datawarp.h
 )
 
 FIND_LIBRARY(DATAWARP_LIBRARIES
     NAMES datawarp
-    HINTS ${DATAWARP_PREFIX}/lib
+    HINTS ${WITH_DATAWARP_PREFIX}/lib
 )
 
 FIND_PATH(DATAWARP_INCLUDE_DIRS
     NAMES datawarp.h
-    HINTS ${DATAWARP_PREFIX}/include
+    HINTS ${WITH_DATAWARP_PREFIX}/include
 )
 
 INCLUDE(FindPackageHandleStandardArgs)

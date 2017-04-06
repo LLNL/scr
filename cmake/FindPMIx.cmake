@@ -4,18 +4,18 @@
 #  PMIX_INCLUDE_DIRS - The libpmix include directories
 #  PMIX_LIBRARIES - The libraries needed to use libpmix
 
-FIND_PATH(PMIX_PREFIX
+FIND_PATH(WITH_PMIX_PREFIX
     NAMES include/pmix.h
 )
 
 FIND_LIBRARY(PMIX_LIBRARIES
     NAMES pmix
-    HINTS ${PMIX_PREFIX}/lib
+    HINTS ${WITH_PMIX_PREFIX}/lib
 )
 
 FIND_PATH(PMIX_INCLUDE_DIRS
     NAMES pmix.h
-    HINTS ${PMIX_PREFIX}/include
+    HINTS ${WITH_PMIX_PREFIX}/include
 )
 
 INCLUDE(FindPackageHandleStandardArgs)

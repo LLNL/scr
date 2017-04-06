@@ -4,18 +4,18 @@
 #  CPPR_INCLUDE_DIRS - The libcppr include directories
 #  CPPR_LIBRARIES - The libraries needed to use libcppr
 
-FIND_PATH(CPPR_PREFIX
+FIND_PATH(WITH_CPPR_PREFIX
     NAMES include/cppr.h
 )
 
 FIND_LIBRARY(CPPR_LIBRARIES
     NAMES cppr
-    HINTS ${CPPR_PREFIX}/lib
+    HINTS ${WITH_CPPR_PREFIX}/lib
 )
 
 FIND_PATH(CPPR_INCLUDE_DIRS
     NAMES cppr.h
-    HINTS ${CPPR_PREFIX}/include
+    HINTS ${WITH_CPPR_PREFIX}/include
 )
 
 INCLUDE(FindPackageHandleStandardArgs)
