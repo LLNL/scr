@@ -35,8 +35,14 @@ LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 ## MPI
 INCLUDE(SetupMPI)
-INCLUDE_DIRECTORIES(${MPI_C_INCLUDE_PATH})
-LIST(APPEND SCR_EXTERNAL_LIBS ${MPI_C_LIBRARIES})
+IF(MPI_C_FOUND)
+        INCLUDE_DIRECTORIES(${MPI_C_INCLUDE_PATH})
+        LIST(APPEND SCR_EXTERNAL_LIBS ${MPI_C_LIBRARIES})
+ELSE(MPI_C_FOUND)
+        MESSAGE("WARNING: Could not find MPI!")
+        MESSAGE("         Either add an MPI compiler to your path (using modules)")
+        MESSAGE("         Or force CMake to build using the correct compiler (`export CC=mpicc`)")
+ENDIF(MPI_C_FOUND)
 
 ## HEADERS
 INCLUDE(CheckIncludeFile)
