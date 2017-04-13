@@ -26,7 +26,7 @@ SET(SCR_CACHE_BASE "/tmp" CACHE PATH "Default base path for SCR cache directory"
 SET(SCR_CNTL_BASE "/tmp" CACHE PATH "Default base path for SCR control directory")
 SET(SCR_CONFIG_FILE "/etc/scr/scr.conf" CACHE FILEPATH "Default full path and filename for SCR config file")
 
-SET(SCR_FILE_LOCK "FLOCK" CACHE STRING "Specify type of file locking to use")
+SET(SCR_FILE_LOCK "FLOCK" CACHE STRING "Specify type of file locking to use (FLOCK FCNTL NONE)")
 SET_PROPERTY(CACHE SCR_FILE_LOCK PROPERTY STRINGS FLOCK FCNTL NONE)
 
 # Find Packages & Files
