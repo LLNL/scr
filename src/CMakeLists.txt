@@ -13,7 +13,7 @@ LIST(APPEND libscr_install_headers
 INSTALL(FILES ${libscr_install_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 ## CLI should build without MPI dependence
-LIST(APPEND cliscr_noMPI_scrs
+LIST(APPEND cliscr_noMPI_srcs
 	scr_compress.c
 	scr_config.c
 	scr_config_serial.c
@@ -101,7 +101,7 @@ SET_TARGET_PROPERTIES(scr PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 1)
 INSTALL(TARGETS scr DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # Non-MPI library for CLI
-ADD_LIBRARY(scr_base STATIC ${cliscr_noMPI_scrs})
+ADD_LIBRARY(scr_base STATIC ${cliscr_noMPI_srcs})
 TARGET_LINK_LIBRARIES(scr_base ${SCR_EXTERNAL_LIBS})
 
 # Fortran
