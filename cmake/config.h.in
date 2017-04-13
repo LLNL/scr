@@ -29,15 +29,14 @@
 #define SCR_FLUSH_ASYNC_@SCR_ASYNC_API@
 
 /* Specify the type of machine. */
-#cmakedefine SCR_MACHINE_NAME
-#cmakedefine SCR_MACHINE_TYPE @SCR_MACHINE_TYPE@
-
 #define SCR_BGQ 5
 #define SCR_CRAY_XT 4
 #define SCR_LSF 3
 #define SCR_PMIX 2
 #define SCR_MAC 1
 #define SCR_TLCC 0
+#cmakedefine SCR_MACHINE_NAME
+#cmakedefine SCR_MACHINE_TYPE @SCR_MACHINE_TYPE@
 
 #define X_BINDIR "@CMAKE_INSTALL_FULL_BINDIR@"
 #define X_DATADIR "@CMAKE_INSTALL_FULL_DATADIR@"
