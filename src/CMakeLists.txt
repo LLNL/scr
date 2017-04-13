@@ -76,9 +76,9 @@ LIST(APPEND libscr_srcs
 
 # Add vendor specific code based on SCR_ASYNC_API
 
-IF(${SCR_ASYNC_API} STREQUAL "None")
+IF(${SCR_ASYNC_API} STREQUAL "NONE")
 	LIST(APPEND libscr_srcs scr_flush_async_tlcc.c)
-ENDIF(${SCR_ASYNC_API} STREQUAL "None")
+ENDIF(${SCR_ASYNC_API} STREQUAL "NONE")
 
 IF(${SCR_ASYNC_API} STREQUAL "Cray_DataWarp")
 	LIST(APPEND libscr_srcs scr_flush_async_cray_xt.c)
