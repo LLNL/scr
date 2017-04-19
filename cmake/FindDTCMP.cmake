@@ -4,18 +4,18 @@
 #  DTCMP_INCLUDE_DIRS - The libdtcmp include directories
 #  DTCMP_LIBRARIES - The libraries needed to use libdtcmp
 
-FIND_PATH(DTCMP_PREFIX
+FIND_PATH(WITH_DTCMP_PREFIX
     NAMES include/dtcmp.h
 )
 
 FIND_LIBRARY(DTCMP_LIBRARIES
     NAMES dtcmp
-    HINTS ${DTCMP_PREFIX}/lib
+    HINTS ${WITH_DTCMP_PREFIX}/lib
 )
 
 FIND_PATH(DTCMP_INCLUDE_DIRS
     NAMES dtcmp.h
-    HINTS ${DTCMP_PREFIX}/include
+    HINTS ${WITH_DTCMP_PREFIX}/include
 )
 
 INCLUDE(FindPackageHandleStandardArgs)

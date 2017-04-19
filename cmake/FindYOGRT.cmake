@@ -4,18 +4,18 @@
 #  YOGRT_INCLUDE_DIRS - The libyogrt include directories
 #  YOGRT_LIBRARIES - The libraries needed to use libyogrt
 
-FIND_PATH(YOGRT_PREFIX
+FIND_PATH(WITH_YOGRT_PREFIX
     NAMES include/yogrt.h
 )
 
 FIND_LIBRARY(YOGRT_LIBRARIES
     NAMES yogrt
-    HINTS ${YOGRT_PREFIX}/lib
+    HINTS ${WITH_YOGRT_PREFIX}/lib
 )
 
 FIND_PATH(YOGRT_INCLUDE_DIRS
     NAMES yogrt.h
-    HINTS ${YOGRT_PREFIX}/include
+    HINTS ${WITH_YOGRT_PREFIX}/include
 )
 
 INCLUDE(FindPackageHandleStandardArgs)

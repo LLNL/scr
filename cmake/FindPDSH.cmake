@@ -4,18 +4,18 @@
 #  PDSH_EXE - Location of the pdsh binary
 #  DSHBAK_EXE - Location of the dshbak binary
 
-FIND_PATH(PDSH_PREFIX
+FIND_PATH(WITH_PDSH_PREFIX
     NAMES bin/pdsh
 )
 
 FIND_PROGRAM(PDSH_EXE
 	NAMES pdsh
-	HINTS ${PDSH_PREFIX}/bin
+	HINTS ${WITH_PDSH_PREFIX}/bin
 )
 
 FIND_PROGRAM(DSHBAK_EXE
 	NAMES dshbak
-	HINTS ${PDSH_PREFIX}/bin
+	HINTS ${WITH_PDSH_PREFIX}/bin
 )
 
 INCLUDE(FindPackageHandleStandardArgs)
