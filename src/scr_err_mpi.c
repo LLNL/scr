@@ -31,7 +31,7 @@ Error and Debug Messages
 void scr_err(const char *fmt, ...)
 {
   va_list argp;
-  fprintf(stdout, "SCR %s ERROR: rank %d on %s: ", SCR_ERR_VERSION, scr_my_rank_world, scr_my_hostname);
+  fprintf(stdout, "SCR %s ERROR: rank %d on %s: ", SCR_VERSION, scr_my_rank_world, scr_my_hostname);
   va_start(argp, fmt);
   vfprintf(stdout, fmt, argp);
   va_end(argp);
@@ -42,7 +42,7 @@ void scr_err(const char *fmt, ...)
 void scr_warn(const char *fmt, ...)
 {
   va_list argp;
-  fprintf(stdout, "SCR %s WARNING: rank %d on %s: ", SCR_ERR_VERSION, scr_my_rank_world, scr_my_hostname);
+  fprintf(stdout, "SCR %s WARNING: rank %d on %s: ", SCR_VERSION, scr_my_rank_world, scr_my_hostname);
   va_start(argp, fmt);
   vfprintf(stdout, fmt, argp);
   va_end(argp);
@@ -54,7 +54,7 @@ void scr_dbg(int level, const char *fmt, ...)
 {
   va_list argp;
   if (level == 0 || (scr_debug > 0 && scr_debug >= level)) {
-    fprintf(stdout, "SCR %s: rank %d on %s: ", SCR_ERR_VERSION, scr_my_rank_world, scr_my_hostname);
+    fprintf(stdout, "SCR %s: rank %d on %s: ", SCR_VERSION, scr_my_rank_world, scr_my_hostname);
     va_start(argp, fmt);
     vfprintf(stdout, fmt, argp);
     va_end(argp);
@@ -66,7 +66,7 @@ void scr_dbg(int level, const char *fmt, ...)
 void scr_abort(int rc, const char *fmt, ...)
 {
   va_list argp;
-  fprintf(stderr, "SCR %s ABORT: rank %d on %s: ", SCR_ERR_VERSION, scr_my_rank_world, scr_my_hostname);
+  fprintf(stderr, "SCR %s ABORT: rank %d on %s: ", SCR_VERSION, scr_my_rank_world, scr_my_hostname);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);

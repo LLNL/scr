@@ -22,6 +22,9 @@
 #include <stdarg.h>
 #include <errno.h>
 
+/* version info */
+#include "scr.h"
+
 /*
 =========================================
 Error and Debug Messages
@@ -38,7 +41,7 @@ void scr_err(const char *fmt, ...)
   }
 
   va_list argp;
-  fprintf(stdout, "SCR %s ERROR: %s: ", SCR_ERR_VERSION, hostname);
+  fprintf(stdout, "SCR %s ERROR: %s: ", SCR_VERSION, hostname);
   va_start(argp, fmt);
   vfprintf(stdout, fmt, argp);
   va_end(argp);
@@ -55,7 +58,7 @@ void scr_warn(const char *fmt, ...)
   }
 
   va_list argp;
-  fprintf(stdout, "SCR %s WARNING: %s: ", SCR_ERR_VERSION, hostname);
+  fprintf(stdout, "SCR %s WARNING: %s: ", SCR_VERSION, hostname);
   va_start(argp, fmt);
   vfprintf(stdout, fmt, argp);
   va_end(argp);
@@ -75,7 +78,7 @@ void scr_dbg(int level, const char *fmt, ...)
   /*
   if (level == 0 || (scr_debug > 0 && scr_debug >= level)) {
   */
-    fprintf(stdout, "SCR %s: %s: ", SCR_ERR_VERSION, hostname);
+    fprintf(stdout, "SCR %s: %s: ", SCR_VERSION, hostname);
     va_start(argp, fmt);
     vfprintf(stdout, fmt, argp);
     va_end(argp);
@@ -95,7 +98,7 @@ void scr_abort(int rc, const char *fmt, ...)
   }
 
   va_list argp;
-  fprintf(stderr, "SCR %s ABORT: %s: ", SCR_ERR_VERSION, hostname);
+  fprintf(stderr, "SCR %s ABORT: %s: ", SCR_VERSION, hostname);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);

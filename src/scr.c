@@ -1943,5 +1943,5 @@ int SCR_Complete_checkpoint(int valid)
 /* get and return the SCR version */
 char* SCR_Get_version()
 {
-  return SCR_ERR_VERSION;
+  return SCR_VERSION;
 }
