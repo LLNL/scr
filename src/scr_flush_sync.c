@@ -305,17 +305,6 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
   /* assume we will succeed in this flush */
   int rc = SCR_SUCCESS;
 
-  /* lookup path to summary file */
-  char* summary_dir;
-  if (scr_hash_util_get_str(file_list, SCR_KEY_PATH, &summary_dir) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to get summary file directory from file list @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* create summary path */
-  scr_path* path_summary_dir = scr_path_from_str(summary_dir);
-
   /* flush each of my files and fill in summary data structure */
   scr_hash_elem* elem = NULL;
   scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
@@ -347,8 +336,9 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
       scr_hash* file_hash = scr_hash_set_kv(summary, SCR_SUMMARY_6_KEY_FILE, name);
       scr_free(&name);
 
+// USERDEF fixme!
       /* flush the file to the containers listed in its segmenets */
-      if (scr_flush_file_to_containers(file, meta, segments, summary_dir) == SCR_SUCCESS) {
+      if (scr_flush_file_to_containers(file, meta, segments, scr_prefix) == SCR_SUCCESS) {
         /* successfully flushed this file, record the filesize */
         unsigned long filesize = 0;
         if (scr_meta_get_filesize(meta, &filesize) == SCR_SUCCESS) {
@@ -380,8 +370,8 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
         scr_path* path_full = scr_path_from_str(dir);
         scr_path_append(path_full, path_name);
 
-        /* get relative path to flushed file from directory containing summary file */
-        scr_path* path_relative = scr_path_relative(path_summary_dir, path_full);
+        /* get relative path to flushed file from SCR_PREFIX directory */
+        scr_path* path_relative = scr_path_relative(scr_prefix_path, path_full);
         if (! scr_path_is_null(path_relative)) {
           /* record the name of the file in the summary hash, and get reference to a hash for this file */
           char* name = scr_path_strdup(path_relative);
@@ -410,7 +400,7 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
           }
         } else {
           scr_abort(-1, "Failed to get relative path to directory %s from %s @ %s:%d",
-            dir, summary_dir, __FILE__, __LINE__
+            dir, scr_prefix, __FILE__, __LINE__
           );
         }
 
@@ -427,9 +417,6 @@ static int scr_flush_files_list(scr_hash* file_list, scr_hash* summary)
     /* free the file name path */
     scr_path_delete(&path_name);
   }
-
-  /* free summary dir path */
-  scr_path_delete(&path_summary_dir);
 
   return rc;
 }

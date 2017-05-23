@@ -30,8 +30,8 @@ int scr_flush_file_location_test(int id, const char* location);
 /* removes a location for the specified dataset id from the flush file */
 int scr_flush_file_location_unset(int id, const char* location);
 
-/* we track the subdirectory name within the prefix directory
+/* we track the dataset name in the flush file
  * so that we can specify where to create the summary file in scavenge */
-int scr_flush_file_subdir_set(int id, const char* dir);
+int scr_flush_file_name_set(int id, const char* name);
 
 #endif

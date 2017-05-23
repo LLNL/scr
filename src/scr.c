@@ -379,6 +379,7 @@ static int scr_get_params()
   if (! scr_enabled) {
     return SCR_FAILURE;
   }
+
   /* read in our configuration parameters */
   scr_param_init();
 
@@ -773,6 +774,7 @@ int SCR_Init()
   if (! scr_enabled) {
     return SCR_FAILURE;
   }
+
 #ifdef HAVE_LIBDTCMP
   /* initialize the DTCMP library for sorting and ranking routines
    * if we're using it */
@@ -783,6 +785,7 @@ int SCR_Init()
     );
   }
 #endif /* HAVE_LIBDTCMP */
+
   /* NOTE: SCR_ENABLE can also be set in a config file, but to read
    * a config file, we must at least create scr_comm_world and call
    * scr_get_params() */
@@ -809,8 +812,10 @@ int SCR_Init()
     );
     MPI_Abort(scr_comm_world, 0);
   }
+
   /* read our configuration: environment variables, config file, etc. */
   scr_get_params();
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     /* we dup'd comm_world to broadcast parameters in scr_get_params,
@@ -1819,9 +1824,11 @@ int SCR_Complete_checkpoint(int valid)
   unsigned long total_counts[3];
   MPI_Allreduce(my_counts, total_counts, 3, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
 
-  /* store total number of files, total number of bytes, and complete flag in dataset */
+  /* get dataset from filemap */
   scr_dataset* dataset = scr_dataset_new();
   scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+
+  /* store total number of files, total number of bytes, and complete flag in dataset */
   scr_dataset_set_files(dataset, (int) total_counts[0]);
   scr_dataset_set_size(dataset,        total_counts[1]);
   if (total_counts[2] == scr_ranks_world) {
@@ -1830,21 +1837,27 @@ int SCR_Complete_checkpoint(int valid)
     scr_dataset_set_complete(dataset, 0);
   }
   scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
-  scr_dataset_delete(&dataset);
 
   /* write out info to filemap */
   scr_filemap_write(scr_map_file, scr_map);
 
+// USERDEF (change to name?)
+  /* record name of dataset in flush file */
+  char* dset_name;
+  scr_dataset_get_name(dataset, &dset_name);
+  scr_flush_file_name_set(scr_dataset_id, dset_name);
+
+  /* done with dataset */
+  scr_dataset_delete(&dataset);
+
   /* TODO: PRESERVE preprocess info needed for flush/scavenge, e.g., container offsets,
    * list of directories to create, etc. we should also apply redundancy to this info,
    * this could be done in flush, but it's hard to do in scavenge */
-  char subdir[SCR_MAX_FILENAME];
-  if (scr_flush_verify(scr_map, scr_dataset_id, subdir, sizeof(subdir)) != SCR_SUCCESS) {
+  if (scr_flush_verify(scr_map, scr_dataset_id) != SCR_SUCCESS) {
     scr_abort(-1, "Dataset cannot be flushed @ %s:%d",
       __FILE__, __LINE__
     );
   }
-  scr_flush_file_subdir_set(scr_dataset_id, subdir);
 
   /* apply redundancy scheme */
   double bytes_copied = 0.0;

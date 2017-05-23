@@ -181,6 +181,27 @@ int scr_flush_pick_writer(
   return SCR_SUCCESS; 
 }
 
+/* given a dataset, return a newly allocated string specifying the
+ * metadata directory for that dataset, must be freed by caller */
+static char* scr_dataset_metadir(const scr_dataset* dataset)
+{
+  /* get the name of the dataset */
+  char* name;
+  if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to get dataset name @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* define metadata directory for dataset */
+  scr_path* path = scr_path_from_str(scr_prefix_scr);
+  scr_path_append_str(path, name);
+  char* dir = scr_path_strdup(path);
+  scr_path_delete(&path);
+
+  return dir;
+}
+
 /* fills in hash with a list of filenames and associated meta data
  * that should be flushed for specified dataset id */
 static int scr_flush_identify_files(
@@ -237,62 +258,27 @@ static int scr_flush_identify_files(
   return rc;
 }
 
-/* resolves par and dir directories, then ensures dir is
- * contained as a subdirectory under parent, and returns subdir */
-static int scr_find_subdir(
-  const char* par,    /* IN  - full path to parent directory */
-  const char* dir,    /* IN  - full path to child directory */
-  char* subdir,       /* OUT - top level subdirectory, if exists */
-  size_t subdir_size) /* IN  - size of subdir buffer */
-{
-  /* simplify parent directory */
-  scr_path* parent = scr_path_from_str(par);
-  scr_path_reduce(parent);
-
-  /* simplify child directory */
-  scr_path* child = scr_path_from_str(dir);
-  scr_path_reduce(child);
-
-  /* ensure that child has at least one more component than parent */
-  int parent_components = scr_path_components(parent);
-  int child_components  = scr_path_components(child);
-  if (child_components <= parent_components) {
-    scr_abort(-1, "Directory %s must have more components than parent %s @ %s:%d",
-      dir, parent, __FILE__, __LINE__
-    );
-  }
-
-  /* ensure that parent is prefix of child path */
-  if (! scr_path_is_child(parent, child)) {
-    scr_abort(-1, "Directory %s not contained in parent %s @ %s:%d",
-      dir, parent, __FILE__, __LINE__
-    );
-  }
-
-  /* get first component after parent ends */
-  scr_path* subdir_path = scr_path_sub(child, parent_components, 1);
-  if (scr_path_is_null(subdir_path)) {
-    scr_abort(-1, "Failed to get subdirectory from %s @ %s:%d",
-      dir, __FILE__, __LINE__
-    );
-  }
-
-  /* copy path to user buffer, will abort if buffer is too small */
-  scr_path_strcpy(subdir, subdir_size, subdir_path);
-
-  /* free off the paths we created */
-  scr_path_delete(&subdir_path);
-  scr_path_delete(&child);
-  scr_path_delete(&parent);
-
-  return SCR_SUCCESS;
-}
-
-/* create all directories needed for file list */
+/* build list of directories needed for file list (one per file) */
 static int scr_flush_identify_dirs(scr_hash* file_list)
 {
   /* get the dataset for this list of files */
   scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
+
+  /* get the name of the dataset */
+  char* name;
+  if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to get dataset name @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* record dataset name for flush */
+  scr_hash_util_set_str(file_list, SCR_KEY_NAME, name);
+
+  /* record path for dataset metatdata directory */
+  char* metadir = scr_dataset_metadir(dataset);
+  scr_hash_util_set_str(file_list, SCR_KEY_PATH, metadir);
+  scr_free(&metadir);
 
   if (scr_preserve_directories) {
     /* preserving user-defined directories, identify them here */
@@ -308,10 +294,9 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
     uint64_t* group_id    = (uint64_t*)    SCR_MALLOC(sizeof(uint64_t)    * count);
     uint64_t* group_ranks = (uint64_t*)    SCR_MALLOC(sizeof(uint64_t)    * count);
     uint64_t* group_rank  = (uint64_t*)    SCR_MALLOC(sizeof(uint64_t)    * count);
-    const char** subdirs  = (const char**) SCR_MALLOC(sizeof(const char*)       * count);
 
     /* lookup directory from meta data for each file */
-    int valid_subdir = 1;
+    int valid_children = 1;
     int i = 0;
     scr_hash_elem* elem = NULL;
     for (elem = scr_hash_elem_first(files);
@@ -332,16 +317,14 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
         /* record original path as path to flush to in file list */
         scr_hash_util_set_str(hash, SCR_KEY_PATH, dir);
 
-        /* get top level subdirectory under prefix */
-        char subdir[SCR_MAX_FILENAME];
-        if (scr_find_subdir(scr_prefix, dir, subdir, sizeof(subdir)) == SCR_SUCCESS) {
-          subdirs[i] = strdup(subdir);
-        } else {
-          /* dir may not be contained in prefix, or we otherwise
-           * failed to acquire it */
-          subdirs[i] = NULL;
-          valid_subdir = 0;
-        }
+// USERDEF check that file is child of prefix?
+        ///* simplify child directory */
+        //scr_path* child = scr_path_from_str(dir);
+        //scr_path_reduce(child);
+        ///* ensure that parent is prefix of child path */
+        //if (! scr_path_is_child(scr_prefix_path, dir_path)) {
+        //   valid_children = 0;
+        //}
       } else {
         scr_abort(-1, "Failed to read original path name for a file @ %s:%d",
           __FILE__, __LINE__
@@ -352,64 +335,18 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
       i++;
     }
 
-    /* verify that all procs have valid subdirs */
-    if (! scr_alltrue(valid_subdir)) {
+    /* verify that all procs have valid children */
+    if (! scr_alltrue(valid_children)) {
       if (scr_my_rank_world == 0) {
-        scr_abort(-1, "One or more processes found an invalid subdirectory @ %s:%d",
+        scr_abort(-1, "One or more processes found an invalid file outside of the prefix @ %s:%d",
           __FILE__, __LINE__
         );
       }
     }
-
-    /* rank subdirectories and ensure groups is exactly 1 */
-    uint64_t groups;
-    int dtcmp_rc = DTCMP_Rankv_strings(
-      count, subdirs, &groups, group_id, group_ranks, group_rank,
-      DTCMP_FLAG_NONE, scr_comm_world
-    );
-    if (dtcmp_rc != DTCMP_SUCCESS) {
-      scr_abort(-1, "Failed to rank strings during flush @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
-    if (groups != 1) {
-      if (scr_my_rank_world == 0) {
-        scr_abort(-1, "Identified more than one subdirectory during flush @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
-    }
-
-    /* since groups == 1, at least one process specified a directory,
-     * we want to take the minimum rank, so if we have no paths,
-     * initialize rank to the number of ranks (one more than any rank) */
-    int rank = scr_ranks_world;
-    if (count > 0) {
-      rank = scr_my_rank_world;
-    }
-
-    /* identify lowest rank which specified directory */
-    int lowest_rank;
-    MPI_Allreduce(&rank, &lowest_rank, 1, MPI_INT, MPI_MIN, scr_comm_world);
-
-    /* broadcast directory from lowest rank so all have a copy */
-    scr_path* path_full_subdir = scr_path_new();
-    if (scr_my_rank_world == lowest_rank) {
-      scr_path_append(path_full_subdir, scr_prefix_path);
-      scr_path_append_str(path_full_subdir, subdirs[0]);
-    }
-    scr_path_bcast(path_full_subdir, lowest_rank, scr_comm_world);
-
-    /* record top level directory for flush */
-    char* full_subdir = scr_path_strdup(path_full_subdir);
-    scr_hash_util_set_str(file_list, SCR_KEY_PATH, full_subdir);
-    scr_free(&full_subdir);
-
-    /* free the directory */
-    scr_path_delete(&path_full_subdir);
 
     /* identify the set of unique directories */
-    dtcmp_rc = DTCMP_Rankv_strings(
+    uint64_t groups;
+    int dtcmp_rc = DTCMP_Rankv_strings(
       count, dirs, &groups, group_id, group_ranks, group_rank,
       DTCMP_FLAG_NONE, scr_comm_world
     );
@@ -424,13 +361,9 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
       if (group_rank[i] == 0) {
         scr_hash_set_kv(file_list, SCR_KEY_DIRECTORY, dirs[i]);
       }
-
-      /* free subdirs */
-      scr_free(&subdirs[i]);
     }
 
     /* free buffers */
-    scr_free(&subdirs);
     scr_free(&group_id);
     scr_free(&group_ranks);
     scr_free(&group_rank);
@@ -444,22 +377,16 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
     return SCR_FAILURE;
 #endif /* HAVE_LIBDTCMP */
   } else {
-    /* create single scr.dataset directory at top level */
-    /* get the name of the dataset */
-    char* name;
-    if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
-      scr_abort(-1, "Failed to get dataset name @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
-
-    /* build the directory name */
+    /* build the dataset directory name */
     scr_path* path_dir = scr_path_dup(scr_prefix_path);
     scr_path_append_str(path_dir, name);
     char* dir = scr_path_strdup(path_dir);
 
-    /* record top level directory for flush */
-    scr_hash_util_set_str(file_list, SCR_KEY_PATH, dir);
+// USERDEF this needed?
+    /* have rank 0 be responsible for creating dataset directory */
+    if (scr_my_rank_world == 0) {
+      scr_hash_set_kv(file_list, SCR_KEY_DIRECTORY, dir);
+    }
 
     /* add the flush directory to each file in the list */
     scr_hash_elem* elem = NULL;
@@ -663,19 +590,6 @@ static int scr_flush_create_dirs(scr_hash* file_list)
 
   /* have rank 0 create the dataset directory */
   if (scr_my_rank_world == 0) {
-    /* get top level path */
-    char* flushdir;
-    if (scr_hash_util_get_str(file_list, SCR_KEY_PATH, &flushdir) != SCR_SUCCESS) {
-      scr_abort(-1, "Failed to get flush directory @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
-    scr_path* path_flushdir = scr_path_from_str(flushdir);
-
-    /* extract subdir name */
-    scr_path* path_subdir = scr_path_sub(path_flushdir, -1, 1);
-    char* subdir = scr_path_strdup(path_subdir);
-
     /* get the dataset for this list of files */
     scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
 
@@ -687,43 +601,35 @@ static int scr_flush_create_dirs(scr_hash* file_list)
       );
     }
 
+    /* get the name of the dataset */
+    char* name;
+    if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to get dataset name @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+
     /* add the directory to our index file, and record the flush timestamp */
     scr_hash* index_hash = scr_hash_new();
     scr_index_read(scr_prefix_path, index_hash);
-    scr_index_set_dataset(index_hash, id, subdir, dataset, 0);
-    scr_index_add_dir(index_hash, id, subdir);
-    scr_index_mark_flushed(index_hash, id, subdir);
+    scr_index_set_dataset(index_hash, id, name, dataset, 0);
+    scr_index_add_dir(index_hash, id, name);
+    scr_index_mark_flushed(index_hash, id, name);
     scr_index_write(scr_prefix_path, index_hash);
     scr_hash_delete(&index_hash);
 
-    /* create the directory */
-    if (scr_mkdir(flushdir, mode_dir) == SCR_SUCCESS) {
+    /* create the dataset metadata directory */
+    char* dataset_dir = scr_dataset_metadir(dataset);
+    if (scr_mkdir(dataset_dir, mode_dir) == SCR_SUCCESS) {
       /* created the directory successfully */
-      scr_dbg(1, "Flushing to %s", flushdir);
+      scr_dbg(1, "Flushing dataset %s", name);
     } else {
       /* failed to create the directory */
       scr_abort(-1, "Failed to make dataset directory mkdir(%s) @ %s:%d",
-        flushdir, __FILE__, __LINE__
+        dataset_dir, __FILE__, __LINE__
       );
     }
-
-    /* create the .scr subdirectory */
-    scr_path* path_scr = scr_path_dup(path_flushdir);
-    scr_path_append_str(path_scr, ".scr");
-    char* dir_scr = scr_path_strdup(path_scr);
-    if (scr_mkdir(dir_scr, mode_dir) != SCR_SUCCESS) {
-      /* failed to create the directory */
-      scr_abort(-1, "Failed to make .scr subdirectory directory mkdir(%s) @ %s:%d",
-        dir_scr, __FILE__, __LINE__
-      );
-    }
-    scr_free(&dir_scr);
-    scr_path_delete(&path_scr);
-
-    /* free the paths and string */
-    scr_free(&subdir);
-    scr_path_delete(&path_subdir);
-    scr_path_delete(&path_flushdir);
+    scr_free(&dataset_dir);
   }
 
   /* wait for rank 0 */
@@ -840,13 +746,11 @@ static int scr_flush_create_containers(const scr_hash* file_list)
   return SCR_FAILURE;
 }
 
+//USERDEF (remove?)
 /* TODO: attach this info to file map */
-/* this is a hacky way to record data in flush file from complete checkpoint */
 int scr_flush_verify(
   const scr_filemap* map,
-  int id,
-  char* dir,
-  size_t dir_size)
+  int id)
 {
   scr_hash* file_list = scr_hash_new();
 
@@ -856,20 +760,6 @@ int scr_flush_verify(
       id, __FILE__, __LINE__
     );
   }
-
-  /* look up path of flush directory */
-  char* flush_dir;
-  if (scr_hash_util_get_str(file_list, SCR_KEY_PATH, &flush_dir) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to get flush directory of dataset %d @ %s:%d",
-      id, __FILE__, __LINE__
-    );
-  }
-
-  /* get subdirectory name for flush and copy to user's buffer */
-  scr_path* path_subdir = scr_path_from_str(flush_dir);
-  scr_path_basename(path_subdir);
-  scr_path_strcpy(dir, dir_size, path_subdir);
-  scr_path_delete(&path_subdir);
 
   scr_hash_delete(&file_list);
 
@@ -930,16 +820,11 @@ static unsigned long scr_flush_summary_map(
 {
   int rc = SCR_SUCCESS;
 
-  /* define path to metadata directory */
-  scr_path* meta_path = scr_path_dup(dataset_path);
-  scr_path_append_str(meta_path, ".scr");
-  scr_path_reduce(meta_path);
-
-  /* record file name relative to dataset dir */
+  /* record file name relative to prefix dir */
   scr_hash* hash = scr_hash_new();
   unsigned long pack_size = 0;
   if (valid) {
-    scr_path* rel_path = scr_path_relative(dataset_path, file);
+    scr_path* rel_path = scr_path_relative(scr_prefix_path, file);
     const char* rel_file = scr_path_strdup(rel_path);
     scr_hash_util_set_str(hash, SCR_SUMMARY_6_KEY_FILE, rel_file);
     scr_hash_util_set_bytecount(hash, SCR_SUMMARY_6_KEY_OFFSET, offset);
@@ -983,7 +868,7 @@ static unsigned long scr_flush_summary_map(
   scr_hash_delete(&send);
 
   /* create file name for rank2file index */
-  scr_path* rank2file_path = scr_path_dup(meta_path);
+  scr_path* rank2file_path = scr_path_dup(dataset_path);
   if (ranks < scr_ranks_world) {
     /* for all lower level maps we append a level id and writer id */
     scr_path_append_strf(rank2file_path, "rank2file.%d.%d.scr", level, writer);
@@ -1053,15 +938,11 @@ static unsigned long scr_flush_summary_map(
   /* free the hash */
   scr_hash_delete(&save);
 
-  /* free scr meta data path */
-  scr_path_delete(&meta_path);
-
   return rc;
 }
 
 /* write summary file for flush */
 static int scr_flush_summary(
-  const char* dataset_dir,
   const scr_dataset* dataset,
   const scr_hash* file_list,
   scr_hash* data)
@@ -1071,13 +952,11 @@ static int scr_flush_summary(
   /* TODO: need to determine whether everyone flushed successfully */
   int all_complete = 1;
 
-  /* define path to dataset directory */
-  scr_path* dataset_path = scr_path_from_str(dataset_dir);
-
   /* define path to metadata directory */
-  scr_path* meta_path = scr_path_dup(dataset_path);
-  scr_path_append_str(meta_path, ".scr");
-  scr_path_reduce(meta_path);
+  char* dataset_path_str = scr_dataset_metadir(dataset);
+  scr_path* dataset_path = scr_path_from_str(dataset_path_str);
+  scr_path_reduce(dataset_path);
+  scr_free(&dataset_path_str);
 
   /* pick our writer so that we send roughly 1MB of data to each */
   int writer, ranks;
@@ -1114,7 +993,7 @@ static int scr_flush_summary(
   /* rank 0 creates summary file and writes dataset info */
   if (scr_my_rank_world == 0) {
     /* build file name to summary file */
-    scr_path* summary_path = scr_path_dup(meta_path);
+    scr_path* summary_path = scr_path_dup(dataset_path);
     scr_path_append_str(summary_path, "summary.scr");
     char* summary_file = scr_path_strdup(summary_path);
 
@@ -1163,7 +1042,7 @@ static int scr_flush_summary(
   }
 
   /* create file name for rank2file index */
-  scr_path* rank2file_path = scr_path_dup(meta_path);
+  scr_path* rank2file_path = scr_path_dup(dataset_path);
   scr_path_append_strf(rank2file_path, "rank2file.0.%d.scr", writer);
   char* rank2file_file = scr_path_strdup(rank2file_path);
 
@@ -1225,7 +1104,6 @@ static int scr_flush_summary(
   scr_hash_delete(&save);
 
   /* free path and file name */
-  scr_path_delete(&meta_path);
   scr_path_delete(&dataset_path);
 
   /* determine whether everyone wrote their files ok */
@@ -1244,14 +1122,8 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
   /* get the dataset of this flush */
   scr_dataset* dataset = scr_hash_get(file_list, SCR_KEY_DATASET);
 
-  /* get the directory for the summary file */
-  char* summary_dir;
-  if (scr_hash_util_get_str(file_list, SCR_KEY_PATH, &summary_dir) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
   /* write summary file */
-  if (scr_flush_summary(summary_dir, dataset, file_list, data) != SCR_SUCCESS) {
+  if (scr_flush_summary(dataset, file_list, data) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 
@@ -1267,17 +1139,20 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
       scr_hash* index_hash = scr_hash_new();
       scr_index_read(scr_prefix_path, index_hash);
 
-      /* get name of subdirectory holding dataset */
-      char subdir[SCR_MAX_FILENAME];
-      if (scr_find_subdir(scr_prefix, summary_dir, subdir, sizeof(subdir)) == SCR_SUCCESS) {
-        /* create new current to point to new directory */
-        scr_index_set_current(index_hash, subdir);
+      /* update current to point to new dataset */
+      char* name;
+      if (scr_dataset_get_name(dataset, &name) == SCR_SUCCESS) {
+        scr_index_set_current(index_hash, name);
+      } else {
+        scr_abort(-1, "Failed to read dataset name @ %s:%d",
+          __FILE__, __LINE__
+        );
       }
 
-      /* record the dataset in the index file */
+      /* update complete flag in index file */
       int id;
       if (scr_dataset_get_id(dataset, &id) == SCR_SUCCESS) {
-        scr_index_set_dataset(index_hash, id, subdir, dataset, complete);
+        scr_index_set_dataset(index_hash, id, name, dataset, complete);
       } else {
         scr_abort(-1, "Failed to read dataset id @ %s:%d",
           __FILE__, __LINE__
