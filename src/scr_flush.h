@@ -15,8 +15,6 @@
 #include "scr_hash.h"
 #include "scr_filemap.h"
 
-int scr_dataset_build_name(int id, int64_t usecs, char* name, int n);
-
 /* ensure that dataset can be flushed */
 int scr_flush_verify(
   const scr_filemap* map, /* IN  - current filemap */

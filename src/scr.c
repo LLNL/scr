@@ -1618,7 +1618,7 @@ int SCR_Start_checkpoint()
     /* capture time and build name of dataset */
     int64_t dataset_time = scr_time_usecs();
     char dataset_name[SCR_MAX_FILENAME];
-    scr_dataset_build_name(scr_dataset_id, dataset_time, dataset_name, sizeof(dataset_name));
+    snprintf(dataset_name, sizeof(dataset_name), "scr.dataset.%d", scr_dataset_id);
 
     /* fill in fields for dataset */
     scr_dataset_set_id(dataset, scr_dataset_id);

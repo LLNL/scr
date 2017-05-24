@@ -46,14 +46,6 @@ int scr_bool_flush_file(
   return flush;
 }
 
-int scr_dataset_build_name(int id, int64_t usecs, char* name, int n)
-{
-  /* build the directory name */
-  snprintf(name, n, "scr.dataset.%d", id);
-
-  return SCR_SUCCESS;
-}
-
 /*
 =========================================
 Prepare for flush by building list of files, creating directories,
@@ -186,16 +178,16 @@ int scr_flush_pick_writer(
 static char* scr_dataset_metadir(const scr_dataset* dataset)
 {
   /* get the name of the dataset */
-  char* name;
-  if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to get dataset name @ %s:%d",
+  int id;
+  if (scr_dataset_get_id(dataset, &id) != SCR_SUCCESS) {
+    scr_abort(-1, "Failed to get dataset id @ %s:%d",
       __FILE__, __LINE__
     );
   }
 
   /* define metadata directory for dataset */
   scr_path* path = scr_path_from_str(scr_prefix_scr);
-  scr_path_append_str(path, name);
+  scr_path_append_strf(path, "scr.dataset.%d", id);
   char* dir = scr_path_strdup(path);
   scr_path_delete(&path);
 

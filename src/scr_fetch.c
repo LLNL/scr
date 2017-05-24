@@ -956,25 +956,19 @@ static int scr_fetch_data(
   return SCR_FAILURE;
 }
 
-static char* scr_dataset_metadir_from_name(const char* name)
-{
-  scr_path* path = scr_path_dup(scr_prefix_path);
-  scr_path_append_str(path, ".scr");
-  scr_path_append_str(path, name);
-  char* dir = scr_path_strdup(path);
-  scr_path_delete(&path);
-  return dir;
-}
-
 /* fetch files from parallel file system */
 static int scr_fetch_files(
   scr_filemap* map,
+  int dset_id,
   const char* dset_name,
   int* dataset_id,
   int* checkpoint_id)
 {
   /* get fetch directory as string */
-  char* fetch_dir = scr_dataset_metadir_from_name(dset_name);
+  scr_path* path = scr_path_from_str(scr_prefix_scr);
+  scr_path_append_strf(path, "scr.dataset.%d", dset_id);
+  char* fetch_dir = scr_path_strdup(path);
+  scr_path_delete(&path);
 
   /* this may take a while, so tell user what we're doing */
   if (scr_my_rank_world == 0) {
@@ -1198,7 +1192,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
   /* now start fetching, we keep trying until we exhaust all valid
    * checkpoints */
   char target[SCR_MAX_FILENAME];
-  int current_checkpoint_id = -1;
+  int target_id = -1;
   while (continue_fetching) {
     /* initialize our target directory to empty string */
     strcpy(target, "");
@@ -1217,17 +1211,17 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
       }
 
       /* lookup the checkpoint id */
-      int next_checkpoint_id = -1;
+      int next_id = -1;
       if (strcmp(target, "") != 0) {
         /* we have a name, lookup the checkpoint id
          * corresponding to this name */
-        scr_index_get_id_by_name(index_hash, target, &next_checkpoint_id);
+        scr_index_get_id_by_name(index_hash, target, &next_id);
       } else {
         /* otherwise, just get the most recent complete checkpoint
          * (that's older than the current id) */
-        scr_index_get_most_recent_complete(index_hash, current_checkpoint_id, &next_checkpoint_id, target);
+        scr_index_get_most_recent_complete(index_hash, target_id, &next_id, target);
       }
-      current_checkpoint_id = next_checkpoint_id;
+      target_id = next_id;
 
       /* TODODSET: need to verify that dataset is really a checkpoint
        * and keep searching if not */
@@ -1238,12 +1232,15 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
         /* record that we're attempting a fetch of this checkpoint in
          * the index file */
         *fetch_attempted = 1;
-        if (current_checkpoint_id != -1) {
-          scr_index_mark_fetched(index_hash, current_checkpoint_id, target);
+        if (target_id != -1) {
+          scr_index_mark_fetched(index_hash, target_id, target);
           scr_index_write(scr_prefix_path, index_hash);
         }
       }
     }
+
+    /* broadcast target id from rank 0 */
+    MPI_Bcast(&target_id, 1, MPI_INT, 0, scr_comm_world);
 
     /* broadcast target name from rank 0 */
     scr_strn_bcast(target, sizeof(target), 0, scr_comm_world);
@@ -1252,7 +1249,7 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
     if (strcmp(target, "") != 0) {
       /* got something, attempt to fetch the checkpoint */
       int dset_id, ckpt_id;
-      rc = scr_fetch_files(map, target, &dset_id, &ckpt_id);
+      rc = scr_fetch_files(map, target_id, target, &dset_id, &ckpt_id);
       if (rc == SCR_SUCCESS) {
         /* set the dataset and checkpoint ids */
         scr_dataset_id = dset_id;
@@ -1271,8 +1268,8 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
         if (scr_my_rank_world == 0) {
           /* unset the current pointer */
           scr_index_unset_current(index_hash);
-          if (current_checkpoint_id != -1 && strcmp(target, "") != 0) {
-            scr_index_mark_failed(index_hash, current_checkpoint_id, target);
+          if (target_id != -1 && strcmp(target, "") != 0) {
+            scr_index_mark_failed(index_hash, target_id, target);
           }
           scr_index_write(scr_prefix_path, index_hash);
         }
