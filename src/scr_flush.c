@@ -609,11 +609,11 @@ static int scr_flush_create_dirs(scr_hash* file_list)
       );
     }
 
-    /* add the directory to our index file, and record the flush timestamp */
+    /* add the name to our index file, and record the flush timestamp */
     scr_hash* index_hash = scr_hash_new();
     scr_index_read(scr_prefix_path, index_hash);
     scr_index_set_dataset(index_hash, id, name, dataset, 0);
-    scr_index_add_dir(index_hash, id, name);
+    scr_index_add_name(index_hash, id, name);
     scr_index_mark_flushed(index_hash, id, name);
     scr_index_write(scr_prefix_path, index_hash);
     scr_hash_delete(&index_hash);

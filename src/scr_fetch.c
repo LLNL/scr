@@ -1219,9 +1219,9 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
       /* lookup the checkpoint id */
       int next_checkpoint_id = -1;
       if (strcmp(target, "") != 0) {
-        /* we have a subdirectory name, lookup the checkpoint id
-         * corresponding to this directory */
-        scr_index_get_id_by_dir(index_hash, target, &next_checkpoint_id);
+        /* we have a name, lookup the checkpoint id
+         * corresponding to this name */
+        scr_index_get_id_by_name(index_hash, target, &next_checkpoint_id);
       } else {
         /* otherwise, just get the most recent complete checkpoint
          * (that's older than the current id) */
