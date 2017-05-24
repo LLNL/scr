@@ -165,9 +165,8 @@ int scr_flush_file_location_unset(int id, const char* location)
   return SCR_SUCCESS;
 }
 
-//USERDEF (remove?)
 /* we track the dataset name in the flush file
- * so that we can specify where to create the summary file in scavenge */
+ * so that we can report this name to the user in scavenge */
 int scr_flush_file_name_set(int id, const char* name)
 {
   /* only rank 0 updates the file */
@@ -188,5 +187,3 @@ int scr_flush_file_name_set(int id, const char* name)
   }
   return SCR_SUCCESS;
 }
-
-

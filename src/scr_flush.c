@@ -296,7 +296,6 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
     uint64_t* group_rank  = (uint64_t*)    SCR_MALLOC(sizeof(uint64_t)    * count);
 
     /* lookup directory from meta data for each file */
-    int valid_children = 1;
     int i = 0;
     scr_hash_elem* elem = NULL;
     for (elem = scr_hash_elem_first(files);
@@ -316,15 +315,6 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
 
         /* record original path as path to flush to in file list */
         scr_hash_util_set_str(hash, SCR_KEY_PATH, dir);
-
-// USERDEF check that file is child of prefix?
-        ///* simplify child directory */
-        //scr_path* child = scr_path_from_str(dir);
-        //scr_path_reduce(child);
-        ///* ensure that parent is prefix of child path */
-        //if (! scr_path_is_child(scr_prefix_path, dir_path)) {
-        //   valid_children = 0;
-        //}
       } else {
         scr_abort(-1, "Failed to read original path name for a file @ %s:%d",
           __FILE__, __LINE__
@@ -333,15 +323,6 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
 
       /* add one to our file count */
       i++;
-    }
-
-    /* verify that all procs have valid children */
-    if (! scr_alltrue(valid_children)) {
-      if (scr_my_rank_world == 0) {
-        scr_abort(-1, "One or more processes found an invalid file outside of the prefix @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
     }
 
     /* identify the set of unique directories */
@@ -382,7 +363,6 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
     scr_path_append_str(path_dir, name);
     char* dir = scr_path_strdup(path_dir);
 
-// USERDEF this needed?
     /* have rank 0 be responsible for creating dataset directory */
     if (scr_my_rank_world == 0) {
       scr_hash_set_kv(file_list, SCR_KEY_DIRECTORY, dir);
@@ -746,8 +726,8 @@ static int scr_flush_create_containers(const scr_hash* file_list)
   return SCR_FAILURE;
 }
 
-//USERDEF (remove?)
 /* TODO: attach this info to file map */
+/* run some checks to verify that dataset can be flushed */
 int scr_flush_verify(
   const scr_filemap* map,
   int id)

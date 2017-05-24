@@ -1734,10 +1734,17 @@ int SCR_Route_file(const char* file, char* newfile)
       scr_path_prepend(path_abs, scr_prefix_path);
     }
 
-    /* TODO: check that path is a child of prefix directory */
-
     /* simplify the absolute path (removes "." and ".." entries) */
     scr_path_reduce(path_abs);
+
+    /* check that file is somewhere under prefix */
+    if (! scr_path_is_child(scr_prefix_path, path_abs)) {
+      /* found a file that's outside of prefix, throw an error */
+      char* path_abs_str = scr_path_strdup(path_abs);
+      scr_abort(-1, "File `%s' must be under SCR_PREFIX `%s' @ %s:%d",
+        path_abs_str, scr_prefix, __FILE__, __LINE__
+      );
+    }
 
     /* cut absolute path into direcotry and file name */
     scr_path* path_name = scr_path_cut(path_abs, -1);
@@ -1851,7 +1858,6 @@ int SCR_Complete_checkpoint(int valid)
   /* write out info to filemap */
   scr_filemap_write(scr_map_file, scr_map);
 
-// USERDEF (change to name?)
   /* record name of dataset in flush file */
   char* dset_name;
   scr_dataset_get_name(dataset, &dset_name);
