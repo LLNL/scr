@@ -101,8 +101,8 @@ if ($conf{nodeset_job} eq "" or
 }
 
 # get directories
-my $cntldir    = $conf{dir_from};
-my $datasetdir = $conf{dir_to};
+my $cntldir   = $conf{dir_from};
+my $prefixdir = $conf{dir_to};
 
 # get nodesets
 my @jobnodes  = scr_hostlist::expand($conf{nodeset_job});
@@ -127,8 +127,8 @@ my $downnodes_spaced = join(" ", @downnodes);
 my $dset = "$conf{dataset_id}";
 
 # build the output filenames
-my $output = "$datasetdir/.scr/$prog.pdsh.o" . $jobid;
-my $error  = "$datasetdir/.scr/$prog.pdsh.e" . $jobid;
+my $output = "$prefixdir/.scr/scr.dataset.$dset/$prog.pdsh.o" . $jobid;
+my $error  = "$prefixdir/.scr/scr.dataset.$dset/$prog.pdsh.e" . $jobid;
 
 my $cmd = undef;
 
@@ -137,7 +137,7 @@ my $cmd = undef;
 
 # gather files via pdsh
 my $partner_flag = "";
-$cmd = "$bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $datasetdir --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced";
+$cmd = "$bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $prefixdir --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced";
 print "$prog: ", scalar(localtime), "\n";
 print "$prog: $pdsh -f 256 -S -w '$upnodes' \"$cmd\" >$output 2>$error\n";
              `$pdsh -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
@@ -266,7 +266,7 @@ if (@copy_failed > 0 or @pdsh_failed > 0) {
     $new_upnodes = scr_hostlist::compress(@partners);
   }
   $partner_flag = "--partner";
-  $cmd = "$bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $datasetdir --buf $buf_size $crc_flag $partner_flag $container_flag $new_downnodes_spaced";
+  $cmd = "$bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $prefixdir --buf $buf_size $crc_flag $partner_flag $container_flag $new_downnodes_spaced";
   if ($new_upnodes ne "") {
     print "$prog: $pdsh -f 256 -S -w '$new_upnodes' \"$cmd\" >$output2 2>$error2\n";
                  `$pdsh -f 256 -S -w '$new_upnodes'  "$cmd"  >$output2 2>$error2`;

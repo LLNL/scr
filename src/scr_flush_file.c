@@ -36,7 +36,7 @@
 int print_usage()
 {
   printf("\n");
-  printf("  Usage:  %s --dir <dir> [--latest | --needflush <id> | --location <id> | --subdir <id>]\n", PROG);
+  printf("  Usage:  %s --dir <dir> [--latest | --needflush <id> | --location <id> | --name <id>]\n", PROG);
   printf("\n");
   exit(1);
 }
@@ -46,7 +46,7 @@ struct arglist {
   int need_flush; /* check whether a certain dataset id needs to be flushed */
   int latest;     /* return the id of the latest (most recent) dataset in cache */
   int location;   /* return the location of dataset with specified id in cache */
-  int subdir;     /* subdirectory (relative to prefix) to create to hold dataset */
+  int name;       /* dataset name (label) */
 };
 
 int process_args(int argc, char **argv, struct arglist* args)
@@ -60,7 +60,7 @@ int process_args(int argc, char **argv, struct arglist* args)
     {"needflush", required_argument, NULL, 'n'},
     {"latest",    no_argument,       NULL, 'l'},
     {"location",  required_argument, NULL, 'L'},
-    {"subdir",    required_argument, NULL, 's'},
+    {"name",      required_argument, NULL, 's'},
     {"help",      no_argument,       NULL, 'h'},
     {0, 0, 0, 0}
   };
@@ -70,7 +70,7 @@ int process_args(int argc, char **argv, struct arglist* args)
   args->need_flush = -1;
   args->latest     = 0;
   args->location   = -1;
-  args->subdir     = -1;
+  args->name       = -1;
 
   /* loop through and process all options */
   int c;
@@ -107,12 +107,12 @@ int process_args(int argc, char **argv, struct arglist* args)
         ++opCount;
         break;
       case 's':
-        /* subdirectory (relative to prefix) to create to hold dataset */
+        /* dataset name */
         tmp_dset = atoi(optarg);
         if (tmp_dset <= 0) {
           return 0;
         }
-        args->subdir = tmp_dset;
+        args->name = tmp_dset;
         ++opCount;
         break;
       case 'h':
@@ -228,16 +228,16 @@ int main (int argc, char *argv[])
     goto cleanup;
   }
 
-  /* check whether we should report subdirectory for dataset */
-  if (args.subdir != -1) {
+  /* check whether we should report name for dataset */
+  if (args.name != -1) {
     /* first check whether we have the requested dataset */
-    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.subdir);
+    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.name);
     if (dset_hash != NULL) {
-      /* now check for the subdir */
-      char* subdir;
-      if (scr_hash_util_get_str(dset_hash, SCR_FLUSH_KEY_DIRECTORY, &subdir) == SCR_SUCCESS) {
-        /* got subdirectory, print it and return success */
-        printf("%s\n", subdir);
+      /* now check for the name */
+      char* name;
+      if (scr_hash_util_get_str(dset_hash, SCR_FLUSH_KEY_NAME, &name) == SCR_SUCCESS) {
+        /* got name, print it and return success */
+        printf("%s\n", name);
         rc = 0;
       }
     }

@@ -120,6 +120,7 @@ Define common hash key strings
 #define SCR_INDEX_KEY_VERSION ("VERSION")
 
 #define SCR_INDEX_FILE_VERSION_1 (1)
+#define SCR_INDEX_1_KEY_NAME      ("NAME")
 #define SCR_INDEX_1_KEY_DIR       ("DIR")
 #define SCR_INDEX_1_KEY_CKPT      ("CKPT")
 #define SCR_INDEX_1_KEY_DATASET   ("DSET")
@@ -138,6 +139,7 @@ Define common hash key strings
 #define SCR_FLUSH_KEY_LOCATION_FLUSHING ("FLUSHING")
 #define SCR_FLUSH_KEY_LOCATION_SYNC_FLUSHING ("SYNC_FLUSHING")
 #define SCR_FLUSH_KEY_DIRECTORY ("DIR")
+#define SCR_FLUSH_KEY_NAME ("NAME")
 
 #define SCR_SCAVENGE_KEY_PRESERVE  ("PRESERVE")
 #define SCR_SCAVENGE_KEY_CONTAINER ("CONTAINER")

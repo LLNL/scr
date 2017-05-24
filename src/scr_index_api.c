@@ -89,11 +89,11 @@ int scr_index_write(const scr_path* dir, scr_hash* index)
   return rc;
 }
 
-/* this adds an entry to the index that maps a directory name to a dataset id */
+/* this adds an entry to the index that maps a name to a dataset id */
 static int scr_index_set_directory(scr_hash* hash, const char* name, int id)
 {
   /* add entry to directory index */
-  scr_hash* dir  = scr_hash_set_kv(hash, SCR_INDEX_1_KEY_DIR, name);
+  scr_hash* dir  = scr_hash_set_kv(hash, SCR_INDEX_1_KEY_NAME, name);
   scr_hash* dset = scr_hash_set_kv_int(dir, SCR_INDEX_1_KEY_DATASET, id);
   if (dset == NULL) {
     return SCR_FAILURE;
@@ -101,44 +101,44 @@ static int scr_index_set_directory(scr_hash* hash, const char* name, int id)
   return SCR_SUCCESS;
 }
 
-/* add given dataset id and directory name to given hash */
-int scr_index_add_dir(scr_hash* index, int id, const char* name)
+/* add given dataset id and name to given hash */
+int scr_index_add_name(scr_hash* index, int id, const char* name)
 {
-  /* set the directory */
+  /* set the dataset id */
   scr_hash* dset_hash = scr_hash_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
 
-  /* unset then set directory so we overwrite it if it's already set */
-  scr_hash_unset_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
-  scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
+  /* unset then set name so we overwrite it if it's already set */
+  scr_hash_unset_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
+  scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
 
-  /* add entry to directory index (maps directory name to dataset id) */
+  /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
 
   return SCR_SUCCESS;
 }
 
-/* remove given directory name from hash */
-int scr_index_remove_dir(scr_hash* index, const char* name)
+/* remove given dataset name from hash */
+int scr_index_remove(scr_hash* index, const char* name)
 {
-  /* lookup the dataset id based on the directory name */
+  /* lookup the dataset id based on the dataset name */
   int id;
-  if (scr_index_get_id_by_dir(index, name, &id) == SCR_SUCCESS) {
-    /* delete directory from the directory-to-dataset-id index */
-    scr_hash_unset_kv(index, SCR_INDEX_1_KEY_DIR, name);
+  if (scr_index_get_id_by_name(index, name, &id) == SCR_SUCCESS) {
+    /* delete dataset name from the name-to-dataset-id index */
+    scr_hash_unset_kv(index, SCR_INDEX_1_KEY_NAME, name);
 
     /* get the hash for this dataset id */
     scr_hash* dset = scr_hash_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
 
-    /* delete this directory from the hash for this dataset id */
-    scr_hash_unset_kv(dset, SCR_INDEX_1_KEY_DIR, name);
+    /* delete this dataset name from the hash for this dataset id */
+    scr_hash_unset_kv(dset, SCR_INDEX_1_KEY_NAME, name);
 
-    /* if that was the only directory for this dataset id,
+    /* if that was the only entry for this dataset id,
      * also delete the dataset id field */
     if (scr_hash_size(dset) == 0) {
       scr_hash_unset_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
     }
 
-    /* if this is the current directory, update current */
+    /* if this is the current dataset, update current */
     char* current = NULL;
     if (scr_index_get_current(index, &current) == SCR_SUCCESS) {
       if (strcmp(current, name) == 0) {
@@ -150,7 +150,7 @@ int scr_index_remove_dir(scr_hash* index, const char* name)
         char newname[SCR_MAX_FILENAME];
         scr_index_get_most_recent_complete(index, id, &newid, newname);
         if (newid != -1) {
-          /* found a new directory, update current */
+          /* found a new dataset name, update current */
           scr_index_set_current(index, newname);
         }
       }
@@ -162,69 +162,69 @@ int scr_index_remove_dir(scr_hash* index, const char* name)
     /* drop index from current if it matches */
     scr_hash_unset_kv(index, SCR_INDEX_1_KEY_CURRENT, name);
 
-    /* couldn't find the named directory, print an error */
-    scr_err("Named directory was not found in index file: %s @ %s:%d",
+    /* couldn't find the named dataset, print an error */
+    scr_err("Named dataset was not found in index file: %s @ %s:%d",
       name, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
 }
 
-/* set directory name as current directory to restart from */
+/* set dataset name as current to restart from */
 int scr_index_set_current(scr_hash* index, const char* name)
 {
-  /* check that directory name exists in index */
-  scr_hash* dir = scr_hash_get_kv(index, SCR_INDEX_1_KEY_DIR, name);
+  /* check that dataset name exists in index */
+  scr_hash* dir = scr_hash_get_kv(index, SCR_INDEX_1_KEY_NAME, name);
   if (dir == NULL) {
     return SCR_FAILURE;
   }
 
-  /* set the current directory */
+  /* set the current dataset */
   scr_hash_util_set_str(index, SCR_INDEX_1_KEY_CURRENT, name);
 
   return SCR_SUCCESS;
 }
 
-/* get directory name as current directory to restart from */
+/* get dataset name as current to restart from */
 int scr_index_get_current(scr_hash* index, char** name)
 {
-  /* get the current directory */
+  /* get the current dataset */
   int rc = scr_hash_util_get_str(index, SCR_INDEX_1_KEY_CURRENT, name);
   return rc;
 }
 
-/* unset directory name as current directory to restart from */
+/* unset dataset name as current to restart from */
 int scr_index_unset_current(scr_hash* index)
 {
-  /* unset the current directory */
+  /* unset the current dataset */
   int rc = scr_hash_unset(index, SCR_INDEX_1_KEY_CURRENT);
   return rc;
 }
 
-/* write completeness code (0 or 1) for given dataset id and directory in given hash */
+/* write completeness code (0 or 1) for given dataset id and name in given hash */
 int scr_index_set_complete(scr_hash* index, int id, const char* name, int complete)
 {
   /* mark the dataset as complete or incomplete */
   scr_hash* dset_hash = scr_hash_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
+  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
   scr_hash_util_set_int(dir_hash, SCR_INDEX_1_KEY_COMPLETE, complete);
 
-  /* add entry to directory index (maps directory name to dataset id) */
+  /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
 
   return SCR_SUCCESS;
 }
 
-/* write completeness code (0 or 1) for given dataset id and directory in given hash */
+/* write completeness code (0 or 1) for given dataset id and name in given hash */
 int scr_index_set_dataset(scr_hash* index, int id, const char* name, const scr_dataset* dataset, int complete)
 {
   /* copy contents of dataset hash */
   scr_hash* dataset_copy = scr_hash_new();
   scr_hash_merge(dataset_copy, dataset);
 
-  /* get pointer to directory hash */
+  /* get pointer to name hash */
   scr_hash* dset_hash = scr_hash_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
+  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
 
   /* record dataset hash in index */
   scr_hash_set(dir_hash, SCR_INDEX_1_KEY_DATASET, dataset_copy);
@@ -232,13 +232,13 @@ int scr_index_set_dataset(scr_hash* index, int id, const char* name, const scr_d
   /* mark the dataset as complete or incomplete */
   scr_hash_util_set_int(dir_hash, SCR_INDEX_1_KEY_COMPLETE, complete);
 
-  /* add entry to directory index (maps directory name to dataset id) */
+  /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
 
   return SCR_SUCCESS;
 }
 
-/* record fetch event for given dataset id and directory in given hash */
+/* record fetch event for given dataset id and name in given hash */
 int scr_index_mark_fetched(scr_hash* index, int id, const char* name)
 {
   /* format timestamp */
@@ -250,16 +250,16 @@ int scr_index_mark_fetched(scr_hash* index, int id, const char* name)
    * timestamps can be recorded */
   /* mark the dataset as fetched at current timestamp */
   scr_hash* dset_hash = scr_hash_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
+  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
   scr_hash_set_kv(dir_hash, SCR_INDEX_1_KEY_FETCHED, timestamp);
 
-  /* add entry to directory index (maps directory name to dataset id) */
+  /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
 
   return SCR_SUCCESS;
 }
 
-/* record failed fetch event for given dataset id and directory in given hash */
+/* record failed fetch event for given dataset id and name in given hash */
 int scr_index_mark_failed(scr_hash* index, int id, const char* name)
 {
   /* format timestamp */
@@ -269,16 +269,16 @@ int scr_index_mark_failed(scr_hash* index, int id, const char* name)
 
   /* mark the dataset as failed at current timestamp */
   scr_hash* dset_hash = scr_hash_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
+  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
   scr_hash_util_set_str(dir_hash, SCR_INDEX_1_KEY_FAILED, timestamp);
 
-  /* add entry to directory index (maps directory name to dataset id) */
+  /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
 
   return SCR_SUCCESS;
 }
 
-/* record flush event for given dataset id and directory in given hash */
+/* record flush event for given dataset id and name in given hash */
 int scr_index_mark_flushed(scr_hash* index, int id, const char* name)
 {
   /* format timestamp */
@@ -288,16 +288,16 @@ int scr_index_mark_flushed(scr_hash* index, int id, const char* name)
 
   /* mark the dataset as flushed at current timestamp */
   scr_hash* dset_hash = scr_hash_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
+  scr_hash* dir_hash  = scr_hash_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
   scr_hash_util_set_str(dir_hash, SCR_INDEX_1_KEY_FLUSHED, timestamp);
 
-  /* add entry to directory index (maps directory name to dataset id) */
+  /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
 
   return SCR_SUCCESS;
 }
 
-/* get completeness code for given dataset id and directory in given hash,
+/* get completeness code for given dataset id and name in given hash,
  * sets complete=0 and returns SCR_FAILURE if key is not set */
 int scr_index_get_complete(scr_hash* index, int id, const char* name, int* complete)
 {
@@ -306,7 +306,7 @@ int scr_index_get_complete(scr_hash* index, int id, const char* name, int* compl
 
   /* get the value of the COMPLETE key */
   scr_hash* dset_hash = scr_hash_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  scr_hash* dir_hash  = scr_hash_get_kv(dset_hash, SCR_INDEX_1_KEY_DIR, name);
+  scr_hash* dir_hash  = scr_hash_get_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
   scr_hash_get(dir_hash, SCR_INDEX_1_KEY_COMPLETE);
   int complete_tmp;
   if (scr_hash_util_get_int(dir_hash, SCR_INDEX_1_KEY_COMPLETE, &complete_tmp) == SCR_SUCCESS) {
@@ -317,15 +317,15 @@ int scr_index_get_complete(scr_hash* index, int id, const char* name, int* compl
   return rc;
 }
 
-/* lookup the dataset id corresponding to the given dataset directory name in given hash
- * (assumes a directory maps to a single dataset id) */
-int scr_index_get_id_by_dir(const scr_hash* index, const char* name, int* id)
+/* lookup the dataset id corresponding to the given dataset name in given hash
+ * (assumes a name maps to a single dataset id) */
+int scr_index_get_id_by_name(const scr_hash* index, const char* name, int* id)
 {
   /* assume that we won't find this dataset */
   *id = -1;
 
   /* attempt to lookup the dataset id */
-  scr_hash* dir_hash = scr_hash_get_kv(index, SCR_INDEX_1_KEY_DIR, name);
+  scr_hash* dir_hash = scr_hash_get_kv(index, SCR_INDEX_1_KEY_NAME, name);
   int id_tmp;
   if (scr_hash_util_get_int(dir_hash, SCR_INDEX_1_KEY_DATASET, &id_tmp) == SCR_SUCCESS) {
     /* found it, convert the string to an int and return */
@@ -337,7 +337,7 @@ int scr_index_get_id_by_dir(const scr_hash* index, const char* name, int* id)
   return SCR_FAILURE;
 }
 
-/* lookup the most recent complete dataset id and directory whose id is less than earlier_than
+/* lookup the most recent complete dataset id and name whose id is less than earlier_than
  * setting earlier_than = -1 disables this filter */
 int scr_index_get_most_recent_complete(const scr_hash* index, int earlier_than, int* id, char* name)
 {
@@ -361,22 +361,22 @@ int scr_index_get_most_recent_complete(const scr_hash* index, int earlier_than, 
        * our current max, check whether it's complete */
       if ((earlier_than == -1 || current_id <= earlier_than) && current_id > max_id) {
         /* alright, this dataset id is within range to be the most recent,
-         * now scan the various dirs we have for this dataset looking for a complete */
+         * now scan the various names we have for this dataset looking for a complete */
         scr_hash* dset_hash = scr_hash_elem_hash(dset);
-        scr_hash* dirs = scr_hash_get(dset_hash, SCR_INDEX_1_KEY_DIR);
-        scr_hash_elem* dir = NULL;
-        for (dir = scr_hash_elem_first(dirs);
-             dir != NULL;
-             dir = scr_hash_elem_next(dir))
+        scr_hash* names = scr_hash_get(dset_hash, SCR_INDEX_1_KEY_NAME);
+        scr_hash_elem* elem = NULL;
+        for (elem = scr_hash_elem_first(names);
+             elem != NULL;
+             elem = scr_hash_elem_next(elem))
         {
-          char* dir_key = scr_hash_elem_key(dir);
-          scr_hash* dir_hash = scr_hash_elem_hash(dir);
+          char* name_key = scr_hash_elem_key(elem);
+          scr_hash* name_hash = scr_hash_elem_hash(elem);
 
           int found_one = 1;
 
           /* look for the complete string */
           int complete;
-          if (scr_hash_util_get_int(dir_hash, SCR_INDEX_1_KEY_COMPLETE, &complete) == SCR_SUCCESS) {
+          if (scr_hash_util_get_int(name_hash, SCR_INDEX_1_KEY_COMPLETE, &complete) == SCR_SUCCESS) {
             if (complete != 1) {
               found_one = 0;
             }
@@ -385,17 +385,17 @@ int scr_index_get_most_recent_complete(const scr_hash* index, int earlier_than, 
           }
 
           /* check that there is no failed string */
-          scr_hash* failed = scr_hash_get(dir_hash, SCR_INDEX_1_KEY_FAILED);
+          scr_hash* failed = scr_hash_get(name_hash, SCR_INDEX_1_KEY_FAILED);
           if (failed != NULL) {
             found_one = 0;
           }
 
           /* TODO: also avoid dataset if we've tried to read it too many times */
 
-          /* if we found one, copy the dataset id and directory name, and update our max */
+          /* if we found one, copy the dataset id and name, and update our max */
           if (found_one) {
             *id = current_id;
-            strcpy(name, dir_key);
+            strcpy(name, name_key);
 
             /* update our max */
             max_id = current_id;

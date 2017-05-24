@@ -114,8 +114,8 @@ int main(int argc, char* argv[])
   scr_getcwd(dsetdir, sizeof(dsetdir));
 
   /* create and reduce path for dataset */
-  scr_path* path_dset = scr_path_from_str(dsetdir);
-  scr_path_reduce(path_dset);
+  scr_path* path_prefix = scr_path_from_str(dsetdir);
+  scr_path_reduce(path_prefix);
 
   /* allocate buffers */
   char* buffer_A = malloc(buffer_size * sizeof(char));
@@ -364,24 +364,18 @@ int main(int argc, char* argv[])
         return 1;
       }
 
-      /* construct full path to user file */
-      scr_path* path_user_full = scr_path_from_str(origname);
-      if (preserve_dirs) {
-        /* get original path of file */
-        char* origpath;
-        if (scr_meta_get_origpath(meta, &origpath) != SCR_SUCCESS) {
-          scr_err("Failed to read original path for file %d in %s @ %s:%d",
-            j, xor_files[i], __FILE__, __LINE__
-          );
-          return 1;
-        }
-
-        /* construct full path to file */
-        scr_path_prepend_str(path_user_full, origpath);
-      } else {
-        /* construct full path to file */
-        scr_path_prepend(path_user_full, path_dset);
+      /* get original path of file */
+      char* origpath;
+      if (scr_meta_get_origpath(meta, &origpath) != SCR_SUCCESS) {
+        scr_err("Failed to read original path for file %d in %s @ %s:%d",
+          j, xor_files[i], __FILE__, __LINE__
+        );
+        return 1;
       }
+
+      /* construct full path to file */
+      scr_path* path_user_full = scr_path_from_str(origname);
+      scr_path_prepend_str(path_user_full, origpath);
 
       /* reduce path to user file */
       scr_path_reduce(path_user_full);
@@ -390,7 +384,7 @@ int main(int argc, char* argv[])
       user_files[offset] = scr_path_strdup(path_user_full);
 
       /* make a copy of relative path */
-      scr_path* path_user_rel = scr_path_relative(path_dset, path_user_full);
+      scr_path* path_user_rel = scr_path_relative(path_prefix, path_user_full);
       user_rel_files[offset] = scr_path_strdup(path_user_rel);
       scr_path_delete(&path_user_rel);
 
@@ -631,6 +625,7 @@ int main(int argc, char* argv[])
 
   /* write filemap for this rank */
   scr_path* path_map = scr_path_from_str(".scr");
+  scr_path_append_strf(path_map, "scr.dataset.%d", dset_id);
   scr_path_append_strf(path_map, "fmap.%d.scr", my_rank);
   if (scr_filemap_write(path_map, map) != SCR_SUCCESS) {
     rc = 1;
@@ -674,7 +669,7 @@ int main(int argc, char* argv[])
   scr_free(&buffer_B);
   scr_free(&buffer_A);
 
-  scr_path_delete(&path_dset);
+  scr_path_delete(&path_prefix);
 
   return rc;
 }

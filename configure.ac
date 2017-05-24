@@ -143,12 +143,6 @@ AC_CONFIG_FILES([ \
   Makefile \
   src/Makefile \
   man/Makefile \
-  man/scr.1 \
-  man/scr_index.1 \
-  man/scr_halt.1 \
-  man/scr_postrun.1 \
-  man/scr_prerun.1 \
-  man/scr_srun.1 \
   scripts/Makefile \
   scripts/common/Makefile \
   scripts/common/scr_prefix \

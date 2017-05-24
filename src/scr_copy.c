@@ -51,7 +51,7 @@ int print_usage()
 struct arglist {
   char* cntldir;          /* control directory */
   int id;                 /* dataset id */
-  char* dstdir;           /* destination directory */
+  char* prefix;           /* prefix directory */
   unsigned long buf_size; /* number of bytes to copy file data to file system */
   int crc_flag;           /* whether to compute crc32 during copy */
   int partner_flag;       /* whether to copy data for partner */
@@ -64,7 +64,7 @@ int process_args(int argc, char **argv, struct arglist* args)
   static struct option long_options[] = {
     {"cntldir",    required_argument, NULL, 'c'},
     {"id",         required_argument, NULL, 'i'},
-    {"dstdir",     required_argument, NULL, 'd'},
+    {"prefix",     required_argument, NULL, 'd'},
     {"buf",        required_argument, NULL, 'b'},
     {"crc",        no_argument,       NULL, 'r'},
     {"partner",    no_argument,       NULL, 'p'},
@@ -75,7 +75,7 @@ int process_args(int argc, char **argv, struct arglist* args)
   /* set our options to default values */
   args->cntldir        = NULL;
   args->id             = -1;
-  args->dstdir         = NULL;
+  args->prefix         = NULL;
   args->buf_size       = SCR_FILE_BUF_SIZE;
   args->crc_flag       = SCR_CRC_ON_FLUSH;
   args->partner_flag   = 0;
@@ -105,8 +105,8 @@ int process_args(int argc, char **argv, struct arglist* args)
         args->id = id;
         break;
       case 'd':
-        /* destination directory */
-        args->dstdir = optarg;
+        /* prefix directory */
+        args->prefix = optarg;
         break;
       case 'b':
         /* buffer size to copy file data to file system */
@@ -164,8 +164,8 @@ int process_args(int argc, char **argv, struct arglist* args)
   }
 
   /* check that we got a destination directory */
-  if (args->dstdir == NULL) {
-    scr_err("%s: Must specify destination directory via '--dstdir <dst_dir>'",
+  if (args->prefix == NULL) {
+    scr_err("%s: Must specify prefix directory via '--prefix <dir>'",
       PROG
     );
     return 0;
@@ -353,14 +353,21 @@ int main (int argc, char *argv[])
   }
 
   /* path to data set directory */
-  scr_path* path_dataset = scr_path_from_str(args.dstdir);
-  scr_path_reduce(path_dataset);
+  scr_path* path_prefix = scr_path_from_str(args.prefix);
+  scr_path_reduce(path_prefix);
 
-  /* define the path to the .scr subdirectory */
-  scr_path* path_scr = scr_path_dup(path_dataset);
+  /* define the path to the dataset metadata subdirectory */
+  scr_path* path_scr = scr_path_dup(path_prefix);
   scr_path_append_str(path_scr, ".scr");
+  scr_path_append_strf(path_scr, "scr.dataset.%d", args.id);
   scr_path_reduce(path_scr);
   char* path_scr_str = scr_path_strdup(path_scr);
+
+  /* define the path to the dataset directory (used if not preserving directories) */
+  scr_path* path_dset = scr_path_dup(path_prefix);
+  scr_path_append_strf(path_dset, "scr.dataset.%d", args.id);
+  scr_path_reduce(path_dset);
+  char* path_dset_str = scr_path_strdup(path_dset);
 
   int rc = 0;
 
@@ -463,9 +470,6 @@ int main (int argc, char *argv[])
         /* get path to copy file */
         char* dst_dir = NULL;
         if (user_file) {
-          /* assume that we're not preserving directories and copy
-           * all files to top level dir */
-          dst_dir = args.dstdir;
           if (preserve_dirs) {
             /* we're preserving user directories, get original path */
             if (scr_meta_get_origpath(meta, &dst_dir) != SCR_SUCCESS) {
@@ -478,20 +482,23 @@ int main (int argc, char *argv[])
               scr_hash_delete(&hash);
               return 1;
             }
+          } else {
+            /* not preserving directories, write all user files to prefix/scr.dataset.id */
+            dst_dir = path_dset_str;
+          }
 
-            /* TODO: keep a cache of directory names that we've already created */
+          /* TODO: keep a cache of directory names that we've already created */
 
-            /* make directory to file */
-            if (scr_mkdir(dst_dir, S_IRWXU) != SCR_SUCCESS) {
-              printf("scr_copy: %s: Failed to create original path for file %s in dataset id %d\n",
-                hostname, file, args.id
-              );
-              printf("scr_copy: %s: Return code: 1\n", hostname);
-              scr_meta_delete(&meta);
-              scr_filemap_delete(&map);
-              scr_hash_delete(&hash);
-              return 1;
-            }
+          /* make directory to file */
+          if (scr_mkdir(dst_dir, S_IRWXU) != SCR_SUCCESS) {
+            printf("scr_copy: %s: Failed to create path for file %s in dataset id %d\n",
+              hostname, file, args.id
+            );
+            printf("scr_copy: %s: Return code: 1\n", hostname);
+            scr_meta_delete(&meta);
+            scr_filemap_delete(&map);
+            scr_hash_delete(&hash);
+            return 1;
           }
         } else {
           /* scavenge SCR files to SCR directory */
@@ -520,8 +527,8 @@ int main (int argc, char *argv[])
           rc = 1;
         }
 
-        /* compute relative path to destination file from dataset dir */
-        scr_path* path_relative = scr_path_relative(path_dataset, dst_path);
+        /* compute relative path to destination file from prefix dir */
+        scr_path* path_relative = scr_path_relative(path_prefix, dst_path);
         char* file_relative = scr_path_strdup(path_relative);
 
         /* add this file to the rank_map */
@@ -596,12 +603,16 @@ int main (int argc, char *argv[])
     scr_filemap_delete(&rank_map);
   }
 
-  /* delete path to scr directory */
+  /* delete path to dataset directory */
+  scr_free(&path_dset_str);
+  scr_path_delete(&path_dset);
+
+  /* delete path to dataset metadata directory */
   scr_free(&path_scr_str);
   scr_path_delete(&path_scr);
 
-  /* free the dataset directory path */
-  scr_path_delete(&path_dataset);
+  /* free the prefix directory path */
+  scr_path_delete(&path_prefix);
 
   /* print our return code and exit */
   printf("scr_copy: %s: Return code: %d\n", hostname, rc);

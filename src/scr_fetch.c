@@ -77,9 +77,6 @@ static int scr_fetch_file(
     crc_p = &crc;
   }
   rc = scr_file_copy(src_file, dst_file, scr_file_buf_size, crc_p);
-  if (rc == SCR_SUCCESS) {
-    scr_dbg(1, "scr fetched file %s @ %s:%d", src_file, __FILE__, __LINE__);
-  }
 
   /* check that crc matches crc stored in meta */
   uLong meta_crc;
@@ -495,7 +492,7 @@ static int scr_fetch_files_list(
 }
 
 static int scr_fetch_rank2file_map(
-  const scr_path* dataset_path,
+  const scr_path* path,
   int             depth,
   int*            ptr_valid,
   char**          ptr_file,
@@ -571,7 +568,7 @@ static int scr_fetch_rank2file_map(
         == SCR_SUCCESS)
     {
       /* return string of full path to file to caller */
-      scr_path* newpath = scr_path_dup(dataset_path);
+      scr_path* newpath = scr_path_dup(path);
       scr_path_append_str(newpath, value);
       newfile = scr_path_strdup(newpath);
       scr_path_delete(&newpath);
@@ -620,7 +617,7 @@ static int scr_fetch_rank2file_map(
 
   /* recurse if we still have levels to read */
   if (level_id > 1) {
-    rc = scr_fetch_rank2file_map(dataset_path, depth+1, ptr_valid, ptr_file, ptr_offset);
+    rc = scr_fetch_rank2file_map(path, depth+1, ptr_valid, ptr_file, ptr_offset);
   }
 
 cleanup:
@@ -638,13 +635,10 @@ static int scr_fetch_summary(
   /* assume that we won't succeed in our fetch attempt */
   int rc = SCR_SUCCESS;
 
-  scr_dbg(1, "scr_fetch_summary @ %s:%d", __FILE__, __LINE__);
-
   /* check whether summary file exists and is readable */
   if (scr_my_rank_world == 0) {
     /* check that we can access the directory */
     if (scr_file_is_readable(summary_dir) != SCR_SUCCESS) {
-
       scr_err("Failed to access summary directory %s @ %s:%d",
         summary_dir, __FILE__, __LINE__
       );
@@ -657,13 +651,12 @@ static int scr_fetch_summary(
   if (rc != SCR_SUCCESS) {
     return rc;
   }
+
   /* add path to file list */
   scr_hash_util_set_str(file_list, SCR_KEY_PATH, summary_dir);
 
   /* build path to summary file */
-  scr_path* dataset_path = scr_path_from_str(summary_dir);
-  scr_path* meta_path = scr_path_dup(dataset_path);
-  scr_path_append_str(meta_path, ".scr");
+  scr_path* meta_path = scr_path_from_str(summary_dir);
   scr_path_reduce(meta_path);
 
   /* rank 0 reads the summary file */
@@ -728,7 +721,7 @@ static int scr_fetch_summary(
     file   = scr_path_strdup(rank2file_path);
     offset = 0;
   }
-  if (scr_fetch_rank2file_map(dataset_path, 1, &valid, &file, &offset)
+  if (scr_fetch_rank2file_map(scr_prefix_path, 1, &valid, &file, &offset)
       != SCR_SUCCESS)
   {
     rc = SCR_FAILURE;
@@ -806,17 +799,13 @@ static int scr_fetch_summary(
      * the info we need is in the element hash */
     scr_hash* elem_hash = scr_hash_elem_hash(elem);
 
-    scr_dbg(1, "scr_fetch_summary print @ %s:%d", __FILE__, __LINE__);
-
-    scr_hash_log(elem_hash, 1, 0);
     /* get pointer to file hash */
     scr_hash* file_hash = scr_hash_get(elem_hash, SCR_SUMMARY_6_KEY_FILE);
     if (file_hash != NULL) {
       /* TODO: parse summary file format */
-      scr_dbg(1, "scr_fetch_summary @ %s:%d", __FILE__, __LINE__);
       scr_hash_merge(file_list, elem_hash);
     } else {
-            //rc = SCR_FAILURE;
+      //rc = SCR_FAILURE;
       scr_dbg(1, "scr_fetch_summary NO FILES FOR THIS RANK @ %s:%d", __FILE__, __LINE__);
     }
   }
@@ -835,7 +824,7 @@ static int scr_fetch_summary(
 
       /* combine the file name with the summary directory to build a
        * full path to the file */
-      scr_path* path_full = scr_path_dup(dataset_path);
+      scr_path* path_full = scr_path_dup(scr_prefix_path);
       scr_path_append_str(path_full, file);
 
       /* subtract off last component to get just the path */
@@ -873,7 +862,6 @@ cleanup:
 
   /* free path for dataset directory */
   scr_path_delete(&meta_path);
-  scr_path_delete(&dataset_path);
 
   return rc;
 }
@@ -971,16 +959,20 @@ static int scr_fetch_data(
 /* fetch files from parallel file system */
 static int scr_fetch_files(
   scr_filemap* map,
-  scr_path* fetch_path,
+  int dset_id,
+  const char* dset_name,
   int* dataset_id,
   int* checkpoint_id)
 {
   /* get fetch directory as string */
-  char* fetch_dir = scr_path_strdup(fetch_path);
+  scr_path* path = scr_path_from_str(scr_prefix_scr);
+  scr_path_append_strf(path, "scr.dataset.%d", dset_id);
+  char* fetch_dir = scr_path_strdup(path);
+  scr_path_delete(&path);
 
   /* this may take a while, so tell user what we're doing */
   if (scr_my_rank_world == 0) {
-    scr_dbg(1, "Attempting fetch from %s", fetch_dir);
+    scr_dbg(1, "Attempting fetch: %s", dset_name);
   }
 
   /* make sure all processes make it this far before progressing */
@@ -1200,11 +1192,8 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
   /* now start fetching, we keep trying until we exhaust all valid
    * checkpoints */
   char target[SCR_MAX_FILENAME];
-  int current_checkpoint_id = -1;
+  int target_id = -1;
   while (continue_fetching) {
-    /* create a new path */
-    scr_path* fetch_path = scr_path_new();
-
     /* initialize our target directory to empty string */
     strcpy(target, "");
 
@@ -1222,17 +1211,17 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
       }
 
       /* lookup the checkpoint id */
-      int next_checkpoint_id = -1;
+      int next_id = -1;
       if (strcmp(target, "") != 0) {
-        /* we have a subdirectory name, lookup the checkpoint id
-         * corresponding to this directory */
-        scr_index_get_id_by_dir(index_hash, target, &next_checkpoint_id);
+        /* we have a name, lookup the checkpoint id
+         * corresponding to this name */
+        scr_index_get_id_by_name(index_hash, target, &next_id);
       } else {
         /* otherwise, just get the most recent complete checkpoint
          * (that's older than the current id) */
-        scr_index_get_most_recent_complete(index_hash, current_checkpoint_id, &next_checkpoint_id, target);
+        scr_index_get_most_recent_complete(index_hash, target_id, &next_id, target);
       }
-      current_checkpoint_id = next_checkpoint_id;
+      target_id = next_id;
 
       /* TODODSET: need to verify that dataset is really a checkpoint
        * and keep searching if not */
@@ -1243,31 +1232,28 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
         /* record that we're attempting a fetch of this checkpoint in
          * the index file */
         *fetch_attempted = 1;
-        if (current_checkpoint_id != -1) {
-          scr_index_mark_fetched(index_hash, current_checkpoint_id, target);
+        if (target_id != -1) {
+          scr_index_mark_fetched(index_hash, target_id, target);
           scr_index_write(scr_prefix_path, index_hash);
         }
-
-        /* we have a subdirectory, now build the full path */
-        scr_path_append(fetch_path, scr_prefix_path);
-        scr_path_append_str(fetch_path, target);
-        scr_path_reduce(fetch_path);
       }
     }
 
-    /* broadcast fetch path from rank 0 */
-    scr_path_bcast(fetch_path, 0, scr_comm_world);
+    /* broadcast target id from rank 0 */
+    MPI_Bcast(&target_id, 1, MPI_INT, 0, scr_comm_world);
+
+    /* broadcast target name from rank 0 */
+    scr_strn_bcast(target, sizeof(target), 0, scr_comm_world);
 
     /* check whether we've got a path */
-    if (! scr_path_is_null(fetch_path)) {
+    if (strcmp(target, "") != 0) {
       /* got something, attempt to fetch the checkpoint */
       int dset_id, ckpt_id;
-      rc = scr_fetch_files(map, fetch_path, &dset_id, &ckpt_id);
+      rc = scr_fetch_files(map, target_id, target, &dset_id, &ckpt_id);
       if (rc == SCR_SUCCESS) {
         /* set the dataset and checkpoint ids */
         scr_dataset_id = dset_id;
         scr_checkpoint_id = ckpt_id;
-        scr_dbg(1, "after successful fetch, dset is %d, ckpt is %d", dset_id, ckpt_id);
 
         /* we succeeded in fetching this checkpoint, set current to
          * point to it, and stop fetching */
@@ -1282,8 +1268,8 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
         if (scr_my_rank_world == 0) {
           /* unset the current pointer */
           scr_index_unset_current(index_hash);
-          if (current_checkpoint_id != -1 && strcmp(target, "") != 0) {
-            scr_index_mark_failed(index_hash, current_checkpoint_id, target);
+          if (target_id != -1 && strcmp(target, "") != 0) {
+            scr_index_mark_failed(index_hash, target_id, target);
           }
           scr_index_write(scr_prefix_path, index_hash);
         }
@@ -1293,9 +1279,6 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
        * bail out of the loop */
       continue_fetching = 0;
     }
-
-    /* free fetch path */
-    scr_path_delete(&fetch_path);
   }
 
   /* delete the index hash */
