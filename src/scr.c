@@ -1713,18 +1713,28 @@ int SCR_Route_file(const char* file, char* newfile)
 
     /* build absolute path to file */
     scr_path* path_abs = scr_path_from_str(file);
-    if (! scr_path_is_absolute(path_abs)) {
-      /* the path is not absolute, so prepend the current working directory */
-      char cwd[SCR_MAX_FILENAME];
-      if (scr_getcwd(cwd, sizeof(cwd)) == SCR_SUCCESS) {
-        scr_path_prepend_str(path_abs, cwd);
-      } else {
-        /* problem acquiring current working directory */
-        scr_abort(-1, "Failed to build absolute path to %s @ %s:%d",
-          file, __FILE__, __LINE__
-        );
+    if (scr_preserve_directories) {
+      if (! scr_path_is_absolute(path_abs)) {
+        /* the path is not absolute, so prepend the current working directory */
+        char cwd[SCR_MAX_FILENAME];
+        if (scr_getcwd(cwd, sizeof(cwd)) == SCR_SUCCESS) {
+          scr_path_prepend_str(path_abs, cwd);
+        } else {
+          /* problem acquiring current working directory */
+          scr_abort(-1, "Failed to build absolute path to %s @ %s:%d",
+            file, __FILE__, __LINE__
+          );
+        }
       }
+    } else {
+      /* we're not preserving directories,
+       * so drop file in prefix/scr.dataset.id/filename */
+      scr_path_basename(path_abs);
+      scr_path_prepend_strf(path_abs, "scr.dataset.%d", scr_dataset_id);
+      scr_path_prepend(path_abs, scr_prefix_path);
     }
+
+    /* TODO: check that path is a child of prefix directory */
 
     /* simplify the absolute path (removes "." and ".." entries) */
     scr_path_reduce(path_abs);
