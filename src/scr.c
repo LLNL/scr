@@ -1510,19 +1510,6 @@ int SCR_Start_output(char* name, int flags)
     return SCR_FAILURE;
   }
 
-  /* TODO: if we know of an existing dataset with the same name
-   * delete all files */
-
-  /* TODO: if name or flags differ across ranks, error out */
-
-  /* check that we got  valid name */
-  if (name == NULL || strcmp(name, "") == 0) {
-    scr_abort(-1, "Invalid name given in SCR_Start_output @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
   /* make sure everyone is ready to start before we delete any existing checkpoints */
   MPI_Barrier(scr_comm_world);
 
@@ -1549,6 +1536,20 @@ int SCR_Start_output(char* name, int flags)
     scr_checkpoint_id++;
   }
 
+  /* TODO: if we know of an existing dataset with the same name
+   * delete all files */
+
+  /* TODO: if name or flags differ across ranks, error out */
+
+  /* check that we got  valid name */
+  char* dataset_name = name;
+  char dataset_name_default[SCR_MAX_FILENAME];
+  if (name == NULL || strcmp(name, "") == 0) {
+    /* caller didn't provide a name, so build our default */
+    snprintf(dataset_name_default, sizeof(dataset_name_default), "scr.dataset.%d", scr_dataset_id);
+    dataset_name = dataset_name_default;
+  }
+  
   /* TODO: pick different redundancy descriptors depending on
    * whether this dataset is a checkpoint or not */
 
@@ -1644,7 +1645,7 @@ int SCR_Start_output(char* name, int flags)
 
     /* fill in fields for dataset */
     scr_dataset_set_id(dataset, scr_dataset_id);
-    scr_dataset_set_name(dataset, name);
+    scr_dataset_set_name(dataset, dataset_name);
     scr_dataset_set_created(dataset, dataset_time);
     scr_dataset_set_username(dataset, scr_username);
     if (scr_jobname != NULL) {
@@ -1683,7 +1684,7 @@ int SCR_Start_output(char* name, int flags)
 
   /* print a debug message to indicate we've started the dataset */
   if (scr_my_rank_world == 0) {
-    scr_dbg(1, "Starting dataset %s", name);
+    scr_dbg(1, "Starting dataset %s", dataset_name);
   }
 
   return SCR_SUCCESS;
@@ -1692,16 +1693,8 @@ int SCR_Start_output(char* name, int flags)
 /* informs SCR that a fresh checkpoint set is about to start */
 int SCR_Start_checkpoint()
 {
-  /* to keep the name in sync with the internal id that will be assigned,
-   * we need to bump this value */
-  int id = scr_dataset_id + 1;
-
-  /* build old style dataset name */
-  char name[SCR_MAX_FILENAME];
-  snprintf(name, sizeof(name), "scr.dataset.%d", id);
-
   /* delegate the rest to Start_output */
-  return SCR_Start_output(name, SCR_FLAG_CHECKPOINT);
+  return SCR_Start_output(NULL, SCR_FLAG_CHECKPOINT);
 }
 
 /* given a filename, return the full path to the file which the user should write to */
@@ -2048,12 +2041,14 @@ int SCR_Have_restart(int* flag, char* name)
   /* assume scr_checkpoint_id == scr_dataset_id for now */
   /* read dataset name from filemap */
   if (scr_have_restart) {
-    char* dset_name;
-    scr_dataset* dataset = scr_dataset_new();
-    scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
-    scr_dataset_get_name(dataset, &dset_name);
-    strncpy(name, dset_name, SCR_MAX_FILENAME);
-    scr_dataset_delete(&dataset);
+    if (name != NULL) {
+      char* dset_name;
+      scr_dataset* dataset = scr_dataset_new();
+      scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+      scr_dataset_get_name(dataset, &dset_name);
+      strncpy(name, dset_name, SCR_MAX_FILENAME);
+      scr_dataset_delete(&dataset);
+    }
   }
 
   return SCR_SUCCESS;
@@ -2088,12 +2083,14 @@ int SCR_Start_restart(char* name)
 
   /* assume scr_checkpoint_id == scr_dataset_id for now */
   /* read dataset name from filemap */
-  char* dset_name;
-  scr_dataset* dataset = scr_dataset_new();
-  scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
-  scr_dataset_get_name(dataset, &dset_name);
-  strncpy(name, dset_name, SCR_MAX_FILENAME);
-  scr_dataset_delete(&dataset);
+  if (name != NULL) {
+    char* dset_name;
+    scr_dataset* dataset = scr_dataset_new();
+    scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+    scr_dataset_get_name(dataset, &dset_name);
+    strncpy(name, dset_name, SCR_MAX_FILENAME);
+    scr_dataset_delete(&dataset);
+  }
 
   return SCR_SUCCESS;
 }
