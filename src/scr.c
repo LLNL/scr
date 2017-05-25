@@ -1216,6 +1216,10 @@ int SCR_Init()
     rc = SCR_SUCCESS;
   }
 
+  /* set flag depending on whether checkpoint_id is greater than 0,
+   * we'll take this to mean that we have a checkpoint in cache */
+  scr_have_restart = (scr_checkpoint_id > 0);
+
   /* sync everyone before returning to ensure that subsequent
    * calls to SCR functions are valid */
   MPI_Barrier(scr_comm_world);
@@ -1482,8 +1486,8 @@ int SCR_Need_checkpoint(int* flag)
   return SCR_SUCCESS;
 }
 
-/* informs SCR that a fresh checkpoint set is about to start */
-int SCR_Start_checkpoint()
+/* inform library that a new output dataset is starting */
+int SCR_Start_output(char* name, int flags)
 {
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
@@ -1498,9 +1502,22 @@ int SCR_Start_checkpoint()
     return SCR_FAILURE;
   }
 
-  /* bail out if user called Start_checkpoint twice without Complete_checkpoint in between */
+  /* bail out if user called Start_output twice without Complete_output in between */
   if (scr_in_output) {
-    scr_abort(-1, "SCR_Complete_checkpoint must be called before SCR_Start_checkpoint is called again @ %s:%d",
+    scr_abort(-1, "SCR_Complete_output must be called before SCR_Start_output is called again @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* TODO: if we know of an existing dataset with the same name
+   * delete all files */
+
+  /* TODO: if name or flags differ across ranks, error out */
+
+  /* check that we got  valid name */
+  if (name == NULL || strcmp(name, "") == 0) {
+    scr_abort(-1, "Invalid name given in SCR_Start_output @ %s:%d",
       __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -1509,7 +1526,7 @@ int SCR_Start_checkpoint()
   /* make sure everyone is ready to start before we delete any existing checkpoints */
   MPI_Barrier(scr_comm_world);
 
-  /* set the checkpoint flag to indicate we have entered a new checkpoint */
+  /* set the output flag to indicate we have started a new output dataset */
   scr_in_output = 1;
 
   /* stop clock recording compute time */
@@ -1528,19 +1545,26 @@ int SCR_Start_checkpoint()
 
   /* increment our dataset and checkpoint counters */
   scr_dataset_id++;
-  scr_checkpoint_id++;
+  if (flags & SCR_FLAG_CHECKPOINT) {
+    scr_checkpoint_id++;
+  }
+
+  /* TODO: pick different redundancy descriptors depending on
+   * whether this dataset is a checkpoint or not */
 
   /* get the redundancy descriptor for this checkpoint id */
   scr_reddesc* reddesc = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
 
-  /* start the clock to record how long it takes to checkpoint */
+  /* TODO: add timers for non-checkpoint output */
+
+  /* start the clock to record how long it takes to write output */
   if (scr_my_rank_world == 0) {
     scr_time_checkpoint_start = MPI_Wtime();
 
     /* log the start of this checkpoint phase */
     if (scr_log_enable) {
       scr_timestamp_checkpoint_start = scr_log_seconds();
-      scr_log_event("CHECKPOINT STARTED", reddesc->base, &scr_dataset_id, &scr_timestamp_checkpoint_start, NULL);
+      scr_log_event("OUTPUT STARTED", reddesc->base, &scr_dataset_id, &scr_timestamp_checkpoint_start, NULL);
     }
   }
 
@@ -1549,8 +1573,8 @@ int SCR_Start_checkpoint()
   int* dsets = NULL;
   scr_filemap_list_datasets(scr_map, &ndsets, &dsets);
 
-  /* lookup the number of checkpoints we're allowed to keep in
-   * the base for this checkpoint */
+  /* lookup the number of datasets we're allowed to keep in
+   * the base for this dataset */
   int size = 0;
   int store_index = scr_storedescs_index_from_name(reddesc->base);
   if (store_index >= 0) {
@@ -1560,12 +1584,12 @@ int SCR_Start_checkpoint()
   int i;
   char* base = NULL;
 
-  /* run through each of our checkpoints and count how many we have in this base */
+  /* run through each of our datasets and count how many we have in this base */
   int nckpts_base = 0;
   for (i=0; i < ndsets; i++) {
     /* TODODSET: need to check whether this dataset is really a checkpoint */
 
-    /* get base for this checkpoint and increase count if it matches the target base */
+    /* get base for this dataset and increase count if it matches the target base */
     base = scr_reddesc_base_from_filemap(scr_map, dsets[i], scr_my_rank_world);
     if (base != NULL) {
       if (strcmp(base, reddesc->base) == 0) {
@@ -1575,7 +1599,7 @@ int SCR_Start_checkpoint()
     }
   }
 
-  /* run through and delete checkpoints from base until we make room for the current one */
+  /* run through and delete datasets from base until we make room for the current one */
   int flushing = -1;
   for (i=0; i < ndsets && nckpts_base >= size; i++) {
     /* TODODSET: need to check whether this dataset is really a checkpoint */
@@ -1584,11 +1608,11 @@ int SCR_Start_checkpoint()
     if (base != NULL) {
       if (strcmp(base, reddesc->base) == 0) {
         if (! scr_bool_is_flushing(dsets[i])) {
-          /* this checkpoint is in our base, and it's not being flushed, so delete it */
+          /* this dataset is in our base, and it's not being flushed, so delete it */
           scr_cache_delete(scr_map, dsets[i]);
           nckpts_base--;
         } else if (flushing == -1) {
-          /* this checkpoint is in our base, but we're flushing it, don't delete it */
+          /* this dataset is in our base, but we're flushing it, don't delete it */
           flushing = dsets[i];
         }
       }
@@ -1596,15 +1620,15 @@ int SCR_Start_checkpoint()
     }
   }
 
-  /* if we still don't have room and we're flushing, the checkpoint we need to delete
+  /* if we still don't have room and we're flushing, the dataset we need to delete
    * must be flushing, so wait for it to finish */
   if (nckpts_base >= size && flushing != -1) {
     /* TODO: we could increase the transfer bandwidth to reduce our wait time */
 
-    /* wait for this checkpoint to complete its flush */
+    /* wait for this dataset to complete its flush */
     scr_flush_async_wait(scr_map);
 
-    /* now checkpoint is no longer flushing, we can delete it and continue on */
+    /* now dataset is no longer flushing, we can delete it and continue on */
     scr_cache_delete(scr_map, flushing);
     nckpts_base--;
   }
@@ -1617,12 +1641,10 @@ int SCR_Start_checkpoint()
   if (scr_my_rank_world == 0) {
     /* capture time and build name of dataset */
     int64_t dataset_time = scr_time_usecs();
-    char dataset_name[SCR_MAX_FILENAME];
-    snprintf(dataset_name, sizeof(dataset_name), "scr.dataset.%d", scr_dataset_id);
 
     /* fill in fields for dataset */
     scr_dataset_set_id(dataset, scr_dataset_id);
-    scr_dataset_set_name(dataset, dataset_name);
+    scr_dataset_set_name(dataset, name);
     scr_dataset_set_created(dataset, dataset_time);
     scr_dataset_set_username(dataset, scr_username);
     if (scr_jobname != NULL) {
@@ -1632,7 +1654,9 @@ int SCR_Start_checkpoint()
     if (scr_clustername != NULL) {
       scr_dataset_set_cluster(dataset, scr_clustername);
     }
-    scr_dataset_set_ckpt(dataset, scr_checkpoint_id);
+    if (flags & SCR_FLAG_CHECKPOINT) {
+      scr_dataset_set_ckpt(dataset, scr_checkpoint_id);
+    }
   }
   scr_hash_bcast(dataset, 0, scr_comm_world);
   scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
@@ -1647,22 +1671,37 @@ int SCR_Start_checkpoint()
   scr_hash_delete(&flushdesc);
 
   /* store the redundancy descriptor in the filemap, so if we die before completing
-   * the checkpoint, we'll have a record of the new directory we're about to create */
+   * the dataset, we'll have a record of the new directory we're about to create */
   scr_hash* my_desc_hash = scr_hash_new();
   scr_reddesc_store_to_hash(reddesc, my_desc_hash);
   scr_filemap_set_desc(scr_map, scr_dataset_id, scr_my_rank_world, my_desc_hash);
   scr_filemap_write(scr_map_file, scr_map);
   scr_hash_delete(&my_desc_hash);
 
-  /* make directory in cache to store files for this checkpoint */
+  /* make directory in cache to store files for this dataset */
   scr_cache_dir_create(reddesc, scr_dataset_id);
 
-  /* print a debug message to indicate we've started the checkpoint */
+  /* print a debug message to indicate we've started the dataset */
   if (scr_my_rank_world == 0) {
-    scr_dbg(1, "Starting checkpoint %d", scr_checkpoint_id);
+    scr_dbg(1, "Starting dataset %s", name);
   }
 
   return SCR_SUCCESS;
+}
+
+/* informs SCR that a fresh checkpoint set is about to start */
+int SCR_Start_checkpoint()
+{
+  /* to keep the name in sync with the internal id that will be assigned,
+   * we need to bump this value */
+  int id = scr_dataset_id + 1;
+
+  /* build old style dataset name */
+  char name[SCR_MAX_FILENAME];
+  snprintf(name, sizeof(name), "scr.dataset.%d", id);
+
+  /* delegate the rest to Start_output */
+  return SCR_Start_output(name, SCR_FLAG_CHECKPOINT);
 }
 
 /* given a filename, return the full path to the file which the user should write to */
@@ -1779,8 +1818,8 @@ int SCR_Route_file(const char* file, char* newfile)
   return SCR_SUCCESS;
 }
 
-/* completes the checkpoint set and marks it as valid or not */
-int SCR_Complete_checkpoint(int valid)
+/* inform library that the current dataset is complete */
+int SCR_Complete_output(int valid)
 {
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
@@ -1795,9 +1834,9 @@ int SCR_Complete_checkpoint(int valid)
     return SCR_FAILURE;
   }
 
-  /* bail out if there is no active call to Start_checkpoint */
+  /* bail out if there is no active call to Start_output */
   if (! scr_in_output) {
-    scr_abort(-1, "SCR_Start_checkpoint must be called before SCR_Complete_checkpoint @ %s:%d",
+    scr_abort(-1, "SCR_Start_output must be called before SCR_Complete_output @ %s:%d",
       __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -1875,6 +1914,8 @@ int SCR_Complete_checkpoint(int valid)
     );
   }
 
+  /* TODO: pick different redundancy scheme depending on whether dataset is a checkpoint */
+
   /* apply redundancy scheme */
   double bytes_copied = 0.0;
   scr_reddesc* reddesc = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
@@ -1882,7 +1923,9 @@ int SCR_Complete_checkpoint(int valid)
 
   /* TODO: set size of dataset and complete flag */
 
-  /* record the cost of the checkpoint and log its completion */
+  /* TODO: add timers for non-checkpoint output */
+
+  /* record the cost of the output and log its completion */
   if (scr_my_rank_world == 0) {
     /* stop the clock for this checkpoint */
     scr_time_checkpoint_end = MPI_Wtime();
@@ -1914,8 +1957,8 @@ int SCR_Complete_checkpoint(int valid)
     }
 
     /* print out a debug message with the result of the copy */
-    scr_dbg(2, "Completed checkpoint %d with return code %d",
-      scr_checkpoint_id, rc
+    scr_dbg(2, "Completed dataset %d with return code %d",
+      scr_dataset_id, rc
     );
   }
 
@@ -1951,7 +1994,7 @@ int SCR_Complete_checkpoint(int valid)
   /* make sure everyone is ready before we exit */
   MPI_Barrier(scr_comm_world);
 
-  /* unset the checkpoint flag to indicate we have exited the current checkpoint */
+  /* unset the output flag to indicate we have exited the current output phase */
   scr_in_output = 0;
 
   /* start the clock for measuring the compute time */
@@ -1967,6 +2010,114 @@ int SCR_Complete_checkpoint(int valid)
   }
 
   return rc;
+}
+
+/* completes the checkpoint set and marks it as valid or not */
+int SCR_Complete_checkpoint(int valid)
+{
+  return SCR_Complete_output(valid);
+}
+
+/* determine whether SCR has a restart available to read,
+ * and get name of restart if one is available */
+int SCR_Have_restart(int* flag, char* name)
+{
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    *flag = 0;
+    return SCR_FAILURE;
+  }
+
+  /* say no if not initialized */
+  if (! scr_initialized) {
+    *flag = 0;
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* TODO: a more proper check would be to examine the filemap, perhaps across ranks */
+
+  /* set flag depending on whether checkpoint_id is greater than 0,
+   * we'll take this to mean that we have a checkpoint in cache */
+  *flag = scr_have_restart;
+
+  /* TODO: look up name by checkpoint id (in addition to dataset id) */
+
+  /* assume scr_checkpoint_id == scr_dataset_id for now */
+  /* read dataset name from filemap */
+  if (scr_have_restart) {
+    char* dset_name;
+    scr_dataset* dataset = scr_dataset_new();
+    scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+    scr_dataset_get_name(dataset, &dset_name);
+    strncpy(name, dset_name, SCR_MAX_FILENAME);
+    scr_dataset_delete(&dataset);
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* inform library that restart is starting,
+ * get name of restart that is available */
+int SCR_Start_restart(char* name)
+{
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* bail out if there is no checkpoint to restart from */
+  if (! scr_have_restart) {
+    scr_abort(-1, "SCR has no checkpoint for restart @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* TODO: look up name by checkpoint id (in addition to dataset id) */
+
+  /* assume scr_checkpoint_id == scr_dataset_id for now */
+  /* read dataset name from filemap */
+  char* dset_name;
+  scr_dataset* dataset = scr_dataset_new();
+  scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+  scr_dataset_get_name(dataset, &dset_name);
+  strncpy(name, dset_name, SCR_MAX_FILENAME);
+  scr_dataset_delete(&dataset);
+
+  return SCR_SUCCESS;
+}
+
+/* inform library that the current restart is complete */
+int SCR_Complete_restart(int valid)
+{
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* turn off our restart flag */
+  scr_have_restart = 0;
+
+  return SCR_SUCCESS;
 }
 
 /* get and return the SCR version */
