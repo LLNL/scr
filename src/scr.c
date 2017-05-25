@@ -1156,11 +1156,9 @@ int SCR_Init()
       /* check whether we need to flush data */
       if (scr_flush_on_restart) {
         /* always flush on restart if scr_flush_on_restart is set */
-        scr_dbg(1, "sync flush attempt on restart @ %s:%d", __FILE__, __LINE__);
         scr_flush_sync(scr_map, scr_checkpoint_id);
       } else {
         /* otherwise, flush only if we need to flush */
-        scr_dbg(1, "scr_check_flush attempt on restart @ %s:%d", __FILE__, __LINE__);
         scr_check_flush(scr_map);
       }
     }
