@@ -274,7 +274,12 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
 
   if (scr_preserve_directories) {
     /* preserving user-defined directories, identify them here */
-#ifdef HAVE_LIBDTCMP
+
+    /* TODO: need to list dirs in order from parent to child */
+
+    /* TODO: PRESERVE need to track directory names in summary
+     * file so we can delete them later */
+
     /* get pointer to file hash */
     scr_hash* files = scr_hash_get(file_list, SCR_KEY_FILE);
 
@@ -307,6 +312,15 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
 
         /* record original path as path to flush to in file list */
         scr_hash_util_set_str(hash, SCR_KEY_PATH, dir);
+
+#ifndef HAVE_LIBDTCMP
+        /* if we're preserving directories but if we don't have DTCMP,
+         * then we'll just issue a mkdir for each file, lots of extra
+         * load on the file system, but this works */
+
+        /* add this directory to be created */
+        scr_hash_set_kv(file_list, SCR_KEY_DIRECTORY, dirs[i]);
+#endif
       } else {
         scr_abort(-1, "Failed to read original path name for a file @ %s:%d",
           __FILE__, __LINE__
@@ -316,6 +330,9 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
       /* add one to our file count */
       i++;
     }
+
+#ifdef HAVE_LIBDTCMP
+    /* with DTCMP we identify a single process to create each directory */
 
     /* identify the set of unique directories */
     uint64_t groups;
@@ -335,20 +352,13 @@ static int scr_flush_identify_dirs(scr_hash* file_list)
         scr_hash_set_kv(file_list, SCR_KEY_DIRECTORY, dirs[i]);
       }
     }
+#endif /* HAVE_LIBDTCMP */
 
     /* free buffers */
     scr_free(&group_id);
     scr_free(&group_ranks);
     scr_free(&group_rank);
     scr_free(&dirs);
-
-    /* TODO: PRESERVE need to track directory names in summary
-     * file so we can delete them later */
-
-#else /* HAVE_LIBDTCMP */
-    /* need DTCMP in order to preserve user-defined directories */
-    return SCR_FAILURE;
-#endif /* HAVE_LIBDTCMP */
   } else {
     /* build the dataset directory name */
     scr_path* path_dir = scr_path_dup(scr_prefix_path);
