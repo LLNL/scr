@@ -53,12 +53,15 @@ double getbw(char* name, char* buf, size_t size, int times)
 */
 
       /* instruct SCR we are starting the next checkpoint */
-      scr_retval = SCR_Start_checkpoint();
+      char label[SCR_MAX_FILENAME];
+      sprintf(label, "timestep.%d", timestep);
+      scr_retval = SCR_Start_output(label, SCR_FLAG_CHECKPOINT);
       if (scr_retval != SCR_SUCCESS) {
         printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
                rank, scr_retval, __FILE__, __LINE__
         );
       }
+
       /* get the file name to write our checkpoint file to */
       char newname[SCR_MAX_FILENAME];
       sprintf(newname, "timestep.%d/%s", timestep, name);
@@ -105,9 +108,9 @@ double getbw(char* name, char* buf, size_t size, int times)
       */
 
       /* mark this checkpoint as complete */
-      scr_retval = SCR_Complete_checkpoint(valid);
+      scr_retval = SCR_Complete_output(valid);
       if (scr_retval != SCR_SUCCESS) {
-        printf("%d: failed calling SCR_Complete_checkpoint: %d: @%s:%d\n",
+        printf("%d: failed calling SCR_Complete_output: %d: @%s:%d\n",
                rank, scr_retval, __FILE__, __LINE__
         );
       }
@@ -185,16 +188,47 @@ int main (int argc, char* argv[])
   filesize = filesize + rank;
   char* buf = (char*) malloc(filesize);
   
-  /* get the name of our checkpoint file to open for read on restart */
+  /* define base name for our checkpoint files */
   char name[256];
-  char file[SCR_MAX_FILENAME];
   sprintf(name, "rank_%d.ckpt", rank);
+
+  /* get the name of our checkpoint file to open for read on restart */
   int found_checkpoint = 0;
-  if (SCR_Route_file(name, file) == SCR_SUCCESS) {
+  int have_restart;
+  char dset[SCR_MAX_FILENAME];
+  int scr_retval = SCR_Have_restart(&have_restart, dset);
+  if (scr_retval != SCR_SUCCESS) {
+    printf("%d: failed calling SCR_Have_restart: %d: @%s:%d\n",
+           rank, scr_retval, __FILE__, __LINE__
+    );
+  }
+
+  if (have_restart) {
+    if (rank == 0) {
+      printf("Restarting from checkpoint named %s\n", dset);
+    }
+
+    /* indicate to library that we're start to read our restart */
+    SCR_Start_restart(dset);
+    if (scr_retval != SCR_SUCCESS) {
+      printf("%d: failed calling SCR_Start_restart: %d: @%s:%d\n",
+             rank, scr_retval, __FILE__, __LINE__
+      );
+    }
+
+    /* get our file name */
+    char file[SCR_MAX_FILENAME];
+    scr_retval = SCR_Route_file(name, file);
+    if (scr_retval != SCR_SUCCESS) {
+      printf("%d: failed calling SCR_Route_file: %d: @%s:%d\n",
+             rank, scr_retval, __FILE__, __LINE__
+      );
+    }
+
+    /* read the data */
     if (read_checkpoint(file, &timestep, buf, filesize)) {
       /* read the file ok, now check that contents are good */
       found_checkpoint = 1;
-      //printf("%d: Successfully read checkpoint from %s\n", rank, file);
       if (!check_buffer(buf, filesize, rank, timestep)) {
         printf("%d: Invalid value in buffer\n", rank);
         MPI_Abort(MPI_COMM_WORLD, 1);
@@ -203,12 +237,23 @@ int main (int argc, char* argv[])
     } else {
     	printf("%d: Could not read checkpoint %d from %s\n", rank, timestep, file);
     }
-  } else
-    printf("%d: SCR_Route_file failed during restart attempt\n", rank);
+
+    /* indicate to library that we're done with restart, tell it whether we read our data ok */
+    scr_retval = SCR_Complete_restart(found_checkpoint);
+    if (scr_retval != SCR_SUCCESS) {
+      printf("%d: failed calling SCR_Complete_restart: %d: @%s:%d\n",
+             rank, scr_retval, __FILE__, __LINE__
+      );
+    }
+  } else {
+    if (rank == 0) {
+      printf("No checkpoint to restart from\n");
+    }
+  }
 
   /* determine whether all tasks successfully read their checkpoint file */
   int all_found_checkpoint = 0;
-  MPI_Allreduce(&found_checkpoint, &all_found_checkpoint, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
+  MPI_Allreduce(&have_restart, &all_found_checkpoint, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
   if (!all_found_checkpoint && rank == 0) {
     printf("At least one rank (perhaps all) did not find its checkpoint\n");
   }
