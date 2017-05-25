@@ -181,8 +181,10 @@
 #define SCR_CRC_ON_DELETE (0)
 #endif
 
+/* whether to write output to implied user directory structure (1),
+ * or place all dataset files in an SCR dataset directory (0) */
 #ifndef SCR_PRESERVE_DIRECTORIES
-#define SCR_PRESERVE_DIRECTORIES (0)
+#define SCR_PRESERVE_DIRECTORIES (1)
 #endif
 
 #ifndef SCR_USE_CONTAINERS
