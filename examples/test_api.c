@@ -53,9 +53,16 @@ double getbw(char* name, char* buf, size_t size, int times)
 */
 
       /* instruct SCR we are starting the next checkpoint */
+      int flags = SCR_FLAG_NONE;
+      if (timestep % 6 != 0) {
+        flags |= SCR_FLAG_CHECKPOINT;
+      }
+      if (timestep % 3 == 0) {
+        flags |= SCR_FLAG_OUTPUT;
+      }
       char label[SCR_MAX_FILENAME];
       sprintf(label, "timestep.%d", timestep);
-      scr_retval = SCR_Start_output(label, SCR_FLAG_CHECKPOINT);
+      scr_retval = SCR_Start_output(label, flags);
       if (scr_retval != SCR_SUCCESS) {
         printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
                rank, scr_retval, __FILE__, __LINE__

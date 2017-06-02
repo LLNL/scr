@@ -515,13 +515,16 @@ int scr_flush_sync(scr_filemap* map, int id)
 {
   int flushed = SCR_SUCCESS;
 
+  /* TODODSET: force flush outputs, perhaps need a new scr_checkpoint_flush_frequency */
+#if 0
   /* if user has disabled flush, return failure */
   if (scr_flush <= 0) {
     return SCR_FAILURE;
   }
+#endif
 
   /* if we don't need a flush, return right away with success */
-  if (! scr_bool_need_flush(id)) {
+  if (! scr_flush_file_need_flush(id)) {
     return SCR_SUCCESS;
   }
 
@@ -547,7 +550,7 @@ int scr_flush_sync(scr_filemap* map, int id)
 
     /* the flush we just waited on could be the requested dataset,
      * so perhaps we're already done */
-    if (! scr_bool_need_flush(id)) {
+    if (! scr_flush_file_need_flush(id)) {
       return SCR_SUCCESS;
     }
   }

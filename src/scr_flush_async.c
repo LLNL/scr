@@ -434,7 +434,7 @@ static int scr_cppr_flush_async_complete(scr_filemap* map, int id)
 static int scr_cppr_flush_async_wait(scr_filemap* map)
 {
   if (scr_flush_async_in_progress) {
-    while (scr_bool_is_flushing(scr_flush_async_dataset_id)) {
+    while (scr_flush_file_is_flushing(scr_flush_async_dataset_id)) {
       /* test whether the flush has completed, and if so complete the flush */
       double bytes = 0.0;
       scr_dbg(0, "scr_cppr_flush_async_test being called in cppr_async_wait @ %s:%d",
@@ -522,7 +522,7 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
   scr_dbg(1,"scr_cppr_flush_async_start() called");
 
   /* if we don't need a flush, return right away with success */
-  if (! scr_bool_need_flush(id)) {
+  if (! scr_flush_file_need_flush(id)) {
     return SCR_SUCCESS;
   }
 
@@ -1118,13 +1118,17 @@ int scr_flush_async_start(scr_filemap* map, int id)
 #ifdef HAVE_LIBCPPR
   return scr_cppr_flush_async_start(map, id) ;
 #endif
+
+  /* TODODSET: force flush outputs, perhaps need a new scr_checkpoint_flush_frequency */
+#if 0
   /* if user has disabled flush, return failure */
   if (scr_flush <= 0) {
     return SCR_FAILURE;
   }
+#endif
 
   /* if we don't need a flush, return right away with success */
-  if (! scr_bool_need_flush(id)) {
+  if (! scr_flush_file_need_flush(id)) {
     return SCR_SUCCESS;
   }
 
@@ -1172,6 +1176,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
     scr_flush_async_file_list = NULL;
     return SCR_FAILURE;
   }
+
   /* add each of my files to the transfer file list */
   scr_flush_async_hash = scr_hash_new();
   scr_flush_async_num_files = 0;
@@ -1504,7 +1509,7 @@ int scr_flush_async_wait(scr_filemap* map)
   return scr_cppr_flush_async_wait(map);
 #endif
   if (scr_flush_async_in_progress) {
-    while (scr_bool_is_flushing(scr_flush_async_dataset_id)) {
+    while (scr_flush_file_is_flushing(scr_flush_async_dataset_id)) {
       /* test whether the flush has completed, and if so complete the flush */
       double bytes = 0.0;
       if (scr_flush_async_test(map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {

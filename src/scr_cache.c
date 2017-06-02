@@ -21,7 +21,7 @@ static char* scr_cache_dir_from_str(const char* dir, const char* storage_view, i
 {
   /* build the dataset directory name */
   scr_path* path = scr_path_from_str(dir);
-  if( !strcmp( storage_view, "GLOBAL") ){
+  if(! strcmp( storage_view, "GLOBAL")) {
     scr_path_append_strf(path, "node.%d", scr_my_hostid);
   }
   scr_path_append_strf(path, "scr.dataset.%d", id);
@@ -35,7 +35,7 @@ static char* scr_cache_dir_hidden_from_str(const char* dir, const char* storage_
 {
   /* build the dataset directory name */
   scr_path* path = scr_path_from_str(dir);
-  if( !strcmp( storage_view, "GLOBAL") ){
+  if(! strcmp( storage_view, "GLOBAL")) {
     scr_path_append_strf(path, "node.%d", scr_my_hostid);
   }
   scr_path_append_strf(path, "scr.dataset.%d", id);
@@ -61,8 +61,8 @@ char* scr_cache_dir_get(const scr_reddesc* red, int id)
   scr_storedesc* store = scr_reddesc_get_store(red);
   if (store == NULL){
     scr_abort(-1, "attempting to build cache dir for null store @ %s:%d",
-	      __FILE__, __LINE__
-	      );
+      __FILE__, __LINE__
+    );
   }
 
   /* build the dataset directory name */
@@ -84,10 +84,10 @@ char* scr_cache_dir_hidden_get(const scr_reddesc* red, int id)
 
   /* get the store descripter */
   scr_storedesc* store = scr_reddesc_get_store(red);
-  if (store == NULL){
+  if (store == NULL) {
     scr_abort(-1, "attempting to build cache hidden dir for null store @ %s:%d",
-	      __FILE__, __LINE__
-	      );
+      __FILE__, __LINE__
+    );
   }
 
   /* build the hidden directory name */
@@ -106,8 +106,7 @@ int scr_cache_dir_create(const scr_reddesc* red, int id)
   if (store != NULL) {
     /* create directory on store */
     char* dir = scr_cache_dir_get(red, id);
-    if (scr_storedesc_dir_create(store, dir) != SCR_SUCCESS)
-    {
+    if (scr_storedesc_dir_create(store, dir) != SCR_SUCCESS) {
       /* check that we created the directory successfully,
        * fatal error if not */
       scr_abort(-1, "Failed to create dataset directory %s, aborting @ %s:%d",
@@ -118,8 +117,7 @@ int scr_cache_dir_create(const scr_reddesc* red, int id)
 
     /* create hidden .scr subdir within dataset directory */
     char* dir_scr = scr_cache_dir_hidden_get(red, id);
-    if (scr_storedesc_dir_create(store, dir_scr) != SCR_SUCCESS)
-    {
+    if (scr_storedesc_dir_create(store, dir_scr) != SCR_SUCCESS) {
       scr_abort(-1, "Failed to create dataset directory %s, aborting @ %s:%d",
         dir_scr, __FILE__, __LINE__
       );
@@ -197,8 +195,8 @@ int scr_cache_delete(scr_filemap* map, int id)
     char* dir_scr = scr_cache_dir_hidden_from_str(dir, store->view, id);
     if (scr_storedesc_dir_delete(store, dir_scr) != SCR_SUCCESS) {
       scr_err("Failed to remove dataset directory: %s @ %s:%d",
-	      dir_scr, __FILE__, __LINE__
-	      );
+        dir_scr, __FILE__, __LINE__
+      );
     }
     scr_free(&dir_scr);
     
@@ -206,8 +204,8 @@ int scr_cache_delete(scr_filemap* map, int id)
     char* dataset_dir = scr_cache_dir_from_str(dir, store->view, id);
     if (scr_storedesc_dir_delete(store, dataset_dir) != SCR_SUCCESS) {
       scr_err("Failed to remove dataset directory: %s @ %s:%d",
-	      dataset_dir, __FILE__, __LINE__
-	      );
+        dataset_dir, __FILE__, __LINE__
+      );
     }
     scr_free(&dataset_dir);
     //}
