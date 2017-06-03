@@ -1130,14 +1130,7 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
       }
 
       /* update complete flag in index file */
-      int id;
-      if (scr_dataset_get_id(dataset, &id) == SCR_SUCCESS) {
-        scr_index_set_dataset(index_hash, id, name, dataset, complete);
-      } else {
-        scr_abort(-1, "Failed to read dataset id @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
+      scr_index_set_dataset(index_hash, id, name, dataset, complete);
 
       /* if this is a checkpoint, update current to point to new dataset,
        * this must come after index_set_dataset above because set_current
@@ -1160,7 +1153,12 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
   if (flushed == SCR_SUCCESS) {
     scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_PFS);
 
-    /* TODODSET: for pure output dataset, we could delete it now */
+    /* TODODSET: if this dataset is not a checkpoint, delete it from cache now */
+#if 0
+    if (! scr_dataset_is_ckpt(dataset)) {
+      scr_cache_delete(map, id);
+    }
+#endif
   }
 
   return flushed;

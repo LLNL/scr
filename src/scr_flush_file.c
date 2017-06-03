@@ -36,13 +36,26 @@
 int print_usage()
 {
   printf("\n");
-  printf("  Usage:  %s --dir <dir> [--latest | --needflush <id> | --location <id> | --name <id>]\n", PROG);
+  printf("  Usage:  %s --dir <dir> OPTIONS\n", PROG);
+  printf("\n");
+  printf("  OPTIONS:\n");
+  printf("\n");
+  printf("  --dir <dir>        Specify prefix directory (required)\n");
+  printf("  --list-output      Return list of output dataset ids in ascending order\n");
+  printf("  --list-ckpt        Return list of checkpoint dataset ids in descending order\n");
+  printf("  --before <id>      Filter list of ids to those before given id\n");
+  printf("  --need-flush <id>  Exit with 0 if checkpoint needs to be flushed, 1 otherwise\n");
+  printf("  --location <id>    Print location of specified id\n");
+  printf("  --name <id>        Print name of specified id\n");
   printf("\n");
   exit(1);
 }
 
 struct arglist {
   char* dir;      /* direcotry containing flush file */
+  int list_out;   /* list output ids in ascending order */
+  int list_ckpt;  /* list checkpoint ids in descending order */
+  int before;     /* filter ids to those below given value */
   int need_flush; /* check whether a certain dataset id needs to be flushed */
   int latest;     /* return the id of the latest (most recent) dataset in cache */
   int location;   /* return the location of dataset with specified id in cache */
@@ -56,17 +69,23 @@ int process_args(int argc, char **argv, struct arglist* args)
 
   /* define our options */
   static struct option long_options[] = {
-    {"dir",       required_argument, NULL, 'd'},
-    {"needflush", required_argument, NULL, 'n'},
-    {"latest",    no_argument,       NULL, 'l'},
-    {"location",  required_argument, NULL, 'L'},
-    {"name",      required_argument, NULL, 's'},
-    {"help",      no_argument,       NULL, 'h'},
+    {"dir",         required_argument, NULL, 'd'},
+    {"list-output", no_argument,       NULL, 'o'},
+    {"list-ckpt",   no_argument,       NULL, 'c'},
+    {"before",      required_argument, NULL, 'b'},
+    {"need-flush",  required_argument, NULL, 'n'},
+    {"latest",      no_argument,       NULL, 'l'},
+    {"location",    required_argument, NULL, 'L'},
+    {"name",        required_argument, NULL, 's'},
+    {"help",        no_argument,       NULL, 'h'},
     {0, 0, 0, 0}
   };
 
   /* set our options to default values */
   args->dir        = NULL;
+  args->list_out   = 0;
+  args->list_ckpt  = 0;
+  args->before     = 0;
   args->need_flush = -1;
   args->latest     = 0;
   args->location   = -1;
@@ -77,11 +96,25 @@ int process_args(int argc, char **argv, struct arglist* args)
   do {
     /* read in our next option */
     int option_index = 0;
-    c = getopt_long(argc, argv, "d:n:lL:h", long_options, &option_index);
+    c = getopt_long(argc, argv, "d:on:lL:h", long_options, &option_index);
     switch (c) {
       case 'd':
         /* directory containing flush file */
         args->dir = optarg;
+        break;
+      case 'o':
+        /* list output sets in ascending order */
+        args->list_out = 1;
+        ++opCount;
+        break;
+      case 'c':
+        /* list checkpoint sets in descending order */
+        args->list_ckpt = 1;
+        ++opCount;
+        break;
+      case 'b':
+        /* filter ids to those before given value */
+        args->before = atoi(optarg);
         break;
       case 'n':
         /* check whether specified dataset id needs to be flushed */
@@ -182,6 +215,86 @@ int main (int argc, char *argv[])
   /* read in our flush file */
   if (scr_hash_read(file, hash) != SCR_SUCCESS) {
     /* failed to read the flush file */
+    goto cleanup;
+  }
+
+  /* list output sets (if any) in ascending order */
+  if (args.list_out == 1) {
+    /* first, see if we have this dataset */
+    scr_hash* dset_hash = scr_hash_get(hash, SCR_FLUSH_KEY_DATASET);
+    if (dset_hash != NULL) {
+      /* get ids in ascending order */
+      int num;
+      int* list;
+      scr_hash_list_int(dset_hash, &num, &list);
+
+      /* print list of ids in ascending order */
+      int i;
+      int found_one = 0;
+      for (i = 0; i < num; i++) {
+        int id = list[i];
+        if (args.before == 0 || id < args.before) {
+          scr_hash* dhash = scr_hash_getf(dset_hash, "%d", id);
+          int flag;
+          if (scr_hash_util_get_int(dhash, SCR_FLUSH_KEY_OUTPUT, &flag) == SCR_SUCCESS) {
+            if (flag == 1) {
+              if (found_one) {
+                printf(" ");
+              }
+              printf("%d", id);
+              found_one = 1;
+            }
+          }
+        }
+      }
+      if (found_one) {
+        printf("\n");
+        rc = 0;
+      }
+
+      /* free sorted list of ints */
+      scr_free(&list);
+    }
+    goto cleanup;
+  }
+
+  /* list checkpoint sets (if any) in descending order */
+  if (args.list_ckpt == 1) {
+    /* first, see if we have this dataset */
+    scr_hash* dset_hash = scr_hash_get(hash, SCR_FLUSH_KEY_DATASET);
+    if (dset_hash != NULL) {
+      /* get ids in ascending order */
+      int num;
+      int* list;
+      scr_hash_list_int(dset_hash, &num, &list);
+
+      /* print list of ids in reverse order */
+      int i;
+      int found_one = 0;
+      for (i = num-1; i >= 0; i--) {
+        int id = list[i];
+        if (args.before == 0 || id < args.before) {
+          scr_hash* dhash = scr_hash_getf(dset_hash, "%d", id);
+          int flag;
+          if (scr_hash_util_get_int(dhash, SCR_FLUSH_KEY_CKPT, &flag) == SCR_SUCCESS) {
+            if (flag == 1) {
+              if (found_one) {
+                printf(" ");
+              }
+              printf("%d", id);
+              found_one = 1;
+            }
+          }
+        }
+      }
+      if (found_one) {
+        printf("\n");
+        rc = 0;
+      }
+
+      /* free sorted list of ints */
+      scr_free(&list);
+    }
     goto cleanup;
   }
 

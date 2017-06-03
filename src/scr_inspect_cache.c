@@ -9,7 +9,8 @@
  * Please also read this file: LICENSE.TXT.
 */
 
-/* Reads filemap and reports info on datasets which need flushed */
+/* Executable that runs on each node during scavenge to read filemap
+ * and report info about each dataset for which there are files. */
 
 #include "scr.h"
 #include "scr_err.h"
@@ -217,6 +218,7 @@ int main(int argc, char* argv[])
     /* get dataset id */
     int dset = scr_hash_elem_key_int(dset_elem);
 
+    /* loop over each rank */
     scr_hash_elem* rank_elem;
     for (rank_elem = scr_filemap_first_rank_by_dataset(map, dset);
          rank_elem != NULL;
@@ -225,6 +227,7 @@ int main(int argc, char* argv[])
       /* get rank id */
       int rank = scr_hash_elem_key_int(rank_elem);
 
+      /* verify that the number of files matches the expected number */
       int missing_file = 0;
       int expected = scr_filemap_get_expected_files(map, dset, rank);
       int num      = scr_filemap_num_files(map, dset, rank);

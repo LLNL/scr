@@ -1119,13 +1119,10 @@ int scr_flush_async_start(scr_filemap* map, int id)
   return scr_cppr_flush_async_start(map, id) ;
 #endif
 
-  /* TODODSET: force flush outputs, perhaps need a new scr_checkpoint_flush_frequency */
-#if 0
   /* if user has disabled flush, return failure */
   if (scr_flush <= 0) {
     return SCR_FAILURE;
   }
-#endif
 
   /* if we don't need a flush, return right away with success */
   if (! scr_flush_file_need_flush(id)) {

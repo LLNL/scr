@@ -515,13 +515,10 @@ int scr_flush_sync(scr_filemap* map, int id)
 {
   int flushed = SCR_SUCCESS;
 
-  /* TODODSET: force flush outputs, perhaps need a new scr_checkpoint_flush_frequency */
-#if 0
   /* if user has disabled flush, return failure */
   if (scr_flush <= 0) {
     return SCR_FAILURE;
   }
-#endif
 
   /* if we don't need a flush, return right away with success */
   if (! scr_flush_file_need_flush(id)) {
