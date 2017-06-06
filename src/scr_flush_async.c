@@ -1525,8 +1525,13 @@ int scr_flush_async_wait(scr_filemap* map)
   return SCR_SUCCESS;
 }
 
+/* start any processes for later asynchronous flush operations */
+int scr_flush_async_init(){
+    return SCR_SUCCESS;
+}
+
 /* stop all ongoing asynchronous flush operations */
-int scr_flush_async_shutdown()
+int scr_flush_async_finalize()
 {
 #ifdef HAVE_LIBCPPR
         return SCR_SUCCESS;
