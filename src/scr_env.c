@@ -191,7 +191,7 @@ char* scr_env_nodename()
 {
   char* name = NULL;
 
-  #if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT) || (SCR_MACHINE_TYPE == SCR_PMIX) || (SCR_MACHINE_TYPE == SCR_LSF)
+  #ifndef SCR_BGQ
     /* we just use the string returned by gethostname */
     char hostname[256];
     if (gethostname(hostname, sizeof(hostname)) == 0) {
@@ -201,7 +201,7 @@ char* scr_env_nodename()
         __FILE__, __LINE__
       );
     }
-  #elif SCR_MACHINE_TYPE == SCR_BGQ
+  #else
     /* here, we derive a string from the personality */
     Personality_t personality;
     unsigned int x, y, m, n, j, c;

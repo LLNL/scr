@@ -81,18 +81,7 @@ ENDIF(MYSQL_FOUND)
 ## PDSH
 FIND_PACKAGE(PDSH REQUIRED)
 
-# TODO: Remove this setting
-MESSAGE("TODO: Fix SCR_MACHINE_TYPE/NAME setting")
-MESSAGE("TODO: For now, manually set value in CMakeLists.txt:90")
-## Possible Options:
-## #define SCR_BGQ 5
-## #define SCR_CRAY_XT 4
-## #define SCR_LSF 3
-## #define SCR_PMIX 2
-## #define SCR_MAC 1
-## #define SCR_TLCC 0
-SET(SCR_MACHINE_TYPE 0)
-SET(SCR_MACHINE_NAME "SCR_TLCC")
+OPTION(SCR_BGQ "Enable proper BGQ compilation" OFF)
 
 ## PMIx
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "PMIX")
