@@ -124,7 +124,7 @@ char* scr_env_jobid()
   char* jobid = NULL;
 
   char* value;
-  #if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_BGQ)
+  #if SCR_RESOURCE_MANAGER_SLURM
     /* read $SLURM_JOBID environment variable for jobid string */
     if ((value = getenv("SLURM_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -134,7 +134,7 @@ char* scr_env_jobid()
         );
       }
     }
-  #elif SCR_MACHINE_TYPE == SCR_CRAY_XT
+  #elif SCR_RESOURCE_MANAGER_APRUN
     /* read $PBS_JOBID environment variable for jobid string */
     if ((value = getenv("PBS_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -144,7 +144,7 @@ char* scr_env_jobid()
         );
       }
     }
-  #elif SCR_MACHINE_TYPE == SCR_PMIX
+  #elif SCR_RESOURCE_MANAGER_PMIX
     /* todo: must replace this in the scr_env script as well */
     pmix_pdata_t *pmix_query_data = NULL;
     PMIX_PDATA_CREATE(pmix_query_data, 1);
@@ -171,7 +171,7 @@ char* scr_env_jobid()
 
     /* free pmix query structure */
     PMIX_PDATA_FREE(pmix_query_data, 1);
-  #elif SCR_MACHINE_TYPE == SCR_LSF
+  #elif SCR_RESOURCE_MANAGER_LSF
     /* read $PBS_JOBID environment variable for jobid string */
     if ((value = getenv("LSB_JOBID")) != NULL) {
       jobid = strdup(value);
