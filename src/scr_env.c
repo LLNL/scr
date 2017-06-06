@@ -250,3 +250,14 @@ char* scr_env_cluster()
 
   return name;
 }
+
+/* environment specific init/finalize */
+int scr_env_init(void)
+{
+    return SCR_SUCCESS;
+}
+
+int scr_env_finalize(void)
+{
+    return SCR_SUCCESS;
+}

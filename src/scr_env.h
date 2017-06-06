@@ -34,4 +34,8 @@ char* scr_env_nodename(void);
 /* read cluster name of current job */
 char* scr_env_cluster(void);
 
+/* setup/teardown of environment services */
+int scr_env_init(void);
+int scr_env_finailize(void);
+
 #endif
