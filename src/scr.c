@@ -37,16 +37,6 @@
 #include "dtcmp.h"
 #endif /* HAVE_LIBDTCMP */
 
-<<<<<<< HEAD
-=======
-#ifdef HAVE_LIBPMIX
-#include "pmix.h"
-#endif
-
-#ifdef HAVE_LIBCPPR
-#include "cppr.h"
-#endif
-
 /* look up redundancy descriptor we should use for this dataset */
 static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_reddesc* descs)
 {
