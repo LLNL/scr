@@ -37,14 +37,6 @@
 #include "dtcmp.h"
 #endif /* HAVE_LIBDTCMP */
 
-#ifdef HAVE_LIBPMIX
-#include "pmix.h"
-#endif
-
-#ifdef HAVE_LIBCPPR
-#include "cppr.h"
-#endif
-
 /*
 =========================================
 Halt logic

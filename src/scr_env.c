@@ -48,19 +48,20 @@
 #include <time.h>
 #endif /* HAVE_LIBYOGRT */
 
-#if SCR_MACHINE_TYPE == SCR_PMIX
+#ifdef HAVE_CPPR
+#include "cppr.h"
+#endif /* HAVE_CPPR */
+
+#ifdef HAVE_PMIX
 #include "pmix.h"
-#include "scr_globals.h"
-#endif /* SCR_MACHINE_TYPE == SCR_PMIX */
+#endif /* HAVE_PMIX */
 
-#if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT) || (SCR_MACHINE_TYPE == SCR_PMIX) || (SCR_MACHINE_TYPE == SCR_LSF)
-#include <unistd.h> /* gethostname */
-#endif
-
-#if SCR_MACHINE_TYPE == SCR_BGQ
+#ifdef SCR_BGQ
 #include "firmware/include/personality.h" /* Personality_t */
 #include "spi/include/kernel/location.h"  /* Kernel_GetPersonality */
 #include "hwi/include/common/uci.h"       /* bg_decodeComputeCardCoreOnNodeBoardUCI */
+#else
+#include <unistd.h>
 #endif
 
 /*
