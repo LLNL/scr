@@ -223,7 +223,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
     /* give our async flush method a chance to shut down */
     if (scr_flush_async) {
-      scr_flush_async_shutdown();
+      scr_flush_async_finalize();
     }
 
     /* sync up tasks before exiting (don't want tasks to exit so early that
@@ -1295,7 +1295,7 @@ int SCR_Finalize()
   }
 
   if(scr_flush_async){
-    scr_flush_async_shutdown();
+    scr_flush_async_finalize();
   }
 
   /* disconnect from database */
