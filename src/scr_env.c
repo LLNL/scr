@@ -124,7 +124,7 @@ char* scr_env_jobid()
   char* jobid = NULL;
 
   char* value;
-  #if SCR_RESOURCE_MANAGER_SLURM
+  #ifdef SCR_RESOURCE_MANAGER_SLURM
     /* read $SLURM_JOBID environment variable for jobid string */
     if ((value = getenv("SLURM_JOBID")) != NULL) {
       jobid = strdup(value);
