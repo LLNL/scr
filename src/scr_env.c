@@ -254,6 +254,30 @@ char* scr_env_cluster()
 /* environment specific init/finalize */
 int scr_env_init(void)
 {
+
+#ifdef SCR_RESOURCE_MANAGER_PMIX
+  /* init pmix */
+  int retval = PMIx_Init(&scr_pmix_proc, NULL, 0);
+  if (retval != PMIX_SUCCESS) {
+    scr_err("PMIx_Init failed: rc=%d @ %s:%d",
+      retval, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+  scr_dbg(1, "PMIx_Init succeeded @ %s:%d", __FILE__, __LINE__);
+#endif /* SCR_MACHINE_TYPE == SCR_PMIX */
+
+#ifdef HAVE_LIBCPPR
+  /* attempt to init cppr */
+  int cppr_ret = cppr_status();
+  if (cppr_ret != CPPR_SUCCESS) {
+    scr_abort(-1, "libcppr cppr_status() failed: %d '%s' @ %s:%d",
+              cppr_ret, cppr_err_to_str(cppr_ret), __FILE__, __LINE__
+    );
+  }
+  scr_dbg(1, "#bold CPPR is present @ %s:%d", __FILE__, __LINE__);
+#endif /* HAVE_LIBCPPR */
+
     return SCR_SUCCESS;
 }
 

@@ -1030,28 +1030,7 @@ int SCR_Init()
   /* ensure that the control and cache directories are ready */
   MPI_Barrier(scr_comm_world);
 
-#if (SCR_MACHINE_TYPE == SCR_PMIX)
-  /* init pmix */
-  int retval = PMIx_Init(&scr_pmix_proc, NULL, 0);
-  if (retval != PMIX_SUCCESS) {
-    scr_err("PMIx_Init failed: rc=%d @ %s:%d",
-      retval, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-  scr_dbg(1, "PMIx_Init succeeded @ %s:%d", __FILE__, __LINE__);
-#endif /* SCR_MACHINE_TYPE == SCR_PMIX */
-
-#ifdef HAVE_LIBCPPR
-  /* attempt to init cppr */
-  int cppr_ret = cppr_status();
-  if (cppr_ret != CPPR_SUCCESS) {
-    scr_abort(-1, "libcppr cppr_status() failed: %d '%s' @ %s:%d",
-              cppr_ret, cppr_err_to_str(cppr_ret), __FILE__, __LINE__
-    );
-  }
-  scr_dbg(1, "#bold CPPR is present @ %s:%d", __FILE__, __LINE__);
-#endif /* HAVE_LIBCPPR */
+  scr_env_init();
 
   /* place the halt, flush, and nodes files in the prefix directory */
   scr_halt_file = scr_path_from_str(scr_prefix_scr);
