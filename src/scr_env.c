@@ -134,7 +134,8 @@ char* scr_env_jobid()
         );
       }
     }
-  #elif SCR_RESOURCE_MANAGER_APRUN
+  #endif
+  #ifdef SCR_RESOURCE_MANAGER_APRUN
     /* read $PBS_JOBID environment variable for jobid string */
     if ((value = getenv("PBS_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -144,7 +145,8 @@ char* scr_env_jobid()
         );
       }
     }
-  #elif SCR_RESOURCE_MANAGER_PMIX
+  #endif
+  #ifdef SCR_RESOURCE_MANAGER_PMIX
     /* todo: must replace this in the scr_env script as well */
     pmix_pdata_t *pmix_query_data = NULL;
     PMIX_PDATA_CREATE(pmix_query_data, 1);
@@ -171,7 +173,8 @@ char* scr_env_jobid()
 
     /* free pmix query structure */
     PMIX_PDATA_FREE(pmix_query_data, 1);
-  #elif SCR_RESOURCE_MANAGER_LSF
+  #endif
+  #ifdef SCR_RESOURCE_MANAGER_LSF
     /* read $PBS_JOBID environment variable for jobid string */
     if ((value = getenv("LSB_JOBID")) != NULL) {
       jobid = strdup(value);
