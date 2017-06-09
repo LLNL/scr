@@ -37,6 +37,7 @@
 
 #include "scr_env.h"
 #include "scr_err.h"
+#include "scr.h"
 
 #include <stdlib.h>
 #include <stdio.h>
