@@ -113,7 +113,7 @@ static int bb_check(int rc)
 {
   if (rc) {
     char* errstring;
-    BB_GetLastErrorDetails(BBERRORJSON, &errstring);
+    getLastErrorDetails(BBERRORJSON, &errstring);
     printf("Error rc:       %d\n", rc);
     printf("Error details:  %s\n", errstring, errstring);
     free(errstring);
