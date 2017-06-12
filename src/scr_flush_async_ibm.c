@@ -276,7 +276,9 @@ int scr_flush_async_stop()
   fflush(stdout);
   free(scr_all_ranks);
   rc = BB_TerminateLibrary();
-  return bb_check(rc);
+  if(bb_check(rc) != SCR_SUCCESS) {
+    printf("ERROR with terminating BB Library\n");
+  }
 #endif
 
   /* remove FLUSHING state from flush file */
@@ -365,7 +367,9 @@ int scr_flush_async_start(scr_filemap* map, int id)
   printf("BB CREATE CREATE DEF\n");
   fflush(stdout);
   rc = BB_CreateTransferDef(&tdef);
-  return bb_check(rc);
+  if (bb_check(rc) != SCR_SUCCESS) {
+    printf("ERROR with CREATE def\n");
+  }
 #endif
 
   /* add each of my files to the transfer file list */
@@ -421,7 +425,9 @@ int scr_flush_async_start(scr_filemap* map, int id)
   printf("BB ADD FILES rank:%d file:%s\n", scr_my_rank_world, file);
   fflush(stdout);
   int rc = BB_AddFiles(tdef, file, dest_file, 0);
-  return bb_check(rc);
+  if (bb_check(rc) != SCR_SUCCESS) {
+    printf("ERROR with add file\n");
+  }
 #endif
 
     /* add this file to our total conut */
@@ -492,7 +498,9 @@ int scr_flush_async_start(scr_filemap* map, int id)
     printf("BB BB START\n");
     fflush(stdout);
     int rc = BB_StartTransfer(tdef, thandle);
-    return bb_check(rc);
+    if (bb_check(rc) != SCR_SUCCESS) {
+      printf("ERROR with start\n");
+    }
   }
 #endif
 
@@ -659,7 +667,9 @@ int scr_flush_async_complete(scr_filemap* map, int id)
   printf("BB COMPLETE FREE DEF\n");
   fflush(stdout);
   rc = BB_FreeTransferDef(tdef);
-  return bb_check(rc);
+  if (bb_check(rc) != SCR_SUCCESS) {
+    printf("ERROR with free def\n");
+  }
 #endif
 
   /* mark that we've stopped the flush */
