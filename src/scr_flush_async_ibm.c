@@ -422,7 +422,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
 #endif
 
 #ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
-  printf("BB ADD FILES rank:%d file:%s\n", scr_my_rank_world, file);
+  printf("BB ADD FILES rank:%d file:%s dest:%s\n", scr_my_rank_world, file, dest_file);
   fflush(stdout);
   int rc = BB_AddFiles(tdef, file, dest_file, 0);
   if (bb_check(rc) != SCR_SUCCESS) {
