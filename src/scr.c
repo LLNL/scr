@@ -1314,11 +1314,6 @@ int SCR_Finalize()
   scr_free(&scr_cache_base);
   scr_free(&scr_my_hostname);
 
-  /* flush async may have alloc'd some memory */
-  if (scr_flush_async) {
-    scr_flush_async_finalize();
-  }
-
   scr_path_delete(&scr_map_file);
   scr_path_delete(&scr_master_map_file);
   scr_path_delete(&scr_nodes_file);
