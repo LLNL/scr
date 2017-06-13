@@ -347,8 +347,8 @@ int scr_storedescs_create()
   if (scr_storedesc_cntl != NULL && index >= 0) {
     scr_storedesc_copy(scr_storedesc_cntl, &scr_storedescs[index]);
   } else {
-    scr_abort(-1, "Failed to create store descriptor for control directory @ %s:%d",
-      __FILE__, __LINE__
+    scr_abort(-1, "Failed to create store descriptor for control directory [%s] @ %s:%d",
+      scr_cntl_base, __FILE__, __LINE__
     );
   }
 
