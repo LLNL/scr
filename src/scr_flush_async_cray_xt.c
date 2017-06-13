@@ -769,10 +769,23 @@ int scr_flush_async_wait(scr_filemap* map)
 // TODO: clean-up internal API w.r.t. async init/finalize
 int scr_flush_async_init()
 {
+    /* daemon stuff */
+    scr_path* path_transfer_file = scr_path_from_str(scr_cntl_prefix);
+    scr_path_append_str(path_transfer_file, "stransfer.scrinfo");
+    scr_transfer_file = scr_path_strdup(path_transfer_file);
+    scr_path_delete(&path_transfer_file);
+
+    /* wait until transfer daemon is stopped */
+    scr_flush_async_stop();
+
+
     return SCR_SUCCESS;
 }
 
 int scr_flush_async_finalize()
 {
+    /* daemon stuff */
+    scr_free(&scr_transfer_file);
+
     return SCR_SUCCESS;
 }

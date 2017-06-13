@@ -1049,11 +1049,6 @@ int SCR_Init()
   scr_master_map_file = scr_path_from_str(scr_cntl_prefix);
   scr_path_append_str(scr_master_map_file, "filemap.scrinfo");
 
-  scr_path* path_transfer_file = scr_path_from_str(scr_cntl_prefix);
-  scr_path_append_str(path_transfer_file, "transfer.scrinfo");
-  scr_transfer_file = scr_path_strdup(path_transfer_file);
-  scr_path_delete(&path_transfer_file);
-
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
   /* record the number of nodes being used in this job to the nodes file */
   /* Each rank records its node number in the global scr_my_hostid */
@@ -1084,12 +1079,7 @@ int SCR_Init()
 
   /* since we shuffle files around below, stop any ongoing async flush */
   if (scr_flush_async) {
-    /* wait until transfer daemon is stopped */
-    scr_flush_async_stop();
-    /* clear out the file */
-    if (scr_storedesc_cntl->rank == 0) {
-      scr_file_unlink(scr_transfer_file);
-    }
+    scr_flush_async_init();
   }
 
   /* exit right now if we need to halt */
@@ -1317,13 +1307,17 @@ int SCR_Finalize()
   scr_free(&scr_jobname);
   scr_free(&scr_clustername);
   scr_free(&scr_group);
-  scr_free(&scr_transfer_file);
   scr_free(&scr_prefix_scr);
   scr_free(&scr_prefix);
   scr_free(&scr_cntl_prefix);
   scr_free(&scr_cntl_base);
   scr_free(&scr_cache_base);
   scr_free(&scr_my_hostname);
+
+  /* flush async may have alloc'd some memory */
+  if (scr_flush_async) {
+    scr_flush_async_finalize();
+  }
 
   scr_path_delete(&scr_map_file);
   scr_path_delete(&scr_master_map_file);
