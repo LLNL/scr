@@ -556,7 +556,7 @@ static int scr_get_params()
   /* check that the cluster name is defined, fatal error if not */
   if (scr_clustername == NULL) {
     if (scr_my_rank_world == 0) {
-      scr_warn("Failed to record cluster name @ %s:%d",
+      scr_dbg(1, "Failed to record cluster name @ %s:%d",
               __FILE__, __LINE__
       );
     }
@@ -1018,13 +1018,13 @@ int SCR_Init()
         /* record the start time for this run */
         scr_log_run(job_start);
       } else {
-        scr_err("Failed to log job for username %s and jobname %s, disabling logging @ %s:%d",
+        scr_warn("Failed to log job for username %s and jobname %s, disabling logging @ %s:%d",
           scr_username, scr_jobname, __FILE__, __LINE__
         );
         scr_log_enable = 0;
       }
     } else {
-      scr_err("Failed to read username or jobname from environment, disabling logging @ %s:%d",
+      scr_warn("Failed to read username or jobname from environment, disabling logging @ %s:%d",
         __FILE__, __LINE__
       );
       scr_log_enable = 0;
