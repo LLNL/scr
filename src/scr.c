@@ -1587,7 +1587,7 @@ int SCR_Need_checkpoint(int* flag)
 }
 
 /* inform library that a new output dataset is starting */
-int SCR_Start_output(char* name, int flags)
+int SCR_Start_output(const char* name, int flags)
 {
   /* if not enabled, bail with an error */
   if (! scr_enabled) {

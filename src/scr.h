@@ -83,7 +83,7 @@ int SCR_Complete_checkpoint(int valid);
  ****************/
 
 /* inform library that a new output dataset is starting */
-int SCR_Start_output(char* name, int flags);
+int SCR_Start_output(const char* name, int flags);
 
 /* inform library that the current dataset is complete */
 int SCR_Complete_output(int valid);
