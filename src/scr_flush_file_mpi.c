@@ -198,3 +198,4 @@ int scr_flush_file_new_entry(int id, const char* name, const char* location, int
   }
   return SCR_SUCCESS;
 }
+

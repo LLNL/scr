@@ -193,6 +193,7 @@ if [ "$UPNODES" != "" ] ; then
       fi
 
       # we have a dataset, check whether it still needs to be flushed
+
       $bindir/scr_flush_file --dir $pardir --need-flush $d
       if [ $? -eq 0 ] ; then
         echo "$prog: Attempting to scavenge checkpoint dataset $d"
