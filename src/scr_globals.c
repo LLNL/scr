@@ -83,6 +83,7 @@ char* scr_clustername = NULL;           /* name of cluster running job */
 int scr_have_restart  = 0;              /* tracks whether a checkpoint is available for restart */
 int scr_dataset_id    = 0;              /* keeps track of the dataset id */
 int scr_checkpoint_id = 0;              /* keeps track of the checkpoint id */
+int scr_ckpt_dset_id  = 0;              /* keeps track of the checkpoint id */
 int scr_in_output     = 0;              /* flag tracks whether we are between start and complete calls */
 int scr_initialized   = 0;              /* indicates whether the library has been initialized */
 int scr_enabled       = SCR_ENABLE;     /* indicates whether the library is enabled */

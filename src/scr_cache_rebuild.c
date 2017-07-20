@@ -1313,6 +1313,7 @@ int scr_cache_rebuild(scr_filemap* map)
    * middle of flushing */
   int current_id;
   int dset_index = 0;
+  int output_failed_rebuild = 0;
   do {
     /* get the smallest index across all processes (returned in current_id),
      * this also updates our dset_index value if appropriate */
@@ -1332,9 +1333,18 @@ int scr_cache_rebuild(scr_filemap* map)
         }
       }
 
-      /* distribute dataset descriptor for this dataset */
+      /* assume we'll fail to rebuild */
       int rebuild_succeeded = 0;
+
+      /* distribute dataset descriptor for this dataset */
       if (scr_distribute_datasets(map, current_id) == SCR_SUCCESS) {
+        /* get dataset for this id */
+        scr_dataset* dataset = scr_dataset_new();
+        scr_filemap_get_dataset(map, current_id, scr_my_rank_world, dataset);
+
+        /* determine whether this is an output dataset */
+        int is_output = scr_dataset_is_output(dataset);
+
         /* distribute redundancy descriptor for this dataset */
         scr_reddesc reddesc;
         if (scr_distribute_reddescs(map, current_id, &reddesc) == SCR_SUCCESS) {
@@ -1350,18 +1360,29 @@ int scr_cache_rebuild(scr_filemap* map)
             /* rebuild succeeded */
             rebuild_succeeded = 1;
 
-            /* if we rebuild any checkpoint, return success */
-            rc = SCR_SUCCESS;
+            /* if we have a checkpoint, update dataset and checkpoint counters,
+             * however skip this if we failed to rebuild an output set, in this
+             * case we'll restart from the checkpoint before the lost output set */
+            int is_ckpt = scr_dataset_is_ckpt(dataset);
+            if (is_ckpt && !output_failed_rebuild) {
+              /* if we rebuild any checkpoint, return success */
+              rc = SCR_SUCCESS;
 
-            /* update scr_dataset_id */
-            if (current_id > scr_dataset_id) {
-              scr_dataset_id = current_id;
-            }
+              /* update scr_dataset_id */
+              if (current_id > scr_dataset_id) {
+                scr_dataset_id = current_id;
+              }
 
-            /* TODO: dataset may not be a checkpoint */
-            /* update scr_checkpoint_id */
-            if (current_id > scr_checkpoint_id) {
-              scr_checkpoint_id = current_id;
+              /* get checkpoint id for dataset */
+              int ckpt_id;
+              scr_dataset_get_ckpt(dataset, &ckpt_id);
+
+              /* update scr_checkpoint_id and scr_ckpt_dset_id if needed */
+              if (ckpt_id > scr_checkpoint_id) {
+                /* got a more recent checkpoint, update our checkpoint info */
+                scr_checkpoint_id = ckpt_id;
+                scr_ckpt_dset_id = current_id;
+              }
             }
 
             /* update our flush file to indicate this dataset is in cache */
@@ -1381,6 +1402,18 @@ int scr_cache_rebuild(scr_filemap* map)
           /* free redundancy descriptor */
           scr_reddesc_free(&reddesc);
         }
+
+        /* remember if we fail to rebuild an output set */
+        if (!rebuild_succeeded && is_output) {
+          output_failed_rebuild = 1;
+        }
+
+        /* free dataset */
+        scr_dataset_delete(&dataset);
+      } else {
+        /* if we failed to distribute dataset info, then we can't know
+         * whether this was output or not, so we have to assume it was */
+        output_failed_rebuild = 1;
       }
 
       /* if the distribute or rebuild failed, delete the dataset */
@@ -1414,6 +1447,29 @@ int scr_cache_rebuild(scr_filemap* map)
     }
   } while (current_id != -1);
 
+  /* free our list of dataset ids */
+  scr_free(&dsets);
+
+  /* get an updated list of datasets since we may have rebuilt/deleted some */
+  scr_filemap_list_datasets(map, &ndsets, &dsets);
+
+  /* delete all datasets following the most recent checkpoint */
+  dset_index = 0;
+  do {
+    /* get the smallest index across all processes (returned in current_id),
+     * this also updates our dset_index value if appropriate */
+    scr_next_dataset(ndsets, dsets, &dset_index, &current_id);
+
+    /* if we found a dataset, try to distribute and rebuild it */
+    if (current_id != -1 && current_id > scr_ckpt_dset_id) {
+      /* rebuild failed, delete this dataset from cache */
+      scr_cache_delete(map, current_id);
+    }
+  } while (current_id != -1);
+
+  /* free our list of dataset ids */
+  scr_free(&dsets);
+
   /* stop timer and report performance */
   if (scr_my_rank_world == 0) {
     time_end = MPI_Wtime();
@@ -1436,9 +1492,6 @@ int scr_cache_rebuild(scr_filemap* map)
       }
     }
   }
-
-  /* free our list of dataset ids */
-  scr_free(&dsets);
 
   return rc;
 }

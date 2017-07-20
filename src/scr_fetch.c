@@ -822,7 +822,7 @@ static int scr_fetch_summary(
       /* get the file name */
       char* file = scr_hash_elem_key(elem);
 
-      /* combine the file name with the summary directory to build a
+      /* combine the file name with the prefix directory to build a
        * full path to the file */
       scr_path* path_full = scr_path_dup(scr_prefix_path);
       scr_path_append_str(path_full, file);
@@ -1047,9 +1047,13 @@ static int scr_fetch_files(
     scr_free(&fetch_dir);
     return SCR_FAILURE;
   }
+
   /* delete any existing files for this dataset id (do this before
    * filemap_read) */
   scr_cache_delete(map, id);
+
+  /* store dataset in filemap */
+  scr_filemap_set_dataset(map, id, scr_my_rank_world, dataset);
 
   /* get the redundancy descriptor for this id */
   scr_reddesc* c = scr_reddesc_for_checkpoint(ckpt_id, scr_nreddescs, scr_reddescs);
@@ -1252,8 +1256,9 @@ int scr_fetch_sync(scr_filemap* map, int* fetch_attempted)
       rc = scr_fetch_files(map, target_id, target, &dset_id, &ckpt_id);
       if (rc == SCR_SUCCESS) {
         /* set the dataset and checkpoint ids */
-        scr_dataset_id = dset_id;
+        scr_dataset_id    = dset_id;
         scr_checkpoint_id = ckpt_id;
+        scr_ckpt_dset_id  = dset_id;
 
         /* we succeeded in fetching this checkpoint, set current to
          * point to it, and stop fetching */

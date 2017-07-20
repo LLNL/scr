@@ -144,6 +144,7 @@ extern char* scr_clustername; /* name of cluster job is running on */
 extern int scr_have_restart;  /* indicates whether a checkpoint is available for restart */
 extern int scr_dataset_id;    /* keeps track of the current dataset id */
 extern int scr_checkpoint_id; /* keeps track of the current checkpoint id */
+extern int scr_ckpt_dset_id;  /* keeps track of the dataset id for the current checkpoint */
 extern int scr_in_output;     /* flag tracks whether we are between start and complete calls */
 extern int scr_initialized;   /* indicates whether the library has been initialized */
 extern int scr_enabled;       /* indicates whether the library is enabled */

@@ -209,3 +209,44 @@ int scr_dataset_get_complete(const scr_dataset* dataset, int* complete)
 Check field values
 =========================================
 */
+
+/* set flags associated with dataset */
+int scr_dataset_set_flags(scr_dataset* dataset, int flags)
+{
+  int is_ckpt   = (flags & SCR_FLAG_CHECKPOINT) ? 1 : 0;
+  int is_output = (flags & SCR_FLAG_OUTPUT)     ? 1 : 0;
+  scr_hash_util_set_int(dataset, SCR_DATASET_KEY_FLAG_CKPT, is_ckpt);
+  return scr_hash_util_set_int(dataset, SCR_DATASET_KEY_FLAG_OUTPUT, is_output);
+}
+
+/* sets flag to 1 if checkpoint flag is set on this dataset, returns SCR_SUCCESS if successful */
+int scr_dataset_get_flag_ckpt(const scr_dataset* dataset, int* flag)
+{
+  return scr_hash_util_get_int(dataset, SCR_DATASET_KEY_FLAG_CKPT, flag);
+}
+
+/* sets flag to 1 if output flag is set on this dataset, returns SCR_SUCCESS if successful */
+int scr_dataset_get_flag_output(const scr_dataset* dataset, int* flag)
+{
+  return scr_hash_util_get_int(dataset, SCR_DATASET_KEY_FLAG_OUTPUT, flag);
+}
+
+/* returns 1 if dataset is a checkpoint, 0 otherwise */
+int scr_dataset_is_ckpt(const scr_dataset* dataset)
+{
+  int flag;
+  if (scr_dataset_get_flag_ckpt(dataset, &flag) == SCR_SUCCESS) {
+    return flag;
+  }
+  return 0;
+}
+
+/* returns 1 if dataset is output, 0 otherwise */
+int scr_dataset_is_output(const scr_dataset* dataset)
+{
+  int flag;
+  if (scr_dataset_get_flag_output(dataset, &flag) == SCR_SUCCESS) {
+    return flag;
+  }
+  return 0;
+}

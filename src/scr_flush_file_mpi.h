@@ -13,10 +13,10 @@
 #define SCR_FLUSH_FILE_MPI_H
 
 /* returns true if the given dataset id needs to be flushed */
-int scr_bool_need_flush(int id);
+int scr_flush_file_need_flush(int id);
 
 /* checks whether the specified dataset id is currently being flushed */
-int scr_bool_is_flushing(int id);
+int scr_flush_file_is_flushing(int id);
 
 /* removes entries in flush file for given dataset id */
 int scr_flush_file_dataset_remove(int id);
@@ -30,8 +30,8 @@ int scr_flush_file_location_test(int id, const char* location);
 /* removes a location for the specified dataset id from the flush file */
 int scr_flush_file_location_unset(int id, const char* location);
 
-/* we track the dataset name in the flush file
- * so that we can specify where to create the summary file in scavenge */
-int scr_flush_file_name_set(int id, const char* name);
+/* create an entry in the flush file for a dataset for scavenge,
+ * including name, location, and flags */
+int scr_flush_file_new_entry(int id, const char* name, const char* location, int ckpt, int output);
 
 #endif

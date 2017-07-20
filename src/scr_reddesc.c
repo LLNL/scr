@@ -38,6 +38,7 @@ int scr_reddesc_init(scr_reddesc* d)
   d->enabled        =  0;
   d->index          = -1;
   d->interval       = -1;
+  d->output         = -1;
   d->store_index    = -1;
   d->group_index    = -1;
   d->base           = NULL;
@@ -82,7 +83,7 @@ static int scr_reddesc_create_partner(scr_reddesc* d)
   {
     /* disable this descriptor */
     d->enabled = 0;
-    scr_warn("Failed to find partner processes for redundancy descriptor %d, disabling checkpoint, too few nodes? @ %s:%d",
+    scr_warn("Failed to find partner processes for redundancy descriptor %d, disabling, too few nodes? @ %s:%d",
       d->index, __FILE__, __LINE__
     );
     rc = SCR_FAILURE;
@@ -165,7 +166,7 @@ static int scr_reddesc_create_xor(scr_reddesc* d)
   {
     /* disable this descriptor */
     d->enabled = 0;
-    scr_warn("Failed to find partner processes for redundancy descriptor %d, disabling checkpoint, too few nodes? @ %s:%d",
+    scr_warn("Failed to find partner processes for redundancy descriptor %d, disabling, too few nodes? @ %s:%d",
       d->index, __FILE__, __LINE__
     );
     rc = SCR_FAILURE;
@@ -287,6 +288,9 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, scr_hash* hash)
 
   /* set the INTERVAL key */
   scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_INTERVAL, d->interval);
+
+  /* set the OUTPUT key */
+  scr_hash_set_kv_int(hash, SCR_CONFIG_KEY_OUTPUT, d->output);
 
   /* we don't set STORE_INDEX because this is dependent on runtime
    * environment */
@@ -477,6 +481,10 @@ int scr_reddesc_create_from_hash(
   d->interval = 1;
   scr_hash_util_get_int(hash, SCR_CONFIG_KEY_INTERVAL, &(d->interval));
 
+  /* set output flag, assume this can't be used for output */
+  d->output = 0;
+  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_OUTPUT, &(d->output));
+
   /* set the base directory */
   char* base = scr_cache_base;
   scr_hash_util_get_str(hash, SCR_CONFIG_KEY_BASE, &base);
@@ -527,14 +535,14 @@ int scr_reddesc_create_from_hash(
       /* don't recognize copy type, disable this descriptor */
       d->enabled = 0;
       if (scr_my_rank_world == 0) {
-        scr_warn("Unknown copy type %s in redundancy descriptor %d, disabling checkpoint @ %s:%d",
+        scr_warn("Unknown copy type %s in redundancy descriptor %d, disabling @ %s:%d",
           type, d->index, __FILE__, __LINE__
         );
       }
     }
   }
 
-  /* CONVENIENCE: if all ranks are on the same node, change checkpoint
+  /* CONVENIENCE: if all ranks are on the same node, change
    * type to SINGLE, we do this so single-node jobs can run without
    * requiring the user to change the copy type */
   const scr_groupdesc* groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
@@ -608,12 +616,12 @@ int scr_reddesc_create_from_hash(
     break;
   }
 
-  /* find our position in the checkpoint communicator */
+  /* find our position in the reddesc communicator */
   MPI_Comm_rank(d->comm, &d->rank);
   MPI_Comm_size(d->comm, &d->ranks);
 
   /* for our group id, use the global rank of the rank 0 task
-   * in our checkpoint comm */
+   * in our reddesc comm */
   d->group_id = scr_my_rank_world;
   MPI_Bcast(&d->group_id, 1, MPI_INT, 0, d->comm);
 
@@ -635,7 +643,7 @@ int scr_reddesc_create_from_hash(
     break;
   }
 
-  /* if anyone has disabled this checkpoint, everyone needs to */
+  /* if anyone has disabled this, everyone needs to */
   if (! scr_alltrue(d->enabled)) {
     d->enabled = 0;
   }
@@ -687,6 +695,10 @@ int scr_reddesc_restore_from_hash(
   /* set the interval, default to 1 unless specified otherwise */
   d->interval = 1;
   scr_hash_util_get_int(hash, SCR_CONFIG_KEY_INTERVAL, &(d->interval));
+
+  /* set output flag, assume this can't be used for output */
+  d->output = 0;
+  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_OUTPUT, &(d->output));
 
   /* set the base directory */
   char* base;
@@ -760,12 +772,12 @@ int scr_reddesc_restore_from_hash(
   }
   MPI_Comm_split(scr_comm_world, group_id, group_rank, &d->comm);
 
-  /* find our position in the checkpoint communicator */
+  /* find our position in the reddesc communicator */
   MPI_Comm_rank(d->comm, &d->rank);
   MPI_Comm_size(d->comm, &d->ranks);
 
   /* for our group id, use the global rank of the rank 0 task
-   * in our checkpoint comm */
+   * in our reddesc comm */
   d->group_id = scr_my_rank_world;
   MPI_Bcast(&d->group_id, 1, MPI_INT, 0, d->comm);
 
@@ -787,7 +799,7 @@ int scr_reddesc_restore_from_hash(
     break;
   }
 
-  /* if anyone has disabled this checkpoint, everyone needs to */
+  /* if anyone has disabled this, everyone needs to */
   if (! scr_alltrue(d->enabled)) {
     d->enabled = 0;
   }
@@ -800,7 +812,7 @@ int scr_reddesc_restore_from_hash(
  * returns a newly allocated string */
 char* scr_reddesc_val_from_filemap(
   scr_filemap* map,
-  int ckpt,
+  int id,
   int rank,
   char* name)
 {
@@ -818,7 +830,7 @@ char* scr_reddesc_val_from_filemap(
   }
 
   /* get the redundancy descriptor hash from the filemap */
-  if (scr_filemap_get_desc(map, ckpt, rank, desc) != SCR_SUCCESS) {
+  if (scr_filemap_get_desc(map, id, rank, desc) != SCR_SUCCESS) {
     scr_hash_delete(&desc);
     return NULL;
   }
@@ -839,20 +851,20 @@ char* scr_reddesc_val_from_filemap(
 
 /* read base directory from descriptor stored in filemap,
  * returns a newly allocated string */
-char* scr_reddesc_base_from_filemap(scr_filemap* map, int ckpt, int rank)
+char* scr_reddesc_base_from_filemap(scr_filemap* map, int id, int rank)
 {
   char* value = scr_reddesc_val_from_filemap(
-    map, ckpt, rank, SCR_CONFIG_KEY_STORE
+    map, id, rank, SCR_CONFIG_KEY_STORE
   );
   return value;
 }
 
 /* read directory from descriptor stored in filemap,
  * returns a newly allocated string */
-char* scr_reddesc_dir_from_filemap(scr_filemap* map, int ckpt, int rank)
+char* scr_reddesc_dir_from_filemap(scr_filemap* map, int id, int rank)
 {
   char* value = scr_reddesc_val_from_filemap(
-    map, ckpt, rank, SCR_CONFIG_KEY_DIRECTORY
+    map, id, rank, SCR_CONFIG_KEY_DIRECTORY
   );
   return value;
 }

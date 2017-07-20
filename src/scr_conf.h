@@ -43,7 +43,7 @@
 
 /* whether to enable logging in SCR */
 #ifndef SCR_LOG_ENABLE
-#define SCR_LOG_ENABLE (1)
+#define SCR_LOG_ENABLE (0)
 #endif
 
 /* default number of halt seconds to apply to a job */

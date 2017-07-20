@@ -1,8 +1,8 @@
 # set SCR_PKG to the directory where SCR is cloned
 # set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
 # set SCR_INSTALL to the directory where SCR is installed
-setenv SCR_PKG     "${HOME}/packages/scr"
-setenv SCR_BUILD   "${HOME}/packages/scr-dist"
+setenv SCR_PKG     `pwd`
+setenv SCR_BUILD   `pwd`/scr-dist
 setenv SCR_INSTALL "${SCR_BUILD}/install"
 
 # commands to debug various items
@@ -45,12 +45,12 @@ make distclean
 make dist
 
 # Linux build instructions
+cd ${SCR_PKG}
 #setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
-#setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=./deps/install"
+#setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=`pwd`/deps/install"
 setenv CFLAGS "-g -O0"
 setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql"
 setenv scrversion "scr-1.1.8"
-cd ${SCR_PKG}
 make distclean
 ./autogen.sh
 ./configure --prefix=/usr/local/tools/scr-1.1 $configopts
