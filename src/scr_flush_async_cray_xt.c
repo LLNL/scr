@@ -250,7 +250,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
   }
 
   /* if we don't need a flush, return right away with success */
-  if (! scr_bool_need_flush(id)) {
+  if (! scr_flush_file_need_flush(id)) {
     return SCR_SUCCESS;
   }
 
@@ -745,7 +745,7 @@ int scr_flush_async_wait(scr_filemap* map)
       scr_flush_async_complete(map, scr_flush_async_dataset_id);
     }
     else if(!strcmp(type, "POSIX")){
-      while (scr_bool_is_flushing(scr_flush_async_dataset_id)) {
+      while (scr_flush_file_is_flushing(scr_flush_async_dataset_id)) {
 	/* test whether the flush has completed, and if so complete the flush */
 	double bytes = 0.0;
 	if (scr_flush_async_test(map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {

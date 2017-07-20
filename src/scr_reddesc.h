@@ -46,6 +46,7 @@ typedef struct {
   int      index;          /* each descriptor is indexed starting from 0 */
   int      interval;       /* how often to apply this descriptor, pick largest such
                             * that interval evenly divides checkpoint id */
+  int      output;         /* flag indicating whether this descriptor should be used for output */
   int      store_index;    /* index into scr_storedesc for storage descriptor */
   int      group_index;    /* index into scr_groupdesc for failure group */
   char*    base;           /* base cache directory to use */
@@ -133,7 +134,7 @@ int scr_reddesc_create_from_filemap(
  * descriptor each time, returns a newly allocated string */
 char* scr_reddesc_val_from_filemap(
   scr_filemap* map,
-  int ckpt,
+  int dset,
   int rank,
   char* name
 );
@@ -142,7 +143,7 @@ char* scr_reddesc_val_from_filemap(
  * returns a newly allocated string */
 char* scr_reddesc_base_from_filemap(
   scr_filemap* map,
-  int ckpt,
+  int id,
   int rank
 );
 
@@ -150,7 +151,7 @@ char* scr_reddesc_base_from_filemap(
  * returns a newly allocated string */
 char* scr_reddesc_dir_from_filemap(
   scr_filemap* map,
-  int ckpt,
+  int id,
   int rank
 );
 

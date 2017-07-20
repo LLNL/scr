@@ -4,8 +4,9 @@ use lib '@X_DATADIR@/scr';
 use scr_hostlist;
 use Getopt::Long qw/ :config gnu_getopt ignore_case /;
 
-# This file will flush files from cache to the parallel file system using pdsh.
-# It checks for pdsh errors in case any nodes should be retried.
+# This file runs scr_inspect_cache on each node using pdsh.
+# It lists the ids of all cached datasets for which there
+# may be a chance to flush and rebuild data.
 
 # requires: pdsh
 
@@ -87,7 +88,7 @@ unlink $error;
 
 my $cmd = undef;
 
-# gather files via pdsh
+# run scr_inspect_cache via pdsh
 my $filemap = "$cntldir/filemap.scrinfo";
 $cmd = "$bindir/scr_inspect_cache $filemap";
 `$pdsh -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;

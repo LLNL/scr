@@ -173,9 +173,18 @@ int scr_index_remove(scr_hash* index, const char* name)
 /* set dataset name as current to restart from */
 int scr_index_set_current(scr_hash* index, const char* name)
 {
-  /* check that dataset name exists in index */
-  scr_hash* dir = scr_hash_get_kv(index, SCR_INDEX_1_KEY_NAME, name);
-  if (dir == NULL) {
+  /* lookup the dataset id based on the dataset name */
+  int id;
+  if (scr_index_get_id_by_name(index, name, &id) != SCR_SUCCESS) {
+    /* failed to find dataset by this name */
+    return SCR_FAILURE;
+  }
+
+  /* check that dataset is a checkpoint */
+  scr_hash* dset_hash = scr_hash_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
+  scr_hash* name_hash = scr_hash_get_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
+  scr_hash* dataset = scr_hash_get(name_hash, SCR_INDEX_1_KEY_DATASET);
+  if (! scr_dataset_is_ckpt(dataset)) {
     return SCR_FAILURE;
   }
 
@@ -305,10 +314,9 @@ int scr_index_get_complete(scr_hash* index, int id, const char* name, int* compl
   *complete = 0;
 
   /* get the value of the COMPLETE key */
+  int complete_tmp;
   scr_hash* dset_hash = scr_hash_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
   scr_hash* dir_hash  = scr_hash_get_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
-  scr_hash_get(dir_hash, SCR_INDEX_1_KEY_COMPLETE);
-  int complete_tmp;
   if (scr_hash_util_get_int(dir_hash, SCR_INDEX_1_KEY_COMPLETE, &complete_tmp) == SCR_SUCCESS) {
     *complete = complete_tmp;
     rc = SCR_SUCCESS;
@@ -341,11 +349,11 @@ int scr_index_get_id_by_name(const scr_hash* index, const char* name, int* id)
  * setting earlier_than = -1 disables this filter */
 int scr_index_get_most_recent_complete(const scr_hash* index, int earlier_than, int* id, char* name)
 {
-  /* assume that we won't find this dataset */
+  /* assume that we won't find a valid dataset */
   *id = -1;
 
-  /* search for the maximum dataset id which is complete and less than earlier_than
-   * if earlier_than is set */
+  /* search for the checkpoint with the maximum dataset id which is
+   * complete and less than earlier_than if earlier_than is set */
   int max_id = -1;
   scr_hash* dsets = scr_hash_get(index, SCR_INDEX_1_KEY_DATASET);
   scr_hash_elem* dset = NULL;
@@ -356,9 +364,9 @@ int scr_index_get_most_recent_complete(const scr_hash* index, int earlier_than, 
     /* get the id for this dataset */
     char* key = scr_hash_elem_key(dset);
     if (key != NULL) {
-      int current_id = atoi(key);
       /* if this dataset id is less than our limit and it's more than
        * our current max, check whether it's complete */
+      int current_id = atoi(key);
       if ((earlier_than == -1 || current_id <= earlier_than) && current_id > max_id) {
         /* alright, this dataset id is within range to be the most recent,
          * now scan the various names we have for this dataset looking for a complete */
@@ -391,6 +399,13 @@ int scr_index_get_most_recent_complete(const scr_hash* index, int earlier_than, 
           }
 
           /* TODO: also avoid dataset if we've tried to read it too many times */
+
+          /* check that dataset is really a checkpoint */
+          scr_hash* dataset_hash = scr_hash_get(name_hash, SCR_INDEX_1_KEY_DATASET);
+          if (! scr_dataset_is_ckpt(dataset_hash)) {
+            /* data set is not a checkpoint */
+            found_one = 0;
+          }
 
           /* if we found one, copy the dataset id and name, and update our max */
           if (found_one) {

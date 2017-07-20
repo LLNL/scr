@@ -1371,6 +1371,12 @@ int index_list(const scr_path* prefix)
       /* get the directory hash */
       scr_hash* info_hash = scr_hash_elem_hash(name_elem);
 
+      /* skip this dataset if it's not a checkpoint */
+      scr_hash* dataset_hash = scr_hash_get(info_hash, SCR_INDEX_1_KEY_DATASET);
+      if (! scr_dataset_is_ckpt(dataset_hash)) {
+        continue;
+      }
+
       /* determine whether this dataset is complete */
       int complete = 0;
       scr_hash_util_get_int(info_hash, SCR_INDEX_1_KEY_COMPLETE, &complete);
@@ -1504,7 +1510,7 @@ cleanup:
   return rc;
 }
 
-/* set named directory as restart directory */
+/* set named dataset as restart */
 int index_current(const scr_path* prefix, const char* name)
 {
   int rc = SCR_SUCCESS;
@@ -1524,13 +1530,13 @@ int index_current(const scr_path* prefix, const char* name)
     goto cleanup;
   }
 
-  /* remove directory from index */
+  /* update current to point to specified name */
   if (scr_index_set_current(index, name) == SCR_SUCCESS) {
     /* write out new index file */
     scr_index_write(prefix, index);
   } else {
-    /* couldn't find the named directory, print an error */
-    scr_err("Named dataset was not found in index file: %s @ %s:%d",
+    /* couldn't find dataset or it's not a checkpoint, print an error */
+    scr_err("Named dataset is not a checkpoint in index file: %s @ %s:%d",
       name, __FILE__, __LINE__
     );
     rc = SCR_FAILURE;
@@ -1779,10 +1785,10 @@ int main(int argc, char *argv[])
       }
     }
   } else if (args.remove == 1) {
-    /* remove the named directory from the index file (does not delete files) */
+    /* remove the named dataset from the index file (does not delete files) */
     rc = index_remove(prefix, name);
   } else if (args.current == 1) {
-    /* set named directory as restart directory */
+    /* set named dataset as current restart */
     rc = index_current(prefix, name);
   } else if (args.list == 1) {
     /* list datasets recorded in index file */
