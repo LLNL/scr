@@ -7,6 +7,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <getopt.h>
+
+/* pull in things like ULLONG_MAX */
+#include <limits.h>
 #include "mpi.h"
 
 #include "scr.h"
@@ -25,10 +29,154 @@ struct timeval rv[1];
 size_t filesize = 512*1024;
 int times = 5;
 int seconds = 0;
+int ckptout = 0;
+int output = 0;
+
 int rank  = -1;
 int ranks = 0;
 
 int  timestep = 0;
+
+static unsigned long long kilo  =                1024ULL;
+static unsigned long long mega  =             1048576ULL;
+static unsigned long long giga  =          1073741824ULL;
+static unsigned long long tera  =       1099511627776ULL;
+static unsigned long long peta  =    1125899906842624ULL;
+static unsigned long long exa   = 1152921504606846976ULL;
+
+/* abtoull ==> ASCII bytes to unsigned long long
+ * Converts string like "10mb" to unsigned long long integer value
+ * of 10*1024*1024.  Input string should have leading number followed
+ * by optional units.  The leading number can be a floating point
+ * value (read by strtod).  The trailing units consist of one or two
+ * letters which should be attached to the number with no space
+ * in between.  The units may be upper or lower case, and the second
+ * letter if it exists, must be 'b' or 'B' (short for bytes).
+ *
+ * Valid units: k,K,m,M,g,G,t,T,p,P,e,E
+ *
+ * Examples: 2kb, 1.5m, 200GB, 1.4T.
+ *
+ * Returns SCR_SUCCESS if conversion is successful,
+ * and !SCR_SUCCESS otherwise.
+ *
+ * Returns converted value in val parameter.  This
+ * parameter is only updated if successful. */
+#define SCR_FAILURE (!SCR_SUCCESS)
+int scr_abtoull(char* str, unsigned long long* val)
+{
+  /* check that we have a string */
+  if (str == NULL) {
+    sprintf("scr_abtoull: Can't convert NULL string to bytes @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that we have a value to write to */
+  if (val == NULL) {
+    sprintf("scr_abtoull: NULL address to store value @ %s:%d",
+            __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* pull the floating point portion of our byte string off */
+  errno = 0;
+  char* next = NULL;
+  double num = strtod(str, &next);
+  if (errno != 0) {
+    /* conversion failed */
+    sprintf("scr_abtoull: Invalid double: %s errno=%d %s @ %s:%d",
+            str, errno, strerror(errno), __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+  if (str == next) {
+    /* no conversion performed */
+    sprintf("scr_abtoull: Invalid double: %s @ %s:%d",
+            str, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* now extract any units, e.g. KB MB GB, etc */
+  unsigned long long units = 1;
+  if (*next != '\0') {
+    switch(*next) {
+    case 'k':
+    case 'K':
+      units = kilo;
+      break;
+    case 'm':
+    case 'M':
+      units = mega;
+      break;
+    case 'g':
+    case 'G':
+      units = giga;
+      break;
+    case 't':
+    case 'T':
+      units = tera;
+      break;
+    case 'p':
+    case 'P':
+      units = peta;
+      break;
+    case 'e':
+    case 'E':
+      units = exa;
+      break;
+    default:
+      sprintf("scr_abtoull: Unexpected byte string %s @ %s:%d",
+              str, __FILE__, __LINE__
+      );
+      return SCR_FAILURE;
+    }
+
+    next++;
+
+    /* handle optional b or B character, e.g. in 10KB */
+    if (*next == 'b' || *next == 'B') {
+      next++;
+    }
+
+    /* check that we've hit the end of the string */
+    if (*next != 0) {
+      sprintf("scr_abtoull: Unexpected byte string: %s @ %s:%d",
+              str, __FILE__, __LINE__
+      );
+      return SCR_FAILURE;
+    }
+  }
+
+  /* check that we got a positive value */
+  if (num < 0) {
+    sprintf("scr_abtoull: Byte string must be positive: %s @ %s:%d",
+            str, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* TODO: double check this overflow calculation */
+  /* multiply by our units and check for overflow */
+  double units_d = (double) units;
+  double val_d = num * units_d;
+  double max_d = (double) ULLONG_MAX;
+  if (val_d > max_d) {
+    /* overflow */
+    sprintf("scr_abtoull: Byte string overflowed UNSIGNED LONG LONG type: %s @ %s:%d",
+            str, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* set return value */
+  *val = (unsigned long long) val_d;
+
+  return SCR_SUCCESS;
+}
 
 double getbw(char* name, char* buf, size_t size, int times)
 {
@@ -54,8 +202,24 @@ double getbw(char* name, char* buf, size_t size, int times)
 
       /* instruct SCR we are starting the next checkpoint */
       char label[SCR_MAX_FILENAME];
-      sprintf(label, "timestep.%d", timestep);
-      scr_retval = SCR_Start_output(label, SCR_FLAG_CHECKPOINT);
+      int flags = SCR_FLAG_NONE;
+
+      if (output > 0 && timestep % output == 0) {
+        /* if output is enabled, mark every Nth as pure output */
+        flags |= SCR_FLAG_OUTPUT;
+        sprintf(label, "output.%d", timestep);
+      } else {
+        /* otherwise we have a checkpoint */
+        flags |= SCR_FLAG_CHECKPOINT;
+        sprintf(label, "ckpt.%d", timestep);
+      }
+
+      /* if ckptout is enabled, mark every Nth write as output also */
+      if (ckptout > 0 && timestep % ckptout == 0) {
+        flags |= SCR_FLAG_OUTPUT;
+      }
+
+      scr_retval = SCR_Start_output(label, flags);
       if (scr_retval != SCR_SUCCESS) {
         printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
                rank, scr_retval, __FILE__, __LINE__
@@ -64,7 +228,7 @@ double getbw(char* name, char* buf, size_t size, int times)
 
       /* get the file name to write our checkpoint file to */
       char newname[SCR_MAX_FILENAME];
-      sprintf(newname, "timestep.%d/%s", timestep, name);
+      sprintf(newname, "%s/%s", label, name);
       scr_retval = SCR_Route_file(newname, file);
       if (scr_retval != SCR_SUCCESS) {
         printf("%d: failed calling SCR_Route_file(): %d: @%s:%d\n",
@@ -141,25 +305,83 @@ double getbw(char* name, char* buf, size_t size, int times)
   return bw;
 }
 
+void print_usage()
+{
+  printf("\n");
+  printf("  Usage: test_api [options]\n");
+  printf("\n");
+  printf("  Options:\n");
+  printf("    -s, --size=<SIZE>    Filesize in bytes, e.g., 1MB (default %lu)\n", (unsigned long) filesize);
+  printf("    -t, --times=<COUNT>  Number of iterations (default %d)\n", times);
+  printf("    -z, --seconds=<SECS> Sleep for SECS seconds between iterations (default %d)\n", seconds);
+  printf("    -f, --flush=<COUNT>  Mark every Nth write as checkpoint+output (default %d)\n", ckptout);
+  printf("    -o, --output=<COUNT> Mark every Nth write as pure output (default %d)\n", output);
+  printf("    -h, --help           Print usage\n");
+  printf("\n");
+  return;
+}
+
 int main (int argc, char* argv[])
 {
-  /* check that we got an appropriate number of arguments */
-  if (argc != 1 && argc != 4) {
-    printf("Usage: test_correctness [filesize times sleep_secs]\n");
-    return 1;
-  }
-
-  /* read parameters from command line, if any */
-  if (argc > 1) {
-    filesize = (size_t) atol(argv[1]);
-    times = atoi(argv[2]);
-    seconds = atoi(argv[3]);
-  }
-
   MPI_Init(&argc, &argv);
 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &ranks);
+
+  static const char *opt_string = "s:t:z:f:o:h";
+  static struct option long_options[] = {
+    {"size",    required_argument, NULL, 's'},
+    {"times",   required_argument, NULL, 't'},
+    {"seconds", required_argument, NULL, 'z'},
+    {"flush",   required_argument, NULL, 'f'},
+    {"output",  required_argument, NULL, 'o'},
+    {"help",    no_argument,       NULL, 'h'},
+    {NULL,      no_argument,       NULL,   0}
+  };
+
+  int usage = 0;
+  int long_index = 0;
+  int opt = getopt_long(argc, argv, opt_string, long_options, &long_index);
+  unsigned long long val;
+  while (opt != -1) {
+    switch(opt) {
+      case 's':
+        if (scr_abtoull(optarg, &val) == SCR_SUCCESS) {
+          filesize = (size_t) val;
+        } else {
+          usage = 1;
+        }
+        break;
+      case 't':
+        times = atoi(optarg);
+        break;
+      case 'z':
+        seconds = atoi(optarg);
+        break;
+      case 'f':
+        ckptout = atoi(optarg);
+        break;
+      case 'o':
+        output = atoi(optarg);
+        break;
+      case 'h':
+      default:
+        usage = 1;
+        break;
+    }
+
+    /* get the next option */
+    opt = getopt_long(argc, argv, opt_string, long_options, &long_index);
+  }
+
+  /* check that we got an appropriate number of arguments */
+  if (usage) {
+    if (rank == 0) {
+      print_usage();
+    }
+    MPI_Finalize();
+    return 1;
+  }
 
   /* time how long it takes to get through init */
   MPI_Barrier(MPI_COMM_WORLD);

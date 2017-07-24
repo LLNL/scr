@@ -1121,24 +1121,22 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
       scr_hash* index_hash = scr_hash_new();
       scr_index_read(scr_prefix_path, index_hash);
 
-      /* update current to point to new dataset */
+      /* get name of dataset */
       char* name;
-      if (scr_dataset_get_name(dataset, &name) == SCR_SUCCESS) {
-        scr_index_set_current(index_hash, name);
-      } else {
+      if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
         scr_abort(-1, "Failed to read dataset name @ %s:%d",
           __FILE__, __LINE__
         );
       }
 
       /* update complete flag in index file */
-      int id;
-      if (scr_dataset_get_id(dataset, &id) == SCR_SUCCESS) {
-        scr_index_set_dataset(index_hash, id, name, dataset, complete);
-      } else {
-        scr_abort(-1, "Failed to read dataset id @ %s:%d",
-          __FILE__, __LINE__
-        );
+      scr_index_set_dataset(index_hash, id, name, dataset, complete);
+
+      /* if this is a checkpoint, update current to point to new dataset,
+       * this must come after index_set_dataset above because set_current
+       * checks that named dataset is a checkpoint */
+      if (scr_dataset_is_ckpt(dataset)) {
+        scr_index_set_current(index_hash, name);
       }
 
       /* write the index file and delete the hash */
@@ -1154,6 +1152,13 @@ int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data)
   /* mark this dataset as flushed to the parallel file system */
   if (flushed == SCR_SUCCESS) {
     scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_PFS);
+
+    /* TODODSET: if this dataset is not a checkpoint, delete it from cache now */
+#if 0
+    if (! scr_dataset_is_ckpt(dataset)) {
+      scr_cache_delete(map, id);
+    }
+#endif
   }
 
   return flushed;

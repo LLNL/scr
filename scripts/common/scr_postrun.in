@@ -27,6 +27,28 @@ prog="scr_postrun"
 
 print_usage() { echo "Usage: $prog [-p prefix_dir]"; exit 1; }
 
+in_attempted_list()
+{
+  for i in ${ATTEMPTED[@]} ; do
+    if [ "$1" == "$i" ] ; then
+      # found the item
+      return 0
+    fi
+  done
+  return 1
+}
+
+in_succeeded_list()
+{
+  for i in ${SUCCEEDED[@]} ; do
+    if [ "$1" == "$i" ] ; then
+      # found the item
+      return 0
+    fi
+  done
+  return 1
+}
+
 # pass prefix via command line
 pardir=`$bindir/scr_prefix`
 OPTIND=1
@@ -73,78 +95,156 @@ if [ "$UPNODES" != "" ] ; then
   cntldir=`$bindir/scr_list_dir control`;
   # TODO: check that we have a control directory
 
-  # TODODEST: need to scavenge latest checkpoint and any output set
+  # TODODSET: avoid scavenging things unless it's in this list
+  # get list of possible datasets
+#  dataset_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
+#  if [ $? -eq 0 ] ; then
+#  else
+#    echo "$prog: Failed to inspect cache or cannot scavenge any datasets"
+#  fi
+
+  # array to track which datasets we tried to get
+  declare -a ATTEMPTED
+
+  # array to track datasets we got
+  declare -a SUCCEEDED
+
+  # scavenge all output sets in ascending order,
+  # track the id of the first one we fail to get
+  echo "$prog: Looking for output sets"
+  failed_dataset=0
+  output_list=`$bindir/scr_flush_file --dir $pardir --list-output`
+  if [ $? -eq 0 ] ; then
+    for d in $output_list ; do
+      # determine whether this dataset needs to be flushed
+      $bindir/scr_flush_file --dir $pardir --need-flush $d
+      if [ $? -eq 0 ] ; then
+        echo "$prog: Attempting to scavenge dataset $d"
+
+        # add $d to ATTEMPTED list
+        ATTEMPTED=("${ATTEMPTED[@]}" "$d")
+
+        # get dataset name
+        dsetname=`$bindir/scr_flush_file --dir $pardir --name $d`
+        if [ $? -eq 0 ] ; then
+          # build full path to dataset directory
+          datadir=$pardir/.scr/scr.dataset.$d
+          mkdir -p $datadir
+
+          # Gather files from cache to parallel file system
+          echo "$prog: Scavenging files from cache for $dsetname to $datadir"
+          echo $prog: $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $pardir --jobset $SCR_NODELIST --up $UPNODES
+          $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $pardir --jobset $SCR_NODELIST --up $UPNODES
+          echo "$prog: Done scavenging files from cache for $dsetname to $datadir"
+
+          # check that gathered set is complete,
+          # if not, don't update current marker
+          update_current=1
+          echo "$prog: Checking that dataset is complete"
+          echo "$bindir/scr_index --prefix $pardir --add $d"
+          $bindir/scr_index --prefix $pardir --add $d
+          if [ $? -ne 0 ] ; then
+            # failed to get dataset, stop trying for later sets
+            failed_dataset=$d
+            break
+          else
+            # remember that we scavenged this dataset in case we try again below
+            SUCCEEDED=("${SUCCEEDED[@]}" "$d")
+            echo "$prog: Scavenged dataset $dsetname successfully"
+          fi
+        else
+          # got a dataset to flush, but failed to get name
+          echo "$prog: Failed to read name of dataset $d"
+          failed_dataset=$d
+          break
+        fi
+      else
+        # dataset has already been flushed, go to the next one
+        echo "$prog: Dataset $d has already been flushed"
+      fi
+    done
+  else
+    echo "$prog: Found no output set to scavenge"
+  fi
 
   # check whether we have a dataset set to flush
-  echo "$prog: Looking for latest dataset set id"
-  latestid=`$bindir/scr_flush_file --dir $pardir --latest`
+  echo "$prog: Looking for most recent checkpoint"
+  ckpt_list=`$bindir/scr_flush_file --dir $pardir --list-ckpt --before $failed_dataset`
   if [ $? -eq 0 ] ; then
-    # we have a dataset, check whether it still needs to be flushed 
-    $bindir/scr_flush_file --dir $pardir --needflush $latestid
-    if [ $? -eq 0 ] ; then
-      # get list of possible datasets
-      dataset_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
+    for d in $ckpt_list ; do
+      in_attempted_list $d
       if [ $? -eq 0 ] ; then
-        for d in $dataset_list ; do
-          # determine whether this dataset needs to be flushed
-          $bindir/scr_flush_file --dir $pardir --needflush $d
+        in_succeeded_list $d
+        if [ $? -eq 0 ] ; then
+          # already got this one above, update current, and finish
+          dsetname=`$bindir/scr_flush_file --dir $pardir --name $d`
           if [ $? -eq 0 ] ; then
-            echo "$prog: Attempting to scavenge dataset $d"
+            echo "$prog: Already scavenged checkpoint dataset $d"
+            echo "$prog: Updating current marker in index to $dsetname"
+            $bindir/scr_index --prefix $pardir --current $dsetname
+            ret=0
+            break
+          fi
+        else
+          # already tried and failed, skip this dataset
+          echo "$prog: Skipping checkpoint dataset $d, since already failed to scavenge"
+          continue
+        fi
+      fi
 
-            # get dataset name
-            dsetname=`$bindir/scr_flush_file --dir $pardir --name $d`
-            if [ $? -eq 0 ] ; then
-              # build full path to dataset directory
-              datadir=$pardir/.scr/scr.dataset.$d
-              mkdir -p $datadir
+      # we have a dataset, check whether it still needs to be flushed
 
-              # Gather files from cache to parallel file system
-              echo "$prog: Scavenging files from cache for $dsetname to $datadir"
-              echo $prog: $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $pardir --jobset $SCR_NODELIST --up $UPNODES
-              $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $pardir --jobset $SCR_NODELIST --up $UPNODES
-              echo "$prog: Done scavenging files from cache for $dsetname to $datadir"
+      $bindir/scr_flush_file --dir $pardir --need-flush $d
+      if [ $? -eq 0 ] ; then
+        echo "$prog: Attempting to scavenge checkpoint dataset $d"
 
-              # check that gathered set is complete,
-              # if not, don't update current marker
-              update_current=1
-              echo "$prog: Checking that dataset is complete"
-              echo "$bindir/scr_index --prefix $pardir --add $d"
-              $bindir/scr_index --prefix $pardir --add $d
-              if [ $? -ne 0 ] ; then
-                # incomplete dataset, don't update current marker
-                update_current=0
-              fi
+        # get dataset name
+        dsetname=`$bindir/scr_flush_file --dir $pardir --name $d`
+        if [ $? -eq 0 ] ; then
+          # build full path to dataset directory
+          datadir=$pardir/.scr/scr.dataset.$d
+          mkdir -p $datadir
 
-              # if the set is complete, update the current marker
-              if [ "$update_current" == "1" ] ; then
-                # make the new current
-                echo "$prog: Updating current marker in index to $dsetname"
-                $bindir/scr_index --prefix $pardir --current $dsetname
+          # Gather files from cache to parallel file system
+          echo "$prog: Scavenging files from cache for checkpoint $dsetname to $datadir"
+          echo $prog: $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $pardir --jobset $SCR_NODELIST --up $UPNODES
+          $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $pardir --jobset $SCR_NODELIST --up $UPNODES
+          echo "$prog: Done scavenging files from cache for $dsetname to $datadir"
 
-                # just completed scavenging this dataset, so quit
-                ret=0
-                break;
-              fi
-            else
-              # got a dataset to flush, but failed to build flush dir name
-              echo "$prog: Failed to create directory for dataset $d"
-            fi
-          else
-            # found a dataset that has already been flushed, we can quit
-            echo "$prog: Dataset $d has already been flushed"
+          # check that gathered set is complete,
+          # if not, don't update current marker
+          update_current=1
+          echo "$prog: Checking that dataset is complete"
+          echo "$bindir/scr_index --prefix $pardir --add $d"
+          $bindir/scr_index --prefix $pardir --add $d
+          if [ $? -ne 0 ] ; then
+            # incomplete dataset, don't update current marker
+            update_current=0
+          fi
+
+          # if the set is complete, update the current marker
+          if [ "$update_current" == "1" ] ; then
+            # make the new current
+            echo "$prog: Updating current marker in index to $dsetname"
+            $bindir/scr_index --prefix $pardir --current $dsetname
+
+            # just completed scavenging this dataset, so quit
             ret=0
             break;
           fi
-        done
+        else
+          # got a dataset to flush, but failed to get name
+          echo "$prog: Failed to read name of checkpoint dataset $d"
+        fi
       else
-        echo "$prog: Failed to inspect cache or cannot scavenge any datasets"
+        # found a dataset that has already been flushed, we can quit
+        echo "$prog: Checkpoint dataset $d has already been flushed"
+        ret=0
+        break;
       fi
-    else
-      echo "$prog: Latest dataset set has already been flushed"
-      ret=0
-    fi
+    done
   else
-    echo "$prog: Found no dataset set to scavenge"
+    echo "$prog: Found no checkpoint to scavenge"
   fi
 fi
 

@@ -24,6 +24,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "scr_conf.h"
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
@@ -45,7 +46,7 @@ struct arglist {
   double* transfer_bytes;
 };
 
-int scr_log_enable = 1;
+int scr_log_enable = SCR_LOG_ENABLE;
 
 int global_dset;
 time_t global_start;

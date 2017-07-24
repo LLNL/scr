@@ -18,7 +18,7 @@ Flush file functions
 */
 
 /* returns true if the given dataset id needs to be flushed */
-int scr_bool_need_flush(int id)
+int scr_flush_file_need_flush(int id)
 {
   int need_flush = 0;
 
@@ -40,13 +40,15 @@ int scr_bool_need_flush(int id)
     /* free the hash object */
     scr_hash_delete(&hash);
   }
+
+  /* broadcast decision from rank 0 */
   MPI_Bcast(&need_flush, 1, MPI_INT, 0, scr_comm_world);
 
   return need_flush;
 }
 
 /* checks whether the specified dataset id is currently being flushed */
-int scr_bool_is_flushing(int id)
+int scr_flush_file_is_flushing(int id)
 {
   /* assume we are not flushing this checkpoint */
   int is_flushing = 0;
@@ -67,6 +69,8 @@ int scr_bool_is_flushing(int id)
     /* delete the hash */
     scr_hash_delete(&hash);
   }
+
+  /* broadcast decision from rank 0 */
   MPI_Bcast(&is_flushing, 1, MPI_INT, 0, scr_comm_world);
 
   return is_flushing;
@@ -165,9 +169,9 @@ int scr_flush_file_location_unset(int id, const char* location)
   return SCR_SUCCESS;
 }
 
-/* we track the dataset name in the flush file
- * so that we can report this name to the user in scavenge */
-int scr_flush_file_name_set(int id, const char* name)
+/* create an entry in the flush file for a dataset for scavenge,
+ * including name, location, and flags */
+int scr_flush_file_new_entry(int id, const char* name, const char* location, int ckpt, int output)
 {
   /* only rank 0 updates the file */
   if (scr_my_rank_world == 0) {
@@ -175,9 +179,16 @@ int scr_flush_file_name_set(int id, const char* name)
     scr_hash* hash = scr_hash_new();
     scr_hash_read_path(scr_flush_file, hash);
 
-    /* set the name of this dataset */
+    /* set the name, location, and flags for this dataset */
     scr_hash* dset_hash = scr_hash_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-    scr_hash_set_kv(dset_hash, SCR_FLUSH_KEY_NAME, name);
+    scr_hash_util_set_str(dset_hash, SCR_FLUSH_KEY_NAME, name);
+    scr_hash_util_set_str(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
+    if (ckpt) {
+      scr_hash_util_set_int(dset_hash, SCR_FLUSH_KEY_CKPT, ckpt);
+    }
+    if (output) {
+      scr_hash_util_set_int(dset_hash, SCR_FLUSH_KEY_OUTPUT, output);
+    }
 
     /* write the hash back to the flush file */
     scr_hash_write_path(scr_flush_file, hash);
@@ -187,3 +198,4 @@ int scr_flush_file_name_set(int id, const char* name)
   }
   return SCR_SUCCESS;
 }
+

@@ -214,13 +214,13 @@ int scr_flush_async_stop()
     }else if(!strcmp(type, "POSIX")){
 	/* write stop command to transfer file */
 	scr_flush_async_command_set(SCR_TRANSFER_KEY_COMMAND_STOP);
-	
+
 	/* wait until all tasks know the transfer is stopped */
 	scr_flush_async_state_wait(SCR_TRANSFER_KEY_STATE_STOP);
-	
+
 	/* remove the files list from the transfer file */
 	scr_flush_async_file_clear_all();
-	
+
 	/* remove FLUSHING state from flush file */
 	scr_flush_async_in_progress = 0;
 	/*
@@ -250,7 +250,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
   }
 
   /* if we don't need a flush, return right away with success */
-  if (! scr_bool_need_flush(id)) {
+  if (! scr_flush_file_need_flush(id)) {
     return SCR_SUCCESS;
   }
 
@@ -318,10 +318,10 @@ int scr_flush_async_start(scr_filemap* map, int id)
       {
 	/* get the filename */
 	char* file = scr_hash_elem_key(elem);
-	
+
 	/* get the hash for this file */
 	scr_hash* file_hash = scr_hash_elem_hash(elem);
-	
+
 	/* get directory to flush file to */
 	char* dest_dir;
 	if (scr_hash_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) != SCR_SUCCESS) {
@@ -333,10 +333,10 @@ int scr_flush_async_start(scr_filemap* map, int id)
 	scr_path_basename(path_dest_file);
 	scr_path_prepend_str(path_dest_file, dest_dir);
 	char* dest_file = scr_path_strdup(path_dest_file);
-	
+
 	/* get meta data for file */
 	scr_meta* meta = scr_hash_get(file_hash, SCR_KEY_META);
-	
+
 	/* get the file size */
 	unsigned long filesize = 0;
 	if (scr_meta_get_filesize(meta, &filesize) != SCR_SUCCESS) {
@@ -430,7 +430,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
 	/* open transfer file with lock */
 	int fd = -1;
 	scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
-	
+
 	/* merge our data to the file data */
 	scr_hash_merge(hash, scr_flush_async_hash);
 
@@ -519,7 +519,7 @@ int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
 	   elem = scr_hash_elem_next(elem))
       {
 	char* file = scr_hash_elem_key(elem);
-	int test = dw_query_file_stage(file, &test_complete, &test_pending, &test_deferred, 
+	int test = dw_query_file_stage(file, &test_complete, &test_pending, &test_deferred,
 				       &test_failed);
 	if(test == 0){
 	  complete += test_complete;
@@ -530,7 +530,7 @@ int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
 	  scr_abort(-1, "Datawarp failed with error %d @ %s:%d",
 		    -test, __FILE__, __LINE__
 		    );
-	}	  
+	}
       }
       if(failed != 0){
 	scr_abort(-1, "Datawarp failed while flushing dataset %d @ %s:%d",
@@ -545,7 +545,7 @@ int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
       if (scr_storedesc_cntl->rank == 0) {
 	/* create a hash to hold the transfer file data */
 	scr_hash* hash = scr_hash_new();
-	
+
 	/* read transfer file with lock */
 	if (scr_hash_read_with_lock(scr_transfer_file, hash) == SCR_SUCCESS) {
 	  /* test each file listed in the transfer hash */
@@ -643,20 +643,20 @@ int scr_flush_async_complete(scr_filemap* map, int id)
       if (scr_storedesc_cntl->rank == 0) {
 	/* get a hash to read from the file */
 	scr_hash* transfer_hash = scr_hash_new();
-	
+
 	/* lock the transfer file, open it, and read it into the hash */
 	int fd = -1;
 	scr_hash_lock_open_read(scr_transfer_file, &fd, transfer_hash);
-	
+
 	/* remove files from the list */
 	scr_flush_async_file_dequeue(transfer_hash, scr_flush_async_hash);
-	
+
 	/* set the STOP command */
 	scr_hash_util_set_str(transfer_hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_STOP);
-	
+
 	/* write the hash back to the file */
 	scr_hash_write_close_unlock(scr_transfer_file, &fd, transfer_hash);
-	
+
 	/* delete the hash */
 	scr_hash_delete(&transfer_hash);
       }
@@ -722,7 +722,7 @@ int scr_flush_async_wait(scr_filemap* map)
 						      scr_reddescs);
     int storedesc_index = scr_storedescs_index_from_name(reddesc->base);
     char* type = scr_storedescs[storedesc_index].type;
-    
+
     /* do the relevant type of wait */
     if(!strcmp(type, "DATAWARP") || !strcmp(type, "DW")){
       /* Get the list of files */
@@ -745,7 +745,7 @@ int scr_flush_async_wait(scr_filemap* map)
       scr_flush_async_complete(map, scr_flush_async_dataset_id);
     }
     else if(!strcmp(type, "POSIX")){
-      while (scr_bool_is_flushing(scr_flush_async_dataset_id)) {
+      while (scr_flush_file_is_flushing(scr_flush_async_dataset_id)) {
 	/* test whether the flush has completed, and if so complete the flush */
 	double bytes = 0.0;
 	if (scr_flush_async_test(map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {

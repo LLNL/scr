@@ -29,7 +29,7 @@ extern "C" {
 /* bit flags to be OR'd in SCR_Start_output */
 #define SCR_FLAG_NONE       (0 << 0) /* empty flags */
 #define SCR_FLAG_CHECKPOINT (1 << 0) /* means that job can be restarted using this dataset */
-//#define SCR_FLAG_OUTPUT     (1 << 1) /* means this dataset must be flushed to the file system */
+#define SCR_FLAG_OUTPUT     (1 << 1) /* means this dataset must be flushed to the file system */
 
 /* see the SCR user manual for full details on these functions */
 
@@ -83,7 +83,7 @@ int SCR_Complete_checkpoint(int valid);
  ****************/
 
 /* inform library that a new output dataset is starting */
-int SCR_Start_output(char* name, int flags);
+int SCR_Start_output(const char* name, int flags);
 
 /* inform library that the current dataset is complete */
 int SCR_Complete_output(int valid);
