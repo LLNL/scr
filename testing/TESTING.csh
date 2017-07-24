@@ -227,3 +227,23 @@ srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
 ${scrbin}/scr_srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
+
+# with SCR_FLUSH=0, SCR_CACHE_SIZE=10
+# run with --flush=3 --output=6
+# check that scr_postrun grabs 3, 5, and 6
+# check that 6 does not show up in scr_index, 3 and 5 do, 5 is marked as current
+#
+# check that restart from cache rebuilds 5 and 6, starts from checkpoint 5
+#
+# run with --times=2 --flush=3 --output=6
+# check that postrun grabs 3 once (not twice)
+#
+# with SCR_FLUSH=4
+# check that scr flushes 3, 4, and 6
+#
+# delete cache, set SCR_FETCH=1
+# check that restart fetches 4 (not 3 or 6)
+#
+# mark 4 as output, write checkpoints 3 and 6 (non output)
+# corrupt dataset 4
+# verify that postrun fetches checkpoint 3 (not 6)
