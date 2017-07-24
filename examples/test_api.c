@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <getopt.h>
+#include <string.h>
 
 /* pull in things like ULLONG_MAX */
 #include <limits.h>
@@ -63,11 +64,11 @@ static unsigned long long exa   = 1152921504606846976ULL;
  * Returns converted value in val parameter.  This
  * parameter is only updated if successful. */
 #define SCR_FAILURE (!SCR_SUCCESS)
-int scr_abtoull(char* str, unsigned long long* val)
+int test_abtoull(char* str, unsigned long long* val)
 {
   /* check that we have a string */
   if (str == NULL) {
-    sprintf("scr_abtoull: Can't convert NULL string to bytes @ %s:%d",
+    sprintf("test_abtoull: Can't convert NULL string to bytes @ %s:%d",
             __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -75,7 +76,7 @@ int scr_abtoull(char* str, unsigned long long* val)
 
   /* check that we have a value to write to */
   if (val == NULL) {
-    sprintf("scr_abtoull: NULL address to store value @ %s:%d",
+    sprintf("test_abtoull: NULL address to store value @ %s:%d",
             __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -87,14 +88,14 @@ int scr_abtoull(char* str, unsigned long long* val)
   double num = strtod(str, &next);
   if (errno != 0) {
     /* conversion failed */
-    sprintf("scr_abtoull: Invalid double: %s errno=%d %s @ %s:%d",
+    sprintf("test_abtoull: Invalid double: %s errno=%d %s @ %s:%d",
             str, errno, strerror(errno), __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
   if (str == next) {
     /* no conversion performed */
-    sprintf("scr_abtoull: Invalid double: %s @ %s:%d",
+    sprintf("test_abtoull: Invalid double: %s @ %s:%d",
             str, __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -129,7 +130,7 @@ int scr_abtoull(char* str, unsigned long long* val)
       units = exa;
       break;
     default:
-      sprintf("scr_abtoull: Unexpected byte string %s @ %s:%d",
+      sprintf("test_abtoull: Unexpected byte string %s @ %s:%d",
               str, __FILE__, __LINE__
       );
       return SCR_FAILURE;
@@ -144,7 +145,7 @@ int scr_abtoull(char* str, unsigned long long* val)
 
     /* check that we've hit the end of the string */
     if (*next != 0) {
-      sprintf("scr_abtoull: Unexpected byte string: %s @ %s:%d",
+      sprintf("test_abtoull: Unexpected byte string: %s @ %s:%d",
               str, __FILE__, __LINE__
       );
       return SCR_FAILURE;
@@ -153,7 +154,7 @@ int scr_abtoull(char* str, unsigned long long* val)
 
   /* check that we got a positive value */
   if (num < 0) {
-    sprintf("scr_abtoull: Byte string must be positive: %s @ %s:%d",
+    sprintf("test_abtoull: Byte string must be positive: %s @ %s:%d",
             str, __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -166,7 +167,7 @@ int scr_abtoull(char* str, unsigned long long* val)
   double max_d = (double) ULLONG_MAX;
   if (val_d > max_d) {
     /* overflow */
-    sprintf("scr_abtoull: Byte string overflowed UNSIGNED LONG LONG type: %s @ %s:%d",
+    sprintf("test_abtoull: Byte string overflowed UNSIGNED LONG LONG type: %s @ %s:%d",
             str, __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -346,7 +347,7 @@ int main (int argc, char* argv[])
   while (opt != -1) {
     switch(opt) {
       case 's':
-        if (scr_abtoull(optarg, &val) == SCR_SUCCESS) {
+        if (test_abtoull(optarg, &val) == SCR_SUCCESS) {
           filesize = (size_t) val;
         } else {
           usage = 1;
@@ -409,7 +410,7 @@ int main (int argc, char* argv[])
   /* allocate space for the checkpoint data (make filesize a function of rank for some variation) */
   filesize = filesize + rank;
   char* buf = (char*) malloc(filesize);
-  
+
   /* define base name for our checkpoint files */
   char name[256];
   sprintf(name, "rank_%d.ckpt", rank);
