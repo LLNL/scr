@@ -88,6 +88,10 @@ IF(${SCR_ASYNC_API} STREQUAL "INTEL_CPPR")
 	LIST(APPEND libscr_srcs scr_flush_async_intel.c)
 ENDIF(${SCR_ASYNC_API} STREQUAL "INTEL_CPPR")
 
+IF(${SCR_ASYNC_API} STREQUAL "IBM_BBAPI")
+	LIST(APPEND libscr_srcs scr_flush_async_ibm.c)
+ENDIF(${SCR_ASYNC_API} STREQUAL "IBM_BBAPI")
+
 
 # SCR Library
 ADD_LIBRARY(scr-shared SHARED ${libscr_srcs})
