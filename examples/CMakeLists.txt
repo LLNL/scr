@@ -35,27 +35,47 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api scr)
+ADD_TEST(NAME ctest_api COMMAND ./test_api)
+SET_TESTS_PROPERTIES(ctest_api PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 
 ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
 TARGET_LINK_LIBRARIES(test_api_file scr)
+ADD_TEST(NAME ctest_api_file COMMAND ./test_api_file)
+SET_TESTS_PROPERTIES(ctest_api_file PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 
 ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
 TARGET_LINK_LIBRARIES(test_api_multiple scr)
+ADD_TEST(NAME ctest_api_multiple COMMAND ./test_api_multiple)
+SET_TESTS_PROPERTIES(ctest_api_multiple PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 
 ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
 TARGET_LINK_LIBRARIES(test_api_multiple_file scr)
+ADD_TEST(NAME ctest_api_multiple_file COMMAND ./test_api_multiple_file)
+SET_TESTS_PROPERTIES(ctest_api_multiple_file PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 
 ADD_EXECUTABLE(test_interpose test_interpose.c)
 TARGET_LINK_LIBRARIES(test_interpose scr)
+ADD_TEST(NAME ctest_interpose COMMAND ./test_interpose)
+SET_TESTS_PROPERTIES(ctest_interpose PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 
 ADD_EXECUTABLE(test_interpose_multiple test_common.c test_interpose_multiple.c)
 TARGET_LINK_LIBRARIES(test_interpose_multiple scr)
+ADD_TEST(NAME ctest_interpose_multiple COMMAND ./test_interpose_multiple)
+SET_TESTS_PROPERTIES(ctest_interpose_multiple PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 
 ADD_EXECUTABLE(test_ckpt_C test_ckpt.C)
 TARGET_LINK_LIBRARIES(test_ckpt_C scr)
+ADD_TEST(NAME ctest_ckpt_C COMMAND ./test_ckpt_C)
+SET_TESTS_PROPERTIES(ctest_ckpt_C PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 
 IF(ENABLE_FORTRAN)
 	SET_SOURCE_FILES_PROPERTIES(test_ckpt.F PROPERTIES LANGUAGE Fortran)
 	ADD_EXECUTABLE(test_ckpt_F test_ckpt.F)
 	TARGET_LINK_LIBRARIES(test_ckpt_F scrf ${MPI_Fortran_LIBRARIES})
+	ADD_TEST(NAME ctest_ckpt_F COMMAND ./test_ckpt_F)
+	SET_TESTS_PROPERTIES(ctest_ckpt_F PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 ENDIF(ENABLE_FORTRAN)
+
+# add target: "make check"
+# prints output from the ctests
+ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND} --verbose)
