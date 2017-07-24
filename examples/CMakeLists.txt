@@ -40,8 +40,7 @@ SET_TESTS_PROPERTIES(ctest_api PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CUR
 
 ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
 TARGET_LINK_LIBRARIES(test_api_file scr)
-ADD_TEST(NAME ctest_api_file COMMAND ./test_api_file)
-SET_TESTS_PROPERTIES(ctest_api_file PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
+# TEST NEEDED: proper usage is unknown
 
 ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
 TARGET_LINK_LIBRARIES(test_api_multiple scr)
@@ -50,8 +49,7 @@ SET_TESTS_PROPERTIES(ctest_api_multiple PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${
 
 ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
 TARGET_LINK_LIBRARIES(test_api_multiple_file scr)
-ADD_TEST(NAME ctest_api_multiple_file COMMAND ./test_api_multiple_file)
-SET_TESTS_PROPERTIES(ctest_api_multiple_file PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
+# TEST NEEDED: proper usage is unknown
 
 ADD_EXECUTABLE(test_interpose test_interpose.c)
 TARGET_LINK_LIBRARIES(test_interpose scr)
