@@ -37,13 +37,69 @@
 #include "dtcmp.h"
 #endif /* HAVE_LIBDTCMP */
 
-#ifdef HAVE_LIBPMIX
-#include "pmix.h"
-#endif
+/* look up redundancy descriptor we should use for this dataset */
+static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_reddesc* descs)
+{
+  int i;
 
-#ifdef HAVE_LIBCPPR
-#include "cppr.h"
-#endif
+  /* assume we won't find one */
+  scr_reddesc* d = NULL;
+
+  /* determine whether dataset is flagged as output */
+  int is_output = scr_dataset_is_output(dataset);
+
+  /* if it's output, and if a reddesc is marked for output, use that one */
+  if (is_output) {
+    for (i=0; i < ndescs; i++) {
+      if (descs[i].enabled &&
+          descs[i].output)
+      {
+        /* found a reddesc explicitly marked for output */
+        d = &descs[i];
+        return d;
+      }
+    }
+  }
+
+  /* dataset is either not output, or one redundancy descriptor has not been marked
+   * explicitly for output */
+
+  /* determine whether dataset is a checkpoint */
+  int is_ckpt = scr_dataset_is_ckpt(dataset);
+
+  /* multi-level checkpoint, pick the right level */
+  if (is_ckpt) {
+    /* get our checkpoint id */
+    int ckpt_id;
+    if (scr_dataset_get_ckpt(dataset, &ckpt_id) == SCR_SUCCESS) {
+      /* got our id, now pick the redundancy descriptor that is:
+       *   1) enabled
+       *   2) has the highest interval that evenly divides id */
+      int i;
+      int interval = 0;
+      for (i=0; i < ndescs; i++) {
+        if (descs[i].enabled &&
+            interval < descs[i].interval &&
+            ckpt_id % descs[i].interval == 0)
+        {
+          d = &descs[i];
+          interval = descs[i].interval;
+        }
+      }
+    }
+  } else {
+    /* dataset is not a checkpoint, but there is no reddesc explicitly
+     * for output either, pick an enabled reddesc with interval 1 */
+      int i;
+      for (i=0; i < ndescs; i++) {
+        if (descs[i].enabled &&
+            descs[i].interval == 1)
+        {
+          d = &descs[i];
+          return d;
+        }
+      }
+  }
 
 /* look up redundancy descriptor we should use for this dataset */
 static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_reddesc* descs)
@@ -310,7 +366,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
     /* give our async flush method a chance to shut down */
     if (scr_flush_async) {
-      scr_flush_async_shutdown();
+      scr_flush_async_finalize();
     }
 
     /* sync up tasks before exiting (don't want tasks to exit so early that
@@ -1139,28 +1195,7 @@ int SCR_Init()
   /* ensure that the control and cache directories are ready */
   MPI_Barrier(scr_comm_world);
 
-#if (SCR_MACHINE_TYPE == SCR_PMIX)
-  /* init pmix */
-  int retval = PMIx_Init(&scr_pmix_proc, NULL, 0);
-  if (retval != PMIX_SUCCESS) {
-    scr_err("PMIx_Init failed: rc=%d @ %s:%d",
-      retval, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-  scr_dbg(1, "PMIx_Init succeeded @ %s:%d", __FILE__, __LINE__);
-#endif /* SCR_MACHINE_TYPE == SCR_PMIX */
-
-#ifdef HAVE_LIBCPPR
-  /* attempt to init cppr */
-  int cppr_ret = cppr_status();
-  if (cppr_ret != CPPR_SUCCESS) {
-    scr_abort(-1, "libcppr cppr_status() failed: %d '%s' @ %s:%d",
-              cppr_ret, cppr_err_to_str(cppr_ret), __FILE__, __LINE__
-    );
-  }
-  scr_dbg(1, "#bold CPPR is present @ %s:%d", __FILE__, __LINE__);
-#endif /* HAVE_LIBCPPR */
+  scr_env_init();
 
   /* place the halt, flush, and nodes files in the prefix directory */
   scr_halt_file = scr_path_from_str(scr_prefix_scr);
@@ -1403,9 +1438,8 @@ int SCR_Finalize()
     scr_flush_sync(scr_map, scr_ckpt_dset_id);
   }
 
-  /* shut down our async method, if we have one */
-  if (scr_flush_async) {
-    scr_flush_async_shutdown();
+  if(scr_flush_async){
+    scr_flush_async_finalize();
   }
 
   /* disconnect from database */
@@ -1657,7 +1691,7 @@ int SCR_Start_output(const char* name, int flags)
     snprintf(dataset_name_default, sizeof(dataset_name_default), "scr.dataset.%d", scr_dataset_id);
     dataset_name = dataset_name_default;
   }
-  
+
   /* rank 0 builds dataset object and broadcasts it out to other ranks */
   scr_dataset* dataset = scr_dataset_new();
   if (scr_my_rank_world == 0) {

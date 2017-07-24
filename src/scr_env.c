@@ -37,6 +37,7 @@
 
 #include "scr_env.h"
 #include "scr_err.h"
+#include "scr.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -48,19 +49,20 @@
 #include <time.h>
 #endif /* HAVE_LIBYOGRT */
 
-#if SCR_MACHINE_TYPE == SCR_PMIX
+#ifdef HAVE_CPPR
+#include "cppr.h"
+#endif /* HAVE_CPPR */
+
+#ifdef HAVE_PMIX
 #include "pmix.h"
-#include "scr_globals.h"
-#endif /* SCR_MACHINE_TYPE == SCR_PMIX */
+#endif /* HAVE_PMIX */
 
-#if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT) || (SCR_MACHINE_TYPE == SCR_PMIX) || (SCR_MACHINE_TYPE == SCR_LSF)
-#include <unistd.h> /* gethostname */
-#endif
-
-#if SCR_MACHINE_TYPE == SCR_BGQ
+#ifdef SCR_BGQ
 #include "firmware/include/personality.h" /* Personality_t */
 #include "spi/include/kernel/location.h"  /* Kernel_GetPersonality */
 #include "hwi/include/common/uci.h"       /* bg_decodeComputeCardCoreOnNodeBoardUCI */
+#else
+#include <unistd.h>
 #endif
 
 /*
@@ -123,7 +125,7 @@ char* scr_env_jobid()
   char* jobid = NULL;
 
   char* value;
-  #if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_BGQ)
+  #ifdef SCR_RESOURCE_MANAGER_SLURM
     /* read $SLURM_JOBID environment variable for jobid string */
     if ((value = getenv("SLURM_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -133,7 +135,8 @@ char* scr_env_jobid()
         );
       }
     }
-  #elif SCR_MACHINE_TYPE == SCR_CRAY_XT
+  #endif
+  #ifdef SCR_RESOURCE_MANAGER_APRUN
     /* read $PBS_JOBID environment variable for jobid string */
     if ((value = getenv("PBS_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -143,7 +146,8 @@ char* scr_env_jobid()
         );
       }
     }
-  #elif SCR_MACHINE_TYPE == SCR_PMIX
+  #endif
+  #ifdef SCR_RESOURCE_MANAGER_PMIX
     /* todo: must replace this in the scr_env script as well */
     pmix_pdata_t *pmix_query_data = NULL;
     PMIX_PDATA_CREATE(pmix_query_data, 1);
@@ -170,7 +174,8 @@ char* scr_env_jobid()
 
     /* free pmix query structure */
     PMIX_PDATA_FREE(pmix_query_data, 1);
-  #elif SCR_MACHINE_TYPE == SCR_LSF
+  #endif
+  #ifdef SCR_RESOURCE_MANAGER_LSF
     /* read $PBS_JOBID environment variable for jobid string */
     if ((value = getenv("LSB_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -190,7 +195,7 @@ char* scr_env_nodename()
 {
   char* name = NULL;
 
-  #if (SCR_MACHINE_TYPE == SCR_TLCC) || (SCR_MACHINE_TYPE == SCR_CRAY_XT) || (SCR_MACHINE_TYPE == SCR_PMIX) || (SCR_MACHINE_TYPE == SCR_LSF)
+  #ifndef SCR_BGQ
     /* we just use the string returned by gethostname */
     char hostname[256];
     if (gethostname(hostname, sizeof(hostname)) == 0) {
@@ -200,7 +205,7 @@ char* scr_env_nodename()
         __FILE__, __LINE__
       );
     }
-  #elif SCR_MACHINE_TYPE == SCR_BGQ
+  #else
     /* here, we derive a string from the personality */
     Personality_t personality;
     unsigned int x, y, m, n, j, c;
@@ -248,4 +253,39 @@ char* scr_env_cluster()
   /* TODO: compute name of cluster */
 
   return name;
+}
+
+/* environment specific init/finalize */
+int scr_env_init(void)
+{
+
+#ifdef SCR_RESOURCE_MANAGER_PMIX
+  /* init pmix */
+  int retval = PMIx_Init(&scr_pmix_proc, NULL, 0);
+  if (retval != PMIX_SUCCESS) {
+    scr_err("PMIx_Init failed: rc=%d @ %s:%d",
+      retval, __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+  scr_dbg(1, "PMIx_Init succeeded @ %s:%d", __FILE__, __LINE__);
+#endif /* SCR_MACHINE_TYPE == SCR_PMIX */
+
+#ifdef HAVE_LIBCPPR
+  /* attempt to init cppr */
+  int cppr_ret = cppr_status();
+  if (cppr_ret != CPPR_SUCCESS) {
+    scr_abort(-1, "libcppr cppr_status() failed: %d '%s' @ %s:%d",
+              cppr_ret, cppr_err_to_str(cppr_ret), __FILE__, __LINE__
+    );
+  }
+  scr_dbg(1, "#bold CPPR is present @ %s:%d", __FILE__, __LINE__);
+#endif /* HAVE_LIBCPPR */
+
+    return SCR_SUCCESS;
+}
+
+int scr_env_finalize(void)
+{
+    return SCR_SUCCESS;
 }

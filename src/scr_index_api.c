@@ -179,7 +179,7 @@ int scr_index_set_current(scr_hash* index, const char* name)
     /* failed to find dataset by this name */
     return SCR_FAILURE;
   }
-  
+
   /* check that dataset is a checkpoint */
   scr_hash* dset_hash = scr_hash_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
   scr_hash* name_hash = scr_hash_get_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
