@@ -33,45 +33,42 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/makefile.examples DESTINATION ${CMAKE_
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
+## Move test cleanup script to build directory
+FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_cleanup.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api scr)
-ADD_TEST(NAME ctest_api COMMAND ./test_api)
-SET_TESTS_PROPERTIES(ctest_api PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
+SCR_ADD_TEST(test_api "" "ckpt.*")
 
 ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
 TARGET_LINK_LIBRARIES(test_api_file scr)
-# TEST NEEDED: proper usage is unknown
+#SCR_ADD_TEST: proper usage is unknown
 
 ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
 TARGET_LINK_LIBRARIES(test_api_multiple scr)
-ADD_TEST(NAME ctest_api_multiple COMMAND ./test_api_multiple)
-SET_TESTS_PROPERTIES(ctest_api_multiple PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
+SCR_ADD_TEST(test_api_multiple "" "")
 
 ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
 TARGET_LINK_LIBRARIES(test_api_multiple_file scr)
-# TEST NEEDED: proper usage is unknown
+#SCR_ADD_TEST: proper usage is unknown
 
 ADD_EXECUTABLE(test_interpose test_interpose.c)
 TARGET_LINK_LIBRARIES(test_interpose scr)
-ADD_TEST(NAME ctest_interpose COMMAND ./test_interpose)
-SET_TESTS_PROPERTIES(ctest_interpose PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
+SCR_ADD_TEST(test_interpose "" "checkpoint_set_*")
 
 ADD_EXECUTABLE(test_interpose_multiple test_common.c test_interpose_multiple.c)
 TARGET_LINK_LIBRARIES(test_interpose_multiple scr)
-ADD_TEST(NAME ctest_interpose_multiple COMMAND ./test_interpose_multiple)
-SET_TESTS_PROPERTIES(ctest_interpose_multiple PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
+SCR_ADD_TEST(test_interpose_multiple "" "examplesrank_0.0.ckpt")
 
 ADD_EXECUTABLE(test_ckpt_C test_ckpt.C)
 TARGET_LINK_LIBRARIES(test_ckpt_C scr)
-ADD_TEST(NAME ctest_ckpt_C COMMAND ./test_ckpt_C)
-SET_TESTS_PROPERTIES(ctest_ckpt_C PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
+SCR_ADD_TEST(test_ckpt_C "" "rank_0.ckpt")
 
 IF(ENABLE_FORTRAN)
 	SET_SOURCE_FILES_PROPERTIES(test_ckpt.F PROPERTIES LANGUAGE Fortran)
 	ADD_EXECUTABLE(test_ckpt_F test_ckpt.F)
 	TARGET_LINK_LIBRARIES(test_ckpt_F scrf ${MPI_Fortran_LIBRARIES})
-	ADD_TEST(NAME ctest_ckpt_F COMMAND ./test_ckpt_F)
-	SET_TESTS_PROPERTIES(ctest_ckpt_F PROPERTIES ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
+	SCR_ADD_TEST(test_ckpt_F "" "rank_00000.ckpt")
 ENDIF(ENABLE_FORTRAN)
 
 # add target: "make check"
