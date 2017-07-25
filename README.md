@@ -8,32 +8,55 @@ load on critical shared resources such as the parallel file system.
 
 Detailed usage is provided in the [user manual](/doc/scr_users_manual.pdf).
 
-## Build and install
+## Quickstart
 
-Use the standard, configure/make/make install to configure, build, and
-install the library, e.g.:
+SCR uses the CMake build system and we recommend out-of-source builds.
 
-    ./configure \
-      --prefix=/usr/local/tools/scr-1.1 \
-      --with-scr-config-file=/etc/scr.conf
-    make
-    make install
+```shell
+git clone git@github.com:llnl/scr.git
+mkdir build
+mkdir install
 
-To uninstall the installation:
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=../install ../scr
+make
+make install
+make test
+```
 
-    make uninstall
+Some useful CMake command line options:
 
-SCR is layered on top of MPI, and it must be built with the MPI library
-used by the application.  It uses the standard mpicc compiler wrapper.
-If there are multiple MPI libraries, a separate SCR library must be
-built for each MPI library.
+- `-DCMAKE_INSTALL_PREFIX=[path]`: Place to install the SCR library
+- `-DCMAKE_BUILD_TYPE=[Debug/Release]`: Build with debugging or optimizations
+- `-DBUILD_PDSH=[OFF/ON]`: CMake can automatically download and build the PDSH dependency
+- `-DWITH_PDSH_PREFIX=[path to PDSH]`: Path to an existing PDSH installation (should not be used with `BUILD_PDSH`)
+- `-DWITH_DTCMP_PREFIX=[path to DTCMP]`
+- `-DWITH_YOGRT_PREFIX=[path to YOGRT]`
+- `-DSCR_ASYNC_API=[CRAY_DW/INTEL_CPPR/IBM_BBAPI/NONE]`
+- `-DSCR_RESOURCE_MANAGER=[SLURM/APRUN/PMIX/LSF/NONE]`
 
-If you are using the scr.conf file, you'll also need to edit this file
-to match the settings on your system.  Please open this file and make
-any necessary changes -- it is self-documented with comments.  After
-modifying this file, copy it to the location specified in your configure
-step.  The configure option simply informs the SCR install where to
-look for the file, it does not modify or install the file.
+### Dependencies
+
+- C (with support for C++ and Fortran)
+- MPI
+- CMake, Version 2.8+
+- [PDSH](https://github.com/grondo/pdsh)
+- [DTCMP](https://github.com/llnl/dtcmp) (optional)
+- [libYOGRT](https://github.com/llnl/libyogrt) (optional)
+- MySQL (optional)
+
+## Configuration Files
+
+SCR searches the following locations in the following order for a parameter value, taking the first value it finds.
+
+1. Environment variables,
+2. User configuration file,
+3. System configuration file,
+4. Compile-time constants.
+
+To find a user configuration file, SCR looks for a file named `.scrconf` in the prefix directory (note the leading dot).
+Alternatively, one may specify the name and location of the user configuration file by setting the `SCR_CONF_FILE` environment variable at run time.
+This repository includes some example configuration files (`scr.conf.template`, `scr.user.conf.template`, and `examples/test.conf`).
 
 ## Authors
 
