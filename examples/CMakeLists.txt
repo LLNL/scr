@@ -35,6 +35,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 ## Move test cleanup script to build directory
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_cleanup.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test.conf DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api scr)
@@ -58,7 +59,7 @@ SCR_ADD_TEST(test_interpose "" "checkpoint_set_*")
 
 ADD_EXECUTABLE(test_interpose_multiple test_common.c test_interpose_multiple.c)
 TARGET_LINK_LIBRARIES(test_interpose_multiple scr)
-SCR_ADD_TEST(test_interpose_multiple "" "examplesrank_0.0.ckpt")
+SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank_0.0.ckpt")
 
 ADD_EXECUTABLE(test_ckpt_C test_ckpt.C)
 TARGET_LINK_LIBRARIES(test_ckpt_C scr)
