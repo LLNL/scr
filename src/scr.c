@@ -37,6 +37,19 @@
 #include "dtcmp.h"
 #endif /* HAVE_LIBDTCMP */
 
+/* define which state we're in for API calls, this is to help ensure
+ * users call SCR functions in the correct order */
+typedef enum {
+    SCR_STATE_UNINIT,     /* before init and after finalize */
+    SCR_STATE_INIT,       /* between init/finalize */
+    SCR_STATE_RESTART,    /* between start/complete restart */
+    SCR_STATE_CHECKPOINT, /* between start/complete checkpoint */
+    SCR_STATE_OUTPUT      /* between start/complete output */
+} SCR_STATE;
+
+/* initialize our state to uninit */
+static SCR_STATE scr_state = SCR_STATE_UNINIT;
+
 /* look up redundancy descriptor we should use for this dataset */
 static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_reddesc* descs)
 {
@@ -860,6 +873,14 @@ int SCR_Init()
 {
   int i;
 
+  /* manage state transition */
+  if (scr_state != SCR_STATE_UNINIT) {
+    scr_abort(-1, "Called SCR_Init() when already initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_INIT;
+
   /* check whether user has disabled library via environment variable */
   char* value = NULL;
   if ((value = getenv("SCR_ENABLE")) != NULL) {
@@ -1309,6 +1330,14 @@ int SCR_Init()
 /* Close down and clean up */
 int SCR_Finalize()
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_INIT) {
+    scr_abort(-1, "Called SCR_Finalized() from invalid state @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_UNINIT;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1459,6 +1488,13 @@ int SCR_Finalize()
 /* sets flag to 1 if a checkpoint should be taken, flag is set to 0 otherwise */
 int SCR_Need_checkpoint(int* flag)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_INIT) {
+    scr_abort(-1, "Called SCR_Need_checkpoint() from invalid state @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     *flag = 0;
@@ -1548,6 +1584,14 @@ int SCR_Need_checkpoint(int* flag)
 /* inform library that a new output dataset is starting */
 int SCR_Start_output(const char* name, int flags)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_INIT) {
+    scr_abort(-1, "Called SCR_Start_output() from invalid state @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_OUTPUT;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1756,6 +1800,14 @@ int SCR_Start_output(const char* name, int flags)
 /* informs SCR that a fresh checkpoint set is about to start */
 int SCR_Start_checkpoint()
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_INIT) {
+    scr_abort(-1, "Called SCR_Start_checkpoint() from invalid state @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_CHECKPOINT;
+
   /* delegate the rest to Start_output */
   return SCR_Start_output(NULL, SCR_FLAG_CHECKPOINT);
 }
@@ -1763,6 +1815,16 @@ int SCR_Start_checkpoint()
 /* given a filename, return the full path to the file which the user should write to */
 int SCR_Route_file(const char* file, char* newfile)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_RESTART    &&
+      scr_state != SCR_STATE_CHECKPOINT &&
+      scr_state != SCR_STATE_OUTPUT)
+  {
+    scr_abort(-1, "Must call SCR_Route_file() from within Start/Complete pair @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1877,6 +1939,14 @@ int SCR_Route_file(const char* file, char* newfile)
 /* inform library that the current dataset is complete */
 int SCR_Complete_output(int valid)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_OUTPUT) {
+    scr_abort(-1, "Must call SCR_Start_output() before SCR_Complete_output() @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_INIT;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -2076,6 +2146,14 @@ int SCR_Complete_output(int valid)
 /* completes the checkpoint set and marks it as valid or not */
 int SCR_Complete_checkpoint(int valid)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_CHECKPOINT) {
+    scr_abort(-1, "Must call SCR_Start_checkpoint() before SCR_Complete_checkpoint() @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_INIT;
+
   return SCR_Complete_output(valid);
 }
 
@@ -2083,6 +2161,13 @@ int SCR_Complete_checkpoint(int valid)
  * and get name of restart if one is available */
 int SCR_Have_restart(int* flag, char* name)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_INIT) {
+    scr_abort(-1, "Called SCR_Have_restart() from invalid state @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     *flag = 0;
@@ -2122,6 +2207,14 @@ int SCR_Have_restart(int* flag, char* name)
 /* inform library that restart is starting, get name of restart that is available */
 int SCR_Start_restart(char* name)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_INIT) {
+    scr_abort(-1, "Called SCR_Start_restart() from invalid state @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_RESTART;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -2159,6 +2252,14 @@ int SCR_Start_restart(char* name)
 /* inform library that the current restart is complete */
 int SCR_Complete_restart(int valid)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_RESTART) {
+    scr_abort(-1, "Must call SCR_Start_restart() before SCR_Complete_restart() @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_INIT;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
