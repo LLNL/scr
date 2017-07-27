@@ -2215,6 +2215,13 @@ int SCR_Start_restart(char* name)
   }
   scr_state = SCR_STATE_RESTART;
 
+  /* only valid to call this if we have a checkpoint to restart from */
+  if (! scr_have_restart) {
+    scr_abort(-1, "Can only call SCR_Start_restart() if SCR_Have_restart() indicates a checkpoint is available @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
