@@ -41,7 +41,7 @@
  * users call SCR functions in the correct order */
 typedef enum {
     SCR_STATE_UNINIT,     /* before init and after finalize */
-    SCR_STATE_INIT,       /* between init/finalize */
+    SCR_STATE_IDLE,       /* between init/finalize */
     SCR_STATE_RESTART,    /* between start/complete restart */
     SCR_STATE_CHECKPOINT, /* between start/complete checkpoint */
     SCR_STATE_OUTPUT      /* between start/complete output */
@@ -879,7 +879,7 @@ int SCR_Init()
       __FILE__, __LINE__
     );
   }
-  scr_state = SCR_STATE_INIT;
+  scr_state = SCR_STATE_IDLE;
 
   /* check whether user has disabled library via environment variable */
   char* value = NULL;
@@ -1331,7 +1331,7 @@ int SCR_Init()
 int SCR_Finalize()
 {
   /* manage state transition */
-  if (scr_state != SCR_STATE_INIT) {
+  if (scr_state != SCR_STATE_IDLE) {
     scr_abort(-1, "Called SCR_Finalized() from invalid state @ %s:%d",
       __FILE__, __LINE__
     );
@@ -1489,7 +1489,7 @@ int SCR_Finalize()
 int SCR_Need_checkpoint(int* flag)
 {
   /* manage state transition */
-  if (scr_state != SCR_STATE_INIT) {
+  if (scr_state != SCR_STATE_IDLE) {
     scr_abort(-1, "Called SCR_Need_checkpoint() from invalid state @ %s:%d",
       __FILE__, __LINE__
     );
@@ -1585,7 +1585,7 @@ int SCR_Need_checkpoint(int* flag)
 int SCR_Start_output(const char* name, int flags)
 {
   /* manage state transition */
-  if (scr_state != SCR_STATE_INIT) {
+  if (scr_state != SCR_STATE_IDLE) {
     scr_abort(-1, "Called SCR_Start_output() from invalid state @ %s:%d",
       __FILE__, __LINE__
     );
@@ -1801,7 +1801,7 @@ int SCR_Start_output(const char* name, int flags)
 int SCR_Start_checkpoint()
 {
   /* manage state transition */
-  if (scr_state != SCR_STATE_INIT) {
+  if (scr_state != SCR_STATE_IDLE) {
     scr_abort(-1, "Called SCR_Start_checkpoint() from invalid state @ %s:%d",
       __FILE__, __LINE__
     );
@@ -1945,7 +1945,7 @@ int SCR_Complete_output(int valid)
       __FILE__, __LINE__
     );
   }
-  scr_state = SCR_STATE_INIT;
+  scr_state = SCR_STATE_IDLE;
 
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
@@ -2152,7 +2152,7 @@ int SCR_Complete_checkpoint(int valid)
       __FILE__, __LINE__
     );
   }
-  scr_state = SCR_STATE_INIT;
+  scr_state = SCR_STATE_IDLE;
 
   return SCR_Complete_output(valid);
 }
@@ -2162,7 +2162,7 @@ int SCR_Complete_checkpoint(int valid)
 int SCR_Have_restart(int* flag, char* name)
 {
   /* manage state transition */
-  if (scr_state != SCR_STATE_INIT) {
+  if (scr_state != SCR_STATE_IDLE) {
     scr_abort(-1, "Called SCR_Have_restart() from invalid state @ %s:%d",
       __FILE__, __LINE__
     );
@@ -2208,7 +2208,7 @@ int SCR_Have_restart(int* flag, char* name)
 int SCR_Start_restart(char* name)
 {
   /* manage state transition */
-  if (scr_state != SCR_STATE_INIT) {
+  if (scr_state != SCR_STATE_IDLE) {
     scr_abort(-1, "Called SCR_Start_restart() from invalid state @ %s:%d",
       __FILE__, __LINE__
     );
@@ -2265,7 +2265,7 @@ int SCR_Complete_restart(int valid)
       __FILE__, __LINE__
     );
   }
-  scr_state = SCR_STATE_INIT;
+  scr_state = SCR_STATE_IDLE;
 
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
