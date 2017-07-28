@@ -465,6 +465,44 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
   return SCR_SUCCESS;
 }
 
+/* given the current state, abort with an informative error message */
+static void scr_state_transition_error(int state, const char* function, const char* file, int line)
+{
+  switch(state) {
+  case SCR_STATE_UNINIT:
+    /* tried to call some SCR function while uninitialized */
+    scr_abort(-1, "Must call SCR_Init() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  case SCR_STATE_RESTART:
+    /* tried to call some SCR function while in Start_restart region */
+    scr_abort(-1, "Must call SCR_Complete_restart() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  case SCR_STATE_CHECKPOINT:
+    /* tried to call some SCR function while in Start_checkpoint region */
+    scr_abort(-1, "Must call SCR_Complete_checkpoint() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  case SCR_STATE_OUTPUT:
+    /* tried to call some SCR function while in Start_output region */
+    scr_abort(-1, "Must call SCR_Complete_output() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  }
+
+  /* fall back message, less informative, but at least something */
+  scr_abort(-1, "Called %s from invalid state %d @ %s:%d",
+    function, state, file, line
+  );
+
+  return;
+}
+
 /*
 =========================================
 Configuration parameters
@@ -1332,9 +1370,7 @@ int SCR_Finalize()
 {
   /* manage state transition */
   if (scr_state != SCR_STATE_IDLE) {
-    scr_abort(-1, "Called SCR_Finalized() from invalid state @ %s:%d",
-      __FILE__, __LINE__
-    );
+    scr_state_transition_error(scr_state, "SCR_Finalize()", __FILE__, __LINE__);
   }
   scr_state = SCR_STATE_UNINIT;
 
@@ -1490,9 +1526,7 @@ int SCR_Need_checkpoint(int* flag)
 {
   /* manage state transition */
   if (scr_state != SCR_STATE_IDLE) {
-    scr_abort(-1, "Called SCR_Need_checkpoint() from invalid state @ %s:%d",
-      __FILE__, __LINE__
-    );
+    scr_state_transition_error(scr_state, "SCR_Need_checkpoint()", __FILE__, __LINE__);
   }
 
   /* if not enabled, bail with an error */
@@ -1586,9 +1620,7 @@ int SCR_Start_output(const char* name, int flags)
 {
   /* manage state transition */
   if (scr_state != SCR_STATE_IDLE) {
-    scr_abort(-1, "Called SCR_Start_output() from invalid state @ %s:%d",
-      __FILE__, __LINE__
-    );
+    scr_state_transition_error(scr_state, "SCR_Start_output()", __FILE__, __LINE__);
   }
   scr_state = SCR_STATE_OUTPUT;
 
@@ -1802,9 +1834,7 @@ int SCR_Start_checkpoint()
 {
   /* manage state transition */
   if (scr_state != SCR_STATE_IDLE) {
-    scr_abort(-1, "Called SCR_Start_checkpoint() from invalid state @ %s:%d",
-      __FILE__, __LINE__
-    );
+    scr_state_transition_error(scr_state, "SCR_Start_checkpoint()", __FILE__, __LINE__);
   }
   scr_state = SCR_STATE_CHECKPOINT;
 
@@ -2163,9 +2193,7 @@ int SCR_Have_restart(int* flag, char* name)
 {
   /* manage state transition */
   if (scr_state != SCR_STATE_IDLE) {
-    scr_abort(-1, "Called SCR_Have_restart() from invalid state @ %s:%d",
-      __FILE__, __LINE__
-    );
+    scr_state_transition_error(scr_state, "SCR_Have_restart()", __FILE__, __LINE__);
   }
 
   /* if not enabled, bail with an error */
@@ -2209,9 +2237,7 @@ int SCR_Start_restart(char* name)
 {
   /* manage state transition */
   if (scr_state != SCR_STATE_IDLE) {
-    scr_abort(-1, "Called SCR_Start_restart() from invalid state @ %s:%d",
-      __FILE__, __LINE__
-    );
+    scr_state_transition_error(scr_state, "SCR_Start_restart()", __FILE__, __LINE__);
   }
   scr_state = SCR_STATE_RESTART;
 
