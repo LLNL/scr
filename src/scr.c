@@ -277,7 +277,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
   MPI_Bcast(&need_to_halt, 1, MPI_INT, 0, scr_comm_world);
 
   /* halt job if we need to, and flush latest checkpoint if needed */
-  if (need_to_halt && halt_cond == SCR_TEST_AND_HALT) {
+  if (need_to_halt && halt_cond == SCR_TEST_AND_HALT && scr_halt_enabled) {
     /* handle any async flush */
     if (scr_flush_async_in_progress) {
       /* there's an async flush ongoing, see which dataset is being flushed */
@@ -711,6 +711,11 @@ static int scr_get_params()
    * halt it */
   if ((value = scr_param_get("SCR_HALT_SECONDS")) != NULL) {
     scr_halt_seconds = atoi(value);
+  }
+
+  /* determine whether we should call exit() upon detecting a halt condition */
+  if ((value = scr_param_get("SCR_HALT_ENABLED")) != NULL) {
+    scr_halt_enabled = atoi(value);
   }
 
   /* set MPI buffer size (file chunk size) */
@@ -2336,4 +2341,36 @@ int SCR_Complete_restart(int valid)
 char* SCR_Get_version()
 {
   return SCR_VERSION;
+}
+
+/* query whether it is time to exit */
+int SCR_Should_exit(int* flag)
+{
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that we have a flag variable to write to */
+  if (flag == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* assume we don't have to stop */
+  *flag = 0;
+
+  /* check whether a halt condition is active */
+  if (scr_bool_check_halt_and_decrement(SCR_TEST_BUT_DONT_HALT, 0)) {
+    *flag = 1;
+  }
+
+  return SCR_SUCCESS;
 }

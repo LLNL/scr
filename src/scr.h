@@ -95,6 +95,9 @@ int SCR_Complete_output(int valid);
 /* get and return the SCR version */
 char* SCR_Get_version(void);
 
+/* query whether it is time to exit */
+int SCR_Should_exit(int* flag);
+
 /* enable C++ codes to include this header directly */
 #ifdef __cplusplus
 } /* extern "C" */
