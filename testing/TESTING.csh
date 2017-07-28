@@ -70,6 +70,16 @@ cd ${scrversion}
 make -j4
 make install
 
+# Linux cmake build instructions
+cd ${SCR_PKG}
+rm -rf ${SCR_BUILD}
+mkdir ${SCR_BUILD}
+cd ${SCR_BUILD}
+setenv CFLAGS "-g -O0"
+cmake -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_VERBOSE_MAKEFILE=true ${SCR_PKG}
+make
+make install
+
 # cd to examples directory, and check that build of test programs works
 cd ${SCR_INSTALL}/share/scr/examples
 setenv OPT "-g -O0"
@@ -91,7 +101,7 @@ setenv downnode `${scrbin}/scr_glob_hosts -n 1 -h "$SLURM_NODELIST"`
 echo "$downnode"
 setenv prefix_files ".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 
-setenv LD_LIBRARY_PATH ${SCR_INSTALL}/lib:${SCR_PKG}/deps/install/lib
+setenv LD_LIBRARY_PATH ${SCR_INSTALL}/lib64:${SCR_PKG}/deps/install/lib
 setenv SCR_PREFIX `pwd`
 setenv SCR_FETCH 0
 setenv SCR_FLUSH 0
@@ -210,7 +220,7 @@ ${scrbin}/scr_index --list
 # delete all files, corrupt file on disc, run again, check that fetch of current fails but old succeeds
 srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
-vi -b ${SCR_INSTALL}/share/scr/examples/scr.dataset.12/rank_2.ckpt
+vi -b ${SCR_INSTALL}/share/scr/examples/ckpt.12/rank_2.ckpt
 # change some characters and save file (:wq)
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
