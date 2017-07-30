@@ -1682,7 +1682,27 @@ int SCR_Start_output(const char* name, int flags)
   /* TODO: if we know of an existing dataset with the same name
    * delete all files */
 
-  /* TODO: if name or flags differ across ranks, error out */
+  /* ensure that name and flags match across ranks,
+   * broadcast values from rank 0 and compare to that */
+  char* master_name = NULL;
+  int master_flags;
+  if (scr_my_rank_world == 0) {
+    master_name  = strdup(name);
+    master_flags = flags;
+  }
+  scr_str_bcast(&master_name, 0, scr_comm_world);
+  MPI_Bcast(&master_flags, 1, MPI_INT, 0, scr_comm_world);
+  if (strcmp(name, master_name) != 0) {
+    scr_abort(-1, "Dataset name provided to SCR_Start_output must be identical on all processes @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  if (master_flags != flags) {
+    scr_abort(-1, "Dataset flags provided to SCR_Start_output must be identical on all processes @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_free(&master_name);
 
   /* check that we got valid name, and use a default name if not */
   char* dataset_name = name;
