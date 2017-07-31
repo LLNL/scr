@@ -137,13 +137,10 @@ my $cmd = undef;
 
 # gather files via pdsh
 my $partner_flag = "";
-#$cmd = "srun -n 1 -N 1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced";
+$cmd = "$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced";
 print "$prog: ", scalar(localtime), "\n";
-# Does not work with "$cmd" for some reason using -Rexec
-#print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' \"$cmd\" >$output 2>$error\n";
-#             `$pdsh -Rexec-f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
-print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced";
-             `$pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced`;
+print "$prog: $pdsh -f 256 -S -w '$upnodes' \"$cmd\" >$output 2>$error\n";
+             `$pdsh -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
 
 # print pdsh output to screen
 if ($conf{verbose}) {
