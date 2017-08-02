@@ -7,13 +7,15 @@ if [ $# -ne 2 ]; then echo "This script takes one argument: the test to run and 
 # set SCR_PKG to the directory where SCR is cloned
 # set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
 # set SCR_INSTALL to the directory where SCR is installed
-if [ -z "$SCR_PKG" ]; then export SCR_PKG="/g/g0/becker33/scr/scr"; fi
-if [ -z "$SCR_BUILD" ]; then export SCR_BUILD="/g/g0/becker33/scr/build"; fi
-if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="/g/g0/becker33/scr/install"; fi
-if [ -z "$SCR_LAUNCH_DIR" ]; then export SCR_LAUNCH_DIR="/p/lscratchd/becker33"; fi
+if [ -z "$SCR_PKG" ]; then export SCR_PKG="/usr/projects/SCR/scr-1.1-8.cray.dev/source/port/working"; fi
+if [ -z "$SCR_BUILD" ]; then export SCR_BUILD="/usr/projects/SCR/scr-1.1-8.cray.dev/source/port/working-dist"; fi
+#if [ -z "$SCR_BUILD" ]; then export SCR_BUILD="/usr/projects/SCR/TR-installs/scr_dw_with_source"; fi
+if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="${SCR_BUILD}/install"; fi
+#if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="/usr/projects/SCR/TR-installs/scr_dw_with_source/install"; fi
+if [ -z "$SCR_LAUNCH_DIR" ]; then export SCR_LAUNCH_DIR="/lustre/ttscratch1/becker33"; fi
+
 
 echo "_____________________________________________________________________"
-
 rm -rf ${SCR_BUILD}
 rm -rf ${SCR_INSTALL}
 mkdir -p ${SCR_BUILD}
@@ -21,17 +23,20 @@ cd ${SCR_BUILD}
 
 # Linux build instructions
 export CFLAGS="-O3 -fPIC "
-export CC=gcc
-export MPICC=mpicc
+export CC=cc
+export MPICC=cc
 
 cmakeopts="${SCR_PKG}"
 cmakeopts+=" -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL}"
 cmakeopts+=" -DSCR_RESOURCE_MANAGER=SLURM"
 cmakeopts+=" -DSCR_MACHINE_TYPE=0"
+cmakeopts+=" -DSCR_ASYNC_API=CRAY_DW"
+cmakeopts+=" -DWITH_DATAWARP_PREFIX=/opt/cray/datawarp/2.1.8_g2de47e3-2.27"
 cmakeopts+=" -DSCR_FILE_LOCK=FNCTL"
 cmakeopts+=" -DSCR_CACHE_BASE=/tmp"
 cmakeopts+=" -DSCR_CNTL_BASE=/tmp"
 cmakeopts+=" -DSCR_CONFIG_FILE=${SCR_PKG}/scr.conf"
+cmakeopts+=" -DWITH_PDSH_PREFIX=/users/becker33/pdsh-2.31"
 export cmakeopts
 
 echo $cmakeopts
@@ -43,19 +48,21 @@ echo "_____________________________________________________________________"
 echo "_____________________________________________________________________"
 echo "_____________________________________________________________________"
 
-cd ${SCR_INSTALL}
+# cd to examples directory, and check that build of test programs works
+cd ${SCR_INSTALL}/share/scr/examples
 cp ${SCR_PKG}/scr.user.conf ${SCR_INSTALL}/.scrconf
-cd share/scr/examples
-make
+export CFLAGS="-g -O0"
+make VERBOSE=1
 
 echo "_____________________________________________________________________"
 echo "_____________________________________________________________________"
 
 # run the TEST
 # must be run on a machine with python in the same location as on the target machine
+#sed -i 's|^#!.*$|#!'`which python`'|' ${SCR_PKG}/testing/TEST
 cp ${SCR_INSTALL}/.scrconf ${SCR_LAUNCH_DIR}/.
 cd ${SCR_LAUNCH_DIR}
-msub -V -q pdebug -l nodes=4 -m be -j oe -o $2 ${SCR_PKG}/testing/$1
+sbatch --export=ALL -p standard -N 4 -t 30 -o $2 ${SCR_PKG}/testing/$1
 echo "Submitted a batch job to run $1 on 4 nodes with output sent to $2."
 echo "You should shortly receive an email notifying you that the batch job has been submitted."
 echo " You will receive another when it is completed"
