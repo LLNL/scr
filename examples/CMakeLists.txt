@@ -47,7 +47,8 @@ TARGET_LINK_LIBRARIES(test_api_file scr)
 
 ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
 TARGET_LINK_LIBRARIES(test_api_multiple scr)
-SCR_ADD_TEST(test_api_multiple "" "")
+#SCR_ADD_TEST(test_api_multiple "" "")
+SCR_ADD_PARALLEL_TEST(test_api_multiple 4 "" "")
 
 ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
 TARGET_LINK_LIBRARIES(test_api_multiple_file scr)
