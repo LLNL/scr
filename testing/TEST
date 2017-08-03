@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 ########
-#MSUB -l nodes=4
-#MSUB -l walltime=1800
-#MSUB -V
 
 import os
 from subprocess import *
@@ -14,7 +11,7 @@ import resource
 
 resource.setrlimit(resource.RLIMIT_CORE, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
-TEST_API='/usr/projects/SCR/scr-1.1-8.cray.dev/source/working-dist/install/share/scr/examples/test_api'
+TEST_API = os.environ['SCR_INSTALL'] + '/share/scr/examples/test_api'
 SIZE='134217728'
 TIMES='5'
 SLEEP='0'
@@ -40,10 +37,14 @@ print os.environ['jobid'],jobid
 #p = Popen([scrbin+'/scr_glob_hosts', '-n', '1', '-h', os.environ['SLURM_NODELIST']],stdout=PIPE)
 p = Popen([scrbin+'/scr_env', '--nodes'], stdout=PIPE, stderr=STDOUT)
 os.environ['SCR_NODELIST'] = p.stdout.read().strip()
-first_node = re.search("\d+",os.environ['SCR_NODELIST'])
+print os.environ['SCR_NODELIST'], "NODELIST"
+node_specifier = re.search("[a-z]+", os.environ['SCR_NODELIST'])
+first_node_pre = re.search("\d+", os.environ['SCR_NODELIST'])
+first_node_suf = re.search("\[(\d+)", os.environ['SCR_NODELIST'])
+first_node = node_specifier.group(0) + first_node_pre.group(0) + first_node_suf.group(1)
 if not first_node:
     raise ValueError("Unreasonable node value")
-os.environ['downnode'] = first_node.group(0)
+os.environ['downnode'] = first_node#.group(0)
 print os.environ['downnode']
 
 os.environ['prefix_files']=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
@@ -132,7 +133,7 @@ if set(completed_checkpoints) != set([7,8,9,10,11,12]):
 print "-----------------------------------------------------------"
 
 # delete all files from /ssd and /tmp/scratch on rank 0, remove halt file, run again, check that rebuild works
-p=Popen(['srun', '-n1', '/bin/rm', '-rf', cache_dir+'/node.0/scr.dataset.12/rank_0.ckpt'])
+p=Popen(['srun', '-n1', '/bin/rm', '-rf', cache_dir+'/scr.dataset.12/rank_0.ckpt'])
 p.wait()
 
 p=Popen(['srun', '-n1', '/bin/rm', '-rf', '/ssd/'+os.environ['USER']+'/scr.'+jobid])
@@ -176,9 +177,9 @@ print "-----------------------------------------------------------"
 
 # delete latest checkpoint directory from two nodes, remove halt file, run again,
 # check that rebuild works for older checkpoint
-#p=Popen(['srun','-n2', '-N1','/bin/rm','-rf',cache_dir+'/scr.dataset.18'])
-p=Popen(['srun','-n1', '-N1','/bin/rm','-rf',cache_dir+'/node.1/scr.dataset.18'])
-p=Popen(['srun','-n1', '-N1','/bin/rm','-rf',cache_dir+'/node.0/scr.dataset.18'])
+p=Popen(['srun','-n2', '-N2','/bin/rm','-rf',cache_dir+'/scr.dataset.18'])
+#p=Popen(['srun','-n1', '-N1','/bin/rm','-rf',cache_dir+'/node.1/scr.dataset.18'])
+#p=Popen(['srun','-n1', '-N1','/bin/rm','-rf',cache_dir+'/node.0/scr.dataset.18'])
 #p=Popen(['srun','-n2', '-N1','/bin/rm','-rf','/scratch1/becker33/cache/'+os.environ['USER']+'/scr.'+jobid+'/scr.dataset.18'])
 p.wait()
 p=Popen(['srun','-n2', '-N2','/bin/rm','-rf','/ssd/'+os.environ['USER']+'/scr.'+jobid+'/scr.dataset.18'])
@@ -729,7 +730,7 @@ for s in completion_statements:
 if set(completed_checkpoints) != set([13,14,15,16,17,18]):
     print ".....test_api failed to fetch checkpoint 12"
     RET+=1
-attempted_fetch = re.search(".*[Aa]ttempting.*fetch.*dataset.*12",output)
+attempted_fetch = re.search(".*[Aa]ttempting.*fetch.*ckpt.12",output)
 if not attempted_fetch:
     print ".....Did not attempt to fetch checkpoint 12. If delete failed,"+\
                 "may have restarted from cache"
@@ -786,7 +787,7 @@ for s in completion_statements:
 if set(completed_checkpoints) != set([13,14,15,16,17,18]):
     print ".....test_api failed to fetch checkpoint 12"
     RET+=1
-attempted_fetch = re.search(".*[Aa]ttempting.*fetch.*dataset.*12",output)
+attempted_fetch = re.search(".*[Aa]ttempting.*fetch.*ckpt.12",output)
 if not attempted_fetch:
     print ".....Did not attempt to fetch checkpoint 12. Most likily rebuilt"
     RET+=1
@@ -831,7 +832,7 @@ p.wait()
 p=Popen(['srun','-n4', '-N4','/bin/rm','-rf','/ssd/'+os.environ['USER']+'/scr.'+jobid])
 p.wait()
 
-p=Popen(['sed', '-i', 's/\?/i/', os.environ['SCR_LAUNCH_DIR']+'/scr.dataset.12/rank_2.ckpt'])
+p=Popen(['sed', '-i', 's/\?/i/', os.environ['SCR_LAUNCH_DIR']+'/ckpt.12/rank_2.ckpt'])
 p.wait()
 if p.returncode != 0:
     print ".....Error in sed call"
@@ -859,7 +860,7 @@ fetch_fail = re.search(".*CRC32.*fetch.*dataset.*12",output)
 if not fetch_fail:
     print ".....Dataset 12 not properly corrupted"
     RET+=1
-attempted_fetch = re.search(".*[Aa]ttempting.*fetch.*dataset.*6",output)
+attempted_fetch = re.search(".*[Aa]ttempting.*fetch.*ckpt.6",output)
 if not attempted_fetch:
     print ".....Did not attempt to fetch checkpoint 6."
     RET+=1
