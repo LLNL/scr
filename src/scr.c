@@ -37,6 +37,19 @@
 #include "dtcmp.h"
 #endif /* HAVE_LIBDTCMP */
 
+/* define which state we're in for API calls, this is to help ensure
+ * users call SCR functions in the correct order */
+typedef enum {
+    SCR_STATE_UNINIT,     /* before init and after finalize */
+    SCR_STATE_IDLE,       /* between init/finalize */
+    SCR_STATE_RESTART,    /* between start/complete restart */
+    SCR_STATE_CHECKPOINT, /* between start/complete checkpoint */
+    SCR_STATE_OUTPUT      /* between start/complete output */
+} SCR_STATE;
+
+/* initialize our state to uninit */
+static SCR_STATE scr_state = SCR_STATE_UNINIT;
+
 /* look up redundancy descriptor we should use for this dataset */
 static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_reddesc* descs)
 {
@@ -452,6 +465,44 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
   return SCR_SUCCESS;
 }
 
+/* given the current state, abort with an informative error message */
+static void scr_state_transition_error(int state, const char* function, const char* file, int line)
+{
+  switch(state) {
+  case SCR_STATE_UNINIT:
+    /* tried to call some SCR function while uninitialized */
+    scr_abort(-1, "Must call SCR_Init() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  case SCR_STATE_RESTART:
+    /* tried to call some SCR function while in Start_restart region */
+    scr_abort(-1, "Must call SCR_Complete_restart() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  case SCR_STATE_CHECKPOINT:
+    /* tried to call some SCR function while in Start_checkpoint region */
+    scr_abort(-1, "Must call SCR_Complete_checkpoint() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  case SCR_STATE_OUTPUT:
+    /* tried to call some SCR function while in Start_output region */
+    scr_abort(-1, "Must call SCR_Complete_output() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  }
+
+  /* fall back message, less informative, but at least something */
+  scr_abort(-1, "Called %s from invalid state %d @ %s:%d",
+    function, state, file, line
+  );
+
+  return;
+}
+
 /*
 =========================================
 Configuration parameters
@@ -859,6 +910,14 @@ User interface functions
 int SCR_Init()
 {
   int i;
+
+  /* manage state transition */
+  if (scr_state != SCR_STATE_UNINIT) {
+    scr_abort(-1, "Called SCR_Init() when already initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_IDLE;
 
   /* check whether user has disabled library via environment variable */
   char* value = NULL;
@@ -1309,6 +1368,12 @@ int SCR_Init()
 /* Close down and clean up */
 int SCR_Finalize()
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Finalize()", __FILE__, __LINE__);
+  }
+  scr_state = SCR_STATE_UNINIT;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1459,6 +1524,11 @@ int SCR_Finalize()
 /* sets flag to 1 if a checkpoint should be taken, flag is set to 0 otherwise */
 int SCR_Need_checkpoint(int* flag)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Need_checkpoint()", __FILE__, __LINE__);
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     *flag = 0;
@@ -1548,6 +1618,12 @@ int SCR_Need_checkpoint(int* flag)
 /* inform library that a new output dataset is starting */
 int SCR_Start_output(const char* name, int flags)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Start_output()", __FILE__, __LINE__);
+  }
+  scr_state = SCR_STATE_OUTPUT;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1606,7 +1682,27 @@ int SCR_Start_output(const char* name, int flags)
   /* TODO: if we know of an existing dataset with the same name
    * delete all files */
 
-  /* TODO: if name or flags differ across ranks, error out */
+  /* ensure that name and flags match across ranks,
+   * broadcast values from rank 0 and compare to that */
+  char* master_name = NULL;
+  int master_flags;
+  if (scr_my_rank_world == 0) {
+    master_name  = strdup(name);
+    master_flags = flags;
+  }
+  scr_str_bcast(&master_name, 0, scr_comm_world);
+  MPI_Bcast(&master_flags, 1, MPI_INT, 0, scr_comm_world);
+  if (strcmp(name, master_name) != 0) {
+    scr_abort(-1, "Dataset name provided to SCR_Start_output must be identical on all processes @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  if (master_flags != flags) {
+    scr_abort(-1, "Dataset flags provided to SCR_Start_output must be identical on all processes @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_free(&master_name);
 
   /* check that we got valid name, and use a default name if not */
   char* dataset_name = name;
@@ -1756,6 +1852,12 @@ int SCR_Start_output(const char* name, int flags)
 /* informs SCR that a fresh checkpoint set is about to start */
 int SCR_Start_checkpoint()
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Start_checkpoint()", __FILE__, __LINE__);
+  }
+  scr_state = SCR_STATE_CHECKPOINT;
+
   /* delegate the rest to Start_output */
   return SCR_Start_output(NULL, SCR_FLAG_CHECKPOINT);
 }
@@ -1763,6 +1865,16 @@ int SCR_Start_checkpoint()
 /* given a filename, return the full path to the file which the user should write to */
 int SCR_Route_file(const char* file, char* newfile)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_RESTART    &&
+      scr_state != SCR_STATE_CHECKPOINT &&
+      scr_state != SCR_STATE_OUTPUT)
+  {
+    scr_abort(-1, "Must call SCR_Route_file() from within Start/Complete pair @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1877,6 +1989,14 @@ int SCR_Route_file(const char* file, char* newfile)
 /* inform library that the current dataset is complete */
 int SCR_Complete_output(int valid)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_OUTPUT) {
+    scr_abort(-1, "Must call SCR_Start_output() before SCR_Complete_output() @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_IDLE;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -2076,6 +2196,14 @@ int SCR_Complete_output(int valid)
 /* completes the checkpoint set and marks it as valid or not */
 int SCR_Complete_checkpoint(int valid)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_CHECKPOINT) {
+    scr_abort(-1, "Must call SCR_Start_checkpoint() before SCR_Complete_checkpoint() @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_IDLE;
+
   return SCR_Complete_output(valid);
 }
 
@@ -2083,6 +2211,11 @@ int SCR_Complete_checkpoint(int valid)
  * and get name of restart if one is available */
 int SCR_Have_restart(int* flag, char* name)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Have_restart()", __FILE__, __LINE__);
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     *flag = 0;
@@ -2122,6 +2255,19 @@ int SCR_Have_restart(int* flag, char* name)
 /* inform library that restart is starting, get name of restart that is available */
 int SCR_Start_restart(char* name)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Start_restart()", __FILE__, __LINE__);
+  }
+  scr_state = SCR_STATE_RESTART;
+
+  /* only valid to call this if we have a checkpoint to restart from */
+  if (! scr_have_restart) {
+    scr_abort(-1, "Can only call SCR_Start_restart() if SCR_Have_restart() indicates a checkpoint is available @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -2159,6 +2305,14 @@ int SCR_Start_restart(char* name)
 /* inform library that the current restart is complete */
 int SCR_Complete_restart(int valid)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_RESTART) {
+    scr_abort(-1, "Must call SCR_Start_restart() before SCR_Complete_restart() @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_IDLE;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
