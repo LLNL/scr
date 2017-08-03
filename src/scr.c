@@ -2331,6 +2331,19 @@ int SCR_Complete_restart(int valid)
     return SCR_FAILURE;
   }
 
+  /* check that all procs read valid data */
+  if (! scr_alltrue(valid)) {
+    /* TODO: if some process fails, it would be more graceful to fetch
+     * the next most recent checkpoint and cycle through
+     * the have/start/complete restart calls again,
+     * we should also record this current checkpoint as failed in the
+     * index file so that we don't fetch it again*/
+    scr_abort(-1, "At least one process reported valid=0 in SCR_Complete_restart() @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
   /* turn off our restart flag */
   scr_have_restart = 0;
 
