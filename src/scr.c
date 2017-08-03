@@ -2346,6 +2346,11 @@ char* SCR_Get_version()
 /* query whether it is time to exit */
 int SCR_Should_exit(int* flag)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Should_exit()", __FILE__, __LINE__);
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
