@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2009, Lawrence Livermore National Security, LLC.
  * Produced at the Lawrence Livermore National Laboratory.
- * Written by Elsa Gonsiorowski <gonsie@llnl.gov>.
+ * Written by Adam Moody <moody20@llnl.gov>.
  * LLNL-CODE-411039.
  * All rights reserved.
  * This file is part of The Scalable Checkpoint / Restart (SCR) library.
@@ -10,17 +10,7 @@
 */
 
 #include "scr_globals.h"
-
-#ifdef HAVE_BBAPI
-#include <stdlib.h>
-#include "bbapi.h"
-
-BBTransferDef_t *tdef;
-BBTransferHandle_t thandle;
-int *scr_all_ranks;
-
-#define SCR_IBM_TAG_OFFSET (100)
-#endif
+#include <datawarp.h>
 
 static time_t    scr_flush_async_timestamp_start;  /* records the time the async flush started */
 static double    scr_flush_async_time_start;       /* records the time the async flush started */
@@ -108,24 +98,6 @@ static int scr_flush_async_file_dequeue(scr_hash* hash1, scr_hash* hash2)
   return SCR_SUCCESS;
 }
 
-#ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
-static int bb_check(int rc)
-{
-  if (rc) {
-    char* errstring;
-    getLastErrorDetails(BBERRORJSON, &errstring);
-    printf("Error rc:       %d\n", rc);
-    printf("Error details:  %s\n", errstring, errstring);
-    free(errstring);
-
-    //printf("Aborting due to failures\n");
-    //exit(-1);
-  }
-  return SCR_SUCCESS;
-}
-#endif
-
-#ifdef SCR_FLUSH_ASYNC_POSIX
 /* writes the specified command to the transfer file */
 static int scr_flush_async_command_set(char* command)
 {
@@ -211,38 +183,6 @@ static int scr_flush_async_file_clear_all()
     /* delete the hash */
     scr_hash_delete(&hash);
   }
-
-  return SCR_SUCCESS;
-}
-#endif
-
-/* Init async flush system (restart detection) */
-int scr_flush_async_init()
-{
-
-#ifdef SCR_FLUSH_ASYNC_POSIX
-  scr_path* path_transfer_file = scr_path_from_str(scr_cntl_prefix);
-  scr_path_append_str(path_transfer_file, "transfer.scrinfo");
-  scr_transfer_file = scr_path_strdup(path_transfer_file);
-  scr_path_delete(&path_transfer_file);
-
-  /* wait until transfer daemon is stopped */
-  scr_flush_async_stop();
-#endif
-
-#ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
-  int rc;
-  printf("BB INIT LIBRARY and creating contrib array\n");
-  fflush(stdout);
-  scr_all_ranks = (int *) malloc(sizeof(int) * scr_ranks_world);
-  int i;
-  for(i = 0; i < scr_ranks_world; i++){
-      scr_all_ranks[i] = i;
-  }
-  rc = BB_InitLibrary(scr_my_rank_world, BBAPI_CLIENTVERSIONSTR);
-  return bb_check(rc);
-#endif
-
   return SCR_SUCCESS;
 }
 
@@ -259,34 +199,35 @@ int scr_flush_async_stop()
     scr_dbg(1, "scr_flush_async_stop_all: Stopping flush");
   }
 
-#ifdef SCR_FLUSH_ASYNC_POSIX
-  /* write stop command to transfer file */
-  scr_flush_async_command_set(SCR_TRANSFER_KEY_COMMAND_STOP);
+  if(scr_flush_async_in_progress){
+    /* get the TYPE of the store for checkpoint */
+    /* neither strdup nor free */
+    scr_reddesc* reddesc = scr_reddesc_for_checkpoint(scr_flush_async_dataset_id,
+						      scr_nreddescs,
+						      scr_reddescs);
+    int storedesc_index = scr_storedescs_index_from_name(reddesc->base);
+    char* type = scr_storedescs[storedesc_index].type;
 
-  /* wait until all tasks know the transfer is stopped */
-  scr_flush_async_state_wait(SCR_TRANSFER_KEY_STATE_STOP);
+    /* do proper stop for type of dataset */
+    if(!strcmp(type, "DATAWARP") || !strcmp(type, "DW")){
+      int i = 0; //TODO do something here
+    }else if(!strcmp(type, "POSIX")){
+	/* write stop command to transfer file */
+	scr_flush_async_command_set(SCR_TRANSFER_KEY_COMMAND_STOP);
 
-  /* remove the files list from the transfer file */
-  scr_flush_async_file_clear_all();
-#endif
+	/* wait until all tasks know the transfer is stopped */
+	scr_flush_async_state_wait(SCR_TRANSFER_KEY_STATE_STOP);
 
-#ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
-  int rc;
-  printf("BB FINALIZE TERMINATE\n");
-  fflush(stdout);
-  free(scr_all_ranks);
-  rc = BB_TerminateLibrary();
-  if(bb_check(rc) != SCR_SUCCESS) {
-    printf("ERROR with terminating BB Library\n");
+	/* remove the files list from the transfer file */
+	scr_flush_async_file_clear_all();
+
+	/* remove FLUSHING state from flush file */
+	scr_flush_async_in_progress = 0;
+	/*
+	  scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
+	*/
+    }
   }
-#endif
-
-  /* remove FLUSHING state from flush file */
-  scr_flush_async_in_progress = 0;
-  /*
-  scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
-  */
-
   /* clear internal flush_async variables to indicate there is no flush */
   if (scr_flush_async_hash != NULL) {
     scr_hash_delete(&scr_flush_async_hash);
@@ -309,7 +250,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
   }
 
   /* if we don't need a flush, return right away with success */
-  if (! scr_bool_need_flush(id)) {
+  if (! scr_flush_file_need_flush(id)) {
     return SCR_SUCCESS;
   }
 
@@ -356,153 +297,175 @@ int scr_flush_async_start(scr_filemap* map, int id)
     return SCR_FAILURE;
   }
 
-#ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
-  int rc;
-  int tag = atoi(scr_jobid) * SCR_IBM_TAG_OFFSET + id;
-  printf("BB CREATE GET HANDLE rank:%d id:%d tag:%d\n", scr_my_rank_world, id, tag);
-  fflush(stdout);
-  rc = BB_GetTransferHandle(tag, scr_ranks_world, scr_all_ranks, &thandle);
-  bb_check(rc);
+  /* get the TYPE of the store for checkpoint */
+  /* neither strdup nor free */
+  scr_reddesc* reddesc = scr_reddesc_for_checkpoint(id,
+						    scr_nreddescs,
+						    scr_reddescs);
+  int storedesc_index = scr_storedescs_index_from_name(reddesc->base);
+  char* type = scr_storedescs[storedesc_index].type;
 
-  printf("BB CREATE CREATE DEF\n");
-  fflush(stdout);
-  rc = BB_CreateTransferDef(&tdef);
-  if (bb_check(rc) != SCR_SUCCESS) {
-    printf("ERROR with CREATE def\n");
+  double my_bytes;
+  if (!strcmp(type, "DATAWARP") || !strcmp(type, "DW")){
+    /* For each file figure out where it goes */
+    scr_flush_async_num_files = 0;
+    my_bytes = 0.0;
+    scr_hash_elem* elem;
+    scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
+    for (elem = scr_hash_elem_first(files);
+	 elem != NULL;
+	 elem = scr_hash_elem_next(elem))
+      {
+	/* get the filename */
+	char* file = scr_hash_elem_key(elem);
+
+	/* get the hash for this file */
+	scr_hash* file_hash = scr_hash_elem_hash(elem);
+
+	/* get directory to flush file to */
+	char* dest_dir;
+	if (scr_hash_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) != SCR_SUCCESS) {
+	  continue;
+	}
+
+	/* use file name to complete destination file name */
+	scr_path* path_dest_file = scr_path_from_str(file);
+	scr_path_basename(path_dest_file);
+	scr_path_prepend_str(path_dest_file, dest_dir);
+	char* dest_file = scr_path_strdup(path_dest_file);
+
+	/* get meta data for file */
+	scr_meta* meta = scr_hash_get(file_hash, SCR_KEY_META);
+
+	/* get the file size */
+	unsigned long filesize = 0;
+	if (scr_meta_get_filesize(meta, &filesize) != SCR_SUCCESS) {
+	  continue;
+	}
+	my_bytes += (double) filesize;
+
+	/* Stage out file */
+	int stage_out = dw_stage_file_out(file, dest_file, DW_STAGE_IMMEDIATE);
+	if(stage_out != 0){
+	  scr_abort(-1, "Datawarp stage file out failed with error %d @ %s:%d",
+		    -stage_out, __FILE__, __LINE__
+		    );
+	}
+
+	scr_flush_async_num_files++;
+
+        scr_free(&dest_file);
+	scr_path_delete(&path_dest_file);
+      }
   }
-#endif
+  else if(!strcmp(type, "POSIX")){
+      /* add each of my files to the transfer file list */
+      scr_flush_async_hash = scr_hash_new();
+      scr_flush_async_num_files = 0;
+      my_bytes = 0.0;
+      scr_hash_elem* elem;
+      scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
+      for (elem = scr_hash_elem_first(files);
+	   elem != NULL;
+	   elem = scr_hash_elem_next(elem))
+      {
+	/* get the filename */
+	char* file = scr_hash_elem_key(elem);
 
-  /* add each of my files to the transfer file list */
-  scr_flush_async_hash = scr_hash_new();
-  scr_flush_async_num_files = 0;
-  double my_bytes = 0.0;
-  scr_hash_elem* elem;
-  scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
-  for (elem = scr_hash_elem_first(files);
-       elem != NULL;
-       elem = scr_hash_elem_next(elem))
-  {
-    /* get the filename */
-    char* file = scr_hash_elem_key(elem);
+	/* get the hash for this file */
+	scr_hash* file_hash = scr_hash_elem_hash(elem);
 
-    /* get the hash for this file */
-    scr_hash* file_hash = scr_hash_elem_hash(elem);
+	/* get directory to flush file to */
+	char* dest_dir;
+	if (scr_hash_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) != SCR_SUCCESS) {
+	  continue;
+	}
 
-    /* get directory to flush file to */
-    char* dest_dir;
-    if (scr_hash_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) != SCR_SUCCESS) {
-      continue;
+	/* get meta data for file */
+	scr_meta* meta = scr_hash_get(file_hash, SCR_KEY_META);
+
+	/* get the file size */
+	unsigned long filesize = 0;
+	if (scr_meta_get_filesize(meta, &filesize) != SCR_SUCCESS) {
+	  continue;
+	}
+	my_bytes += (double) filesize;
+
+	/* add this file to the hash, and add its filesize to the number of bytes written */
+	scr_hash* transfer_file_hash = scr_hash_set_kv(scr_flush_async_hash, SCR_TRANSFER_KEY_FILES, file);
+	if (file_hash != NULL) {
+	  /* break file into path and name components */
+	  scr_path* path_dest_file = scr_path_from_str(file);
+	  scr_path_basename(path_dest_file);
+	  scr_path_prepend_str(path_dest_file, dest_dir);
+	  char* dest_file = scr_path_strdup(path_dest_file);
+
+	  scr_hash_util_set_str(transfer_file_hash, SCR_TRANSFER_KEY_DESTINATION,   dest_file);
+	  scr_hash_util_set_bytecount(transfer_file_hash, SCR_TRANSFER_KEY_SIZE,    filesize);
+	  scr_hash_util_set_bytecount(transfer_file_hash, SCR_TRANSFER_KEY_WRITTEN, 0);
+
+	  /* delete path and string for the file name */
+	  scr_free(&dest_file);
+	  scr_path_delete(&path_dest_file);
+	}
+
+	/* add this file to our total count */
+	scr_flush_async_num_files++;
+      }
+
+      /* have master on each node write the transfer file, everyone else sends data to him */
+      if (scr_storedesc_cntl->rank == 0) {
+	/* receive hash data from other processes on the same node and merge with our data */
+	int i;
+	for (i=1; i < scr_storedesc_cntl->ranks; i++) {
+	  scr_hash* h = scr_hash_new();
+	  scr_hash_recv(h, i, scr_storedesc_cntl->comm);
+	  scr_hash_merge(scr_flush_async_hash, h);
+	  scr_hash_delete(&h);
+	}
+
+	/* get a hash to store file data */
+	scr_hash* hash = scr_hash_new();
+
+	/* open transfer file with lock */
+	int fd = -1;
+	scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
+
+	/* merge our data to the file data */
+	scr_hash_merge(hash, scr_flush_async_hash);
+
+	/* set BW if it's not already set */
+	/* TODO: somewhat hacky way to determine number of nodes and therefore number of writers */
+	int writers;
+	MPI_Comm_size(scr_comm_node_across, &writers);
+	double bw;
+	if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_BW, &bw) != SCR_SUCCESS) {
+	  bw = (double) scr_flush_async_bw / (double) writers;
+	  scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_BW, bw);
+	}
+
+	/* set PERCENT if it's not already set */
+	double percent;
+	if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_PERCENT, &percent) != SCR_SUCCESS) {
+	  scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_PERCENT, scr_flush_async_percent);
+	}
+
+	/* set the RUN command */
+	scr_hash_util_set_str(hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_RUN);
+
+	/* unset the DONE flag */
+	scr_hash_unset_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
+
+	/* close the transfer file and release the lock */
+	scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+
+	/* delete the hash */
+	scr_hash_delete(&hash);
+      } else {
+	/* send our transfer hash data to the master on this node */
+	scr_hash_send(scr_flush_async_hash, 0, scr_storedesc_cntl->comm);
+      }
     }
-
-    /* get meta data for file */
-    scr_meta* meta = scr_hash_get(file_hash, SCR_KEY_META);
-
-    /* get the file size */
-    unsigned long filesize = 0;
-    if (scr_meta_get_filesize(meta, &filesize) != SCR_SUCCESS) {
-      continue;
-    }
-    my_bytes += (double) filesize;
-
-    /* break file into path and name components */
-    scr_path* path_dest_file = scr_path_from_str(file);
-    scr_path_basename(path_dest_file);
-    scr_path_prepend_str(path_dest_file, dest_dir);
-    char* dest_file = scr_path_strdup(path_dest_file);
-
-#ifdef SCR_FLUSH_ASYNC_POSIX
-    /* add this file to the hash, and add its filesize to the number of bytes written */
-    scr_hash* transfer_file_hash = scr_hash_set_kv(scr_flush_async_hash, SCR_TRANSFER_KEY_FILES, file);
-    if (file_hash != NULL) {
-
-      scr_hash_util_set_str(transfer_file_hash, SCR_TRANSFER_KEY_DESTINATION,   dest_file);
-      scr_hash_util_set_bytecount(transfer_file_hash, SCR_TRANSFER_KEY_SIZE,    filesize);
-      scr_hash_util_set_bytecount(transfer_file_hash, SCR_TRANSFER_KEY_WRITTEN, 0);
-    }
-#endif
-
-#ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
-  printf("BB ADD FILES rank:%d file:%s dest:%s\n", scr_my_rank_world, file, dest_file);
-  fflush(stdout);
-  int rc = BB_AddFiles(tdef, file, dest_file, 0);
-  if (bb_check(rc) != SCR_SUCCESS) {
-    printf("ERROR with add file\n");
-  }
-#endif
-
-    /* add this file to our total conut */
-    scr_flush_async_num_files++;
-
-    /* delete path and string for the file name */
-    scr_free(&dest_file);
-    scr_path_delete(&path_dest_file);
-  }
-
-#ifdef SCR_FLUSH_ASYNC_POSIX
-  /* have master on each node write the transfer file, everyone else sends data to him */
-  if (scr_storedesc_cntl->rank == 0) {
-    /* receive hash data from other processes on the same node and merge with our data */
-    int i;
-    for (i=1; i < scr_storedesc_cntl->ranks; i++) {
-      scr_hash* h = scr_hash_new();
-      scr_hash_recv(h, i, scr_storedesc_cntl->comm);
-      scr_hash_merge(scr_flush_async_hash, h);
-      scr_hash_delete(&h);
-    }
-
-    /* get a hash to store file data */
-    scr_hash* hash = scr_hash_new();
-
-    /* open transfer file with lock */
-    int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
-
-    /* merge our data to the file data */
-    scr_hash_merge(hash, scr_flush_async_hash);
-
-    /* set BW if it's not already set */
-    /* TODO: somewhat hacky way to determine number of nodes and therefore number of writers */
-    int writers;
-    MPI_Comm_size(scr_comm_node_across, &writers);
-    double bw;
-    if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_BW, &bw) != SCR_SUCCESS) {
-      bw = (double) scr_flush_async_bw / (double) writers;
-      scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_BW, bw);
-    }
-
-    /* set PERCENT if it's not already set */
-    double percent;
-    if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_PERCENT, &percent) != SCR_SUCCESS) {
-      scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_PERCENT, scr_flush_async_percent);
-    }
-
-    /* set the RUN command */
-    scr_hash_util_set_str(hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_RUN);
-
-    /* unset the DONE flag */
-    scr_hash_unset_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
-
-    /* close the transfer file and release the lock */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
-
-    /* delete the hash */
-    scr_hash_delete(&hash);
-  } else {
-    /* send our transfer hash data to the master on this node */
-    scr_hash_send(scr_flush_async_hash, 0, scr_storedesc_cntl->comm);
-  }
-#endif
-
-#ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
-  if (scr_flush_async_num_files > 0) {
-    printf("BB BB START\n");
-    fflush(stdout);
-    int rc = BB_StartTransfer(tdef, thandle);
-    if (bb_check(rc) != SCR_SUCCESS) {
-      printf("ERROR with start\n");
-    }
-  }
-#endif
 
   /* get the total number of bytes to write */
   scr_flush_async_bytes = 0.0;
@@ -529,49 +492,77 @@ int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
 
   /* assume the transfer is complete */
   int transfer_complete = 1;
-
-#ifdef SCR_FLUSH_ASYNC_POSIX
-  /* have master on each node check whether the flush is complete */
   double bytes_written = 0.0;
-  if (scr_storedesc_cntl->rank == 0) {
-    /* create a hash to hold the transfer file data */
-    scr_hash* hash = scr_hash_new();
 
-    /* read transfer file with lock */
-    if (scr_hash_read_with_lock(scr_transfer_file, hash) == SCR_SUCCESS) {
-      /* test each file listed in the transfer hash */
-      if (scr_flush_async_file_test(hash, &bytes_written) != SCR_SUCCESS) {
-        transfer_complete = 0;
+  /* get the TYPE of the store for checkpoint */
+  /* neither strdup nor free */
+  scr_reddesc* reddesc = scr_reddesc_for_checkpoint(id,
+						    scr_nreddescs,
+						    scr_reddescs);
+  int storedesc_index = scr_storedescs_index_from_name(reddesc->base);
+  char* type = scr_storedescs[storedesc_index].type;
+
+  /* TODO: Datawarp version does not support bytes variable for now */
+  if(!strcmp(type, "DATAWARP") || !strcmp(type, "DW")){
+      scr_hash_elem* elem;
+      int complete = 0;
+      int pending = 0;
+      int deferred = 0;
+      int failed = 0;
+      int test_complete;
+      int test_pending;
+      int test_deferred;
+      int test_failed;
+      scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
+      for (elem = scr_hash_elem_first(files);
+	   elem != NULL;
+	   elem = scr_hash_elem_next(elem))
+      {
+	char* file = scr_hash_elem_key(elem);
+	int test = dw_query_file_stage(file, &test_complete, &test_pending, &test_deferred,
+				       &test_failed);
+	if(test == 0){
+	  complete += test_complete;
+	  pending += test_pending;
+	  deferred += test_deferred;
+	  failed += test_failed;
+	}else{
+	  scr_abort(-1, "Datawarp failed with error %d @ %s:%d",
+		    -test, __FILE__, __LINE__
+		    );
+	}
       }
-    } else {
-      /* failed to read the transfer file, can't determine whether the flush is complete */
-      transfer_complete = 0;
-    }
-
-    /* free the hash */
-    scr_hash_delete(&hash);
+      if(failed != 0){
+	scr_abort(-1, "Datawarp failed while flushing dataset %d @ %s:%d",
+		  id, __FILE__, __LINE__
+		  );
+      }else if(pending != 0 || deferred != 0){
+	transfer_complete = 0;
+      }
   }
+  else if(!strcmp(type, "POSIX")){
+      /* have master on each node check whether the flush is complete */
+      if (scr_storedesc_cntl->rank == 0) {
+	/* create a hash to hold the transfer file data */
+	scr_hash* hash = scr_hash_new();
+
+	/* read transfer file with lock */
+	if (scr_hash_read_with_lock(scr_transfer_file, hash) == SCR_SUCCESS) {
+	  /* test each file listed in the transfer hash */
+	  if (scr_flush_async_file_test(hash, &bytes_written) != SCR_SUCCESS) {
+	    transfer_complete = 0;
+	  }
+	} else {
+	  /* failed to read the transfer file, can't determine whether the flush is complete */
+	  transfer_complete = 0;
+	}
+	/* free the hash */
+	scr_hash_delete(&hash);
+      }
+    }
 
   /* compute the total number of bytes written */
   MPI_Allreduce(&bytes_written, bytes, 1, MPI_DOUBLE, MPI_SUM, scr_comm_world);
-#endif
-#ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
-  if (scr_flush_async_num_files > 0) {
-    printf("BB TEST GET INFO\n");
-    fflush(stdout);
-    BBTransferInfo_t tinfo;
-    int rc = BB_GetTransferInfo(thandle, &tinfo);
-    if (tinfo.status == BBFULLSUCCESS) {
-      transfer_complete = 1;
-    } else {
-      // BBSTATUS
-      // - BBINPROGRESS
-      // - BBCANCELED
-      // - BBFAILED
-      transfer_complete = 0;
-    }
-  }
-#endif
 
   /* determine whether the transfer is complete on all tasks */
   if (scr_alltrue(transfer_complete)) {
@@ -608,13 +599,21 @@ int scr_flush_async_complete(scr_filemap* map, int id)
     /* get the hash for this file */
     scr_hash* hash = scr_hash_elem_hash(elem);
 
+    char* dest_dir;
+    if (scr_hash_util_get_str(hash, SCR_KEY_PATH, &dest_dir) != SCR_SUCCESS) {
+      continue;
+    }
+
     /* record the filename in the hash, and get reference to a hash for this file */
     scr_path* path_file = scr_path_from_str(file);
     scr_path_basename(path_file);
-    char* name = scr_path_strdup(path_file);
+    scr_path_prepend_str(path_file, dest_dir);
+    scr_path* path_relative = scr_path_relative(scr_prefix_path, path_file);
+    char* name = scr_path_strdup(path_relative);
     scr_hash* file_hash = scr_hash_set_kv(data, SCR_SUMMARY_6_KEY_FILE, name);
     scr_free(&name);
     scr_path_delete(&path_file);
+    scr_path_delete(&path_relative);
 
     /* TODO: check that this file was written successfully */
 
@@ -639,38 +638,37 @@ int scr_flush_async_complete(scr_filemap* map, int id)
     flushed = SCR_FAILURE;
   }
 
-#ifdef SCR_FLUSH_ASYNC_POSIX
+  /* get the TYPE of the store for checkpoint */
+  /* neither strdup nor free */
+  scr_reddesc* reddesc = scr_reddesc_for_checkpoint(id,
+						    scr_nreddescs,
+						    scr_reddescs);
+  int storedesc_index = scr_storedescs_index_from_name(reddesc->base);
+  char* type = scr_storedescs[storedesc_index].type;
+
   /* have master on each node remove files from the transfer file */
-  if (scr_storedesc_cntl->rank == 0) {
-    /* get a hash to read from the file */
-    scr_hash* transfer_hash = scr_hash_new();
+  if (!strcmp(type, "POSIX")){
+      if (scr_storedesc_cntl->rank == 0) {
+	/* get a hash to read from the file */
+	scr_hash* transfer_hash = scr_hash_new();
 
-    /* lock the transfer file, open it, and read it into the hash */
-    int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, transfer_hash);
+	/* lock the transfer file, open it, and read it into the hash */
+	int fd = -1;
+	scr_hash_lock_open_read(scr_transfer_file, &fd, transfer_hash);
 
-    /* remove files from the list */
-    scr_flush_async_file_dequeue(transfer_hash, scr_flush_async_hash);
+	/* remove files from the list */
+	scr_flush_async_file_dequeue(transfer_hash, scr_flush_async_hash);
 
-    /* set the STOP command */
-    scr_hash_util_set_str(transfer_hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_STOP);
+	/* set the STOP command */
+	scr_hash_util_set_str(transfer_hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_STOP);
 
-    /* write the hash back to the file */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, transfer_hash);
+	/* write the hash back to the file */
+	scr_hash_write_close_unlock(scr_transfer_file, &fd, transfer_hash);
 
-    /* delete the hash */
-    scr_hash_delete(&transfer_hash);
-  }
-#endif
-#ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
-  int rc;
-  printf("BB COMPLETE FREE DEF\n");
-  fflush(stdout);
-  rc = BB_FreeTransferDef(tdef);
-  if (bb_check(rc) != SCR_SUCCESS) {
-    printf("ERROR with free def\n");
-  }
-#endif
+	/* delete the hash */
+	scr_hash_delete(&transfer_hash);
+      }
+    }
 
   /* mark that we've stopped the flush */
   scr_flush_async_in_progress = 0;
@@ -680,9 +678,11 @@ int scr_flush_async_complete(scr_filemap* map, int id)
   scr_hash_delete(&data);
 
   /* free the file list for this checkpoint */
-  scr_hash_delete(&scr_flush_async_hash);
+  if(!strcmp(type, "POSIX")){
+    scr_hash_delete(&scr_flush_async_hash);
+    scr_flush_async_hash      = NULL;
+  }
   scr_hash_delete(&scr_flush_async_file_list);
-  scr_flush_async_hash      = NULL;
   scr_flush_async_file_list = NULL;
 
   /* stop timer, compute bandwidth, and report performance */
@@ -723,42 +723,77 @@ int scr_flush_async_complete(scr_filemap* map, int id)
 int scr_flush_async_wait(scr_filemap* map)
 {
   if (scr_flush_async_in_progress) {
-    while (scr_bool_is_flushing(scr_flush_async_dataset_id)) {
-      /* test whether the flush has completed, and if so complete the flush */
-      double bytes = 0.0;
-      if (scr_flush_async_test(map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {
-        /* complete the flush */
-        scr_flush_async_complete(map, scr_flush_async_dataset_id);
-      } else {
-        /* otherwise, sleep to get out of the way */
-        if (scr_my_rank_world == 0) {
-          scr_dbg(1, "Flush of checkpoint %d is %d%% complete",
-                  scr_flush_async_dataset_id, (int) (bytes / scr_flush_async_bytes * 100.0)
-          );
-        }
-        usleep(10*1000*1000);
+    /* get the TYPE of the store for checkpoint */
+    /* neither strdup nor free */
+    scr_reddesc* reddesc = scr_reddesc_for_checkpoint(scr_flush_async_dataset_id,
+						      scr_nreddescs,
+						      scr_reddescs);
+    int storedesc_index = scr_storedescs_index_from_name(reddesc->base);
+    char* type = scr_storedescs[storedesc_index].type;
+
+    /* do the relevant type of wait */
+    if(!strcmp(type, "DATAWARP") || !strcmp(type, "DW")){
+      /* Get the list of files */
+      scr_hash_elem* elem = NULL;
+      int dw_wait = 0;
+      scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
+      for (elem = scr_hash_elem_first(files);
+	   elem != NULL;
+	   elem = scr_hash_elem_next(elem))
+      {
+	/* Do the wait on each file */
+	char* file = scr_hash_elem_key(elem);
+	dw_wait = dw_wait_file_stage(file);
+	if (dw_wait != 0){
+	  scr_abort(-1, "Datawarp wait operation failed with error %d @ %s:%d",
+		    -dw_wait, __FILE__, __LINE__
+		    );
+	}
+      }
+      scr_flush_async_complete(map, scr_flush_async_dataset_id);
+    }
+    else if(!strcmp(type, "POSIX")){
+      while (scr_flush_file_is_flushing(scr_flush_async_dataset_id)) {
+	/* test whether the flush has completed, and if so complete the flush */
+	double bytes = 0.0;
+	if (scr_flush_async_test(map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {
+	  /* complete the flush */
+	  scr_flush_async_complete(map, scr_flush_async_dataset_id);
+	} else {
+	  /* otherwise, sleep to get out of the way */
+	  if (scr_my_rank_world == 0) {
+	    scr_dbg(1, "Flush of checkpoint %d is %d%% complete",
+		    scr_flush_async_dataset_id, (int) (bytes / scr_flush_async_bytes * 100.0)
+		    );
+	  }
+	  usleep(10*1000*1000);
+	}
       }
     }
   }
   return SCR_SUCCESS;
 }
 
-/* free memory */
+// TODO: clean-up internal API w.r.t. async init/finalize
+int scr_flush_async_init()
+{
+    /* daemon stuff */
+    scr_path* path_transfer_file = scr_path_from_str(scr_cntl_prefix);
+    scr_path_append_str(path_transfer_file, "stransfer.scrinfo");
+    scr_transfer_file = scr_path_strdup(path_transfer_file);
+    scr_path_delete(&path_transfer_file);
+
+    /* wait until transfer daemon is stopped */
+    scr_flush_async_stop();
+
+
+    return SCR_SUCCESS;
+}
+
 int scr_flush_async_finalize()
 {
+    /* daemon stuff */
+    scr_free(&scr_transfer_file);
 
-#ifdef SCR_FLUSH_ASYNC_POSIX
-  scr_free(&scr_transfer_file);
-#endif
-
-#ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
-  int rc;
-  printf("BB FINALIZE TERMINATE\n");
-  fflush(stdout);
-  free(scr_all_ranks);
-  rc = BB_TerminateLibrary();
-  return bb_check(rc);
-#endif
-
-  return SCR_SUCCESS;
+    return SCR_SUCCESS;
 }

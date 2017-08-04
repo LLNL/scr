@@ -77,19 +77,19 @@ LIST(APPEND libscr_srcs
 # Add vendor specific code based on SCR_ASYNC_API
 
 IF(${SCR_ASYNC_API} STREQUAL "NONE")
-	LIST(APPEND libscr_srcs scr_flush_async_tlcc.c)
+	LIST(APPEND libscr_srcs scr_flush_async_posix.c)
 ENDIF(${SCR_ASYNC_API} STREQUAL "NONE")
 
 IF(${SCR_ASYNC_API} STREQUAL "CRAY_DW")
-	LIST(APPEND libscr_srcs scr_flush_async_cray_xt.c)
+	LIST(APPEND libscr_srcs scr_flush_async_datawarp.c)
 ENDIF(${SCR_ASYNC_API} STREQUAL "CRAY_DW")
 
 IF(${SCR_ASYNC_API} STREQUAL "INTEL_CPPR")
-	LIST(APPEND libscr_srcs scr_flush_async_intel.c)
+	LIST(APPEND libscr_srcs scr_flush_async_cppr.c)
 ENDIF(${SCR_ASYNC_API} STREQUAL "INTEL_CPPR")
 
 IF(${SCR_ASYNC_API} STREQUAL "IBM_BBAPI")
-	LIST(APPEND libscr_srcs scr_flush_async_ibm.c)
+	LIST(APPEND libscr_srcs scr_flush_async_bbapi.c)
 ENDIF(${SCR_ASYNC_API} STREQUAL "IBM_BBAPI")
 
 
