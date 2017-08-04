@@ -608,7 +608,6 @@ int scr_flush_async_complete(scr_filemap* map, int id)
     /* get the hash for this file */
     scr_hash* hash = scr_hash_elem_hash(elem);
 
-    /* record the filename in the hash, and get reference to a hash for this file */
     char* dest_dir;
     if (scr_hash_util_get_str(hash, SCR_KEY_PATH, &dest_dir) != SCR_SUCCESS) {
       continue;
