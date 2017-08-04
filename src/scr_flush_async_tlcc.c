@@ -484,7 +484,7 @@ int scr_flush_async_complete(scr_filemap* map, int id)
     scr_path_basename(path_file);
     scr_path_prepend_str(path_file, dest_dir);
     scr_path* path_relative = scr_path_relative(scr_prefix_path, path_file);
-    char* name = scr_path_strdup(path_file);
+    char* name = scr_path_strdup(path_relative);
     scr_hash* file_hash = scr_hash_set_kv(data, SCR_SUMMARY_6_KEY_FILE, name);
     scr_free(&name);
     scr_path_delete(&path_file);
