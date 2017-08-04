@@ -39,9 +39,9 @@ IF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
 
 
-IF(${SCR_RESOURCE_MANAGER} STREQUAL "None")
+IF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 	MESSAGE("No resource manager selected. Some of the SCR command line interface will not be built.")
-ELSE(${SCR_RESOURCE_MANAGER} STREQUAL "None")
+ELSE(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 	# Each of the following must be implemented for all resource managers
 	LIST(APPEND resource_manager_bins
 		scr_run
@@ -59,6 +59,6 @@ ELSE(${SCR_RESOURCE_MANAGER} STREQUAL "None")
 	ENDFOREACH(bin IN ITEMS ${resource_manager_bins})
 
 	INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${cliscr_dir_name}/scr_run DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME ${cliscr_run_name})
-ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "None")
+ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
 
