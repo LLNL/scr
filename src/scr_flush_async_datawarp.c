@@ -786,7 +786,10 @@ int scr_flush_async_init()
     /* wait until transfer daemon is stopped */
     scr_flush_async_stop();
 
-
+    /* clear out the file */
+    if (scr_storedesc_cntl->rank == 0) {
+      scr_file_unlink(scr_transfer_file);
+    }
     return SCR_SUCCESS;
 }
 
