@@ -31,7 +31,7 @@ sub expand {
   my @lowhighs = ();
   my @single_nodes = ();
   my $numberLength = 0; # for leading zeros, e.g atlas[0001-0003]
-  if ($nodeset =~ /([\D]*)\[([\d,-]+)\](.*)/) {
+  if ($nodeset =~ /([\D\d]*)\[([\d,-]+)\](.*)/) {
     # hostlist with brackets, e.g., atlas[2-5,28,30]
     $machine = $1;
     my @ranges = split ",", $2;

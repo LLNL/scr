@@ -152,6 +152,11 @@ int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int d
     int ckpts = atoi(ckpts_str);
     ckpts -= dec_count;
 
+    /* don't go below zero */
+    if (ckpts < 0) {
+      ckpts = 0;
+    }
+
     /* write this new value back to the hash */
     scr_hash_unset(hash, SCR_HALT_KEY_CHECKPOINTS);
     scr_hash_setf(hash, NULL, "%s %d", SCR_HALT_KEY_CHECKPOINTS, ckpts);

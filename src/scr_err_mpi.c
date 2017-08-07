@@ -72,5 +72,5 @@ void scr_abort(int rc, const char *fmt, ...)
   va_end(argp);
   fprintf(stderr, "\n");
 
-  MPI_Abort(MPI_COMM_WORLD, 0);
+  MPI_Abort(MPI_COMM_WORLD, rc);
 }

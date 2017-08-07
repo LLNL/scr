@@ -51,6 +51,11 @@
 #define SCR_HALT_SECONDS (0)
 #endif
 
+/* whether SCR will shut down and call exit if halt condition is detected */
+#ifndef SCR_HALT_ENABLED
+#define SCR_HALT_ENABLED (1)
+#endif
+
 /* =========================================================================
  * Default config file location, control directory, and cache and checkpoint configuration.
  * ========================================================================= */

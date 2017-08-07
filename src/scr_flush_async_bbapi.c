@@ -608,13 +608,21 @@ int scr_flush_async_complete(scr_filemap* map, int id)
     /* get the hash for this file */
     scr_hash* hash = scr_hash_elem_hash(elem);
 
+    char* dest_dir;
+    if (scr_hash_util_get_str(hash, SCR_KEY_PATH, &dest_dir) != SCR_SUCCESS) {
+      continue;
+    }
+
     /* record the filename in the hash, and get reference to a hash for this file */
     scr_path* path_file = scr_path_from_str(file);
     scr_path_basename(path_file);
-    char* name = scr_path_strdup(path_file);
+    scr_path_prepend_str(path_file, dest_dir);
+    scr_path* path_relative = scr_path_relative(scr_prefix_path, path_file);
+    char* name = scr_path_strdup(path_relative);
     scr_hash* file_hash = scr_hash_set_kv(data, SCR_SUMMARY_6_KEY_FILE, name);
     scr_free(&name);
     scr_path_delete(&path_file);
+    scr_path_delete(&path_relative);
 
     /* TODO: check that this file was written successfully */
 
