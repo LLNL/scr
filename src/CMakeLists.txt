@@ -77,31 +77,29 @@ LIST(APPEND libscr_srcs
 # Add vendor specific code based on SCR_ASYNC_API
 
 IF(${SCR_ASYNC_API} STREQUAL "NONE")
-	LIST(APPEND libscr_srcs scr_flush_async_posix.c)
+	LIST(APPEND libscr_srcs scr_flush_async_tlcc.c)
 ENDIF(${SCR_ASYNC_API} STREQUAL "NONE")
 
 IF(${SCR_ASYNC_API} STREQUAL "CRAY_DW")
-	LIST(APPEND libscr_srcs scr_flush_async_datawarp.c)
+	LIST(APPEND libscr_srcs scr_flush_async_cray_xt.c)
 ENDIF(${SCR_ASYNC_API} STREQUAL "CRAY_DW")
 
 IF(${SCR_ASYNC_API} STREQUAL "INTEL_CPPR")
-	LIST(APPEND libscr_srcs scr_flush_async_cppr.c)
+	LIST(APPEND libscr_srcs scr_flush_async_intel.c)
 ENDIF(${SCR_ASYNC_API} STREQUAL "INTEL_CPPR")
 
 IF(${SCR_ASYNC_API} STREQUAL "IBM_BBAPI")
-	LIST(APPEND libscr_srcs scr_flush_async_bbapi.c)
+	LIST(APPEND libscr_srcs scr_flush_async_ibm.c)
 ENDIF(${SCR_ASYNC_API} STREQUAL "IBM_BBAPI")
 
 
 # SCR Library
-ADD_LIBRARY(scr_o OBJECT ${libscr_srcs})
-
-ADD_LIBRARY(scr SHARED $<TARGET_OBJECTS:scr_o>)
+ADD_LIBRARY(scr SHARED ${libscr_srcs})
 TARGET_LINK_LIBRARIES(scr ${SCR_EXTERNAL_LIBS})
 SET_TARGET_PROPERTIES(scr PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 1)
 INSTALL(TARGETS scr DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-ADD_LIBRARY(scr-static STATIC $<TARGET_OBJECTS:scr_o>)
+ADD_LIBRARY(scr-static STATIC ${libscr_srcs})
 TARGET_LINK_LIBRARIES(scr-static ${SCR_EXTERNAL_LIBS})
 SET_TARGET_PROPERTIES(scr-static PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 1)
 INSTALL(TARGETS scr-static DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -112,12 +110,12 @@ TARGET_LINK_LIBRARIES(scr_base ${SCR_EXTERNAL_LIBS})
 
 # Fortran
 IF(ENABLE_FORTRAN)
-        ADD_LIBRARY(scrf SHARED scrf.c $<TARGET_OBJECTS:scr_o>)
+        ADD_LIBRARY(scrf SHARED scrf.c ${libscr_srcs})
         TARGET_LINK_LIBRARIES(scrf ${SCR_EXTERNAL_LIBS})
         SET_TARGET_PROPERTIES(scrf PROPERTIES OUTPUT_NAME scrf CLEAN_DIRECT_OUTPUT 1)
         INSTALL(TARGETS scrf DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-        ADD_LIBRARY(scrf-static STATIC scrf.c $<TARGET_OBJECTS:scr_o>)
+        ADD_LIBRARY(scrf-static STATIC scrf.c ${libscr_srcs})
         TARGET_LINK_LIBRARIES(scrf-static ${SCR_EXTERNAL_LIBS})
         SET_TARGET_PROPERTIES(scrf-static PROPERTIES OUTPUT_NAME scrf CLEAN_DIRECT_OUTPUT 1)
         INSTALL(TARGETS scrf-static DESTINATION ${CMAKE_INSTALL_LIBDIR})
