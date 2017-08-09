@@ -54,6 +54,8 @@ typedef int SCR_Fint;
 # define FORTRAN_API
 #endif
 
+/* TODO: need to define SCR_FLAG constants */
+
 /* convert a Fortran string to a C string, removing any trailing spaces and terminating with a NULL */
 static int scr_fstr2cstr(const char* fstr, int flen, char* cstr, int clen)
 {
@@ -124,6 +126,10 @@ static int scr_cstr2fstr(const char* cstr, char* fstr, int flen)
   return rc;
 }
 
+/*================================================
+ * Init, Finalize, Exit
+ *================================================*/
+
 FORTRAN_API void FORT_CALL scr_init_(int* ierror)
 {
   *ierror = SCR_Init();
@@ -135,6 +141,60 @@ FORTRAN_API void FORT_CALL scr_finalize_(int* ierror)
   *ierror = SCR_Finalize();
   return;
 }
+
+FORTRAN_API void FORT_CALL scr_should_exit_(int* flag, int* ierror)
+{
+  *ierror = SCR_Should_exit(flag);
+  return;
+}
+
+/*================================================
+ * Restart functions
+ *================================================*/
+
+FORTRAN_API void FORT_CALL scr_have_restart_(int* flag, char* name FORT_MIXED_LEN(name_len), int* ierror FORT_END_LEN(name_len))
+{
+  /* get the filename to use */
+  char name_tmp[SCR_MAX_FILENAME];
+  *ierror = SCR_Have_restart(flag, name_tmp);
+
+  /* if have a checkpoint to restart from, get the name */
+  if (*flag) {
+    /* convert name to fortran string */
+    if (scr_cstr2fstr(name_tmp, name, name_len) != 0) {
+      *ierror = !SCR_SUCCESS;
+      return;
+    }
+  }
+
+  return;
+}
+
+FORTRAN_API void FORT_CALL scr_start_restart_(char* name FORT_MIXED_LEN(name_len), int* ierror FORT_END_LEN(name_len))
+{
+  /* start restart and get name */
+  char name_tmp[SCR_MAX_FILENAME];
+  *ierror = SCR_Start_restart(name_tmp);
+
+  /* convert name to fortran string */
+  if (scr_cstr2fstr(name_tmp, name, name_len) != 0) {
+    *ierror = !SCR_SUCCESS;
+    return;
+  }
+
+  return;
+}
+
+FORTRAN_API void FORT_CALL scr_complete_restart_(int* valid, int* ierror)
+{
+  int valid_tmp = *valid;
+  *ierror = SCR_Complete_restart(valid_tmp);
+  return;
+}
+
+/*================================================
+ * Checkpoint functions
+ *================================================*/
 
 FORTRAN_API void FORT_CALL scr_need_checkpoint_(int* flag, int* ierror)
 {
@@ -154,6 +214,36 @@ FORTRAN_API void FORT_CALL scr_complete_checkpoint_(int* valid, int* ierror)
   *ierror = SCR_Complete_checkpoint(valid_tmp);
   return;
 }
+
+/*================================================
+ * Output functions
+ *================================================*/
+
+FORTRAN_API void FORT_CALL scr_start_output_(char* name FORT_MIXED_LEN(name_len), int* flags, int* ierror FORT_END_LEN(name_len))
+{
+  /* convert name from a Fortran string to C string */
+  char name_tmp[SCR_MAX_FILENAME];
+  if (scr_fstr2cstr(name, name_len, name_tmp, sizeof(name_tmp)) != 0) {
+    *ierror = !SCR_SUCCESS;
+    return;
+  }
+
+  int flags_tmp = *flags;
+  *ierror = SCR_Start_output(name_tmp, flags_tmp);
+
+  return;
+}
+
+FORTRAN_API void FORT_CALL scr_complete_output_(int* valid, int* ierror)
+{
+  int valid_tmp = *valid;
+  *ierror = SCR_Complete_output(valid_tmp);
+  return;
+}
+
+/*================================================
+ * Route file
+ *================================================*/
 
 FORTRAN_API void FORT_CALL scr_route_file_(char* name FORT_MIXED_LEN(name_len),
                                            char* file FORT_MIXED_LEN(file_len),
