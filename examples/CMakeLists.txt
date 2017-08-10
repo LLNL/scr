@@ -60,7 +60,7 @@ SCR_ADD_TEST(test_interpose "" "checkpoint_set_*")
 
 ADD_EXECUTABLE(test_interpose_multiple test_common.c test_interpose_multiple.c)
 TARGET_LINK_LIBRARIES(test_interpose_multiple scr)
-SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank_0.0.ckpt")
+SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank*.ckpt")
 
 ADD_EXECUTABLE(test_ckpt_C test_ckpt.C)
 TARGET_LINK_LIBRARIES(test_ckpt_C scr)
