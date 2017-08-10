@@ -40,7 +40,6 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test.conf DESTINATION ${CMAKE_CURRENT_BINA
 ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api scr)
 SCR_ADD_TEST(test_api "" "ckpt.*")
-SCR_ADD_PARALLEL_TEST(test_api 4 "" "ckpt.*")
 
 ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
 TARGET_LINK_LIBRARIES(test_api_file scr)
@@ -50,7 +49,6 @@ ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
 TARGET_LINK_LIBRARIES(test_api_multiple scr)
 SCR_ADD_TEST(test_api_multiple "" "")
 SET_TESTS_PROPERTIES(serial_test_api_multiple_start serial_test_api_multiple_restart PROPERTIES WILL_FAIL TRUE)
-SCR_ADD_PARALLEL_TEST(test_api_multiple 4 "" "")
 
 ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
 TARGET_LINK_LIBRARIES(test_api_multiple_file scr)
@@ -59,24 +57,20 @@ TARGET_LINK_LIBRARIES(test_api_multiple_file scr)
 ADD_EXECUTABLE(test_interpose test_interpose.c)
 TARGET_LINK_LIBRARIES(test_interpose scr)
 SCR_ADD_TEST(test_interpose "" "checkpoint_set_*")
-SCR_ADD_PARALLEL_TEST(test_interpose 4 "" "checkpoint_set_*")
 
 ADD_EXECUTABLE(test_interpose_multiple test_common.c test_interpose_multiple.c)
 TARGET_LINK_LIBRARIES(test_interpose_multiple scr)
 SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank_0.0.ckpt")
-SCR_ADD_PARALLEL_TEST(test_interpose_multiple 4 "" "../examplesrank*.ckpt")
 
 ADD_EXECUTABLE(test_ckpt_C test_ckpt.C)
 TARGET_LINK_LIBRARIES(test_ckpt_C scr)
 SCR_ADD_TEST(test_ckpt_C "" "rank_0.ckpt")
-SCR_ADD_PARALLEL_TEST(test_ckpt_C 4 "" "rank_*.ckpt")
 
 IF(ENABLE_FORTRAN)
 	SET_SOURCE_FILES_PROPERTIES(test_ckpt.F PROPERTIES LANGUAGE Fortran)
 	ADD_EXECUTABLE(test_ckpt_F test_ckpt.F)
 	TARGET_LINK_LIBRARIES(test_ckpt_F scrf ${MPI_Fortran_LIBRARIES})
 	SCR_ADD_TEST(test_ckpt_F "" "rank_00000.ckpt")
-	SCR_ADD_PARALLEL_TEST(test_ckpt_F 4 "" "rank_*.ckpt")
 ENDIF(ENABLE_FORTRAN)
 
 # add target: "make check"
