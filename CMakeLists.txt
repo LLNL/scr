@@ -30,6 +30,8 @@ SET(SCR_CONFIG_FILE "/etc/scr/scr.conf" CACHE FILEPATH "Default full path and fi
 SET(SCR_FILE_LOCK "FLOCK" CACHE STRING "Specify type of file locking to use (FLOCK FCNTL NONE)")
 SET_PROPERTY(CACHE SCR_FILE_LOCK PROPERTY STRINGS FLOCK FCNTL NONE)
 
+OPTION(SCR_LINK_STATIC "Default to static linking? (Needed for Cray)" OFF)
+
 # Find Packages & Files
 
 LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")

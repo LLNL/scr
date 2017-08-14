@@ -34,6 +34,14 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/makefile.examples DESTINATION ${CMAKE_
 
 # CMAKE PROPER FOR EXAMPLES
 
+## Prefer static?
+IF(SCR_LINK_STATIC)
+        SET(SCR_LINK_TO scr-static)
+ELSE(SCR_LINK_STATIC)
+        SET(SCR_LINK_TO scr)
+ENDIF(SCR_LINK_STATIC)
+
+
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 ## Move test cleanup script to build directory
@@ -41,37 +49,46 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_cleanup.sh DESTINATION ${CMAKE_CURREN
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test.conf DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 ADD_EXECUTABLE(test_api test_common.c test_api.c)
-TARGET_LINK_LIBRARIES(test_api scr)
+TARGET_LINK_LIBRARIES(test_api ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api "" "ckpt.*")
 
 ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
-TARGET_LINK_LIBRARIES(test_api_file scr)
+TARGET_LINK_LIBRARIES(test_api_file ${SCR_LINK_TO})
 #SCR_ADD_TEST: proper usage is unknown
 
 ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
-TARGET_LINK_LIBRARIES(test_api_multiple scr)
+TARGET_LINK_LIBRARIES(test_api_multiple ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api_multiple "" "")
 
 ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
-TARGET_LINK_LIBRARIES(test_api_multiple_file scr)
+TARGET_LINK_LIBRARIES(test_api_multiple_file ${SCR_LINK_TO})
 #SCR_ADD_TEST: proper usage is unknown
 
 ADD_EXECUTABLE(test_interpose test_interpose.c)
-TARGET_LINK_LIBRARIES(test_interpose scr)
+TARGET_LINK_LIBRARIES(test_interpose ${SCR_LINK_TO})
 SCR_ADD_TEST(test_interpose "" "checkpoint_set_*")
 
 ADD_EXECUTABLE(test_interpose_multiple test_common.c test_interpose_multiple.c)
-TARGET_LINK_LIBRARIES(test_interpose_multiple scr)
+TARGET_LINK_LIBRARIES(test_interpose_multiple ${SCR_LINK_TO})
 SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank_0.0.ckpt")
 
 ADD_EXECUTABLE(test_ckpt_C test_ckpt.C)
-TARGET_LINK_LIBRARIES(test_ckpt_C scr)
+TARGET_LINK_LIBRARIES(test_ckpt_C ${SCR_LINK_TO})
 SCR_ADD_TEST(test_ckpt_C "" "rank_0.ckpt")
 
 IF(ENABLE_FORTRAN)
-	SET_SOURCE_FILES_PROPERTIES(test_ckpt.F PROPERTIES LANGUAGE Fortran)
+        SET_SOURCE_FILES_PROPERTIES(test_ckpt.F PROPERTIES LANGUAGE Fortran)
 	ADD_EXECUTABLE(test_ckpt_F test_ckpt.F)
-	TARGET_LINK_LIBRARIES(test_ckpt_F scrf ${MPI_Fortran_LIBRARIES})
+        SET_TARGET_PROPERTIES(test_ckpt_F PROPERTIES LINKER_LANGUAGE Fortran)
+
+        IF(SCR_LINK_STATIC)
+                # needed for LANL cray
+                SET(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
+                TARGET_LINK_LIBRARIES(test_ckpt_F scrf-static ${MPI_Fortran_LIBRARIES})
+        ELSE(SCR_LINK_STATIC)
+                TARGET_LINK_LIBRARIES(test_ckpt_F scrf ${MPI_Fortran_LIBRARIES})
+        ENDIF(SCR_LINK_STATIC)
+
 	SCR_ADD_TEST(test_ckpt_F "" "rank_00000.ckpt")
 ENDIF(ENABLE_FORTRAN)
 
