@@ -18,10 +18,13 @@ LIST(APPEND example_files
 INSTALL(FILES ${example_files} DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/examples)
 
 ## static linking means we must pass a link line to our examples
-## TODO: maybe this can be done a better way?
-IF(NOT "${SCR_LINK_LINE}" STREQUAL "")
+IF(SCR_LINK_STATIC)
+    IF(NOT "${SCR_LINK_LINE}" STREQUAL "")
         STRING(REPLACE ";" " " SCR_LINK_LINE ${SCR_LINK_LINE})
-ENDIF(NOT "${SCR_LINK_LINE}" STREQUAL "")
+    ENDIF(NOT "${SCR_LINK_LINE}" STREQUAL "")
+ELSE(SCR_LINK_STATIC)
+    SET(SCR_LINK_LINE)
+ENDIF(SCR_LINK_STATIC)
 
 ## Configure & install makefile
 CONFIGURE_FILE(makefile.examples.in makefile.examples @ONLY)
