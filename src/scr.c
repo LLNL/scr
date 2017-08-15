@@ -37,6 +37,19 @@
 #include "dtcmp.h"
 #endif /* HAVE_LIBDTCMP */
 
+/* define which state we're in for API calls, this is to help ensure
+ * users call SCR functions in the correct order */
+typedef enum {
+    SCR_STATE_UNINIT,     /* before init and after finalize */
+    SCR_STATE_IDLE,       /* between init/finalize */
+    SCR_STATE_RESTART,    /* between start/complete restart */
+    SCR_STATE_CHECKPOINT, /* between start/complete checkpoint */
+    SCR_STATE_OUTPUT      /* between start/complete output */
+} SCR_STATE;
+
+/* initialize our state to uninit */
+static SCR_STATE scr_state = SCR_STATE_UNINIT;
+
 /* look up redundancy descriptor we should use for this dataset */
 static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_reddesc* descs)
 {
@@ -264,7 +277,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
   MPI_Bcast(&need_to_halt, 1, MPI_INT, 0, scr_comm_world);
 
   /* halt job if we need to, and flush latest checkpoint if needed */
-  if (need_to_halt && halt_cond == SCR_TEST_AND_HALT) {
+  if (need_to_halt && halt_cond == SCR_TEST_AND_HALT && scr_halt_enabled) {
     /* handle any async flush */
     if (scr_flush_async_in_progress) {
       /* there's an async flush ongoing, see which dataset is being flushed */
@@ -450,6 +463,44 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
   scr_free(&dir);
 
   return SCR_SUCCESS;
+}
+
+/* given the current state, abort with an informative error message */
+static void scr_state_transition_error(int state, const char* function, const char* file, int line)
+{
+  switch(state) {
+  case SCR_STATE_UNINIT:
+    /* tried to call some SCR function while uninitialized */
+    scr_abort(-1, "Must call SCR_Init() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  case SCR_STATE_RESTART:
+    /* tried to call some SCR function while in Start_restart region */
+    scr_abort(-1, "Must call SCR_Complete_restart() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  case SCR_STATE_CHECKPOINT:
+    /* tried to call some SCR function while in Start_checkpoint region */
+    scr_abort(-1, "Must call SCR_Complete_checkpoint() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  case SCR_STATE_OUTPUT:
+    /* tried to call some SCR function while in Start_output region */
+    scr_abort(-1, "Must call SCR_Complete_output() before %s @ %s:%d",
+      function, file, line
+    );
+    break;
+  }
+
+  /* fall back message, less informative, but at least something */
+  scr_abort(-1, "Called %s from invalid state %d @ %s:%d",
+    function, state, file, line
+  );
+
+  return;
 }
 
 /*
@@ -662,6 +713,11 @@ static int scr_get_params()
     scr_halt_seconds = atoi(value);
   }
 
+  /* determine whether we should call exit() upon detecting a halt condition */
+  if ((value = scr_param_get("SCR_HALT_ENABLED")) != NULL) {
+    scr_halt_enabled = atoi(value);
+  }
+
   /* set MPI buffer size (file chunk size) */
   if ((value = scr_param_get("SCR_MPI_BUF_SIZE")) != NULL) {
     if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
@@ -852,6 +908,413 @@ static int scr_get_params()
 
 /*
 =========================================
+Common code for Start/Complete output/checkpoint
+=========================================
+*/
+
+/* start phase for a new output dataset */
+static int scr_start_output(const char* name, int flags)
+{
+  /* bail out if user called Start_output twice without Complete_output in between */
+  if (scr_in_output) {
+    scr_abort(-1, "scr_complete_output must be called before scr_start_output is called again @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* set the output flag to indicate we have started a new output dataset */
+  scr_in_output = 1;
+
+  /* make sure everyone is ready to start before we delete any existing checkpoints */
+  MPI_Barrier(scr_comm_world);
+
+  /* determine whether this is a checkpoint */
+  int is_ckpt = (flags & SCR_FLAG_CHECKPOINT);
+
+  /* if we have a checkpoint, stop clock recording compute time,
+   * we count normal output cost as part of compute time for
+   * computing optimal checkpoint frequency */
+  if (is_ckpt && scr_my_rank_world == 0) {
+    /* stop the clock for measuring the compute time */
+    scr_time_compute_end = MPI_Wtime();
+
+    /* log the end of this compute phase */
+    if (scr_log_enable) {
+      int compute_id = scr_checkpoint_id + 1;
+      double time_diff = scr_time_compute_end - scr_time_compute_start;
+      time_t now = scr_log_seconds();
+      scr_log_event("COMPUTE COMPLETED", NULL, &compute_id, &now, &time_diff);
+    }
+  }
+
+  /* increment our dataset counter */
+  scr_dataset_id++;
+
+  /* increment our checkpoint counters if needed */
+  if (is_ckpt) {
+    scr_checkpoint_id++;
+    scr_ckpt_dset_id = scr_dataset_id;
+  }
+
+  /* check that we got valid name, and use a default name if not */
+  char* dataset_name = name;
+  char dataset_name_default[SCR_MAX_FILENAME];
+  if (name == NULL || strcmp(name, "") == 0) {
+    /* caller didn't provide a name, so use our default */
+    snprintf(dataset_name_default, sizeof(dataset_name_default), "scr.dataset.%d", scr_dataset_id);
+    dataset_name = dataset_name_default;
+  }
+
+  /* TODO: if we know of an existing dataset with the same name
+   * delete all files */
+
+  /* ensure that name and flags match across ranks,
+   * broadcast values from rank 0 and compare to that */
+  char* master_name = NULL;
+  int master_flags;
+  if (scr_my_rank_world == 0) {
+    master_name  = strdup(dataset_name);
+    master_flags = flags;
+  }
+  scr_str_bcast(&master_name, 0, scr_comm_world);
+  MPI_Bcast(&master_flags, 1, MPI_INT, 0, scr_comm_world);
+  if (strcmp(dataset_name, master_name) != 0) {
+    scr_abort(-1, "Dataset name provided to SCR_Start_output must be identical on all processes @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  if (master_flags != flags) {
+    scr_abort(-1, "Dataset flags provided to SCR_Start_output must be identical on all processes @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_free(&master_name);
+
+  /* rank 0 builds dataset object and broadcasts it out to other ranks */
+  scr_dataset* dataset = scr_dataset_new();
+  if (scr_my_rank_world == 0) {
+    /* capture time and build name of dataset */
+    int64_t dataset_time = scr_time_usecs();
+
+    /* fill in fields for dataset */
+    scr_dataset_set_id(dataset, scr_dataset_id);
+    scr_dataset_set_name(dataset, dataset_name);
+    scr_dataset_set_flags(dataset, flags);
+    scr_dataset_set_created(dataset, dataset_time);
+    scr_dataset_set_username(dataset, scr_username);
+    if (scr_jobname != NULL) {
+      scr_dataset_set_jobname(dataset, scr_jobname);
+    }
+    scr_dataset_set_jobid(dataset, scr_jobid);
+    if (scr_clustername != NULL) {
+      scr_dataset_set_cluster(dataset, scr_clustername);
+    }
+    if (is_ckpt) {
+      scr_dataset_set_ckpt(dataset, scr_checkpoint_id);
+    }
+  }
+  scr_hash_bcast(dataset, 0, scr_comm_world);
+
+  /* get the redundancy descriptor for this dataset */
+  scr_reddesc* reddesc = scr_get_reddesc(dataset, scr_nreddescs, scr_reddescs);
+
+  /* start the clock to record how long it takes to write output */
+  if (is_ckpt && scr_my_rank_world == 0) {
+    scr_time_checkpoint_start = MPI_Wtime();
+
+    /* log the start of this checkpoint phase */
+    if (scr_log_enable) {
+      scr_timestamp_checkpoint_start = scr_log_seconds();
+      scr_log_event("CHECKPOINT STARTED", reddesc->base, &scr_checkpoint_id, &scr_timestamp_checkpoint_start, NULL);
+    }
+  }
+
+  /* get an ordered list of the datasets currently in cache */
+  int ndsets;
+  int* dsets = NULL;
+  scr_filemap_list_datasets(scr_map, &ndsets, &dsets);
+
+  /* lookup the number of datasets we're allowed to keep in
+   * the base for this dataset */
+  int size = 0;
+  int store_index = scr_storedescs_index_from_name(reddesc->base);
+  if (store_index >= 0) {
+    size = scr_storedescs[store_index].max_count;
+  }
+
+  int i;
+  char* base = NULL;
+
+  /* run through each of our datasets and count how many we have in this base */
+  int nckpts_base = 0;
+  for (i=0; i < ndsets; i++) {
+    /* get base for this dataset and increase count if it matches the target base */
+    base = scr_reddesc_base_from_filemap(scr_map, dsets[i], scr_my_rank_world);
+    if (base != NULL) {
+      if (strcmp(base, reddesc->base) == 0) {
+        nckpts_base++;
+      }
+      scr_free(&base);
+    }
+  }
+
+  /* run through and delete datasets from base until we make room for the current one */
+  int flushing = -1;
+  for (i=0; i < ndsets && nckpts_base >= size; i++) {
+    base = scr_reddesc_base_from_filemap(scr_map, dsets[i], scr_my_rank_world);
+    if (base != NULL) {
+      if (strcmp(base, reddesc->base) == 0) {
+        if (! scr_flush_file_is_flushing(dsets[i])) {
+          /* this dataset is in our base, and it's not being flushed, so delete it */
+          scr_cache_delete(scr_map, dsets[i]);
+          nckpts_base--;
+        } else if (flushing == -1) {
+          /* this dataset is in our base, but we're flushing it, don't delete it */
+          flushing = dsets[i];
+        }
+      }
+      scr_free(&base);
+    }
+  }
+
+  /* if we still don't have room and we're flushing, the dataset we need to delete
+   * must be flushing, so wait for it to finish */
+  if (nckpts_base >= size && flushing != -1) {
+    /* TODO: we could increase the transfer bandwidth to reduce our wait time */
+
+    /* wait for this dataset to complete its flush */
+    scr_flush_async_wait(scr_map);
+
+    /* now dataset is no longer flushing, we can delete it and continue on */
+    scr_cache_delete(scr_map, flushing);
+    nckpts_base--;
+  }
+
+  /* free the list of datasets */
+  scr_free(&dsets);
+
+  /* update our file map with this new dataset */
+  scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+
+  /* TODO: may want to allow user to specify these values per dataset */
+  /* store variables needed for scavenge */
+  scr_hash* flushdesc = scr_hash_new();
+  scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  scr_preserve_directories);
+  scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, scr_use_containers);
+  scr_filemap_set_flushdesc(scr_map, scr_dataset_id, scr_my_rank_world, flushdesc);
+  scr_hash_delete(&flushdesc);
+
+  /* store the redundancy descriptor in the filemap, so if we die before completing
+   * the dataset, we'll have a record of the new directory we're about to create */
+  scr_hash* my_desc_hash = scr_hash_new();
+  scr_reddesc_store_to_hash(reddesc, my_desc_hash);
+  scr_filemap_set_desc(scr_map, scr_dataset_id, scr_my_rank_world, my_desc_hash);
+  scr_filemap_write(scr_map_file, scr_map);
+  scr_hash_delete(&my_desc_hash);
+
+  /* make directory in cache to store files for this dataset */
+  scr_cache_dir_create(reddesc, scr_dataset_id);
+
+  /* free dataset object */
+  scr_dataset_delete(&dataset);
+
+  /* print a debug message to indicate we've started the dataset */
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "Starting dataset %s", dataset_name);
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* end phase for current output dataset */
+static int scr_complete_output(int valid)
+{
+  /* bail out if there is no active call to Start_output */
+  if (! scr_in_output) {
+    scr_abort(-1, "scr_start_output must be called before scr_complete_output @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* count number of files, number of bytes, and record filesize for each file
+   * as written by this process */
+  unsigned long my_counts[3] = {0, 0, 0};
+  scr_hash_elem* elem;
+  for (elem = scr_filemap_first_file(scr_map, scr_dataset_id, scr_my_rank_world);
+       elem != NULL;
+       elem = scr_hash_elem_next(elem))
+  {
+    /* get the filename */
+    char* file = scr_hash_elem_key(elem);
+    my_counts[0]++;
+
+    /* get size of this file */
+    unsigned long filesize = scr_file_size(file);
+    my_counts[1] += filesize;
+
+   /* TODO: record permissions and/or timestamps? */
+
+    /* fill in filesize and complete flag in the meta data for the file */
+    scr_meta* meta = scr_meta_new();
+    scr_filemap_get_meta(scr_map, scr_dataset_id, scr_my_rank_world, file, meta);
+    scr_meta_set_filesize(meta, filesize);
+    scr_meta_set_complete(meta, valid);
+    scr_filemap_set_meta(scr_map, scr_dataset_id, scr_my_rank_world, file, meta);
+    scr_meta_delete(&meta);
+  }
+
+  /* we execute a sum as a logical allreduce to determine whether everyone is valid
+   * we interpret the result to be true only if the sum adds up to the number of processes */
+  if (valid) {
+    my_counts[2] = 1;
+  }
+
+  /* execute allreduce */
+  unsigned long total_counts[3];
+  MPI_Allreduce(my_counts, total_counts, 3, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
+
+  /* get dataset from filemap */
+  scr_dataset* dataset = scr_dataset_new();
+  scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+
+  /* get flags for this dataset */
+  int is_ckpt   = scr_dataset_is_ckpt(dataset);
+  int is_output = scr_dataset_is_output(dataset);
+
+  /* store total number of files, total number of bytes, and complete flag in dataset */
+  scr_dataset_set_files(dataset, (int) total_counts[0]);
+  scr_dataset_set_size(dataset,        total_counts[1]);
+  if (total_counts[2] == scr_ranks_world) {
+    /* got a valid=1 for every rank, we're complete */
+    scr_dataset_set_complete(dataset, 1);
+  } else {
+    /* at least one rank has valid=0, so incomplete */
+    scr_dataset_set_complete(dataset, 0);
+  }
+  scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+
+  /* write out info to filemap */
+  scr_filemap_write(scr_map_file, scr_map);
+
+  /* TODO: PRESERVE preprocess info needed for flush/scavenge, e.g., container offsets,
+   * list of directories to create, etc. we should also apply redundancy to this info,
+   * this could be done in flush, but it's hard to do in scavenge */
+  if (scr_flush_verify(scr_map, scr_dataset_id) != SCR_SUCCESS) {
+    scr_abort(-1, "Dataset cannot be flushed @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* apply redundancy scheme */
+  double bytes_copied = 0.0;
+  scr_reddesc* reddesc = scr_get_reddesc_from_filemap(scr_map, scr_dataset_id, scr_nreddescs, scr_reddescs);
+  int rc = scr_reddesc_apply(scr_map, reddesc, scr_dataset_id, &bytes_copied);
+
+  /* record the cost of the output and log its completion */
+  if (is_ckpt && scr_my_rank_world == 0) {
+    /* stop the clock for this checkpoint */
+    scr_time_checkpoint_end = MPI_Wtime();
+
+    /* compute and record the cost for this checkpoint */
+    double cost = scr_time_checkpoint_end - scr_time_checkpoint_start;
+    if (cost < 0) {
+      scr_err("Checkpoint end time (%f) is less than start time (%f) @ %s:%d",
+        scr_time_checkpoint_end, scr_time_checkpoint_start, __FILE__, __LINE__
+      );
+      cost = 0;
+    }
+    scr_time_checkpoint_total += cost;
+    scr_time_checkpoint_count++;
+
+    /* log data on the checkpoint in the database */
+    if (scr_log_enable) {
+      /* log the end of this checkpoint phase */
+      double time_diff = scr_time_checkpoint_end - scr_time_checkpoint_start;
+      time_t now = scr_log_seconds();
+      scr_log_event("CHECKPOINT COMPLETED", reddesc->base, &scr_checkpoint_id, &now, &time_diff);
+
+      /* log the transfer details */
+      char* dir = scr_cache_dir_get(reddesc, scr_dataset_id);
+      scr_log_transfer("CHECKPOINT", reddesc->base, dir, &scr_checkpoint_id,
+        &scr_timestamp_checkpoint_start, &cost, &bytes_copied
+      );
+      scr_free(&dir);
+    }
+
+    /* print out a debug message with the result of the copy */
+    scr_dbg(2, "Completed dataset %d with return code %d",
+      scr_dataset_id, rc
+    );
+  }
+
+  /* if copy is good, check whether we need to flush or halt,
+   * otherwise delete the checkpoint to conserve space */
+  if (rc == SCR_SUCCESS) {
+    /* record entry in flush file for this dataset */
+    char* dset_name;
+    scr_dataset_get_name(dataset, &dset_name);
+    scr_flush_file_new_entry(scr_dataset_id, dset_name, SCR_FLUSH_KEY_LOCATION_CACHE, is_ckpt, is_output);
+
+    /* check_flush may start an async flush, whereas check_halt will call sync flush,
+     * so place check_flush after check_halt */
+    if (is_ckpt) {
+      /* only halt on checkpoints */
+      scr_bool_check_halt_and_decrement(SCR_TEST_AND_HALT, 1);
+    }
+    scr_check_flush(scr_map);
+  } else {
+    /* something went wrong, so delete this checkpoint from the cache */
+    scr_cache_delete(scr_map, scr_dataset_id);
+
+    /* TODODSET: probably should return error or abort if this is output */
+  }
+
+  /* if we have an async flush ongoing, take this chance to check whether it's completed */
+  if (scr_flush_async_in_progress) {
+    /* got an outstanding async flush, let's check it */
+    double bytes = 0.0;
+    if (scr_flush_async_test(scr_map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {
+      /* async flush has finished, go ahead and complete it */
+      scr_flush_async_complete(scr_map, scr_flush_async_dataset_id);
+    } else {
+      /* not done yet, just print a progress message to the screen */
+      if (scr_my_rank_world == 0) {
+        scr_dbg(1, "Flush of dataset %d is %d%% complete",
+          scr_flush_async_dataset_id, (int) (bytes / scr_flush_async_bytes * 100.0)
+        );
+      }
+    }
+  }
+
+  /* done with dataset */
+  scr_dataset_delete(&dataset);
+
+  /* make sure everyone is ready before we exit */
+  MPI_Barrier(scr_comm_world);
+
+  /* unset the output flag to indicate we have exited the current output phase */
+  scr_in_output = 0;
+
+  /* start the clock for measuring the compute time,
+   * we count output time as compute time for non-checkpoint datasets */
+  if (is_ckpt && scr_my_rank_world == 0) {
+    scr_time_compute_start = MPI_Wtime();
+
+    /* log the start time of this compute phase */
+    if (scr_log_enable) {
+      int compute_id = scr_checkpoint_id + 1;
+      scr_timestamp_compute_start = scr_log_seconds();
+      scr_log_event("COMPUTE STARTED", NULL, &compute_id, &scr_timestamp_compute_start, NULL);
+    }
+  }
+
+  return rc;
+}
+
+/*
+=========================================
 User interface functions
 =========================================
 */
@@ -859,6 +1322,14 @@ User interface functions
 int SCR_Init()
 {
   int i;
+
+  /* manage state transition */
+  if (scr_state != SCR_STATE_UNINIT) {
+    scr_abort(-1, "Called SCR_Init() when already initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_IDLE;
 
   /* check whether user has disabled library via environment variable */
   char* value = NULL;
@@ -1309,6 +1780,12 @@ int SCR_Init()
 /* Close down and clean up */
 int SCR_Finalize()
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Finalize()", __FILE__, __LINE__);
+  }
+  scr_state = SCR_STATE_UNINIT;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1459,6 +1936,11 @@ int SCR_Finalize()
 /* sets flag to 1 if a checkpoint should be taken, flag is set to 0 otherwise */
 int SCR_Need_checkpoint(int* flag)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Need_checkpoint()", __FILE__, __LINE__);
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     *flag = 0;
@@ -1548,6 +2030,12 @@ int SCR_Need_checkpoint(int* flag)
 /* inform library that a new output dataset is starting */
 int SCR_Start_output(const char* name, int flags)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Start_output()", __FILE__, __LINE__);
+  }
+  scr_state = SCR_STATE_OUTPUT;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1561,208 +2049,49 @@ int SCR_Start_output(const char* name, int flags)
     return SCR_FAILURE;
   }
 
-  /* bail out if user called Start_output twice without Complete_output in between */
-  if (scr_in_output) {
-    scr_abort(-1, "SCR_Complete_output must be called before SCR_Start_output is called again @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* make sure everyone is ready to start before we delete any existing checkpoints */
-  MPI_Barrier(scr_comm_world);
-
-  /* set the output flag to indicate we have started a new output dataset */
-  scr_in_output = 1;
-
-  /* determine whether this is a checkpoint */
-  int is_ckpt = (flags & SCR_FLAG_CHECKPOINT);
-
-  /* if we have a checkpoint, stop clock recording compute time,
-   * we count normal output cost as part of compute time for
-   * computing optimal checkpoint frequency */
-  if (is_ckpt && scr_my_rank_world == 0) {
-    /* stop the clock for measuring the compute time */
-    scr_time_compute_end = MPI_Wtime();
-
-    /* log the end of this compute phase */
-    if (scr_log_enable) {
-      int compute_id = scr_checkpoint_id + 1;
-      double time_diff = scr_time_compute_end - scr_time_compute_start;
-      time_t now = scr_log_seconds();
-      scr_log_event("COMPUTE COMPLETED", NULL, &compute_id, &now, &time_diff);
-    }
-  }
-
-  /* increment our dataset counter */
-  scr_dataset_id++;
-
-  /* increment our checkpoint counters if needed */
-  if (is_ckpt) {
-    scr_checkpoint_id++;
-    scr_ckpt_dset_id = scr_dataset_id;
-  }
-
-  /* TODO: if we know of an existing dataset with the same name
-   * delete all files */
-
-  /* TODO: if name or flags differ across ranks, error out */
-
-  /* check that we got valid name, and use a default name if not */
-  char* dataset_name = name;
-  char dataset_name_default[SCR_MAX_FILENAME];
-  if (name == NULL || strcmp(name, "") == 0) {
-    /* caller didn't provide a name, so use our default */
-    snprintf(dataset_name_default, sizeof(dataset_name_default), "scr.dataset.%d", scr_dataset_id);
-    dataset_name = dataset_name_default;
-  }
-
-  /* rank 0 builds dataset object and broadcasts it out to other ranks */
-  scr_dataset* dataset = scr_dataset_new();
-  if (scr_my_rank_world == 0) {
-    /* capture time and build name of dataset */
-    int64_t dataset_time = scr_time_usecs();
-
-    /* fill in fields for dataset */
-    scr_dataset_set_id(dataset, scr_dataset_id);
-    scr_dataset_set_name(dataset, dataset_name);
-    scr_dataset_set_flags(dataset, flags);
-    scr_dataset_set_created(dataset, dataset_time);
-    scr_dataset_set_username(dataset, scr_username);
-    if (scr_jobname != NULL) {
-      scr_dataset_set_jobname(dataset, scr_jobname);
-    }
-    scr_dataset_set_jobid(dataset, scr_jobid);
-    if (scr_clustername != NULL) {
-      scr_dataset_set_cluster(dataset, scr_clustername);
-    }
-    if (is_ckpt) {
-      scr_dataset_set_ckpt(dataset, scr_checkpoint_id);
-    }
-  }
-  scr_hash_bcast(dataset, 0, scr_comm_world);
-
-  /* get the redundancy descriptor for this dataset */
-  scr_reddesc* reddesc = scr_get_reddesc(dataset, scr_nreddescs, scr_reddescs);
-
-  /* start the clock to record how long it takes to write output */
-  if (is_ckpt && scr_my_rank_world == 0) {
-    scr_time_checkpoint_start = MPI_Wtime();
-
-    /* log the start of this checkpoint phase */
-    if (scr_log_enable) {
-      scr_timestamp_checkpoint_start = scr_log_seconds();
-      scr_log_event("CHECKPOINT STARTED", reddesc->base, &scr_checkpoint_id, &scr_timestamp_checkpoint_start, NULL);
-    }
-  }
-
-  /* get an ordered list of the datasets currently in cache */
-  int ndsets;
-  int* dsets = NULL;
-  scr_filemap_list_datasets(scr_map, &ndsets, &dsets);
-
-  /* lookup the number of datasets we're allowed to keep in
-   * the base for this dataset */
-  int size = 0;
-  int store_index = scr_storedescs_index_from_name(reddesc->base);
-  if (store_index >= 0) {
-    size = scr_storedescs[store_index].max_count;
-  }
-
-  int i;
-  char* base = NULL;
-
-  /* run through each of our datasets and count how many we have in this base */
-  int nckpts_base = 0;
-  for (i=0; i < ndsets; i++) {
-    /* get base for this dataset and increase count if it matches the target base */
-    base = scr_reddesc_base_from_filemap(scr_map, dsets[i], scr_my_rank_world);
-    if (base != NULL) {
-      if (strcmp(base, reddesc->base) == 0) {
-        nckpts_base++;
-      }
-      scr_free(&base);
-    }
-  }
-
-  /* run through and delete datasets from base until we make room for the current one */
-  int flushing = -1;
-  for (i=0; i < ndsets && nckpts_base >= size; i++) {
-    base = scr_reddesc_base_from_filemap(scr_map, dsets[i], scr_my_rank_world);
-    if (base != NULL) {
-      if (strcmp(base, reddesc->base) == 0) {
-        if (! scr_flush_file_is_flushing(dsets[i])) {
-          /* this dataset is in our base, and it's not being flushed, so delete it */
-          scr_cache_delete(scr_map, dsets[i]);
-          nckpts_base--;
-        } else if (flushing == -1) {
-          /* this dataset is in our base, but we're flushing it, don't delete it */
-          flushing = dsets[i];
-        }
-      }
-      scr_free(&base);
-    }
-  }
-
-  /* if we still don't have room and we're flushing, the dataset we need to delete
-   * must be flushing, so wait for it to finish */
-  if (nckpts_base >= size && flushing != -1) {
-    /* TODO: we could increase the transfer bandwidth to reduce our wait time */
-
-    /* wait for this dataset to complete its flush */
-    scr_flush_async_wait(scr_map);
-
-    /* now dataset is no longer flushing, we can delete it and continue on */
-    scr_cache_delete(scr_map, flushing);
-    nckpts_base--;
-  }
-
-  /* free the list of datasets */
-  scr_free(&dsets);
-
-  /* update our file map with this new dataset */
-  scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
-
-  /* TODO: may want to allow user to specify these values per dataset */
-  /* store variables needed for scavenge */
-  scr_hash* flushdesc = scr_hash_new();
-  scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  scr_preserve_directories);
-  scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, scr_use_containers);
-  scr_filemap_set_flushdesc(scr_map, scr_dataset_id, scr_my_rank_world, flushdesc);
-  scr_hash_delete(&flushdesc);
-
-  /* store the redundancy descriptor in the filemap, so if we die before completing
-   * the dataset, we'll have a record of the new directory we're about to create */
-  scr_hash* my_desc_hash = scr_hash_new();
-  scr_reddesc_store_to_hash(reddesc, my_desc_hash);
-  scr_filemap_set_desc(scr_map, scr_dataset_id, scr_my_rank_world, my_desc_hash);
-  scr_filemap_write(scr_map_file, scr_map);
-  scr_hash_delete(&my_desc_hash);
-
-  /* make directory in cache to store files for this dataset */
-  scr_cache_dir_create(reddesc, scr_dataset_id);
-
-  /* free dataset object */
-  scr_dataset_delete(&dataset);
-
-  /* print a debug message to indicate we've started the dataset */
-  if (scr_my_rank_world == 0) {
-    scr_dbg(1, "Starting dataset %s", dataset_name);
-  }
-
-  return SCR_SUCCESS;
+  /* delegate the rest to start_output */
+  return scr_start_output(name, flags);
 }
 
 /* informs SCR that a fresh checkpoint set is about to start */
 int SCR_Start_checkpoint()
 {
-  /* delegate the rest to Start_output */
-  return SCR_Start_output(NULL, SCR_FLAG_CHECKPOINT);
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Start_checkpoint()", __FILE__, __LINE__);
+  }
+  scr_state = SCR_STATE_CHECKPOINT;
+
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* delegate the rest to start_output */
+  return scr_start_output(NULL, SCR_FLAG_CHECKPOINT);
 }
 
 /* given a filename, return the full path to the file which the user should write to */
 int SCR_Route_file(const char* file, char* newfile)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_RESTART    &&
+      scr_state != SCR_STATE_CHECKPOINT &&
+      scr_state != SCR_STATE_OUTPUT)
+  {
+    scr_abort(-1, "Must call SCR_Route_file() from within Start/Complete pair @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1877,6 +2206,14 @@ int SCR_Route_file(const char* file, char* newfile)
 /* inform library that the current dataset is complete */
 int SCR_Complete_output(int valid)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_OUTPUT) {
+    scr_abort(-1, "Must call SCR_Start_output() before SCR_Complete_output() @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_IDLE;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -1890,199 +2227,45 @@ int SCR_Complete_output(int valid)
     return SCR_FAILURE;
   }
 
-  /* bail out if there is no active call to Start_output */
-  if (! scr_in_output) {
-    scr_abort(-1, "SCR_Start_output must be called before SCR_Complete_output @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* count number of files, number of bytes, and record filesize for each file
-   * as written by this process */
-  unsigned long my_counts[3] = {0, 0, 0};
-  scr_hash_elem* elem;
-  for (elem = scr_filemap_first_file(scr_map, scr_dataset_id, scr_my_rank_world);
-       elem != NULL;
-       elem = scr_hash_elem_next(elem))
-  {
-    /* get the filename */
-    char* file = scr_hash_elem_key(elem);
-    my_counts[0]++;
-
-    /* get size of this file */
-    unsigned long filesize = scr_file_size(file);
-    my_counts[1] += filesize;
-
-   /* TODO: record permissions and/or timestamps? */
-
-    /* fill in filesize and complete flag in the meta data for the file */
-    scr_meta* meta = scr_meta_new();
-    scr_filemap_get_meta(scr_map, scr_dataset_id, scr_my_rank_world, file, meta);
-    scr_meta_set_filesize(meta, filesize);
-    scr_meta_set_complete(meta, valid);
-    scr_filemap_set_meta(scr_map, scr_dataset_id, scr_my_rank_world, file, meta);
-    scr_meta_delete(&meta);
-  }
-
-  /* we execute a sum as a logical allreduce to determine whether everyone is valid
-   * we interpret the result to be true only if the sum adds up to the number of processes */
-  if (valid) {
-    my_counts[2] = 1;
-  }
-
-  /* execute allreduce */
-  unsigned long total_counts[3];
-  MPI_Allreduce(my_counts, total_counts, 3, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
-
-  /* get dataset from filemap */
-  scr_dataset* dataset = scr_dataset_new();
-  scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
-
-  /* get flags for this dataset */
-  int is_ckpt   = scr_dataset_is_ckpt(dataset);
-  int is_output = scr_dataset_is_output(dataset);
-
-  /* store total number of files, total number of bytes, and complete flag in dataset */
-  scr_dataset_set_files(dataset, (int) total_counts[0]);
-  scr_dataset_set_size(dataset,        total_counts[1]);
-  if (total_counts[2] == scr_ranks_world) {
-    /* got a valid=1 for every rank, we're complete */
-    scr_dataset_set_complete(dataset, 1);
-  } else {
-    /* at least one rank has valid=0, so incomplete */
-    scr_dataset_set_complete(dataset, 0);
-  }
-  scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
-
-  /* write out info to filemap */
-  scr_filemap_write(scr_map_file, scr_map);
-
-  /* TODO: PRESERVE preprocess info needed for flush/scavenge, e.g., container offsets,
-   * list of directories to create, etc. we should also apply redundancy to this info,
-   * this could be done in flush, but it's hard to do in scavenge */
-  if (scr_flush_verify(scr_map, scr_dataset_id) != SCR_SUCCESS) {
-    scr_abort(-1, "Dataset cannot be flushed @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* apply redundancy scheme */
-  double bytes_copied = 0.0;
-  scr_reddesc* reddesc = scr_get_reddesc_from_filemap(scr_map, scr_dataset_id, scr_nreddescs, scr_reddescs);
-  int rc = scr_reddesc_apply(scr_map, reddesc, scr_dataset_id, &bytes_copied);
-
-  /* record the cost of the output and log its completion */
-  if (is_ckpt && scr_my_rank_world == 0) {
-    /* stop the clock for this checkpoint */
-    scr_time_checkpoint_end = MPI_Wtime();
-
-    /* compute and record the cost for this checkpoint */
-    double cost = scr_time_checkpoint_end - scr_time_checkpoint_start;
-    if (cost < 0) {
-      scr_err("Checkpoint end time (%f) is less than start time (%f) @ %s:%d",
-        scr_time_checkpoint_end, scr_time_checkpoint_start, __FILE__, __LINE__
-      );
-      cost = 0;
-    }
-    scr_time_checkpoint_total += cost;
-    scr_time_checkpoint_count++;
-
-    /* log data on the checkpoint in the database */
-    if (scr_log_enable) {
-      /* log the end of this checkpoint phase */
-      double time_diff = scr_time_checkpoint_end - scr_time_checkpoint_start;
-      time_t now = scr_log_seconds();
-      scr_log_event("CHECKPOINT COMPLETED", reddesc->base, &scr_checkpoint_id, &now, &time_diff);
-
-      /* log the transfer details */
-      char* dir = scr_cache_dir_get(reddesc, scr_dataset_id);
-      scr_log_transfer("CHECKPOINT", reddesc->base, dir, &scr_checkpoint_id,
-        &scr_timestamp_checkpoint_start, &cost, &bytes_copied
-      );
-      scr_free(&dir);
-    }
-
-    /* print out a debug message with the result of the copy */
-    scr_dbg(2, "Completed dataset %d with return code %d",
-      scr_dataset_id, rc
-    );
-  }
-
-  /* if copy is good, check whether we need to flush or halt,
-   * otherwise delete the checkpoint to conserve space */
-  if (rc == SCR_SUCCESS) {
-    /* record entry in flush file for this dataset */
-    char* dset_name;
-    scr_dataset_get_name(dataset, &dset_name);
-    scr_flush_file_new_entry(scr_dataset_id, dset_name, SCR_FLUSH_KEY_LOCATION_CACHE, is_ckpt, is_output);
-
-    /* check_flush may start an async flush, whereas check_halt will call sync flush,
-     * so place check_flush after check_halt */
-    if (is_ckpt) {
-      /* only halt on checkpoints */
-      scr_bool_check_halt_and_decrement(SCR_TEST_AND_HALT, 1);
-    }
-    scr_check_flush(scr_map);
-  } else {
-    /* something went wrong, so delete this checkpoint from the cache */
-    scr_cache_delete(scr_map, scr_dataset_id);
-
-    /* TODODSET: probably should return error or abort if this is output */
-  }
-
-  /* if we have an async flush ongoing, take this chance to check whether it's completed */
-  if (scr_flush_async_in_progress) {
-    /* got an outstanding async flush, let's check it */
-    double bytes = 0.0;
-    if (scr_flush_async_test(scr_map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {
-      /* async flush has finished, go ahead and complete it */
-      scr_flush_async_complete(scr_map, scr_flush_async_dataset_id);
-    } else {
-      /* not done yet, just print a progress message to the screen */
-      if (scr_my_rank_world == 0) {
-        scr_dbg(1, "Flush of dataset %d is %d%% complete",
-          scr_flush_async_dataset_id, (int) (bytes / scr_flush_async_bytes * 100.0)
-        );
-      }
-    }
-  }
-
-  /* done with dataset */
-  scr_dataset_delete(&dataset);
-
-  /* make sure everyone is ready before we exit */
-  MPI_Barrier(scr_comm_world);
-
-  /* unset the output flag to indicate we have exited the current output phase */
-  scr_in_output = 0;
-
-  /* start the clock for measuring the compute time,
-   * we count output time as compute time for non-checkpoint datasets */
-  if (is_ckpt && scr_my_rank_world == 0) {
-    scr_time_compute_start = MPI_Wtime();
-
-    /* log the start time of this compute phase */
-    if (scr_log_enable) {
-      int compute_id = scr_checkpoint_id + 1;
-      scr_timestamp_compute_start = scr_log_seconds();
-      scr_log_event("COMPUTE STARTED", NULL, &compute_id, &scr_timestamp_compute_start, NULL);
-    }
-  }
-
-  return rc;
+  return scr_complete_output(valid);
 }
 
 /* completes the checkpoint set and marks it as valid or not */
 int SCR_Complete_checkpoint(int valid)
 {
-  return SCR_Complete_output(valid);
+  /* manage state transition */
+  if (scr_state != SCR_STATE_CHECKPOINT) {
+    scr_abort(-1, "Must call SCR_Start_checkpoint() before SCR_Complete_checkpoint() @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_IDLE;
+
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  return scr_complete_output(valid);
 }
 
 /* determine whether SCR has a restart available to read,
  * and get name of restart if one is available */
 int SCR_Have_restart(int* flag, char* name)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Have_restart()", __FILE__, __LINE__);
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     *flag = 0;
@@ -2122,6 +2305,19 @@ int SCR_Have_restart(int* flag, char* name)
 /* inform library that restart is starting, get name of restart that is available */
 int SCR_Start_restart(char* name)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Start_restart()", __FILE__, __LINE__);
+  }
+  scr_state = SCR_STATE_RESTART;
+
+  /* only valid to call this if we have a checkpoint to restart from */
+  if (! scr_have_restart) {
+    scr_abort(-1, "Can only call SCR_Start_restart() if SCR_Have_restart() indicates a checkpoint is available @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -2159,6 +2355,14 @@ int SCR_Start_restart(char* name)
 /* inform library that the current restart is complete */
 int SCR_Complete_restart(int valid)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_RESTART) {
+    scr_abort(-1, "Must call SCR_Start_restart() before SCR_Complete_restart() @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_state = SCR_STATE_IDLE;
+
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return SCR_FAILURE;
@@ -2167,6 +2371,19 @@ int SCR_Complete_restart(int valid)
   /* bail out if not initialized -- will get bad results */
   if (! scr_initialized) {
     scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that all procs read valid data */
+  if (! scr_alltrue(valid)) {
+    /* TODO: if some process fails, it would be more graceful to fetch
+     * the next most recent checkpoint and cycle through
+     * the have/start/complete restart calls again,
+     * we should also record this current checkpoint as failed in the
+     * index file so that we don't fetch it again*/
+    scr_abort(-1, "At least one process reported valid=0 in SCR_Complete_restart() @ %s:%d",
       __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -2182,4 +2399,41 @@ int SCR_Complete_restart(int valid)
 char* SCR_Get_version()
 {
   return SCR_VERSION;
+}
+
+/* query whether it is time to exit */
+int SCR_Should_exit(int* flag)
+{
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Should_exit()", __FILE__, __LINE__);
+  }
+
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* check that we have a flag variable to write to */
+  if (flag == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* assume we don't have to stop */
+  *flag = 0;
+
+  /* check whether a halt condition is active */
+  if (scr_bool_check_halt_and_decrement(SCR_TEST_BUT_DONT_HALT, 0)) {
+    *flag = 1;
+  }
+
+  return SCR_SUCCESS;
 }
