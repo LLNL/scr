@@ -39,9 +39,13 @@ p = Popen([scrbin+'/scr_env', '--nodes'], stdout=PIPE, stderr=STDOUT)
 os.environ['SCR_NODELIST'] = p.stdout.read().strip()
 print os.environ['SCR_NODELIST'], "NODELIST"
 node_specifier = re.search("[a-z]+", os.environ['SCR_NODELIST'])
-first_node_pre = re.search("\d+", os.environ['SCR_NODELIST'])
+first_node_pre = re.search("(\d+)\[", os.environ['SCR_NODELIST'])
 first_node_suf = re.search("\[(\d+)", os.environ['SCR_NODELIST'])
-first_node = node_specifier.group(0) + first_node_pre.group(0) + first_node_suf.group(1)
+first_node = node_specifier.group(0)
+if first_node_pre:
+    first_node += first_node_pre.group(1)
+if first_node_suf:
+    first_node += first_node_suf.group(1)
 if not first_node:
     raise ValueError("Unreasonable node value")
 os.environ['downnode'] = first_node#.group(0)
