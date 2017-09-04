@@ -358,7 +358,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
 
 #ifdef SCR_FLUSH_ASYNC_IBM_BBAPI
   int rc;
-  int tag = atoi(scr_jobid) * SCR_IBM_TAG_OFFSET + id;
+  int tag = SCR_IBM_TAG_OFFSET + id;
   printf("BB CREATE GET HANDLE rank:%d id:%d tag:%d\n", scr_my_rank_world, id, tag);
   fflush(stdout);
   rc = BB_GetTransferHandle(tag, scr_ranks_world, scr_all_ranks, &thandle);
