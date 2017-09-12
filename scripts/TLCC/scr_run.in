@@ -45,14 +45,9 @@ while [ ${1+x} ]; do
     esac
 done
 
-#echo $srun_args
-#echo $restart_cmd
-#echo $run_cmd
-#exit 0
-
 # if SCR is disabled, just do a normal run and exit
 if [ "$SCR_ENABLE" == "0" ] ; then
-  srun "$@"
+  srun $srun_args $run_cmd
   exit $?
 fi
 
