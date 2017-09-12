@@ -260,6 +260,7 @@ while [ 1 ] ; do
   if [ ${restart_cmd+x} ]; then
       restart_name=`srun $srun_args scr_have_restart`
       if [ ${restart_name+x} ]; then
+          restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#"`
           launch_cmd="$aprun_args $restart_cmd"
       fi
   fi
