@@ -58,11 +58,9 @@ if (defined $conf{user}) {
   # print the jobid of the current job
   # CALL SCR_ENV_HELPER FOR PMIX
   # THIS IS A TEMPORARY WORKAROUND AS PMIX DOESN'T SUPPORT THIS YET
-  if (1) {
-    print "pmix_hardcoded_jobid\n";
-  } else {
-    exit 1;
-  }
+  # failed to read jobid from environment,
+  # assume user is running in test mode
+  print "defjobid\n";
 } elsif (defined $conf{nodes}) {
   # print the nodeset of the current job in 'atlas[30-33,35,45-53]' form
   # CALL SCR_ENV_HELPER FOR PMIX, then manipulate if necessary in perl
