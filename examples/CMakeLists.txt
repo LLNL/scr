@@ -59,6 +59,7 @@ TARGET_LINK_LIBRARIES(test_api_file ${SCR_LINK_TO})
 ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
 TARGET_LINK_LIBRARIES(test_api_multiple ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api_multiple "" "")
+SET_TESTS_PROPERTIES(serial_test_api_multiple_restart PROPERTIES WILL_FAIL TRUE)
 
 ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
 TARGET_LINK_LIBRARIES(test_api_multiple_file ${SCR_LINK_TO})
