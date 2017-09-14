@@ -308,7 +308,7 @@ print "-----------------------------------------------------------"
 # check that scr_list_down_nodes returns good values
 downnode = os.environ['downnode']
 
-p=Popen([scrbin+'/scr_list_down_nodes'], stderr=STDOUT, stdout=PIPE)
+p=Popen([scrbin+'/scr_list_down_nodes', '--reason'], stderr=STDOUT, stdout=PIPE)
 p.wait()
 print p.stdout.read().strip()
 if p.returncode != 0 or p.stdout.read().strip() != "":
