@@ -4,9 +4,7 @@ LIST(APPEND example_files
 	test_common.c
 	test_common.h
 	test_api.c
-	test_api_file.c
 	test_api_multiple.c
-	test_api_multiple_file.c
 	test_interpose.c
 	test_interpose_multiple.c
 	test_ckpt.C
@@ -52,8 +50,8 @@ ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api "" "ckpt.*")
 
-ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
-TARGET_LINK_LIBRARIES(test_api_file ${SCR_LINK_TO})
+#ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
+#TARGET_LINK_LIBRARIES(test_api_file ${SCR_LINK_TO})
 #SCR_ADD_TEST: proper usage is unknown
 
 ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
@@ -61,8 +59,8 @@ TARGET_LINK_LIBRARIES(test_api_multiple ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api_multiple "" "")
 SET_TESTS_PROPERTIES(serial_test_api_multiple_restart PROPERTIES WILL_FAIL TRUE)
 
-ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
-TARGET_LINK_LIBRARIES(test_api_multiple_file ${SCR_LINK_TO})
+#ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
+#TARGET_LINK_LIBRARIES(test_api_multiple_file ${SCR_LINK_TO})
 #SCR_ADD_TEST: proper usage is unknown
 
 ADD_EXECUTABLE(test_interpose test_interpose.c)
