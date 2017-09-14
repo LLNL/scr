@@ -54,8 +54,6 @@ typedef int SCR_Fint;
 # define FORTRAN_API
 #endif
 
-/* TODO: need to define SCR_FLAG constants */
-
 /* convert a Fortran string to a C string, removing any trailing spaces and terminating with a NULL */
 static int scr_fstr2cstr(const char* fstr, int flen, char* cstr, int clen)
 {
@@ -66,7 +64,7 @@ static int scr_fstr2cstr(const char* fstr, int flen, char* cstr, int clen)
     return 1;
   }
 
-  /* determine length of fortran string after subtracting any trailing spaces */
+  /* determine length of Fortran string after subtracting any trailing spaces */
   while (flen > 0 && fstr[flen-1] == ' ') {
     flen--;
   }
@@ -74,12 +72,12 @@ static int scr_fstr2cstr(const char* fstr, int flen, char* cstr, int clen)
   /* assume we can copy the whole string */
   int len = flen;
   if (flen > clen - 1) {
-    /* fortran string is longer than C buffer, copy what we can and truncate */
+    /* Fortran string is longer than C buffer, copy what we can and truncate */
     len = clen - 1;
     rc = 1;
   }
 
-  /* copy the fortran string to the C string */
+  /* copy the Fortran string to the C string */
   if (len > 0) {
     strncpy(cstr, fstr, len);
   }
@@ -105,7 +103,7 @@ static int scr_cstr2fstr(const char* cstr, char* fstr, int flen)
   /* determine length of C string */
   int clen = strlen(cstr);
   
-  /* copy the characters from the fortran string to the C string */
+  /* copy the characters from the Fortran string to the C string */
   if (clen <= flen) {
     /* C string will fit within our Fortran buffer, copy it over */
     if (clen > 0) {
@@ -154,13 +152,13 @@ FORTRAN_API void FORT_CALL scr_should_exit_(int* flag, int* ierror)
 
 FORTRAN_API void FORT_CALL scr_have_restart_(int* flag, char* name FORT_MIXED_LEN(name_len), int* ierror FORT_END_LEN(name_len))
 {
-  /* get the filename to use */
+  /* check whether a checkpoint is loaded */
   char name_tmp[SCR_MAX_FILENAME];
   *ierror = SCR_Have_restart(flag, name_tmp);
 
-  /* if have a checkpoint to restart from, get the name */
+  /* if have a checkpoint to restart from, need to convert name string */
   if (*flag) {
-    /* convert name to fortran string */
+    /* convert name to Fortran string */
     if (scr_cstr2fstr(name_tmp, name, name_len) != 0) {
       *ierror = !SCR_SUCCESS;
       return;
@@ -176,7 +174,7 @@ FORTRAN_API void FORT_CALL scr_start_restart_(char* name FORT_MIXED_LEN(name_len
   char name_tmp[SCR_MAX_FILENAME];
   *ierror = SCR_Start_restart(name_tmp);
 
-  /* convert name to fortran string */
+  /* convert name to Fortran string */
   if (scr_cstr2fstr(name_tmp, name, name_len) != 0) {
     *ierror = !SCR_SUCCESS;
     return;
@@ -249,7 +247,7 @@ FORTRAN_API void FORT_CALL scr_route_file_(char* name FORT_MIXED_LEN(name_len),
                                            char* file FORT_MIXED_LEN(file_len),
                                            int* ierror FORT_END_LEN(name_len) FORT_END_LEN(file_len))
 {
-  /* convert name from a Fortran string to C string */
+  /* convert filename from a Fortran string to C string */
   char name_tmp[SCR_MAX_FILENAME];
   if (scr_fstr2cstr(name, name_len, name_tmp, sizeof(name_tmp)) != 0) {
     *ierror = !SCR_SUCCESS;
@@ -260,7 +258,7 @@ FORTRAN_API void FORT_CALL scr_route_file_(char* name FORT_MIXED_LEN(name_len),
   char file_tmp[SCR_MAX_FILENAME];
   *ierror = SCR_Route_file(name_tmp, file_tmp);
 
-  /* convert filename to fortran string */
+  /* convert filename from C to Fortran string */
   if (scr_cstr2fstr(file_tmp, file, file_len) != 0) {
     *ierror = !SCR_SUCCESS;
     return;
