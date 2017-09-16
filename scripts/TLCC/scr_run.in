@@ -3,7 +3,7 @@
 # requires: srun
 
 # Print usage
-if [ -z $1 ]; then
+if [ -z "$1" ]; then
     echo USAGE:
     echo "scr_srun [srun args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] [srun args]"
     echo "<run_command>: The command to run when no restart file is present"
@@ -33,11 +33,11 @@ while [ ${1+x} ]; do
             shift 2 ;;
         --restart-cmd=*|-rs=*)
             restart_cmd=${1#*=}
-            if [ -z $restart_cmd ]; then shift; restart_cmd=$1; fi
+            if [ -z "$restart_cmd" ]; then shift; restart_cmd=$1; fi
             shift ;;
         --run-cmd=*|-rc=*)
             run_cmd=${1#*=}
-            if [ -z $run_cmd ]; then shift; run_cmd=$1; fi
+            if [ -z "$run_cmd" ]; then shift; run_cmd=$1; fi
             shift ;;
         *)
             srun_args="$srun_args $1"
@@ -218,18 +218,18 @@ while [ 1 ] ; do
   timestamp=`date`
   echo "$prog: RUN $attempts: $timestamp"
 
+  launch_cmd="$srun_args $run_cmd"
+  if [ ${restart_cmd:+x} ]; then
+      restart_name=`srun $srun_args $bindir/scr_have_restart`
+      if [ ${restart_name:+x} ]; then
+          my_restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#"`
+          launch_cmd="$srun_args $my_restart_cmd"
+      fi
+  fi
+
   # launch the job, make sure we include the script node and exclude down nodes
   start_secs=`date +%s`
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
-
-  launch_cmd="$srun_args $run_cmd"
-  if [ ${restart_cmd+x} ]; then
-      restart_name=`srun $srun_args scr_have_restart`
-      if [ ${restart_name+x} ]; then
-          restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#"`
-          launch_cmd="$srun_args $restart_cmd"
-      fi
-  fi
 
   if [ $use_scr_watchdog -eq 0 ]; then
      srun --nodelist $script_node $exclude $launch_cmd
