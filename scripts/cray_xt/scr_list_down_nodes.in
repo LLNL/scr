@@ -120,7 +120,7 @@ foreach my $node (@hosts) {
   # `ping -c2` will be slower in the "normal" case
   # that ping succeeds, because non-root users cannot
   # set the ping interval below 0.2 seconds.
-  `$ping -c 1 -w 1 $node || $ping -c 1 -w 1 $node`;
+  `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
   if ($? != 0) {
     delete $available{$node};
     $unavailable{$node} = 1;
