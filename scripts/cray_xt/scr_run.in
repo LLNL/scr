@@ -3,7 +3,7 @@
 # requires: aprun
 
 # Print usage
-if [ -z $1 ]; then
+if [ -z "$1" ]; then
     echo USAGE:
     echo "scr_aprun [aprun args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] [aprun args]"
     echo "<run_command>: The command to run when no restart file is present"
@@ -23,21 +23,21 @@ fi
 
 # capture restart and run commands if specified
 aprun_args=""
-while [ ${1+x} ]; do
+while [ ${1:+x} ]; do
     case $1 in
         --restart-cmd|-rs)
-            restart_cmd=$1
+            restart_cmd=$2
             shift 2 ;;
         --run-cmd|-rc)
             run_cmd=$2
             shift 2 ;;
         --restart-cmd=*|-rs=*)
             restart_cmd=${1#*=}
-            if [ -z $restart_cmd ]; then shift; restart_cmd=$1; fi
+            if [ -z "$restart_cmd" ]; then shift; restart_cmd=$1; fi
             shift ;;
         --run-cmd=*|-rc=*)
             run_cmd=${1#*=}
-            if [ -z $run_cmd ]; then shift; run_cmd=$1; fi
+            if [ -z "$run_cmd" ]; then shift; run_cmd=$1; fi
             shift ;;
         *)
             aprun_args="$aprun_args $1"
@@ -257,11 +257,11 @@ while [ 1 ] ; do
   tmpupnodes=${tmpupnodes:1}
 
   launch_cmd="$aprun_args $run_cmd"
-  if [ ${restart_cmd+x} ]; then
-      restart_name=`srun $srun_args scr_have_restart`
-      if [ ${restart_name+x} ]; then
-          restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#"`
-          launch_cmd="$aprun_args $restart_cmd"
+  if [ ${restart_cmd:+x} ]; then
+      restart_name=`srun $srun_args $bindir/scr_have_restart`
+      if [ ${restart_name:+x} ]; then
+          my_restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#g"`
+          launch_cmd="$aprun_args $my_restart_cmd"
       fi
   fi
 

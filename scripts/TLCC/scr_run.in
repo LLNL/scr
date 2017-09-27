@@ -23,10 +23,10 @@ fi
 
 # capture restart and run commands if specified
 srun_args=""
-while [ ${1+x} ]; do
+while [ ${1:+x} ]; do
     case $1 in
         --restart-cmd|-rs)
-            restart_cmd=$1
+            restart_cmd=$2
             shift 2 ;;
         --run-cmd|-rc)
             run_cmd=$2
@@ -222,7 +222,7 @@ while [ 1 ] ; do
   if [ ${restart_cmd:+x} ]; then
       restart_name=`srun $srun_args $bindir/scr_have_restart`
       if [ ${restart_name:+x} ]; then
-          my_restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#"`
+          my_restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#g"`
           launch_cmd="$srun_args $my_restart_cmd"
       fi
   fi
