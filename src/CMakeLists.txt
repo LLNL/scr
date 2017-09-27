@@ -157,9 +157,25 @@ LIST(APPEND cliscr_c_bins
 	scr_transfer
 )
 
+# CLI binaries that require full SCR library
+LIST(APPEND cliscr_scr_bins
+    scr_have_restart
+)
+
 # Build and install C binaries
 FOREACH(bin IN ITEMS ${cliscr_c_bins})
 	ADD_EXECUTABLE(${bin} ${bin}.c)
 	TARGET_LINK_LIBRARIES(${bin} scr_base)
 	INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
 ENDFOREACH(bin IN ITEMS ${cliscr_c_bins})
+
+# Build and install CLI binaries that link full SCR library
+FOREACH(bin IN ITEMS ${cliscr_scr_bins})
+    ADD_EXECUTABLE(${bin} ${bin}.c)
+    IF(SCR_LINK_STATIC)
+        TARGET_LINK_LIBRARIES(${bin} scr-static)
+    ELSE(SCR_LINK_STATIC)
+        TARGET_LINK_LIBRARIES(${bin} scr)
+    ENDIF(SCR_LINK_STATIC)
+    INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
+ENDFOREACH(bin IN ITEMS ${cliscr_scr_bins})
