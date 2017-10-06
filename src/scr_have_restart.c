@@ -27,7 +27,7 @@ int main(int *argc, char ***argv)
     if (rc != MPI_SUCCESS) {
         fprintf(stderr, "%s: MPI_Init failed %d", myname, rc);
     }
-    
+
     rc = SCR_Init();
     if (rc != SCR_SUCCESS) {
         fprintf(stderr, "%s: SCR_Init failed %d", myname, rc);
@@ -45,5 +45,9 @@ int main(int *argc, char ***argv)
 
     if ( (rank == 0) && (flag > 0) ) {
         printf("%s\n", fname);
+
     }
+
+    MPI_Finalize();
+    return 0;
 }
