@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# requires: srun
+# requires: mpirun
 
 # if SCR is disabled, just do a normal run and exit
 if [ "$SCR_ENABLE" == "0" ] ; then
-  srun "$@"
+  mpirun "$@"
   exit $?
 fi
 
@@ -15,7 +15,7 @@ if [ -n "$SCR_DEBUG" ]; then
   fi
 fi
 
-prog=scr_srun
+prog=scr_mpirun
 
 libdir="@X_LIBDIR@"
 bindir="@X_BINDIR@"
@@ -55,14 +55,16 @@ prefix=`$bindir/scr_prefix`
 
 use_scr_watchdog=0
 if [ "$SCR_WATCHDOG" == "1" ] ; then
-  use_scr_watchdog=1
+  #use_scr_watchdog=1
+  echo "$prog: ERROR: SCR_WATCHDOG not supported on LSF."
+  exit 1
 fi
 
 # check that this script is running on a node in the job's allocated nodeset
 script_node=`hostname`
 intersection=`$bindir/scr_glob_hosts --intersection $script_node:$SCR_NODELIST`
 if [ -z "$intersection" ] ; then
-  echo "$prog: ERROR: scr_run is executing on $script_node, which is not part of the job's nodeset $SCR_NODELIST."
+  echo "$prog: ERROR: $prog is executing on $script_node, which is not part of the job's nodeset $SCR_NODELIST."
   exit 1
 fi
 
@@ -72,10 +74,6 @@ if [ $? -ne 0 ] ; then
   echo "$prog: ERROR: Invalid control directory $cntldir."
   exit 1
 fi
-
-# NOP srun to force every node to run prolog to delete files from cache
-# TODO: remove this if admins find a better place to clear cache
-srun /bin/hostname > /dev/null
 
 # make a record of time prerun is started
 timestamp=`date`
@@ -90,8 +88,10 @@ fi
 
 # start background scr_transfer processes (1 per node) if async flush is enabled
 if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-  nnodes=`$bindir/scr_glob_hosts --count --hosts $SCR_NODELIST`
-  srun -W 0 -n${nnodes} -N${nnodes} $bindir/scr_transfer $cntldir/transfer.scrinfo &
+  #nnodes=`$bindir/scr_glob_hosts --count --hosts $SCR_NODELIST`
+  #srun -W 0 -n${nnodes} -N${nnodes} $bindir/scr_transfer $cntldir/transfer.scrinfo &
+  echo "$prog: ERROR: SCR_FLUSH_ASYNC not supported on LSF"
+  exit 1
 fi
 
 # enter the run loop
@@ -120,7 +120,7 @@ while [ 1 ] ; do
   fi
 
   # are there enough nodes to continue?
-  exclude=""
+  target_hosts=$SCR_NODELIST
   down_nodes=`$bindir/scr_list_down_nodes $free_flag $keep_down`
   if [ "$down_nodes" != "" ] ; then
     # print the reason for the down nodes, and log them
@@ -167,7 +167,7 @@ while [ 1 ] ; do
     fi
 
     # all checks pass, exclude the down nodes and continue
-    exclude="--exclude $down_nodes"
+    target_hosts=`$bindir/scr_glob_hosts --minus $SCR_NODELIST:$down_nodes`
   fi
 
   # make a record of when each run is started
@@ -180,25 +180,25 @@ while [ 1 ] ; do
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
 
   if [ $use_scr_watchdog -eq 0 ]; then
-     srun --nodelist $script_node $exclude "$@"
-  else
-    echo "$prog: Attempting to start watchdog process."
-     # need to get job step id of the srun command
-     srun --nodelist $script_node $exclude "$@" &
-     srun_pid=$!;
-     sleep 10; # sleep a bit to wait for the job to show up in squeue 
-     echo "$bindir/scr_get_jobstep_id $srun_pid";
-     jobstepid=`$bindir/scr_get_jobstep_id $srun_pid`;
-     # then start the watchdog  if we got a valid job step id 
-     if [ $jobstepid != "-1" ]; then
-         $bindir/scr_watchdog --dir $prefix --jobStepId $jobstepid &
-         watchdog_pid=$!;
-         echo "$prog: Started watchdog process with PID $watchdog_pid."
-     else
-        echo "$prog: ERROR: Unable to start scr_watchdog because couldn't get job step id."
-        watchdog_pid=-1;
-     fi
-     wait $srun_pid;
+     mpirun --hosts $target_hosts "$@"
+#  else
+#    echo "$prog: Attempting to start watchdog process."
+#     # need to get job step id of the srun command
+#     srun --nodelist $script_node $exclude "$@" &
+#     srun_pid=$!;
+#     sleep 10; # sleep a bit to wait for the job to show up in squeue 
+#     echo "$bindir/scr_get_jobstep_id $srun_pid";
+#     jobstepid=`$bindir/scr_get_jobstep_id $srun_pid`;
+#     # then start the watchdog  if we got a valid job step id 
+#     if [ $jobstepid != "-1" ]; then
+#         $bindir/scr_watchdog --dir $prefix --jobStepId $jobstepid &
+#         watchdog_pid=$!;
+#         echo "$prog: Started watchdog process with PID $watchdog_pid."
+#     else
+#        echo "$prog: ERROR: Unable to start scr_watchdog because couldn't get job step id."
+#        watchdog_pid=-1;
+#     fi
+#     wait $srun_pid;
   fi
 
   end_secs=`date +%s`
