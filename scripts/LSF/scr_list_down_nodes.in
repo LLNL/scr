@@ -109,21 +109,23 @@ if ($resmgr_down ne "") {
   }
 }
 
+# ping is not supported yet on LSF, rely on pdsh instead
+#
 # mark the set of nodes we can't ping
-my @failed_ping = ();
-foreach my $node (@nodes) {
-  # ICMP over omnipath can fail due to bad arp
-  # First ping will replenish arp, second succeed
-  # `ping -c2` will be slower in the "normal" case
-  # that ping succeeds, because non-root users cannot
-  # set the ping interval below 0.2 seconds.
-  `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
-  if ($? != 0) {
-    delete $available{$node};
-    $unavailable{$node} = 1;
-    $reason{$node} = "Failed to ping";
-  }
-}
+#my @failed_ping = ();
+#foreach my $node (@nodes) {
+#  # ICMP over omnipath can fail due to bad arp
+#  # First ping will replenish arp, second succeed
+#  # `ping -c2` will be slower in the "normal" case
+#  # that ping succeeds, because non-root users cannot
+#  # set the ping interval below 0.2 seconds.
+#  `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
+#  if ($? != 0) {
+#    delete $available{$node};
+#    $unavailable{$node} = 1;
+#    $reason{$node} = "Failed to ping";
+#  }
+#}
 
 # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
 my $exclude = $param->get("SCR_EXCLUDE_NODES");
@@ -152,89 +154,89 @@ if (defined $conf{nodeset_down}) {
 
 # TODO: read exclude list from a file, as well?
 
-# specify whether to check total or free capacity in directories
-my $free_flag = "";
-if (defined $conf{free}) {
-  $free_flag = "--free";
-}
-
-# check that control and cache directories on each node work and are of proper size
-# get the control directory the job will use
-my @cntldir_vals = ();
-my $cntldir_string = `$bindir/scr_list_dir --base control`;
-if ($? == 0) {
-  chomp $cntldir_string;
-  my @dirs = split(" ", $cntldir_string);
-  my $cntldirs = $param->get_hash("CNTLDIR");
-  foreach my $base (@dirs) {
-    my $val = "$base";
-    if (defined $cntldirs and defined $$cntldirs{$base} and defined $$cntldirs{$base}{"BYTES"}) {
-      my $size = (keys %{$$cntldirs{$base}{"BYTES"}})[0];
-      if (defined $size) {
-        $val = "$base:$size";
-      }
-    }
-    push @cntldir_vals, $val;
-  }
-}
-my $cntldir_flag = "";
-if (@cntldir_vals > 0) {
-  $cntldir_flag = "--cntl " . join(",", @cntldir_vals);
-}
-
-# get the cache directory the job will use
-my @cachedir_vals = ();
-my $cachedir_string = `$bindir/scr_list_dir --base cache`;
-if ($? == 0) {
-  chomp $cachedir_string;
-  my @dirs = split(" ", $cachedir_string);
-  my $cachedirs = $param->get_hash("CACHEDIR");
-  foreach my $base (@dirs) {
-    my $val = "$base";
-    if (defined $cachedirs and defined $$cachedirs{$base} and defined $$cachedirs{$base}{"BYTES"}) {
-      my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
-      if (defined $size) {
-        $val = "$base:$size";
-      }
-    }
-    push @cachedir_vals, $val;
-  }
-}
-my $cachedir_flag = "";
-if (@cachedir_vals > 0) {
-  $cachedir_flag = "--cache " . join(",", @cachedir_vals);
-}
-
-# only run this against set of nodes known to be responding
-my @still_up = (sort {
-  my ($num_a) = ($a =~ /^[\D]+(\d+$)/);
-  my ($num_b) = ($b =~ /^[\D]+(\d+$)/);
-  return $num_a <=> $num_b;} keys %available);
-my $upnodes = scr_hostlist::compress(@still_up);
-
-# run scr_check_node on each node specifying control and cache directories to check
-if (@still_up > 0) {
-  my $output = `$pdsh -f 256 -w '$upnodes' "$bindir/scr_check_node $free_flag $cntldir_flag $cachedir_flag" | $dshbak -c`;
-  my @lines = (split "\n", $output);
-  while (@lines) {
-    my $line = shift @lines;
-    if ($line =~ /^---/) {
-      my $nodeset = shift @lines;
-      $line = shift @lines;
-      my $result = shift @lines;
-      if ($result !~ /PASS/) {
-        my @exclude_nodes = scr_hostlist::expand($nodeset);
-        foreach my $node (@exclude_nodes) {
-          if (defined $allocation{$node}) {
-            delete $available{$node};
-            $unavailable{$node} = 1;
-            $reason{$node} = $result;
-          }
-        }
-      }
-    }
-  }
-}
+## specify whether to check total or free capacity in directories
+#my $free_flag = "";
+#if (defined $conf{free}) {
+#  $free_flag = "--free";
+#}
+#
+## check that control and cache directories on each node work and are of proper size
+## get the control directory the job will use
+#my @cntldir_vals = ();
+#my $cntldir_string = `$bindir/scr_list_dir --base control`;
+#if ($? == 0) {
+#  chomp $cntldir_string;
+#  my @dirs = split(" ", $cntldir_string);
+#  my $cntldirs = $param->get_hash("CNTLDIR");
+#  foreach my $base (@dirs) {
+#    my $val = "$base";
+#    if (defined $cntldirs and defined $$cntldirs{$base} and defined $$cntldirs{$base}{"BYTES"}) {
+#      my $size = (keys %{$$cntldirs{$base}{"BYTES"}})[0];
+#      if (defined $size) {
+#        $val = "$base:$size";
+#      }
+#    }
+#    push @cntldir_vals, $val;
+#  }
+#}
+#my $cntldir_flag = "";
+#if (@cntldir_vals > 0) {
+#  $cntldir_flag = "--cntl " . join(",", @cntldir_vals);
+#}
+#
+## get the cache directory the job will use
+#my @cachedir_vals = ();
+#my $cachedir_string = `$bindir/scr_list_dir --base cache`;
+#if ($? == 0) {
+#  chomp $cachedir_string;
+#  my @dirs = split(" ", $cachedir_string);
+#  my $cachedirs = $param->get_hash("CACHEDIR");
+#  foreach my $base (@dirs) {
+#    my $val = "$base";
+#    if (defined $cachedirs and defined $$cachedirs{$base} and defined $$cachedirs{$base}{"BYTES"}) {
+#      my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
+#      if (defined $size) {
+#        $val = "$base:$size";
+#      }
+#    }
+#    push @cachedir_vals, $val;
+#  }
+#}
+#my $cachedir_flag = "";
+#if (@cachedir_vals > 0) {
+#  $cachedir_flag = "--cache " . join(",", @cachedir_vals);
+#}
+#
+## only run this against set of nodes known to be responding
+#my @still_up = (sort {
+#  my ($num_a) = ($a =~ /^[\D]+(\d+$)/);
+#  my ($num_b) = ($b =~ /^[\D]+(\d+$)/);
+#  return $num_a <=> $num_b;} keys %available);
+#my $upnodes = scr_hostlist::compress(@still_up);
+#
+## run scr_check_node on each node specifying control and cache directories to check
+#if (@still_up > 0) {
+#  my $output = `$pdsh -f 256 -w '$upnodes' "$bindir/scr_check_node $free_flag $cntldir_flag $cachedir_flag" | $dshbak -c`;
+#  my @lines = (split "\n", $output);
+#  while (@lines) {
+#    my $line = shift @lines;
+#    if ($line =~ /^---/) {
+#      my $nodeset = shift @lines;
+#      $line = shift @lines;
+#      my $result = shift @lines;
+#      if ($result !~ /PASS/) {
+#        my @exclude_nodes = scr_hostlist::expand($nodeset);
+#        foreach my $node (@exclude_nodes) {
+#          if (defined $allocation{$node}) {
+#            delete $available{$node};
+#            $unavailable{$node} = 1;
+#            $reason{$node} = $result;
+#          }
+#        }
+#      }
+#    }
+#  }
+#}
 
 # take union of all these sets and sort by node name
 my @failed_nodes = (sort {
