@@ -1,3 +1,25 @@
+# set SCR_PKG to the directory where SCR is cloned
+# set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
+# set SCR_INSTALL to the directory where SCR is installed
+export SCR_PKG=`pwd`
+export SCR_BUILD=`pwd`/scr-dist
+export SCR_INSTALL="${SCR_BUILD}/install"
+
+# Linux cmake build instructions
+cd ${SCR_PKG}
+rm -rf ${SCR_BUILD}
+mkdir ${SCR_BUILD}
+cd ${SCR_BUILD}
+export CFLAGS="-g -O0"
+cmake -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_VERBOSE_MAKEFILE=true -DSCR_RESOURCE_MANAGER=LSF ${SCR_PKG}
+make
+make install
+
+# cd to examples directory, and check that build of test programs works
+cd ${SCR_INSTALL}/share/scr/examples
+export OPT="-g -O0"
+make
+
 # set up initial enviroment for testing
 export scrbin=${SCR_INSTALL}/bin
 export jobid=`${scrbin}/scr_env --jobid`
