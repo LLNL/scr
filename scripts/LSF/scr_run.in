@@ -188,7 +188,8 @@ while [ 1 ] ; do
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
 
   if [ $use_scr_watchdog -eq 0 ]; then
-     mpirun --host $target_hosts "$@"
+     #mpirun --host $target_hosts "$@"
+     mpirun "$@"
 #  else
 #    echo "$prog: Attempting to start watchdog process."
 #     # need to get job step id of the srun command
