@@ -28,7 +28,7 @@ export downnode=`${scrbin}/scr_glob_hosts -n 1 -h "$SLURM_NODELIST"`
 echo $downnode
 export prefix_files=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 
-export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/deps/install/lib
+export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/deps/install/lib:/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le/lib
 export SCR_PREFIX=`pwd`
 export SCR_FETCH=0
 export SCR_FLUSH=0
