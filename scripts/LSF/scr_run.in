@@ -35,6 +35,14 @@ fi
 
 jobid=`$bindir/scr_env --jobid`
 
+# query LSF for job end time, and set variable to read within library
+SCR_END_TIME=`$bindir/scr_env --endtime`
+if [ $? -ne 0 ] ; then
+  # failed to get value, so set to 0
+  SCR_END_TIME=0
+fi
+export SCR_END_TIME
+
 # TODO: check that we have a valid jobid and bail if not
 
 # get the nodeset of this job
