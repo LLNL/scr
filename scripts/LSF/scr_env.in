@@ -22,6 +22,7 @@ sub print_usage
   print "                     the resource managers knows to be down.\n";
   print "    -p, --prefix   Specify the prefix directory.\n";
   print "    -r, --runnodes List the number of nodes used in the last run.\n";
+  print "    -e, --endtime  List the end time of the job (secs since epoch).\n";
   print "\n";
   exit 1;
 }
@@ -32,8 +33,9 @@ $conf{user}  = undef;
 $conf{jobid} = undef;
 $conf{nodes} = undef;
 $conf{down}  = undef;
-$conf{prefix}  = undef;
+$conf{prefix}   = undef;
 $conf{runnodes} = undef;
+$conf{endtime}  = undef;
 $conf{help}  = undef;
 my $rc = GetOptions (
   "user|u"         => \$conf{user},
@@ -42,6 +44,7 @@ my $rc = GetOptions (
   "down|d"         => \$conf{down},
   "prefix|p=s"     => \$conf{prefix},
   "runnodes|r"     => \$conf{runnodes},
+  "endtime|e"      => \$conf{endtime},
   "help|h"         => \$conf{help},
 );
 if ($conf{help} or not $rc) {
@@ -131,6 +134,29 @@ if (defined $conf{user}) {
     print "0\n";
     exit 1;
   }
+} elsif (defined $conf{endtime}) {
+  # query bjobs to get time remaining and add to current time
+  #   bjobs -o 'time_left'
+  #   TIME_LEFT
+  #   0:12 L
+  my $curtime = time();
+  my $bjobs = `bjobs -o 'time_left'`;
+  if ($? == 0) {
+    my @lines = split("\n", $bjobs);
+    foreach my $line (@lines) {
+      # look for a line like "1:23 L"
+      if ($line =~ /^\s*(\d+):(\d+)\s+L/) {
+         my $hours = $1;
+         my $mins  = $2;
+         my $secs = $curtime + (($hours * 60) + $mins) * 60;
+         print "$secs\n";
+         exit 0;
+      }
+    }
+  }
+  # had a problem executing bjobs command
+  print "0\n";
+  exit 1;
 } else {
   # did not specify and option, print the usage
   print_usage();
