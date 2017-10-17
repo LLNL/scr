@@ -68,14 +68,6 @@ if [ "$SCR_WATCHDOG" == "1" ] ; then
   exit 1
 fi
 
-# check that this script is running on a node in the job's allocated nodeset
-script_node=`hostname`
-intersection=`$bindir/scr_glob_hosts --intersection $script_node:$SCR_NODELIST`
-if [ -z "$intersection" ] ; then
-  echo "$prog: ERROR: $prog is executing on $script_node, which is not part of the job's nodeset $SCR_NODELIST."
-  exit 1
-fi
-
 # get the control directory
 cntldir=`$bindir/scr_list_dir control`
 if [ $? -ne 0 ] ; then
@@ -167,13 +159,6 @@ while [ 1 ] ; do
       break
     fi
 
-    # check that we don't exclude the node this script is running on
-    intersection=`$bindir/scr_glob_hosts --intersection $script_node:$down_nodes`
-    if [ -n "$intersection" ] ; then
-      echo "$prog: Script node $script_node is in the exclude set on retry $down_nodes, ending run."
-      break
-    fi
-
     # all checks pass, exclude the down nodes and continue
     target_hosts=`$bindir/scr_glob_hosts --minus $SCR_NODELIST:$down_nodes`
   fi
@@ -193,7 +178,7 @@ while [ 1 ] ; do
 #  else
 #    echo "$prog: Attempting to start watchdog process."
 #     # need to get job step id of the srun command
-#     srun --nodelist $script_node $exclude "$@" &
+#     srun $exclude "$@" &
 #     srun_pid=$!;
 #     sleep 10; # sleep a bit to wait for the job to show up in squeue 
 #     echo "$bindir/scr_get_jobstep_id $srun_pid";
