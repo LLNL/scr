@@ -144,8 +144,9 @@ if (defined $conf{user}) {
   if ($? == 0) {
     my @lines = split("\n", $bjobs);
     foreach my $line (@lines) {
-      # look for a line like "1:23 L"
-      if ($line =~ /^\s*(\d+):(\d+)\s+L/) {
+      # look for a line like "1:23 L",
+      # avoid matching the "L" since other characters can show up there
+      if ($line =~ /^\s*(\d+):(\d+)\s+/) {
          my $hours = $1;
          my $mins  = $2;
          my $secs = $curtime + (($hours * 60) + $mins) * 60;
