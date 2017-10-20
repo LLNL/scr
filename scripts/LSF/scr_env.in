@@ -160,12 +160,8 @@ if (defined $conf{user}) {
         #   TIME_LEFT
         #   -
         # look for the "-", in this case,
-        # return something one year into the future
-        #
-        # TODO: Got the 2038 problem to deal with?
-        # https://en.wikipedia.org/wiki/Year_2038_problem
-        # could just return secs=2147483647, 03:14:07 UTC on Tuesday, 19 January 2038
-        my $secs = $curtime + 365 * 24 * 60 * 60;
+        # return -1 to indicate there is no limit
+        my $secs = -1;
         print "$secs\n";
         exit 0;
       }
