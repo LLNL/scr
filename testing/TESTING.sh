@@ -24,7 +24,9 @@ make
 export scrbin=${SCR_INSTALL}/bin
 export jobid=`${scrbin}/scr_env --jobid`
 echo $jobid
-export downnode=`${scrbin}/scr_glob_hosts -n 1 -h "$SLURM_NODELIST"`
+export nodelist=`${scrbin}/scr_env --nodes`
+echo $nodelist
+export downnode=`${scrbin}/scr_glob_hosts -n 1 -h "$nodelist"`
 echo $downnode
 export prefix_files=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 
