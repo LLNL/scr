@@ -127,6 +127,37 @@ if ($resmgr_down ne "") {
 #  }
 #}
 
+# only run this against set of nodes known to be responding
+my @still_up = (sort {
+  my ($num_a) = ($a =~ /^[\D]+(\d+$)/);
+  my ($num_b) = ($b =~ /^[\D]+(\d+$)/);
+  return $num_a <=> $num_b;} keys %available);
+my $upnodes = scr_hostlist::compress(@still_up);
+
+# run an "echo UP" on each node to check whether it works
+if (@still_up > 0) {
+  my $output = `$pdsh -f 256 -w '$upnodes' "echo UP" | $dshbak -c`;
+  my @lines = (split "\n", $output);
+  while (@lines) {
+    my $line = shift @lines;
+    if ($line =~ /^---/) {
+      my $nodeset = shift @lines;
+      $line = shift @lines;
+      my $result = shift @lines;
+      if ($result !~ /UP/) {
+        my @exclude_nodes = scr_hostlist::expand($nodeset);
+        foreach my $node (@exclude_nodes) {
+          if (defined $allocation{$node}) {
+            delete $available{$node};
+            $unavailable{$node} = 1;
+            $reason{$node} = $result;
+          }
+        }
+      }
+    }
+  }
+}
+
 # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
 my $exclude = $param->get("SCR_EXCLUDE_NODES");
 if (defined $exclude) {
