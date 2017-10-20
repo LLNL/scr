@@ -136,22 +136,38 @@ if (defined $conf{user}) {
   }
 } elsif (defined $conf{endtime}) {
   # query bjobs to get time remaining and add to current time
-  #   bjobs -o 'time_left'
-  #   TIME_LEFT
-  #   0:12 L
   my $curtime = time();
   my $bjobs = `bjobs -o 'time_left'`;
   if ($? == 0) {
     my @lines = split("\n", $bjobs);
     foreach my $line (@lines) {
-      # look for a line like "1:23 L",
-      # avoid matching the "L" since other characters can show up there
       if ($line =~ /^\s*(\d+):(\d+)\s+/) {
-         my $hours = $1;
-         my $mins  = $2;
-         my $secs = $curtime + (($hours * 60) + $mins) * 60;
-         print "$secs\n";
-         exit 0;
+        # the following is printed if there is a limit
+        #   bjobs -o 'time_left'
+        #   TIME_LEFT
+        #   0:12 L
+        # look for a line like "0:12 L",
+        # avoid matching the "L" since other characters can show up there
+        my $hours = $1;
+        my $mins  = $2;
+        my $secs = $curtime + (($hours * 60) + $mins) * 60;
+        print "$secs\n";
+        exit 0;
+      }
+      if ($line =~ /^\-/) {
+        # the following is printed if there is no limit
+        #   bjobs -o 'time_left'
+        #   TIME_LEFT
+        #   -
+        # look for the "-", in this case,
+        # return something one year into the future
+        #
+        # TODO: Got the 2038 problem to deal with?
+        # https://en.wikipedia.org/wiki/Year_2038_problem
+        # could just return secs=2147483647, 03:14:07 UTC on Tuesday, 19 January 2038
+        my $secs = $curtime + 365 * 24 * 60 * 60;
+        print "$secs\n";
+        exit 0;
       }
     }
   }
