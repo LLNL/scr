@@ -178,7 +178,7 @@ while [ 1 ] ; do
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
 
   if [ $use_scr_watchdog -eq 0 ]; then
-     echo "$target_hosts" >> $hostfile
+     echo "$target_hosts" > $hostfile
      mpirun --hostfile $hostfile "$@"
      #mpirun --host $target_hosts "$@"
 #  else
