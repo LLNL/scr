@@ -86,6 +86,9 @@ if [ $? -ne 0 ] ; then
   exit 1
 fi
 
+# define our hostfile
+hostfile=${prefix}/.scr/hostfile
+
 # start background scr_transfer processes (1 per node) if async flush is enabled
 if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
   #nnodes=`$bindir/scr_glob_hosts --count --hosts $SCR_NODELIST`
@@ -119,8 +122,10 @@ while [ 1 ] ; do
     free_flag="--free"
   fi
 
+  # assume that all hosts in hostfile are valid
+  target_hosts=`$bindir/scr_env --hostfile ""`
+
   # are there enough nodes to continue?
-  target_hosts=$SCR_NODELIST
   down_nodes=`$bindir/scr_list_down_nodes $free_flag $keep_down`
   if [ "$down_nodes" != "" ] ; then
     # print the reason for the down nodes, and log them
@@ -159,8 +164,8 @@ while [ 1 ] ; do
       break
     fi
 
-    # all checks pass, exclude the down nodes and continue
-    target_hosts=`$bindir/scr_glob_hosts --minus $SCR_NODELIST:$down_nodes`
+    # found some down nodes, drop those from the hostlist
+    target_hosts=`$bindir/scr_env --hostfile "$down_nodes"`
   fi
 
   # make a record of when each run is started
@@ -173,8 +178,9 @@ while [ 1 ] ; do
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
 
   if [ $use_scr_watchdog -eq 0 ]; then
+     echo "$target_hosts" >> $hostfile
+     mpirun --hostfile $hostfile "$@"
      #mpirun --host $target_hosts "$@"
-     mpirun "$@"
 #  else
 #    echo "$prog: Attempting to start watchdog process."
 #     # need to get job step id of the srun command
