@@ -23,6 +23,7 @@ sub print_usage
   print "    -p, --prefix   Specify the prefix directory.\n";
   print "    -r, --runnodes List the number of nodes used in the last run.\n";
   print "    -e, --endtime  List the end time of the job (secs since epoch).\n";
+  print "    -f, --hostfile <hosts> Echo hostfile subtracting list of <hosts>.\n";
   print "\n";
   exit 1;
 }
@@ -36,6 +37,7 @@ $conf{down}  = undef;
 $conf{prefix}   = undef;
 $conf{runnodes} = undef;
 $conf{endtime}  = undef;
+$conf{hostfile} = undef;
 $conf{help}  = undef;
 my $rc = GetOptions (
   "user|u"         => \$conf{user},
@@ -45,6 +47,7 @@ my $rc = GetOptions (
   "prefix|p=s"     => \$conf{prefix},
   "runnodes|r"     => \$conf{runnodes},
   "endtime|e"      => \$conf{endtime},
+  "hostfile|f=s"   => \$conf{hostfile},
   "help|h"         => \$conf{help},
 );
 if ($conf{help} or not $rc) {
@@ -101,6 +104,41 @@ if (defined $conf{user}) {
     my $hostlist = scr_hostlist::compress($ENV{LSB_HOSTS});
     print "$hostlist\n";
     # or, with jobid: squeue -j <jobid> -ho %N
+  } else {
+    exit 1;
+  }
+} elsif (defined $conf{hostfile}) {
+  # get list of down nodes
+  my @downlist = scr_hostlist::expand($conf{hostfile});
+  my %downhosts;
+  foreach my $host (@downlist) {
+    $downhosts{$host} = 1;
+  }
+  if (defined $ENV{LSB_DJOB_HOSTFILE}) {
+    # LSB_HOSTS would be easier, but it gets truncated at some limit
+    # only reliable way to build this list is to process file specified
+    # by LSB_DJOB_HOSTFILE
+
+    # get the file name and read the file
+    my $hostfile = $ENV{LSB_DJOB_HOSTFILE};
+    my $hoststr = "";
+    if (-r $hostfile) {
+      # got a file, try to read it
+      $hoststr = `cat $hostfile`;
+      if ($? != 0) {
+        # failed to read file
+        exit 1;
+      }
+    }
+
+    # build set of unique hostnames, one hostname per line
+    chomp $hoststr;
+    my @hosts = split('\n', $hoststr);
+    foreach my $host (@hosts) {
+      if (not exists $downhosts{$host}) {
+        print "$host\n";
+      }
+    }
   } else {
     exit 1;
   }
