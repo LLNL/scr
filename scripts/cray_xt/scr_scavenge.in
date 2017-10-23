@@ -169,14 +169,14 @@ if (-r $output) {
   open(OUT, $output);
   while (my $line = <OUT>) {
     chomp $line;
-    if ($line =~ /(\w*\d+): Partners: (.*)$/) {
+    if ($line =~ /(\S+): Partners: (.*)$/) {
       #atlas693: atlas693: Partners: atlas690 atlas692
       my $current_node = $1;
       my @partner_list = split(/\s+/, $2);
       foreach my $p (@partner_list) {
         push @{$partner{$p}}, $current_node;
       }
-    } elsif ($line =~ /(\w*\d+): Return code: (\d+)/) {
+    } elsif ($line =~ /(\S+): Return code: (\d+)/) {
       #atlas692: atlas692: Return code: 256
       if ($2 != 0) {
         push @copy_failed, $1;
@@ -192,11 +192,11 @@ if (-r $error) {
   open(ERR, $error);
   while (my $line = <ERR>) {
     #pdsh@atlas156: atlas193: mcmd: connect failed: No route to host
-    if ($line =~ /pdsh\@\w*\d+: (\w*\d+):/) {
+    if ($line =~ /pdsh\@\S+: (\S+):/) {
       $pdsh_failed_nodes{$1} = 1;
     }
     #atlas193: mcmd: connect failed: No route to host
-    if ($line =~ /^(\w*\d+):/) {
+    if ($line =~ /^(\S+):/) {
       $pdsh_failed_nodes{$1} = 1;
     }
   }
@@ -218,11 +218,8 @@ if (@copy_failed > 0 or @pdsh_failed > 0) {
     $all_failures{$node} = 1;
   }
 
-  # sort all failed nodes and list them in stdout
-  my @failed = (sort {
-    my ($numA) = ($a =~ /\w*(\d+)/);
-    my ($numB) = ($b =~ /\w*(\d+)/);
-    return $numA <=> $numB} keys %all_failures);
+  # list all failed nodes in stdout
+  my @failed = (keys %all_failures);
 
   # for each failed node, try to find a partner
   my $missing_partner_for_failed_node = 0;
@@ -246,11 +243,8 @@ if (@copy_failed > 0 or @pdsh_failed > 0) {
     }
   }
 
-  # sort partner nodes
-  my @partners = (sort {
-    my ($numA) = ($a =~ /\w*(\d+)/);
-    my ($numB) = ($b =~ /\w*(\d+)/);
-    return $numA <=> $numB} keys %partner_nodes);
+  # get list of partner nodes
+  my @partners = (keys %partner_nodes);
 
   print "$prog: pdsh failed on: ", scalar(scr_hostlist::compress(@failed));
   print ", trying partners: ", scalar(scr_hostlist::compress(@partners)), "\n\n";

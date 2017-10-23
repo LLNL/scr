@@ -128,10 +128,7 @@ if ($resmgr_down ne "") {
 #}
 
 # only run this against set of nodes known to be responding
-my @still_up = (sort {
-  my ($num_a) = ($a =~ /^[\D]+(\d+$)/);
-  my ($num_b) = ($b =~ /^[\D]+(\d+$)/);
-  return $num_a <=> $num_b;} keys %available);
+my @still_up = (keys %available);
 my $upnodes = scr_hostlist::compress(@still_up);
 
 # add all up nodes into an assumed down list
@@ -249,10 +246,7 @@ if (defined $conf{nodeset_down}) {
 #}
 #
 ## only run this against set of nodes known to be responding
-#my @still_up = (sort {
-#  my ($num_a) = ($a =~ /^[\D]+(\d+$)/);
-#  my ($num_b) = ($b =~ /^[\D]+(\d+$)/);
-#  return $num_a <=> $num_b;} keys %available);
+#my @still_up = (keys %available);
 #my $upnodes = scr_hostlist::compress(@still_up);
 #
 ## run scr_check_node on each node specifying control and cache directories to check
@@ -279,11 +273,8 @@ if (defined $conf{nodeset_down}) {
 #  }
 #}
 
-# take union of all these sets and sort by node name
-my @failed_nodes = (sort {
-  my ($num_a) = ($a =~ /^[\D]+(\d+$)/);
-  my ($num_b) = ($b =~ /^[\D]+(\d+$)/);
-  return $num_a <=> $num_b;} keys %unavailable);
+# take union of all these sets
+my @failed_nodes = (keys %unavailable);
 
 # print any failed nodes to stdout and exit with non-zero
 if (@failed_nodes) {
