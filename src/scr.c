@@ -574,9 +574,14 @@ static int scr_get_params()
 
   /* check that the jobid is defined, fatal error if not */
   if (scr_jobid == NULL) {
-    scr_abort(-1, "Failed to record jobid @ %s:%d",
-            __FILE__, __LINE__
-    );
+    /* if we don't have a job id, we may be running outside of a
+     * job allocation likely for testing purposes, create a default */
+    scr_jobid = strdup("defjobid");
+    if (scr_jobid == NULL) {
+      scr_abort(-1, "Failed to allocate memory to record jobid @ %s:%d",
+              __FILE__, __LINE__
+      );
+    }
   }
 
   /* read job name from SCR_JOB_NAME */

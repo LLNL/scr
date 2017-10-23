@@ -22,6 +22,8 @@ sub print_usage
   print "                     the resource managers knows to be down.\n";
   print "    -p, --prefix   Specify the prefix directory.\n";
   print "    -r, --runnodes List the number of nodes used in the last run.\n";
+  print "    -e, --endtime  List the end time of the job (secs since epoch).\n";
+  print "    -f, --hostfile <hosts> Echo hostfile subtracting list of <hosts>.\n";
   print "\n";
   exit 1;
 }
@@ -32,8 +34,10 @@ $conf{user}  = undef;
 $conf{jobid} = undef;
 $conf{nodes} = undef;
 $conf{down}  = undef;
-$conf{prefix}  = undef;
+$conf{prefix}   = undef;
 $conf{runnodes} = undef;
+$conf{endtime}  = undef;
+$conf{hostfile} = undef;
 $conf{help}  = undef;
 my $rc = GetOptions (
   "user|u"         => \$conf{user},
@@ -42,6 +46,8 @@ my $rc = GetOptions (
   "down|d"         => \$conf{down},
   "prefix|p=s"     => \$conf{prefix},
   "runnodes|r"     => \$conf{runnodes},
+  "endtime|e"      => \$conf{endtime},
+  "hostfile|f=s"   => \$conf{hostfile},
   "help|h"         => \$conf{help},
 );
 if ($conf{help} or not $rc) {
@@ -60,7 +66,9 @@ if (defined $conf{user}) {
   if (defined $ENV{LSB_JOBID}) {
     print "$ENV{LSB_JOBID}\n";
   } else {
-    exit 1;
+    # failed to read jobid from environment,
+    # assume user is running in test mode
+    print "defjobid\n";
   }
 } elsif (defined $conf{nodes}) {
   # print the nodeset of the current job in 'atlas[30-33,35,45-53]' form
@@ -99,6 +107,41 @@ if (defined $conf{user}) {
   } else {
     exit 1;
   }
+} elsif (defined $conf{hostfile}) {
+  # get list of down nodes
+  my @downlist = scr_hostlist::expand($conf{hostfile});
+  my %downhosts;
+  foreach my $host (@downlist) {
+    $downhosts{$host} = 1;
+  }
+  if (defined $ENV{LSB_DJOB_HOSTFILE}) {
+    # LSB_HOSTS would be easier, but it gets truncated at some limit
+    # only reliable way to build this list is to process file specified
+    # by LSB_DJOB_HOSTFILE
+
+    # get the file name and read the file
+    my $hostfile = $ENV{LSB_DJOB_HOSTFILE};
+    my $hoststr = "";
+    if (-r $hostfile) {
+      # got a file, try to read it
+      $hoststr = `cat $hostfile`;
+      if ($? != 0) {
+        # failed to read file
+        exit 1;
+      }
+    }
+
+    # build set of unique hostnames, one hostname per line
+    chomp $hoststr;
+    my @hosts = split('\n', $hoststr);
+    foreach my $host (@hosts) {
+      if (not exists $downhosts{$host}) {
+        print "$host\n";
+      }
+    }
+  } else {
+    exit 1;
+  }
 } elsif (defined $conf{down}) {
   # if the resource manager knows any nodes to be down out of the job's
   # nodeset, print this list in 'atlas[30-33,35,45-53]' form
@@ -129,6 +172,42 @@ if (defined $conf{user}) {
     print "0\n";
     exit 1;
   }
+} elsif (defined $conf{endtime}) {
+  # query bjobs to get time remaining and add to current time
+  my $curtime = time();
+  my $bjobs = `bjobs -o 'time_left'`;
+  if ($? == 0) {
+    my @lines = split("\n", $bjobs);
+    foreach my $line (@lines) {
+      if ($line =~ /^\s*(\d+):(\d+)\s+/) {
+        # the following is printed if there is a limit
+        #   bjobs -o 'time_left'
+        #   TIME_LEFT
+        #   0:12 L
+        # look for a line like "0:12 L",
+        # avoid matching the "L" since other characters can show up there
+        my $hours = $1;
+        my $mins  = $2;
+        my $secs = $curtime + (($hours * 60) + $mins) * 60;
+        print "$secs\n";
+        exit 0;
+      }
+      if ($line =~ /^\-/) {
+        # the following is printed if there is no limit
+        #   bjobs -o 'time_left'
+        #   TIME_LEFT
+        #   -
+        # look for the "-", in this case,
+        # return -1 to indicate there is no limit
+        my $secs = -1;
+        print "$secs\n";
+        exit 0;
+      }
+    }
+  }
+  # had a problem executing bjobs command
+  print "0\n";
+  exit 1;
 } else {
   # did not specify and option, print the usage
   print_usage();

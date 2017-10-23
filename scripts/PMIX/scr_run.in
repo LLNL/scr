@@ -104,10 +104,6 @@ if [ "$SCR_WATCHDOG" == "1" ] ; then
   use_scr_watchdog=1
 fi
 
-# no need to check that this script is running on a node in the job's allocated nodeset
-# as Aurora is a cray-style machine with a MOM node
-script_node=`hostname`
-
 # get the control directory
 cntldir=`$bindir/scr_list_dir control`
 if [ $? -ne 0 ] ; then
@@ -209,13 +205,6 @@ while [ 1 ] ; do
       break
     fi
 
-    # check that we don't exclude the node this script is running on
-    intersection=`$bindir/scr_glob_hosts -i $script_node:$down_nodes`
-    if [ -n "$intersection" ] ; then
-      echo "$prog: Script node $script_node is in the exclude set on retry $down_nodes, ending run."
-      break
-    fi
-
     # all checks pass, exclude the down nodes and continue
     exclude="--exclude $down_nodes"
   fi
@@ -239,7 +228,6 @@ while [ 1 ] ; do
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
 
   if [ $use_scr_watchdog -eq 0 ]; then
-      #srun --nodelist $script_node $exclude $launch_cmd
       #todo pmix: need to remove the -B 15 once pmix supports properly blocking for a process
       #todo add excluded nodes from PMIx and SCR
       $bindir/scr_pmix_spawn -B 15 $launch_cmd
@@ -247,9 +235,8 @@ while [ 1 ] ; do
   else
     echo "$prog: PMIX does not currently support watchdog process!!"
      # need to get job step id of the srun command
-     #srun --nodelist $script_node $exclude $launch_cmd &
-     #srun_pid=`$bindir/scr_pmix_spawn -b -l $script_node "$@"`
-     #sleep 10; # sleep a bit to wait for the job to show up in squeue
+     #srun_pid=`$bindir/scr_pmix_spawn -b -l $launch_cmd`
+     #sleep 10; # sleep a bit to wait for the job to show up in squeue 
      #echo "$bindir/scr_get_jobstep_id $srun_pid";
      #jobstepid=`$bindir/scr_get_jobstep_id $srun_pid`;
      # then start the watchdog  if we got a valid job step id

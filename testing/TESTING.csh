@@ -97,7 +97,7 @@ setenv jobid `${scrbin}/scr_env --jobid`
 echo "$jobid"
 setenv nodelist `${scrbin}/scr_env --nodes`
 echo "$nodelist"
-setenv downnode `${scrbin}/scr_glob_hosts -n 1 -h "$SLURM_NODELIST"`
+setenv downnode `${scrbin}/scr_glob_hosts -n 1 -h "$nodelist"`
 echo "$downnode"
 setenv prefix_files ".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 

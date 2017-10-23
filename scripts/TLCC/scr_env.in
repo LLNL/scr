@@ -59,7 +59,9 @@ if (defined $conf{user}) {
   if (defined $ENV{SLURM_JOBID}) {
     print "$ENV{SLURM_JOBID}\n";
   } else {
-    exit 1;
+    # failed to read jobid from environment,
+    # assume user is running in test mode
+    print "defjobid\n";
   }
 } elsif (defined $conf{nodes}) {
   # print the nodeset of the current job in 'atlas[30-33,35,45-53]' form
