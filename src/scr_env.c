@@ -86,11 +86,13 @@ long int scr_env_seconds_remaining()
     }
   #else
     char* scr_end_time = getenv("SCR_END_TIME");
-    if (scr_end_time){//return -1 if SCR_END_TIME not set
+    if (scr_end_time) {
+      /* return -1 if SCR_END_TIME not set */
       long int end_time = atol(scr_end_time);
-      if (end_time > 0){//return -1 if SCR_END_TIME is not convertible to long int
+      if (end_time > 0) {
+        /* return -1 if SCR_END_TIME is not convertible to long int */
 	secs = end_time - (long int)time(NULL);
-	if (secs < 0){
+	if (secs < 0) {
 	  secs = 0;
 	}
       }

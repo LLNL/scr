@@ -58,15 +58,6 @@ if [ "$SCR_WATCHDOG" == "1" ] ; then
   use_scr_watchdog=1
 fi
 
-# normally we would check that this script is running on a node in the job's 
-# allocated nodeset, but on crays, this script runs on MOM node
-script_node=`hostname`
-#intersection=`$bindir/scr_glob_hosts --intersection $script_node:$SCR_NODELIST`
-#if [ -z "$intersection" ] ; then
-  #echo "$prog: ERROR: scr_run is executing on $script_node, which is not part of the job's nodeset $SCR_NODELIST."
-  #exit 1
-#fi
-
 # get the control directory
 cntldir=`$bindir/scr_list_dir control`
 if [ $? -ne 0 ] ; then
@@ -179,13 +170,6 @@ while [ 1 ] ; do
       break
     fi
 
-    # check that we don't exclude the node this script is running on
-    intersection=`$bindir/scr_glob_hosts --intersection $script_node:$down_nodes`
-    if [ -n "$intersection" ] ; then
-      echo "$prog: Script node $script_node is in the exclude set on retry $down_nodes, ending run."
-      break
-    fi
-
     # all checks pass, exclude the down nodes and continue
     exclude="--exclude $down_nodes"
   fi
@@ -201,7 +185,7 @@ while [ 1 ] ; do
  
 
   #original srun command to emulate
-  #srun --nodelist $script_node $exclude "$@"
+  #srun $exclude "$@"
   # aprun doesn't appear to have an equivalent to --exclude
   # on cray_xt, batch script doesn't run on the same node as rank 0 (service node)
   upnodes=""

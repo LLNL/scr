@@ -152,7 +152,7 @@ my $cmd = undef;
 # gather files via pdsh
 my $partner_flag = "";
 $cmd = "LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:". $cppr_lib ." CPPR_PREFIX=\$CPPR_PREFIX ";
-$cmd .= "$bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $prefixdir --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced";
+$cmd .= "$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $partner_flag $container_flag $downnodes_spaced";
 print "$prog: ", scalar(localtime), "\n";
 print "$prog: $pdsh -f 256 -S -w '$upnodes' \"$cmd\" >$output 2>$error\n";
              `$pdsh -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
@@ -282,7 +282,7 @@ if (@copy_failed > 0 or @pdsh_failed > 0) {
   }
   $partner_flag = "--partner";
   $cmd = "LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:". $cppr_lib ." CPPR_PREFIX=\$CPPR_PREFIX ";
-  $cmd .= "$bindir/scr_copy --cntldir $cntldir --id $dset --dstdir $prefixdir --buf $buf_size $crc_flag $partner_flag $container_flag $new_downnodes_spaced";
+  $cmd .= "$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $partner_flag $container_flag $new_downnodes_spaced";
   if ($new_upnodes ne "") {
     print "$prog: $pdsh -f 256 -S -w '$new_upnodes' \"$cmd\" >$output2 2>$error2\n";
                  `$pdsh -f 256 -S -w '$new_upnodes'  "$cmd"  >$output2 2>$error2`;
