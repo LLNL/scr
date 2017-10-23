@@ -4,6 +4,12 @@
 #   note: this does not support the watchdog process yet since killing a jobstep isn't
 #   supported in pmix yet
 
+prog=scr_pmix_run_bash
+
+libdir="@X_LIBDIR@"
+bindir="@X_BINDIR@"
+__have_libcppr="@HAVE_LIBCPPR@"
+
 # Print usage
 if [ -z "$1" ]; then
     echo USAGE:
@@ -11,8 +17,8 @@ if [ -z "$1" ]; then
     echo "<run_command>: The command to run when no restart file is present"
     echo "<restart_command>: The command to run when a restart file is present"
     echo ""
-    echo "The invoked command will be \`scr_pmix_spawn [spawn_args] [run_command]\` when no restart file is present"
-    echo "The invoked command will be \`scr_pmix_spawn [spawn_args] [restart_command]\` when a restart file is present"
+    echo "The invoked command will be \`scr_pmix_spawn [spawn args] [run_command]\` when no restart file is present"
+    echo "The invoked command will be \`scr_pmix_spawn [spawn args] [restart_command]\` when a restart file is present"
     echo "If the string \"SCR_CKPT_NAME\" appears in the restart command, it will be replace by the name "
     echo "presented to SCR when the most recent checkpoint was written."
     echo ""
@@ -24,7 +30,7 @@ if [ -z "$1" ]; then
 fi
 
 # capture restart and run commands if specified
-spawn_args=""
+launcher_args=""
 while [ ${1:+x} ]; do
     case $1 in
         --restart-cmd|-rs)
@@ -42,18 +48,14 @@ while [ ${1:+x} ]; do
             if [ -z "$run_cmd" ]; then shift; run_cmd=$1; fi
             shift ;;
         *)
-            spawn_args="$spawn_args $1"
+            launcher_args="$launcher_args $1"
             shift ;;
     esac
 done
 
-libdir="@X_LIBDIR@"
-bindir="@X_BINDIR@"
-__have_libcppr="@HAVE_LIBCPPR@"
-
 # if SCR is disabled, just do a normal run and exit
 if [ "$SCR_ENABLE" == "0" ] ; then
-  $bindir/scr_pmix_spawn $spawn_args $run_cmd
+  $bindir/scr_pmix_spawn $launcher_args $run_cmd
   exit $?
 fi
 
@@ -63,8 +65,6 @@ if [ -n "$SCR_DEBUG" ]; then
     set -x
   fi
 fi
-
-prog=scr_pmix_run_bash
 
 # make a record of start time
 timestamp=`date`
@@ -110,11 +110,6 @@ if [ $? -ne 0 ] ; then
   echo "$prog: ERROR: Invalid control directory $cntldir."
   exit 1
 fi
-
-# NOP srun to force every node to run prolog to delete files from cache
-# TODO: remove this if admins find a better place to clear cache
-#srun /bin/hostname > /dev/null
-#don't nop in pmix machine type?
 
 # make a record of time prerun is started
 timestamp=`date`
@@ -214,12 +209,12 @@ while [ 1 ] ; do
   timestamp=`date`
   echo "$prog: RUN $attempts: $timestamp"
 
-  launch_cmd="$spawn_args $run_cmd"
+  launch_cmd="$launcher_args $run_cmd"
   if [ ${restart_cmd:+x} ]; then
-      restart_name=`srun $spawn_args $bindir/scr_have_restart`
+      restart_name=`$bindir/scr_pmix_spawn $launcher_args $bindir/scr_have_restart`
       if [ ${restart_name:+x} ]; then
           my_restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#g"`
-          launch_cmd="$spawn_args $my_restart_cmd"
+          launch_cmd="$launcher_args $my_restart_cmd"
       fi
   fi
 
