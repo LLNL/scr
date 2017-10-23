@@ -134,6 +134,12 @@ my @still_up = (sort {
   return $num_a <=> $num_b;} keys %available);
 my $upnodes = scr_hostlist::compress(@still_up);
 
+# add all up nodes into an assumed down list
+my %pdsh_assumed_down;
+foreach my $node (@still_up) {
+  $pdsh_assumed_down{$node} = 1;
+}
+
 # run an "echo UP" on each node to check whether it works
 if (@still_up > 0) {
   my $output = `$pdsh -f 256 -w '$upnodes' "echo UP" | $dshbak -c`;
@@ -144,18 +150,22 @@ if (@still_up > 0) {
       my $nodeset = shift @lines;
       $line = shift @lines;
       my $result = shift @lines;
-      if ($result !~ /UP/) {
+      if ($result =~ /UP/) {
         my @exclude_nodes = scr_hostlist::expand($nodeset);
         foreach my $node (@exclude_nodes) {
-          if (defined $allocation{$node}) {
-            delete $available{$node};
-            $unavailable{$node} = 1;
-            $reason{$node} = $result;
-          }
+          # this node responded, so remove it from the down list
+          delete $pdsh_assumed_down{$node};
         }
       }
     }
   }
+}
+
+# if we still have any nodes assumed down, update our available/unavailable lists
+foreach my $node (keys %pdsh_assumed_down) {
+  delete $available{$node};
+  $unavailable{$node} = 1;
+  $reason{$node} = "Failed to pdsh echo UP";
 }
 
 # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
