@@ -2,9 +2,52 @@
 
 # requires: srun
 
+# Print usage
+if [ -z "$1" ]; then
+    echo USAGE:
+    echo "scr_srun [srun args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] [srun args]"
+    echo "<run_command>: The command to run when no restart file is present"
+    echo "<restart_command>: The command to run when a restart file is present"
+    echo ""
+    echo "The invoked command will be \`srun [srun_args] [run_command]\` when no restart file is present"
+    echo "The invoked command will be \`srun [srun_args] [restart_command]\` when a restart file is present"
+    echo "If the string \"SCR_CKPT_NAME\" appears in the restart command, it will be replace by the name "
+    echo "presented to SCR when the most recent checkpoint was written."
+    echo ""
+    echo "If no restart command is specified, the run command will always be used"
+    echo "If no commands are specified, the srun arguments will be passed directly to srun in all circumstances"
+    echo "If no run command is specified, but a restart command is specified,"
+    echo "then the restart command will be appended to the srun arguments when a restart file is present."
+    exit 0
+fi
+
+# capture restart and run commands if specified
+srun_args=""
+while [ ${1:+x} ]; do
+    case $1 in
+        --restart-cmd|-rs)
+            restart_cmd=$2
+            shift 2 ;;
+        --run-cmd|-rc)
+            run_cmd=$2
+            shift 2 ;;
+        --restart-cmd=*|-rs=*)
+            restart_cmd=${1#*=}
+            if [ -z "$restart_cmd" ]; then shift; restart_cmd=$1; fi
+            shift ;;
+        --run-cmd=*|-rc=*)
+            run_cmd=${1#*=}
+            if [ -z "$run_cmd" ]; then shift; run_cmd=$1; fi
+            shift ;;
+        *)
+            srun_args="$srun_args $1"
+            shift ;;
+    esac
+done
+
 # if SCR is disabled, just do a normal run and exit
 if [ "$SCR_ENABLE" == "0" ] ; then
-  srun "$@"
+  srun $srun_args $run_cmd
   exit $?
 fi
 
@@ -160,21 +203,30 @@ while [ 1 ] ; do
   timestamp=`date`
   echo "$prog: RUN $attempts: $timestamp"
 
+  launch_cmd="$srun_args $run_cmd"
+  if [ ${restart_cmd:+x} ]; then
+      restart_name=`srun $srun_args $bindir/scr_have_restart`
+      if [ ${restart_name:+x} ]; then
+          my_restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#g"`
+          launch_cmd="$srun_args $my_restart_cmd"
+      fi
+  fi
+
   # launch the job, make sure we include the script node and exclude down nodes
   start_secs=`date +%s`
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
 
   if [ $use_scr_watchdog -eq 0 ]; then
-     srun $exclude "$@"
+     srun $exclude $launch_cmd
   else
     echo "$prog: Attempting to start watchdog process."
      # need to get job step id of the srun command
-     srun $exclude "$@" &
+     srun $exclude $launch_cmd &
      srun_pid=$!;
-     sleep 10; # sleep a bit to wait for the job to show up in squeue 
+     sleep 10; # sleep a bit to wait for the job to show up in squeue
      echo "$bindir/scr_get_jobstep_id $srun_pid";
      jobstepid=`$bindir/scr_get_jobstep_id $srun_pid`;
-     # then start the watchdog  if we got a valid job step id 
+     # then start the watchdog  if we got a valid job step id
      if [ $jobstepid != "-1" ]; then
          $bindir/scr_watchdog --dir $prefix --jobStepId $jobstepid &
          watchdog_pid=$!;
