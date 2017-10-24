@@ -2,9 +2,58 @@
 
 # requires: aprun
 
+launcher="aprun"
+prog="scr_$launcher"
+
+libdir="@X_LIBDIR@"
+bindir="@X_BINDIR@"
+
+# Print usage
+if [ -z "$1" ]; then
+    echo USAGE:
+    echo "scr_$launcher [$launcher args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] [$launcher args]"
+    echo "<run_command>: The command to run when no restart file is present"
+    echo "<restart_command>: The command to run when a restart file is present"
+    echo ""
+    echo "The invoked command will be \`$launcher [$launcher args] [run_command]\` when no restart file is present"
+    echo "The invoked command will be \`$launcher [$launcher args] [restart_command]\` when a restart file is present"
+    echo "If the string \"SCR_CKPT_NAME\" appears in the restart command, it will be replace by the name "
+    echo "presented to SCR when the most recent checkpoint was written."
+    echo ""
+    echo "If no restart command is specified, the run command will always be used"
+    echo "If no commands are specified, the $launcher arguments will be passed directly to $launcher in all circumstances"
+    echo "If no run command is specified, but a restart command is specified,"
+    echo "then the restart command will be appended to the $launcher arguments when a restart file is present."
+    exit 0
+fi
+
+# capture restart and run commands if specified
+launcher_args=""
+while [ ${1:+x} ]; do
+    case $1 in
+        --restart-cmd|-rs)
+            restart_cmd=$2
+            shift 2 ;;
+        --run-cmd|-rc)
+            run_cmd=$2
+            shift 2 ;;
+        --restart-cmd=*|-rs=*)
+            restart_cmd=${1#*=}
+            if [ -z "$restart_cmd" ]; then shift; restart_cmd=$1; fi
+            shift ;;
+        --run-cmd=*|-rc=*)
+            run_cmd=${1#*=}
+            if [ -z "$run_cmd" ]; then shift; run_cmd=$1; fi
+            shift ;;
+        *)
+            launcher_args="$launcher_args $1"
+            shift ;;
+    esac
+done
+
 # if SCR is disabled, just do a normal run and exit
 if [ "$SCR_ENABLE" == "0" ] ; then
-  aprun "$@"
+  $launcher $launcher_args $run_cmd
   exit $?
 fi
 
@@ -14,11 +63,6 @@ if [ -n "$SCR_DEBUG" ]; then
     set -x
   fi
 fi
-
-prog=scr_run
-
-libdir="@X_LIBDIR@"
-bindir="@X_BINDIR@"
 
 # make a record of start time
 timestamp=`date`
@@ -58,15 +102,6 @@ if [ "$SCR_WATCHDOG" == "1" ] ; then
   use_scr_watchdog=1
 fi
 
-# normally we would check that this script is running on a node in the job's 
-# allocated nodeset, but on crays, this script runs on MOM node
-script_node=`hostname`
-#intersection=`$bindir/scr_glob_hosts --intersection $script_node:$SCR_NODELIST`
-#if [ -z "$intersection" ] ; then
-  #echo "$prog: ERROR: scr_run is executing on $script_node, which is not part of the job's nodeset $SCR_NODELIST."
-  #exit 1
-#fi
-
 # get the control directory
 cntldir=`$bindir/scr_list_dir control`
 if [ $? -ne 0 ] ; then
@@ -94,7 +129,7 @@ fi
 #  nnodes=`$bindir/scr_glob_hosts --count --hosts $SCR_NODELIST`
 #  # original srun command to emulate
 #  #srun -W 0 -n${nnodes} -N${nnodes} $bindir/scr_transfer $cntldir/transfer.scrinfo &
-#  # aprun doesn't appear to have an equivalent to -W  (wait indefinitely after rank 
+#  # aprun doesn't appear to have an equivalent to -W  (wait indefinitely after rank
 #  # 0 terminates)
 #  aprun -n${nnodes} -N 1 $bindir/scr_transfer $cntldir/transfer.scrinfo &
 #fi
@@ -179,13 +214,6 @@ while [ 1 ] ; do
       break
     fi
 
-    # check that we don't exclude the node this script is running on
-    intersection=`$bindir/scr_glob_hosts --intersection $script_node:$down_nodes`
-    if [ -n "$intersection" ] ; then
-      echo "$prog: Script node $script_node is in the exclude set on retry $down_nodes, ending run."
-      break
-    fi
-
     # all checks pass, exclude the down nodes and continue
     exclude="--exclude $down_nodes"
   fi
@@ -198,10 +226,9 @@ while [ 1 ] ; do
   # launch the job, make sure we include the script node and exclude down nodes
   start_secs=`date +%s`
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
- 
 
   #original srun command to emulate
-  #srun --nodelist $script_node $exclude "$@"
+  #srun $exclude "$@"
   # aprun doesn't appear to have an equivalent to --exclude
   # on cray_xt, batch script doesn't run on the same node as rank 0 (service node)
   upnodes=""
@@ -213,13 +240,22 @@ while [ 1 ] ; do
   # strip off the brackets around the node names because aprun doesn't like them
   tmpupnodes=${upnodes%]}
   tmpupnodes=${tmpupnodes:1}
-  
+
+  launch_cmd="$launcher_args $run_cmd"
+  if [ ${restart_cmd:+x} ]; then
+      restart_name=`$launcher $launcher_args $bindir/scr_have_restart`
+      if [ ${restart_name:+x} ]; then
+          my_restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#g"`
+          launch_cmd="$launcher_args $my_restart_cmd"
+      fi
+  fi
+
   if [ $use_scr_watchdog -eq 0 ]; then
-     aprun -L $tmpupnodes "$@"
+     $launcher -L $tmpupnodes $launch_cmd
   else
     echo "$prog: Attempting to start watchdog process."
     # need to get apid of the aprun command
-     aprun -L $tmpupnodes "$@" &
+     $launcher -L $tmpupnodes $launch_cmd &
      aprun_pid=$!;
      sleep 10; # sleep a bit to wait for the job to show up in apstat
      echo "$bindir/scr_get_jobstep_id $aprun_pid";

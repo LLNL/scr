@@ -4,9 +4,7 @@ LIST(APPEND example_files
 	test_common.c
 	test_common.h
 	test_api.c
-	test_api_file.c
 	test_api_multiple.c
-	test_api_multiple_file.c
 	test_interpose.c
 	test_interpose_multiple.c
 	test_ckpt.C
@@ -52,16 +50,16 @@ ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api "" "ckpt.*")
 
-ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
-TARGET_LINK_LIBRARIES(test_api_file ${SCR_LINK_TO})
+#ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
+#TARGET_LINK_LIBRARIES(test_api_file ${SCR_LINK_TO})
 #SCR_ADD_TEST: proper usage is unknown
 
 ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
 TARGET_LINK_LIBRARIES(test_api_multiple ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api_multiple "" "")
 
-ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
-TARGET_LINK_LIBRARIES(test_api_multiple_file ${SCR_LINK_TO})
+#ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
+#TARGET_LINK_LIBRARIES(test_api_multiple_file ${SCR_LINK_TO})
 #SCR_ADD_TEST: proper usage is unknown
 
 ADD_EXECUTABLE(test_interpose test_interpose.c)
@@ -70,7 +68,7 @@ SCR_ADD_TEST(test_interpose "" "checkpoint_set_*")
 
 ADD_EXECUTABLE(test_interpose_multiple test_common.c test_interpose_multiple.c)
 TARGET_LINK_LIBRARIES(test_interpose_multiple ${SCR_LINK_TO})
-SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank_0.0.ckpt")
+SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank*.ckpt")
 
 ADD_EXECUTABLE(test_ckpt_C test_ckpt.C)
 TARGET_LINK_LIBRARIES(test_ckpt_C ${SCR_LINK_TO})

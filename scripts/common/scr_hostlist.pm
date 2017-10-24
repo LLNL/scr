@@ -9,92 +9,107 @@ use strict;
 #   returns an ordered hostlist string given a list of hostnames
 #
 # Author:  Adam Moody (moody20@llnl.gov)
-
-
-# Returns a list of hostnames, give a hostlist string
-# expand("rhea[2-4,6]") returns ('rhea2','rhea3','rhea4','rhea6')
-
 # modified by Christopher Holguin <christopher.a.holguin@intel.com>
-#   notes: there are 2 new features 1) it now supports hostnames like rhea-1
-#     and 2) rhea-1vm1
 
-
+# Returns a list of hostnames given a hostlist string
+# expand("rhea[2-4,6]") returns ('rhea2','rhea3','rhea4','rhea6')
+# hostrange can contain an optional suffix after brackets:
+#   rhea[2-4,6].llnl.gov
+# multiple ranges can be listed as csv:
+#   machine[1-3,5],machine[7-8],machine10
+# left fills with 0 if a host starts with 0:
+#   machine[08-10] --> machine08,machine09,machine10
 sub expand {
   # read in our hostlist, should be first parameter
   if (@_ != 1) {
     return undef;
   }
   my $nodeset = shift @_;
-  # produce our list of nodes
+
   my @nodes = ();
-  my $machine = undef;
-  my @lowhighs = ();
-  my @single_nodes = ();
-  my $numberLength = 0; # for leading zeros, e.g atlas[0001-0003]
-  if ($nodeset =~ /([\D\d]*)\[([\d,-]+)\](.*)/) {
-    # hostlist with brackets, e.g., atlas[2-5,28,30]
-    $machine = $1;
-    my @ranges = split ",", $2;
-    foreach my $range (@ranges) {
-      my $low  = undef;
-      my $high = undef;
-      if ($range =~ /(\d+)-(\d+)/) {
-        # low-to-high range
-        $low  = $1;
-        $high = $2;
-        #if the lowest number starts with 0
-        if($numberLength == 0 and index($low,"0") == 0){ 
-            $numberLength = length($low);
-        }
+
+  # split entries on commas
+  # machine[1-3,5],machine[7-8],machine10
+  my @chunks = split ",", $nodeset;
+  while (@chunks > 0) {
+    # look for opening bracket
+    my $chunk = shift @chunks;
+    if ($chunk =~ /^(.*)\[(.*)$/) {
+      # got a starting bracket, scan until we find the closing bracket
+      my $prefix  = $1;
+      my $content = $2;
+      my $suffix  = "";
+
+      # build a list of ranges until we find the closing bracket
+      my @ranges = ();
+      if ($content =~ /^(.*)\](.*)$/) {
+        # found the closing bracket (and optional suffix) in the same chunk
+        push @ranges, $1;
+        $suffix = $2;
       } else {
-        # single element range
-        push @single_nodes, $range;
-        #if the lowest number starts with 0
-        if($numberLength == 0 and index($range,"0") == 0){ 
-            $numberLength = length($range);
+        # no bracket, so we either got a single number or a range here
+        push @ranges, $content;
+
+        # pluck off entries until we find the closing bracket
+        while ($chunks[0] !~ /^(.*)\](.*)$/) {
+          $chunk = shift @chunks;
+          push @ranges, $chunk;
         }
-        
-        next;
+
+        # if well formed, this item must now have the bracket
+        $chunk = shift @chunks;
+        if ($chunk =~ /^(.*)\](.*)$/) {
+          # found the closing bracket (and optional suffix)
+          push @ranges, $1;
+          $suffix = $2;
+        }
       }
 
-      push @lowhighs, $low, $high;
-    }
+      # expand ranges to pairs of low/high values
+      my @lowhighs = ();
+      my $numberLength = 0; # for leading zeros, e.g atlas[0001-0003]
+      foreach my $range (@ranges) {
+        my $low  = undef;
+        my $high = undef;
+        if ($range =~ /(\d+)-(\d+)/) {
+          # low-to-high range
+          $low  = $1;
+          $high = $2;
+        } else {
+          # single element range
+          $low  = $range;
+          $high = $range;
+        }
+        #if the lowest number starts with 0
+        if($numberLength == 0 and index($low,"0") == 0){ 
+           $numberLength = length($low);
+        }
+        push @lowhighs, $low, $high;
+      }
 
-    if($3 ne ""){
-        my $temp_csv = $3;
-        $temp_csv = substr($temp_csv, 1, length($temp_csv));
-        my @extra_ranges = split ",", $temp_csv;
-        push @nodes, @extra_ranges;
+      # produce our list of node names
+      while(@lowhighs) {
+        my $low  = shift @lowhighs;
+        my $high = shift @lowhighs;
+        for(my $i = $low; $i <= $high; $i++) {
+          # tack on leading 0's if input had them
+          my $nodenumber = sprintf("%0*d", $numberLength, $i);
+          my $nodename = $prefix . $nodenumber . $suffix;
+          push @nodes, $nodename;
+        }
+      }
+    } else {
+      # no brackets, just a single node name, copy it verbatim
+      push @nodes, $chunk;
     }
-  } else {
-    # single node hostlist, e.g., atlas2
-    $nodeset =~ /([\D]*)(\d+.*)/;
-    $machine = $1;
-    $numberLength = length($2);
-    push @single_nodes, $2;
   }
 
-
-  while(@lowhighs) {
-    my $low  = shift @lowhighs;
-    my $high = shift @lowhighs;
-    for(my $i = $low; $i <= $high; $i++) {
-      my $nodenumber = sprintf("%0*d", $numberLength, $i);
-      push @nodes, $machine . $nodenumber;
-    }
-  }
-  while(@single_nodes){
-      my $temp = shift @single_nodes;
-      my $nodenumber = sprintf("%0*s", $numberLength, $temp);
-      push @nodes, $machine . $temp;
-  }
-  
   return @nodes;
 }
 
 # Returns a hostlist string given a list of hostnames
 # compress('rhea2','rhea3','rhea4','rhea6') returns "rhea[2-4,6]"
-sub compress {
+sub compress_range {
   if (@_ == 0) {
     return "";
   }
@@ -166,6 +181,17 @@ sub compress {
 
   # join the ranges with commas and return the compressed hostlist
   return $machine . "[" . join(",", @ranges) . "]" . $csv_vals;
+}
+
+# Returns a hostlist string given a list of hostnames
+# compress('rhea2','rhea3','rhea4','rhea6') returns "rhea2,rhea3,rhea4,rhea6"
+sub compress {
+  if (@_ == 0) {
+    return "";
+  }
+
+  # join nodes with commas
+  return join(",", @_);
 }
 
 # Given references to two lists, subtract elements in list 2 from list 1 and return remainder

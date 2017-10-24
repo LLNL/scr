@@ -4,13 +4,58 @@
 #   note: this does not support the watchdog process yet since killing a jobstep isn't
 #   supported in pmix yet
 
+prog=scr_pmix_run_bash
+
 libdir="@X_LIBDIR@"
 bindir="@X_BINDIR@"
 __have_libcppr="@HAVE_LIBCPPR@"
 
+# Print usage
+if [ -z "$1" ]; then
+    echo USAGE:
+    echo "scr_pmix_run [spawn args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] [spawn args]"
+    echo "<run_command>: The command to run when no restart file is present"
+    echo "<restart_command>: The command to run when a restart file is present"
+    echo ""
+    echo "The invoked command will be \`scr_pmix_spawn [spawn args] [run_command]\` when no restart file is present"
+    echo "The invoked command will be \`scr_pmix_spawn [spawn args] [restart_command]\` when a restart file is present"
+    echo "If the string \"SCR_CKPT_NAME\" appears in the restart command, it will be replace by the name "
+    echo "presented to SCR when the most recent checkpoint was written."
+    echo ""
+    echo "If no restart command is specified, the run command will always be used"
+    echo "If no commands are specified, the spawn arguments will be passed directly to scr_pmix_spawn in all circumstances"
+    echo "If no run command is specified, but a restart command is specified,"
+    echo "then the restart command will be appended to the spawn arguments when a restart file is present."
+    exit 0
+fi
+
+# capture restart and run commands if specified
+launcher_args=""
+while [ ${1:+x} ]; do
+    case $1 in
+        --restart-cmd|-rs)
+            restart_cmd=$2
+            shift 2 ;;
+        --run-cmd|-rc)
+            run_cmd=$2
+            shift 2 ;;
+        --restart-cmd=*|-rs=*)
+            restart_cmd=${1#*=}
+            if [ -z "$restart_cmd" ]; then shift; restart_cmd=$1; fi
+            shift ;;
+        --run-cmd=*|-rc=*)
+            run_cmd=${1#*=}
+            if [ -z "$run_cmd" ]; then shift; run_cmd=$1; fi
+            shift ;;
+        *)
+            launcher_args="$launcher_args $1"
+            shift ;;
+    esac
+done
+
 # if SCR is disabled, just do a normal run and exit
 if [ "$SCR_ENABLE" == "0" ] ; then
-  $bindir/scr_pmix_spawn $@
+  $bindir/scr_pmix_spawn $launcher_args $run_cmd
   exit $?
 fi
 
@@ -20,8 +65,6 @@ if [ -n "$SCR_DEBUG" ]; then
     set -x
   fi
 fi
-
-prog=scr_pmix_run_bash
 
 # make a record of start time
 timestamp=`date`
@@ -61,21 +104,12 @@ if [ "$SCR_WATCHDOG" == "1" ] ; then
   use_scr_watchdog=1
 fi
 
-# no need to check that this script is running on a node in the job's allocated nodeset
-# as Aurora is a cray-style machine with a MOM node
-script_node=`hostname`
-
 # get the control directory
 cntldir=`$bindir/scr_list_dir control`
 if [ $? -ne 0 ] ; then
   echo "$prog: ERROR: Invalid control directory $cntldir."
   exit 1
 fi
-
-# NOP srun to force every node to run prolog to delete files from cache
-# TODO: remove this if admins find a better place to clear cache
-#srun /bin/hostname > /dev/null
-#don't nop in pmix machine type?
 
 # make a record of time prerun is started
 timestamp=`date`
@@ -97,7 +131,7 @@ if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
       $bindir/scr_pmix_spawn -x PATH -x CPPR_PREFIX -x LD_LIBRARY_PATH -x SCR -b -P -n ${nnodes} -N 1 $bindir/scr_transfer $cntldir/transfer.scrinfo
   else
       echo "#demo USING CPPR, NO ASYNC DAEMON\n"
-      #don't need to launch async daemon      
+      #don't need to launch async daemon
   fi
 fi
 
@@ -166,13 +200,6 @@ while [ 1 ] ; do
       break
     fi
 
-    # check that we don't exclude the node this script is running on
-    intersection=`$bindir/scr_glob_hosts -i $script_node:$down_nodes`
-    if [ -n "$intersection" ] ; then
-      echo "$prog: Script node $script_node is in the exclude set on retry $down_nodes, ending run."
-      break
-    fi
-
     # all checks pass, exclude the down nodes and continue
     exclude="--exclude $down_nodes"
   fi
@@ -182,25 +209,32 @@ while [ 1 ] ; do
   timestamp=`date`
   echo "$prog: RUN $attempts: $timestamp"
 
+  launch_cmd="$launcher_args $run_cmd"
+  if [ ${restart_cmd:+x} ]; then
+      restart_name=`$bindir/scr_pmix_spawn $launcher_args $bindir/scr_have_restart`
+      if [ ${restart_name:+x} ]; then
+          my_restart_cmd=`echo $restart_cmd | sed "s#SCR_CKPT_NAME#${restart_name}#g"`
+          launch_cmd="$launcher_args $my_restart_cmd"
+      fi
+  fi
+
   # launch the job, make sure we include the script node and exclude down nodes
   start_secs=`date +%s`
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
 
   if [ $use_scr_watchdog -eq 0 ]; then
-      #srun --nodelist $script_node $exclude "$@"
       #todo pmix: need to remove the -B 15 once pmix supports properly blocking for a process
-      #todo add excluded nodes from PMIx and SCR 
-      $bindir/scr_pmix_spawn -B 15 $@
+      #todo add excluded nodes from PMIx and SCR
+      $bindir/scr_pmix_spawn -B 15 $launch_cmd
       #just block until this completes
   else
     echo "$prog: PMIX does not currently support watchdog process!!"
      # need to get job step id of the srun command
-     #srun --nodelist $script_node $exclude "$@" &
-     #srun_pid=`$bindir/scr_pmix_spawn -b -l $script_node "$@"`
+     #srun_pid=`$bindir/scr_pmix_spawn -b -l $launch_cmd`
      #sleep 10; # sleep a bit to wait for the job to show up in squeue 
      #echo "$bindir/scr_get_jobstep_id $srun_pid";
      #jobstepid=`$bindir/scr_get_jobstep_id $srun_pid`;
-     # then start the watchdog  if we got a valid job step id 
+     # then start the watchdog  if we got a valid job step id
      #if [ $jobstepid != "-1" ]; then
      #    $bindir/scr_watchdog --dir $prefix --jobStepId $jobstepid &
      #    watchdog_pid=$!;
@@ -256,7 +290,7 @@ if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
       # don't need to launch async daemon
       echo "#demo Didn't try to shutdown async daemon because CPPR is present\n"
   fi
-  
+
 fi
 
 # make a record of time postrun is started
