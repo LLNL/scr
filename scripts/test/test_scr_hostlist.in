@@ -1,0 +1,77 @@
+#!/usr/bin/perl -w
+use strict;
+use lib '@X_DATADIR@/scr';
+use scr_hostlist;
+
+# Runs some tests on scr_hostlist functions to verify that they
+# produce the expected output.
+# Exits with 0 if successful, 1 otherwise.
+
+# assume no errors
+my $rc = 0;
+
+# ensure that expand does the right thing
+my $hostlist = "machine2-[02,3]vm1,machine4-[0003-5].vml2";
+my $hostlist_expanded_expected = "machine2-02vm1,machine2-03vm1,machine4-0003.vml2,machine4-0004.vml2,machine4-0005.vml2";
+my @hosts = scr_hostlist::expand($hostlist);
+my $hostlist_expanded = join(",", @hosts);
+if ($hostlist_expanded ne $hostlist_expanded_expected) {
+  print "scr_hostlist::expand() failed\n";
+  print "  $hostlist_expanded\n  not equal\n  $hostlist_expanded_expected\n";
+  $rc = 1;
+}
+
+# check that we then get the right output with compress
+my $hostlist_compressed = scr_hostlist::compress(@hosts);
+if ($hostlist_compressed ne $hostlist_expanded_expected) {
+  print "scr_hostlist::compress() failed\n";
+  print "  $hostlist_compressed\n  not equal\n  $hostlist_expanded_expected\n";
+  $rc = 1;
+}
+
+# check that the order does not change
+$hostlist = "machine10,machine9,machine8";
+$hostlist_expanded_expected = "machine10,machine9,machine8";
+@hosts = scr_hostlist::expand($hostlist);
+$hostlist_expanded = join(",", @hosts);
+if ($hostlist_expanded ne $hostlist_expanded_expected) {
+  print "scr_hostlist::expand() failed\n";
+  print "  $hostlist_expanded\n  not equal\n  $hostlist_expanded_expected\n";
+  $rc = 1;
+}
+
+# check that we then get the right output with compress
+$hostlist_compressed = scr_hostlist::compress(@hosts);
+if ($hostlist_compressed ne $hostlist_expanded_expected) {
+  print "scr_hostlist::compress() failed\n";
+  print "  $hostlist_compressed\n  not equal\n  $hostlist_expanded_expected\n";
+  $rc = 1;
+}
+
+# run a test on diff
+# note we have to sort because diff does not preserve ordering
+my @hosts1 = ("machine1", "machine2", "machine3");
+my @hosts2 = ("machine1", "machine4");
+my @hosts_diff = sort {$a cmp $b} scr_hostlist::diff(\@hosts1, \@hosts2);
+$hostlist_expanded = join(" ", @hosts_diff);
+$hostlist_expanded_expected = "machine2 machine3";
+if ($hostlist_expanded ne $hostlist_expanded_expected) {
+  print "scr_hostlist::diff() failed\n";
+  print "  $hostlist_expanded\n  not equal\n  $hostlist_expanded_expected\n";
+  $rc = 1;
+}
+
+# run a test on intersect
+# note we have to sort because intersect does not preserve ordering
+@hosts1 = ("machine1", "machine2", "machine3");
+@hosts2 = ("machine1", "machine3", "machine4");
+my @hosts_intersect = sort {$a cmp $b} scr_hostlist::intersect(\@hosts1, \@hosts2);
+$hostlist_expanded = join(" ", @hosts_intersect);
+$hostlist_expanded_expected = "machine1 machine3";
+if ($hostlist_expanded ne $hostlist_expanded_expected) {
+  print "scr_hostlist::intersect() failed\n";
+  print "  $hostlist_expanded\n  not equal\n  $hostlist_expanded_expected\n";
+  $rc = 1;
+}
+
+exit $rc;
