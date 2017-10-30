@@ -779,7 +779,7 @@ int scr_flush_async_init()
 {
     /* daemon stuff */
     scr_path* path_transfer_file = scr_path_from_str(scr_cntl_prefix);
-    scr_path_append_str(path_transfer_file, "stransfer.scrinfo");
+    scr_path_append_str(path_transfer_file, "transfer.scrinfo");
     scr_transfer_file = scr_path_strdup(path_transfer_file);
     scr_path_delete(&path_transfer_file);
 
