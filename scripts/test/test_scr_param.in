@@ -1,0 +1,63 @@
+#!/usr/bin/perl -w
+use strict;
+#use lib '@X_DATADIR@/scr';
+use lib '../common';
+use scr_param;
+
+# Runs some tests on scr_param functions to verify that they
+# produce the expected output.
+# Exits with 0 if successful, 1 otherwise.
+
+# assume no errors
+my $rc = 0;
+
+# initalize
+my $param = new scr_param();
+if (not defined $param) {
+  print "new scr_param() failed\n";
+  $rc = 1;
+  exit $rc;
+}
+
+# test a variable that is not set
+delete $ENV{FAKEVAR};
+my $fake_var = $param->get("FAKEVAR");
+if (defined $fake_var) {
+  print "scr_param->get() returned something when a variable was not set\n";
+  $rc = 1;
+}
+
+# set some fake environment variables
+$ENV{TESTVAR}   = 'testvar';
+$ENV{TESTVAR1}  = 'testvar1';
+$ENV{TESTVAR_2} = 'testvar_2';
+
+my $name = "TESTVAR";
+my $expected_value = "testvar";
+my $value = $param->get($name);
+if ($value ne $expected_value) {
+  print "scr_param->get($name)=$value intead of $expected_value\n";
+  $rc = 1;
+}
+
+# test a parameter that uses embedded variables names
+$name = "SCR_PATH_TEST";
+$ENV{$name} = "/\$TESTVAR/\$TESTVAR1/\$TESTVAR_2/thing";
+$expected_value = "/testvar/testvar1/testvar_2/thing";
+$value = $param->get($name);
+if ($value ne $expected_value) {
+  print "scr_param->get($name)=$value intead of $expected_value\n";
+  $rc = 1;
+}
+
+# test a parameter that uses embedded variables names with braces
+$name = "SCR_PATH_TEST";
+$ENV{$name} = "/\${TESTVAR}/\${TESTVAR1}/\${TESTVAR_2}/thing";
+$expected_value = "/testvar/testvar1/testvar_2/thing";
+$value = $param->get($name);
+if ($value ne $expected_value) {
+  print "scr_param->get($name)=$value intead of $expected_value\n";
+  $rc = 1;
+}
+
+exit $rc;
