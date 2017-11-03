@@ -114,16 +114,18 @@ sub read_config_file
               exit 1;
             }
 
-#            my $value = shift @parts;
-	    my $raw_value = shift @parts;
-	    my $value = '';
-	    my @value_parts = split(/(\$\w+)|(\${\w+})/, $raw_value);
-	    foreach my $seg (@value_parts)
-	    {
-		next if (not defined($seg));
-		$seg = ($ENV{$1} || '')  if ($seg =~ m/\${?(\w+)}?/);
-		$value .= $seg;
-	    }
+            # expand any embedded environment variable names as in
+            # key=$ENVVAR or key=/home/${USER}/${SLURM_JOBID}
+            # replaces variable with its value from the environment
+            my $value = '';
+            my $raw_value = shift @parts;
+            my @value_parts = split(/(\$\w+)|(\$\{\w+\})/, $raw_value);
+            foreach my $seg (@value_parts)
+            {
+              next if (not defined($seg));
+              $seg = ($ENV{$1} || '') if ($seg =~ m/\$\{?(\w+)\}?/);
+              $value .= $seg;
+            }
 
             # record the key value pair in the hash
             if (defined $master_key) {
