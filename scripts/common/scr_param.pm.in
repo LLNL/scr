@@ -83,6 +83,25 @@ sub new
   return bless $self, $type;
 }
 
+# given a string, expand any embedded environment variable names as in
+# key=$ENVVAR or key=/home/${USER}/${SLURM_JOBID}
+# replaces variable with its value from the environment
+sub interpolate_variables
+{
+  my $raw_value = shift @_;
+
+  my $value = '';
+  my @value_parts = split(/(\$\w+)|(\$\{\w+\})/, $raw_value);
+  foreach my $seg (@value_parts)
+  {
+    next if (not defined($seg));
+    $seg = ($ENV{$1} || '') if ($seg =~ m/\$\{?(\w+)\}?/);
+    $value .= $seg;
+  }
+
+  return $value;
+}
+
 sub read_config_file
 {
   my $self = shift @_;
@@ -117,15 +136,8 @@ sub read_config_file
             # expand any embedded environment variable names as in
             # key=$ENVVAR or key=/home/${USER}/${SLURM_JOBID}
             # replaces variable with its value from the environment
-            my $value = '';
             my $raw_value = shift @parts;
-            my @value_parts = split(/(\$\w+)|(\$\{\w+\})/, $raw_value);
-            foreach my $seg (@value_parts)
-            {
-              next if (not defined($seg));
-              $seg = ($ENV{$1} || '') if ($seg =~ m/\$\{?(\w+)\}?/);
-              $value .= $seg;
-            }
+            my $value = interpolate_variables($raw_value);
 
             # record the key value pair in the hash
             if (defined $master_key) {
@@ -156,7 +168,8 @@ sub get
 
   # if param is set in environment, return that value
   if (not defined $self->{no_user}{$name} and defined $ENV{$name}) {
-    return $ENV{$name};
+    my $value = interpolate_variables($ENV{$name});
+    return $value;
   }
 
   # otherwise, check whether we have it defined in our user config file
