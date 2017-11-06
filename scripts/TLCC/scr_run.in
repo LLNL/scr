@@ -5,7 +5,6 @@
 launcher="srun"
 prog="scr_${launcher}"
 
-libdir="@X_LIBDIR@"
 bindir="@X_BINDIR@"
 
 # Print usage

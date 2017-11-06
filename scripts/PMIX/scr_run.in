@@ -6,7 +6,6 @@
 
 prog=scr_pmix_run_bash
 
-libdir="@X_LIBDIR@"
 bindir="@X_BINDIR@"
 __have_libcppr="@HAVE_LIBCPPR@"
 
@@ -231,7 +230,7 @@ while [ 1 ] ; do
     echo "$prog: PMIX does not currently support watchdog process!!"
      # need to get job step id of the srun command
      #srun_pid=`$bindir/scr_pmix_spawn -b -l $launch_cmd`
-     #sleep 10; # sleep a bit to wait for the job to show up in squeue 
+     #sleep 10; # sleep a bit to wait for the job to show up in squeue
      #echo "$bindir/scr_get_jobstep_id $srun_pid";
      #jobstepid=`$bindir/scr_get_jobstep_id $srun_pid`;
      # then start the watchdog  if we got a valid job step id

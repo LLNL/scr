@@ -5,7 +5,6 @@
 launcher="mpirun"
 prog="scr_${launcher}"
 
-libdir="@X_LIBDIR@"
 bindir="@X_BINDIR@"
 
 # Print usage
@@ -239,10 +238,10 @@ while [ 1 ] ; do
 #     # need to get job step id of the srun command
 #     srun $exclude "$@" &
 #     srun_pid=$!;
-#     sleep 10; # sleep a bit to wait for the job to show up in squeue 
+#     sleep 10; # sleep a bit to wait for the job to show up in squeue
 #     echo "$bindir/scr_get_jobstep_id $srun_pid";
 #     jobstepid=`$bindir/scr_get_jobstep_id $srun_pid`;
-#     # then start the watchdog  if we got a valid job step id 
+#     # then start the watchdog  if we got a valid job step id
 #     if [ $jobstepid != "-1" ]; then
 #         $bindir/scr_watchdog --dir $prefix --jobStepId $jobstepid &
 #         watchdog_pid=$!;
