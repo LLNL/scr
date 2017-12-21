@@ -22,52 +22,14 @@ setenv CFLAGS "-g -O3 -Wall -Werror -DHIDE_TV"
 setenv CFLAGS "-g -O3 -Wall -DHIDE_TV"
 setenv CFLAGS "-g -O0 -Wall"
 
-# BGQ build instructions
-setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV -I/bgsys/drivers/V1R1M2/ppc64/comm/sys/include -I/bgsys/drivers/V1R1M2/ppc64 -I/bgsys/drivers/V1R1M2/ppc64/spi/include -I/bgsys/drivers/V1R1M2/ppc64/spi/include/kernel/cnk -I/bgsys/drivers/V1R1M2/ppc64/comm/xl/include"
-setenv configopts "--with-machine-name=BGQ --with-scr-config-file=${HOME}/system_scr.conf --with-scr-cache-base=/dev/persist --with-scr-cntl-base=/dev/persist --with-file-lock=none"
-setenv scrversion "scr-1.1-8"
-cd ${SCR_PKG}
-make distclean
-./autogen.sh
-./configure --prefix=/usr/local/tools/scr-1.1 $configopts
-make dist
-
 # CORAL build instructions
-#setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
-#setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=./deps/install"
-setenv CFLAGS "-g -O0"
-setenv configopts "--with-scr-config-file=/etc/scr.conf --with-machine-name=LSF --with-scr-cntl-base=/dev/shm --with-scr-cache-base=/dev/shm"
-setenv scrversion "scr-1.1.8"
 cd ${SCR_PKG}
-make distclean
-./autogen.sh
-./configure --prefix=/usr/local/tools/scr-1.1 $configopts
-make dist
-
-# Linux build instructions
-cd ${SCR_PKG}
-#setenv CFLAGS "-g -O0 -Wall -Werror -DHIDE_TV"
-#setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql --with-dtcmp=`pwd`/deps/install"
-setenv CFLAGS "-g -O0"
-setenv configopts "--with-scr-config-file=/etc/scr.conf --with-yogrt --with-mysql"
-setenv scrversion "scr-1.1.8"
-make distclean
-./autogen.sh
-./configure --prefix=/usr/local/tools/scr-1.1 $configopts
-make dist
-
-# check that a direct build works
-make
-
-# unzip the dist tarball, configure, make, make install
 rm -rf ${SCR_BUILD}
 mkdir ${SCR_BUILD}
-mv ${scrversion}.tar.gz ${SCR_BUILD}/.
 cd ${SCR_BUILD}
-tar -zxf ${scrversion}.tar.gz
-cd ${scrversion}
-./configure --prefix=${SCR_INSTALL} $configopts
-make -j4
+export CFLAGS="-g -O0"
+cmake -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_VERBOSE_MAKEFILE=true -DSCR_RESOURCE_MANAGER=LSF ${SCR_PKG}
+make
 make install
 
 # Linux cmake build instructions
