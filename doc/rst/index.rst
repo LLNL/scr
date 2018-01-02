@@ -16,13 +16,13 @@ Contents:
    users/intro.rst
    users/assumptions.rst
    users/overview.rst
-   users/library.rst
+   users/build.rst
    users/api.rst
    users/integration.rst
-   users/scripts.rst
+   users/run.rst
    users/config.rst
    users/halt.rst
-   users/scr_index.rst
+   users/manage.rst
 
 Indices and tables
 ==================
