@@ -115,7 +115,9 @@ In particular, one should invoke :code:`scr_postrun` for scavenge support.
 Example batch script for using SCR restart capability
 -----------------------------------------------------
 
-An example MOAB / SLURM batch script with :code:`scr_srun` is shown below::
+An example MOAB / SLURM batch script with :code:`scr_srun` is shown below
+
+.. code-block:: bash
 
   #!/bin/bash
   #MSUB -l partition=atlas

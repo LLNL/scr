@@ -1,3 +1,5 @@
+.. highlight:: c
+
 .. _sec-integration:
 
 Integrate SCR

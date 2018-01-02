@@ -1,3 +1,5 @@
+.. highlight:: bash
+
 .. _sec-halt:
 
 Halt a job
@@ -53,13 +55,13 @@ the :code:`--after` option.
 The job will halt on its first successful checkpoint after the specified time.
 For example, you can instruct a job to halt after "12:00pm today" via::
 
-  scr_halt --after `12:00pm today'
+  scr_halt --after '12:00pm today'
 
 It is also possible to instruct a job to halt before* a specified time
 using the :code:`--before` option.
 For example, you can instruct a job to halt before "8:30am tomorrow" via::
 
-  scr_halt --before `8:30am tomorrow'
+  scr_halt --before '8:30am tomorrow'
 
 For the "halt before" condition to be effective,
 one must also set the :code:`SCR_HALT_SECONDS` parameter.
@@ -175,12 +177,12 @@ To do so, simply list each condition in the same :code:`scr_halt` command or iss
 For example, to instruct a job to halt after 10 checkpoints or before "8:30am tomorrow",
 which ever comes earlier, you could issue the following command::
 
-  scr_halt --checkpoints 10 --before `8:30am tomorrow'
+  scr_halt --checkpoints 10 --before '8:30am tomorrow'
 
 The following sequence also works::
 
   scr_halt --checkpoints 10
-  scr_halt --before `8:30am tomorrow'
+  scr_halt --before '8:30am tomorrow'
 
 You may list the current settings in the halt file with the :code:`--list` option, e.g.,::
 
