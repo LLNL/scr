@@ -1,3 +1,5 @@
+.. highlight:: c
+
 .. _sec-lib-api:
 
 SCR API
@@ -45,6 +47,8 @@ SCR_Init
 ::
 
   int SCR_Init();
+
+.. code-block:: fortran
   
   SCR_INIT(IERROR)
     INTEGER IERROR
@@ -61,6 +65,8 @@ SCR_Finalize
 ::
 
   int SCR_Finalize();
+  
+.. code-block:: fortran
   
   SCR_FINALIZE(IERROR)
     INTEGER IERROR
@@ -82,6 +88,8 @@ SCR_Get_version
 
   char* SCR_Get_version(void);
   
+.. code-block:: fortran
+  
   SCR_GET_VERSION(VERSION, IERROR)
     CHARACTER*(*) VERSION 
     INTEGER IERROR
@@ -95,6 +103,8 @@ SCR_Should_exit
 ::
 
   int SCR_Should_exit(int* flag);
+  
+.. code-block:: fortran
   
   SCR_SHOULD_EXIT(FLAG, IERROR)
     INTEGER FLAG, IERROR
@@ -126,6 +136,8 @@ SCR_Route_file
 ::
 
   int SCR_Route_file(const char* name, char* file);
+  
+.. code-block:: fortran
   
   SCR_ROUTE_FILE(NAME, FILE, IERROR)
     CHARACTER*(*) NAME, FILE
@@ -186,6 +198,8 @@ SCR_Need_checkpoint
 
   int SCR_Need_checkpoint(int* flag);
   
+.. code-block:: fortran
+  
   SCR_NEED_CHECKPOINT(FLAG, IERROR)
     INTEGER FLAG, IERROR
 
@@ -202,7 +216,10 @@ SCR_Start_checkpoint
 ^^^^^^^^^^^^^^^^^^^^
 
 ::
+
   int SCR_Start_checkpoint();
+  
+.. code-block:: fortran
   
   SCR_START_CHECKPOINT(IERROR)
     INTEGER IERROR
@@ -227,6 +244,8 @@ SCR_Complete_checkpoint
 ::
 
   int SCR_Complete_checkpoint(int valid);
+  
+.. code-block:: fortran
   
   SCR_COMPLETE_CHECKPOINT(VALID, IERROR)
     INTEGER VALID, IERROR
@@ -267,6 +286,8 @@ SCR_Have_restart
 
   int SCR_Have_restart(int* flag, char* name);
   
+.. code-block:: fortran
+  
   SCR_HAVE_RESTART(FLAG, NAME, IERROR)
     INTEGER FLAG 
     CHARACTER*(*) NAME
@@ -293,6 +314,8 @@ SCR_Start_restart
 ::
 
   int SCR_Start_restart(char* name);
+  
+.. code-block:: fortran
   
   SCR_START_RESTART(NAME, IERROR)
     CHARACTER*(*) NAME
@@ -323,6 +346,8 @@ SCR_Complete_restart
 ::
 
   int SCR_Complete_restart(int valid);
+  
+.. code-block:: fortran
   
   SCR_COMPLETE_RESTART(VALID, IERROR)
     INTEGER VALID, IERROR
@@ -387,6 +412,8 @@ SCR_Start_output
 
   int SCR_Start_output(char* name, int flags);
   
+.. code-block:: fortran
+  
   SCR_START_OUTPUT(NAME, FLAGS, IERROR)
     CHARACTER*(*) NAME
     INTEGER FLAGS, IERROR
@@ -431,6 +458,8 @@ SCR_Complete_output
 ::
 
   int SCR_Complete_output(int valid);
+  
+.. code-block:: fortran
   
   SCR_COMPLETE_OUTPUT(VALID, IERROR)
     INTEGER VALID, IERROR

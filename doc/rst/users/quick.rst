@@ -107,7 +107,9 @@ Here we'll run a 4-process run on 4 nodes::
 
   srun -n4 -N4 ./test_api
 
-Assuming all goes well, you should see output similar to the following::
+Assuming all goes well, you should see output similar to the following
+
+.. code-block:: none
 
   >>: srun -N 4 -n 4 ./test_api
   Init: Min 0.033856 s    Max 0.033857 s  Avg 0.033856 s
@@ -139,7 +141,9 @@ Here we give a simple example of integrating SCR into an application
 to write checkpoints. Further sections in the user guide give more
 details and demonstrate how to perform restart with SCR.
 You can also look at the source of the :code:`test_api` program and
-other programs in the examples directory.::
+other programs in the examples directory.
+
+.. code-block:: c
 
   int main(int argc, char* argv[]) {
     MPI_Init(argc, argv);
@@ -173,7 +177,7 @@ other programs in the examples directory.::
   
     char file[256];
     /* create your checkpoint file name */
-    sprintf(file, “rank_%d.ckpt”, rank);
+    sprintf(file, "rank_%d.ckpt", rank);
   
     /* Call SCR_Route_file to request a new file name (scr_file) that will cause
        your application to write the file to a fast tier of storage, e.g.,
@@ -182,7 +186,7 @@ other programs in the examples directory.::
     SCR_Route_file(file, scr_file);
   
     /* Use the new file name to perform your checkpoint I/O */
-    FILE* fs = fopen(scr_file, “w”);
+    FILE* fs = fopen(scr_file, "w");
     if (fs != NULL) {
       fwrite(state, ..., fs);
       fclose(fs);

@@ -1,3 +1,5 @@
+.. highlight:: bash
+
 .. _sec-scr_index:
 
 Manage datasets
