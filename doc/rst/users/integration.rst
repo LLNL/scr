@@ -1,5 +1,3 @@
-.. highlight:: c
-
 .. _sec-integration:
 
 Integrate SCR
@@ -11,7 +9,9 @@ Using the SCR API
 -----------------
 
 Before adding calls to the SCR library,
-consider that an application has existing checkpointing code that looks like the following::
+consider that an application has existing checkpointing code that looks like the following
+
+.. code-block:: c
 
   int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
@@ -47,7 +47,7 @@ consider that an application has existing checkpointing code that looks like the
   
     /* build file name of checkpoint file for this rank */
     char checkpoint_file[256];
-    sprintf(checkpoint_file, "%s/rank_%d".ckpt",
+    sprintf(checkpoint_file, "%s/rank_%d.ckpt",
       checkpoint_dir, rank
     );
   
@@ -90,7 +90,7 @@ consider that an application has existing checkpointing code that looks like the
   
     /* build file name of checkpoint file for this rank */
     char checkpoint_file[256];
-    sprintf(checkpoint_file, "%s/rank_%d".ckpt",
+    sprintf(checkpoint_file, "%s/rank_%d.ckpt",
       checkpoint_dir, rank
     );
   
@@ -122,7 +122,9 @@ and all calls to SCR must be from within a well defined MPI environment,
 i.e., between :code:`MPI_Init` and :code:`MPI_Finalize`.
 It is recommended to call :code:`SCR_Init` immediately after :code:`MPI_Init`
 and to call :code:`SCR_Finalize` just before :code:`MPI_Finalize`.
-For example, modify the source to look something like this::
+For example, modify the source to look something like this
+
+.. code-block:: c
 
   int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
@@ -207,7 +209,9 @@ as these functions are collective.
 All files registered through a call to :code:`SCR_Route_file` between a given
 :code:`SCR_Start_checkpoint` and :code:`SCR_Complete_checkpoint` pair are considered to
 be part of the same checkpoint file set.
-Some example SCR checkpoint code looks like the following::
+Some example SCR checkpoint code looks like the following
+
+.. code-block:: c
 
   void checkpoint() {
     /* each process saves its state to a file */
@@ -224,13 +228,13 @@ Some example SCR checkpoint code looks like the following::
         if (rank == 0)
           mkdir(checkpoint_dir);
   
-        /* hold all processes until directory is created */
+        // hold all processes until directory is created
         MPI_Barrier(MPI_COMM_WORLD);
     */
   
     /* build file name of checkpoint file for this rank */
     char checkpoint_file[256];
-    sprintf(checkpoint_file, "%s/rank_%d".ckpt",
+    sprintf(checkpoint_file, "%s/rank_%d.ckpt",
       checkpoint_dir, rank
     );
   
@@ -248,10 +252,10 @@ Some example SCR checkpoint code looks like the following::
   
     /**** change #9 ****/
     /*
-        /* wait for all files to be closed */
+        // wait for all files to be closed
         MPI_Barrier(MPI_COMM_WORLD);
   
-        /* rank 0 updates the pointer to the latest checkpoint */
+        // rank 0 updates the pointer to the latest checkpoint
         FILE* fs = fopen("latest", "w");
         if (fs != NULL) {
           fwrite(checkpoint_dir, ..., fs);
@@ -319,7 +323,9 @@ The input file name to :code:`SCR_Route_file` does not need a path during restar
 as SCR will identify the file just based on its file name.
 After the application reads in its checkpoint files, it must call 
 :code:`SCR_Complete_restart` to indicate that it has completed reading its checkpoint files.
-Some example SCR restart code may look like the following::
+Some example SCR restart code may look like the following
+
+.. code-block:: c
 
   void* restart() {
     /* each process reads its state from a file */
@@ -333,7 +339,7 @@ Some example SCR restart code may look like the following::
   
     /**** change #13 ****/
     /*
-        /* rank 0 reads and broadcasts checkpoint directory name */
+        // rank 0 reads and broadcasts checkpoint directory name
         char checkpoint_dir[256];
         if (rank == 0) {
           FILE* fs = fopen("latest", "r");
@@ -348,7 +354,7 @@ Some example SCR restart code may look like the following::
     /**** change #14 ****/
     /* build file name of checkpoint file for this rank */
     char checkpoint_file[256];
-    sprintf(checkpoint_file, "rank_%d".ckpt",
+    sprintf(checkpoint_file, "rank_%d.ckpt",
       rank
     );
   
