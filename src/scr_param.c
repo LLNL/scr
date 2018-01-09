@@ -87,7 +87,7 @@ char* scr_param_get(char* name)
         );
       }
     }
-    
+
     return value;
   }
 
@@ -259,7 +259,7 @@ int scr_param_init()
     /* initialize our hash to cache lookups to getenv */
     scr_env_hash = scr_hash_new();
 
-    /* warn user if he set any parameters in his environment or user
+    /* warn user if they set any parameters in their environment or user
      * config file which aren't permitted */
     scr_hash_elem* elem;
     for (elem = scr_hash_elem_first(scr_no_user_hash);

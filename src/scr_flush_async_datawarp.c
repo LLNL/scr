@@ -413,7 +413,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
 	scr_flush_async_num_files++;
       }
 
-      /* have master on each node write the transfer file, everyone else sends data to him */
+      /* have master on each node write the transfer file, everyone else sends data to it */
       if (scr_storedesc_cntl->rank == 0) {
 	/* receive hash data from other processes on the same node and merge with our data */
 	int i;
