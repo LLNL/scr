@@ -38,7 +38,7 @@
  * executables
  */
 
-/* Please note a planned code cleanup task is in place for the command line 
+/* Please note a planned code cleanup task is in place for the command line
  * options */
 
 #if (SCR_MACHINE_TYPE == SCR_PMIX)
@@ -694,7 +694,7 @@ int spawn_process(const int spawned_argc,
 
 }
 
-/* parses the current environment variables and looks for "SCR" at he beginning
+/* parses the current environment variables and looks for "SCR" at the beginning
  * if SCR is at the beginning of the name, then it appends to the array */
 void parse_all_scr_envs(char ***env_array, const char **_environ)
 {

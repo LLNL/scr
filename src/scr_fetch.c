@@ -945,7 +945,7 @@ static int scr_fetch_data(
       }
     }
 
-    /* tell rank 0 that we're done and send him our success code */
+    /* tell rank 0 that we're done and send it our success code */
     MPI_Send(&success, 1, MPI_INT, 0, 0, scr_comm_world);
   }
 

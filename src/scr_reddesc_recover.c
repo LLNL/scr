@@ -167,18 +167,18 @@ static int scr_reddesc_recover_xor(scr_filemap* map, const scr_reddesc* c, int i
     /* free the dataset path */
     scr_free(&dset_path);
 
-    /* if failed rank is to my left, i have the meta for his files, send him the header */
+    /* if failed rank is to my left, i have the meta for it files, send it the header */
     if (root == state->lhs_rank) {
       scr_hash_send(header, state->lhs_rank, c->comm);
     }
 
-    /* if failed rank is to my right, send him my file info so he can write his XOR header */
+    /* if failed rank is to my right, send it my file info so it can write its XOR header */
     if (root == state->rhs_rank) {
       scr_hash_send(current_hash, state->rhs_rank, c->comm);
     }
   } else {
     /* receive the header from right-side partner;
-     * includes number of files and meta data for my files, as well as, 
+     * includes number of files and meta data for my files, as well as,
      * the checkpoint id and the chunk size */
     scr_hash_recv(header, state->rhs_rank, c->comm);
 
@@ -492,7 +492,7 @@ static int scr_reddesc_recover_xor_attempt(scr_filemap* map, const scr_reddesc* 
 
   /* count how many in my xor set need to rebuild */
   int total_rebuild;
-  MPI_Allreduce(&need_rebuild, &total_rebuild, 1, MPI_INT, MPI_SUM, c->comm); 
+  MPI_Allreduce(&need_rebuild, &total_rebuild, 1, MPI_INT, MPI_SUM, c->comm);
 
   /* check whether all sets can rebuild, if not, bail out */
   int set_can_rebuild = (total_rebuild <= 1);
