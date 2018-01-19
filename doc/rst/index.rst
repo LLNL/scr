@@ -6,14 +6,58 @@
 Scalable Checkpoint / Restart (SCR) User Guide
 ==============================================
 
-Contents:
+The Scalable Checkpoint / Restart (SCR) library enables MPI applications
+to utilize distributed storage on Linux clusters to attain high file I/O bandwidth
+for checkpointing, restarting, and writing large datasets.
+With SCR, jobs run more efficiently, recompute less work upon a failure,
+and reduce load on shared resources like the parallel file system.
+It provides the most benefit to large-scale jobs that write large datasets.
+SCR utilizes tiered storage in a cluster to provide applications
+with the following capabilities:
+
+* guidance for the optimal checkpoint frequency,
+* scalable checkpoint bandwidth,
+* scalable restart bandwidth,
+* scalable output bandwidth,
+* asynchronous data transfers to the parallel file system.
+
+SCR originated as a production-level implementation of a multi-level checkpoint system
+of the type analyzed by [Vaidya]_
+SCR caches checkpoints in scalable storage,
+which is faster but less reliable than the parallel file system.
+It applies a redundancy scheme to the cache such that checkpoints can be recovered after common system failures.
+It also copies a subset of checkpoints to the parallel file system to recover from less common but more severe failures.
+In many failure cases, a job can be restarted from a checkpoint in cache,
+and writing and reading datasets in cache can be orders of magnitude faster than the parallel file system.
+
+.. _fig-aggr_bw:
+
+.. figure:: users/fig/aggr_bw.png
+
+   Aggregate write bandwidth on Coastal
+
+When writing a cached dataset to the parallel file system, SCR can transfer data asynchronously.
+The application may continue once the data has been written to the cache
+while SCR copies the data to the parallel file system in the background.
+SCR supports general output datasets in addition to checkpoint datasets.
+
+SCR consists of two components: a library and a set of commands.
+The application registers its dataset files with the SCR API,
+and the library maintains the dataset cache.
+The SCR commands are typically invoked from the job batch script.
+They are used to prepare the cache before a job starts,
+automate the process of restarting a job,
+and copy datasets from cache to the parallel file system upon a failure.
+
+.. [Vaidya] "A Case for Two-Level Recovery Schemes", Nitin H. Vaidya, IEEE Transactions on Computers, 1998, http://doi.ieeecomputersociety.org/10.1109/12.689645.
+
+Contents
+========
 
 .. toctree::
    :maxdepth: 2
 
    users/quick.rst
-   users/contact.rst
-   users/intro.rst
    users/assumptions.rst
    users/overview.rst
    users/build.rst
@@ -23,11 +67,4 @@ Contents:
    users/config.rst
    users/halt.rst
    users/manage.rst
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+   users/contact.rst
