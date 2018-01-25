@@ -6,7 +6,7 @@ bandwidth for checkpointing and restarting large-scale jobs. With SCR,
 jobs run more efficiently, recompute less work upon a failure, and reduce
 load on critical shared resources such as the parallel file system.
 
-Detailed usage is provided in the [user manual](/doc/scr_users_manual.pdf).
+Detailed usage is provided in the [user manual](http://scr.readthedocs.io/en/latest).
 
 ## Quickstart
 
