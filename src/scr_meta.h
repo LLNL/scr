@@ -36,8 +36,8 @@
 #include <sys/types.h>
 
 #include "scr.h"
-#include "scr_hash.h"
-#include "scr_hash_util.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
 
 /* compute crc32, needed for uLong */
 #include <zlib.h>
@@ -45,7 +45,7 @@
 #define SCR_META_FILE_USER (SCR_META_KEY_TYPE_USER)
 #define SCR_META_FILE_XOR  (SCR_META_KEY_TYPE_XOR)
 
-typedef scr_hash scr_meta;
+typedef kvtree scr_meta;
 
 /*
 =========================================

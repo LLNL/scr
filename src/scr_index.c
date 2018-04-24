@@ -16,8 +16,8 @@
 
 /*
 setenv TV /usr/global/tools/totalview/v/totalview.8X.8.0-4/bin/totalview
-mpigcc -g -O0 -o scr_index_cmd scr_index_cmd.c scr_hash.o scr_halt_cntl-scr_err_serial.o scr_io.o scr_index.o scr_meta.o scr_filemap.o tv_data_display.o -lz
-mpigcc -g -O0 -o scr_index_cmd scr_index_cmd.c scr_hash.o scr_halt_cntl-scr_err_serial.o scr_io.o scr_index.o scr_meta.o scr_filemap.o tv_data_display.o -lz /usr/global/tools/totalview/v/totalview.8X.8.0-4/linux-x86-64/lib/libdbfork_64.a
+mpigcc -g -O0 -o scr_index_cmd scr_index_cmd.c kvtree.o scr_halt_cntl-scr_err_serial.o scr_io.o scr_index.o scr_meta.o scr_filemap.o tv_data_display.o -lz
+mpigcc -g -O0 -o scr_index_cmd scr_index_cmd.c kvtree.o scr_halt_cntl-scr_err_serial.o scr_io.o scr_index.o scr_meta.o scr_filemap.o tv_data_display.o -lz /usr/global/tools/totalview/v/totalview.8X.8.0-4/linux-x86-64/lib/libdbfork_64.a
 cd /g/g0/moody20/packages/scr/index_test
 $TV ../src/scr_index_cmd -a `pwd` scr.2010-06-29_17:22:08.1018033.10 &
 */
@@ -28,17 +28,20 @@ $TV ../src/scr_index_cmd -a `pwd` scr.2010-06-29_17:22:08.1018033.10 &
  * these values will override any settings below */
 #include "config.h"
 
+#include "scr_globals.h"
 #include "scr_conf.h"
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
 #include "scr_util.h"
-#include "scr_path.h"
-#include "scr_hash.h"
 #include "scr_meta.h"
 #include "scr_filemap.h"
 #include "scr_param.h"
 #include "scr_index_api.h"
+
+#include "spath.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -147,12 +150,12 @@ $TV ../src/scr_index_cmd -a `pwd` scr.2010-06-29_17:22:08.1018033.10 &
 #define SCR_SCAN_KEY_BUILD    ("BUILD")
 
 /* read the file and directory names from dir and return in hash */
-int scr_read_dir(const scr_path* dir, scr_hash* hash)
+int scr_read_dir(const spath* dir, kvtree* hash)
 {
   int rc = SCR_SUCCESS;
 
   /* allocate directory in string form */
-  char* dir_str = scr_path_strdup(dir);
+  char* dir_str = spath_strdup(dir);
 
   /* open the directory */
   DIR* dirp = opendir(dir_str);
@@ -173,13 +176,13 @@ int scr_read_dir(const scr_path* dir, scr_hash* hash)
       #ifdef _DIRENT_HAVE_D_TYPE
         /* distinguish between directories and files if we can */
         if (dp->d_type == DT_DIR) {
-          scr_hash_set_kv(hash, SCR_IO_KEY_DIR, dp->d_name);
+          kvtree_set_kv(hash, SCR_IO_KEY_DIR, dp->d_name);
         } else {
-          scr_hash_set_kv(hash, SCR_IO_KEY_FILE, dp->d_name);
+          kvtree_set_kv(hash, SCR_IO_KEY_FILE, dp->d_name);
         }
       #else
         /* TODO: throw a compile error here instead? */
-        scr_hash_set_kv(hash, SCR_IO_KEY_FILE, dp->d_name);
+        kvtree_set_kv(hash, SCR_IO_KEY_FILE, dp->d_name);
       #endif
     } else {
       if (errno != 0) {
@@ -206,26 +209,26 @@ int scr_read_dir(const scr_path* dir, scr_hash* hash)
   return rc;
 }
 
-int scr_summary_read(const scr_path* dir, scr_hash* hash)
+int scr_summary_read(const spath* dir, kvtree* hash)
 {
   int rc = SCR_SUCCESS;
 
   /* build the filename for the summary file */
-  scr_path* path = scr_path_dup(dir);
-  scr_path_append_str(path, SCR_SUMMARY_FILENAME);
-  char* summary_file = scr_path_strdup(path);
+  spath* path = spath_dup(dir);
+  spath_append_str(path, SCR_SUMMARY_FILENAME);
+  char* summary_file = spath_strdup(path);
 
   /* TODO: need to try reading every file */
 
   /* check whether the file exists before we attempt to read it
-   * (do this error to avoid printing an error in scr_hash_read) */
+   * (do this error to avoid printing an error in kvtree_read) */
   if (scr_file_exists(summary_file) != SCR_SUCCESS) {
     rc = SCR_FAILURE;
     goto cleanup;
   }
 
   /* now attempt to read the file contents into the hash */
-  if (scr_hash_read(summary_file, hash) != SCR_SUCCESS) {
+  if (kvtree_read(summary_file, hash) != KVTREE_SUCCESS) {
     rc = SCR_FAILURE;
     goto cleanup;
   }
@@ -233,88 +236,88 @@ int scr_summary_read(const scr_path* dir, scr_hash* hash)
 cleanup:
   /* free off objects and return with failure */
   scr_free(&summary_file);
-  scr_path_delete(&path);
+  spath_delete(&path);
 
   return rc;
 }
 
-int scr_summary_write(const scr_path* prefix, const scr_path* dir, scr_hash* hash)
+int scr_summary_write(const spath* prefix, const spath* dir, kvtree* hash)
 {
   int rc = SCR_SUCCESS;
 
   /* build the path for the scr metadata directory */
-  scr_path* meta_path = scr_path_dup(dir);
+  spath* meta_path = spath_dup(dir);
 
   /* this is an ugly hack until we turn this into a parallel operation
    * format of rank2file is a tree of files which we hard-code to be
    * two-levels deep here */
 
   /* get pointer to RANK2FILE info sorted by rank */
-  scr_hash* rank2file  = scr_hash_get(hash, SCR_SUMMARY_6_KEY_RANK2FILE);
-  scr_hash* ranks_hash = scr_hash_get(rank2file, SCR_SUMMARY_6_KEY_RANK);
-  scr_hash_sort_int(ranks_hash, SCR_HASH_SORT_ASCENDING);
+  kvtree* rank2file  = kvtree_get(hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+  kvtree* ranks_hash = kvtree_get(rank2file, SCR_SUMMARY_6_KEY_RANK);
+  kvtree_sort_int(ranks_hash, KVTREE_SORT_ASCENDING);
 
   /* create hash for primary rank2file map and encode level */
-  scr_hash* files_hash = scr_hash_new();
-  scr_hash_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_LEVEL, 1);
+  kvtree* files_hash = kvtree_new();
+  kvtree_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_LEVEL, 1);
 
   /* iterate over each rank to record its info */
   int writer = 0;
   int max_rank = -1;
-  scr_hash_elem* elem = scr_hash_elem_first(ranks_hash);
+  kvtree_elem* elem = kvtree_elem_first(ranks_hash);
   while (elem != NULL) {
     /* build name for rank2file part */
-    scr_path* rank2file_path = scr_path_dup(meta_path);
-    scr_path_append_strf(rank2file_path, "rank2file.0.%d.scr", writer);
+    spath* rank2file_path = spath_dup(meta_path);
+    spath_append_strf(rank2file_path, "rank2file.0.%d.scr", writer);
 
     /* create a hash to record an entry from each rank */
-    scr_hash* entries = scr_hash_new();
-    scr_hash_set_kv_int(entries, SCR_SUMMARY_6_KEY_LEVEL, 0);
+    kvtree* entries = kvtree_new();
+    kvtree_set_kv_int(entries, SCR_SUMMARY_6_KEY_LEVEL, 0);
 
     /* record up to 8K entries */
     int count = 0;
     while (count < 8192) {
       /* get rank id */
-      int rank = scr_hash_elem_key_int(elem);
+      int rank = kvtree_elem_key_int(elem);
       if (rank > max_rank) {
         max_rank = rank;
       }
 
       /* copy hash of current rank under RANK/<rank> in entries */
-      scr_hash* elem_hash = scr_hash_elem_hash(elem);
-      scr_hash* rank_hash = scr_hash_set_kv_int(entries, SCR_SUMMARY_6_KEY_RANK, rank);
-      scr_hash_merge(rank_hash, elem_hash);
+      kvtree* elem_hash = kvtree_elem_hash(elem);
+      kvtree* rank_hash = kvtree_set_kv_int(entries, SCR_SUMMARY_6_KEY_RANK, rank);
+      kvtree_merge(rank_hash, elem_hash);
       count++;
 
       /* break early if we reach the end */
-      elem = scr_hash_elem_next(elem);
+      elem = kvtree_elem_next(elem);
       if (elem == NULL) {
         break;
       }
     }
 
     /* record the number of ranks */
-    scr_hash_set_kv_int(entries, SCR_SUMMARY_6_KEY_RANKS, count);
+    kvtree_set_kv_int(entries, SCR_SUMMARY_6_KEY_RANKS, count);
 
     /* write hash to file rank2file part */
-    if (scr_hash_write_path(rank2file_path, entries) != SCR_SUCCESS) {
+    if (kvtree_write_path(rank2file_path, entries) != KVTREE_SUCCESS) {
       rc = SCR_FAILURE;
       elem = NULL;
     }
 
     /* record file name of part in files hash, relative to prefix directory */
-    scr_path* rank2file_rel_path = scr_path_relative(prefix, rank2file_path);
-    const char* rank2file_name = scr_path_strdup(rank2file_rel_path);
+    spath* rank2file_rel_path = spath_relative(prefix, rank2file_path);
+    const char* rank2file_name = spath_strdup(rank2file_rel_path);
     unsigned long offset = 0;
-    scr_hash* files_rank_hash = scr_hash_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_RANK, writer);
-    scr_hash_util_set_str(files_rank_hash, SCR_SUMMARY_6_KEY_FILE, rank2file_name);
-    scr_hash_util_set_bytecount(files_rank_hash, SCR_SUMMARY_6_KEY_OFFSET, offset);
+    kvtree* files_rank_hash = kvtree_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_RANK, writer);
+    kvtree_util_set_str(files_rank_hash, SCR_SUMMARY_6_KEY_FILE, rank2file_name);
+    kvtree_util_set_bytecount(files_rank_hash, SCR_SUMMARY_6_KEY_OFFSET, offset);
     scr_free(&rank2file_name);
-    scr_path_delete(&rank2file_rel_path);
+    spath_delete(&rank2file_rel_path);
 
     /* delete part hash and path */
-    scr_hash_delete(&entries);
-    scr_path_delete(&rank2file_path);
+    kvtree_delete(&entries);
+    spath_delete(&rank2file_path);
 
     /* get id of next writer */
     writer += count;
@@ -323,42 +326,42 @@ int scr_summary_write(const scr_path* prefix, const scr_path* dir, scr_hash* has
   /* TODO: a cleaner way to do this is to only write this info if the
    * rebuild is successful, then we simply count the total ranks */
   /* record total number of ranks in job as max rank + 1 */
-  scr_hash_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_RANKS, max_rank+1);
+  kvtree_set_kv_int(files_hash, SCR_SUMMARY_6_KEY_RANKS, max_rank+1);
 
   /* write out rank2file map */
-  scr_path* files_path = scr_path_dup(meta_path);
-  scr_path_append_str(files_path, "rank2file.scr");
-  if (scr_hash_write_path(files_path, files_hash) != SCR_SUCCESS) {
+  spath* files_path = spath_dup(meta_path);
+  spath_append_str(files_path, "rank2file.scr");
+  if (kvtree_write_path(files_path, files_hash) != KVTREE_SUCCESS) {
     rc = SCR_FAILURE;
   }
-  scr_path_delete(&files_path);
-  scr_hash_delete(&files_hash);
+  spath_delete(&files_path);
+  kvtree_delete(&files_hash);
 
   /* remove RANK2FILE from summary hash */
-  scr_hash_unset(hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+  kvtree_unset(hash, SCR_SUMMARY_6_KEY_RANK2FILE);
 
   /* write summary file */
-  scr_path* summary_path = scr_path_dup(meta_path);
-  scr_path_append_str(summary_path, SCR_SUMMARY_FILENAME);
-  if (scr_hash_write_path(summary_path, hash) != SCR_SUCCESS) {
+  spath* summary_path = spath_dup(meta_path);
+  spath_append_str(summary_path, SCR_SUMMARY_FILENAME);
+  if (kvtree_write_path(summary_path, hash) != KVTREE_SUCCESS) {
     rc = SCR_FAILURE;
   }
-  scr_path_delete(&summary_path);
+  spath_delete(&summary_path);
 
   /* free off objects and return with failure */
-  scr_path_delete(&meta_path);
+  spath_delete(&meta_path);
 
   return rc;
 }
 
 /* forks and execs processes to rebuild missing files and waits for them to complete,
  * returns SCR_FAILURE if any dataset failed to rebuild, SCR_SUCCESS otherwise */
-int scr_fork_rebuilds(const scr_path* dir, scr_hash* cmds)
+int scr_fork_rebuilds(const spath* dir, kvtree* cmds)
 {
   int rc = SCR_SUCCESS;
 
   /* count the number of build commands */
-  int builds = scr_hash_size(cmds);
+  int builds = kvtree_size(cmds);
 
   /* allocate space to hold the pid for each child */
   pid_t* pids = NULL;
@@ -373,33 +376,33 @@ int scr_fork_rebuilds(const scr_path* dir, scr_hash* cmds)
   }
 
   /* allocate character string for chdir */
-  char* dir_str = scr_path_strdup(dir);
+  char* dir_str = spath_strdup(dir);
 
   /* TODO: flow control the number of builds ongoing at a time */
 
   /* step through and fork off each of our build commands */
   int pid_count = 0;
-  scr_hash_elem* elem = NULL;
-  for (elem = scr_hash_elem_first(cmds);
+  kvtree_elem* elem = NULL;
+  for (elem = kvtree_elem_first(cmds);
        elem != NULL;
-       elem = scr_hash_elem_next(elem))
+       elem = kvtree_elem_next(elem))
   {
     /* get the hash of argv values for this command */
-    scr_hash* cmd_hash = scr_hash_elem_hash(elem);
+    kvtree* cmd_hash = kvtree_elem_hash(elem);
 
     /* sort the arguments by their index */
-    scr_hash_sort_int(cmd_hash, SCR_HASH_SORT_ASCENDING);
+    kvtree_sort_int(cmd_hash, KVTREE_SORT_ASCENDING);
 
     /* print the command to screen, so the user knows what's happening */
     int offset = 0;
     char full_cmd[SCR_MAX_FILENAME];
-    scr_hash_elem* arg_elem = NULL;
-    for (arg_elem = scr_hash_elem_first(cmd_hash);
+    kvtree_elem* arg_elem = NULL;
+    for (arg_elem = kvtree_elem_first(cmd_hash);
          arg_elem != NULL;
-         arg_elem = scr_hash_elem_next(arg_elem))
+         arg_elem = kvtree_elem_next(arg_elem))
     {
-      char* key = scr_hash_elem_key(arg_elem);
-      char* arg_str = scr_hash_elem_get_first_val(cmd_hash, key);
+      char* key = kvtree_elem_key(arg_elem);
+      char* arg_str = kvtree_elem_get_first_val(cmd_hash, key);
       int remaining = sizeof(full_cmd) - offset;
       if (remaining > 0) {
         offset += snprintf(full_cmd + offset, remaining, "%s ", arg_str);
@@ -408,7 +411,7 @@ int scr_fork_rebuilds(const scr_path* dir, scr_hash* cmds)
     scr_dbg(0, "Rebuild command: %s\n", full_cmd);
 
     /* count the number of command line arguments */
-    int argc = scr_hash_size(cmd_hash);
+    int argc = kvtree_size(cmd_hash);
 
     /* issue build command */
     pids[pid_count] = fork();
@@ -426,13 +429,13 @@ int scr_fork_rebuilds(const scr_path* dir, scr_hash* cmds)
 
       /* fill in our argv values and null-terminate the array */
       int index = 0;
-      scr_hash_elem* arg_elem = NULL;
-      for (arg_elem = scr_hash_elem_first(cmd_hash);
+      kvtree_elem* arg_elem = NULL;
+      for (arg_elem = kvtree_elem_first(cmd_hash);
            arg_elem != NULL;
-           arg_elem = scr_hash_elem_next(arg_elem))
+           arg_elem = kvtree_elem_next(arg_elem))
       {
-        char* key = scr_hash_elem_key(arg_elem);
-        argv[index] = scr_hash_elem_get_first_val(cmd_hash, key);
+        char* key = kvtree_elem_key(arg_elem);
+        argv[index] = kvtree_elem_get_first_val(cmd_hash, key);
         index++;
       }
       argv[index] = NULL;
@@ -479,51 +482,51 @@ int scr_fork_rebuilds(const scr_path* dir, scr_hash* cmds)
 }
 
 /* returns SCR_FAILURE if any dataset failed to rebuild, SCR_SUCCESS otherwise */
-int scr_rebuild_scan(const scr_path* prefix, const scr_path* dir, scr_hash* scan)
+int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
 {
   /* assume we'll be successful */
   int rc = SCR_SUCCESS;
 
   /* step through and check each of our datasets */
-  scr_hash_elem* dset_elem = NULL;
-  scr_hash* dsets_hash = scr_hash_get(scan, SCR_SCAN_KEY_DLIST);
-  for (dset_elem = scr_hash_elem_first(dsets_hash);
+  kvtree_elem* dset_elem = NULL;
+  kvtree* dsets_hash = kvtree_get(scan, SCR_SCAN_KEY_DLIST);
+  for (dset_elem = kvtree_elem_first(dsets_hash);
        dset_elem != NULL;
-       dset_elem = scr_hash_elem_next(dset_elem))
+       dset_elem = kvtree_elem_next(dset_elem))
   {
     /* get id and the hash for this dataset */
-    int dset_id = scr_hash_elem_key_int(dset_elem);
-    scr_hash* dset_hash = scr_hash_elem_hash(dset_elem);
+    int dset_id = kvtree_elem_key_int(dset_elem);
+    kvtree* dset_hash = kvtree_elem_hash(dset_elem);
 
     /* if the dataset is marked as inconsistent -- consider it to be beyond repair */
-    scr_hash* invalid = scr_hash_get(dset_hash, SCR_SCAN_KEY_INVALID);
+    kvtree* invalid = kvtree_get(dset_hash, SCR_SCAN_KEY_INVALID);
     if (invalid != NULL) {
       rc = SCR_FAILURE;
       continue;
     }
 
     /* check whether there are any missing files in this dataset */
-    scr_hash* missing_hash = scr_hash_get(dset_hash, SCR_SCAN_KEY_MISSING);
+    kvtree* missing_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_MISSING);
     if (missing_hash != NULL) {
       /* at least one rank is missing files, attempt to rebuild them */
       int build_command_count = 0;
 
       /* step through each of our xor sets */
-      scr_hash_elem* xor_elem = NULL;
-      scr_hash* xors_hash = scr_hash_get(dset_hash, SCR_SCAN_KEY_XOR);
-      for (xor_elem = scr_hash_elem_first(xors_hash);
+      kvtree_elem* xor_elem = NULL;
+      kvtree* xors_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_XOR);
+      for (xor_elem = kvtree_elem_first(xors_hash);
            xor_elem != NULL;
-           xor_elem = scr_hash_elem_next(xor_elem))
+           xor_elem = kvtree_elem_next(xor_elem))
       {
         /* get the set id and the hash for this xor set */
-        int xor_setid = scr_hash_elem_key_int(xor_elem);
-        scr_hash* xor_hash = scr_hash_elem_hash(xor_elem);
+        int xor_setid = kvtree_elem_key_int(xor_elem);
+        kvtree* xor_hash = kvtree_elem_hash(xor_elem);
 
         /* TODO: Check that there is only one members value */
 
         /* get the number of members in this set */
         int members;
-        if (scr_hash_util_get_int(xor_hash, SCR_SCAN_KEY_MEMBERS, &members) != SCR_SUCCESS) {
+        if (kvtree_util_get_int(xor_hash, SCR_SCAN_KEY_MEMBERS, &members) != KVTREE_SUCCESS) {
           /* unknown number of members in this set, skip this set */
           scr_err("Unknown number of members in XOR set %d in dataset %d @ %s:%d",
             xor_setid, dset_id, __FILE__, __LINE__
@@ -533,8 +536,8 @@ int scr_rebuild_scan(const scr_path* prefix, const scr_path* dir, scr_hash* scan
         }
 
         /* if we don't have all members, add rebuild command if we can */
-        scr_hash* members_hash = scr_hash_get(xor_hash, SCR_SCAN_KEY_MEMBER);
-        int members_have = scr_hash_size(members_hash);
+        kvtree* members_hash = kvtree_get(xor_hash, SCR_SCAN_KEY_MEMBER);
+        int members_have = kvtree_size(members_hash);
         if (members_have < members - 1) {
           /* not enough members to attempt rebuild of this set, skip it */
           /* TODO: most likely this means that a rank can't be recovered */
@@ -550,7 +553,7 @@ int scr_rebuild_scan(const scr_path* prefix, const scr_path* dir, scr_hash* scan
         int missing_member = -1;
         int member;
         for (member = 1; member <= members; member++) {
-          scr_hash* member_hash = scr_hash_get_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, member);
+          kvtree* member_hash = kvtree_get_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, member);
           if (member_hash == NULL) {
             /* we're missing the XOR file for this member */
             missing_member = member;
@@ -558,9 +561,9 @@ int scr_rebuild_scan(const scr_path* prefix, const scr_path* dir, scr_hash* scan
           } else {
             /* get the rank this member corresponds to */
             char* rank_str;
-            if (scr_hash_util_get_str(member_hash, SCR_SUMMARY_6_KEY_RANK, &rank_str) == SCR_SUCCESS) {
+            if (kvtree_util_get_str(member_hash, SCR_SUMMARY_6_KEY_RANK, &rank_str) == KVTREE_SUCCESS) {
               /* check whether we're missing any files for this rank */
-              scr_hash* missing_rank_hash = scr_hash_get(missing_hash, rank_str);
+              kvtree* missing_rank_hash = kvtree_get(missing_hash, rank_str);
               if (missing_rank_hash != NULL) {
                 /* we have the XOR file for this member, but we're missing one or more regular files */
                 missing_member = member;
@@ -578,33 +581,33 @@ int scr_rebuild_scan(const scr_path* prefix, const scr_path* dir, scr_hash* scan
 
         if (missing_count > 1) {
           /* TODO: unrecoverable */
-          scr_hash_set_kv_int(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE, xor_setid);
+          kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE, xor_setid);
         } else if (missing_count > 0) {
-          scr_hash* buildcmd_hash = scr_hash_set_kv_int(dset_hash, SCR_SCAN_KEY_BUILD, build_command_count);
+          kvtree* buildcmd_hash = kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_BUILD, build_command_count);
           build_command_count++;
 
           int argc = 0;
 
           /* write the command name */
-          scr_hash_setf(buildcmd_hash, NULL, "%d %s", argc, BUILD_CMD);
+          kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, BUILD_CMD);
           argc++;
 
           /* write the number of members in the xor set */
-          scr_hash_setf(buildcmd_hash, NULL, "%d %d", argc, members);
+          kvtree_setf(buildcmd_hash, NULL, "%d %d", argc, members);
           argc++;
 
           /* write the index of the missing xor file (convert from 1-based index to 0-based index) */
-          scr_hash_setf(buildcmd_hash, NULL, "%d %d", argc, missing_member - 1);
+          kvtree_setf(buildcmd_hash, NULL, "%d %d", argc, missing_member - 1);
           argc++;
 
           /* build the name of the missing xor file */
-          scr_path* missing_filepath = scr_path_from_str(".scr");
-          scr_path_append_strf(missing_filepath, "scr.dataset.%d", dset_id);
-          scr_path_append_strf(missing_filepath, "xor.%d_%d_of_%d.scr", xor_setid, missing_member, members);
-          char* missing_filename_str = scr_path_strdup(missing_filepath);
-          scr_hash_setf(buildcmd_hash, NULL, "%d %s", argc, missing_filename_str);
+          spath* missing_filepath = spath_from_str(".scr");
+          spath_append_strf(missing_filepath, "scr.dataset.%d", dset_id);
+          spath_append_strf(missing_filepath, "xor.%d_%d_of_%d.scr", xor_setid, missing_member, members);
+          char* missing_filename_str = spath_strdup(missing_filepath);
+          kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, missing_filename_str);
           scr_free(&missing_filename_str);
-          scr_path_delete(&missing_filepath);
+          spath_delete(&missing_filepath);
           argc++;
 
           /* write each of the existing xor file names, skipping the missing member */
@@ -612,17 +615,17 @@ int scr_rebuild_scan(const scr_path* prefix, const scr_path* dir, scr_hash* scan
             if (member == missing_member) {
               continue;
             }
-            scr_hash* member_hash = scr_hash_get_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, member);
-            char* filename = scr_hash_elem_get_first_val(member_hash, SCR_SUMMARY_6_KEY_FILE);
-            scr_hash_setf(buildcmd_hash, NULL, "%d %s", argc, filename);
+            kvtree* member_hash = kvtree_get_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, member);
+            char* filename = kvtree_elem_get_first_val(member_hash, SCR_SUMMARY_6_KEY_FILE);
+            kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, filename);
             argc++;
           }
         }
       }
 
       /* rebuild if we can */
-      scr_hash* unrecoverable = scr_hash_get(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE);
-      char* dir_str = scr_path_strdup(dir);
+      kvtree* unrecoverable = kvtree_get(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE);
+      char* dir_str = spath_strdup(dir);
       if (unrecoverable != NULL) {
         /* at least some files cannot be recovered */
         scr_err("Insufficient files to attempt rebuild of dataset %d in %s @ %s:%d",
@@ -631,7 +634,7 @@ int scr_rebuild_scan(const scr_path* prefix, const scr_path* dir, scr_hash* scan
         rc = SCR_FAILURE;
       } else {
         /* we have a shot to rebuild everything, let's give it a go */
-        scr_hash* builds_hash = scr_hash_get(dset_hash, SCR_SCAN_KEY_BUILD);
+        kvtree* builds_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_BUILD);
         if (scr_fork_rebuilds(prefix, builds_hash) != SCR_SUCCESS) {
           scr_err("At least one rebuild failed for dataset %d in %s @ %s:%d",
             dset_id, dir_str, __FILE__, __LINE__
@@ -650,34 +653,34 @@ int scr_rebuild_scan(const scr_path* prefix, const scr_path* dir, scr_hash* scan
  * returns SCR_FAILURE if any dataset is missing any files
  * or if any dataset is marked as inconsistent,
  * SCR_SUCCESS otherwise */
-int scr_inspect_scan(scr_hash* scan)
+int scr_inspect_scan(kvtree* scan)
 {
   /* assume nothing is missing, we'll set this to 1 if we find anything that is */
   int any_missing = 0;
 
   /* look for missing files for each dataset */
-  scr_hash_elem* dset_elem = NULL;
-  scr_hash* dsets = scr_hash_get(scan, SCR_SCAN_KEY_DLIST);
-  for (dset_elem = scr_hash_elem_first(dsets);
+  kvtree_elem* dset_elem = NULL;
+  kvtree* dsets = kvtree_get(scan, SCR_SCAN_KEY_DLIST);
+  for (dset_elem = kvtree_elem_first(dsets);
        dset_elem != NULL;
-       dset_elem = scr_hash_elem_next(dset_elem))
+       dset_elem = kvtree_elem_next(dset_elem))
   {
     /* get the dataset id */
-    int dset_id = scr_hash_elem_key_int(dset_elem);
+    int dset_id = kvtree_elem_key_int(dset_elem);
 
     /* get the dataset hash */
-    scr_hash* dset_hash = scr_hash_elem_hash(dset_elem);
+    kvtree* dset_hash = kvtree_elem_hash(dset_elem);
 
     /* get the hash for the RANKS key */
-    scr_hash* rank2file_hash   = scr_hash_get(dset_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
-    scr_hash* ranks_count_hash = scr_hash_get(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS);
+    kvtree* rank2file_hash   = kvtree_get(dset_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+    kvtree* ranks_count_hash = kvtree_get(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS);
 
     /* check that this dataset has only one value under the RANKS key */
-    int ranks_size = scr_hash_size(ranks_count_hash);
+    int ranks_size = kvtree_size(ranks_count_hash);
     if (ranks_size != 1) {
       /* found more than one RANKS value, mark it as inconsistent */
       any_missing = 1;
-      scr_hash_set_kv_int(dset_hash, SCR_SCAN_KEY_INVALID, 1);
+      kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_INVALID, 1);
       scr_err("Dataset %d has more than one value for the number of ranks @ %s:%d",
         dset_id, __FILE__, __LINE__
       );
@@ -686,27 +689,27 @@ int scr_inspect_scan(scr_hash* scan)
 
     /* lookup the number of ranks */
     int ranks;
-    scr_hash_util_get_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, &ranks);
+    kvtree_util_get_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, &ranks);
 
     /* assume this dataset is valid */
     int dataset_valid = 1;
 
     /* get the ranks hash and sort it by rank id */
-    scr_hash* ranks_hash = scr_hash_get(rank2file_hash, SCR_SUMMARY_6_KEY_RANK);
-    scr_hash_sort_int(ranks_hash, SCR_HASH_SORT_ASCENDING);
+    kvtree* ranks_hash = kvtree_get(rank2file_hash, SCR_SUMMARY_6_KEY_RANK);
+    kvtree_sort_int(ranks_hash, KVTREE_SORT_ASCENDING);
 
     /* for each rank, check that we have each of its files */
     int expected_rank = 0;
-    scr_hash_elem* rank_elem = NULL;
-    for (rank_elem = scr_hash_elem_first(ranks_hash);
+    kvtree_elem* rank_elem = NULL;
+    for (rank_elem = kvtree_elem_first(ranks_hash);
          rank_elem != NULL;
-         rank_elem = scr_hash_elem_next(rank_elem))
+         rank_elem = kvtree_elem_next(rank_elem))
     {
       /* get the rank */
-      int rank_id = scr_hash_elem_key_int(rank_elem);
+      int rank_id = kvtree_elem_key_int(rank_elem);
 
       /* get the hash for this rank */
-      scr_hash* rank_hash = scr_hash_elem_hash(rank_elem);
+      kvtree* rank_hash = kvtree_elem_hash(rank_elem);
 
       /* check that the rank is in order */
       if (rank_id < expected_rank) {
@@ -728,15 +731,15 @@ int scr_inspect_scan(scr_hash* scan)
 
       /* if rank_id is higher than expected rank, mark the expected rank as missing */
       while (expected_rank < rank_id) {
-        scr_hash_set_kv_int(dset_hash, SCR_SCAN_KEY_MISSING, expected_rank);
+        kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_MISSING, expected_rank);
         expected_rank++;
       }
 
       /* get the hash for the FILES key */
-      scr_hash* files_count_hash = scr_hash_get(rank_hash, SCR_SUMMARY_6_KEY_FILES);
+      kvtree* files_count_hash = kvtree_get(rank_hash, SCR_SUMMARY_6_KEY_FILES);
 
       /* check that this dataset has only one value for the FILES key */
-      int files_size = scr_hash_size(files_count_hash);
+      int files_size = kvtree_size(files_count_hash);
       if (files_size != 1) {
         /* found more than one FILES value for this rank, mark it as incomplete */
         dataset_valid = 0;
@@ -751,27 +754,27 @@ int scr_inspect_scan(scr_hash* scan)
 
       /* lookup the number of files */
       int files;
-      scr_hash_util_get_int(rank_hash, SCR_SUMMARY_6_KEY_FILES, &files);
+      kvtree_util_get_int(rank_hash, SCR_SUMMARY_6_KEY_FILES, &files);
 
       /* get the files hash for this rank */
-      scr_hash* files_hash = scr_hash_get(rank_hash, SCR_SUMMARY_6_KEY_FILE);
+      kvtree* files_hash = kvtree_get(rank_hash, SCR_SUMMARY_6_KEY_FILE);
 
       /* check that each file is marked as complete */
       int file_count = 0;
-      scr_hash_elem* file_elem = NULL;
-      for (file_elem = scr_hash_elem_first(files_hash);
+      kvtree_elem* file_elem = NULL;
+      for (file_elem = kvtree_elem_first(files_hash);
            file_elem != NULL;
-           file_elem = scr_hash_elem_next(file_elem))
+           file_elem = kvtree_elem_next(file_elem))
       {
         /* get the file hash */
-        scr_hash* file_hash = scr_hash_elem_hash(file_elem);
+        kvtree* file_hash = kvtree_elem_hash(file_elem);
 
         /* check that the file is not marked as incomplete */
         int complete;
-        if (scr_hash_util_get_int(file_hash, SCR_SUMMARY_6_KEY_COMPLETE, &complete) == SCR_SUCCESS) {
+        if (kvtree_util_get_int(file_hash, SCR_SUMMARY_6_KEY_COMPLETE, &complete) == KVTREE_SUCCESS) {
           if (complete == 0) {
             /* file is explicitly marked as incomplete, add the rank to the missing list */
-            scr_hash_set_kv_int(dset_hash, SCR_SCAN_KEY_MISSING, rank_id);
+            kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_MISSING, rank_id);
           }
         }
 
@@ -780,7 +783,7 @@ int scr_inspect_scan(scr_hash* scan)
 
       /* if we're missing any files, mark this rank as missing */
       if (file_count < files) {
-        scr_hash_set_kv_int(dset_hash, SCR_SCAN_KEY_MISSING, rank_id);
+        kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_MISSING, rank_id);
       }
 
       /* if we found more files than expected, mark the dataset as incomplete */
@@ -798,7 +801,7 @@ int scr_inspect_scan(scr_hash* scan)
     /* check that we found all of the ranks */
     while (expected_rank < ranks) {
       /* mark the expected rank as missing */
-      scr_hash_set_kv_int(dset_hash, SCR_SCAN_KEY_MISSING, expected_rank);
+      kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_MISSING, expected_rank);
       expected_rank++;
     }
 
@@ -814,18 +817,18 @@ int scr_inspect_scan(scr_hash* scan)
     /* mark the dataset as invalid if needed */
     if (! dataset_valid) {
       any_missing = 1;
-      scr_hash_setf(dset_hash, NULL, "%s", SCR_SCAN_KEY_INVALID);
+      kvtree_setf(dset_hash, NULL, "%s", SCR_SCAN_KEY_INVALID);
     }
 
     /* check whether we have any missing files for this dataset */
-    scr_hash* missing_hash = scr_hash_get(dset_hash, SCR_SCAN_KEY_MISSING);
+    kvtree* missing_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_MISSING);
     if (missing_hash != NULL) {
       any_missing = 1;
     }
 
     /* if dataset is not marked invalid, and if there are no missing files, then mark it as complete */
     if (dataset_valid && missing_hash == NULL) {
-      scr_hash_set_kv_int(dset_hash, SCR_SUMMARY_6_KEY_COMPLETE, 1);
+      kvtree_set_kv_int(dset_hash, SCR_SUMMARY_6_KEY_COMPLETE, 1);
     }
   }
 
@@ -837,14 +840,14 @@ int scr_inspect_scan(scr_hash* scan)
 
 /* Reads fmap files from given dataset directory and adds them to scan hash.
  * Returns SCR_SUCCESS if the files could be scanned */
-int scr_scan_file(const scr_path* dir, const scr_path* path_name, int* ranks, regex_t* re_xor_file, scr_hash* scan)
+int scr_scan_file(const spath* dir, const spath* path_name, int* ranks, regex_t* re_xor_file, kvtree* scan)
 {
   /* create an empty filemap to store contents */
   scr_filemap* rank_map = scr_filemap_new();
 
   /* read in the filemap */
   if (scr_filemap_read(path_name, rank_map) != SCR_SUCCESS) {
-    char* path_err = scr_path_strdup(path_name);
+    char* path_err = spath_strdup(path_name);
     scr_err("Error reading filemap: %s @ %s:%d",
       path_err, __FILE__, __LINE__
     );
@@ -854,42 +857,42 @@ int scr_scan_file(const scr_path* dir, const scr_path* path_name, int* ranks, re
   }
 
   /* iterate over each dataset in this filemap */
-  scr_hash_elem* dset_elem = NULL;
+  kvtree_elem* dset_elem = NULL;
   for (dset_elem = scr_filemap_first_dataset(rank_map);
        dset_elem != NULL;
-       dset_elem = scr_hash_elem_next(dset_elem))
+       dset_elem = kvtree_elem_next(dset_elem))
   {
     /* get the dataset id */
-    int dset_id = scr_hash_elem_key_int(dset_elem);
+    int dset_id = kvtree_elem_key_int(dset_elem);
 
     /* lookup scan hash for this dataset id */
-    scr_hash* list_hash = scr_hash_set_kv_int(scan, SCR_SCAN_KEY_DLIST, dset_id);
+    kvtree* list_hash = kvtree_set_kv_int(scan, SCR_SCAN_KEY_DLIST, dset_id);
 
     /* lookup rank2file hash for this dataset, allocate a new one if it's not found */
-    scr_hash* rank2file_hash = scr_hash_get(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+    kvtree* rank2file_hash = kvtree_get(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
     if (rank2file_hash == NULL) {
       /* there is no existing rank2file hash, create a new one and add it */
-      rank2file_hash = scr_hash_new();
-      scr_hash_set(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE, rank2file_hash);
+      rank2file_hash = kvtree_new();
+      kvtree_set(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE, rank2file_hash);
     }
 
     /* for each rank that we have for this dataset,
      * set dataset descriptor and the expected number of files */
-    scr_hash_elem* rank_elem = NULL;
+    kvtree_elem* rank_elem = NULL;
     for (rank_elem = scr_filemap_first_rank_by_dataset(rank_map, dset_id);
          rank_elem != NULL;
-         rank_elem = scr_hash_elem_next(rank_elem))
+         rank_elem = kvtree_elem_next(rank_elem))
     {
       /* get the rank number */
-      int rank_id = scr_hash_elem_key_int(rank_elem);
+      int rank_id = kvtree_elem_key_int(rank_elem);
 
       /* read dataset hash from filemap and record in summary */
       scr_dataset* rank_dset = scr_dataset_new();
       scr_filemap_get_dataset(rank_map, dset_id, rank_id, rank_dset);
-      scr_dataset* current_dset = scr_hash_get(list_hash, SCR_SUMMARY_6_KEY_DATASET);
+      scr_dataset* current_dset = kvtree_get(list_hash, SCR_SUMMARY_6_KEY_DATASET);
       if (current_dset == NULL ) {
         /* there is no dataset hash currently assigned, so use the one for the current rank */
-        scr_hash_set(list_hash, SCR_SUMMARY_6_KEY_DATASET, rank_dset);
+        kvtree_set(list_hash, SCR_SUMMARY_6_KEY_DATASET, rank_dset);
       } else {
         /* TODODSET */
         /* check that the dataset for this rank matches the one we already have */
@@ -898,26 +901,26 @@ int scr_scan_file(const scr_path* dir, const scr_path* path_name, int* ranks, re
       }
 
       /* lookup rank hash for this rank */
-      scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
+      kvtree* rank_hash = kvtree_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
 
       /* set number of expected files for this rank */
       int num_expect = scr_filemap_get_expected_files(rank_map, dset_id, rank_id);
-      scr_hash_set_kv_int(rank_hash, SCR_SUMMARY_6_KEY_FILES, num_expect);
+      kvtree_set_kv_int(rank_hash, SCR_SUMMARY_6_KEY_FILES, num_expect);
 
       /* TODO: check that we have each named file for this rank */
-      scr_hash_elem* file_elem = NULL;
+      kvtree_elem* file_elem = NULL;
       for (file_elem = scr_filemap_first_file(rank_map, dset_id, rank_id);
            file_elem != NULL;
-           file_elem = scr_hash_elem_next(file_elem))
+           file_elem = kvtree_elem_next(file_elem))
       {
         /* get the file name (relative to dir) */
-        char* file_name = scr_hash_elem_key(file_elem);
+        char* file_name = kvtree_elem_key(file_elem);
 
         /* build the full file name */
-        scr_path* full_filename_path = scr_path_dup(dir);
-        scr_path_append_str(full_filename_path, file_name);
-        char* full_filename = scr_path_strdup(full_filename_path);
-        scr_path_delete(&full_filename_path);
+        spath* full_filename_path = spath_dup(dir);
+        spath_append_str(full_filename_path, file_name);
+        char* full_filename = spath_strdup(full_filename_path);
+        spath_delete(&full_filename_path);
 
         /* get meta data for this file */
         scr_meta* meta = scr_meta_new();
@@ -1044,22 +1047,22 @@ int scr_scan_file(const scr_path* dir, const scr_path* path_name, int* ranks, re
          *               CRC
          *                 <crc> */
         /* TODODSET: rank2file_hash may not exist yet */
-        scr_hash* list_hash = scr_hash_set_kv_int(scan, SCR_SCAN_KEY_DLIST, dset_id);
-        scr_hash* rank2file_hash = scr_hash_get(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
-        scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, meta_ranks);
-        scr_hash* rank_hash = scr_hash_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
-        scr_hash* file_hash = scr_hash_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, file_name);
-        scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, meta_filesize);
+        kvtree* list_hash = kvtree_set_kv_int(scan, SCR_SCAN_KEY_DLIST, dset_id);
+        kvtree* rank2file_hash = kvtree_get(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+        kvtree_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, meta_ranks);
+        kvtree* rank_hash = kvtree_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
+        kvtree* file_hash = kvtree_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, file_name);
+        kvtree_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, meta_filesize);
 
         uLong meta_crc;
         if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
-          scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, meta_crc);
+          kvtree_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, meta_crc);
         }
 
         /* if the file is an XOR file, read in the XOR set parameters */
         if (scr_meta_check_filetype(meta, SCR_META_FILE_XOR) == SCR_SUCCESS) {
           /* mark this file as being an XOR file */
-          scr_hash_set(file_hash, SCR_SUMMARY_6_KEY_NOFETCH, NULL);
+          kvtree_set(file_hash, SCR_SUMMARY_6_KEY_NOFETCH, NULL);
 
           /* extract the xor set id, the size of the xor set, and our position within the set */
           size_t nmatch = 4;
@@ -1106,11 +1109,11 @@ int scr_scan_file(const scr_path* dir, const scr_path* path_name, int* ranks, re
                *               <filename>
                *             RANK
                *               <rank_id> */
-              scr_hash* xor_hash = scr_hash_set_kv_int(list_hash, SCR_SCAN_KEY_XOR, xor_setid);
-              scr_hash_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBERS, xor_ranks);
-              scr_hash* xor_rank_hash = scr_hash_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, xor_rank);
-              scr_hash_set_kv(xor_rank_hash, SCR_SUMMARY_6_KEY_FILE, file_name);
-              scr_hash_set_kv_int(xor_rank_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
+              kvtree* xor_hash = kvtree_set_kv_int(list_hash, SCR_SCAN_KEY_XOR, xor_setid);
+              kvtree_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBERS, xor_ranks);
+              kvtree* xor_rank_hash = kvtree_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, xor_rank);
+              kvtree_set_kv(xor_rank_hash, SCR_SUMMARY_6_KEY_FILE, file_name);
+              kvtree_set_kv_int(xor_rank_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
             } else {
               scr_err("Failed to extract XOR rank, set size, or set id from %s @ %s:%d",
                 full_filename, __FILE__, __LINE__
@@ -1137,15 +1140,15 @@ int scr_scan_file(const scr_path* dir, const scr_path* path_name, int* ranks, re
 
 /* Reads fmap files from given dataset directory and adds them to scan hash.
  * Returns SCR_SUCCESS if the files could be scanned */
-int scr_scan_files(const scr_path* prefix, const scr_path* dir, scr_hash* scan)
+int scr_scan_files(const spath* prefix, const spath* dir, kvtree* scan)
 {
   int rc = SCR_SUCCESS;
 
   /* create path to scr subdirectory */
-  scr_path* meta_path = scr_path_dup(dir);
+  spath* meta_path = spath_dup(dir);
 
   /* allocate directory in string form */
-  char* dir_str = scr_path_strdup(meta_path);
+  char* dir_str = spath_strdup(meta_path);
 
   /* set up a regular expression so we can extract the xor set information from a file */
   /* TODO: move this info to the meta data */
@@ -1187,19 +1190,19 @@ int scr_scan_files(const scr_path* prefix, const scr_path* dir, scr_hash* scan)
       if (name != NULL) {
         if (strncmp(name, "fmap.", 5) == 0) {
           /* create a full path of the file name */
-          scr_path* path_name = scr_path_dup(meta_path);
-          scr_path_append_str(path_name, name);
+          spath* path_name = spath_dup(meta_path);
+          spath_append_str(path_name, name);
 
           /* read file contents into our scan hash */
           int tmp_rc = scr_scan_file(prefix, path_name, &ranks, &re_xor_file, scan);
           if (tmp_rc != SCR_SUCCESS) {
             rc = tmp_rc;
-            scr_path_delete(&path_name);
+            spath_delete(&path_name);
             break;
           }
 
           /* delete the path */
-          scr_path_delete(&path_name);
+          spath_delete(&path_name);
         }
       }
     } else {
@@ -1229,7 +1232,7 @@ cleanup:
   scr_free(&dir_str);
 
   /* delete scr path */
-  scr_path_delete(&meta_path);
+  spath_delete(&meta_path);
 
   return rc;
 }
@@ -1238,19 +1241,19 @@ cleanup:
  * Returns SCR_SUCCESS if the summary file exists or was written,
  * but this does not imply the dataset is valid, only that the summary
  * file was written */
-int scr_summary_build(const scr_path* prefix, const scr_path* dir)
+int scr_summary_build(const spath* prefix, const spath* dir)
 {
   int rc = SCR_SUCCESS;
 
   /* create a new hash to store our index file data */
-  scr_hash* summary = scr_hash_new();
+  kvtree* summary = kvtree_new();
 
   if (scr_summary_read(dir, summary) != SCR_SUCCESS) {
     /* now only return success if we successfully write the file */
     int rc = SCR_FAILURE;
 
     /* create a new hash to store our scan results */
-    scr_hash* scan = scr_hash_new();
+    kvtree* scan = kvtree_new();
 
     /* scan the files in the given directory */
     scr_scan_files(prefix, dir, scan);
@@ -1260,7 +1263,7 @@ int scr_summary_build(const scr_path* prefix, const scr_path* dir)
       /* missing some files, see if we can rebuild them */
       if (scr_rebuild_scan(prefix, dir, scan) == SCR_SUCCESS) {
         /* the rebuild succeeded, clear our scan hash */
-        scr_hash_unset_all(scan);
+        kvtree_unset_all(scan);
 
         /* rescan the files */
         scr_scan_files(prefix, dir, scan);
@@ -1275,26 +1278,26 @@ int scr_summary_build(const scr_path* prefix, const scr_path* dir)
      *   remove BUILD, MISSING, UNRECOVERABLE, INVALID, XOR
      *   delete XOR files from the file list, and adjust the expected number of files
      *   (maybe we should just leave these in here, at least the missing list?) */
-    scr_hash_elem* list_elem = NULL;
-    scr_hash* list_hash = scr_hash_get(scan, SCR_SCAN_KEY_DLIST);
-    int list_size = scr_hash_size(list_hash);
+    kvtree_elem* list_elem = NULL;
+    kvtree* list_hash = kvtree_get(scan, SCR_SCAN_KEY_DLIST);
+    int list_size = kvtree_size(list_hash);
     if (list_size == 1) {
-      for (list_elem = scr_hash_elem_first(list_hash);
+      for (list_elem = kvtree_elem_first(list_hash);
            list_elem != NULL;
-           list_elem = scr_hash_elem_next(list_elem))
+           list_elem = kvtree_elem_next(list_elem))
       {
         /* get the hash for this checkpoint */
-        scr_hash* dset_hash = scr_hash_elem_hash(list_elem);
+        kvtree* dset_hash = kvtree_elem_hash(list_elem);
 
         /* unset the BUILD, MISSING, UNRECOVERABLE, INVALID, and XOR keys for this checkpoint */
-        scr_hash_unset(dset_hash, SCR_SCAN_KEY_BUILD);
-        scr_hash_unset(dset_hash, SCR_SCAN_KEY_MISSING);
-        scr_hash_unset(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE);
-        scr_hash_unset(dset_hash, SCR_SCAN_KEY_INVALID);
-        scr_hash_unset(dset_hash, SCR_SCAN_KEY_XOR);
+        kvtree_unset(dset_hash, SCR_SCAN_KEY_BUILD);
+        kvtree_unset(dset_hash, SCR_SCAN_KEY_MISSING);
+        kvtree_unset(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE);
+        kvtree_unset(dset_hash, SCR_SCAN_KEY_INVALID);
+        kvtree_unset(dset_hash, SCR_SCAN_KEY_XOR);
 
         /* record the summary file version number */
-        scr_hash_set_kv_int(dset_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_6);
+        kvtree_set_kv_int(dset_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_6);
 
         /* write the summary file out */
         rc = scr_summary_write(prefix, dir, dset_hash);
@@ -1302,24 +1305,24 @@ int scr_summary_build(const scr_path* prefix, const scr_path* dir)
     }
 
     /* free the scan hash */
-    scr_hash_delete(&scan);
+    kvtree_delete(&scan);
   }
 
   /* delete the summary hash */
-  scr_hash_delete(&summary);
+  kvtree_delete(&summary);
 
   return rc;
 }
 
-int index_list(const scr_path* prefix)
+int index_list(const spath* prefix)
 {
   int rc = SCR_SUCCESS;
 
   /* get string version of prefix */
-  char* prefix_str = scr_path_strdup(prefix);
+  char* prefix_str = spath_strdup(prefix);
 
   /* create a new hash to store our index file data */
-  scr_hash* index = scr_hash_new();
+  kvtree* index = kvtree_new();
 
   /* read index file from the prefix directory */
   if (scr_index_read(prefix, index) != SCR_SUCCESS) {
@@ -1336,66 +1339,66 @@ int index_list(const scr_path* prefix)
   scr_index_get_current(index, &current);
 
   /* get a pointer to the checkpoint hash */
-  scr_hash* dset_hash = scr_hash_get(index, SCR_INDEX_1_KEY_DATASET);
+  kvtree* dset_hash = kvtree_get(index, SCR_INDEX_1_KEY_DATASET);
 
   /* sort datasets in descending order */
-  scr_hash_sort_int(dset_hash, SCR_HASH_SORT_DESCENDING);
+  kvtree_sort_int(dset_hash, KVTREE_SORT_DESCENDING);
 
   /* print header */
   printf("   DSET VALID FLUSHED             NAME\n");
 
   /* iterate over each of the datasets and print the id and other info */
-  scr_hash_elem* elem;
-  for (elem = scr_hash_elem_first(dset_hash);
+  kvtree_elem* elem;
+  for (elem = kvtree_elem_first(dset_hash);
        elem != NULL;
-       elem = scr_hash_elem_next(elem))
+       elem = kvtree_elem_next(elem))
   {
     /* get the dataset id */
-    int dset = scr_hash_elem_key_int(elem);
+    int dset = kvtree_elem_key_int(elem);
 
     /* get the hash for this dataset */
-    scr_hash* hash = scr_hash_elem_hash(elem);
-    scr_hash* name_hash = scr_hash_get(hash, SCR_INDEX_1_KEY_NAME);
+    kvtree* hash = kvtree_elem_hash(elem);
+    kvtree* name_hash = kvtree_get(hash, SCR_INDEX_1_KEY_NAME);
 
     /* sort dataset names in descending order */
-    scr_hash_sort(name_hash, SCR_HASH_SORT_DESCENDING);
+    kvtree_sort(name_hash, KVTREE_SORT_DESCENDING);
 
-    scr_hash_elem* name_elem;
-    for (name_elem = scr_hash_elem_first(name_hash);
+    kvtree_elem* name_elem;
+    for (name_elem = kvtree_elem_first(name_hash);
          name_elem != NULL;
-         name_elem = scr_hash_elem_next(name_elem))
+         name_elem = kvtree_elem_next(name_elem))
     {
       /* get the dataset name for this dataset */
-      char* name = scr_hash_elem_key(name_elem);
+      char* name = kvtree_elem_key(name_elem);
 
       /* get the directory hash */
-      scr_hash* info_hash = scr_hash_elem_hash(name_elem);
+      kvtree* info_hash = kvtree_elem_hash(name_elem);
 
       /* skip this dataset if it's not a checkpoint */
-      scr_hash* dataset_hash = scr_hash_get(info_hash, SCR_INDEX_1_KEY_DATASET);
+      kvtree* dataset_hash = kvtree_get(info_hash, SCR_INDEX_1_KEY_DATASET);
       if (! scr_dataset_is_ckpt(dataset_hash)) {
         continue;
       }
 
       /* determine whether this dataset is complete */
       int complete = 0;
-      scr_hash_util_get_int(info_hash, SCR_INDEX_1_KEY_COMPLETE, &complete);
+      kvtree_util_get_int(info_hash, SCR_INDEX_1_KEY_COMPLETE, &complete);
 
       /* determine time at which this checkpoint was marked as failed */
       char* failed_str = NULL;
-      scr_hash_util_get_str(info_hash, SCR_INDEX_1_KEY_FAILED, &failed_str);
+      kvtree_util_get_str(info_hash, SCR_INDEX_1_KEY_FAILED, &failed_str);
 
       /* determine time at which this checkpoint was flushed */
       char* flushed_str = NULL;
-      scr_hash_util_get_str(info_hash, SCR_INDEX_1_KEY_FLUSHED, &flushed_str);
+      kvtree_util_get_str(info_hash, SCR_INDEX_1_KEY_FLUSHED, &flushed_str);
 
       /* compute number of times (and last time) checkpoint has been fetched */
 /*
-      scr_hash* fetched_hash = scr_hash_get(info_hash, SCR_INDEX_1_KEY_FETCHED);
-      int num_fetch = scr_hash_size(fetched_hash);
-      scr_hash_sort(fetched_hash, SCR_HASH_SORT_DESCENDING);
-      scr_hash_elem* fetched_elem = scr_hash_elem_first(fetched_hash);
-      char* fetched_str = scr_hash_elem_key(fetched_elem);
+      kvtree* fetched_hash = kvtree_get(info_hash, SCR_INDEX_1_KEY_FETCHED);
+      int num_fetch = kvtree_size(fetched_hash);
+      kvtree_sort(fetched_hash, KVTREE_SORT_DESCENDING);
+      kvtree_elem* fetched_elem = kvtree_elem_first(fetched_hash);
+      char* fetched_str = kvtree_elem_key(fetched_elem);
 */
 
       /* print a star beside the dataset directory marked as current */
@@ -1458,7 +1461,7 @@ int index_list(const scr_path* prefix)
   }
 
   /* free off our index hash */
-  scr_hash_delete(&index);
+  kvtree_delete(&index);
 
   /* free our string */
   scr_free(&prefix_str);
@@ -1467,15 +1470,15 @@ int index_list(const scr_path* prefix)
 }
 
 /* delete named dataset from index (does not delete files) */
-int index_remove(const scr_path* prefix, const char* name)
+int index_remove(const spath* prefix, const char* name)
 {
   int rc = SCR_SUCCESS;
 
   /* get string version of prefix */
-  char* prefix_str = scr_path_strdup(prefix);
+  char* prefix_str = spath_strdup(prefix);
 
   /* create a new hash to store our index file data */
-  scr_hash* index = scr_hash_new();
+  kvtree* index = kvtree_new();
 
   /* read index file from the prefix directory */
   if (scr_index_read(prefix, index) != SCR_SUCCESS) {
@@ -1502,7 +1505,7 @@ int index_remove(const scr_path* prefix, const char* name)
 cleanup:
 
   /* free off our index hash */
-  scr_hash_delete(&index);
+  kvtree_delete(&index);
 
   /* free our string */
   scr_free(&prefix_str);
@@ -1511,15 +1514,15 @@ cleanup:
 }
 
 /* set named dataset as restart */
-int index_current(const scr_path* prefix, const char* name)
+int index_current(const spath* prefix, const char* name)
 {
   int rc = SCR_SUCCESS;
 
   /* get string version of prefix */
-  char* prefix_str = scr_path_strdup(prefix);
+  char* prefix_str = spath_strdup(prefix);
 
   /* create a new hash to store our index file data */
-  scr_hash* index = scr_hash_new();
+  kvtree* index = kvtree_new();
 
   /* read index file from the prefix directory */
   if (scr_index_read(prefix, index) != SCR_SUCCESS) {
@@ -1546,7 +1549,7 @@ int index_current(const scr_path* prefix, const char* name)
 cleanup:
 
   /* free off our index hash */
-  scr_hash_delete(&index);
+  kvtree_delete(&index);
 
   /* free our string */
   scr_free(&prefix_str);
@@ -1558,7 +1561,7 @@ cleanup:
  * attempt add the dataset to the index file.
  * Returns SCR_SUCCESS if dataset can be indexed,
  * either as complete or incomplete */
-int index_add(const scr_path* prefix, int id, int* complete_flag)
+int index_add(const spath* prefix, int id, int* complete_flag)
 {
   int rc = SCR_SUCCESS;
 
@@ -1566,21 +1569,21 @@ int index_add(const scr_path* prefix, int id, int* complete_flag)
   *complete_flag = 0;
 
   /* get string versions of prefix and subdir */
-  char* prefix_str = scr_path_strdup(prefix);
+  char* prefix_str = spath_strdup(prefix);
 
   /* create a new hash to store our index file data */
-  scr_hash* index = scr_hash_new();
+  kvtree* index = kvtree_new();
 
   /* read index file from the prefix directory */
   scr_index_read(prefix, index);
 
   /* create a new hash to hold our summary file data */
-  scr_hash* summary = scr_hash_new();
+  kvtree* summary = kvtree_new();
 
   /* read summary file from the dataset directory */
-  scr_path* dataset_path = scr_path_dup(prefix);
-  scr_path_append_str(dataset_path, ".scr");
-  scr_path_append_strf(dataset_path, "scr.dataset.%d", id);
+  spath* dataset_path = spath_dup(prefix);
+  spath_append_str(dataset_path, ".scr");
+  spath_append_strf(dataset_path, "scr.dataset.%d", id);
   if (scr_summary_read(dataset_path, summary) != SCR_SUCCESS) {
     /* if summary file is missing, attempt to build it */
     if (scr_summary_build(prefix, dataset_path) == SCR_SUCCESS) {
@@ -1588,17 +1591,17 @@ int index_add(const scr_path* prefix, int id, int* complete_flag)
       scr_summary_read(dataset_path, summary);
     }
   }
-  scr_path_delete(&dataset_path);
+  spath_delete(&dataset_path);
 
   /* get the dataset hash for this directory */
-  scr_dataset* dataset = scr_hash_get(summary, SCR_SUMMARY_6_KEY_DATASET);
+  scr_dataset* dataset = kvtree_get(summary, SCR_SUMMARY_6_KEY_DATASET);
   if (dataset != NULL) {
     /* get the dataset name */
     char* dataset_name;
     if (scr_dataset_get_name(dataset, &dataset_name) == SCR_SUCCESS) {
       /* found the name, now check whether it's complete (assume that it's not) */
       int complete;
-      if (scr_hash_util_get_int(summary, SCR_SUMMARY_6_KEY_COMPLETE, &complete) == SCR_SUCCESS) {
+      if (kvtree_util_get_int(summary, SCR_SUMMARY_6_KEY_COMPLETE, &complete) == KVTREE_SUCCESS) {
         /* write values to the index file */
         scr_index_set_dataset(index, id, dataset_name, dataset, complete);
         scr_index_mark_flushed(index, id, dataset_name);
@@ -1620,10 +1623,10 @@ int index_add(const scr_path* prefix, int id, int* complete_flag)
   }
 
   /* free our summary file hash */
-  scr_hash_delete(&summary);
+  kvtree_delete(&summary);
 
   /* free our index hash */
-  scr_hash_delete(&index);
+  kvtree_delete(&index);
 
   /* free our strings */
   scr_free(&prefix_str);
@@ -1648,7 +1651,7 @@ int print_usage()
 }
 
 struct arglist {
-  scr_path* prefix;
+  spath* prefix;
   char* name;
   int id;
   int list;
@@ -1660,7 +1663,7 @@ struct arglist {
 /* free any memory allocation during get_args */
 int free_args(struct arglist* args)
 {
-  scr_path_delete(&(args->prefix));
+  spath_delete(&(args->prefix));
   scr_free(&(args->name));
   return SCR_SUCCESS;
 }
@@ -1710,7 +1713,7 @@ int get_args(int argc, char **argv, struct arglist* args)
         args->list    = 0;
         break;
       case 'p':
-        args->prefix = scr_path_from_str(optarg);
+        args->prefix = spath_from_str(optarg);
         break;
       case 'h':
         return SCR_FAILURE;
@@ -1732,11 +1735,11 @@ int get_args(int argc, char **argv, struct arglist* args)
       );
       return SCR_FAILURE;
     }
-    args->prefix = scr_path_from_str(prefix);
+    args->prefix = spath_from_str(prefix);
   }
 
   /* reduce paths to remove any trailing '/' */
-  scr_path_reduce(args->prefix);
+  spath_reduce(args->prefix);
 
   return SCR_SUCCESS;
 }
@@ -1753,13 +1756,13 @@ int main(int argc, char *argv[])
   }
 
   /* get references to prefix and subdirectory paths */
-  scr_path* prefix = args.prefix;
+  spath* prefix = args.prefix;
   char* name = args.name;
   int id = args.id;
 
   /* these options all require a prefix directory */
   if (args.add == 1 || args.remove == 1 || args.current == 1 || args.list == 1) {
-    if (scr_path_is_null(prefix)) {
+    if (spath_is_null(prefix)) {
       print_usage();
       return 1;
     }

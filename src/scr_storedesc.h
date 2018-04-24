@@ -77,8 +77,13 @@ Routines that operate on scr_storedescs array
  * returns -1 if not found */
 int scr_storedescs_index_from_name(const char* name);
 
+/* lookup index in scr_storedescs given a child path
+ * within the space of that descriptor,
+ * returns -1 if not found */
+int scr_storedescs_index_from_child_path(const char* path);
+
 /* fill in scr_storedescs array from scr_storedescs_hash */
-int scr_storedescs_create(void);
+int scr_storedescs_create(MPI_Comm comm);
 
 /* free scr_storedescs array */
 int scr_storedescs_free(void);

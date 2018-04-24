@@ -19,12 +19,13 @@
 
 #include "scr.h"
 #include "scr_io.h"
-#include "scr_path.h"
 #include "scr_err.h"
 #include "scr_util.h"
 #include "scr_halt.h"
-#include "scr_hash.h"
-#include "scr_hash_util.h"
+
+#include "kvtree.h"
+#include "kvtree_util.h"
+#include "spath.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -182,10 +183,10 @@ int processArgs(int argc, char **argv, struct arglist* args)
 
 /* read in halt file (which program may have changed), update internal data structure,
  * set & unset any fields, and write out halt file all while locked */
-int scr_halt_sync_and_set(const scr_path* file_path, struct arglist* args, scr_hash* data)
+int scr_halt_sync_and_set(const spath* file_path, struct arglist* args, kvtree* data)
 {
   /* convert path to string */
-  char* file = scr_path_strdup(file_path);
+  char* file = spath_strdup(file_path);
 
   /* TODO: sleep and try the open several times if the first fails */
   /* open the halt file for reading */
@@ -209,49 +210,49 @@ int scr_halt_sync_and_set(const scr_path* file_path, struct arglist* args, scr_h
   }
 
   /* read in the current data from the file */
-  scr_hash_read_fd(file, fd, data);
+  kvtree_read_fd(file, fd, data);
 
   /* set / unset values in file */
   if (args->set_reason) {
-    scr_hash_unset(data, SCR_HALT_KEY_EXIT_REASON);
-    scr_hash_set_kv(data, SCR_HALT_KEY_EXIT_REASON, args->value_reason);
+    kvtree_unset(data, SCR_HALT_KEY_EXIT_REASON);
+    kvtree_set_kv(data, SCR_HALT_KEY_EXIT_REASON, args->value_reason);
   } else if (args->unset_reason) {
-    scr_hash_unset(data, SCR_HALT_KEY_EXIT_REASON);
+    kvtree_unset(data, SCR_HALT_KEY_EXIT_REASON);
   }
 
   if (args->set_checkpoints) {
-    scr_hash_unset(data, SCR_HALT_KEY_CHECKPOINTS);
-    scr_hash_setf(data, NULL, "%s %lu", SCR_HALT_KEY_CHECKPOINTS, args->value_checkpoints);
+    kvtree_unset(data, SCR_HALT_KEY_CHECKPOINTS);
+    kvtree_setf(data, NULL, "%s %lu", SCR_HALT_KEY_CHECKPOINTS, args->value_checkpoints);
   } else if (args->unset_checkpoints) {
-    scr_hash_unset(data, SCR_HALT_KEY_CHECKPOINTS);
+    kvtree_unset(data, SCR_HALT_KEY_CHECKPOINTS);
   }
 
   if (args->set_before) {
-    scr_hash_unset(data, SCR_HALT_KEY_EXIT_BEFORE);
-    scr_hash_setf(data, NULL, "%s %lu", SCR_HALT_KEY_EXIT_BEFORE, args->value_before);
+    kvtree_unset(data, SCR_HALT_KEY_EXIT_BEFORE);
+    kvtree_setf(data, NULL, "%s %lu", SCR_HALT_KEY_EXIT_BEFORE, args->value_before);
   } else if (args->unset_before) {
-    scr_hash_unset(data, SCR_HALT_KEY_EXIT_BEFORE);
+    kvtree_unset(data, SCR_HALT_KEY_EXIT_BEFORE);
   }
 
   if (args->set_after) {
-    scr_hash_unset(data, SCR_HALT_KEY_EXIT_AFTER);
-    scr_hash_setf(data, NULL, "%s %lu", SCR_HALT_KEY_EXIT_AFTER, args->value_after);
+    kvtree_unset(data, SCR_HALT_KEY_EXIT_AFTER);
+    kvtree_setf(data, NULL, "%s %lu", SCR_HALT_KEY_EXIT_AFTER, args->value_after);
   } else if (args->unset_after) {
-    scr_hash_unset(data, SCR_HALT_KEY_EXIT_AFTER);
+    kvtree_unset(data, SCR_HALT_KEY_EXIT_AFTER);
   }
 
   if (args->set_seconds) {
-    scr_hash_unset(data, SCR_HALT_KEY_SECONDS);
-    scr_hash_setf(data, NULL, "%s %lu", SCR_HALT_KEY_SECONDS, args->value_seconds);
+    kvtree_unset(data, SCR_HALT_KEY_SECONDS);
+    kvtree_setf(data, NULL, "%s %lu", SCR_HALT_KEY_SECONDS, args->value_seconds);
   } else if (args->unset_seconds) {
-    scr_hash_unset(data, SCR_HALT_KEY_SECONDS);
+    kvtree_unset(data, SCR_HALT_KEY_SECONDS);
   }
 
   /* wind file pointer back to the start of the file */
   lseek(fd, 0, SEEK_SET);
 
   /* write our updated data */
-  ssize_t bytes_written = scr_hash_write_fd(file, fd, data);
+  ssize_t bytes_written = kvtree_write_fd(file, fd, data);
 
   /* truncate the file to the correct size (may be smaller than it was before) */
   if (bytes_written >= 0) {
@@ -287,14 +288,14 @@ int main (int argc, char *argv[])
   }
 
   /* create a new hash to hold the file data */
-  scr_hash* data = scr_hash_new();
+  kvtree* data = kvtree_new();
 
   /* create path to halt file */
-  scr_path* halt_file = scr_path_from_str(args.file);
+  spath* halt_file = spath_from_str(args.file);
 
   if (args.list) {
     /* if the user wants to list the values, just read the file, print the values, and exit */
-    char* halt_path = scr_path_strdup(halt_file);
+    char* halt_path = spath_strdup(halt_file);
     if (scr_file_is_readable(halt_path) == SCR_SUCCESS) {
       rc = scr_halt_read(halt_file, data);
     }
@@ -342,33 +343,33 @@ int main (int argc, char *argv[])
   printf("Halt file settings for %s:\n", args.file);
   int have_one = 0;
 
-  if (scr_hash_util_get_str(data, SCR_HALT_KEY_EXIT_REASON, &value) == SCR_SUCCESS) {
+  if (kvtree_util_get_str(data, SCR_HALT_KEY_EXIT_REASON, &value) == KVTREE_SUCCESS) {
     printf("  ExitReason:      %s\n", value);
     have_one = 1;
   }
 
   int checkpoints_left;
-  if (scr_hash_util_get_int(data, SCR_HALT_KEY_CHECKPOINTS, &checkpoints_left) == SCR_SUCCESS) {
+  if (kvtree_util_get_int(data, SCR_HALT_KEY_CHECKPOINTS, &checkpoints_left) == KVTREE_SUCCESS) {
     printf("  CheckpointsLeft: %d\n", checkpoints_left);
     have_one = 1;
   }
 
   int exit_after = -1;
-  if (scr_hash_util_get_int(data, SCR_HALT_KEY_EXIT_AFTER, &exit_after) == SCR_SUCCESS) {
+  if (kvtree_util_get_int(data, SCR_HALT_KEY_EXIT_AFTER, &exit_after) == KVTREE_SUCCESS) {
     secs = (time_t) exit_after;
     printf("  ExitAfter:       %s", asctime(localtime(&secs)));
     have_one = 1;
   }
 
   int exit_before = -1;
-  if (scr_hash_util_get_int(data, SCR_HALT_KEY_EXIT_BEFORE, &exit_before) == SCR_SUCCESS) {
+  if (kvtree_util_get_int(data, SCR_HALT_KEY_EXIT_BEFORE, &exit_before) == KVTREE_SUCCESS) {
     secs = (time_t) exit_before;
     printf("  ExitBefore:      %s", asctime(localtime(&secs)));
     have_one = 1;
   }
 
   int halt_seconds = -1;
-  if (scr_hash_util_get_int(data, SCR_HALT_KEY_SECONDS, &halt_seconds) == SCR_SUCCESS) {
+  if (kvtree_util_get_int(data, SCR_HALT_KEY_SECONDS, &halt_seconds) == KVTREE_SUCCESS) {
     printf("  HaltSeconds:     %d\n", halt_seconds);
     have_one = 1;
   }
@@ -384,10 +385,10 @@ int main (int argc, char *argv[])
   }
 
   /* delete path to halt file */
-  scr_path_delete(&halt_file);
+  spath_delete(&halt_file);
 
   /* delete the hash holding the file data */
-  scr_hash_delete(&data);
+  kvtree_delete(&data);
 
   return rc;
 }

@@ -1,0 +1,382 @@
+/*
+ * Copyright (c) 2009, Lawrence Livermore National Security, LLC.
+ * Produced at the Lawrence Livermore National Laboratory.
+ * Written by Adam Moody <moody20@llnl.gov>.
+ * LLNL-CODE-411039.
+ * All rights reserved.
+ * This file is part of The Scalable Checkpoint / Restart (SCR) library.
+ * For details, see https://sourceforge.net/projects/scalablecr/
+ * Please also read this file: LICENSE.TXT.
+*/
+
+/* Defines a data structure that keeps track of the number
+ * and the names of the files a process writes out in a given
+ * dataset. */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+
+/* need at least version 8.5 of queue.h from Berkeley */
+/*#include <sys/queue.h>*/
+#include "queue.h"
+
+#include "mpi.h"
+
+#include "scr_globals.h"
+#include "scr.h"
+#include "scr_io.h"
+#include "scr_err.h"
+#include "scr_util.h"
+#include "scr_cache_index.h"
+
+#include "spath.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
+
+#define SCR_CINDEX_KEY_DSET    ("DSET")
+#define SCR_CINDEX_KEY_FLUSH   ("FLUSH")
+#define SCR_CINDEX_KEY_DATA    ("DSETDESC")
+#define SCR_CINDEX_KEY_PATH    ("PATH")
+
+/* returns the DSET hash */
+static kvtree* scr_cache_index_get_dh(const kvtree* h)
+{
+  kvtree* dh = kvtree_get(h, SCR_CINDEX_KEY_DSET);
+  return dh;
+}
+
+/* returns the hash associated with a particular dataset */
+static kvtree* scr_cache_index_get_d(const kvtree* h, int dset)
+{
+  kvtree* d = kvtree_get_kv_int(h, SCR_CINDEX_KEY_DSET, dset);
+  return d;
+}
+
+/* creates and returns a hash under DSET */
+static kvtree* scr_cache_index_set_d(scr_cache_index* cindex, int dset)
+{
+  /* set DSET index */
+  kvtree* d = kvtree_set_kv_int(cindex, SCR_CINDEX_KEY_DSET, dset);
+  return d;
+}
+
+/* unset DSET index if the index for this dataset is empty */
+static int scr_cache_index_unset_if_empty(scr_cache_index* cindex, int dset)
+{
+  /* get hash references for this dataset */
+  kvtree* d  = scr_cache_index_get_d(cindex, dset);
+
+  /* if there is nothing left under this dataset, unset the dataset */
+  if (kvtree_size(d) == 0) {
+    kvtree_unset_kv_int(cindex, SCR_CINDEX_KEY_DSET, dset);
+  }
+
+  return SCR_SUCCESS;
+}
+
+/* sets the flush/scavenge descriptor hash for the given dataset id */
+int scr_cache_index_set_flushdesc(scr_cache_index* cindex, int dset, kvtree* hash)
+{
+  /* set indicies and get hash reference */
+  kvtree* d = scr_cache_index_set_d(cindex, dset);
+
+  /* set the FLUSH value under the RANK/DSET hash */
+  kvtree_unset(d, SCR_CINDEX_KEY_FLUSH);
+  kvtree* desc = kvtree_new();
+  kvtree_merge(desc, hash);
+  kvtree_set(d, SCR_CINDEX_KEY_FLUSH, desc);
+
+  return SCR_SUCCESS;
+}
+
+/* copies the flush/scavenge descriptor hash for the given dataset id into hash */
+int scr_cache_index_get_flushdesc(const scr_cache_index* cindex, int dset, kvtree* hash)
+{
+  /* get RANK/DSET hash */
+  kvtree* d = scr_cache_index_get_d(cindex, dset);
+
+  /* get the FLUSH value under the RANK/DSET hash */
+  kvtree* desc = kvtree_get(d, SCR_CINDEX_KEY_FLUSH);
+  if (desc != NULL) {
+    kvtree_merge(hash, desc);
+    return SCR_SUCCESS;
+  }
+
+  return SCR_FAILURE; 
+}
+
+/* unset the flush/scavenge descriptor hash for the given dataset id */
+int scr_cache_index_unset_flushdesc(scr_cache_index* cindex, int dset)
+{
+  /* unset FLUSH value */
+  kvtree* d = scr_cache_index_get_d(cindex, dset);
+  kvtree_unset(d, SCR_CINDEX_KEY_FLUSH);
+
+  /* unset DSET if the hash is empty */
+  scr_cache_index_unset_if_empty(cindex, dset);
+
+  return SCR_SUCCESS;
+}
+
+/* sets the dataset hash for the given dataset id */
+int scr_cache_index_set_dataset(scr_cache_index* cindex, int dset, kvtree* hash)
+{
+  /* set indicies and get hash reference */
+  kvtree* d = scr_cache_index_set_d(cindex, dset);
+
+  /* set the DATA value under the RANK/DSET hash */
+  kvtree_unset(d, SCR_CINDEX_KEY_DATA);
+  kvtree* desc = kvtree_new();
+  kvtree_merge(desc, hash);
+  kvtree_set(d, SCR_CINDEX_KEY_DATA, desc);
+
+  return SCR_SUCCESS;
+}
+
+/* copies the dataset hash for the given dataset id into hash */
+int scr_cache_index_get_dataset(const scr_cache_index* cindex, int dset, kvtree* hash)
+{
+  /* get RANK/CKPT hash */
+  kvtree* d = scr_cache_index_get_d(cindex, dset);
+
+  /* get the REDDESC value under the RANK/DSET hash */
+  kvtree* desc = kvtree_get(d, SCR_CINDEX_KEY_DATA);
+  if (desc != NULL) {
+    kvtree_merge(hash, desc);
+    return SCR_SUCCESS;
+  }
+
+  return SCR_FAILURE; 
+}
+
+/* unset the dataset hash for the given dataset id */
+int scr_cache_index_unset_dataset(scr_cache_index* cindex, int dset)
+{
+  /* unset DATA value */
+  kvtree* d = scr_cache_index_get_d(cindex, dset);
+  kvtree_unset(d, SCR_CINDEX_KEY_DATA);
+
+  /* unset DSET if the hash is empty */
+  scr_cache_index_unset_if_empty(cindex, dset);
+
+  return SCR_SUCCESS;
+}
+
+/* record directory where dataset is stored */
+int scr_cache_index_set_dir(scr_cache_index* cindex, int dset, const char* path)
+{
+  /* set indicies and get hash reference */
+  kvtree* d = scr_cache_index_set_d(cindex, dset);
+
+  /* set the DATA value under the RANK/DSET hash */
+  kvtree_util_set_str(d, SCR_CINDEX_KEY_PATH, path);
+
+  return SCR_SUCCESS;
+}
+
+/* returns pointer to directory for dataset */
+int scr_cache_index_get_dir(const scr_cache_index* cindex, int dset, char** path)
+{
+  /* get RANK/CKPT hash */
+  kvtree* d = scr_cache_index_get_d(cindex, dset);
+
+  /* get the REDDESC value under the RANK/DSET hash */
+  if (kvtree_util_get_str(d, SCR_CINDEX_KEY_PATH, path) == KVTREE_SUCCESS) {
+    return SCR_SUCCESS;
+  }
+
+  return SCR_FAILURE; 
+}
+
+/* unset the dataset hash for the given dataset id */
+int scr_cache_index_unset_dir(scr_cache_index* cindex, int dset)
+{
+  /* unset DATA value */
+  kvtree* d = scr_cache_index_get_d(cindex, dset);
+  kvtree_unset(d, SCR_CINDEX_KEY_PATH);
+
+  /* unset DSET if the hash is empty */
+  scr_cache_index_unset_if_empty(cindex, dset);
+
+  return SCR_SUCCESS;
+}
+
+/* remove all associations for a given dataset */
+int scr_cache_index_remove_dataset(scr_cache_index* cindex, int dset)
+{
+  kvtree_unset_kv_int(cindex, SCR_CINDEX_KEY_DSET, dset);
+  return SCR_SUCCESS;
+}
+
+/* clear the cache index completely */
+int scr_cache_index_clear(scr_cache_index* cindex)
+{
+  return kvtree_unset_all(cindex);
+}
+
+/* returns the latest dataset id (largest int) in given index */
+int scr_cache_index_latest_dataset(const scr_cache_index* cindex)
+{
+  /* initialize with a value indicating that we have no datasets */
+  int dset = -1;
+
+  /* now scan through each dataset and find the largest id */
+  kvtree* hash = scr_cache_index_get_dh(cindex);
+  if (hash != NULL) {
+    kvtree_elem* elem;
+    for (elem = kvtree_elem_first(hash);
+         elem != NULL;
+         elem = kvtree_elem_next(elem))
+    {
+      int d = kvtree_elem_key_int(elem);
+      if (d > dset) {
+        dset = d;
+      }
+    }
+  }
+  return dset;
+}
+
+/* returns the oldest dataset id (smallest int larger than younger_than) in given index */
+int scr_cache_index_oldest_dataset(const scr_cache_index* cindex, int younger_than)
+{
+  /* initialize our oldest dataset id to be the same as the latest dataset id */
+  int dset = scr_cache_index_latest_dataset(cindex);
+
+  /* now scan through each dataset and find the smallest id that is larger than younger_than */
+  kvtree* hash = scr_cache_index_get_dh(cindex);
+  if (hash != NULL) {
+    kvtree_elem* elem;
+    for (elem = kvtree_elem_first(hash);
+         elem != NULL;
+         elem = kvtree_elem_next(elem))
+    {
+      int d = kvtree_elem_key_int(elem);
+      if (d > younger_than && d < dset) {
+        dset = d;
+      }
+    }
+  }
+  return dset;
+}
+
+/* given a cache index, return a list of datasets */
+int scr_cache_index_list_datasets(const scr_cache_index* cindex, int* n, int** v)
+{
+  kvtree* dh = scr_cache_index_get_dh(cindex);
+  kvtree_list_int(dh, n, v);
+  return SCR_SUCCESS;
+}
+
+/* given a cache index, return a hash elem pointer to the first dataset */
+kvtree_elem* scr_cache_index_first_dataset(const scr_cache_index* cindex)
+{
+  kvtree* dh = scr_cache_index_get_dh(cindex);
+  kvtree_elem* elem = kvtree_elem_first(dh);
+  return elem;
+}
+
+/* return the number of datasets in the hash */
+int scr_cache_index_num_datasets(const scr_cache_index* cindex)
+{
+  kvtree* dh = scr_cache_index_get_dh(cindex);
+  int size = kvtree_size(dh);
+  return size;
+}
+
+/* allocate a new cache index structure and return it */
+scr_cache_index* scr_cache_index_new()
+{
+  scr_cache_index* cindex = kvtree_new();
+  if (cindex == NULL) {
+    scr_err("Failed to allocate cache index @ %s:%d", __FILE__, __LINE__);
+  }
+  return cindex;
+}
+
+/* free memory resources assocaited with cache index */
+int scr_cache_index_delete(scr_cache_index** ptr_cindex)
+{
+  kvtree_delete(ptr_cindex);
+  return SCR_SUCCESS;
+}
+
+/* adds cindex2 into cindex1 */
+int scr_cache_index_merge(scr_cache_index* cindex1, scr_cache_index* cindex2)
+{
+  kvtree_merge(cindex1, cindex2);
+  return SCR_SUCCESS;
+}
+
+/* reads specified file and fills in cache index structure */
+int scr_cache_index_read(const spath* path_file, scr_cache_index* cindex)
+{
+  /* check that we have a cindex pointer and a hash within the cindex */
+  if (cindex == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* assume we'll fail */
+  int rc = SCR_FAILURE;
+
+  /* can't read file, return error (special case so as not to print error message below) */
+  if (scr_storedesc_cntl->rank == 0) {
+    /* get file name */
+    char* file = spath_strdup(path_file);
+
+    /* attempt to read the file */
+    if (scr_file_is_readable(file) == SCR_SUCCESS) {
+      /* ok, now try to read the file */
+      if (kvtree_read_file(file, cindex) == KVTREE_SUCCESS) {
+        /* successfully read the cache index file */
+        rc = SCR_SUCCESS;
+      } else {
+        scr_err("Reading cache index %s @ %s:%d",
+          file, __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* free file name string */
+    scr_free(&file);
+  }
+
+  /* tell others whether rank 0 read the file */
+  MPI_Bcast(&rc, 1, MPI_INT, 0, scr_storedesc_cntl->comm);
+
+  /* bcast data to other ranks sharing the control directory */
+  if (rc == SCR_SUCCESS) {
+    kvtree_bcast(cindex, 0, scr_storedesc_cntl->comm);
+  }
+
+  return rc;
+}
+
+/* writes given cache index to specified file */
+int scr_cache_index_write(const spath* file, const scr_cache_index* cindex)
+{
+  /* check that we have a cindex pointer */
+  if (cindex == NULL) {
+    return SCR_FAILURE;
+  }
+
+  if (scr_storedesc_cntl->rank == 0) {
+    /* write out the hash */
+    if (kvtree_write_path(file, cindex) != KVTREE_SUCCESS) {
+      char path_err[SCR_MAX_FILENAME];
+      spath_strcpy(path_err, sizeof(path_err), file);
+      scr_err("Writing cache index %s @ %s:%d",
+        path_err, __FILE__, __LINE__
+      );
+      return SCR_FAILURE;
+    }
+  }
+
+  return SCR_SUCCESS;
+}

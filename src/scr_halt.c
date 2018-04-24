@@ -17,6 +17,9 @@
 #include "scr_util.h"
 #include "scr_halt.h"
 
+#include "kvtree.h"
+#include "spath.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -28,13 +31,13 @@
 #include <unistd.h>
 
 /* given the name of a halt file, read it and fill in hash */
-int scr_halt_read(const scr_path* path_file, scr_hash* hash)
+int scr_halt_read(const spath* path_file, kvtree* hash)
 {
   /* assume we'll fail */
   int rc = SCR_FAILURE;
 
   /* get file name */
-  char* file = scr_path_strdup(path_file);
+  char* file = spath_strdup(path_file);
 
   /* check whether we can read the halt file */
   if (scr_file_is_readable(file) != SCR_SUCCESS) {
@@ -61,7 +64,7 @@ int scr_halt_read(const scr_path* path_file, scr_hash* hash)
   }
 
   /* read in the hash */
-  scr_hash_read_fd(file, fd, hash);
+  kvtree_read_fd(file, fd, hash);
 
   /* release the file lock */
   scr_file_unlock(file, fd);
@@ -80,13 +83,13 @@ cleanup:
 
 /* read in halt file (which user may have changed via scr_halt), update internal data structure,
  * optionally decrement the checkpoints_left field, and write out halt file all while locked */
-int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int dec_count)
+int scr_halt_sync_and_decrement(const spath* file_path, kvtree* hash, int dec_count)
 {
   /* assume we'll fail */
   int rc = SCR_FAILURE;
 
   /* get file name */
-  char* file = scr_path_strdup(file_path);
+  char* file = spath_strdup(file_path);
 
   /* record whether file already exists before we open it */
   int exists = (scr_file_exists(file) == SCR_SUCCESS);
@@ -112,10 +115,10 @@ int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int d
   }
 
   /* get a new blank hash to read in file */
-  scr_hash* file_hash = scr_hash_new();
+  kvtree* file_hash = kvtree_new();
 
   /* read in the file data */
-  scr_hash_read_fd(file, fd, file_hash);
+  kvtree_read_fd(file, fd, file_hash);
 
   /* if the file already existed before we opened it, override our current settings with its values */
   if (exists) {
@@ -123,30 +126,30 @@ int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int d
      * otherwise the running program could never set this value */
     /* if we have an exit reason set, but the file doesn't, make a copy before we unset out hash */
     char* save_reason = NULL;
-    char* reason      = scr_hash_elem_get_first_val(hash,      SCR_HALT_KEY_EXIT_REASON);
-    char* file_reason = scr_hash_elem_get_first_val(file_hash, SCR_HALT_KEY_EXIT_REASON);
+    char* reason      = kvtree_elem_get_first_val(hash,      SCR_HALT_KEY_EXIT_REASON);
+    char* file_reason = kvtree_elem_get_first_val(file_hash, SCR_HALT_KEY_EXIT_REASON);
     if (reason != NULL && file_reason == NULL) {
       save_reason = strdup(reason);
     }
 
     /* set our hash to match the file */
-    scr_hash_unset_all(hash);
-    scr_hash_merge(hash, file_hash);
+    kvtree_unset_all(hash);
+    kvtree_merge(hash, file_hash);
 
     /* restore our exit reason */
     if (save_reason != NULL) {
-      scr_hash_unset(hash, SCR_HALT_KEY_EXIT_REASON);
-      scr_hash_set_kv(hash, SCR_HALT_KEY_EXIT_REASON, save_reason);
+      kvtree_unset(hash, SCR_HALT_KEY_EXIT_REASON);
+      kvtree_set_kv(hash, SCR_HALT_KEY_EXIT_REASON, save_reason);
       scr_free(&save_reason);
       save_reason = NULL;
     }
   }
 
   /* free the file_hash */
-  scr_hash_delete(&file_hash);
+  kvtree_delete(&file_hash);
 
   /* decrement the number of remaining checkpoints */
-  char* ckpts_str = scr_hash_elem_get_first_val(hash, SCR_HALT_KEY_CHECKPOINTS);
+  char* ckpts_str = kvtree_elem_get_first_val(hash, SCR_HALT_KEY_CHECKPOINTS);
   if (ckpts_str != NULL) {
     /* get number of checkpoints and decrement by dec_count */
     int ckpts = atoi(ckpts_str);
@@ -158,15 +161,15 @@ int scr_halt_sync_and_decrement(const scr_path* file_path, scr_hash* hash, int d
     }
 
     /* write this new value back to the hash */
-    scr_hash_unset(hash, SCR_HALT_KEY_CHECKPOINTS);
-    scr_hash_setf(hash, NULL, "%s %d", SCR_HALT_KEY_CHECKPOINTS, ckpts);
+    kvtree_unset(hash, SCR_HALT_KEY_CHECKPOINTS);
+    kvtree_setf(hash, NULL, "%s %d", SCR_HALT_KEY_CHECKPOINTS, ckpts);
   }
 
   /* wind file pointer back to the start of the file */
   lseek(fd, 0, SEEK_SET);
 
   /* write our updated hash */
-  ssize_t bytes_written = scr_hash_write_fd(file, fd, hash);
+  ssize_t bytes_written = kvtree_write_fd(file, fd, hash);
 
   /* truncate the file to the correct size (may be smaller than it was before) */
   if (bytes_written >= 0) {

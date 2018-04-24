@@ -12,6 +12,9 @@
 #include "mpi.h"
 #include "scr_globals.h"
 
+#include "kvtree.h"
+#include "kvtree_mpi.h"
+
 /*
 =========================================
 Configuration parameters
@@ -19,7 +22,7 @@ Configuration parameters
 */
 
 /* read parameters from config file and fill in hash (parallel) */
-int scr_config_read(const char* file, scr_hash* hash)
+int scr_config_read(const char* file, kvtree* hash)
 {
   int rc = SCR_FAILURE;
 
@@ -33,7 +36,7 @@ int scr_config_read(const char* file, scr_hash* hash)
 
   /* if rank 0 read the file, broadcast the hash */
   if (rc == SCR_SUCCESS) {
-    rc = scr_hash_bcast(hash, 0, scr_comm_world);
+    rc = kvtree_bcast(hash, 0, scr_comm_world);
   }
 
   return rc;

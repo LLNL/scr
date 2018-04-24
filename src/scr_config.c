@@ -30,7 +30,7 @@
 #include "scr_err.h"
 #include "scr_util.h"
 #include "scr_io.h"
-#include "scr_hash.h"
+#include "kvtree.h"
 #include "scr_config.h"
 
 #include <stdlib.h>
@@ -195,7 +195,7 @@ static char *scr_expand_value(char *raw_value)
  * (key)(\s*)(=)(\s*)(value) */
 static int scr_config_read_kv(
   FILE* fs, const char* file, int linenum,
-  int* n_external, char* c_external, scr_hash* hash, scr_hash** hash2)
+  int* n_external, char* c_external, kvtree* hash, kvtree** hash2)
 {
   int  n = *n_external;
   char c = *c_external;
@@ -234,7 +234,7 @@ static int scr_config_read_kv(
   }
 
   /* insert key/value into hash */
-  scr_hash* tmp_hash = scr_hash_set_kv(hash, key, value);
+  kvtree* tmp_hash = kvtree_set_kv(hash, key, value);
 
   *n_external = n;
   *c_external = c;
@@ -264,13 +264,13 @@ static int scr_config_read_comment(
  * and record any entries in hash */
 static int scr_config_read_line(
   FILE* fs, const char* file, int linenum,
-  int* n_external, char* c_external, scr_hash* hash)
+  int* n_external, char* c_external, kvtree* hash)
 {
   int  n = *n_external;
   char c = *c_external;
 
   /* go until we hit a newline of end-of-file */
-  scr_hash* target_hash = hash;
+  kvtree* target_hash = hash;
   int set_root = 0;
   while (n != EOF && c != '\n') {
     /* remove whitespace (spaces and tabs) until we hit a character */
@@ -283,7 +283,7 @@ static int scr_config_read_line(
         scr_config_read_comment(fs, file, linenum, &n, &c);
       } else {
         /* otherwise, must have a key value chain, so read them in */
-        scr_hash* tmp_hash;
+        kvtree* tmp_hash;
         scr_config_read_kv(fs, file, linenum, &n, &c, target_hash, &tmp_hash);
 
         /* we set the first key/value pair as the root,
@@ -303,7 +303,7 @@ static int scr_config_read_line(
 }
 
 /* read parameters from config file and fill in hash */
-int scr_config_read_common(const char* file, scr_hash* hash)
+int scr_config_read_common(const char* file, kvtree* hash)
 {
   /* check whether we can read the file */
   if (scr_file_is_readable(file) != SCR_SUCCESS) {

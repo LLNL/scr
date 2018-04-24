@@ -12,13 +12,14 @@
 /* This is a utility program that reads the nodes file and prints the
  * number of nodes used by the previous job. */
 
+#include "scr_keys.h"
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
-#include "scr_path.h"
+#include "spath.h"
 #include "scr_util.h"
-#include "scr_hash.h"
-#include "scr_hash_util.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,25 +97,27 @@ int main (int argc, char *argv[])
   }
 
   /* build the full file name */
-  scr_path* file_path = scr_path_from_str(args.dir);
-  scr_path_append_str(file_path, ".scr");
-  scr_path_append_str(file_path, "nodes.scr");
+  spath* file_path = spath_from_str(args.dir);
+  spath_append_str(file_path, ".scr");
+  spath_append_str(file_path, "nodes.scr");
+  char* file_str = spath_strdup(file_path);
+  spath_delete(&file_path);
 
   /* assume we'll fail */
   int rc = 1;
 
   /* create a new hash to hold the file data */
-  scr_hash* hash = scr_hash_new();
+  kvtree* hash = kvtree_new();
 
   /* read in our nodes file */
-  if (scr_hash_read_path(file_path, hash) != SCR_SUCCESS) {
+  if (kvtree_read_file(file_str, hash) != KVTREE_SUCCESS) {
     /* failed to read the nodes file */
     goto cleanup;
   }
 
   /* lookup the value associated with the NODES key */
   char* nodes_str;
-  if (scr_hash_util_get_str(hash, SCR_NODES_KEY_NODES, &nodes_str) == SCR_SUCCESS) {
+  if (kvtree_util_get_str(hash, SCR_NODES_KEY_NODES, &nodes_str) == KVTREE_SUCCESS) {
     printf("%s\n", nodes_str);
     rc = 0;
   } else {
@@ -123,10 +126,10 @@ int main (int argc, char *argv[])
 
 cleanup:
   /* delete the hash holding the nodes file data */
-  scr_hash_delete(&hash);
+  kvtree_delete(&hash);
 
   /* free off our file name storage */
-  scr_path_delete(&file_path);
+  scr_free(&file_str);
 
   /* return appropriate exit code */
   return rc;

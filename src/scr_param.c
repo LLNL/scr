@@ -16,9 +16,9 @@
 #include "scr_util.h"
 #include "scr_err.h"
 #include "scr_io.h"
-#include "scr_path.h"
-#include "scr_hash.h"
-#include "scr_hash_util.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
+#include "spath.h"
 #include "scr_config.h"
 #include "scr_param.h"
 
@@ -44,27 +44,27 @@ static char scr_config_file[SCR_MAX_FILENAME] = SCR_CONFIG_FILE;
 
 /* this data structure holds variables names which we can't lookup in
  * environment */
-static scr_hash* scr_no_user_hash = NULL;
+static kvtree* scr_no_user_hash = NULL;
 
 /* this data structure will hold values read from the user config file */
-static scr_hash* scr_user_hash = NULL;
+static kvtree* scr_user_hash = NULL;
 
 /* this data structure will hold values read from the system config file */
-static scr_hash* scr_system_hash = NULL;
+static kvtree* scr_system_hash = NULL;
 
 /* caches lookups via getenv, need to do this on some systems because returning
  * pointers to getenv values back too many functions was segfaulting on some
  * systems */
-static scr_hash* scr_env_hash = NULL;
+static kvtree* scr_env_hash = NULL;
 
 /* searches for name and returns a character pointer to its value if set,
  * returns NULL if not found */
-char* scr_param_get(char* name)
+const char* scr_param_get(const char* name)
 {
   char* value = NULL;
 
   /* see if this parameter is one which is restricted from user */
-  scr_hash* no_user = scr_hash_get(scr_no_user_hash, name);
+  kvtree* no_user = kvtree_get(scr_no_user_hash, name);
 
   /* if parameter is set in environment, return that value */
   if (no_user == NULL && getenv(name) != NULL) {
@@ -73,14 +73,14 @@ char* scr_param_get(char* name)
      * the pointer into the hash */
 
     /* try to lookup the value for this name in case we've already cached it */
-    if (scr_hash_util_get_str(scr_env_hash, name, &value) != SCR_SUCCESS) {
+    if (kvtree_util_get_str(scr_env_hash, name, &value) != KVTREE_SUCCESS) {
       /* it's not in the hash yet, so add it */
       char* tmp_value = strdup(getenv(name));
-      scr_hash_util_set_str(scr_env_hash, name, tmp_value);
+      kvtree_util_set_str(scr_env_hash, name, tmp_value);
       scr_free(&tmp_value);
 
       /* now issue our lookup again */
-      if (scr_hash_util_get_str(scr_env_hash, name, &value) != SCR_SUCCESS) {
+      if (kvtree_util_get_str(scr_env_hash, name, &value) != KVTREE_SUCCESS) {
         /* it's an error if we don't find it this time */
         scr_abort(-1, "Failed to find value for %s in env hash @ %s:%d",
           name, __FILE__, __LINE__
@@ -93,7 +93,7 @@ char* scr_param_get(char* name)
 
   /* otherwise, if parameter is set in user configuration file,
    * return that value */
-  value = scr_hash_elem_get_first_val(scr_user_hash, name);
+  value = kvtree_elem_get_first_val(scr_user_hash, name);
   if (no_user == NULL && value != NULL) {
     /* evaluate environment variables */
     if(*value == '$'){
@@ -104,7 +104,7 @@ char* scr_param_get(char* name)
 
   /* otherwise, if parameter is set in system configuration file,
    * return that value */
-  value = scr_hash_elem_get_first_val(scr_system_hash, name);
+  value = kvtree_elem_get_first_val(scr_system_hash, name);
   if (value != NULL) {
     /* evaluate environment variables */
     if(*value == '$'){
@@ -119,34 +119,34 @@ char* scr_param_get(char* name)
 
 /* searchs for name and returns a newly allocated hash of its value if set,
  * returns NULL if not found */
-scr_hash* scr_param_get_hash(char* name)
+const kvtree* scr_param_get_hash(const char* name)
 {
-  scr_hash* hash = NULL;
-  scr_hash* value_hash = NULL;
+  kvtree* hash = NULL;
+  kvtree* value_hash = NULL;
 
   /* see if this parameter is one which is restricted from user */
-  scr_hash* no_user = scr_hash_get(scr_no_user_hash, name);
+  kvtree* no_user = kvtree_get(scr_no_user_hash, name);
 
   /* if parameter is set in environment, return that value */
   if (no_user == NULL && getenv(name) != NULL) {
     /* TODO: need to strdup here to be safe? */
-    hash = scr_hash_new();
+    hash = kvtree_new();
     char* tmp_value = strdup(getenv(name));
-    scr_hash_set(hash, tmp_value, scr_hash_new());
+    kvtree_set(hash, tmp_value, kvtree_new());
     scr_free(&tmp_value);
     return hash;
   }
 
   /* otherwise, if parameter is set in user configuration file,
    * return that value */
-  value_hash = scr_hash_get(scr_user_hash, name);
+  value_hash = kvtree_get(scr_user_hash, name);
   if (no_user == NULL && value_hash != NULL) {
     /* walk value_hash and evaluate environment variables */
-    scr_hash_elem* elem;
-    for (elem = scr_hash_elem_first(value_hash);
+    kvtree_elem* elem;
+    for (elem = kvtree_elem_first(value_hash);
 	 elem != NULL;
-	 elem = scr_hash_elem_next(elem)){
-      char* value = scr_hash_elem_key(elem);
+	 elem = kvtree_elem_next(elem)){
+      char* value = kvtree_elem_key(elem);
       if(*value == '$'){
 	value = strdup(getenv(value+1));
 	elem->key = value;
@@ -154,21 +154,21 @@ scr_hash* scr_param_get_hash(char* name)
     }
 
     /* return the resulting hash */
-    hash = scr_hash_new();
-    scr_hash_merge(hash, value_hash);
+    hash = kvtree_new();
+    kvtree_merge(hash, value_hash);
     return hash;
   }
 
   /* otherwise, if parameter is set in system configuration file,
    * return that value */
-  value_hash = scr_hash_get(scr_system_hash, name);
+  value_hash = kvtree_get(scr_system_hash, name);
   if (value_hash != NULL) {
     /* walk value_hash and evaluate environment variables */
-    scr_hash_elem* elem;
-    for (elem = scr_hash_elem_first(value_hash);
+    kvtree_elem* elem;
+    for (elem = kvtree_elem_first(value_hash);
 	 elem != NULL;
-	 elem = scr_hash_elem_next(elem)){
-      char* value = scr_hash_elem_key(elem);
+	 elem = kvtree_elem_next(elem)){
+      char* value = kvtree_elem_key(elem);
       if(*value == '$'){
 	value = strdup(getenv(value+1));
 	elem->key = value;
@@ -176,8 +176,8 @@ scr_hash* scr_param_get_hash(char* name)
     }
 
     /* return the resulting hash */
-    hash = scr_hash_new();
-    scr_hash_merge(hash, value_hash);
+    hash = kvtree_new();
+    kvtree_merge(hash, value_hash);
     return hash;
   }
 
@@ -222,10 +222,10 @@ static char* user_config_path()
   }
 
   /* tack file name on to directory */
-  scr_path* prefix_path = scr_path_from_str(prefix);
-  scr_path_append_str(prefix_path, SCR_CONFIG_FILE_USER);
-  file = scr_path_strdup(prefix_path);
-  scr_path_delete(&prefix_path);
+  spath* prefix_path = spath_from_str(prefix);
+  spath_append_str(prefix_path, SCR_CONFIG_FILE_USER);
+  file = spath_strdup(prefix_path);
+  spath_delete(&prefix_path);
 
   /* free the prefix dir which we strdup'd */
   scr_free(&prefix);
@@ -240,37 +240,37 @@ int scr_param_init()
   if (scr_param_ref_count == 0) {
     /* allocate hash object to hold names we cannot read from the
      * environment */
-    scr_no_user_hash = scr_hash_new();
-    scr_hash_set(scr_no_user_hash, "SCR_CNTL_BASE", scr_hash_new());
+    scr_no_user_hash = kvtree_new();
+    kvtree_set(scr_no_user_hash, "SCR_CNTL_BASE", kvtree_new());
 
     /* allocate hash object to store values from user config file,
      * if specified */
     char* user_file = user_config_path();
     if (user_file != NULL) {
-      scr_user_hash = scr_hash_new();
+      scr_user_hash = kvtree_new();
       scr_config_read(user_file, scr_user_hash);
     }
     scr_free(&user_file);
 
     /* allocate hash object to store values from system config file */
-    scr_system_hash = scr_hash_new();
+    scr_system_hash = kvtree_new();
     scr_config_read(scr_config_file, scr_system_hash);
 
     /* initialize our hash to cache lookups to getenv */
-    scr_env_hash = scr_hash_new();
+    scr_env_hash = kvtree_new();
 
     /* warn user if they set any parameters in their environment or user
      * config file which aren't permitted */
-    scr_hash_elem* elem;
-    for (elem = scr_hash_elem_first(scr_no_user_hash);
+    kvtree_elem* elem;
+    for (elem = kvtree_elem_first(scr_no_user_hash);
          elem != NULL;
-         elem = scr_hash_elem_next(elem))
+         elem = kvtree_elem_next(elem))
     {
       /* get the parameter name */
-      char* key = scr_hash_elem_key(elem);
+      char* key = kvtree_elem_key(elem);
 
       char* env_val = getenv(key);
-      scr_hash* env_hash = scr_hash_get(scr_user_hash, key);
+      kvtree* env_hash = kvtree_get(scr_user_hash, key);
 
       /* check whether this is set in the environment */
       if (env_val != NULL || env_hash != NULL) {
@@ -296,16 +296,16 @@ int scr_param_finalize()
   /* if the reference count is zero, free the data structures */
   if (scr_param_ref_count == 0) {
     /* free our parameter hash */
-    scr_hash_delete(&scr_user_hash);
+    kvtree_delete(&scr_user_hash);
 
     /* free our parameter hash */
-    scr_hash_delete(&scr_system_hash);
+    kvtree_delete(&scr_system_hash);
 
     /* free our env hash */
-    scr_hash_delete(&scr_env_hash);
+    kvtree_delete(&scr_env_hash);
 
     /* free the hash listing parameters user cannot set */
-    scr_hash_delete(&scr_no_user_hash);
+    kvtree_delete(&scr_no_user_hash);
   }
 
   return SCR_SUCCESS;

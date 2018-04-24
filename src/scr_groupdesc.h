@@ -77,7 +77,7 @@ int scr_groupdescs_index_from_name(const char* name);
 scr_groupdesc* scr_groupdescs_from_name(const char* name);
 
 /* fill in scr_groupdescs array from scr_groupdescs_hash */
-int scr_groupdescs_create(void);
+int scr_groupdescs_create(MPI_Comm comm);
 
 /* free scr_groupdescs array */
 int scr_groupdescs_free(void);

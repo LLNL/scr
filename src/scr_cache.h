@@ -13,6 +13,7 @@
 #define SCR_CACHE_H
 
 #include "scr_reddesc.h"
+#include "scr_cache_index.h"
 #include "scr_filemap.h"
 
 /* returns name of the dataset directory for a given redundancy descriptor
@@ -24,12 +25,21 @@ char* scr_cache_dir_get(const scr_reddesc* c, int id);
  * returned string */
 char* scr_cache_dir_hidden_get(const scr_reddesc* red, int id);
 
+/* read file map for dataset from cache directory */
+int scr_cache_get_map(const scr_cache_index* cindex, int id, scr_filemap* map);
+
+/* write file map for dataset to cache directory */
+int scr_cache_set_map(const scr_cache_index* cindex, int id, const scr_filemap* map);
+
+/* delete file map file for dataset from cache directory */
+int scr_cache_unset_map(const scr_cache_index* cindex, int id);
+
 /* create a dataset directory given a redundancy descriptor and dataset id,
  * waits for all tasks on the same node before returning */
 int scr_cache_dir_create(const scr_reddesc* c, int id);
 
 /* remove all files associated with specified dataset */
-int scr_cache_delete(scr_filemap* map, int id);
+int scr_cache_delete(scr_cache_index* cindex, int id);
 
 /* each process passes in an ordered list of dataset ids along with a current
  * index, this function identifies the next smallest id across all processes
@@ -37,28 +47,24 @@ int scr_cache_delete(scr_filemap* map, int id);
  * appropriate */
 int scr_next_dataset(int ndsets, const int* dsets, int* index, int* current);
 
-/* given a filemap, a dataset, and a rank, unlink those files and remove
- * them from the map */
-int scr_unlink_rank(scr_filemap* map, int id, int rank);
+/* remove all files from cache */
+int scr_cache_purge(scr_cache_index* cindex);
 
-/* remove all files recorded in filemap and the filemap itself */
-int scr_cache_purge(scr_filemap* map);
-
-/* opens the filemap, inspects that all listed files are readable and complete,
+/* inspects that all listed files are readable and complete,
  * unlinks any that are not */
-int scr_cache_clean(scr_filemap* map);
+//int scr_cache_clean(scr_cache_index* cindex);
 
-/* returns true iff each file in the filemap can be read */
-int scr_cache_check_files(const scr_filemap* map, int id);
+/* returns true iff each file in the cache can be read */
+int scr_cache_check_files(const scr_cache_index* cindex, int id);
 
 /* checks whether specifed file exists, is readable, and is complete */
-int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* file, int ranks);
-
-/* check whether we have all files for a given rank of a given dataset */
-int scr_bool_have_files(const scr_filemap* map, int id, int rank);
+int scr_bool_have_file(const scr_filemap* map, const char* file);
 
 /* compute and store crc32 value for specified file in given dataset and rank,
  * check against current value if one is set */
-int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file);
+int scr_compute_crc(scr_filemap* map, const char* file);
+
+/* return store descriptor associated with dataset, returns NULL if not found */
+scr_storedesc* scr_cache_get_storedesc(const scr_cache_index* cindex, int id);
 
 #endif

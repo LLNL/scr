@@ -32,6 +32,8 @@
 
 #include "scr_globals.h"
 
+#include "kvtree.h"
+
 /*
 =========================================
 Globals
@@ -58,23 +60,22 @@ char* scr_cache_base  = NULL; /* base directory for cache directory */
 char* scr_cntl_base   = NULL; /* base directory for control directory */
 char* scr_cntl_prefix = NULL; /* path of control directory (adds to base directory) */
 
-char* scr_prefix          = NULL; /* path of SCR_PREFIX directory on PFS */
-char* scr_prefix_scr      = NULL; /* path of .scr subdir in SCR_PREFIX dir */
-scr_path* scr_prefix_path = NULL; /* scr_prefix in scr_path form */
+char* scr_prefix       = NULL; /* path of SCR_PREFIX directory on PFS */
+char* scr_prefix_scr   = NULL; /* path of .scr subdir in SCR_PREFIX dir */
+spath* scr_prefix_path = NULL; /* scr_prefix in spath form */
 
 /* these files live in the control directory */
-scr_path* scr_master_map_file = NULL;
-scr_path* scr_map_file        = NULL;
-char* scr_transfer_file   = NULL;
+spath* scr_cindex_file     = NULL;
+char* scr_transfer_file    = NULL;
 
 /* we keep the halt, flush, and nodes files in the prefix directory
  * so that the batch script and / or external commands can access them */
-scr_path* scr_halt_file  = NULL;
-scr_path* scr_flush_file = NULL;
-scr_path* scr_nodes_file = NULL;
+spath* scr_halt_file  = NULL;
+spath* scr_flush_file = NULL;
+spath* scr_nodes_file = NULL;
 
-scr_filemap* scr_map = NULL;    /* memory cache of filemap contents */
-scr_hash* scr_halt_hash = NULL; /* memory cache of halt file contents */
+scr_cache_index* scr_cindex  = NULL; /* tracks datasets in cache */
+kvtree* scr_halt_hash = NULL; /* memory cache of halt file contents */
 
 char* scr_username    = NULL;           /* username of owner for running job */
 char* scr_jobid       = NULL;           /* unique job id string of current job */
@@ -122,8 +123,6 @@ int scr_crc_on_flush  = SCR_CRC_ON_FLUSH;  /* whether to enable crc32 checks dur
 int scr_crc_on_delete = SCR_CRC_ON_DELETE; /* whether to enable crc32 checks when deleting checkpoints */
 
 int scr_preserve_directories = SCR_PRESERVE_DIRECTORIES; /* whether to preserve user-defined directories during flush */
-int scr_use_containers           = SCR_USE_CONTAINERS;   /* whether to fetch from / flush to container files */
-unsigned long scr_container_size = SCR_CONTAINER_SIZE;   /* max number of bytes to store in a container */
 
 int    scr_checkpoint_interval = SCR_CHECKPOINT_INTERVAL; /* times to call Need_checkpoint between checkpoints */
 int    scr_checkpoint_seconds  = SCR_CHECKPOINT_SECONDS;  /* min number of seconds between checkpoints */
@@ -151,9 +150,9 @@ int  scr_my_rank_world  = MPI_PROC_NULL; /* my rank in world */
 MPI_Comm scr_comm_node        = MPI_COMM_NULL; /* communicator of all tasks on the same node */
 MPI_Comm scr_comm_node_across = MPI_COMM_NULL; /* communicator of tasks with same rank on each node */
 
-scr_hash* scr_groupdesc_hash = NULL; /* hash defining group descriptors to be used */
-scr_hash* scr_storedesc_hash = NULL; /* hash defining store descriptors to be used */
-scr_hash* scr_reddesc_hash   = NULL; /* hash defining redudancy descriptors to be used */
+kvtree* scr_groupdesc_hash = NULL; /* hash defining group descriptors to be used */
+kvtree* scr_storedesc_hash = NULL; /* hash defining store descriptors to be used */
+kvtree* scr_reddesc_hash   = NULL; /* hash defining redudancy descriptors to be used */
 
 int scr_ngroupdescs = 0;              /* number of descriptors in scr_groupdescs */
 scr_groupdesc* scr_groupdescs = NULL; /* group descriptor structs */

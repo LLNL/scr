@@ -38,11 +38,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "spath.h"
+#include "kvtree.h"
+
 /* given a string, convert it to a double and write that value to val */
-int scr_atod(char* str, double* val);
+int scr_atod(const char* str, double* val);
 
 /* converts string like 10mb to unsigned long long integer value of 10*1024*1024 */
-int scr_abtoull(char* str, unsigned long long* val);
+int scr_abtoull(const char* str, unsigned long long* val);
 
 
 /* allocate size bytes, returns NULL if size == 0,
@@ -87,5 +90,11 @@ int scr_unpack_uint32_t(const void* buf, size_t buf_size, size_t* buf_pos, uint3
 
 /* unpack an unsigned 64 bit value to specified buffer in network order */
 int scr_unpack_uint64_t(const void* buf, size_t buf_size, size_t* buf_pos, uint64_t* val);
+
+/* convenience to read kvtree from an spath */
+int kvtree_read_path(const spath* path, kvtree* tree);
+
+/* convenience to write kvtree to an spath */
+int kvtree_write_path(const spath* path, const kvtree* tree);
 
 #endif

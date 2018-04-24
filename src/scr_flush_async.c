@@ -32,6 +32,10 @@
 
 #include "scr_globals.h"
 
+#include "spath.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
+
 #ifdef HAVE_LIBCPPR
 #include "cppr.h"
 #endif
@@ -43,10 +47,10 @@ static time_t scr_flush_async_timestamp_start;
 static double scr_flush_async_time_start;
 
 /* tracks list of files written with flush */
-static scr_hash* scr_flush_async_file_list = NULL;
+static kvtree* scr_flush_async_file_list = NULL;
 
 /* tracks list of files written with flush */
-static scr_hash* scr_flush_async_hash = NULL;
+static kvtree* scr_flush_async_hash = NULL;
 
 /* records the number of files this process must flush */
 static int scr_flush_async_num_files = 0;
@@ -132,19 +136,19 @@ Asynchronous flush helper functions
 */
 
 /* dequeues files listed in hash2 from hash1 */
-static int scr_flush_async_file_dequeue(scr_hash* hash1, scr_hash* hash2)
+static int scr_flush_async_file_dequeue(kvtree* hash1, kvtree* hash2)
 {
   /* for each file listed in hash2, remove it from hash1 */
-  scr_hash* file_hash = scr_hash_get(hash2, SCR_TRANSFER_KEY_FILES);
+  kvtree* file_hash = kvtree_get(hash2, SCR_TRANSFER_KEY_FILES);
   if (file_hash != NULL) {
-    scr_hash_elem* elem;
-    for (elem = scr_hash_elem_first(file_hash);
+    kvtree_elem* elem;
+    for (elem = kvtree_elem_first(file_hash);
          elem != NULL;
-         elem = scr_hash_elem_next(elem))
+         elem = kvtree_elem_next(elem))
     {
       /* get the filename, and dequeue it */
-      char* file = scr_hash_elem_key(elem);
-      scr_hash_unset_kv(hash1, SCR_TRANSFER_KEY_FILES, file);
+      char* file = kvtree_elem_key(elem);
+      kvtree_unset_kv(hash1, SCR_TRANSFER_KEY_FILES, file);
     }
   }
   return SCR_SUCCESS;
@@ -277,7 +281,7 @@ mpi_collectives:
   MPI_Allreduce(&bytes_written, bytes, 1, MPI_DOUBLE, MPI_SUM, scr_comm_world);
 
   /* determine whether the transfer is complete on all tasks */
-  if (scr_alltrue(transfer_complete)) {
+  if (scr_alltrue(transfer_complete, scr_comm_world)) {
     if (scr_my_rank_world == 0) {
       scr_dbg(0, "#demo CPPR successfully transferred dset %d", id);
     }
@@ -304,46 +308,46 @@ static int scr_cppr_flush_async_complete(scr_filemap* map, int id)
   }
 
   /* allocate structure to hold metadata info */
-  scr_hash* data = scr_hash_new();
+  kvtree* data = kvtree_new();
 
   /* fill in metadata info for the files this process flushed */
-  scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
-  scr_hash_elem* elem = NULL;
-  for (elem = scr_hash_elem_first(files);
+  kvtree* files = kvtree_get(scr_flush_async_file_list, SCR_KEY_FILE);
+  kvtree_elem* elem = NULL;
+  for (elem = kvtree_elem_first(files);
        elem != NULL;
-       elem = scr_hash_elem_next(elem))
+       elem = kvtree_elem_next(elem))
   {
     /* get the filename */
-    char* file = scr_hash_elem_key(elem);
+    char* file = kvtree_elem_key(elem);
 
     /* get the hash for this file */
-    scr_hash* hash = scr_hash_elem_hash(elem);
+    kvtree* hash = kvtree_elem_hash(elem);
 
     /* record the filename in the hash, and get reference to a hash for
      * this file */
-    scr_path* path_file = scr_path_from_str(file);
-    scr_path_basename(path_file);
+    spath* path_file = spath_from_str(file);
+    spath_basename(path_file);
 
-    char* name = scr_path_strdup(path_file);
-    scr_hash* file_hash = scr_hash_set_kv(data, SCR_SUMMARY_6_KEY_FILE, name);
+    char* name = spath_strdup(path_file);
+    kvtree* file_hash = kvtree_set_kv(data, SCR_SUMMARY_6_KEY_FILE, name);
 
     scr_free(&name);
-    scr_path_delete(&path_file);
+    spath_delete(&path_file);
 
     /* get meta data for this file */
-    scr_meta* meta = scr_hash_get(hash, SCR_KEY_META);
+    scr_meta* meta = kvtree_get(hash, SCR_KEY_META);
 
     /* successfully flushed this file, record the filesize */
     unsigned long filesize = 0;
     if (scr_meta_get_filesize(meta, &filesize) == SCR_SUCCESS) {
-      scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, filesize);
+      kvtree_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, filesize);
     }
     scr_dbg(1, "filesize is %d @ %s:%d", filesize, __FILE__, __LINE__);
 
     /* record the crc32 if one was computed */
     uLong flush_crc32;
     if (scr_meta_get_crc32(meta, &flush_crc32) == SCR_SUCCESS) {
-      scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, flush_crc32);
+      kvtree_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, flush_crc32);
     }
   }
 
@@ -373,11 +377,11 @@ static int scr_cppr_flush_async_complete(scr_filemap* map, int id)
   scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
 
   /* free data structures */
-  scr_hash_delete(&data);
+  kvtree_delete(&data);
 
   /* free the file list for this checkpoint */
-  scr_hash_delete(&scr_flush_async_hash);
-  scr_hash_delete(&scr_flush_async_file_list);
+  kvtree_delete(&scr_flush_async_hash);
+  kvtree_delete(&scr_flush_async_file_list);
   scr_flush_async_hash      = NULL;
   scr_flush_async_file_list = NULL;
 
@@ -497,10 +501,10 @@ static int scr_cppr_flush_async_stop(void)
 
   /* clear internal flush_async variables to indicate there is no flush */
   if (scr_flush_async_hash != NULL) {
-    scr_hash_delete(&scr_flush_async_hash);
+    kvtree_delete(&scr_flush_async_hash);
   }
   if (scr_flush_async_file_list != NULL) {
-    scr_hash_delete(&scr_flush_async_file_list);
+    kvtree_delete(&scr_flush_async_file_list);
   }
 
   /* make sure all processes have made it this far before we leave */
@@ -556,7 +560,7 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
   scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
 
   /* get list of files to flush and create directories */
-  scr_flush_async_file_list = scr_hash_new();
+  scr_flush_async_file_list = kvtree_new();
   if (scr_flush_prepare(map, id, scr_flush_async_file_list) != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
       scr_err("scr_flush_async_start: Failed to prepare flush @ %s:%d",
@@ -574,37 +578,37 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
         );
       }
     }
-    scr_hash_delete(&scr_flush_async_file_list);
+    kvtree_delete(&scr_flush_async_file_list);
     scr_flush_async_file_list = NULL;
     return SCR_FAILURE;
   }
 
   /* add each of my files to the transfer file list */
-  scr_flush_async_hash = scr_hash_new();
+  scr_flush_async_hash = kvtree_new();
   scr_flush_async_num_files = 0;
   double my_bytes = 0.0;
-  scr_hash_elem* elem;
-  scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
-  for (elem = scr_hash_elem_first(files);
+  kvtree_elem* elem;
+  kvtree* files = kvtree_get(scr_flush_async_file_list, SCR_KEY_FILE);
+  for (elem = kvtree_elem_first(files);
        elem != NULL;
-       elem = scr_hash_elem_next(elem))
+       elem = kvtree_elem_next(elem))
   {
     /* get the filename */
-    char* file = scr_hash_elem_key(elem);
+    char* file = kvtree_elem_key(elem);
 
     /* get the hash for this file */
-    scr_hash* file_hash = scr_hash_elem_hash(elem);
+    kvtree* file_hash = kvtree_elem_hash(elem);
 
     /* get directory to flush file to */
     char* dest_dir;
-    if (scr_hash_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) !=
-        SCR_SUCCESS)
+    if (kvtree_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) !=
+        KVTREE_SUCCESS)
     {
       continue;
     }
 
     /* get meta data for file */
-    scr_meta* meta = scr_hash_get(file_hash, SCR_KEY_META);
+    scr_meta* meta = kvtree_get(file_hash, SCR_KEY_META);
 
     /* get the file size */
     unsigned long filesize = 0;
@@ -615,31 +619,31 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
 
     /* add this file to the hash, and add its filesize to the number of
      * bytes written */
-    scr_hash* transfer_file_hash = scr_hash_set_kv(scr_flush_async_hash,
+    kvtree* transfer_file_hash = kvtree_set_kv(scr_flush_async_hash,
                                                    SCR_TRANSFER_KEY_FILES,
                                                    file);
     if (file_hash != NULL) {
       /* break file into path and name components */
-      scr_path* path_dest_file = scr_path_from_str(file);
-      scr_path_basename(path_dest_file);
-      scr_path_prepend_str(path_dest_file, dest_dir);
-      char* dest_file = scr_path_strdup(path_dest_file);
+      spath* path_dest_file = spath_from_str(file);
+      spath_basename(path_dest_file);
+      spath_prepend_str(path_dest_file, dest_dir);
+      char* dest_file = spath_strdup(path_dest_file);
 
-      scr_hash_util_set_str(transfer_file_hash,
+      kvtree_util_set_str(transfer_file_hash,
                             SCR_TRANSFER_KEY_DESTINATION,
                             dest_file);
 
-      scr_hash_util_set_bytecount(transfer_file_hash,
+      kvtree_util_set_bytecount(transfer_file_hash,
                                   SCR_TRANSFER_KEY_SIZE,
                                   filesize);
 
-      scr_hash_util_set_bytecount(transfer_file_hash,
+      kvtree_util_set_bytecount(transfer_file_hash,
                                   SCR_TRANSFER_KEY_WRITTEN,
                                   0);
 
       /* delete path and string for the file name */
       scr_free(&dest_file);
-      scr_path_delete(&path_dest_file);
+      spath_delete(&path_dest_file);
     }
 
     /* add this file to our total count */
@@ -653,19 +657,19 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
      * and merge with our data */
     int i;
     for (i=1; i < scr_storedesc_cntl->ranks; i++) {
-      scr_hash* h = scr_hash_new();
-      scr_hash_recv(h, i, scr_storedesc_cntl->comm);
-      scr_hash_merge(scr_flush_async_hash, h);
-      scr_hash_delete(&h);
+      kvtree* h = kvtree_new();
+      kvtree_recv(h, i, scr_storedesc_cntl->comm);
+      kvtree_merge(scr_flush_async_hash, h);
+      kvtree_delete(&h);
     }
     scr_dbg(3,"hash output printed: ");
-    scr_hash_log(scr_flush_async_hash, 3, 0);
+    kvtree_log(scr_flush_async_hash, 3, 0);
     scr_dbg(3,"----------------end flush_async_hash, begin file list");
-    scr_hash_log(scr_flush_async_file_list, 3, 0);
+    kvtree_log(scr_flush_async_file_list, 3, 0);
     scr_dbg(3,"printed out the hashes");
 
     /* get a hash to store file data */
-    scr_hash* hash = scr_hash_new();
+    kvtree* hash = kvtree_new();
 
     int writers;
     MPI_Comm_size(scr_comm_node_across, &writers);
@@ -704,27 +708,27 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
 
     /*  CPPR just needs to iterate through this combined hash */
     /* call cppr_mv and save the handles */
-    files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
-    for (elem = scr_hash_elem_first(files);
+    files = kvtree_get(scr_flush_async_file_list, SCR_KEY_FILE);
+    for (elem = kvtree_elem_first(files);
          elem != NULL;
-         elem = scr_hash_elem_next(elem))
+         elem = kvtree_elem_next(elem))
     {
       /* get the filename */
-      char* file = scr_hash_elem_key(elem);
+      char* file = kvtree_elem_key(elem);
 
       /* get the hash for this file */
-      scr_hash* file_hash = scr_hash_elem_hash(elem);
+      kvtree* file_hash = kvtree_elem_hash(elem);
 
       /* get directory to flush file to */
       char* dest_dir;
-      if (scr_hash_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) !=
-          SCR_SUCCESS)
+      if (kvtree_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) !=
+          KVTREE_SUCCESS)
       {
         continue;
       }
 
       /* get meta data for file */
-      scr_meta* meta = scr_hash_get(file_hash, SCR_KEY_META);
+      scr_meta* meta = kvtree_get(file_hash, SCR_KEY_META);
 
       /* get just the file name */
       char *plain_filename = NULL;
@@ -740,30 +744,30 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
       }
 
       /* get the information for this file */
-      scr_hash* transfer_file_hash = scr_hash_get_kv(scr_flush_async_hash,
+      kvtree* transfer_file_hash = kvtree_get_kv(scr_flush_async_hash,
                                                      SCR_TRANSFER_KEY_FILES,
                                                      file);
       if (transfer_file_hash != NULL) {
         /* break file into path and name components */
-        scr_path* path_dest_file = scr_path_from_str(file);
+        spath* path_dest_file = spath_from_str(file);
 
         /* get full path */
-        char *full_path = scr_path_strdup(path_dest_file);
+        char *full_path = spath_strdup(path_dest_file);
 
         /* get only the src dir */
-        scr_path_dirname(path_dest_file);
-        char *only_path_dest = scr_path_strdup(path_dest_file);
+        spath_dirname(path_dest_file);
+        char *only_path_dest = spath_strdup(path_dest_file);
 
         /* get only the file name */
-        scr_path_basename(path_dest_file);
-        char *basename_path = scr_path_strdup(path_dest_file);
+        spath_basename(path_dest_file);
+        char *basename_path = spath_strdup(path_dest_file);
 
         /* add dest dir to the file name */
-        scr_path_prepend_str(path_dest_file, dest_dir);
+        spath_prepend_str(path_dest_file, dest_dir);
 
-        char* dest_file = scr_path_strdup(path_dest_file);
+        char* dest_file = spath_strdup(path_dest_file);
 
-        if (scr_path_dirname(path_dest_file) != SCR_SUCCESS) {
+        if (spath_dirname(path_dest_file) != SPATH_SUCCESS) {
           return SCR_FAILURE;
         }
 
@@ -879,7 +883,7 @@ filename: '%s' src path? '%s'", full_path,
         scr_free(&dest_file);
         scr_free(&full_path);
         scr_free(&basename_path);
-        scr_path_delete(&path_dest_file);
+        spath_delete(&path_dest_file);
       } else {
         /* confirmed the bug?? */
         scr_dbg(0,"ERROR NEED TO CHECK THIS why was this value null BUG \
@@ -888,10 +892,10 @@ confirmed?: %s", file);
     }
 
     /* delete the hash */
-    scr_hash_delete(&hash);
+    kvtree_delete(&hash);
   } else {
     /* send our transfer hash data to the master on this node */
-    scr_hash_send(scr_flush_async_hash, 0, scr_storedesc_cntl->comm);
+    kvtree_send(scr_flush_async_hash, 0, scr_storedesc_cntl->comm);
   }
 
   /* get the total number of bytes to write */
@@ -918,13 +922,13 @@ Asynchronous flush functions
 */
 
 /* given a hash, test whether the files in that hash have completed their flush */
-static int scr_flush_async_file_test(const scr_hash* hash, double* bytes)
+static int scr_flush_async_file_test(const kvtree* hash, double* bytes)
 {
   /* initialize bytes to 0 */
   *bytes = 0.0;
 
   /* get the FILES hash */
-  scr_hash* files_hash = scr_hash_get(hash, SCR_TRANSFER_KEY_FILES);
+  kvtree* files_hash = kvtree_get(hash, SCR_TRANSFER_KEY_FILES);
   if (files_hash == NULL) {
     /* can't tell whether this flush has completed */
     return SCR_FAILURE;
@@ -935,13 +939,13 @@ static int scr_flush_async_file_test(const scr_hash* hash, double* bytes)
 
   /* for each file, check whether the WRITTEN field matches the SIZE field,
    * which indicates the file has completed its transfer */
-  scr_hash_elem* elem;
-  for (elem = scr_hash_elem_first(files_hash);
+  kvtree_elem* elem;
+  for (elem = kvtree_elem_first(files_hash);
        elem != NULL;
-       elem = scr_hash_elem_next(elem))
+       elem = kvtree_elem_next(elem))
   {
     /* get the hash for this file */
-    scr_hash* file_hash = scr_hash_elem_hash(elem);
+    kvtree* file_hash = kvtree_elem_hash(elem);
     if (file_hash == NULL) {
       transfer_complete = 0;
       continue;
@@ -949,8 +953,8 @@ static int scr_flush_async_file_test(const scr_hash* hash, double* bytes)
 
     /* lookup the values for the size and bytes written */
     unsigned long size, written;
-    if (scr_hash_util_get_bytecount(file_hash, "SIZE",    &size)    != SCR_SUCCESS ||
-        scr_hash_util_get_bytecount(file_hash, "WRITTEN", &written) != SCR_SUCCESS)
+    if (kvtree_util_get_bytecount(file_hash, "SIZE",    &size)    != KVTREE_SUCCESS ||
+        kvtree_util_get_bytecount(file_hash, "WRITTEN", &written) != KVTREE_SUCCESS)
     {
       transfer_complete = 0;
       continue;
@@ -978,20 +982,20 @@ static int scr_flush_async_command_set(char* command)
   /* have the master on each node write this command to the file */
   if (scr_storedesc_cntl->rank == 0) {
     /* get a hash to store file data */
-    scr_hash* hash = scr_hash_new();
+    kvtree* hash = kvtree_new();
 
     /* read the file */
     int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
+    kvtree_lock_open_read(scr_transfer_file, &fd, hash);
 
     /* set the command */
-    scr_hash_util_set_str(hash, SCR_TRANSFER_KEY_COMMAND, command);
+    kvtree_util_set_str(hash, SCR_TRANSFER_KEY_COMMAND, command);
 
     /* write the hash back */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+    kvtree_write_close_unlock(scr_transfer_file, &fd, hash);
 
     /* delete the hash */
-    scr_hash_delete(&hash);
+    kvtree_delete(&hash);
   }
   return SCR_SUCCESS;
 }
@@ -1008,13 +1012,13 @@ static int scr_flush_async_state_wait(char* state)
     /* have the master on each node check the state in the transfer file */
     if (scr_storedesc_cntl->rank == 0) {
       /* get a hash to store file data */
-      scr_hash* hash = scr_hash_new();
+      kvtree* hash = kvtree_new();
 
       /* open transfer file with lock */
-      scr_hash_read_with_lock(scr_transfer_file, hash);
+      kvtree_read_with_lock(scr_transfer_file, hash);
 
       /* check for the specified state */
-      scr_hash* state_hash = scr_hash_get_kv(hash,
+      kvtree* state_hash = kvtree_get_kv(hash,
                                              SCR_TRANSFER_KEY_STATE,
                                              state);
       if (state_hash == NULL) {
@@ -1022,11 +1026,11 @@ static int scr_flush_async_state_wait(char* state)
       }
 
       /* delete the hash */
-      scr_hash_delete(&hash);
+      kvtree_delete(&hash);
     }
 
     /* check whether everyone is at the specified state */
-    if (scr_alltrue(valid)) {
+    if (scr_alltrue(valid, scr_comm_world)) {
       all_valid = 1;
     }
 
@@ -1044,20 +1048,20 @@ static int scr_flush_async_file_clear_all()
   /* have the master on each node clear the FILES field */
   if (scr_storedesc_cntl->rank == 0) {
     /* get a hash to store file data */
-    scr_hash* hash = scr_hash_new();
+    kvtree* hash = kvtree_new();
 
     /* read the file */
     int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
+    kvtree_lock_open_read(scr_transfer_file, &fd, hash);
 
     /* clear the FILES entry */
-    scr_hash_unset(hash, SCR_TRANSFER_KEY_FILES);
+    kvtree_unset(hash, SCR_TRANSFER_KEY_FILES);
 
     /* write the hash back */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+    kvtree_write_close_unlock(scr_transfer_file, &fd, hash);
 
     /* delete the hash */
-    scr_hash_delete(&hash);
+    kvtree_delete(&hash);
   }
   return SCR_SUCCESS;
 }
@@ -1099,10 +1103,10 @@ int scr_flush_async_stop()
 
   /* clear internal flush_async variables to indicate there is no flush */
   if (scr_flush_async_hash != NULL) {
-    scr_hash_delete(&scr_flush_async_hash);
+    kvtree_delete(&scr_flush_async_hash);
   }
   if (scr_flush_async_file_list != NULL) {
-    scr_hash_delete(&scr_flush_async_file_list);
+    kvtree_delete(&scr_flush_async_file_list);
   }
 
   /* make sure all processes have made it this far before we leave */
@@ -1155,7 +1159,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
   scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
 
   /* get list of files to flush and create directories */
-  scr_flush_async_file_list = scr_hash_new();
+  scr_flush_async_file_list = kvtree_new();
   if (scr_flush_prepare(map, id, scr_flush_async_file_list) != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
       scr_err("scr_flush_async_start: Failed to prepare flush @ %s:%d",
@@ -1169,36 +1173,36 @@ int scr_flush_async_start(scr_filemap* map, int id)
                       &id, &now, &time_diff);
       }
     }
-    scr_hash_delete(&scr_flush_async_file_list);
+    kvtree_delete(&scr_flush_async_file_list);
     scr_flush_async_file_list = NULL;
     return SCR_FAILURE;
   }
 
   /* add each of my files to the transfer file list */
-  scr_flush_async_hash = scr_hash_new();
+  scr_flush_async_hash = kvtree_new();
   scr_flush_async_num_files = 0;
   double my_bytes = 0.0;
-  scr_hash_elem* elem;
-  scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
-  for (elem = scr_hash_elem_first(files);
+  kvtree_elem* elem;
+  kvtree* files = kvtree_get(scr_flush_async_file_list, SCR_KEY_FILE);
+  for (elem = kvtree_elem_first(files);
        elem != NULL;
-       elem = scr_hash_elem_next(elem))
+       elem = kvtree_elem_next(elem))
   {
      /* get the filename */
-     char* file = scr_hash_elem_key(elem);
+     char* file = kvtree_elem_key(elem);
 
      /* get the hash for this file */
-     scr_hash* file_hash = scr_hash_elem_hash(elem);
+     kvtree* file_hash = kvtree_elem_hash(elem);
 
      /* get directory to flush file to */
      char* dest_dir;
-     if (scr_hash_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) !=
-         SCR_SUCCESS) {
+     if (kvtree_util_get_str(file_hash, SCR_KEY_PATH, &dest_dir) !=
+         KVTREE_SUCCESS) {
        continue;
      }
 
      /* get meta data for file */
-     scr_meta* meta = scr_hash_get(file_hash, SCR_KEY_META);
+     scr_meta* meta = kvtree_get(file_hash, SCR_KEY_META);
 
      /* get the file size */
      unsigned long filesize = 0;
@@ -1209,30 +1213,30 @@ int scr_flush_async_start(scr_filemap* map, int id)
 
      /* add this file to the hash, and add its filesize
       * to the number of bytes written */
-     scr_hash* transfer_file_hash = scr_hash_set_kv(scr_flush_async_hash,
+     kvtree* transfer_file_hash = kvtree_set_kv(scr_flush_async_hash,
                                                     SCR_TRANSFER_KEY_FILES,
                                                     file);
      /* TODO BUG FIX HERE: file_hash should be transfer_file_hash?? */
      if (file_hash != NULL) {
        /* break file into path and name components */
-             scr_path* path_dest_file = scr_path_from_str(file);
-             scr_path_basename(path_dest_file);
-             scr_path_prepend_str(path_dest_file, dest_dir);
-             char* dest_file = scr_path_strdup(path_dest_file);
+             spath* path_dest_file = spath_from_str(file);
+             spath_basename(path_dest_file);
+             spath_prepend_str(path_dest_file, dest_dir);
+             char* dest_file = spath_strdup(path_dest_file);
 
-             scr_hash_util_set_str(transfer_file_hash,
+             kvtree_util_set_str(transfer_file_hash,
                                    SCR_TRANSFER_KEY_DESTINATION,
                                    dest_file);
-             scr_hash_util_set_bytecount(transfer_file_hash,
+             kvtree_util_set_bytecount(transfer_file_hash,
                                          SCR_TRANSFER_KEY_SIZE,
                                          filesize);
-             scr_hash_util_set_bytecount(transfer_file_hash,
+             kvtree_util_set_bytecount(transfer_file_hash,
                                          SCR_TRANSFER_KEY_WRITTEN,
                                          0);
 
              /* delete path and string for the file name */
              scr_free(&dest_file);
-             scr_path_delete(&path_dest_file);
+             spath_delete(&path_dest_file);
      }
      else{
        scr_dbg(1,"-----file_hash was null BUG?-----'%s' @ %s:%d", file, __FILE__, __LINE__);
@@ -1248,55 +1252,55 @@ int scr_flush_async_start(scr_filemap* map, int id)
     /* receive hash data from other processes on the same node and merge with our data */
     int i;
     for (i=1; i < scr_storedesc_cntl->ranks; i++) {
-      scr_hash* h = scr_hash_new();
-      scr_hash_recv(h, i, scr_storedesc_cntl->comm);
-      scr_hash_merge(scr_flush_async_hash, h);
-      scr_hash_delete(&h);
+      kvtree* h = kvtree_new();
+      kvtree_recv(h, i, scr_storedesc_cntl->comm);
+      kvtree_merge(scr_flush_async_hash, h);
+      kvtree_delete(&h);
     }
     /* get a hash to store file data */
-    scr_hash* hash = scr_hash_new();
+    kvtree* hash = kvtree_new();
 
     /* open transfer file with lock */
     int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, hash);
+    kvtree_lock_open_read(scr_transfer_file, &fd, hash);
 
     /* merge our data to the file data */
-    scr_hash_merge(hash, scr_flush_async_hash);
+    kvtree_merge(hash, scr_flush_async_hash);
 
     /* set BW if it's not already set */
     /* TODO: somewhat hacky way to determine number of nodes and therefore number of writers */
     int writers;
     MPI_Comm_size(scr_comm_node_across, &writers);
     double bw;
-    if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_BW, &bw) !=
-        SCR_SUCCESS) {
+    if (kvtree_util_get_double(hash, SCR_TRANSFER_KEY_BW, &bw) !=
+        KVTREE_SUCCESS) {
       bw = (double) scr_flush_async_bw / (double) writers;
-      scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_BW, bw);
+      kvtree_util_set_double(hash, SCR_TRANSFER_KEY_BW, bw);
     }
 
     /* set PERCENT if it's not already set */
     double percent;
-    if (scr_hash_util_get_double(hash, SCR_TRANSFER_KEY_PERCENT, &percent) !=
-        SCR_SUCCESS) {
-      scr_hash_util_set_double(hash, SCR_TRANSFER_KEY_PERCENT,
+    if (kvtree_util_get_double(hash, SCR_TRANSFER_KEY_PERCENT, &percent) !=
+        KVTREE_SUCCESS) {
+      kvtree_util_set_double(hash, SCR_TRANSFER_KEY_PERCENT,
                                scr_flush_async_percent);
     }
 
     /* set the RUN command */
-    scr_hash_util_set_str(hash, SCR_TRANSFER_KEY_COMMAND,
+    kvtree_util_set_str(hash, SCR_TRANSFER_KEY_COMMAND,
                           SCR_TRANSFER_KEY_COMMAND_RUN);
 
     /* unset the DONE flag */
-    scr_hash_unset_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
+    kvtree_unset_kv(hash, SCR_TRANSFER_KEY_FLAG, SCR_TRANSFER_KEY_FLAG_DONE);
 
     /* close the transfer file and release the lock */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, hash);
+    kvtree_write_close_unlock(scr_transfer_file, &fd, hash);
 
     /* delete the hash */
-    scr_hash_delete(&hash);
+    kvtree_delete(&hash);
   } else {
     /* send our transfer hash data to the master on this node */
-    scr_hash_send(scr_flush_async_hash, 0, scr_storedesc_cntl->comm);
+    kvtree_send(scr_flush_async_hash, 0, scr_storedesc_cntl->comm);
   }
 
   /* get the total number of bytes to write */
@@ -1338,10 +1342,10 @@ int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
   double bytes_written = 0.0;
   if (scr_storedesc_cntl->rank == 0) {
     /* create a hash to hold the transfer file data */
-    scr_hash* hash = scr_hash_new();
+    kvtree* hash = kvtree_new();
 
     /* read transfer file with lock */
-    if (scr_hash_read_with_lock(scr_transfer_file, hash) == SCR_SUCCESS) {
+    if (kvtree_read_with_lock(scr_transfer_file, hash) == KVTREE_SUCCESS) {
       /* test each file listed in the transfer hash */
       if (scr_flush_async_file_test(hash, &bytes_written) != SCR_SUCCESS) {
         transfer_complete = 0;
@@ -1352,14 +1356,14 @@ int scr_flush_async_test(scr_filemap* map, int id, double* bytes)
     }
 
     /* free the hash */
-    scr_hash_delete(&hash);
+    kvtree_delete(&hash);
   }
 
   /* compute the total number of bytes written */
   MPI_Allreduce(&bytes_written, bytes, 1, MPI_DOUBLE, MPI_SUM, scr_comm_world);
 
   /* determine whether the transfer is complete on all tasks */
-  if (scr_alltrue(transfer_complete)) {
+  if (scr_alltrue(transfer_complete, scr_comm_world)) {
     if (scr_my_rank_world == 0) {
       scr_dbg(0, "#demo SCR async daemon successfully transferred dset %d", id);
     }
@@ -1384,44 +1388,44 @@ int scr_flush_async_complete(scr_filemap* map, int id)
   /* TODO: have master tell each rank on node whether its files were written successfully */
   scr_dbg(1,"scr_flush_async_complete called @ %s:%d", __FILE__, __LINE__);
   /* allocate structure to hold metadata info */
-  scr_hash* data = scr_hash_new();
+  kvtree* data = kvtree_new();
 
   /* fill in metadata info for the files this process flushed */
-  scr_hash* files = scr_hash_get(scr_flush_async_file_list, SCR_KEY_FILE);
-  scr_hash_elem* elem = NULL;
-  for (elem = scr_hash_elem_first(files);
+  kvtree* files = kvtree_get(scr_flush_async_file_list, SCR_KEY_FILE);
+  kvtree_elem* elem = NULL;
+  for (elem = kvtree_elem_first(files);
        elem != NULL;
-       elem = scr_hash_elem_next(elem))
+       elem = kvtree_elem_next(elem))
   {
     /* get the filename */
-    char* file = scr_hash_elem_key(elem);
+    char* file = kvtree_elem_key(elem);
 
     /* get the hash for this file */
-    scr_hash* hash = scr_hash_elem_hash(elem);
+    kvtree* hash = kvtree_elem_hash(elem);
 
     /* record the filename in the hash, and get reference to a hash for this file */
-    scr_path* path_file = scr_path_from_str(file);
-    scr_path_basename(path_file);
-    char* name = scr_path_strdup(path_file);
-    scr_hash* file_hash = scr_hash_set_kv(data, SCR_SUMMARY_6_KEY_FILE, name);
+    spath* path_file = spath_from_str(file);
+    spath_basename(path_file);
+    char* name = spath_strdup(path_file);
+    kvtree* file_hash = kvtree_set_kv(data, SCR_SUMMARY_6_KEY_FILE, name);
     scr_free(&name);
-    scr_path_delete(&path_file);
+    spath_delete(&path_file);
 
     /* TODO: check that this file was written successfully */
 
     /* get meta data for this file */
-    scr_meta* meta = scr_hash_get(hash, SCR_KEY_META);
+    scr_meta* meta = kvtree_get(hash, SCR_KEY_META);
 
     /* successfully flushed this file, record the filesize */
     unsigned long filesize = 0;
     if (scr_meta_get_filesize(meta, &filesize) == SCR_SUCCESS) {
-      scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, filesize);
+      kvtree_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, filesize);
     }
 
     /* record the crc32 if one was computed */
     uLong flush_crc32;
     if (scr_meta_get_crc32(meta, &flush_crc32) == SCR_SUCCESS) {
-      scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, flush_crc32);
+      kvtree_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, flush_crc32);
     }
   }
 
@@ -1433,23 +1437,23 @@ int scr_flush_async_complete(scr_filemap* map, int id)
   /* have master on each node remove files from the transfer file */
   if (scr_storedesc_cntl->rank == 0) {
     /* get a hash to read from the file */
-    scr_hash* transfer_hash = scr_hash_new();
+    kvtree* transfer_hash = kvtree_new();
 
     /* lock the transfer file, open it, and read it into the hash */
     int fd = -1;
-    scr_hash_lock_open_read(scr_transfer_file, &fd, transfer_hash);
+    kvtree_lock_open_read(scr_transfer_file, &fd, transfer_hash);
 
     /* remove files from the list */
     scr_flush_async_file_dequeue(transfer_hash, scr_flush_async_hash);
 
     /* set the STOP command */
-    scr_hash_util_set_str(transfer_hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_STOP);
+    kvtree_util_set_str(transfer_hash, SCR_TRANSFER_KEY_COMMAND, SCR_TRANSFER_KEY_COMMAND_STOP);
 
     /* write the hash back to the file */
-    scr_hash_write_close_unlock(scr_transfer_file, &fd, transfer_hash);
+    kvtree_write_close_unlock(scr_transfer_file, &fd, transfer_hash);
 
     /* delete the hash */
-    scr_hash_delete(&transfer_hash);
+    kvtree_delete(&transfer_hash);
   }
 
   /* mark that we've stopped the flush */
@@ -1457,11 +1461,11 @@ int scr_flush_async_complete(scr_filemap* map, int id)
   scr_flush_file_location_unset(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
 
   /* free data structures */
-  scr_hash_delete(&data);
+  kvtree_delete(&data);
 
   /* free the file list for this checkpoint */
-  scr_hash_delete(&scr_flush_async_hash);
-  scr_hash_delete(&scr_flush_async_file_list);
+  kvtree_delete(&scr_flush_async_hash);
+  kvtree_delete(&scr_flush_async_file_list);
   scr_flush_async_hash      = NULL;
   scr_flush_async_file_list = NULL;
 

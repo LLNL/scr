@@ -41,7 +41,6 @@
 #include "scr_err.h"
 #include "scr_io.h"
 #include "scr_util.h"
-#include "scr_path.h"
 
 #include <stdlib.h>
 #include <stdarg.h>

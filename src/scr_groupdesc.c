@@ -15,6 +15,11 @@
 
 #include "mpi.h"
 
+#include "kvtree.h"
+#include "kvtree_util.h"
+
+#include "rankstr_mpi.h"
+
 #include "scr_globals.h"
 
 /*
@@ -60,8 +65,8 @@ int scr_groupdesc_free(scr_groupdesc* d)
 }
 
 /* build a group descriptor of all procs having the same value */
-int scr_groupdesc_create_by_str(
-  scr_groupdesc* d, int index, const char* key, const char* value)
+static int scr_groupdesc_create_by_str(
+  scr_groupdesc* d, int index, const char* key, const char* value, MPI_Comm comm)
 {
   /* initialize the descriptor */
   scr_groupdesc_init(d);
@@ -73,8 +78,7 @@ int scr_groupdesc_create_by_str(
 
   /* get communicator of all tasks with same value */
   int groups, groupid;
-  scr_rank_str(scr_comm_world, value, &groups, &groupid);
-  MPI_Comm_split(scr_comm_world, groupid, 0, &d->comm);
+  rankstr_mpi_comm_split(comm, value, 0, 0, 1, &d->comm);
 
   /* find our position in the group communicator */
   MPI_Comm_rank(d->comm, &d->rank);
@@ -128,25 +132,29 @@ scr_groupdesc* scr_groupdescs_from_name(const char* name)
 }
 
 /* fill in scr_groupdescs array from scr_groupdescs_hash */
-int scr_groupdescs_create()
+int scr_groupdescs_create(MPI_Comm comm)
 {
   int i;
   int all_valid = 1;
 
+  /* get our rank in comm */
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
   /* get groups defined for our hostname */
-  scr_hash* groups = scr_hash_get_kv(
+  kvtree* groups = kvtree_get_kv(
     scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, scr_my_hostname
   );
 
   /* set the number of group descriptors,
    * we define one for all procs on the same node
    * and another for the world */
-  int num_groups = scr_hash_size(groups);
+  int num_groups = kvtree_size(groups);
   int count = num_groups + 2;
 
   /* set our count to maximum count across all procs */
   MPI_Allreduce(
-    &count, &scr_ngroupdescs, 1, MPI_INT, MPI_MAX, scr_comm_world
+    &count, &scr_ngroupdescs, 1, MPI_INT, MPI_MAX, comm
   );
 
   /* allocate our group descriptors */
@@ -160,13 +168,13 @@ int scr_groupdescs_create()
   /* create group descriptor for all procs on the same node */
   int index = 0;
   scr_groupdesc_create_by_str(
-    &scr_groupdescs[index], index, SCR_GROUP_NODE, scr_my_hostname
+    &scr_groupdescs[index], index, SCR_GROUP_NODE, scr_my_hostname, comm
   );
   index++;
 
   /* create group descriptor for all procs in job */
   scr_groupdesc_create_by_str(
-    &scr_groupdescs[index], index, SCR_GROUP_WORLD, "ALL"
+    &scr_groupdescs[index], index, SCR_GROUP_WORLD, "ALL", comm
   );
   index++;
 
@@ -174,33 +182,33 @@ int scr_groupdescs_create()
    * we have rank 0 decide the order */
 
   /* determine number of entries on rank 0 */
-  MPI_Bcast(&num_groups, 1, MPI_INT, 0, scr_comm_world);
+  MPI_Bcast(&num_groups, 1, MPI_INT, 0, comm);
 
   /* iterate over each of our hash entries filling in each
    * corresponding descriptor */
   char* value;
   int have_match;
-  if (scr_my_rank_world == 0) {
-    scr_hash_elem* elem;
-    for (elem = scr_hash_elem_first(groups);
+  if (rank == 0) {
+    kvtree_elem* elem;
+    for (elem = kvtree_elem_first(groups);
          elem != NULL;
-         elem = scr_hash_elem_next(elem))
+         elem = kvtree_elem_next(elem))
     {
       /* get key for this group */
-      char* key = scr_hash_elem_key(elem);
+      char* key = kvtree_elem_key(elem);
 
       /* bcast key name */
-      scr_str_bcast(&key, 0, scr_comm_world);
+      scr_str_bcast(&key, 0, comm);
 
       /* determine whether all procs have corresponding entry */
       have_match = 1;
-      if (scr_hash_util_get_str(groups, key, &value) != SCR_SUCCESS) {
+      if (kvtree_util_get_str(groups, key, &value) != KVTREE_SUCCESS) {
         have_match = 0;
       }
-      if (scr_alltrue(have_match)) {
+      if (scr_alltrue(have_match, comm)) {
         /* create group */
         scr_groupdesc_create_by_str(
-          &scr_groupdescs[index], index, key, value
+          &scr_groupdescs[index], index, key, value, comm
         );
         index++;
       } else {
@@ -214,17 +222,17 @@ int scr_groupdescs_create()
     for (i = 0; i < num_groups; i++) {
       /* bcast key name */
       char* key;
-      scr_str_bcast(&key, 0, scr_comm_world);
+      scr_str_bcast(&key, 0, comm);
 
       /* determine whether all procs have corresponding entry */
       have_match = 1;
-      if (scr_hash_util_get_str(groups, key, &value) != SCR_SUCCESS) {
+      if (kvtree_util_get_str(groups, key, &value) != KVTREE_SUCCESS) {
         have_match = 0;
       }
-      if (scr_alltrue(have_match)) {
+      if (scr_alltrue(have_match, comm)) {
         /* create group */
         scr_groupdesc_create_by_str(
-          &scr_groupdescs[index], index, key, value
+          &scr_groupdescs[index], index, key, value, comm
         );
         index++;
       }
@@ -235,7 +243,7 @@ int scr_groupdescs_create()
   }
 
   /* determine whether everyone found a valid group descriptor */
-  if (!all_valid) {
+  if (! all_valid) {
     return SCR_FAILURE;
   }
   return SCR_SUCCESS;

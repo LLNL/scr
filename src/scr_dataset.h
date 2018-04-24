@@ -36,13 +36,12 @@
 #include <sys/types.h>
 
 #include "scr.h"
-#include "scr_hash.h"
-#include "scr_hash_util.h"
+#include "kvtree.h"
 
 /* compute crc32, needed for uLong */
 #include <zlib.h>
 
-typedef scr_hash scr_dataset;
+typedef kvtree scr_dataset;
 
 /*
 =========================================

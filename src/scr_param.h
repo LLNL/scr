@@ -33,7 +33,7 @@
 #ifndef SCR_PARAM_H
 #define SCR_PARAM_H
 
-#include "scr_hash.h"
+#include "kvtree.h"
 
 /* This will search a series of locations to find a given parameter name:
  *   environment variable
@@ -52,10 +52,10 @@ int scr_param_finalize(void);
 
 /* searchs for name and returns a character pointer to its value if set,
  * returns NULL if not found */
-char* scr_param_get(char* name);
+const char* scr_param_get(const char* name);
 
 /* searchs for name and returns a newly allocated hash of its value if set,
  * returns NULL if not found */
-scr_hash* scr_param_get_hash(char* name);
+const kvtree* scr_param_get_hash(const char* name);
 
 #endif

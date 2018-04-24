@@ -38,7 +38,7 @@
 /* TODO: support processing of byte values */
 
 /* given a string, convert it to a double and write that value to val */
-int scr_atod(char* str, double* val)
+int scr_atod(const char* str, double* val)
 {
   /* check that we have a string */
   if (str == NULL) {
@@ -98,7 +98,7 @@ static unsigned long long exa   = 1152921504606846976ULL;
  *
  * Returns converted value in val parameter.  This
  * parameter is only updated if successful. */
-int scr_abtoull(char* str, unsigned long long* val)
+int scr_abtoull(const char* str, unsigned long long* val)
 {
   /* check that we have a string */
   if (str == NULL) {
@@ -568,4 +568,20 @@ int scr_unpack_uint64_t(const void* buf, size_t buf_size, size_t* buf_pos, uint6
   *buf_pos = pos_final;
 
   return SCR_SUCCESS;
+}
+
+int kvtree_read_path(const spath* path, kvtree* tree)
+{
+  char* file = spath_strdup(path);
+  int rc = kvtree_read_file(file, tree);
+  scr_free(&file);
+  return rc;
+}
+
+int kvtree_write_path(const spath* path, const kvtree* tree)
+{
+  char* file = spath_strdup(path);
+  int rc = kvtree_write_file(file, tree);
+  scr_free(&file);
+  return rc;
 }

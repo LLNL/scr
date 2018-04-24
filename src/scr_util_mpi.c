@@ -197,12 +197,11 @@ MPI utility functions
 =========================================
 */
 
-/* returns true (non-zero) if flag on each process in
- * scr_comm_world is true */
-int scr_alltrue(int flag)
+/* returns true (non-zero) if flag on each process in comm is true */
+int scr_alltrue(int flag, MPI_Comm comm)
 {
   int all_true = 0;
-  MPI_Allreduce(&flag, &all_true, 1, MPI_INT, MPI_LAND, scr_comm_world);
+  MPI_Allreduce(&flag, &all_true, 1, MPI_INT, MPI_LAND, comm);
   return all_true;
 }
 

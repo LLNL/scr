@@ -192,14 +192,6 @@
 #define SCR_PRESERVE_DIRECTORIES (1)
 #endif
 
-#ifndef SCR_USE_CONTAINERS
-#define SCR_USE_CONTAINERS (0)
-#endif
-
-#ifndef SCR_CONTAINER_SIZE
-#define SCR_CONTAINER_SIZE (100*1024*1024*1024ULL)
-#endif
-
 /* =========================================================================
  * The following settings adjust when SCR_Need_checkpoint() will return true.
  * If all settings are 0, all options are disabled and Need_checkpoint() always returns true.

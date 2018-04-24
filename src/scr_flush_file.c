@@ -12,12 +12,15 @@
 /* This is a utility program that checks various values in the flush
  * file. */
 
+#include "scr_keys.h"
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"
 #include "scr_util.h"
-#include "scr_hash.h"
-#include "scr_hash_util.h"
+
+#include "spath.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -193,12 +196,12 @@ int main (int argc, char *argv[])
   /* TODO: use cwd if prefix directory is not specified */
 
   /* build path to flush file */
-  scr_path* file_path = scr_path_from_str(args.dir);
-  scr_path_append_str(file_path, ".scr");
-  scr_path_append_str(file_path, "flush.scr");
-  scr_path_reduce(file_path);
-  char* file = scr_path_strdup(file_path);
-  scr_path_delete(&file_path);
+  spath* file_path = spath_from_str(args.dir);
+  spath_append_str(file_path, ".scr");
+  spath_append_str(file_path, "flush.scr");
+  spath_reduce(file_path);
+  char* file = spath_strdup(file_path);
+  spath_delete(&file_path);
   if (file == NULL) {
     scr_err("%s: Failed to allocate storage to store nodes file name @ %s:%d",
       PROG, __FILE__, __LINE__
@@ -210,10 +213,10 @@ int main (int argc, char *argv[])
   int rc = 1;
 
   /* create a new hash to hold the file data */
-  scr_hash* hash = scr_hash_new();
+  kvtree* hash = kvtree_new();
 
   /* read in our flush file */
-  if (scr_hash_read(file, hash) != SCR_SUCCESS) {
+  if (kvtree_read_file(file, hash) != KVTREE_SUCCESS) {
     /* failed to read the flush file */
     goto cleanup;
   }
@@ -221,12 +224,12 @@ int main (int argc, char *argv[])
   /* list output sets (if any) in ascending order */
   if (args.list_out == 1) {
     /* first, see if we have this dataset */
-    scr_hash* dset_hash = scr_hash_get(hash, SCR_FLUSH_KEY_DATASET);
+    kvtree* dset_hash = kvtree_get(hash, SCR_FLUSH_KEY_DATASET);
     if (dset_hash != NULL) {
       /* get ids in ascending order */
       int num;
       int* list;
-      scr_hash_list_int(dset_hash, &num, &list);
+      kvtree_list_int(dset_hash, &num, &list);
 
       /* print list of ids in ascending order */
       int i;
@@ -234,9 +237,9 @@ int main (int argc, char *argv[])
       for (i = 0; i < num; i++) {
         int id = list[i];
         if (args.before == 0 || id < args.before) {
-          scr_hash* dhash = scr_hash_getf(dset_hash, "%d", id);
+          kvtree* dhash = kvtree_getf(dset_hash, "%d", id);
           int flag;
-          if (scr_hash_util_get_int(dhash, SCR_FLUSH_KEY_OUTPUT, &flag) == SCR_SUCCESS) {
+          if (kvtree_util_get_int(dhash, SCR_FLUSH_KEY_OUTPUT, &flag) == KVTREE_SUCCESS) {
             if (flag == 1) {
               if (found_one) {
                 printf(" ");
@@ -261,12 +264,12 @@ int main (int argc, char *argv[])
   /* list checkpoint sets (if any) in descending order */
   if (args.list_ckpt == 1) {
     /* first, see if we have this dataset */
-    scr_hash* dset_hash = scr_hash_get(hash, SCR_FLUSH_KEY_DATASET);
+    kvtree* dset_hash = kvtree_get(hash, SCR_FLUSH_KEY_DATASET);
     if (dset_hash != NULL) {
       /* get ids in ascending order */
       int num;
       int* list;
-      scr_hash_list_int(dset_hash, &num, &list);
+      kvtree_list_int(dset_hash, &num, &list);
 
       /* print list of ids in reverse order */
       int i;
@@ -274,9 +277,9 @@ int main (int argc, char *argv[])
       for (i = num-1; i >= 0; i--) {
         int id = list[i];
         if (args.before == 0 || id < args.before) {
-          scr_hash* dhash = scr_hash_getf(dset_hash, "%d", id);
+          kvtree* dhash = kvtree_getf(dset_hash, "%d", id);
           int flag;
-          if (scr_hash_util_get_int(dhash, SCR_FLUSH_KEY_CKPT, &flag) == SCR_SUCCESS) {
+          if (kvtree_util_get_int(dhash, SCR_FLUSH_KEY_CKPT, &flag) == KVTREE_SUCCESS) {
             if (flag == 1) {
               if (found_one) {
                 printf(" ");
@@ -301,11 +304,11 @@ int main (int argc, char *argv[])
   /* check whether a specified dataset id needs to be flushed */
   if (args.need_flush != -1) {
     /* first, see if we have this dataset */
-    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.need_flush);
+    kvtree* dset_hash = kvtree_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.need_flush);
     if (dset_hash != NULL) {
       /* now check for the PFS location marker */
-      scr_hash* location_hash = scr_hash_get(dset_hash, SCR_FLUSH_KEY_LOCATION);
-      scr_hash_elem* pfs_elem = scr_hash_elem_get(location_hash, SCR_FLUSH_KEY_LOCATION_PFS);
+      kvtree* location_hash = kvtree_get(dset_hash, SCR_FLUSH_KEY_LOCATION);
+      kvtree_elem* pfs_elem = kvtree_elem_get(location_hash, SCR_FLUSH_KEY_LOCATION_PFS);
       if (pfs_elem == NULL) {
         /* we have the dataset, but we didn't find the PFS marker,
          * so return success to indicate that we do need to flush it */
@@ -317,16 +320,16 @@ int main (int argc, char *argv[])
 
   if (args.location != -1) {
     /* report the location of the specified data set */
-    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.location);
+    kvtree* dset_hash = kvtree_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.location);
     if (dset_hash != NULL) {
       /* now check for the location marker */
-      scr_hash* location_hash = scr_hash_get(dset_hash, SCR_FLUSH_KEY_LOCATION);
+      kvtree* location_hash = kvtree_get(dset_hash, SCR_FLUSH_KEY_LOCATION);
       if (location_hash != NULL) {
          rc = 0;
-         scr_hash_elem* loc_elem = scr_hash_elem_first(location_hash);
+         kvtree_elem* loc_elem = kvtree_elem_first(location_hash);
          if (loc_elem != NULL) {
             /* if the location exists in the file, print it */
-            char* loc = scr_hash_elem_key(loc_elem);
+            char* loc = kvtree_elem_key(loc_elem);
             if (loc != NULL) {
               printf("%s\n", loc);
             }
@@ -344,11 +347,11 @@ int main (int argc, char *argv[])
   /* check whether we should report name for dataset */
   if (args.name != -1) {
     /* first check whether we have the requested dataset */
-    scr_hash* dset_hash = scr_hash_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.name);
+    kvtree* dset_hash = kvtree_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, args.name);
     if (dset_hash != NULL) {
       /* now check for the name */
       char* name;
-      if (scr_hash_util_get_str(dset_hash, SCR_FLUSH_KEY_NAME, &name) == SCR_SUCCESS) {
+      if (kvtree_util_get_str(dset_hash, SCR_FLUSH_KEY_NAME, &name) == KVTREE_SUCCESS) {
         /* got name, print it and return success */
         printf("%s\n", name);
         rc = 0;
@@ -361,14 +364,14 @@ int main (int argc, char *argv[])
   if (args.latest) {
     /* scan through the dataset ids to find the most recent */
     int latest_dset = -1;
-    scr_hash_elem* elem;
-    scr_hash* latest_hash = scr_hash_get(hash, SCR_FLUSH_KEY_DATASET);
-    for (elem = scr_hash_elem_first(latest_hash);
+    kvtree_elem* elem;
+    kvtree* latest_hash = kvtree_get(hash, SCR_FLUSH_KEY_DATASET);
+    for (elem = kvtree_elem_first(latest_hash);
          elem != NULL;
-         elem = scr_hash_elem_next(elem))
+         elem = kvtree_elem_next(elem))
     {
       /* update our latest dataset id if this dataset is more recent */
-      int dset = scr_hash_elem_key_int(elem);
+      int dset = kvtree_elem_key_int(elem);
       if (dset > latest_dset) {
         latest_dset = dset;
       }
@@ -384,7 +387,7 @@ int main (int argc, char *argv[])
 
 cleanup:
   /* delete the hash holding the flush file data */
-  scr_hash_delete(&hash);
+  kvtree_delete(&hash);
 
   /* free off our file name storage */
   scr_free(&file);

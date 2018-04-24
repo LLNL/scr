@@ -62,28 +62,27 @@
 /* compute crc32 */
 #include <zlib.h>
 
-/* list data structures */
-/* need at least version 8.5 of queue.h from Berkeley */
-/*#include <sys/queue.h>*/
-#include "queue.h"
-
 #include "mpi.h"
 
+#include "spath.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
+#include "kvtree_mpi.h"
+#include "rankstr_mpi.h"
+
 #include "scr_conf.h"
+#include "scr_keys.h"
 #include "scr.h"
 #include "scr_err.h"
 #include "scr_io.h"
 #include "scr_util.h"
 #include "scr_util_mpi.h"
-#include "scr_path.h"
-#include "scr_path_mpi.h"
-#include "scr_split.h"
+#include "spath_mpi.h"
 #include "scr_meta.h"
 #include "scr_dataset.h"
 #include "scr_halt.h"
 #include "scr_log.h"
-#include "scr_hash.h"
-#include "scr_hash_mpi.h"
+#include "scr_cache_index.h"
 #include "scr_filemap.h"
 #include "scr_config.h"
 #include "scr_param.h"
@@ -93,8 +92,6 @@
 #include "scr_groupdesc.h"
 #include "scr_storedesc.h"
 #include "scr_reddesc.h"
-#include "scr_reddesc_apply.h"
-#include "scr_reddesc_recover.h"
 #include "scr_summary.h"
 #include "scr_flush_file_mpi.h"
 #include "scr_cache.h"
@@ -119,23 +116,22 @@ extern char* scr_cache_base; /* base directory for cache directory */
 
 extern char* scr_cntl_prefix; /* path of control directory (adds to base directory) */
 
-extern char* scr_prefix;          /* path of SCR_PREFIX directory on PFS */
-extern char* scr_prefix_scr;      /* path to .scr subdir in SCR_PREFIX dir */
-extern scr_path* scr_prefix_path; /* scr_prefix in scr_path form */
+extern char* scr_prefix;       /* path of SCR_PREFIX directory on PFS */
+extern char* scr_prefix_scr;   /* path to .scr subdir in SCR_PREFIX dir */
+extern spath* scr_prefix_path; /* scr_prefix in spath form */
 
 /* these files live in the control directory */
-extern scr_path* scr_master_map_file;
-extern scr_path* scr_map_file;
+extern spath* scr_cindex_file;
 extern char* scr_transfer_file;
 
 /* we keep the halt, flush, and nodes files in the prefix directory
  * so that the batch script and / or external commands can access them */
-extern scr_path* scr_halt_file;
-extern scr_path* scr_flush_file;
-extern scr_path* scr_nodes_file;
+extern spath* scr_halt_file;
+extern spath* scr_flush_file;
+extern spath* scr_nodes_file;
 
-extern scr_filemap* scr_map;    /* memory cache of filemap contents */
-extern scr_hash* scr_halt_hash; /* memory cache of halt file contents */
+extern scr_cache_index* scr_cindex; /* tracks datasets in cache */
+extern kvtree* scr_halt_hash; /* memory cache of halt file contents */
 
 extern char* scr_username;    /* username of owner for running job */
 extern char* scr_jobid;       /* unique job id string of current job */
@@ -183,8 +179,6 @@ extern int scr_crc_on_flush;  /* whether to enable crc32 checks during flush and
 extern int scr_crc_on_delete; /* whether to enable crc32 checks when deleting checkpoints */
 
 extern int scr_preserve_directories;     /* whether to preserve user-defined directories during flush */
-extern int scr_use_containers;           /* whether to fetch from / flush to container files */
-extern unsigned long scr_container_size; /* max number of bytes to store in a container */
 
 extern int    scr_checkpoint_interval;   /* times to call Need_checkpoint between checkpoints */
 extern int    scr_checkpoint_seconds;    /* min number of seconds between checkpoints */
@@ -212,9 +206,9 @@ extern int  scr_my_rank_world;    /* my rank in world */
 extern MPI_Comm scr_comm_node;        /* communicator of all tasks on the same node */
 extern MPI_Comm scr_comm_node_across; /* communicator of tasks with same rank on each node */
 
-extern scr_hash* scr_groupdesc_hash; /* hash defining group descriptors to be used */
-extern scr_hash* scr_storedesc_hash; /* hash defining store descriptors to be used */
-extern scr_hash* scr_reddesc_hash;   /* hash defining redudancy descriptors to be used */
+extern kvtree* scr_groupdesc_hash; /* hash defining group descriptors to be used */
+extern kvtree* scr_storedesc_hash; /* hash defining store descriptors to be used */
+extern kvtree* scr_reddesc_hash;   /* hash defining redudancy descriptors to be used */
 
 extern int scr_ngroupdescs;           /* number of descriptors in scr_groupdescs */
 extern scr_groupdesc* scr_groupdescs; /* group descriptor structs */

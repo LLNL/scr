@@ -15,8 +15,9 @@
 #include "scr.h"
 #include "scr_err.h"
 #include "scr_io.h"
-#include "scr_hash.h"
 #include "scr_config.h"
+
+#include "kvtree.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,7 +32,7 @@
 #include <errno.h>
 
 /* read parameters from config file and fill in hash */
-int scr_config_read(const char* file, scr_hash* hash)
+int scr_config_read(const char* file, kvtree* hash)
 {
   int rc = scr_config_read_common(file, hash);
   return rc;

@@ -35,6 +35,8 @@
 
 #include "scr_globals.h"
 
+#include "kvtree.h"
+
 /*
 =========================================
 Define redundancy descriptor structure
@@ -52,32 +54,8 @@ typedef struct {
   char*    base;           /* base cache directory to use */
   char*    directory;      /* full directory base/dataset.id */
   int      copy_type;      /* redundancy scheme to apply */
-  void*    copy_state;     /* pointer to extra state depending on copy type */
-  MPI_Comm comm;           /* communicator holding procs for this scheme */
-  int      groups;         /* number of redundancy sets */
-  int      group_id;       /* unique id assigned to this redundancy set */
-  int      ranks;          /* number of ranks in this set */
-  int      rank;           /* caller's rank within its set */
+  int      er_scheme;      /* encoding scheme id */
 } scr_reddesc;
-
-typedef struct {
-  int       lhs_rank;       /* rank which is one less (with wrap to highest) within set */
-  int       lhs_rank_world; /* rank of lhs process in comm world */
-  char*     lhs_hostname;   /* hostname of lhs process */
-  int       rhs_rank;       /* rank which is one more (with wrap to lowest) within set */
-  int       rhs_rank_world; /* rank of rhs process in comm world */
-  char*     rhs_hostname;   /* hostname of rhs process */
-} scr_reddesc_partner;
-
-typedef struct {
-  scr_hash* group_map;      /* hash that maps group rank to world rank */
-  int       lhs_rank;       /* rank which is one less (with wrap to highest) within set */
-  int       lhs_rank_world; /* rank of lhs process in comm world */
-  char*     lhs_hostname;   /* hostname of lhs process */
-  int       rhs_rank;       /* rank which is one more (with wrap to lowest) within set */
-  int       rhs_rank_world; /* rank of rhs process in comm world */
-  char*     rhs_hostname;   /* hostname of rhs process */
-} scr_reddesc_xor;
 
 /*
 =========================================
@@ -109,7 +87,7 @@ scr_reddesc* scr_reddesc_for_checkpoint(
  * hash */
 int scr_reddesc_store_to_hash(
   const scr_reddesc* c,
-  scr_hash* hash
+  kvtree* hash
 );
 
 /* build a redundancy descriptor corresponding to the specified hash,
@@ -117,48 +95,29 @@ int scr_reddesc_store_to_hash(
 int scr_reddesc_create_from_hash(
   scr_reddesc* c,
   int index,
-  const scr_hash* hash
-);
-
-/* build a redundancy descriptor from its corresponding hash stored
- * in the filemap, this function is collective */
-int scr_reddesc_create_from_filemap(
-  scr_filemap* map, 
-  int id,
-  int rank,
-  scr_reddesc* c
-);
-
-/* many times we just need a string value from the descriptor
- * stored in the filemap, it's overkill to create the whole
- * descriptor each time, returns a newly allocated string */
-char* scr_reddesc_val_from_filemap(
-  scr_filemap* map,
-  int dset,
-  int rank,
-  char* name
-);
-
-/* read base directory from descriptor stored in filemap,
- * returns a newly allocated string */
-char* scr_reddesc_base_from_filemap(
-  scr_filemap* map,
-  int id,
-  int rank
-);
-
-/* read directory from descriptor stored in filemap,
- * returns a newly allocated string */
-char* scr_reddesc_dir_from_filemap(
-  scr_filemap* map,
-  int id,
-  int rank
+  const kvtree* hash
 );
 
 /* return pointer to store descriptor associated with redundancy
  * descriptor, returns NULL if reddesc or storedesc is not enabled */
 scr_storedesc* scr_reddesc_get_store(
   const scr_reddesc* desc
+);
+
+/* apply redundancy scheme to file and return number of bytes copied in bytes parameter */
+int scr_reddesc_apply(
+  scr_filemap* map,
+  const scr_reddesc* c,
+  int id,
+  double* bytes
+);
+
+/* rebuilds files for specified dataset id using specified redundancy descriptor,
+ * adds them to filemap, and returns SCR_SUCCESS if all processes succeeded */
+int scr_reddesc_recover(
+  scr_cache_index* cindex,
+  int id,
+  const char* path
 );
 
 /*

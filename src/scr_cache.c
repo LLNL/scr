@@ -10,6 +10,11 @@
 */
 
 #include "scr_globals.h"
+#include "scr_cache_index.h"
+#include "scr_storedesc.h"
+
+#include "spath.h"
+#include "kvtree.h"
 
 /*
 =========================================
@@ -20,29 +25,29 @@ Dataset cache functions
 static char* scr_cache_dir_from_str(const char* dir, const char* storage_view, int id)
 {
   /* build the dataset directory name */
-  scr_path* path = scr_path_from_str(dir);
-  if(! strcmp( storage_view, "GLOBAL")) {
-    scr_path_append_strf(path, "node.%d", scr_my_hostid);
+  spath* path = spath_from_str(dir);
+  if(! strcmp(storage_view, "GLOBAL")) {
+    spath_append_strf(path, "node.%d", scr_my_hostid);
   }
-  scr_path_append_strf(path, "scr.dataset.%d", id);
-  scr_path_reduce(path);
-  char* str = scr_path_strdup(path);
-  scr_path_delete(&path);
+  spath_append_strf(path, "scr.dataset.%d", id);
+  spath_reduce(path);
+  char* str = spath_strdup(path);
+  spath_delete(&path);
   return str;
 }
 
 static char* scr_cache_dir_hidden_from_str(const char* dir, const char* storage_view, int id)
 {
   /* build the dataset directory name */
-  scr_path* path = scr_path_from_str(dir);
-  if(! strcmp( storage_view, "GLOBAL")) {
-    scr_path_append_strf(path, "node.%d", scr_my_hostid);
+  spath* path = spath_from_str(dir);
+  if(! strcmp(storage_view, "GLOBAL")) {
+    spath_append_strf(path, "node.%d", scr_my_hostid);
   }
-  scr_path_append_strf(path, "scr.dataset.%d", id);
-  scr_path_append_str(path, ".scr");
-  scr_path_reduce(path);
-  char* str = scr_path_strdup(path);
-  scr_path_delete(&path);
+  spath_append_strf(path, "scr.dataset.%d", id);
+  spath_append_str(path, ".scr");
+  spath_reduce(path);
+  char* str = spath_strdup(path);
+  spath_delete(&path);
   return str;
 }
 
@@ -132,56 +137,136 @@ int scr_cache_dir_create(const scr_reddesc* red, int id)
   return rc;
 }
 
+/* create and return spath object for map file for calling rank,
+ * returns NULL on failure */
+spath* scr_cache_get_map_path(const scr_cache_index* cindex, int id)
+{
+  /* get directory for dataset */
+  char* dir;
+  if (scr_cache_index_get_dir(cindex, id, &dir)) {
+    return NULL;
+  }
+
+  /* build path to map file for this process */
+  spath* path = spath_from_str(dir);
+  spath_append_str(path, ".scr");
+  spath_append_strf(path, "filemap_%d", scr_my_rank_world);
+  return path;
+}
+
+/* read file map for dataset from cache directory */
+int scr_cache_get_map(const scr_cache_index* cindex, int id, scr_filemap* map)
+{
+  /* get directory for dataset */
+  spath* path = scr_cache_get_map_path(cindex, id);
+  if (path == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* read map file */
+  int rc = SCR_SUCCESS;
+  if (scr_filemap_read(path, map) != SCR_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+
+  /* free the path to the map file */
+  spath_delete(&path);
+
+  return rc;
+}
+
+/* write file map for dataset to cache directory */
+int scr_cache_set_map(const scr_cache_index* cindex, int id, const scr_filemap* map)
+{
+  /* get directory for dataset */
+  spath* path = scr_cache_get_map_path(cindex, id);
+  if (path == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* write map file */
+  int rc = SCR_SUCCESS;
+  if (scr_filemap_write(path, map) != SCR_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+
+  /* free the path to the map file */
+  spath_delete(&path);
+
+  return rc;
+}
+
+/* delete file map file for dataset from cache directory */
+int scr_cache_unset_map(const scr_cache_index* cindex, int id)
+{
+  /* get directory for dataset */
+  spath* path = scr_cache_get_map_path(cindex, id);
+  if (path == NULL) {
+    return SCR_FAILURE;
+  }
+
+  /* delete the file */
+  const char* file = spath_strdup(path);
+  scr_file_unlink(file);
+  scr_free(&file);
+
+  /* free the path to the map file */
+  spath_delete(&path);
+
+  return SCR_SUCCESS;
+}
+
 /* remove all files associated with specified dataset */
-int scr_cache_delete(scr_filemap* map, int id)
+int scr_cache_delete(scr_cache_index* cindex, int id)
 {
   /* print a debug messages */
   if (scr_my_rank_world == 0) {
     scr_dbg(1, "Deleting dataset %d from cache", id);
   }
 
-  /* for each file of each rank we have for this dataset, delete the file */
-  scr_hash_elem* rank_elem;
-  for (rank_elem = scr_filemap_first_rank_by_dataset(map, id);
-       rank_elem != NULL;
-       rank_elem = scr_hash_elem_next(rank_elem))
+  /* get list of files for this dataset */
+  scr_filemap* map = scr_filemap_new();
+  scr_cache_get_map(cindex, id, map);
+
+  /* for each file we have for this dataset, delete the file */
+  kvtree_elem* file_elem;
+  for (file_elem = scr_filemap_first_file(map);
+       file_elem != NULL;
+       file_elem = kvtree_elem_next(file_elem))
   {
-    /* get the rank id */
-    int rank = scr_hash_elem_key_int(rank_elem);
+    /* get the filename */
+    char* file = kvtree_elem_key(file_elem); 
 
-    scr_hash_elem* file_elem;
-    for (file_elem = scr_filemap_first_file(map, id, rank);
-         file_elem != NULL;
-         file_elem = scr_hash_elem_next(file_elem))
-    {
-      /* get the filename */
-      char* file = scr_hash_elem_key(file_elem); 
-
-      /* check file's crc value (monitor that cache hardware isn't corrupting
-       * files on us) */
-      if (scr_crc_on_delete) {
-        /* TODO: if corruption, need to log */
-        if (scr_compute_crc(map, id, rank, file) != SCR_SUCCESS) {
-          scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
-            file, __FILE__, __LINE__
-          );
-        }
+    /* check file's crc value (monitor that cache hardware isn't corrupting
+     * files on us) */
+    if (scr_crc_on_delete) {
+      /* TODO: if corruption, need to log */
+      if (scr_compute_crc(map, file) != SCR_SUCCESS) {
+        scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
+          file, __FILE__, __LINE__
+        );
       }
-
-      /* delete the file */
-      scr_file_unlink(file);
     }
+
+    /* delete the file */
+    scr_file_unlink(file);
   }
+
+  /* delete map object */
+  scr_filemap_delete(&map);
+
+  /* delete the map file */
+  scr_cache_unset_map(cindex, id);
 
   /* TODO: due to bug in scr_cache_rebuild, we need to pull the dataset directory
    * from somewhere other than the redundancy descriptor, which may not be defined */
 
   /* remove the cache directory for this dataset */
-  char* base = scr_reddesc_base_from_filemap(map, id, scr_my_rank_world);
-  char* dir  = scr_reddesc_dir_from_filemap(map, id, scr_my_rank_world);
-  int store_index = scr_storedescs_index_from_name(base);
+  char* dir = NULL;
+  scr_cache_index_get_dir(cindex, id, &dir);
+  int store_index = scr_storedescs_index_from_child_path(dir);
   int have_dir = (store_index >= 0 && store_index < scr_nstoredescs && dir != NULL);
-  if (scr_alltrue(have_dir)) {
+  if (scr_alltrue(have_dir, scr_comm_world)) {
     /* get store descriptor */
     scr_storedesc* store = &scr_storedescs[store_index];
 
@@ -219,8 +304,6 @@ int scr_cache_delete(scr_filemap* map, int id)
      * the directories in place.  We should run ok, but we may leave
      * some cruft behind. */
   }
-  scr_free(&dir);
-  scr_free(&base);
 
   /* delete any entry in the flush file for this dataset */
   scr_flush_file_dataset_remove(id);
@@ -228,8 +311,8 @@ int scr_cache_delete(scr_filemap* map, int id)
   /* TODO: remove data from transfer file for this dataset */
 
   /* remove this dataset from the filemap, and write new filemap to disk */
-  scr_filemap_remove_dataset(map, id);
-  scr_filemap_write(scr_map_file, map);
+  scr_cache_index_remove_dataset(cindex, id);
+  scr_cache_index_write(scr_cindex_file, cindex);
 
   return SCR_SUCCESS;
 }
@@ -276,46 +359,15 @@ int scr_next_dataset(int ndsets, const int* dsets, int* index, int* current)
   return SCR_SUCCESS;
 }
 
-/* given a filemap, a dataset, and a rank, unlink those files and remove
- * them from the map */
-int scr_unlink_rank(scr_filemap* map, int id, int rank)
-{
-  /* delete each file and remove its metadata file */
-  scr_hash_elem* file_elem;
-  for (file_elem = scr_filemap_first_file(map, id, rank);
-       file_elem != NULL;
-       file_elem = scr_hash_elem_next(file_elem))
-  {
-    char* file = scr_hash_elem_key(file_elem);
-    if (file != NULL) {
-      scr_dbg(2, "Delete file Dataset %d, Rank %d, File %s", id, rank, file);
-
-      /* delete the file */
-      scr_file_unlink(file);
-
-      /* remove the file from the map */
-      scr_filemap_remove_file(map, id, rank, file);
-    }
-  }
-
-  /* unset the expected number of files for this rank */
-  scr_filemap_unset_expected_files(map, id, rank);
-
-  /* write the new filemap to disk */
-  scr_filemap_write(scr_map_file, map);
-
-  return SCR_SUCCESS;
-}
-
 /* remove all files recorded in filemap and the filemap itself */
-int scr_cache_purge(scr_filemap* map)
+int scr_cache_purge(scr_cache_index* cindex)
 {
   /* TODO: put dataset selection logic into a function */
 
   /* get the list of datasets we have in our cache */
   int ndsets;
   int* dsets;
-  scr_filemap_list_datasets(map, &ndsets, &dsets);
+  scr_cache_index_list_datasets(cindex, &ndsets, &dsets);
 
   /* TODO: also attempt to recover datasets which we were in the
    * middle of flushing */
@@ -329,12 +381,12 @@ int scr_cache_purge(scr_filemap* map)
     /* if we found a dataset, delete it */
     if (current_id != -1) {
       /* remove this dataset from all tasks */
-      scr_cache_delete(map, current_id);
+      scr_cache_delete(cindex, current_id);
     }
   } while (current_id != -1);
 
-  /* now delete the filemap itself */
-  char* file = scr_path_strdup(scr_map_file);
+  /* now delete the cache index itself */
+  char* file = spath_strdup(scr_cindex_file);
   scr_file_unlink(file);
   scr_free(&file);
 
@@ -348,6 +400,7 @@ int scr_cache_purge(scr_filemap* map)
   return 1;
 }
 
+#if 0
 /* opens the filemap, inspects that all listed files are readable and complete,
  * unlinks any that are not */
 int scr_cache_clean(scr_filemap* map)
@@ -356,34 +409,34 @@ int scr_cache_clean(scr_filemap* map)
   scr_filemap* keep_map = scr_filemap_new();
 
   /* scan each file for each rank of each checkpoint */
-  scr_hash_elem* dset_elem;
+  kvtree_elem* dset_elem;
   for (dset_elem = scr_filemap_first_dataset(map);
        dset_elem != NULL;
-       dset_elem = scr_hash_elem_next(dset_elem))
+       dset_elem = kvtree_elem_next(dset_elem))
   {
     /* get the dataset id */
-    int dset = scr_hash_elem_key_int(dset_elem);
+    int dset = kvtree_elem_key_int(dset_elem);
 
-    scr_hash_elem* rank_elem;
+    kvtree_elem* rank_elem;
     for (rank_elem = scr_filemap_first_rank_by_dataset(map, dset);
          rank_elem != NULL;
-         rank_elem = scr_hash_elem_next(rank_elem))
+         rank_elem = kvtree_elem_next(rank_elem))
     {
       /* get the rank id */
-      int rank = scr_hash_elem_key_int(rank_elem);
+      int rank = kvtree_elem_key_int(rank_elem);
 
       /* if we're missing any file for this rank in this checkpoint,
        * we'll delete them all */
       int missing_file = 0;
 
       /* first time through the file list, check that we have each file */
-      scr_hash_elem* file_elem = NULL;
+      kvtree_elem* file_elem = NULL;
       for (file_elem = scr_filemap_first_file(map, dset, rank);
            file_elem != NULL;
-           file_elem = scr_hash_elem_next(file_elem))
+           file_elem = kvtree_elem_next(file_elem))
       {
         /* get filename */
-        char* file = scr_hash_elem_key(file_elem);
+        char* file = kvtree_elem_key(file_elem);
 
         /* check whether we have it */
         if (! scr_bool_have_file(map, dset, rank, file, scr_ranks_world)) {
@@ -395,40 +448,27 @@ int scr_cache_clean(scr_filemap* map)
       }
 
       /* add redundancy descriptor to keep map, if one is set */
-      scr_hash* desc = scr_hash_new();
-      if (scr_filemap_get_desc(map, dset, rank, desc) == SCR_SUCCESS) {
-        scr_filemap_set_desc(keep_map, dset, rank, desc);
+      kvtree* desc = kvtree_new();
+      if (scr_filemap_get_desc(map, desc) == SCR_SUCCESS) {
+        scr_filemap_set_desc(keep_map, desc);
       }
-      scr_hash_delete(&desc);
+      kvtree_delete(&desc);
 
       /* add dataset descriptor to keep map, if one is set */
-      scr_hash* dataset = scr_hash_new();
-      if (scr_filemap_get_dataset(map, dset, rank, dataset) == SCR_SUCCESS) {
-        scr_filemap_set_dataset(keep_map, dset, rank, dataset);
+      kvtree* dataset = kvtree_new();
+      if (scr_filemap_get_dataset(map, dataset) == SCR_SUCCESS) {
+        scr_filemap_set_dataset(keep_map, dataset);
       }
-      scr_hash_delete(&dataset);
-
-      /* check whether we have all the files we think we should */
-      int expected_files = scr_filemap_get_expected_files(map, dset, rank);
-      int num_files = scr_filemap_num_files(map, dset, rank);
-      if (num_files != expected_files) {
-        missing_file = 1;
-      }
-
-      /* if we have all the files, set the expected file number in the
-       * keep_map */
-      if (! missing_file) {
-        scr_filemap_set_expected_files(keep_map, dset, rank, expected_files);
-      }
+      kvtree_delete(&dataset);
 
       /* second time through, either add all files to keep_map or delete
        * them all */
       for (file_elem = scr_filemap_first_file(map, dset, rank);
            file_elem != NULL;
-           file_elem = scr_hash_elem_next(file_elem))
+           file_elem = kvtree_elem_next(file_elem))
       {
         /* get the filename */
-        char* file = scr_hash_elem_key(file_elem);
+        char* file = kvtree_elem_key(file_elem);
 
         /* if we failed to read any file, delete them all 
          * otherwise add them all to the keep_map */
@@ -446,8 +486,8 @@ int scr_cache_clean(scr_filemap* map)
 
           /* copy the meta data */
           scr_meta* meta = scr_meta_new();
-          if (scr_filemap_get_meta(map, dset, rank, file, meta) == SCR_SUCCESS) {
-            scr_filemap_set_meta(keep_map, dset, rank, file, meta);
+          if (scr_filemap_get_meta(map, file, meta) == SCR_SUCCESS) {
+            scr_filemap_set_meta(keep_map, file, meta);
           }
           scr_meta_delete(&meta);
         }
@@ -466,45 +506,42 @@ int scr_cache_clean(scr_filemap* map)
 
   return SCR_SUCCESS;
 }
+#endif
 
 /* returns true iff each file in the filemap can be read */
-int scr_cache_check_files(const scr_filemap* map, int id)
+int scr_cache_check_files(const scr_cache_index* cindex, int id)
 {
-  /* for each file of each rank for specified dataset id */
   int failed_read = 0;
-  scr_hash_elem* rank_elem;
-  for (rank_elem = scr_filemap_first_rank_by_dataset(map, id);
-       rank_elem != NULL;
-       rank_elem = scr_hash_elem_next(rank_elem))
+
+  /* get map of files for this dataset */
+  scr_filemap* map = scr_filemap_new();
+  scr_cache_get_map(cindex, id, map);
+
+  /* loop over each file in the map */
+  kvtree_elem* file_elem;
+  for (file_elem = scr_filemap_first_file(map);
+       file_elem != NULL;
+       file_elem = kvtree_elem_next(file_elem))
   {
-    /* get the rank id */
-    int rank = scr_hash_elem_key_int(rank_elem);
+    /* get the filename */
+    char* file = kvtree_elem_key(file_elem);
 
-    scr_hash_elem* file_elem;
-    for (file_elem = scr_filemap_first_file(map, id, rank);
-         file_elem != NULL;
-         file_elem = scr_hash_elem_next(file_elem))
-    {
-      /* get the filename */
-      char* file = scr_hash_elem_key(file_elem);
-
-      /* check that we can read the file */
-      if (scr_file_is_readable(file) != SCR_SUCCESS) {
-        failed_read = 1;
-      }
-
-      /* get meta data for this file */
-      scr_meta* meta = scr_meta_new();
-      if (scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
-        failed_read = 1;
-      } else {
-        /* check that the file is complete */
-        if (scr_meta_is_complete(meta) != SCR_SUCCESS) {
-          failed_read = 1;
-        }
-      }
-      scr_meta_delete(&meta);
+    /* check that we can read the file */
+    if (scr_file_is_readable(file) != SCR_SUCCESS) {
+      failed_read = 1;
     }
+
+    /* get meta data for this file */
+    scr_meta* meta = scr_meta_new();
+    if (scr_filemap_get_meta(map, file, meta) != SCR_SUCCESS) {
+      failed_read = 1;
+    } else {
+      /* check that the file is complete */
+      if (scr_meta_is_complete(meta) != SCR_SUCCESS) {
+        failed_read = 1;
+      }
+    }
+    scr_meta_delete(&meta);
   }
 
   /* if we failed to read a file, assume the set is incomplete */
@@ -516,7 +553,7 @@ int scr_cache_check_files(const scr_filemap* map, int id)
 }
 
 /* checks whether specifed file exists, is readable, and is complete */
-int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* file, int ranks)
+int scr_bool_have_file(const scr_filemap* map, const char* file)
 {
   /* if no filename is given return false */
   if (file == NULL || strcmp(file,"") == 0) {
@@ -538,7 +575,7 @@ int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* f
   scr_meta* meta = scr_meta_new();
 
   /* check that we can read meta file for the file */
-  if (scr_filemap_get_meta(map, dset, rank, file, meta) != SCR_SUCCESS) {
+  if (scr_filemap_get_meta(map, file, meta) != SCR_SUCCESS) {
     scr_dbg(2, "Failed to read meta data for file: %s @ %s:%d",
       file, __FILE__, __LINE__
     );
@@ -641,44 +678,9 @@ int scr_bool_have_file(const scr_filemap* map, int dset, int rank, const char* f
   return 1;
 }
 
-/* check whether we have all files for a given rank of a given dataset */
-int scr_bool_have_files(const scr_filemap* map, int id, int rank)
-{
-  /* check whether we have any files for the specified rank */
-  if (! scr_filemap_have_rank_by_dataset(map, id, rank)) {
-    return 0;
-  }
-
-  /* check whether we have all of the files we should */
-  int expected_files = scr_filemap_get_expected_files(map, id, rank);
-  int num_files = scr_filemap_num_files(map, id, rank);
-  if (num_files != expected_files) {
-    return 0;
-  }
-
-  /* check the integrity of each of the files */
-  int missing_a_file = 0;
-  scr_hash_elem* file_elem;
-  for (file_elem = scr_filemap_first_file(map, id, rank);
-       file_elem != NULL;
-       file_elem = scr_hash_elem_next(file_elem))
-  {
-    char* file = scr_hash_elem_key(file_elem);
-    if (! scr_bool_have_file(map, id, rank, file, scr_ranks_world)) {
-      missing_a_file = 1;
-    }
-  }
-  if (missing_a_file) {
-    return 0;
-  }
-
-  /* if we make it here, we have all of our files */
-  return 1;
-}
-
 /* compute and store crc32 value for specified file in given dataset and rank,
  * check against current value if one is set */
-int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
+int scr_compute_crc(scr_filemap* map, const char* file)
 {
   /* compute crc for the file */
   uLong crc_file;
@@ -698,7 +700,7 @@ int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
   }
 
   /* read meta data from filemap */
-  if (scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
+  if (scr_filemap_get_meta(map, file, meta) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -714,11 +716,31 @@ int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
   } else {
     /* record crc in filemap */
     scr_meta_set_crc32(meta, crc_file);
-    scr_filemap_set_meta(map, id, rank, file, meta);
+    scr_filemap_set_meta(map, file, meta);
   }
 
   /* free our meta data object */
   scr_meta_delete(&meta);
 
   return rc;
+}
+
+/* return store descriptor associated with dataset, returns NULL if not found */
+scr_storedesc* scr_cache_get_storedesc(const scr_cache_index* cindex, int id)
+{
+  /* get directory associated with this dataset */
+  char* dir;
+  if (scr_cache_index_get_dir(cindex, id, &dir) != SCR_SUCCESS) {
+    return NULL;
+  }
+
+  /* lookup store descriptor index based on path */
+  int store_index = scr_storedescs_index_from_child_path(dir);
+  if (store_index < 0 || store_index >= scr_nstoredescs) {
+    return NULL;
+  }
+
+  /* return address of store descriptor */
+  scr_storedesc* storedesc = &scr_storedescs[store_index];
+  return storedesc;
 }

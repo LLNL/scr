@@ -19,11 +19,13 @@
 #include "scr_io.h"
 #include "scr_err.h"
 #include "scr_util.h"
-#include "scr_path.h"
 #include "scr_meta.h"
-#include "scr_hash.h"
 #include "scr_filemap.h"
 #include "scr_dataset.h"
+
+#include "spath.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -197,7 +199,7 @@ static int scr_bool_have_file(
 
   /* check that we can read meta file for the file */
   scr_meta* meta = scr_meta_new();
-  if (valid && scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
+  if (valid && scr_filemap_get_meta(map, file, meta) != SCR_SUCCESS) {
     scr_dbg(2, "%s: Failed to read meta data for file: %s", PROG, file);
     valid = 0;
   }
@@ -249,32 +251,25 @@ static int scr_bool_have_file(
 
 static int scr_bool_have_files(scr_filemap* map, int id, int rank)
 {
-  /* check that the expected number of files matches the real number of files */
-  int exp_files = scr_filemap_get_expected_files(map, id, rank);
-  int num_files = scr_filemap_num_files(map, id, rank);
-  if (exp_files != num_files) {
-    return 0;
-  }
-
   int have_files = 1;
 
   /* now check that we have each file */
-  scr_hash_elem* rank_elem;
+  kvtree_elem* rank_elem;
   for (rank_elem = scr_filemap_first_rank_by_dataset(map, id);
        rank_elem != NULL;
-       rank_elem = scr_hash_elem_next(rank_elem))
+       rank_elem = kvtree_elem_next(rank_elem))
   {
-    int rank = scr_hash_elem_key_int(rank_elem);
+    int rank = kvtree_elem_key_int(rank_elem);
 
-    scr_hash_elem* file_elem = NULL;
+    kvtree_elem* file_elem = NULL;
     for (file_elem = scr_filemap_first_file(map, id, rank);
          file_elem != NULL;
-         file_elem = scr_hash_elem_next(file_elem))
+         file_elem = kvtree_elem_next(file_elem))
     {
       /* get filename and check that we can read it */
-      char* file = scr_hash_elem_key(file_elem);
+      char* file = kvtree_elem_key(file_elem);
 
-      if (! scr_bool_have_file(map, id, rank, file)) {
+      if (! scr_bool_have_file(map, file)) {
         have_files = 0;
       }
     }
@@ -303,35 +298,35 @@ int main (int argc, char *argv[])
   int first_non_option = optind;
 
   /* build the name of the master filemap */
-  scr_path* scr_master_map_file = scr_path_from_str(args.cntldir);
-  scr_path_append_str(scr_master_map_file, "filemap.scrinfo");
+  spath* scr_master_map_file = spath_from_str(args.cntldir);
+  spath_append_str(scr_master_map_file, "filemap.scrinfo");
 
   /* TODO: get list of partner nodes I have files for */
 
   /* read in the master map */
-  scr_hash* hash = scr_hash_new();
-  scr_hash_read_path(scr_master_map_file, hash);
+  kvtree* hash = kvtree_new();
+  kvtree_read_path(scr_master_map_file, hash);
 
   /* free the name of the master map file */
-  scr_path_delete(&scr_master_map_file);
+  spath_delete(&scr_master_map_file);
 
   /* create an empty filemap */
   scr_filemap* map = scr_filemap_new();
 
   /* for each filemap listed in the master map */
-  scr_hash_elem* elem;
-  for (elem = scr_hash_elem_first(scr_hash_get(hash, "Filemap"));
+  kvtree_elem* elem;
+  for (elem = kvtree_elem_first(kvtree_get(hash, "Filemap"));
        elem != NULL;
-       elem = scr_hash_elem_next(elem))
+       elem = kvtree_elem_next(elem))
   {
     /* get the filename of this filemap */
-    char* file = scr_hash_elem_key(elem);
+    char* file = kvtree_elem_key(elem);
 
     /* read in the filemap */
     scr_filemap* tmp_map = scr_filemap_new();
-    scr_path* path_file = scr_path_from_str(file);
+    spath* path_file = spath_from_str(file);
     scr_filemap_read(path_file, tmp_map);
-    scr_path_delete(&path_file);
+    spath_delete(&path_file);
 
     /* merge it with local 0 filemap */
     scr_filemap_merge(map, tmp_map);
@@ -341,62 +336,62 @@ int main (int argc, char *argv[])
   }
 
   /* check whether we have the specified dataset id */
-  scr_hash_elem* rank_elem = scr_filemap_first_rank_by_dataset(map, args.id);
+  kvtree_elem* rank_elem = scr_filemap_first_rank_by_dataset(map, args.id);
   if (rank_elem == NULL) {
     printf("scr_copy: %s: Do not have any files for dataset id %d\n",
       hostname, args.id
     );
     printf("scr_copy: %s: Return code: 1\n", hostname);
     scr_filemap_delete(&map);
-    scr_hash_delete(&hash);
+    kvtree_delete(&hash);
     return 1;
   }
 
   /* path to data set directory */
-  scr_path* path_prefix = scr_path_from_str(args.prefix);
-  scr_path_reduce(path_prefix);
+  spath* path_prefix = spath_from_str(args.prefix);
+  spath_reduce(path_prefix);
 
   /* define the path to the dataset metadata subdirectory */
-  scr_path* path_scr = scr_path_dup(path_prefix);
-  scr_path_append_str(path_scr, ".scr");
-  scr_path_append_strf(path_scr, "scr.dataset.%d", args.id);
-  scr_path_reduce(path_scr);
-  char* path_scr_str = scr_path_strdup(path_scr);
+  spath* path_scr = spath_dup(path_prefix);
+  spath_append_str(path_scr, ".scr");
+  spath_append_strf(path_scr, "scr.dataset.%d", args.id);
+  spath_reduce(path_scr);
+  char* path_scr_str = spath_strdup(path_scr);
 
   /* define the path to the dataset directory (used if not preserving directories) */
-  scr_path* path_dset = scr_path_dup(path_prefix);
-  scr_path_append_strf(path_dset, "scr.dataset.%d", args.id);
-  scr_path_reduce(path_dset);
-  char* path_dset_str = scr_path_strdup(path_dset);
+  spath* path_dset = spath_dup(path_prefix);
+  spath_append_strf(path_dset, "scr.dataset.%d", args.id);
+  spath_reduce(path_dset);
+  char* path_dset_str = spath_strdup(path_dset);
 
   int rc = 0;
 
   /* iterate over each rank we have for this dataset */
   for (rank_elem = scr_filemap_first_rank_by_dataset(map, args.id);
        rank_elem != NULL;
-       rank_elem = scr_hash_elem_next(rank_elem))
+       rank_elem = kvtree_elem_next(rank_elem))
   {
     /* get the rank number */
-    int rank = scr_hash_elem_key_int(rank_elem);
+    int rank = kvtree_elem_key_int(rank_elem);
 
     /* lookup the scavenge descriptor for this rank */
-    scr_hash* flushdesc = scr_hash_new();
+    kvtree* flushdesc = kvtree_new();
     scr_filemap_get_flushdesc(map, args.id, rank, flushdesc);
 
     /* read hostname of partner */
     char* partner = NULL;
-    scr_hash_util_get_str(flushdesc, SCR_SCAVENGE_KEY_PARTNER, &partner);
+    kvtree_util_get_str(flushdesc, SCR_SCAVENGE_KEY_PARTNER, &partner);
 
     /* determine whether we're preserving user directories */
     int preserve_dirs = 0;
-    scr_hash_util_get_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE, &preserve_dirs);
+    kvtree_util_get_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE, &preserve_dirs);
 
     /* determine whether we're using containers */
     int container = 0;
-    scr_hash_util_get_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, &container);
+    kvtree_util_get_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, &container);
 
     /* free the scavenge descriptor */
-    scr_hash_delete(&flushdesc);
+    kvtree_delete(&flushdesc);
 
     /* if this rank is not a partner, and our partner only flag is set,
      * skip this rank */
@@ -427,11 +422,8 @@ int main (int argc, char *argv[])
       continue;
     }
 
-    /* allocate a rank filemap object and set expected number
-     * of files */
+    /* allocate a rank filemap object */
     scr_filemap* rank_map = scr_filemap_new();
-    int num_files = scr_filemap_get_expected_files(map, args.id, rank);
-    scr_filemap_set_expected_files(rank_map, args.id, rank, num_files);
 
     /* copy the dataset for this rank */
     scr_dataset* dataset = scr_dataset_new();
@@ -440,26 +432,26 @@ int main (int argc, char *argv[])
     scr_dataset_delete(&dataset);
 
     /* record whether we're preserving user directories or using containers */
-    scr_hash* rank_flushdesc = scr_hash_new();
-    scr_hash_util_set_int(rank_flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  preserve_dirs);
-    scr_hash_util_set_int(rank_flushdesc, SCR_SCAVENGE_KEY_CONTAINER, container);
+    kvtree* rank_flushdesc = kvtree_new();
+    kvtree_util_set_int(rank_flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  preserve_dirs);
+    kvtree_util_set_int(rank_flushdesc, SCR_SCAVENGE_KEY_CONTAINER, container);
     scr_filemap_set_flushdesc(rank_map, args.id, rank, rank_flushdesc);
-    scr_hash_delete(&rank_flushdesc);
+    kvtree_delete(&rank_flushdesc);
 
     /* step through each file we have for this rank */
-    scr_hash_elem* file_elem = NULL;
+    kvtree_elem* file_elem = NULL;
     for (file_elem = scr_filemap_first_file(map, args.id, rank);
          file_elem != NULL;
-         file_elem = scr_hash_elem_next(file_elem))
+         file_elem = kvtree_elem_next(file_elem))
     {
       /* get filename */
-      char* file = scr_hash_elem_key(file_elem);
+      char* file = kvtree_elem_key(file_elem);
 
       /* check that we can read the file */
       if (scr_bool_have_file(map, args.id, rank, file)) {
         /* read the meta data for this file */
         scr_meta* meta = scr_meta_new();
-        scr_filemap_get_meta(map, args.id, rank, file, meta);
+        scr_filemap_get_meta(map, file, meta);
 
         /* check whether file is application file or SCR file */
         int user_file = 0;
@@ -479,7 +471,7 @@ int main (int argc, char *argv[])
               printf("scr_copy: %s: Return code: 1\n", hostname);
               scr_meta_delete(&meta);
               scr_filemap_delete(&map);
-              scr_hash_delete(&hash);
+              kvtree_delete(&hash);
               return 1;
             }
           } else {
@@ -497,7 +489,7 @@ int main (int argc, char *argv[])
             printf("scr_copy: %s: Return code: 1\n", hostname);
             scr_meta_delete(&meta);
             scr_filemap_delete(&map);
-            scr_hash_delete(&hash);
+            kvtree_delete(&hash);
             return 1;
           }
         } else {
@@ -506,11 +498,11 @@ int main (int argc, char *argv[])
         }
 
         /* create destination file name */
-        scr_path* dst_path = scr_path_from_str(file);
-        scr_path_basename(dst_path);
-        scr_path_prepend_str(dst_path, dst_dir);
-        scr_path_reduce(dst_path);
-        char* dst_file = scr_path_strdup(dst_path);
+        spath* dst_path = spath_from_str(file);
+        spath_basename(dst_path);
+        spath_prepend_str(dst_path, dst_dir);
+        spath_reduce(dst_path);
+        char* dst_file = spath_strdup(dst_path);
 
         /* copy the file and optionally compute the crc during the copy */
         int crc_valid = 0;
@@ -528,8 +520,8 @@ int main (int argc, char *argv[])
         }
 
         /* compute relative path to destination file from prefix dir */
-        scr_path* path_relative = scr_path_relative(path_prefix, dst_path);
-        char* file_relative = scr_path_strdup(path_relative);
+        spath* path_relative = spath_relative(path_prefix, dst_path);
+        char* file_relative = spath_strdup(path_relative);
 
         /* add this file to the rank_map */
         scr_filemap_add_file(rank_map, args.id, rank, file_relative);
@@ -574,11 +566,11 @@ int main (int argc, char *argv[])
 
         /* free the string containing the relative file name */
         scr_free(&file_relative);
-        scr_path_delete(&path_relative);
+        spath_delete(&path_relative);
 
         /* free the destination file path and string */
         scr_free(&dst_file);
-        scr_path_delete(&dst_path);
+        spath_delete(&dst_path);
 
         /* free the meta data object */
         scr_meta_delete(&meta);
@@ -592,12 +584,12 @@ int main (int argc, char *argv[])
     }
 
     /* write out the rank filemap for scr_index */
-    scr_path* path_rank = scr_path_dup(path_scr);
-    scr_path_append_strf(path_rank, "fmap.%d.scr", rank);
+    spath* path_rank = spath_dup(path_scr);
+    spath_append_strf(path_rank, "fmap.%d.scr", rank);
     if (scr_filemap_write(path_rank, rank_map) != SCR_SUCCESS) {
       rc = 1;
     }
-    scr_path_delete(&path_rank);
+    spath_delete(&path_rank);
 
     /* delete the rank filemap object */
     scr_filemap_delete(&rank_map);
@@ -605,14 +597,14 @@ int main (int argc, char *argv[])
 
   /* delete path to dataset directory */
   scr_free(&path_dset_str);
-  scr_path_delete(&path_dset);
+  spath_delete(&path_dset);
 
   /* delete path to dataset metadata directory */
   scr_free(&path_scr_str);
-  scr_path_delete(&path_scr);
+  spath_delete(&path_scr);
 
   /* free the prefix directory path */
-  scr_path_delete(&path_prefix);
+  spath_delete(&path_prefix);
 
   /* print our return code and exit */
   printf("scr_copy: %s: Return code: %d\n", hostname, rc);

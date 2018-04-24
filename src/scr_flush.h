@@ -12,8 +12,12 @@
 #ifndef SCR_FLUSH_H
 #define SCR_FLUSH_H
 
-#include "scr_hash.h"
+#include "kvtree.h"
 #include "scr_filemap.h"
+
+/* given a dataset, return a newly allocated string specifying the
+ * metadata directory for that dataset, must be freed by caller */
+char* scr_flush_dataset_metadir(const scr_dataset* dataset);
 
 /* ensure that dataset can be flushed */
 int scr_flush_verify(
@@ -23,10 +27,10 @@ int scr_flush_verify(
 
 /* given a filemap and a dataset id, prepare and return a list of files to be flushed,
  * also create corresponding directories and container files */
-int scr_flush_prepare(const scr_filemap* map, int id, scr_hash* file_list);
+int scr_flush_prepare(const scr_filemap* map, int id, kvtree* file_list);
 
 /* given a dataset id that has been flushed, the list provided by scr_flush_prepare,
  * and data to include in the summary file, complete the flush by writing the summary file */
-int scr_flush_complete(int id, scr_hash* file_list, scr_hash* data);
+int scr_flush_complete(int id, kvtree* file_list, kvtree* data);
 
 #endif

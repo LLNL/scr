@@ -39,8 +39,9 @@
 #include "scr_util.h"
 #include "scr_param.h"
 #include "scr_log.h"
-#include "scr_hash.h"
-#include "scr_hash_util.h"
+
+#include "kvtree.h"
+#include "kvtree_util.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -79,7 +80,7 @@ static MYSQL scr_mysql; /* caches mysql object */
 static unsigned long scr_db_jobid = 0; /* caches the jobid for the current job */
 
 #ifdef HAVE_LIBMYSQLCLIENT
-static scr_hash* scr_db_types = NULL; /* caches type string to type id lookups */
+static kvtree* scr_db_types = NULL; /* caches type string to type id lookups */
 #endif
 
 /* connects to the SCR log database */
@@ -87,7 +88,7 @@ int scr_mysql_connect()
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* create our type-string-to-id cache */
-  scr_db_types = scr_hash_new();
+  scr_db_types = kvtree_new();
   if (scr_db_types == NULL) {
     scr_err("Failed to create a hash to cache type string to id lookups @ %s:%d",
             __FILE__, __LINE__
@@ -115,7 +116,7 @@ int scr_mysql_disconnect()
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* free our type string to id cache */
-  scr_hash_delete(&scr_db_types);
+  kvtree_delete(&scr_db_types);
 
   mysql_close(&scr_mysql);
 #endif
@@ -380,7 +381,7 @@ int scr_mysql_type_id(const char* type, int* id)
 
   /* first check the hash in case we can avoid reading from the database */
   unsigned long tmp_id;
-  if (scr_hash_util_get_unsigned_long(scr_db_types, type, &tmp_id) == SCR_SUCCESS) {
+  if (kvtree_util_get_unsigned_long(scr_db_types, type, &tmp_id) == KVTREE_SUCCESS) {
     /* found our id from the hash, convert to an int and return */
     *id = (int) tmp_id;
     return SCR_SUCCESS;
@@ -395,7 +396,7 @@ int scr_mysql_type_id(const char* type, int* id)
   }
 
   /* got our id, now cache the lookup */
-  scr_hash_util_set_unsigned_long(scr_db_types, type, tmp_id);
+  kvtree_util_set_unsigned_long(scr_db_types, type, tmp_id);
 
   /* cast the id down to an int */
   *id = (int) tmp_id;
@@ -746,7 +747,7 @@ int scr_log_init()
   int rc = SCR_SUCCESS;
 
   /* read in parameters */
-  char* value = NULL;
+  const char* value = NULL;
 
   scr_param_init();
 

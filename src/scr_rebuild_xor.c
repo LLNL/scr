@@ -14,12 +14,15 @@
 
 #include "scr.h"
 #include "scr_io.h"
-#include "scr_path.h"
 #include "scr_meta.h"
 #include "scr_err.h"
 #include "scr_util.h"
 #include "scr_filemap.h"
 #include "scr_dataset.h"
+
+#include "spath.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -72,7 +75,7 @@ static int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
   }
 
   /* read meta data from filemap */
-  if (scr_filemap_get_meta(map, id, rank, file, meta) != SCR_SUCCESS) {
+  if (scr_filemap_get_meta(map, file, meta) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -88,7 +91,7 @@ static int scr_compute_crc(scr_filemap* map, int id, int rank, const char* file)
   } else {
     /* record crc in filemap */
     scr_meta_set_crc32(meta, crc_file);
-    scr_filemap_set_meta(map, id, rank, file, meta);
+    scr_filemap_set_meta(map, file, meta);
   }
 
   /* free our meta data object */
@@ -114,8 +117,8 @@ int main(int argc, char* argv[])
   scr_getcwd(dsetdir, sizeof(dsetdir));
 
   /* create and reduce path for dataset */
-  scr_path* path_prefix = scr_path_from_str(dsetdir);
-  scr_path_reduce(path_prefix);
+  spath* path_prefix = spath_from_str(dsetdir);
+  spath_reduce(path_prefix);
 
   /* allocate buffers */
   char* buffer_A = malloc(buffer_size * sizeof(char));
@@ -141,7 +144,7 @@ int main(int argc, char* argv[])
   int*   offsets    = malloc(xor_set_size * sizeof(int));
   char** xor_files  = malloc(xor_set_size * sizeof(char*));
   int*   xor_fds    = malloc(xor_set_size * sizeof(int));
-  scr_hash** xor_headers = malloc(xor_set_size * sizeof(scr_hash*));
+  kvtree** xor_headers = malloc(xor_set_size * sizeof(kvtree*));
   if (num_files == NULL || offsets == NULL || xor_files == NULL || xor_fds == NULL || xor_headers == NULL) {
     scr_err("Failed to allocate buffer memory @ %s:%d",
       __FILE__, __LINE__
@@ -170,7 +173,7 @@ int main(int argc, char* argv[])
   /* read in the xor filenames (expected to be in order of XOR segment number) */
   /* we order ranks so that root is index 0, the rank to the right of root is index 1, and so on */
   for (i=0; i < xor_set_size; i++) {
-    xor_headers[i] = scr_hash_new();
+    xor_headers[i] = kvtree_new();
 
     /* we'll get the XOR file name for root from the header stored in the XOR file of the partner */
     if (i == root) {
@@ -205,7 +208,7 @@ int main(int argc, char* argv[])
     }
 
     /* read the header from this xor file */
-    if (scr_hash_read_fd(xor_files[i], xor_fds[i], xor_headers[i]) < 0) {
+    if (kvtree_read_fd(xor_files[i], xor_fds[i], xor_headers[i]) < 0) {
       scr_err("Failed to read XOR header from %s @ %s:%d",
         xor_files[i], __FILE__, __LINE__
       );
@@ -216,22 +219,22 @@ int main(int argc, char* argv[])
   /* build header for missing XOR file */
   int partner_rank = -1;
   if (xor_set_size >= 2) {
-    scr_hash_merge(xor_headers[0], xor_headers[1]);
+    kvtree_merge(xor_headers[0], xor_headers[1]);
 
     /* fetch our own file list from rank to our right */
-    scr_hash* rhs_hash = scr_hash_get(xor_headers[1], SCR_KEY_COPY_XOR_PARTNER);
-    scr_hash* current_hash = scr_hash_new();
-    scr_hash_merge(current_hash, rhs_hash);
-    scr_hash_set(xor_headers[0], SCR_KEY_COPY_XOR_CURRENT, current_hash);
+    kvtree* rhs_hash = kvtree_get(xor_headers[1], SCR_KEY_COPY_XOR_PARTNER);
+    kvtree* current_hash = kvtree_new();
+    kvtree_merge(current_hash, rhs_hash);
+    kvtree_set(xor_headers[0], SCR_KEY_COPY_XOR_CURRENT, current_hash);
 
     /* we are the partner to the rank to our left */
-    scr_hash* lhs_hash = scr_hash_get(xor_headers[xor_set_size-1], SCR_KEY_COPY_XOR_CURRENT);
-    scr_hash* partner_hash = scr_hash_new();
-    scr_hash_merge(partner_hash, lhs_hash);
-    scr_hash_set(xor_headers[0], SCR_KEY_COPY_XOR_PARTNER, partner_hash);
+    kvtree* lhs_hash = kvtree_get(xor_headers[xor_set_size-1], SCR_KEY_COPY_XOR_CURRENT);
+    kvtree* partner_hash = kvtree_new();
+    kvtree_merge(partner_hash, lhs_hash);
+    kvtree_set(xor_headers[0], SCR_KEY_COPY_XOR_PARTNER, partner_hash);
 
     /* get global rank of partner */
-    if (scr_hash_util_get_int(lhs_hash, SCR_KEY_COPY_XOR_RANK, &partner_rank) != SCR_SUCCESS) {
+    if (kvtree_util_get_int(lhs_hash, SCR_KEY_COPY_XOR_RANK, &partner_rank) != SCR_SUCCESS) {
       scr_err("Failed to read partner rank from XOR file header in %s @ %s:%d",
         xor_files[xor_set_size-1], __FILE__, __LINE__
       );
@@ -240,11 +243,11 @@ int main(int argc, char* argv[])
   }
 
   /* get a pointer to the current hash for the missing rank */
-  scr_hash* missing_current_hash = scr_hash_get(xor_headers[0], SCR_KEY_COPY_XOR_CURRENT);
+  kvtree* missing_current_hash = kvtree_get(xor_headers[0], SCR_KEY_COPY_XOR_CURRENT);
 
   /* read the rank */
   int my_rank = -1;
-  if (scr_hash_util_get_int(missing_current_hash, SCR_KEY_COPY_XOR_RANK, &my_rank) != SCR_SUCCESS) {
+  if (kvtree_util_get_int(missing_current_hash, SCR_KEY_COPY_XOR_RANK, &my_rank) != SCR_SUCCESS) {
     scr_err("Failed to read rank from XOR file header in %s @ %s:%d",
       xor_files[0], __FILE__, __LINE__
     );
@@ -252,7 +255,7 @@ int main(int argc, char* argv[])
   }
 
   /* get the dataset */
-  scr_dataset* dataset = scr_hash_get(xor_headers[0], SCR_KEY_COPY_XOR_DATASET);
+  scr_dataset* dataset = kvtree_get(xor_headers[0], SCR_KEY_COPY_XOR_DATASET);
 
   /* read the dataset id */
   int dset_id = -1;
@@ -265,7 +268,7 @@ int main(int argc, char* argv[])
 
   /* read the ranks */
   int num_ranks = -1;
-  if (scr_hash_util_get_int(xor_headers[0], SCR_KEY_COPY_XOR_RANKS, &num_ranks) != SCR_SUCCESS) {
+  if (kvtree_util_get_int(xor_headers[0], SCR_KEY_COPY_XOR_RANKS, &num_ranks) != SCR_SUCCESS) {
     scr_err("Failed to read ranks from XOR file header in %s @ %s:%d",
       xor_files[0], __FILE__, __LINE__
     );
@@ -273,26 +276,26 @@ int main(int argc, char* argv[])
   }
 
   /* get name of partner's fmap */
-  scr_path* path_partner_map = scr_path_from_str(".scr");
-  scr_path_append_strf(path_partner_map, "fmap.%d.scr", partner_rank);
+  spath* path_partner_map = spath_from_str(".scr");
+  spath_append_strf(path_partner_map, "fmap.%d.scr", partner_rank);
 
   /* extract partner's flush descriptor */
-  scr_hash* flushdesc = scr_hash_new();
+  kvtree* flushdesc = kvtree_new();
   scr_filemap* partner_map = scr_filemap_new();
   scr_filemap_read(path_partner_map, partner_map);
   scr_filemap_get_flushdesc(partner_map, dset_id, partner_rank, flushdesc);
   scr_filemap_delete(&partner_map);
 
   /* delete partner map path */
-  scr_path_delete(&path_partner_map);
+  spath_delete(&path_partner_map);
 
   /* determine whether we should preserve user directories */
   int preserve_dirs = 0;
-  scr_hash_util_get_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE, &preserve_dirs);
+  kvtree_util_get_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE, &preserve_dirs);
 
   /* read the chunk size */
   unsigned long chunk_size = 0;
-  if (scr_hash_util_get_unsigned_long(xor_headers[0], SCR_KEY_COPY_XOR_CHUNK, &chunk_size) != SCR_SUCCESS) {
+  if (kvtree_util_get_unsigned_long(xor_headers[0], SCR_KEY_COPY_XOR_CHUNK, &chunk_size) != SCR_SUCCESS) {
     scr_err("Failed to read chunk size from XOR file header in %s @ %s:%d",
       xor_files[0], __FILE__, __LINE__
     );
@@ -302,8 +305,8 @@ int main(int argc, char* argv[])
   /* determine number of files each member wrote in XOR set */
   for (i=0; i < xor_set_size; i++) {
     /* record the number of files for this rank */
-    scr_hash* current_hash = scr_hash_get(xor_headers[i], SCR_KEY_COPY_XOR_CURRENT);
-    if (scr_hash_util_get_int(current_hash, SCR_KEY_COPY_XOR_FILES, &num_files[i]) != SCR_SUCCESS) {
+    kvtree* current_hash = kvtree_get(xor_headers[i], SCR_KEY_COPY_XOR_CURRENT);
+    if (kvtree_util_get_int(current_hash, SCR_KEY_COPY_XOR_FILES, &num_files[i]) != SCR_SUCCESS) {
       scr_err("Failed to read number of files from %s @ %s:%d",
         xor_files[i], __FILE__, __LINE__
       );
@@ -332,14 +335,14 @@ int main(int argc, char* argv[])
 
   /* get file name, file size, and open each of the user files that we have */
   for (i=0; i < xor_set_size; i++) {
-    scr_hash* current_hash = scr_hash_get(xor_headers[i], SCR_KEY_COPY_XOR_CURRENT);
+    kvtree* current_hash = kvtree_get(xor_headers[i], SCR_KEY_COPY_XOR_CURRENT);
 
     /* for each file belonging to this rank, get filename, filesize, and open file */
     for (j=0; j < num_files[i]; j++) {
       int offset = offsets[i] + j;
 
       /* get the meta data for this file */
-      scr_meta* meta = scr_hash_get_kv_int(current_hash, SCR_KEY_COPY_XOR_FILE, j);
+      scr_meta* meta = kvtree_get_kv_int(current_hash, SCR_KEY_COPY_XOR_FILE, j);
       if (meta == NULL) {
         scr_err("Failed to read meta data for file %d in %s @ %s:%d",
           j, xor_files[i], __FILE__, __LINE__
@@ -374,31 +377,31 @@ int main(int argc, char* argv[])
       }
 
       /* construct full path to file */
-      scr_path* path_user_full = scr_path_from_str(origname);
-      scr_path_prepend_str(path_user_full, origpath);
+      spath* path_user_full = spath_from_str(origname);
+      spath_prepend_str(path_user_full, origpath);
 
       /* reduce path to user file */
-      scr_path_reduce(path_user_full);
+      spath_reduce(path_user_full);
 
       /* make a copy of the full path */
-      user_files[offset] = scr_path_strdup(path_user_full);
+      user_files[offset] = spath_strdup(path_user_full);
 
       /* make a copy of relative path */
-      scr_path* path_user_rel = scr_path_relative(path_prefix, path_user_full);
-      user_rel_files[offset] = scr_path_strdup(path_user_rel);
-      scr_path_delete(&path_user_rel);
+      spath* path_user_rel = spath_relative(path_prefix, path_user_full);
+      user_rel_files[offset] = spath_strdup(path_user_rel);
+      spath_delete(&path_user_rel);
 
       /* free the full path */
-      scr_path_delete(&path_user_full);
+      spath_delete(&path_user_full);
 
       /* open the file */
       if (i == 0) {
         /* create directory for file */
-        scr_path* user_dir_path = scr_path_from_str(user_files[offset]);
-        scr_path_reduce(user_dir_path);
-        scr_path_dirname(user_dir_path);
-        if (! scr_path_is_null(user_dir_path)) {
-          char* user_dir = scr_path_strdup(user_dir_path);
+        spath* user_dir_path = spath_from_str(user_files[offset]);
+        spath_reduce(user_dir_path);
+        spath_dirname(user_dir_path);
+        if (! spath_is_null(user_dir_path)) {
+          char* user_dir = spath_strdup(user_dir_path);
           mode_t mode_dir = scr_getmode(1, 1, 1);
           if (scr_mkdir(user_dir, mode_dir) != SCR_SUCCESS) {
             scr_err("Failed to create directory for user file %s @ %s:%d",
@@ -408,7 +411,7 @@ int main(int argc, char* argv[])
           }
           scr_free(&user_dir);
         }
-        scr_path_delete(&user_dir_path);
+        spath_delete(&user_dir_path);
 
         /* open missing file for writing */
         mode_t mode_file = scr_getmode(1, 1, 0);
@@ -445,7 +448,7 @@ int main(int argc, char* argv[])
   int rc = 0;
 
   /* write the header to the XOR file of the missing rank */
-  if (scr_hash_write_fd(xor_files[0], xor_fds[0], xor_headers[0]) < 0) {
+  if (kvtree_write_fd(xor_files[0], xor_fds[0], xor_headers[0]) < 0) {
     rc = 1;
   }
 
@@ -558,7 +561,7 @@ int main(int argc, char* argv[])
       scr_file_unlink(user_files[j]);
 
       /* mark the file as incomplete */
-      scr_meta* meta = scr_hash_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
+      scr_meta* meta = kvtree_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
       scr_meta_set_complete(meta, 0);
 
       rc = 1;
@@ -583,8 +586,8 @@ int main(int argc, char* argv[])
     /* add user file to filemap and record meta data */
     char* user_file_relative = user_rel_files[j];
     scr_filemap_add_file(map, dset_id, my_rank, user_file_relative);
-    scr_meta* meta = scr_hash_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
-    scr_filemap_set_meta(map, dset_id, my_rank, user_file_relative, meta);
+    scr_meta* meta = kvtree_get_kv_int(missing_current_hash, SCR_KEY_COPY_XOR_FILE, j);
+    scr_filemap_set_meta(map, user_file_relative, meta);
   }
 
   /* write meta data for xor file and add it to the filemap */
@@ -598,11 +601,7 @@ int main(int argc, char* argv[])
   /* TODO: remove this from meta file, for now it's needed in scr_index.c */
   scr_meta_set_ranks(meta_chunk, num_ranks);
   scr_meta_set_complete(meta_chunk, missing_complete);
-  scr_filemap_set_meta(map, dset_id, my_rank, xor_files[0], meta_chunk);
-
-  /* set expected number of files for the missing rank */
-  int expected_num_files = scr_filemap_num_files(map, dset_id, my_rank);
-  scr_filemap_set_expected_files(map, dset_id, my_rank, expected_num_files);
+  scr_filemap_set_meta(map, xor_files[0], meta_chunk);
 
   /* compute, check, and store crc values with files */
   for (j=0; j < num_files[0]; j++) {
@@ -624,13 +623,13 @@ int main(int argc, char* argv[])
   scr_filemap_set_flushdesc(map, dset_id, my_rank, flushdesc);
 
   /* write filemap for this rank */
-  scr_path* path_map = scr_path_from_str(".scr");
-  scr_path_append_strf(path_map, "scr.dataset.%d", dset_id);
-  scr_path_append_strf(path_map, "fmap.%d.scr", my_rank);
+  spath* path_map = spath_from_str(".scr");
+  spath_append_strf(path_map, "scr.dataset.%d", dset_id);
+  spath_append_strf(path_map, "fmap.%d.scr", my_rank);
   if (scr_filemap_write(path_map, map) != SCR_SUCCESS) {
     rc = 1;
   }
-  scr_path_delete(&path_map);
+  spath_delete(&path_map);
 
   /* delete the map */
   scr_filemap_delete(&map);
@@ -638,7 +637,7 @@ int main(int argc, char* argv[])
   scr_meta_delete(&meta_chunk);
 
   /* delete the flush/scavenge descriptor */
-  scr_hash_delete(&flushdesc);
+  kvtree_delete(&flushdesc);
 
   scr_free(&offset);
 
@@ -653,7 +652,7 @@ int main(int argc, char* argv[])
   scr_free(&user_fds);
 
   for (i=0; i < xor_set_size; i++) {
-    scr_hash_delete(&xor_headers[i]);
+    kvtree_delete(&xor_headers[i]);
   }
 
   for (i=0; i < xor_set_size; i++) {
@@ -669,7 +668,7 @@ int main(int argc, char* argv[])
   scr_free(&buffer_B);
   scr_free(&buffer_A);
 
-  scr_path_delete(&path_prefix);
+  spath_delete(&path_prefix);
 
   return rc;
 }

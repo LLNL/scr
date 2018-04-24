@@ -22,16 +22,12 @@ LIST(APPEND cliscr_noMPI_srcs
 	scr_err_serial.c
 	scr_filemap.c
 	scr_halt.c
-	scr_hash.c
-	scr_hash_util.c
 	scr_index_api.c
 	scr_io.c
 	scr_log.c
 	scr_meta.c
 	scr_param.c
-	scr_path.c
 	scr_util.c
-	tv_data_display.c
 )
 
 LIST(APPEND libscr_srcs
@@ -46,52 +42,28 @@ LIST(APPEND libscr_srcs
 	scr_env.c
 	scr_err_mpi.c
 	scr_fetch.c
+	scr_cache_index.c
 	scr_filemap.c
 	scr_flush.c
 	scr_flush_file_mpi.c
 	scr_flush_sync.c
+	scr_flush_async.c
 	scr_globals.c
 	scr_groupdesc.c
 	scr_halt.c
-	scr_hash.c
-	scr_hash_mpi.c
-	scr_hash_util.c
 	scr_index_api.c
 	scr_io.c
 	scr_log.c
 	scr_meta.c
 	scr_param.c
-	scr_path.c
-	scr_path_mpi.c
 	scr_reddesc.c
-	scr_reddesc_apply.c
-	scr_reddesc_recover.c
-	scr_split.c
 	scr_storedesc.c
 	scr_summary.c
 	scr_util.c
 	scr_util_mpi.c
-	tv_data_display.c
 )
 
 # Add vendor specific code based on SCR_ASYNC_API
-
-IF(${SCR_ASYNC_API} STREQUAL "NONE")
-	LIST(APPEND libscr_srcs scr_flush_async_posix.c)
-ENDIF(${SCR_ASYNC_API} STREQUAL "NONE")
-
-IF(${SCR_ASYNC_API} STREQUAL "CRAY_DW")
-	LIST(APPEND libscr_srcs scr_flush_async_datawarp.c)
-ENDIF(${SCR_ASYNC_API} STREQUAL "CRAY_DW")
-
-IF(${SCR_ASYNC_API} STREQUAL "INTEL_CPPR")
-	LIST(APPEND libscr_srcs scr_flush_async_cppr.c)
-ENDIF(${SCR_ASYNC_API} STREQUAL "INTEL_CPPR")
-
-IF(${SCR_ASYNC_API} STREQUAL "IBM_BBAPI")
-	LIST(APPEND libscr_srcs scr_flush_async_bbapi.c)
-ENDIF(${SCR_ASYNC_API} STREQUAL "IBM_BBAPI")
-
 
 # SCR Library
 ADD_LIBRARY(scr_o OBJECT ${libscr_srcs})
@@ -141,26 +113,23 @@ ENDIF(ENABLE_FORTRAN)
 ###########
 
 # Individual binaries generated from a single .c file
+#	scr_copy
+#	scr_index
+#	scr_inspect_cache
 LIST(APPEND cliscr_c_bins
-	scr_copy
 	scr_crc32
 	scr_flush_file
 	scr_halt_cntl
-	scr_index
-	scr_inspect_cache
 	scr_log_event
 	scr_log_transfer
 	scr_nodes_file
-	scr_print_hash_file
-	scr_rebuild_xor
 	scr_retries_halt
-	scr_transfer
 )
 
 # CLI binaries that require full SCR library
-LIST(APPEND cliscr_scr_bins
-    scr_have_restart
-)
+#LIST(APPEND cliscr_scr_bins
+#    scr_have_restart
+#)
 
 # Build and install C binaries
 FOREACH(bin IN ITEMS ${cliscr_c_bins})

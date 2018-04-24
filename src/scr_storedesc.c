@@ -15,6 +15,10 @@
 
 #include "mpi.h"
 
+#include "kvtree.h"
+#include "kvtree_util.h"
+#include "spath.h"
+
 #include "scr_globals.h"
 
 /*
@@ -102,7 +106,8 @@ static int scr_storedesc_create_from_hash(
   scr_storedesc* s,
   const char* name,
   int index,
-  const scr_hash* hash)
+  const kvtree* hash,
+  MPI_Comm comm)
 {
   int rc = SCR_SUCCESS;
 
@@ -123,7 +128,7 @@ static int scr_storedesc_create_from_hash(
   }
 
   /* check that everyone made it this far */
-  if (! scr_alltrue(rc == SCR_SUCCESS)) {
+  if (! scr_alltrue(rc == SCR_SUCCESS, comm)) {
     if (s != NULL) {
       s->enabled = 0;
     }
@@ -135,30 +140,30 @@ static int scr_storedesc_create_from_hash(
 
   /* enable / disable the descriptor */
   s->enabled = 1;
-  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_ENABLED, &(s->enabled));
+  kvtree_util_get_int(hash, SCR_CONFIG_KEY_ENABLED, &(s->enabled));
 
   /* index of the descriptor */
   s->index = index;
 
   /* TODO: check that path is absolute */
   /* set the base directory, reduce path in the process */
-  s->name = scr_path_strdup_reduce_str(name);
+  s->name = spath_strdup_reduce_str(name);
 
   /* set the max count, default to scr_cache_size unless specified otherwise */
   s->max_count = scr_cache_size;
-  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_COUNT, &(s->max_count));
+  kvtree_util_get_int(hash, SCR_CONFIG_KEY_COUNT, &(s->max_count));
 
   /* assume we can call mkdir/rmdir on this store unless told otherwise */
   s->can_mkdir = 1;
-  scr_hash_util_get_int(hash, SCR_CONFIG_KEY_MKDIR, &(s->can_mkdir));
+  kvtree_util_get_int(hash, SCR_CONFIG_KEY_MKDIR, &(s->can_mkdir));
 
   /* set the type of the store. Default to POSIX */
   char* tmp_type = NULL;
-  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &tmp_type);
+  kvtree_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &tmp_type);
   if(tmp_type){
     s->type = strdup(tmp_type);
   }
-//  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &(s->type));
+//  kvtree_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &(s->type));
   if(s->type == NULL){
     s->type = strdup("POSIX");
   }
@@ -166,11 +171,11 @@ static int scr_storedesc_create_from_hash(
   /* set the view of the store. Default to PRIVATE */
   /* strdup the view if one exists */
   char* tmp_view = NULL;
-  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &tmp_view);
+  kvtree_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &tmp_view);
   if(tmp_view){
     s->view = strdup(tmp_view);
   }
-//  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &(s->view));
+//  kvtree_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &(s->view));
   if(s->view == NULL){
     s->view = strdup("PRIVATE");
   }
@@ -178,7 +183,7 @@ static int scr_storedesc_create_from_hash(
   /* get communicator of ranks that can access this storage device,
    * assume node-local storage unless told otherwise  */
   char* group = SCR_GROUP_NODE;
-  scr_hash_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &group);
+  kvtree_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &group);
 
   /* lookup group descriptor for specified name */
   const scr_groupdesc* groupdesc = scr_groupdescs_from_name(group);
@@ -193,7 +198,7 @@ static int scr_storedesc_create_from_hash(
   }
 
   /* if anyone has disabled this descriptor, everyone needs to */
-  if (! scr_alltrue(s->enabled)) {
+  if (! scr_alltrue(s->enabled, comm)) {
     s->enabled = 0;
   }
 
@@ -215,7 +220,7 @@ int scr_storedesc_dir_create(const scr_storedesc* store, const char* dir)
 
   /* rank 0 creates the directory */
   int rc = SCR_SUCCESS;
-  if ( !strcmp(store->view, "GLOBAL") && store->can_mkdir && scr_my_rank_host==0 ){
+  if (!strcmp(store->view, "GLOBAL") && store->can_mkdir && scr_my_rank_host == 0) {
     scr_dbg(2, "Creating directory: %s", dir);
     rc = scr_mkdir(dir, S_IRWXU | S_IRWXG);
   } else if (store->rank == 0 && store->can_mkdir) {
@@ -247,8 +252,9 @@ int scr_storedesc_dir_delete(const scr_storedesc* store, const char* dir)
 
   /* rank 0 deletes the directory */
   int rc = SCR_SUCCESS;
-  if ((store->rank == 0 || (scr_my_rank_host == 0 && !strcmp(store->view, "GLOBAL") ) )
-      && store->can_mkdir) {
+  if ((store->rank == 0 || (scr_my_rank_host == 0 && !strcmp(store->view, "GLOBAL")))
+      && store->can_mkdir)
+  {
     /* delete directory */
     if (scr_rmdir(dir) != SCR_SUCCESS) {
       /* whoops, something failed when we tried to delete our directory */
@@ -298,14 +304,46 @@ int scr_storedescs_index_from_name(const char* name)
   return index;
 }
 
+/* lookup index in scr_storedescs given a child path
+ * within the space of that descriptor,
+ * returns -1 if not found */
+int scr_storedescs_index_from_child_path(const char* path)
+{
+  /* assume we won't find a match */
+  int index = -1;
+
+  /* check that we're given a path */
+  if (path == NULL) {
+    return index;
+  }
+
+  /* search through the scr_storedescs looking for a match */
+  int i;
+  for (i = 0; i < scr_nstoredescs; i++) {
+    /* get length of path for this descriptor */
+    int pathlen = strlen(scr_storedescs[i].name);
+
+    /* see if prefix of path matches path for this descriptor */
+    if (scr_storedescs[i].enabled &&
+        strncmp(path, scr_storedescs[i].name, pathlen) == 0)
+    {
+      /* found a match, record its index, and break */
+      index = i;
+      break;
+    }
+  }
+
+  return index;
+}
+
 /* fill in scr_storedescs array from scr_storedescs_hash */
-int scr_storedescs_create()
+int scr_storedescs_create(MPI_Comm comm)
 {
   /* set the number of store descriptors */
   scr_nstoredescs = 0;
-  scr_hash* tmp = scr_hash_get(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC);
+  kvtree* tmp = kvtree_get(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC);
   if (tmp != NULL) {
-    scr_nstoredescs = scr_hash_size(tmp);
+    scr_nstoredescs = kvtree_size(tmp);
   }
 
   /* allocate our store descriptors */
@@ -317,23 +355,23 @@ int scr_storedescs_create()
 
   /* sort the hash to ensure we step through all elements in the same
    * order on all procs */
-  scr_hash_sort(tmp, SCR_HASH_SORT_ASCENDING);
+  kvtree_sort(tmp, KVTREE_SORT_ASCENDING);
 
   /* iterate over each of our hash entries filling in each
    * corresponding descriptor */
   int index = 0;
-  scr_hash_elem* elem;
-  for (elem = scr_hash_elem_first(tmp);
+  kvtree_elem* elem;
+  for (elem = kvtree_elem_first(tmp);
        elem != NULL;
-       elem = scr_hash_elem_next(elem))
+       elem = kvtree_elem_next(elem))
   {
     /* get name of store descriptor for this step */
-    char* name = scr_hash_elem_key(elem);
+    char* name = kvtree_elem_key(elem);
 
     /* get the hash for descriptor of specified name */
-    scr_hash* hash = scr_hash_get(tmp, name);
+    kvtree* hash = kvtree_get(tmp, name);
 
-    if (scr_storedesc_create_from_hash(&scr_storedescs[index], name, index, hash) != SCR_SUCCESS) {
+    if (scr_storedesc_create_from_hash(&scr_storedescs[index], name, index, hash, comm) != SCR_SUCCESS) {
       all_valid = 0;
     }
 

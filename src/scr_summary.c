@@ -19,7 +19,7 @@ Summary file functions
 
 /* read in the summary file from dir assuming file is using version 4 format or earlier,
  * convert to version 5 hash */
-static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash)
+static int scr_summary_read_v4_to_v5(const spath* dir, kvtree* summary_hash)
 {
   /* check that we have a pointer to a hash */
   if (summary_hash == NULL) {
@@ -27,13 +27,13 @@ static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash
   }
 
   /* build name of summary file */
-  scr_path* summary_path = scr_path_dup(dir);
-  scr_path_append_str(summary_path, "scr_summary.txt");
-  char* summary_file = scr_path_strdup(summary_path);
-  scr_path_delete(&summary_path);
+  spath* summary_path = spath_dup(dir);
+  spath_append_str(summary_path, "scr_summary.txt");
+  char* summary_file = spath_strdup(summary_path);
+  spath_delete(&summary_path);
 
   /* check whether we can read the file before we actually try,
-   * we take this step to avoid printing an error in scr_hash_read */
+   * we take this step to avoid printing an error in kvtree_read */
   if (scr_file_is_readable(summary_file) != SCR_SUCCESS) {
     scr_free(&summary_file);
     return SCR_FAILURE;
@@ -89,8 +89,8 @@ static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash
   }
 
   /* set the version number in the summary hash, initialize a pointer to the checkpoint hash */
-  scr_hash_set_kv_int(summary_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_5);
-  scr_hash* ckpt_hash = NULL;
+  kvtree_set_kv_int(summary_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_5);
+  kvtree* ckpt_hash = NULL;
 
   /* read the record for each rank */
   int i;
@@ -130,7 +130,7 @@ static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash
         summary_file, linenum, i, num_records, __FILE__, __LINE__
       );
       fclose(fs);
-      scr_hash_unset_all(summary_hash);
+      kvtree_unset_all(summary_hash);
       scr_free(&summary_file);
       return SCR_FAILURE;
     } else if (n != expected_n) {
@@ -138,7 +138,7 @@ static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash
         i, summary_file, linenum, __FILE__, __LINE__
       );
       fclose(fs);
-      scr_hash_unset_all(summary_hash);
+      kvtree_unset_all(summary_hash);
       scr_free(&summary_file);
       return SCR_FAILURE;
     }
@@ -157,23 +157,23 @@ static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash
     /* set the pointer to the checkpoint hash, if we haven't already */
     if (ckpt_hash == NULL) {
       /* get a pointer to the checkpoint hash */
-      ckpt_hash = scr_hash_set_kv_int(summary_hash, SCR_SUMMARY_5_KEY_CKPT, checkpoint_id);
+      ckpt_hash = kvtree_set_kv_int(summary_hash, SCR_SUMMARY_5_KEY_CKPT, checkpoint_id);
     }
 
     /* get a pointer to the hash for this rank, and then to the file for this rank */
-    scr_hash* rank_hash = scr_hash_set_kv_int(ckpt_hash, SCR_SUMMARY_5_KEY_RANK, rank);
-    scr_hash* file_hash = scr_hash_set_kv(    rank_hash, SCR_SUMMARY_5_KEY_FILE, base);
+    kvtree* rank_hash = kvtree_set_kv_int(ckpt_hash, SCR_SUMMARY_5_KEY_RANK, rank);
+    kvtree* file_hash = kvtree_set_kv(    rank_hash, SCR_SUMMARY_5_KEY_FILE, base);
 
     /* set the file size, and the crc32 value if it was computed */
-    scr_hash_util_set_bytecount(file_hash, SCR_SUMMARY_5_KEY_SIZE, exp_filesize);
+    kvtree_util_set_bytecount(file_hash, SCR_SUMMARY_5_KEY_SIZE, exp_filesize);
     if (crc_computed) {
-      scr_hash_util_set_crc32(file_hash, SCR_SUMMARY_5_KEY_CRC, crc);
+      kvtree_util_set_crc32(file_hash, SCR_SUMMARY_5_KEY_CRC, crc);
     }
 
     /* if the file is incomplete, set the incomplete field for this file */
     if (! complete) {
       all_complete = 0;
-      scr_hash_set_kv_int(file_hash, SCR_SUMMARY_5_KEY_COMPLETE, 0);
+      kvtree_set_kv_int(file_hash, SCR_SUMMARY_5_KEY_COMPLETE, 0);
     }
 
     /* check that the checkpoint id matches all other checkpoint ids in the file */
@@ -204,8 +204,8 @@ static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash
   /* we've read in all of the records, now set the values for the complete field
    * and the number of ranks field */
   if (ckpt_hash != NULL) {
-    scr_hash_set_kv_int(ckpt_hash, SCR_SUMMARY_5_KEY_COMPLETE, all_complete);
-    scr_hash_set_kv_int(ckpt_hash, SCR_SUMMARY_5_KEY_RANKS, all_ranks);
+    kvtree_set_kv_int(ckpt_hash, SCR_SUMMARY_5_KEY_COMPLETE, all_complete);
+    kvtree_set_kv_int(ckpt_hash, SCR_SUMMARY_5_KEY_RANKS, all_ranks);
   }
 
   /* close the file */
@@ -214,7 +214,7 @@ static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash
   /* if we found any problems while reading the file, clear the hash and return with an error */
   if (bad_values) {
     /* clear the hash, since we may have set bad values */
-    scr_hash_unset_all(summary_hash);
+    kvtree_unset_all(summary_hash);
     scr_free(&summary_file);
     return SCR_FAILURE;
   }
@@ -227,11 +227,11 @@ static int scr_summary_read_v4_to_v5(const scr_path* dir, scr_hash* summary_hash
 }
 
 /* verify the hash is a valid hash for a version 5 summary file */
-static int scr_summary_check_v5(scr_hash* hash)
+static int scr_summary_check_v5(kvtree* hash)
 {
   /* check that the summary file version is something we support */
   int version;
-  if (scr_hash_util_get_int(hash, SCR_SUMMARY_KEY_VERSION, &version) != SCR_SUCCESS) {
+  if (kvtree_util_get_int(hash, SCR_SUMMARY_KEY_VERSION, &version) != KVTREE_SUCCESS) {
     /* couldn't find version number */
     scr_err("Failed to read version number in summary file @ %s:%d",
       __FILE__, __LINE__
@@ -248,8 +248,8 @@ static int scr_summary_check_v5(scr_hash* hash)
   }
 
   /* check that we have exactly one checkpoint */
-  scr_hash* ckpt_hash = scr_hash_get(hash, SCR_SUMMARY_5_KEY_CKPT);
-  if (scr_hash_size(ckpt_hash) != 1) {
+  kvtree* ckpt_hash = kvtree_get(hash, SCR_SUMMARY_5_KEY_CKPT);
+  if (kvtree_size(ckpt_hash) != 1) {
     scr_err("More than one checkpoint found in summary file @ %s:%d",
       __FILE__, __LINE__
     );
@@ -257,12 +257,12 @@ static int scr_summary_check_v5(scr_hash* hash)
   }
 
   /* get the first (and only) checkpoint id */
-  char* ckpt_str = scr_hash_elem_get_first_val(hash, SCR_SUMMARY_5_KEY_CKPT);
-  scr_hash* ckpt = scr_hash_get(ckpt_hash, ckpt_str);
+  char* ckpt_str = kvtree_elem_get_first_val(hash, SCR_SUMMARY_5_KEY_CKPT);
+  kvtree* ckpt = kvtree_get(ckpt_hash, ckpt_str);
 
   /* check that the complete string is set and is set to 1 */
   int complete;
-  if (scr_hash_util_get_int(ckpt, SCR_SUMMARY_5_KEY_COMPLETE, &complete) != SCR_SUCCESS) {
+  if (kvtree_util_get_int(ckpt, SCR_SUMMARY_5_KEY_COMPLETE, &complete) != KVTREE_SUCCESS) {
     /* could not find complete value (assume it's incomplete) */
     return SCR_FAILURE;
   }
@@ -273,7 +273,7 @@ static int scr_summary_check_v5(scr_hash* hash)
 
   /* read in the the number of ranks for this checkpoint */
   int ranks;
-  if (scr_hash_util_get_int(ckpt, SCR_SUMMARY_5_KEY_RANKS, &ranks) != SCR_SUCCESS) {
+  if (kvtree_util_get_int(ckpt, SCR_SUMMARY_5_KEY_RANKS, &ranks) != KVTREE_SUCCESS) {
     scr_err("Failed to read number of ranks in summary file @ %s:%d",
       __FILE__, __LINE__
     );
@@ -292,7 +292,7 @@ static int scr_summary_check_v5(scr_hash* hash)
 }
 
 /* read in the summary file from dir */
-static int scr_summary_read_v5(const scr_path* dir, scr_hash* summary_hash)
+static int scr_summary_read_v5(const spath* dir, kvtree* summary_hash)
 {
   /* check that we got a pointer to a hash */
   if (summary_hash == NULL) {
@@ -303,18 +303,18 @@ static int scr_summary_read_v5(const scr_path* dir, scr_hash* summary_hash)
   int rc = SCR_FAILURE;
 
   /* build the summary filename */
-  scr_path* summary_path = scr_path_dup(dir);
-  scr_path_append_str(summary_path, "summary.scr");
-  char* summary_file = scr_path_strdup(summary_path);
+  spath* summary_path = spath_dup(dir);
+  spath_append_str(summary_path, "summary.scr");
+  char* summary_file = spath_strdup(summary_path);
 
   /* check whether we can read the file before we actually try,
-   * we take this step to avoid printing an error in scr_hash_read */
+   * we take this step to avoid printing an error in kvtree_read */
   if (scr_file_is_readable(summary_file) != SCR_SUCCESS) {
     goto cleanup;
   }
 
   /* read in the summary hash file */
-  if (scr_hash_read_path(summary_path, summary_hash) != SCR_SUCCESS) {
+  if (kvtree_read_path(summary_path, summary_hash) != KVTREE_SUCCESS) {
     scr_err("Reading summary file %s @ %s:%d",
       summary_file, __FILE__, __LINE__
     );
@@ -327,13 +327,13 @@ static int scr_summary_read_v5(const scr_path* dir, scr_hash* summary_hash)
 cleanup:
   /* free the summary path */
   scr_free(&summary_file);
-  scr_path_delete(&summary_path);
+  spath_delete(&summary_path);
 
   return rc;
 }
 
 /* read in the summary file from dir */
-static int scr_summary_read_v6(const scr_path* dir, scr_hash* summary_hash)
+static int scr_summary_read_v6(const spath* dir, kvtree* summary_hash)
 {
   /* check that we got a pointer to a hash */
   if (summary_hash == NULL) {
@@ -344,19 +344,19 @@ static int scr_summary_read_v6(const scr_path* dir, scr_hash* summary_hash)
   int rc = SCR_FAILURE;
 
   /* build the summary filename */
-  scr_path* summary_path = scr_path_dup(dir);
-  scr_path_append_str(summary_path, ".scr");
-  scr_path_append_str(summary_path, "summary.scr");
-  char* summary_file = scr_path_strdup(summary_path);
+  spath* summary_path = spath_dup(dir);
+  spath_append_str(summary_path, ".scr");
+  spath_append_str(summary_path, "summary.scr");
+  char* summary_file = spath_strdup(summary_path);
 
   /* check whether we can read the file before we actually try,
-   * we take this step to avoid printing an error in scr_hash_read */
+   * we take this step to avoid printing an error in kvtree_read */
   if (scr_file_is_readable(summary_file) != SCR_SUCCESS) {
     goto cleanup;
   }
 
   /* read in the summary hash file */
-  if (scr_hash_read(summary_file, summary_hash) != SCR_SUCCESS) {
+  if (kvtree_read_file(summary_file, summary_hash) != KVTREE_SUCCESS) {
     scr_err("Reading summary file %s @ %s:%d",
       summary_file, __FILE__, __LINE__
     );
@@ -365,7 +365,7 @@ static int scr_summary_read_v6(const scr_path* dir, scr_hash* summary_hash)
 
   /* read the version from the summary hash */
   int version;
-  if (scr_hash_util_get_int(summary_hash, SCR_SUMMARY_KEY_VERSION, &version) != SCR_SUCCESS) {
+  if (kvtree_util_get_int(summary_hash, SCR_SUMMARY_KEY_VERSION, &version) != KVTREE_SUCCESS) {
     scr_err("Failed to read version from summary file %s @ %s:%d",
       summary_file, __FILE__, __LINE__
     );
@@ -386,12 +386,12 @@ static int scr_summary_read_v6(const scr_path* dir, scr_hash* summary_hash)
 cleanup:
   /* free the summary file string */
   scr_free(&summary_file);
-  scr_path_delete(&summary_path);
+  spath_delete(&summary_path);
 
   return rc;
 }
 
-static int scr_summary_convert_v5_to_v6(scr_hash* old, scr_hash* new)
+static int scr_summary_convert_v5_to_v6(kvtree* old, kvtree* new)
 {
   /* TODO: convert into a version 6 hash */
 
@@ -399,7 +399,7 @@ static int scr_summary_convert_v5_to_v6(scr_hash* old, scr_hash* new)
 }
 
 /* read in the summary file from dir */
-int scr_summary_read(const scr_path* dir, scr_hash* summary_hash)
+int scr_summary_read(const spath* dir, kvtree* summary_hash)
 {
   /* check that we have pointers to a hash */
   if (summary_hash == NULL) {
@@ -407,12 +407,12 @@ int scr_summary_read(const scr_path* dir, scr_hash* summary_hash)
   }
 
   /* clear the hash */
-  scr_hash_unset_all(summary_hash);
+  kvtree_unset_all(summary_hash);
 
   /* attempt to read the summary file, assuming it is in version 5 format */
   if (scr_summary_read_v6(dir, summary_hash) != SCR_SUCCESS) {
     /* failed to read file as version 6 format, try to get a version 5 hash */
-    scr_hash* summary_hash_v5 = scr_hash_new();
+    kvtree* summary_hash_v5 = kvtree_new();
     if (scr_summary_read_v5(dir, summary_hash_v5) != SCR_SUCCESS) {
       /* failed to read the summary file, try again, but now assume an older format */
       if (scr_summary_read_v4_to_v5(dir, summary_hash_v5) != SCR_SUCCESS) {
@@ -421,7 +421,7 @@ int scr_summary_read(const scr_path* dir, scr_hash* summary_hash)
         scr_err("Reading summary file in %s @ %s:%d",
           dir, __FILE__, __LINE__
         );
-        scr_hash_delete(&summary_hash_v5);
+        kvtree_delete(&summary_hash_v5);
         return SCR_FAILURE;
       }
     }
@@ -432,7 +432,7 @@ int scr_summary_read(const scr_path* dir, scr_hash* summary_hash)
       scr_err("Invalid version 5 summary file in %s @ %s:%d",
         dir, __FILE__, __LINE__
       );
-      scr_hash_delete(&summary_hash_v5);
+      kvtree_delete(&summary_hash_v5);
       return SCR_FAILURE;
     }
 
@@ -442,10 +442,10 @@ int scr_summary_read(const scr_path* dir, scr_hash* summary_hash)
       scr_err("Invalid version 5 summary file in %s @ %s:%d",
         dir, __FILE__, __LINE__
       );
-      scr_hash_delete(&summary_hash_v5);
+      kvtree_delete(&summary_hash_v5);
       return SCR_FAILURE;
     }
-    scr_hash_delete(&summary_hash_v5);
+    kvtree_delete(&summary_hash_v5);
   }
 
   /* TODO: check that hash looks like a version 6 hash */
@@ -454,43 +454,43 @@ int scr_summary_read(const scr_path* dir, scr_hash* summary_hash)
 }
 
 /* write out the summary file to dir */
-int scr_summary_write(const scr_path* dir, const scr_dataset* dataset, int all_complete, scr_hash* data)
+int scr_summary_write(const spath* dir, const scr_dataset* dataset, int all_complete, kvtree* data)
 {
   /* build the summary filename */
-  scr_path* summary_path = scr_path_dup(dir);
-  scr_path_append_str(summary_path, ".scr");
-  scr_path_append_str(summary_path, "summary.scr");
+  spath* summary_path = spath_dup(dir);
+  spath_append_str(summary_path, ".scr");
+  spath_append_str(summary_path, "summary.scr");
 
   /* create an empty hash to build our summary info */
-  scr_hash* summary_hash = scr_hash_new();
+  kvtree* summary_hash = kvtree_new();
 
   /* write the summary file version number */
-  scr_hash_util_set_int(summary_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_6);
+  kvtree_util_set_int(summary_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_6);
 
   /* mark whether the flush is complete in the summary file */
-  scr_hash_util_set_int(summary_hash, SCR_SUMMARY_6_KEY_COMPLETE, all_complete);
+  kvtree_util_set_int(summary_hash, SCR_SUMMARY_6_KEY_COMPLETE, all_complete);
 
   /* write the dataset descriptor */
-  scr_hash* dataset_hash = scr_hash_new();
-  scr_hash_merge(dataset_hash, dataset);
-  scr_hash_set(summary_hash, SCR_SUMMARY_6_KEY_DATASET, dataset_hash);
+  kvtree* dataset_hash = kvtree_new();
+  kvtree_merge(dataset_hash, dataset);
+  kvtree_set(summary_hash, SCR_SUMMARY_6_KEY_DATASET, dataset_hash);
 
   /* for each file, insert hash listing filename, then file size, crc,
    * and incomplete flag under that */
-  scr_hash_merge(summary_hash, data);
+  kvtree_merge(summary_hash, data);
 
   /* write the number of ranks used to write this dataset */
-  scr_hash* rank2file_hash = scr_hash_get(summary_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
-  scr_hash_util_set_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, scr_ranks_world);
+  kvtree* rank2file_hash = kvtree_get(summary_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
+  kvtree_util_set_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, scr_ranks_world);
 
   /* write the hash to a file */
-  scr_hash_write_path(summary_path, summary_hash);
+  kvtree_write_path(summary_path, summary_hash);
 
   /* free the hash object */
-  scr_hash_delete(&summary_hash);
+  kvtree_delete(&summary_hash);
 
   /* free the file name string */
-  scr_path_delete(&summary_path);
+  spath_delete(&summary_path);
 
   return SCR_SUCCESS;
 }

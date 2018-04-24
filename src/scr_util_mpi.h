@@ -42,8 +42,8 @@ MPI utility functions
 =========================================
 */
 
-/* returns true (non-zero) if flag on each process in scr_comm_world is true */
-int scr_alltrue(int flag);
+/* returns true (non-zero) if flag on each process in comm is true */
+int scr_alltrue(int flag, MPI_Comm comm);
 
 /* rank 0 prints a message and calls MPI_Abort, while others wait in a barrier */
 #define SCR_ALLABORT(X, ...)  \

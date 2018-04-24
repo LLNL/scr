@@ -15,56 +15,56 @@
 #define SCR_INDEX_API_H
 
 #include <stdio.h>
-#include "scr_path.h"
-#include "scr_hash.h"
+#include "spath.h"
+#include "kvtree.h"
 #include "scr_dataset.h"
 
 /* read the index file from given directory and merge its contents into the given hash */
-int scr_index_read(const scr_path* dir, scr_hash* index);
+int scr_index_read(const spath* dir, kvtree* index);
 
 /* overwrite the contents of the index file in given directory with given hash */
-int scr_index_write(const scr_path* dir, scr_hash* index);
+int scr_index_write(const spath* dir, kvtree* index);
 
 /* add given dataset id and dataset name to given hash */
-int scr_index_add_name(scr_hash* index, int id, const char* name);
+int scr_index_add_name(kvtree* index, int id, const char* name);
 
 /* remove given dataset name from hash */
-int scr_index_remove(scr_hash* index, const char* name);
+int scr_index_remove(kvtree* index, const char* name);
 
 /* set dataset name as current to restart from */
-int scr_index_set_current(scr_hash* index, const char* name);
+int scr_index_set_current(kvtree* index, const char* name);
 
 /* get dataset name as current to restart from */
-int scr_index_get_current(scr_hash* index, char** name);
+int scr_index_get_current(kvtree* index, char** name);
 
 /* unset dataset name as current to restart from */
-int scr_index_unset_current(scr_hash* index);
+int scr_index_unset_current(kvtree* index);
 
 /* write completeness code (0 or 1) for given dataset id and name in given hash */
-int scr_index_set_dataset(scr_hash* index, int id, const char* name, const scr_dataset* dataset, int complete);
+int scr_index_set_dataset(kvtree* index, int id, const char* name, const scr_dataset* dataset, int complete);
 
 /* write completeness code (0 or 1) for given dataset id and name in given hash */
-int scr_index_set_complete(scr_hash* index, int id, const char* name, int complete);
+int scr_index_set_complete(kvtree* index, int id, const char* name, int complete);
 
 /* record fetch event for given dataset id and name in given hash */
-int scr_index_mark_fetched(scr_hash* index, int id, const char* name);
+int scr_index_mark_fetched(kvtree* index, int id, const char* name);
 
 /* record failed fetch event for given dataset id and name in given hash */
-int scr_index_mark_failed(scr_hash* index, int id, const char* name);
+int scr_index_mark_failed(kvtree* index, int id, const char* name);
 
 /* record flush time for given dataset id and name in given hash */
-int scr_index_mark_flushed(scr_hash* index, int id, const char* name);
+int scr_index_mark_flushed(kvtree* index, int id, const char* name);
 
 /* get completeness code for given dataset id and name in given hash,
  * sets complete=0 and returns SCR_FAILURE if key is not set */
-int scr_index_get_complete(scr_hash* index, int id, const char* name, int* complete);
+int scr_index_get_complete(kvtree* index, int id, const char* name, int* complete);
 
 /* lookup the dataset id corresponding to the given dataset name name in given hash
  * (assumes a name maps to a single dataset id) */
-int scr_index_get_id_by_name(const scr_hash* index, const char* name, int* id);
+int scr_index_get_id_by_name(const kvtree* index, const char* name, int* id);
 
 /* lookup the most recent complete dataset id and name whose id is less than earlier_than
  * setting earlier_than = -1 disables this filter */
-int scr_index_get_most_recent_complete(const scr_hash* index, int earlier_than, int* id, char* name);
+int scr_index_get_most_recent_complete(const kvtree* index, int earlier_than, int* id, char* name);
 
 #endif

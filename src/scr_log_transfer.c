@@ -178,7 +178,7 @@ int main (int argc, char *argv[])
     return 1;
   }
 
-  char* value = NULL;
+  const char* value = NULL;
 
   /* read in job parameters (if user didn't specify them) */
   if (args.username == NULL) {

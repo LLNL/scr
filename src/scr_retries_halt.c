@@ -14,13 +14,14 @@
 
 #include "scr.h"
 #include "scr_io.h"
-#include "scr_path.h"
 #include "scr_util.h"
 #include "scr_err.h"
-#include "scr_hash.h"
-#include "scr_hash_util.h"
 #include "scr_param.h"
 #include "scr_halt.h"
+
+#include "spath.h"
+#include "kvtree.h"
+#include "kvtree_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,15 +109,15 @@ int main (int argc, char *argv[])
 
   /* TODO: hopefully we don't abort right here and exit with wrong return code */
   /* create path to halt file */
-  scr_path* halt_file = scr_path_from_str(args.dir);
-  scr_path_append_str(halt_file, NAME);
-  char* file = scr_path_strdup(halt_file);
+  spath* halt_file = spath_from_str(args.dir);
+  spath_append_str(halt_file, NAME);
+  char* file = spath_strdup(halt_file);
 
   /* if we don't have a halt file, we're ok to continue */
   if (scr_file_exists(file) != SCR_SUCCESS) {
     printf("%s: CONTINUE RUN: No halt file found.\n", PROG);
     scr_free(&file);
-    scr_path_delete(&halt_file);
+    spath_delete(&halt_file);
     return DONT_HALT;
   }
 
@@ -124,7 +125,7 @@ int main (int argc, char *argv[])
   int rc = DONT_HALT;
 
   /* create a new hash to hold the file data */
-  scr_hash* scr_halt_hash = scr_hash_new();
+  kvtree* scr_halt_hash = kvtree_new();
 
   /* read in our halt file */
   if (scr_halt_read(halt_file, scr_halt_hash) != SCR_SUCCESS) {
@@ -140,7 +141,7 @@ int main (int argc, char *argv[])
   gettimeofday(&tv, NULL);
   int now = tv.tv_sec;
 
-  char* value = NULL;
+  const char* value = NULL;
 
   /* initialize our halt seconds */
   int halt_seconds = 0;
@@ -153,10 +154,10 @@ int main (int argc, char *argv[])
   scr_param_finalize();
 
   /* if halt seconds is set in halt file, use this value instead */
-  scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_SECONDS, &halt_seconds);
+  kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_SECONDS, &halt_seconds);
 
   /* check whether a reason has been specified */
-  if (scr_hash_util_get_str(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON, &value) == SCR_SUCCESS) {
+  if (kvtree_util_get_str(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON, &value) == KVTREE_SUCCESS) {
     if (strcmp(value, "") != 0) {
       printf("%s: HALT RUN: Reason: %s.\n", PROG, value);
       rc = NEED_HALT;
@@ -165,7 +166,7 @@ int main (int argc, char *argv[])
 
   /* check whether we are out of checkpoints */
   int checkpoints_left;
-  if (scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_CHECKPOINTS, &checkpoints_left) == SCR_SUCCESS) {
+  if (kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_CHECKPOINTS, &checkpoints_left) == KVTREE_SUCCESS) {
     if (checkpoints_left == 0) {
       printf("%s: HALT RUN: No checkpoints remaining.\n", PROG);
       rc = NEED_HALT;
@@ -174,7 +175,7 @@ int main (int argc, char *argv[])
 
   /* check whether we need to exit before a specified time */
   int exit_before;
-  if (scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_BEFORE, &exit_before) == SCR_SUCCESS) {
+  if (kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_BEFORE, &exit_before) == KVTREE_SUCCESS) {
     if (now >= (exit_before - halt_seconds)) {
       time_t time_now  = (time_t) now;
       time_t time_exit = (time_t) exit_before - halt_seconds;
@@ -191,7 +192,7 @@ int main (int argc, char *argv[])
 
   /* check whether we need to exit after a specified time */
   int exit_after;
-  if (scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_AFTER, &exit_after) == SCR_SUCCESS) {
+  if (kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_AFTER, &exit_after) == KVTREE_SUCCESS) {
     if (now >= exit_after) {
       time_t time_now  = (time_t) now;
       time_t time_exit = (time_t) exit_after;
@@ -206,11 +207,11 @@ int main (int argc, char *argv[])
 
 cleanup:
   /* delete the hash holding the halt file data */
-  scr_hash_delete(&scr_halt_hash);
+  kvtree_delete(&scr_halt_hash);
 
   /* free off our file name storage */
   scr_free(&file);
-  scr_path_delete(&halt_file);
+  spath_delete(&halt_file);
 
   /* return appropriate exit code */
   return rc;

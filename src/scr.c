@@ -50,6 +50,12 @@ typedef enum {
 /* initialize our state to uninit */
 static SCR_STATE scr_state = SCR_STATE_UNINIT;
 
+/* tracks set of files in current dataset */
+static scr_filemap* scr_map = NULL;
+
+/* tracks redundancy descriptor for current dataset */
+static scr_reddesc* scr_rd = NULL;
+
 /* look up redundancy descriptor we should use for this dataset */
 static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_reddesc* descs)
 {
@@ -117,22 +123,6 @@ static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_
   return d;
 }
 
-/* looks up dataset id in filemap and returns its redundancy descriptor */
-static scr_reddesc* scr_get_reddesc_from_filemap(const scr_filemap* map, int id, int ndescs, scr_reddesc* descs)
-{
-  /* get dataset from filemap for this dataset id */
-  scr_dataset* dataset = scr_dataset_new();
-  scr_filemap_get_dataset(map, id, scr_my_rank_world, dataset);
-
-  /* lookup redundancy descriptor for this dataset */
-  scr_reddesc* d = scr_get_reddesc(dataset, ndescs, descs);
-
-  /* free the dataset */
-  scr_dataset_delete(&dataset);
-
-  return d;
-}
-
 /*
 =========================================
 Halt logic
@@ -148,7 +138,7 @@ static int scr_halt(const char* reason)
 {
   /* copy reason if one was given */
   if (reason != NULL) {
-    scr_hash_util_set_str(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON, reason);
+    kvtree_util_set_str(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON, reason);
   }
 
   /* log the halt condition */
@@ -183,7 +173,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
     /* set halt seconds to value found in our halt hash */
     int halt_seconds;
-    if (scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_SECONDS, &halt_seconds) != SCR_SUCCESS) {
+    if (kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_SECONDS, &halt_seconds) != KVTREE_SUCCESS) {
       /* didn't find anything, so set value to 0 */
       halt_seconds = 0;
     }
@@ -204,7 +194,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
     /* check whether a reason has been specified */
     char* reason;
-    if (scr_hash_util_get_str(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON, &reason) == SCR_SUCCESS) {
+    if (kvtree_util_get_str(scr_halt_hash, SCR_HALT_KEY_EXIT_REASON, &reason) == KVTREE_SUCCESS) {
       if (strcmp(reason, "") != 0) {
         /* got a reason, but let's ignore SCR_FINALIZE_CALLED if it's set
          * and assume user restarted intentionally */
@@ -224,7 +214,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
     /* check whether we are out of checkpoints */
     int checkpoints_left;
-    if (scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_CHECKPOINTS, &checkpoints_left) == SCR_SUCCESS) {
+    if (kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_CHECKPOINTS, &checkpoints_left) == KVTREE_SUCCESS) {
       if (checkpoints_left == 0) {
         if (halt_cond == SCR_TEST_AND_HALT) {
           scr_dbg(0, "Job exiting: No more checkpoints remaining.");
@@ -236,7 +226,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
     /* check whether we need to exit before a specified time */
     int exit_before;
-    if (scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_BEFORE, &exit_before) == SCR_SUCCESS) {
+    if (kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_BEFORE, &exit_before) == KVTREE_SUCCESS) {
       if (now >= (exit_before - halt_seconds)) {
         if (halt_cond == SCR_TEST_AND_HALT) {
           time_t time_now  = (time_t) now;
@@ -256,7 +246,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
     /* check whether we need to exit after a specified time */
     int exit_after;
-    if (scr_hash_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_AFTER, &exit_after) == SCR_SUCCESS) {
+    if (kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_AFTER, &exit_after) == KVTREE_SUCCESS) {
       if (now >= exit_after) {
         if (halt_cond == SCR_TEST_AND_HALT) {
           time_t time_now  = (time_t) now;
@@ -288,20 +278,19 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
         /* neither strdup nor free */
 #ifdef HAVE_LIBCPPR
         /* it's faster to wait on async flush if we have CPPR  */
-        scr_flush_async_wait(scr_map);
+        scr_flush_async_wait(scr_cindex);
 #else
-        scr_reddesc* reddesc = scr_get_reddesc_from_filemap(scr_map, scr_dataset_id, scr_nreddescs, scr_reddescs);
-        int storedesc_index = scr_storedescs_index_from_name(reddesc->base);
-        char* type = scr_storedescs[storedesc_index].type;
+        const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, scr_dataset_id);
+        const char* type = storedesc->type;
         if (!strcmp(type, "DATAWARP") || !strcmp(type, "DW")) {
-          scr_flush_async_wait(scr_map);
+          scr_flush_async_wait(scr_cindex);
         } else { //if type posix
           scr_flush_async_stop();
         }
 #endif
       } else {
         /* the async flush is flushing a different dataset, so wait for it */
-        scr_flush_async_wait(scr_map);
+        scr_flush_async_wait(scr_cindex);
       }
     }
 
@@ -310,7 +299,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
       if (scr_my_rank_world == 0) {
 	scr_dbg(2, "sync flush due to need to halt @ %s:%d", __FILE__, __LINE__);
       }
-      scr_flush_sync(scr_map, scr_ckpt_dset_id);
+      scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
     }
 
     /* give our async flush method a chance to shut down */
@@ -372,14 +361,14 @@ Utility functions
 */
 
 /* check whether a flush is needed, and execute flush if so */
-static int scr_check_flush(scr_filemap* map)
+static int scr_check_flush(scr_cache_index* map)
 {
   /* assume we don't have to flush */
   int need_flush = 0;
 
   /* get info for current dataset */
   scr_dataset* dataset = scr_dataset_new();
-  scr_filemap_get_dataset(map, scr_dataset_id, scr_my_rank_world, dataset);
+  scr_cache_index_get_dataset(map, scr_dataset_id, dataset);
 
   /* if this is output we have to flush */
   int is_output = scr_dataset_is_output(dataset);
@@ -408,17 +397,17 @@ static int scr_check_flush(scr_filemap* map)
       if (scr_flush_async_in_progress) {
         /* we need to flush the current dataset, however, another flush is ongoing,
          * so wait for this other flush to complete before starting the next one */
-        scr_flush_async_wait(map);
+        scr_flush_async_wait(scr_cindex);
       }
 
       /* start an async flush on the current dataset id */
-      scr_flush_async_start(map, scr_dataset_id);
+      scr_flush_async_start(scr_cindex, scr_dataset_id);
     } else {
       /* synchronously flush the current dataset */
       if (scr_my_rank_world == 0) {
         scr_dbg(2, "sync flush attempt @ %s:%d", __FILE__, __LINE__);
       }
-      scr_flush_sync(map, scr_dataset_id);
+      scr_flush_sync(scr_cindex, scr_dataset_id);
     }
 
     /* free the dataset info */
@@ -448,16 +437,16 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
   char* dir = scr_cache_dir_get(reddesc, id);
 
   /* chop file to just the file name and prepend directory */
-  scr_path* path_file = scr_path_from_str(file);
-  scr_path_basename(path_file);
-  scr_path_prepend_str(path_file, dir);
+  spath* path_file = spath_from_str(file);
+  spath_basename(path_file);
+  spath_prepend_str(path_file, dir);
 
   /* copy to user's buffer */
   size_t n_size = (size_t) n;
-  scr_path_strcpy(newfile, n_size, path_file);
+  spath_strcpy(newfile, n_size, path_file);
 
   /* free the file path */
-  scr_path_delete(&path_file);
+  spath_delete(&path_file);
 
   /* free the cache directory */
   scr_free(&dir);
@@ -512,8 +501,8 @@ Configuration parameters
 /* read in environment variables */
 static int scr_get_params()
 {
-  char* value;
-  scr_hash* tmp;
+  const char* value;
+  kvtree* tmp;
   double d;
   unsigned long long ull;
 
@@ -612,16 +601,16 @@ static int scr_get_params()
 
   /* override default base control directory */
   if ((value = scr_param_get("SCR_CNTL_BASE")) != NULL) {
-    scr_cntl_base = scr_path_strdup_reduce_str(value);
+    scr_cntl_base = spath_strdup_reduce_str(value);
   } else {
-    scr_cntl_base = scr_path_strdup_reduce_str(SCR_CNTL_BASE);
+    scr_cntl_base = spath_strdup_reduce_str(SCR_CNTL_BASE);
   }
 
   /* override default base directory for checkpoint cache */
   if ((value = scr_param_get("SCR_CACHE_BASE")) != NULL) {
-    scr_cache_base = scr_path_strdup_reduce_str(value);
+    scr_cache_base = spath_strdup_reduce_str(value);
   } else {
-    scr_cache_base = scr_path_strdup_reduce_str(SCR_CACHE_BASE);
+    scr_cache_base = spath_strdup_reduce_str(SCR_CACHE_BASE);
   }
 
   /* set maximum number of checkpoints to keep in cache */
@@ -630,28 +619,28 @@ static int scr_get_params()
   }
 
   /* fill in a hash of group descriptors */
-  scr_groupdesc_hash = scr_hash_new();
+  scr_groupdesc_hash = kvtree_new();
   tmp = scr_param_get_hash(SCR_CONFIG_KEY_GROUPDESC);
   if (tmp != NULL) {
-    scr_hash_set(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, tmp);
+    kvtree_set(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, tmp);
   }
 
   /* fill in a hash of store descriptors */
-  scr_storedesc_hash = scr_hash_new();
+  scr_storedesc_hash = kvtree_new();
   tmp = scr_param_get_hash(SCR_CONFIG_KEY_STOREDESC);
   if (tmp != NULL) {
-    scr_hash_set(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, tmp);
+    kvtree_set(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, tmp);
   } else {
     /* TODO: consider requiring user to specify config file for this */
 
     /* create a store descriptor for the cache directory */
-    tmp = scr_hash_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cache_base);
-    scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, scr_cache_size);
+    tmp = kvtree_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cache_base);
+    kvtree_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, scr_cache_size);
 
     /* also create one for control directory if cntl != cache */
     if (strcmp(scr_cntl_base, scr_cache_base) != 0) {
-      tmp = scr_hash_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cntl_base);
-      scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, 0);
+      tmp = kvtree_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cntl_base);
+      kvtree_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, 0);
     }
   }
 
@@ -681,30 +670,30 @@ static int scr_get_params()
   }
 
   /* fill in a hash of redundancy descriptors */
-  scr_reddesc_hash = scr_hash_new();
+  scr_reddesc_hash = kvtree_new();
   if (scr_copy_type == SCR_COPY_SINGLE) {
     /* fill in info for one SINGLE checkpoint */
-    tmp = scr_hash_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_STORE,    scr_cache_base);
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "SINGLE");
+    tmp = kvtree_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_STORE,    scr_cache_base);
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "SINGLE");
   } else if (scr_copy_type == SCR_COPY_PARTNER) {
     /* fill in info for one PARTNER checkpoint */
-    tmp = scr_hash_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_STORE,    scr_cache_base);
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "PARTNER");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_GROUP,    scr_group);
+    tmp = kvtree_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_STORE,    scr_cache_base);
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "PARTNER");
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_GROUP,    scr_group);
   } else if (scr_copy_type == SCR_COPY_XOR) {
     /* fill in info for one XOR checkpoint */
-    tmp = scr_hash_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_STORE,    scr_cache_base);
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "XOR");
-    scr_hash_util_set_str(tmp, SCR_CONFIG_KEY_GROUP,    scr_group);
-    scr_hash_util_set_int(tmp, SCR_CONFIG_KEY_SET_SIZE, scr_set_size);
+    tmp = kvtree_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_STORE,    scr_cache_base);
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "XOR");
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_GROUP,    scr_group);
+    kvtree_util_set_int(tmp, SCR_CONFIG_KEY_SET_SIZE, scr_set_size);
   } else {
     /* read info from our configuration files */
     tmp = scr_param_get_hash(SCR_CONFIG_KEY_CKPTDESC);
     if (tmp != NULL) {
-      scr_hash_set(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, tmp);
+      kvtree_set(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, tmp);
     } else {
       scr_abort(-1, "Failed to define checkpoints @ %s:%d",
               __FILE__, __LINE__
@@ -827,31 +816,6 @@ static int scr_get_params()
     scr_preserve_directories = atoi(value);
   }
 
-  /* wether to store files in containers when flushing to file system */
-  if ((value = scr_param_get("SCR_USE_CONTAINERS")) != NULL) {
-    scr_use_containers = atoi(value);
-
-    /* we don't yet support containers with the async flush,
-     * need to change transfer file format for this */
-    if (scr_flush_async && scr_use_containers) {
-      scr_warn("Async flush does not yet support containers, disabling containers @ %s:%d",
-          __FILE__, __LINE__
-      );
-      scr_use_containers = 0;
-    }
-  }
-
-  /* number of bytes to store per container */
-  if ((value = scr_param_get("SCR_CONTAINER_SIZE")) != NULL) {
-    if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
-      scr_container_size = (unsigned long) ull;
-    } else {
-      scr_err("Failed to read SCR_CONTAINER_SIZE successfully @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
-  }
-
   /* override default checkpoint interval
    * (number of times to call Need_checkpoint between checkpoints) */
   if ((value = scr_param_get("SCR_CHECKPOINT_INTERVAL")) != NULL) {
@@ -876,7 +840,7 @@ static int scr_get_params()
 
   /* set scr_prefix_path and scr_prefix */
   if ((value = scr_param_get("SCR_PREFIX")) != NULL) {
-    scr_prefix_path = scr_path_from_str(value);
+    scr_prefix_path = spath_from_str(value);
   } else {
     /* if user didn't set with SCR_PREFIX,
      * pick up the current working directory as a default */
@@ -886,10 +850,10 @@ static int scr_get_params()
         __FILE__, __LINE__
       );
     }
-    scr_prefix_path = scr_path_from_str(current_dir);
+    scr_prefix_path = spath_from_str(current_dir);
   }
-  scr_path_reduce(scr_prefix_path);
-  scr_prefix = scr_path_strdup(scr_prefix_path);
+  spath_reduce(scr_prefix_path);
+  scr_prefix = spath_strdup(scr_prefix_path);
 
   /* connect to the SCR log database if enabled */
   /* NOTE: We do this inbetween our existing calls to scr_param_init and scr_param_finalize,
@@ -963,7 +927,7 @@ static int scr_start_output(const char* name, int flags)
   }
 
   /* check that we got valid name, and use a default name if not */
-  char* dataset_name = name;
+  const char* dataset_name = name;
   char dataset_name_default[SCR_MAX_FILENAME];
   if (name == NULL || strcmp(name, "") == 0) {
     /* caller didn't provide a name, so use our default */
@@ -1019,10 +983,13 @@ static int scr_start_output(const char* name, int flags)
       scr_dataset_set_ckpt(dataset, scr_checkpoint_id);
     }
   }
-  scr_hash_bcast(dataset, 0, scr_comm_world);
+  kvtree_bcast(dataset, 0, scr_comm_world);
+
+  /* allocate a fresh filemap for this output set */
+  scr_map = scr_filemap_new();
 
   /* get the redundancy descriptor for this dataset */
-  scr_reddesc* reddesc = scr_get_reddesc(dataset, scr_nreddescs, scr_reddescs);
+  scr_rd = scr_get_reddesc(dataset, scr_nreddescs, scr_reddescs);
 
   /* start the clock to record how long it takes to write output */
   if (is_ckpt && scr_my_rank_world == 0) {
@@ -1031,19 +998,19 @@ static int scr_start_output(const char* name, int flags)
     /* log the start of this checkpoint phase */
     if (scr_log_enable) {
       scr_timestamp_checkpoint_start = scr_log_seconds();
-      scr_log_event("CHECKPOINT STARTED", reddesc->base, &scr_checkpoint_id, &scr_timestamp_checkpoint_start, NULL);
+      scr_log_event("CHECKPOINT STARTED", scr_rd->base, &scr_checkpoint_id, &scr_timestamp_checkpoint_start, NULL);
     }
   }
 
   /* get an ordered list of the datasets currently in cache */
   int ndsets;
   int* dsets = NULL;
-  scr_filemap_list_datasets(scr_map, &ndsets, &dsets);
+  scr_cache_index_list_datasets(scr_cindex, &ndsets, &dsets);
 
   /* lookup the number of datasets we're allowed to keep in
    * the base for this dataset */
   int size = 0;
-  int store_index = scr_storedescs_index_from_name(reddesc->base);
+  int store_index = scr_storedescs_index_from_name(scr_rd->base);
   if (store_index >= 0) {
     size = scr_storedescs[store_index].max_count;
   }
@@ -1055,31 +1022,41 @@ static int scr_start_output(const char* name, int flags)
   int nckpts_base = 0;
   for (i=0; i < ndsets; i++) {
     /* get base for this dataset and increase count if it matches the target base */
-    base = scr_reddesc_base_from_filemap(scr_map, dsets[i], scr_my_rank_world);
-    if (base != NULL) {
-      if (strcmp(base, reddesc->base) == 0) {
-        nckpts_base++;
+    char* dataset_dir;
+    scr_cache_index_get_dir(scr_cindex, dsets[i], &dataset_dir);
+    int store_index = scr_storedescs_index_from_child_path(dataset_dir);
+    if (store_index >= 0) {
+      scr_storedesc* sd = &scr_storedescs[store_index];
+      base = sd->name;
+      if (base != NULL) {
+        if (strcmp(base, scr_rd->base) == 0) {
+          nckpts_base++;
+        }
       }
-      scr_free(&base);
     }
   }
 
   /* run through and delete datasets from base until we make room for the current one */
   int flushing = -1;
   for (i=0; i < ndsets && nckpts_base >= size; i++) {
-    base = scr_reddesc_base_from_filemap(scr_map, dsets[i], scr_my_rank_world);
-    if (base != NULL) {
-      if (strcmp(base, reddesc->base) == 0) {
-        if (! scr_flush_file_is_flushing(dsets[i])) {
-          /* this dataset is in our base, and it's not being flushed, so delete it */
-          scr_cache_delete(scr_map, dsets[i]);
-          nckpts_base--;
-        } else if (flushing == -1) {
-          /* this dataset is in our base, but we're flushing it, don't delete it */
-          flushing = dsets[i];
+    char* dataset_dir;
+    scr_cache_index_get_dir(scr_cindex, dsets[i], &dataset_dir);
+    int store_index = scr_storedescs_index_from_child_path(dataset_dir);
+    if (store_index >= 0) {
+      scr_storedesc* sd = &scr_storedescs[store_index];
+      base = sd->name;
+      if (base != NULL) {
+        if (strcmp(base, scr_rd->base) == 0) {
+          if (! scr_flush_file_is_flushing(dsets[i])) {
+            /* this dataset is in our base, and it's not being flushed, so delete it */
+            scr_cache_delete(scr_cindex, dsets[i]);
+            nckpts_base--;
+          } else if (flushing == -1) {
+            /* this dataset is in our base, but we're flushing it, don't delete it */
+            flushing = dsets[i];
+          }
         }
       }
-      scr_free(&base);
     }
   }
 
@@ -1089,10 +1066,10 @@ static int scr_start_output(const char* name, int flags)
     /* TODO: we could increase the transfer bandwidth to reduce our wait time */
 
     /* wait for this dataset to complete its flush */
-    scr_flush_async_wait(scr_map);
+    scr_flush_async_wait(scr_cindex);
 
     /* now dataset is no longer flushing, we can delete it and continue on */
-    scr_cache_delete(scr_map, flushing);
+    scr_cache_delete(scr_cindex, flushing);
     nckpts_base--;
   }
 
@@ -1100,26 +1077,25 @@ static int scr_start_output(const char* name, int flags)
   scr_free(&dsets);
 
   /* update our file map with this new dataset */
-  scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+  scr_cache_index_set_dataset(scr_cindex, scr_dataset_id, dataset);
 
   /* TODO: may want to allow user to specify these values per dataset */
   /* store variables needed for scavenge */
-  scr_hash* flushdesc = scr_hash_new();
-  scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  scr_preserve_directories);
-  scr_hash_util_set_int(flushdesc, SCR_SCAVENGE_KEY_CONTAINER, scr_use_containers);
-  scr_filemap_set_flushdesc(scr_map, scr_dataset_id, scr_my_rank_world, flushdesc);
-  scr_hash_delete(&flushdesc);
+  kvtree* flushdesc = kvtree_new();
+  kvtree_util_set_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  scr_preserve_directories);
+  scr_cache_index_set_flushdesc(scr_cindex, scr_dataset_id, flushdesc);
+  kvtree_delete(&flushdesc);
 
-  /* store the redundancy descriptor in the filemap, so if we die before completing
-   * the dataset, we'll have a record of the new directory we're about to create */
-  scr_hash* my_desc_hash = scr_hash_new();
-  scr_reddesc_store_to_hash(reddesc, my_desc_hash);
-  scr_filemap_set_desc(scr_map, scr_dataset_id, scr_my_rank_world, my_desc_hash);
-  scr_filemap_write(scr_map_file, scr_map);
-  scr_hash_delete(&my_desc_hash);
+  /* store the name of the directory we're about to create */
+  const char* dir = scr_cache_dir_get(scr_rd, scr_dataset_id);
+  scr_cache_index_set_dir(scr_cindex, scr_dataset_id, dir);
+  scr_free(&dir);
+
+  /* save cache index to disk before creating directory, so we have a record of it */
+  scr_cache_index_write(scr_cindex_file, scr_cindex);
 
   /* make directory in cache to store files for this dataset */
-  scr_cache_dir_create(reddesc, scr_dataset_id);
+  scr_cache_dir_create(scr_rd, scr_dataset_id);
 
   /* free dataset object */
   scr_dataset_delete(&dataset);
@@ -1146,13 +1122,13 @@ static int scr_complete_output(int valid)
   /* count number of files, number of bytes, and record filesize for each file
    * as written by this process */
   unsigned long my_counts[3] = {0, 0, 0};
-  scr_hash_elem* elem;
-  for (elem = scr_filemap_first_file(scr_map, scr_dataset_id, scr_my_rank_world);
+  kvtree_elem* elem;
+  for (elem = scr_filemap_first_file(scr_map);
        elem != NULL;
-       elem = scr_hash_elem_next(elem))
+       elem = kvtree_elem_next(elem))
   {
     /* get the filename */
-    char* file = scr_hash_elem_key(elem);
+    char* file = kvtree_elem_key(elem);
     my_counts[0]++;
 
     /* get size of this file */
@@ -1163,10 +1139,10 @@ static int scr_complete_output(int valid)
 
     /* fill in filesize and complete flag in the meta data for the file */
     scr_meta* meta = scr_meta_new();
-    scr_filemap_get_meta(scr_map, scr_dataset_id, scr_my_rank_world, file, meta);
+    scr_filemap_get_meta(scr_map, file, meta);
     scr_meta_set_filesize(meta, filesize);
     scr_meta_set_complete(meta, valid);
-    scr_filemap_set_meta(scr_map, scr_dataset_id, scr_my_rank_world, file, meta);
+    scr_filemap_set_meta(scr_map, file, meta);
     scr_meta_delete(&meta);
   }
 
@@ -1182,7 +1158,7 @@ static int scr_complete_output(int valid)
 
   /* get dataset from filemap */
   scr_dataset* dataset = scr_dataset_new();
-  scr_filemap_get_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+  scr_cache_index_get_dataset(scr_cindex, scr_dataset_id, dataset);
 
   /* get flags for this dataset */
   int is_ckpt   = scr_dataset_is_ckpt(dataset);
@@ -1198,15 +1174,15 @@ static int scr_complete_output(int valid)
     /* at least one rank has valid=0, so incomplete */
     scr_dataset_set_complete(dataset, 0);
   }
-  scr_filemap_set_dataset(scr_map, scr_dataset_id, scr_my_rank_world, dataset);
+  scr_cache_index_set_dataset(scr_cindex, scr_dataset_id, dataset);
 
   /* write out info to filemap */
-  scr_filemap_write(scr_map_file, scr_map);
+  scr_cache_set_map(scr_cindex, scr_dataset_id, scr_map);
 
   /* TODO: PRESERVE preprocess info needed for flush/scavenge, e.g., container offsets,
    * list of directories to create, etc. we should also apply redundancy to this info,
    * this could be done in flush, but it's hard to do in scavenge */
-  if (scr_flush_verify(scr_map, scr_dataset_id) != SCR_SUCCESS) {
+  if (scr_flush_verify(scr_cindex, scr_dataset_id) != SCR_SUCCESS) {
     scr_abort(-1, "Dataset cannot be flushed @ %s:%d",
       __FILE__, __LINE__
     );
@@ -1214,8 +1190,7 @@ static int scr_complete_output(int valid)
 
   /* apply redundancy scheme */
   double bytes_copied = 0.0;
-  scr_reddesc* reddesc = scr_get_reddesc_from_filemap(scr_map, scr_dataset_id, scr_nreddescs, scr_reddescs);
-  int rc = scr_reddesc_apply(scr_map, reddesc, scr_dataset_id, &bytes_copied);
+  int rc = scr_reddesc_apply(scr_map, scr_rd, scr_dataset_id, &bytes_copied);
 
   /* record the cost of the output and log its completion */
   if (is_ckpt && scr_my_rank_world == 0) {
@@ -1238,11 +1213,11 @@ static int scr_complete_output(int valid)
       /* log the end of this checkpoint phase */
       double time_diff = scr_time_checkpoint_end - scr_time_checkpoint_start;
       time_t now = scr_log_seconds();
-      scr_log_event("CHECKPOINT COMPLETED", reddesc->base, &scr_checkpoint_id, &now, &time_diff);
+      scr_log_event("CHECKPOINT COMPLETED", scr_rd->base, &scr_checkpoint_id, &now, &time_diff);
 
       /* log the transfer details */
-      char* dir = scr_cache_dir_get(reddesc, scr_dataset_id);
-      scr_log_transfer("CHECKPOINT", reddesc->base, dir, &scr_checkpoint_id,
+      char* dir = scr_cache_dir_get(scr_rd, scr_dataset_id);
+      scr_log_transfer("CHECKPOINT", scr_rd->base, dir, &scr_checkpoint_id,
         &scr_timestamp_checkpoint_start, &cost, &bytes_copied
       );
       scr_free(&dir);
@@ -1268,10 +1243,10 @@ static int scr_complete_output(int valid)
       /* only halt on checkpoints */
       scr_bool_check_halt_and_decrement(SCR_TEST_AND_HALT, 1);
     }
-    scr_check_flush(scr_map);
+    scr_check_flush(scr_cindex);
   } else {
     /* something went wrong, so delete this checkpoint from the cache */
-    scr_cache_delete(scr_map, scr_dataset_id);
+    scr_cache_delete(scr_cindex, scr_dataset_id);
 
     /* TODODSET: probably should return error or abort if this is output */
   }
@@ -1280,9 +1255,9 @@ static int scr_complete_output(int valid)
   if (scr_flush_async_in_progress) {
     /* got an outstanding async flush, let's check it */
     double bytes = 0.0;
-    if (scr_flush_async_test(scr_map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {
+    if (scr_flush_async_test(scr_cindex, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {
       /* async flush has finished, go ahead and complete it */
-      scr_flush_async_complete(scr_map, scr_flush_async_dataset_id);
+      scr_flush_async_complete(scr_cindex, scr_flush_async_dataset_id);
     } else {
       /* not done yet, just print a progress message to the screen */
       if (scr_my_rank_world == 0) {
@@ -1295,6 +1270,12 @@ static int scr_complete_output(int valid)
 
   /* done with dataset */
   scr_dataset_delete(&dataset);
+
+  /* free off the filemap we allocated in the start call */
+  scr_filemap_delete(&scr_map);
+
+  /* set redundancy descriptor back to NULL */
+  scr_rd = NULL;
 
   /* make sure everyone is ready before we exit */
   MPI_Barrier(scr_comm_world);
@@ -1415,7 +1396,7 @@ int SCR_Init()
   }
 
   /* setup group descriptors */
-  if (scr_groupdescs_create() != SCR_SUCCESS) {
+  if (scr_groupdescs_create(scr_comm_world) != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
       scr_err("Failed to prepare one or more group descriptors @ %s:%d",
         __FILE__, __LINE__
@@ -1424,7 +1405,7 @@ int SCR_Init()
   }
 
   /* setup store descriptors (refers to group descriptors) */
-  if (scr_storedescs_create() != SCR_SUCCESS) {
+  if (scr_storedescs_create(scr_comm_world) != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
       scr_err("Failed to prepare one or more store descriptors @ %s:%d",
         __FILE__, __LINE__
@@ -1510,10 +1491,10 @@ int SCR_Init()
   }
 
   /* define the path to the .scr subdir within the prefix dir */
-  scr_path* path_prefix_scr = scr_path_dup(scr_prefix_path);
-  scr_path_append_str(path_prefix_scr, ".scr");
-  scr_prefix_scr = scr_path_strdup(path_prefix_scr);
-  scr_path_delete(&path_prefix_scr);
+  spath* path_prefix_scr = spath_dup(scr_prefix_path);
+  spath_append_str(path_prefix_scr, ".scr");
+  scr_prefix_scr = spath_strdup(path_prefix_scr);
+  spath_delete(&path_prefix_scr);
 
   /* TODO: create store descriptor for prefix directory */
   /* create the .scr subdirectory */
@@ -1527,12 +1508,12 @@ int SCR_Init()
   }
 
   /* build the control directory name: CNTL_BASE/username/scr.jobid */
-  scr_path* path_cntl_prefix = scr_path_from_str(scr_cntl_base);
-  scr_path_append_str(path_cntl_prefix, scr_username);
-  scr_path_append_strf(path_cntl_prefix, "scr.%s", scr_jobid);
-  scr_path_reduce(path_cntl_prefix);
-  scr_cntl_prefix = scr_path_strdup(path_cntl_prefix);
-  scr_path_delete(&path_cntl_prefix);
+  spath* path_cntl_prefix = spath_from_str(scr_cntl_base);
+  spath_append_str(path_cntl_prefix, scr_username);
+  spath_append_strf(path_cntl_prefix, "scr.%s", scr_jobid);
+  spath_reduce(path_cntl_prefix);
+  scr_cntl_prefix = spath_strdup(path_cntl_prefix);
+  spath_delete(&path_cntl_prefix);
 
   /* create the control directory */
   if (scr_storedesc_dir_create(scr_storedesc_cntl, scr_cntl_prefix)
@@ -1552,8 +1533,7 @@ int SCR_Init()
    * scr_node_file variable computed later */
   int num_nodes;
   MPI_Comm_rank(scr_comm_node, &scr_my_rank_host);
-  //MPI_Allreduce(&ranks_across, &num_nodes, 1, MPI_INT, MPI_MAX, scr_comm_world);
-  scr_rank_str(scr_comm_world, scr_my_hostname, &num_nodes, &scr_my_hostid);//
+  rankstr_mpi(scr_my_hostname, scr_comm_world, 0, 1, &num_nodes, &scr_my_hostid);
 
   /* create the cache directories */
   for (i=0; i < scr_nreddescs; i++) {
@@ -1584,11 +1564,11 @@ int SCR_Init()
           int node_rank;
           MPI_Comm_rank(scr_comm_node, &node_rank);
           if(node_rank == 0) {
-            scr_path* path = scr_path_from_str(reddesc->directory);
-            scr_path_append_strf(path, "node.%d", scr_my_hostid);
-            scr_path_reduce(path);
-            char* path_str = scr_path_strdup(path);
-            scr_path_delete(&path);
+            spath* path = spath_from_str(reddesc->directory);
+            spath_append_strf(path, "node.%d", scr_my_hostid);
+            spath_reduce(path);
+            char* path_str = spath_strdup(path);
+            spath_delete(&path);
             scr_mkdir(path_str, S_IRWXU | S_IRWXG);
             scr_free(&path_str);
           }
@@ -1610,21 +1590,18 @@ int SCR_Init()
   scr_env_init();
 
   /* place the halt, flush, and nodes files in the prefix directory */
-  scr_halt_file = scr_path_from_str(scr_prefix_scr);
-  scr_path_append_str(scr_halt_file, "halt.scr");
+  scr_halt_file = spath_from_str(scr_prefix_scr);
+  spath_append_str(scr_halt_file, "halt.scr");
 
-  scr_flush_file = scr_path_from_str(scr_prefix_scr);
-  scr_path_append_str(scr_flush_file, "flush.scr");
+  scr_flush_file = spath_from_str(scr_prefix_scr);
+  spath_append_str(scr_flush_file, "flush.scr");
 
-  scr_nodes_file = scr_path_from_str(scr_prefix_scr);
-  scr_path_append_str(scr_nodes_file, "nodes.scr");
+  scr_nodes_file = spath_from_str(scr_prefix_scr);
+  spath_append_str(scr_nodes_file, "nodes.scr");
 
   /* build the file names using the control directory prefix */
-  scr_map_file = scr_path_from_str(scr_cntl_prefix);
-  scr_path_append_strf(scr_map_file, "filemap_%d.scrinfo", scr_storedesc_cntl->rank);
-
-  scr_master_map_file = scr_path_from_str(scr_cntl_prefix);
-  scr_path_append_str(scr_master_map_file, "filemap.scrinfo");
+  scr_cindex_file = spath_from_str(scr_cntl_prefix);
+  spath_append_strf(scr_cindex_file, "cindex.scrinfo", scr_storedesc_cntl->rank);
 
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
   /* record the number of nodes being used in this job to the nodes file */
@@ -1632,20 +1609,20 @@ int SCR_Init()
   //  int ranks_across;
   //MPI_Comm_size(scr_comm_node_across, &ranks_across);
   if (scr_my_rank_world == 0) {
-    scr_hash* nodes_hash = scr_hash_new();
-    scr_hash_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);
-    scr_hash_write_path(scr_nodes_file, nodes_hash);
-    scr_hash_delete(&nodes_hash);
+    kvtree* nodes_hash = kvtree_new();
+    kvtree_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);
+    kvtree_write_path(scr_nodes_file, nodes_hash);
+    kvtree_delete(&nodes_hash);
   }
 
   /* initialize halt info before calling scr_bool_check_halt_and_decrement
    * and set the halt seconds in our halt data structure,
    * this will be overridden if a value is already set in the halt file */
-  scr_halt_hash = scr_hash_new();
+  scr_halt_hash = kvtree_new();
 
   /* record the halt seconds if they are set */
   if (scr_halt_seconds > 0) {
-    scr_hash_util_set_unsigned_long(scr_halt_hash, SCR_HALT_KEY_SECONDS, scr_halt_seconds);
+    kvtree_util_set_unsigned_long(scr_halt_hash, SCR_HALT_KEY_SECONDS, scr_halt_seconds);
   }
 
   /* sync everyone up */
@@ -1670,34 +1647,34 @@ int SCR_Init()
   }
 
   /* allocate a new global filemap object */
-  scr_map = scr_filemap_new();
+  scr_cindex = scr_cache_index_new();
 
   /* master on each node reads all filemaps and distributes them to other ranks
    * on the node, we take this step in case the number of ranks on this node
    * has changed since the last run */
-  scr_scatter_filemaps(scr_map);
+  scr_cache_index_read(scr_cindex_file, scr_cindex);
 
   /* attempt to distribute files for a restart */
   int rc = SCR_FAILURE;
   if (rc != SCR_SUCCESS && scr_distribute) {
     /* distribute and rebuild files in cache,
      * sets scr_dataset_id and scr_checkpoint_id upon success */
-    rc = scr_cache_rebuild(scr_map);
+    rc = scr_cache_rebuild(scr_cindex);
 
     /* if distribute succeeds, check whether we should flush on restart */
     if (rc == SCR_SUCCESS) {
       /* since the flush file is not deleted between job allocations,
        * we need to rebuild it based on what's currently in cache,
        * if the rebuild failed, we'll delete the flush file after purging the cache below */
-      scr_flush_file_rebuild(scr_map);
+      scr_flush_file_rebuild(scr_cindex);
 
       /* check whether we need to flush data */
       if (scr_flush_on_restart) {
         /* always flush on restart if scr_flush_on_restart is set */
-        scr_flush_sync(scr_map, scr_ckpt_dset_id);
+        scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
       } else {
         /* otherwise, flush only if we need to flush */
-        scr_check_flush(scr_map);
+        scr_check_flush(scr_cindex);
       }
     }
   }
@@ -1710,20 +1687,20 @@ int SCR_Init()
    * file system, clear the cache */
   if (rc != SCR_SUCCESS || scr_global_restart) {
     /* clear the cache of all files */
-    scr_cache_purge(scr_map);
+    scr_cache_purge(scr_cindex);
     scr_dataset_id    = 0;
     scr_checkpoint_id = 0;
     scr_ckpt_dset_id  = 0;
 
     /* delete the flush file which may be stale */
-    scr_flush_file_rebuild(scr_map);
+    scr_flush_file_rebuild(scr_cindex);
   }
 
   /* attempt to fetch files from parallel file system */
   int fetch_attempted = 0;
   if (rc != SCR_SUCCESS && scr_fetch) {
     /* sets scr_dataset_id and scr_checkpoint_id upon success */
-    rc = scr_fetch_sync(scr_map, &fetch_attempted);
+    rc = scr_fetch_sync(scr_cindex, &fetch_attempted);
     if (scr_my_rank_world == 0) {
       scr_dbg(2, "scr_fetch_sync attempted on restart");
     }
@@ -1736,7 +1713,7 @@ int SCR_Init()
   /* if the fetch fails, lets clear the cache */
   if (rc != SCR_SUCCESS) {
     /* clear the cache of all files */
-    scr_cache_purge(scr_map);
+    scr_cache_purge(scr_cindex);
     scr_dataset_id    = 0;
     scr_checkpoint_id = 0;
     scr_ckpt_dset_id  = 0;
@@ -1815,18 +1792,17 @@ int SCR_Finalize()
     if (scr_flush_async_dataset_id == scr_dataset_id) {
 #ifdef HAVE_LIBCPPR
       /* if we have CPPR, async flush is faster than sync flush, so let it finish */
-      scr_flush_async_wait(scr_map);
+      scr_flush_async_wait(scr_cindex);
 #else
       /* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
       /* else wait */
       /* get the TYPE of the store for checkpoint */
       /* neither strdup nor free */
-      scr_reddesc* reddesc = scr_get_reddesc_from_filemap(scr_map, scr_dataset_id, scr_nreddescs, scr_reddescs);
-      int storedesc_index = scr_storedescs_index_from_name(reddesc->base);
-      char* type = scr_storedescs[storedesc_index].type;
+      const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, scr_dataset_id);
+      const char* type = storedesc->type;
       if (strcmp(type, "DATAWARP") == 0 || strcmp(type, "DW") == 0) {
         /* wait for datawarp flushes to finish */
-        scr_flush_async_wait(scr_map);
+        scr_flush_async_wait(scr_cindex);
       } else { // if type posix
         /* kill the async flush, we'll get this with a sync flush instead */
         scr_flush_async_stop();
@@ -1834,7 +1810,7 @@ int SCR_Finalize()
 #endif
     } else {
       /* the async flush is flushing a different checkpoint, so wait for it */
-      scr_flush_async_wait(scr_map);
+      scr_flush_async_wait(scr_cindex);
     }
   }
 
@@ -1843,7 +1819,7 @@ int SCR_Finalize()
     if (scr_my_rank_world == 0) {
       scr_dbg(2, "Sync flush in SCR_Finalize @ %s:%d", __FILE__, __LINE__);
     }
-    scr_flush_sync(scr_map, scr_ckpt_dset_id);
+    scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
   }
 
   if(scr_flush_async){
@@ -1863,15 +1839,18 @@ int SCR_Finalize()
   scr_reddescs_free();
 
   /* delete the descriptor hashes */
-  scr_hash_delete(&scr_storedesc_hash);
-  scr_hash_delete(&scr_groupdesc_hash);
-  scr_hash_delete(&scr_reddesc_hash);
+  kvtree_delete(&scr_storedesc_hash);
+  kvtree_delete(&scr_groupdesc_hash);
+  kvtree_delete(&scr_reddesc_hash);
 
   /* Free memory cache of a halt file */
-  scr_hash_delete(&scr_halt_hash);
+  kvtree_delete(&scr_halt_hash);
 
   /* free off our global filemap object */
   scr_filemap_delete(&scr_map);
+
+  /* free off our global filemap object */
+  scr_cache_index_delete(&scr_cindex);
 
   /* free off the library's communicators */
   if (scr_comm_node_across != MPI_COMM_NULL) {
@@ -1897,12 +1876,11 @@ int SCR_Finalize()
   scr_free(&scr_cache_base);
   scr_free(&scr_my_hostname);
 
-  scr_path_delete(&scr_map_file);
-  scr_path_delete(&scr_master_map_file);
-  scr_path_delete(&scr_nodes_file);
-  scr_path_delete(&scr_flush_file);
-  scr_path_delete(&scr_halt_file);
-  scr_path_delete(&scr_prefix_path);
+  spath_delete(&scr_cindex_file);
+  spath_delete(&scr_nodes_file);
+  spath_delete(&scr_flush_file);
+  spath_delete(&scr_halt_file);
+  spath_delete(&scr_prefix_path);
 
   /* we're no longer in an initialized state */
   scr_initialized = 0;
@@ -2110,12 +2088,9 @@ int SCR_Route_file(const char* file, char* newfile)
     return SCR_FAILURE;
   }
 
-  /* get the redundancy descriptor for the current dataset */
-  scr_reddesc* reddesc = scr_get_reddesc_from_filemap(scr_map, scr_dataset_id, scr_nreddescs, scr_reddescs);
-
-  /* route the file */
+  /* route the file based on current redundancy descriptor */
   int n = SCR_MAX_FILENAME;
-  if (scr_route_file(reddesc, scr_dataset_id, file, newfile, n) != SCR_SUCCESS) {
+  if (scr_route_file(scr_rd, scr_dataset_id, file, newfile, n) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -2126,11 +2101,11 @@ int SCR_Route_file(const char* file, char* newfile)
      * at the moment duplicates just overwrite each other, so there's no harm */
 
     /* add the file to the filemap */
-    scr_filemap_add_file(scr_map, scr_dataset_id, scr_my_rank_world, newfile);
+    scr_filemap_add_file(scr_map, newfile);
 
     /* read meta data for this file */
     scr_meta* meta = scr_meta_new();
-    scr_filemap_get_meta(scr_map, scr_dataset_id, scr_my_rank_world, newfile, meta);
+    scr_filemap_get_meta(scr_map, newfile, meta);
 
     /* set parameters for the file */
     scr_meta_set_filename(meta, newfile);
@@ -2141,13 +2116,13 @@ int SCR_Route_file(const char* file, char* newfile)
     scr_meta_set_orig(meta, file);
 
     /* build absolute path to file */
-    scr_path* path_abs = scr_path_from_str(file);
+    spath* path_abs = spath_from_str(file);
     if (scr_preserve_directories) {
-      if (! scr_path_is_absolute(path_abs)) {
+      if (! spath_is_absolute(path_abs)) {
         /* the path is not absolute, so prepend the current working directory */
         char cwd[SCR_MAX_FILENAME];
         if (scr_getcwd(cwd, sizeof(cwd)) == SCR_SUCCESS) {
-          scr_path_prepend_str(path_abs, cwd);
+          spath_prepend_str(path_abs, cwd);
         } else {
           /* problem acquiring current working directory */
           scr_abort(-1, "Failed to build absolute path to %s @ %s:%d",
@@ -2158,43 +2133,43 @@ int SCR_Route_file(const char* file, char* newfile)
     } else {
       /* we're not preserving directories,
        * so drop file in prefix/scr.dataset.id/filename */
-      scr_path_basename(path_abs);
-      scr_path_prepend_strf(path_abs, "scr.dataset.%d", scr_dataset_id);
-      scr_path_prepend(path_abs, scr_prefix_path);
+      spath_basename(path_abs);
+      spath_prepend_strf(path_abs, "scr.dataset.%d", scr_dataset_id);
+      spath_prepend(path_abs, scr_prefix_path);
     }
 
     /* simplify the absolute path (removes "." and ".." entries) */
-    scr_path_reduce(path_abs);
+    spath_reduce(path_abs);
 
     /* check that file is somewhere under prefix */
-    if (! scr_path_is_child(scr_prefix_path, path_abs)) {
+    if (! spath_is_child(scr_prefix_path, path_abs)) {
       /* found a file that's outside of prefix, throw an error */
-      char* path_abs_str = scr_path_strdup(path_abs);
+      char* path_abs_str = spath_strdup(path_abs);
       scr_abort(-1, "File `%s' must be under SCR_PREFIX `%s' @ %s:%d",
         path_abs_str, scr_prefix, __FILE__, __LINE__
       );
     }
 
     /* cut absolute path into direcotry and file name */
-    scr_path* path_name = scr_path_cut(path_abs, -1);
+    spath* path_name = spath_cut(path_abs, -1);
 
     /* store the full path and name of the original file */
-    char* path = scr_path_strdup(path_abs);
-    char* name = scr_path_strdup(path_name);
+    char* path = spath_strdup(path_abs);
+    char* name = spath_strdup(path_name);
     scr_meta_set_origpath(meta, path);
     scr_meta_set_origname(meta, name);
     scr_free(&name);
     scr_free(&path);
 
     /* free directory and file name paths */
-    scr_path_delete(&path_name);
-    scr_path_delete(&path_abs);
+    spath_delete(&path_name);
+    spath_delete(&path_abs);
 
     /* record the meta data for this file */
-    scr_filemap_set_meta(scr_map, scr_dataset_id, scr_my_rank_world, newfile, meta);
+    scr_filemap_set_meta(scr_map, newfile, meta);
 
     /* write out the filemap */
-    scr_filemap_write(scr_map_file, scr_map);
+    scr_cache_set_map(scr_cindex, scr_dataset_id, scr_map);
 
     /* delete the meta data object */
     scr_meta_delete(&meta);
@@ -2297,7 +2272,7 @@ int SCR_Have_restart(int* flag, char* name)
     if (name != NULL) {
       char* dset_name;
       scr_dataset* dataset = scr_dataset_new();
-      scr_filemap_get_dataset(scr_map, scr_ckpt_dset_id, scr_my_rank_world, dataset);
+      scr_cache_index_get_dataset(scr_cindex, scr_ckpt_dset_id, dataset);
       scr_dataset_get_name(dataset, &dset_name);
       strncpy(name, dset_name, SCR_MAX_FILENAME);
       scr_dataset_delete(&dataset);
@@ -2348,11 +2323,14 @@ int SCR_Start_restart(char* name)
   if (name != NULL) {
     char* dset_name;
     scr_dataset* dataset = scr_dataset_new();
-    scr_filemap_get_dataset(scr_map, scr_ckpt_dset_id, scr_my_rank_world, dataset);
+    scr_cache_index_get_dataset(scr_cindex, scr_ckpt_dset_id, dataset);
     scr_dataset_get_name(dataset, &dset_name);
     strncpy(name, dset_name, SCR_MAX_FILENAME);
     scr_dataset_delete(&dataset);
   }
+
+  /* set scr_rd if we have files */
+  scr_rd = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
 
   return SCR_SUCCESS;
 }
@@ -2381,8 +2359,11 @@ int SCR_Complete_restart(int valid)
     return SCR_FAILURE;
   }
 
+  /* set redundancy descriptor back to NULL */
+  scr_rd = NULL;
+
   /* check that all procs read valid data */
-  if (! scr_alltrue(valid)) {
+  if (! scr_alltrue(valid, scr_comm_world)) {
     /* TODO: if some process fails, it would be more graceful to fetch
      * the next most recent checkpoint and cycle through
      * the have/start/complete restart calls again,
