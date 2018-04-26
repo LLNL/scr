@@ -2075,27 +2075,34 @@ int SCR_Start_checkpoint()
 /* given a filename, return the full path to the file which the user should write to */
 int SCR_Route_file(const char* file, char* newfile)
 {
+
+  /* if not enabled return original path */
+  if (! scr_enabled) {
+    strcpy(file, newfile);
+    return SCR_SUCCESS;
+  }
+
+  /* bail out if not initialized */
+  if (scr_state != SCR_STATE_UNINIT) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+  }
+
+  /* TODO: what is the right thing to do?
+     a) return original path if in IDLE state
+     b) error out because of wrong state */
+  if (scr_state == SCR_STATE_IDLE) {
+    strcpy(file, newfile);
+    return SCR_SUCCESS;
+  }
+
   /* manage state transition */
   if (scr_state != SCR_STATE_RESTART    &&
       scr_state != SCR_STATE_CHECKPOINT &&
       scr_state != SCR_STATE_OUTPUT)
   {
     scr_abort(-1, "Must call SCR_Route_file() from within Start/Complete pair @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    return SCR_FAILURE;
-  }
-
-  /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
+              __FILE__, __LINE__
+              );
   }
 
   /* get the redundancy descriptor for the current dataset */
