@@ -466,7 +466,7 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
 }
 
 /* given the current state, abort with an informative error message */
-static void scr_state_transition_error(int state, const char* function, const char* file, int line)
+static void scr_state_transition_abort(int state, const char* function, const char* file, int line)
 {
   switch(state) {
   case SCR_STATE_UNINIT:
@@ -1785,22 +1785,17 @@ int SCR_Init()
 /* Close down and clean up */
 int SCR_Finalize()
 {
+
+  /* if not enabled, bail */
+  if (! scr_enabled) {
+    return SCR_SUCCESS;
+  }
+
   /* manage state transition */
   if (scr_state != SCR_STATE_IDLE) {
-    scr_state_transition_error(scr_state, "SCR_Finalize()", __FILE__, __LINE__);
+    scr_state_transition_abort(scr_state, "SCR_Finalize()", __FILE__, __LINE__);
   }
   scr_state = SCR_STATE_UNINIT;
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    return SCR_FAILURE;
-  }
-
-  /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
-    return SCR_FAILURE;
-  }
 
   if (scr_my_rank_world == 0) {
     /* stop the clock for measuring the compute time */
@@ -1941,24 +1936,21 @@ int SCR_Finalize()
 /* sets flag to 1 if a checkpoint should be taken, flag is set to 0 otherwise */
 int SCR_Need_checkpoint(int* flag)
 {
+
+  /* if not enabled, default to true */
+  if (! scr_enabled) {
+    *flag = 1;
+    return SCR_SUCCESS;
+  }
+
+  /* SCR must be initialized */
+  if (scr_state == SCR_STATE_UNINIT) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+  }
+
   /* manage state transition */
   if (scr_state != SCR_STATE_IDLE) {
-    scr_state_transition_error(scr_state, "SCR_Need_checkpoint()", __FILE__, __LINE__);
-  }
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    *flag = 0;
-    return SCR_FAILURE;
-  }
-
-  /* say no if not initialized */
-  if (! scr_initialized) {
-    *flag = 0;
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
+    scr_state_transition_abort(scr_state, "SCR_Need_checkpoint()", __FILE__, __LINE__);
   }
 
   /* track the number of times a user has called SCR_Need_checkpoint */
@@ -2035,24 +2027,22 @@ int SCR_Need_checkpoint(int* flag)
 /* inform library that a new output dataset is starting */
 int SCR_Start_output(const char* name, int flags)
 {
+
+  /* if not enabled default to success */
+  if (! scr_enabled) {
+    return SCR_SUCCESS;
+  }
+
+  /* bail if not initialized */
+  if (scr_state == SCR_STATE_UNINIT) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+  }
+
   /* manage state transition */
   if (scr_state != SCR_STATE_IDLE) {
-    scr_state_transition_error(scr_state, "SCR_Start_output()", __FILE__, __LINE__);
+    scr_state_transition_abort(scr_state, "SCR_Start_output()", __FILE__, __LINE__);
   }
   scr_state = SCR_STATE_OUTPUT;
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    return SCR_FAILURE;
-  }
-
-  /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
 
   /* delegate the rest to start_output */
   return scr_start_output(name, flags);
@@ -2061,24 +2051,22 @@ int SCR_Start_output(const char* name, int flags)
 /* informs SCR that a fresh checkpoint set is about to start */
 int SCR_Start_checkpoint()
 {
-  /* manage state transition */
-  if (scr_state != SCR_STATE_IDLE) {
-    scr_state_transition_error(scr_state, "SCR_Start_checkpoint()", __FILE__, __LINE__);
-  }
-  scr_state = SCR_STATE_CHECKPOINT;
 
-  /* if not enabled, bail with an error */
+  /* if not enabled default to success */
   if (! scr_enabled) {
-    return SCR_FAILURE;
+    return SCR_SUCCESS;
   }
 
   /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
+  if (scr_state != SCR_STATE_UNINIT) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
   }
+
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_abort(scr_state, "SCR_Start_checkpoint()", __FILE__, __LINE__);
+  }
+  scr_state = SCR_STATE_CHECKPOINT;
 
   /* delegate the rest to start_output */
   return scr_start_output(NULL, SCR_FLAG_CHECKPOINT);
@@ -2208,29 +2196,47 @@ int SCR_Route_file(const char* file, char* newfile)
   return SCR_SUCCESS;
 }
 
+/* intelligent, collective mkdir */
+int SCR_Mkdir(const char* name)
+{
+
+  /* if not inside scr-phase wrap in rank-0 protection */
+  if (! scr_enabled ||
+      scr_state == SCR_STATE_IDLE ||
+      scr_state == SCR_STATE_UNINIT)
+  {
+    if (scr_my_rank_world == 0) {
+      return mkdir(name, 0770);
+    }
+  }
+
+  // ELSE: Inside SCR Start/Complete
+  // SCR will create dir later in process
+
+  return SCR_SUCCESS;
+}
+
 /* inform library that the current dataset is complete */
 int SCR_Complete_output(int valid)
 {
+
+  /* if not enabled return success */
+  if (! scr_enabled) {
+    return SCR_SUCCESS;
+  }
+
+  /* bail out if not initialized */
+  if (scr_state == SCR_STATE_UNINIT) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+  }
+
   /* manage state transition */
   if (scr_state != SCR_STATE_OUTPUT) {
     scr_abort(-1, "Must call SCR_Start_output() before SCR_Complete_output() @ %s:%d",
-      __FILE__, __LINE__
-    );
+              __FILE__, __LINE__
+              );
   }
   scr_state = SCR_STATE_IDLE;
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    return SCR_FAILURE;
-  }
-
-  /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
 
   return scr_complete_output(valid);
 }
@@ -2238,26 +2244,24 @@ int SCR_Complete_output(int valid)
 /* completes the checkpoint set and marks it as valid or not */
 int SCR_Complete_checkpoint(int valid)
 {
+
+  /* if not enabled return success */
+  if (! scr_enabled) {
+    return SCR_SUCCESS;
+  }
+
+  /* bail out if not initialized */
+  if (scr_state == SCR_STATE_UNINIT) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+  }
+
   /* manage state transition */
   if (scr_state != SCR_STATE_CHECKPOINT) {
     scr_abort(-1, "Must call SCR_Start_checkpoint() before SCR_Complete_checkpoint() @ %s:%d",
-      __FILE__, __LINE__
-    );
+              __FILE__, __LINE__
+              );
   }
   scr_state = SCR_STATE_IDLE;
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    return SCR_FAILURE;
-  }
-
-  /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
 
   return scr_complete_output(valid);
 }
@@ -2266,24 +2270,25 @@ int SCR_Complete_checkpoint(int valid)
  * and get name of restart if one is available */
 int SCR_Have_restart(int* flag, char* name)
 {
-  /* manage state transition */
-  if (scr_state != SCR_STATE_IDLE) {
-    scr_state_transition_error(scr_state, "SCR_Have_restart()", __FILE__, __LINE__);
+  /* check that we have a flag variable to write to */
+  if (flag == NULL) {
+    return SCR_FAILURE;
   }
 
-  /* if not enabled, bail with an error */
+  /* if not enabled return false (no restart files available) */
   if (! scr_enabled) {
     *flag = 0;
-    return SCR_FAILURE;
+    return SCR_SUCCESS;
   }
 
-  /* say no if not initialized */
-  if (! scr_initialized) {
-    *flag = 0;
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
+  /* bail out if not initialized */
+  if (scr_state == SCR_STATE_UNINIT) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+  }
+
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_abort(scr_state, "SCR_Have_restart()", __FILE__, __LINE__);
   }
 
   /* TODO: a more proper check would be to examine the filemap, perhaps across ranks */
@@ -2310,38 +2315,28 @@ int SCR_Have_restart(int* flag, char* name)
 /* inform library that restart is starting, get name of restart that is available */
 int SCR_Start_restart(char* name)
 {
+
+  /* if not enabled return success */
+  if (! scr_enabled) {
+    return SCR_SUCCESS;
+  }
+
+  /* bail out if not initialized */
+  if (scr_state == SCR_STATE_UNINIT) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+  }
+
   /* manage state transition */
   if (scr_state != SCR_STATE_IDLE) {
-    scr_state_transition_error(scr_state, "SCR_Start_restart()", __FILE__, __LINE__);
+    scr_state_transition_abort(scr_state, "SCR_Start_restart()", __FILE__, __LINE__);
   }
   scr_state = SCR_STATE_RESTART;
 
   /* only valid to call this if we have a checkpoint to restart from */
   if (! scr_have_restart) {
     scr_abort(-1, "Can only call SCR_Start_restart() if SCR_Have_restart() indicates a checkpoint is available @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    return SCR_FAILURE;
-  }
-
-  /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* bail out if there is no checkpoint to restart from */
-  if (! scr_have_restart) {
-    scr_abort(-1, "SCR has no checkpoint for restart @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
+              __FILE__, __LINE__
+              );
   }
 
   /* read dataset name from filemap */
@@ -2360,26 +2355,23 @@ int SCR_Start_restart(char* name)
 /* inform library that the current restart is complete */
 int SCR_Complete_restart(int valid)
 {
+  /* if not enabled return success */
+  if (! scr_enabled) {
+    return SCR_SUCCESS;
+  }
+
+  /* bail out if not initialized */
+  if (scr_state == SCR_STATE_UNINIT) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+  }
+
   /* manage state transition */
   if (scr_state != SCR_STATE_RESTART) {
-    scr_abort(-1, "Must call SCR_Start_restart() before SCR_Complete_restart() @ %s:%d",
-      __FILE__, __LINE__
-    );
+    scr_state_transition_abort(-1, "Must call SCR_Start_restart() before SCR_Complete_restart() @ %s:%d",
+                               __FILE__, __LINE__
+                               );
   }
   scr_state = SCR_STATE_IDLE;
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    return SCR_FAILURE;
-  }
-
-  /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
 
   /* check that all procs read valid data */
   if (! scr_alltrue(valid)) {
@@ -2409,27 +2401,25 @@ char* SCR_Get_version()
 /* query whether it is time to exit */
 int SCR_Should_exit(int* flag)
 {
-  /* manage state transition */
-  if (scr_state != SCR_STATE_IDLE) {
-    scr_state_transition_error(scr_state, "SCR_Should_exit()", __FILE__, __LINE__);
-  }
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    return SCR_FAILURE;
-  }
-
-  /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
   /* check that we have a flag variable to write to */
   if (flag == NULL) {
     return SCR_FAILURE;
+  }
+
+  /* if not enabled default to false (keep running) */
+  if (! scr_enabled) {
+    *flag = 0;
+    return SCR_SUCCESS;
+  }
+
+  /* bail out if not initialized */
+  if (scr_state == SCR_STATE_UNINIT) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
+  }
+
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_abort(scr_state, "SCR_Should_exit()", __FILE__, __LINE__);
   }
 
   /* assume we don't have to stop */
