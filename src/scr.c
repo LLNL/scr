@@ -2058,7 +2058,7 @@ int SCR_Start_checkpoint()
   }
 
   /* bail out if not initialized -- will get bad results */
-  if (scr_state != SCR_STATE_UNINIT) {
+  if (scr_state == SCR_STATE_UNINIT) {
     scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
   }
 
@@ -2083,7 +2083,7 @@ int SCR_Route_file(const char* file, char* newfile)
   }
 
   /* bail out if not initialized */
-  if (scr_state != SCR_STATE_UNINIT) {
+  if (scr_state == SCR_STATE_UNINIT) {
     scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
   }
 
