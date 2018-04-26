@@ -50,6 +50,9 @@ int SCR_Finalize(void);
 /* determine the path and filename to be used to open a file */
 int SCR_Route_file(const char* name, char* file);
 
+/* intelligent, collective mkdir */
+int SCR_Mkdir(const char* name);
+
 /*****************
  * Restart routines
  ****************/
@@ -58,7 +61,7 @@ int SCR_Route_file(const char* name, char* file);
  * and get name of restart if one is available */
 int SCR_Have_restart(int* flag, char* name);
 
-/* inform library that restart is starting, get name of 
+/* inform library that restart is starting, get name of
  * restart that is available */
 int SCR_Start_restart(char* name);
 
