@@ -117,8 +117,6 @@ Define common hash key strings
 #define SCR_FLUSH_KEY_CKPT      ("CKPT")
 #define SCR_FLUSH_KEY_OUTPUT    ("OUTPUT")
 
-#define SCR_SCAVENGE_KEY_PRESERVE  ("PRESERVE")
-#define SCR_SCAVENGE_KEY_CONTAINER ("CONTAINER")
 #define SCR_SCAVENGE_KEY_PARTNER   ("PARTNER")
 
 #define SCR_NODES_KEY_NODES ("NODES")

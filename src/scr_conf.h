@@ -186,12 +186,6 @@
 #define SCR_CRC_ON_DELETE (0)
 #endif
 
-/* whether to write output to implied user directory structure (1),
- * or place all dataset files in an SCR dataset directory (0) */
-#ifndef SCR_PRESERVE_DIRECTORIES
-#define SCR_PRESERVE_DIRECTORIES (1)
-#endif
-
 /* =========================================================================
  * The following settings adjust when SCR_Need_checkpoint() will return true.
  * If all settings are 0, all options are disabled and Need_checkpoint() always returns true.

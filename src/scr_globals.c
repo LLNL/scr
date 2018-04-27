@@ -122,8 +122,6 @@ int scr_crc_on_copy   = SCR_CRC_ON_COPY;   /* whether to enable crc32 checks dur
 int scr_crc_on_flush  = SCR_CRC_ON_FLUSH;  /* whether to enable crc32 checks during flush and fetch */
 int scr_crc_on_delete = SCR_CRC_ON_DELETE; /* whether to enable crc32 checks when deleting checkpoints */
 
-int scr_preserve_directories = SCR_PRESERVE_DIRECTORIES; /* whether to preserve user-defined directories during flush */
-
 int    scr_checkpoint_interval = SCR_CHECKPOINT_INTERVAL; /* times to call Need_checkpoint between checkpoints */
 int    scr_checkpoint_seconds  = SCR_CHECKPOINT_SECONDS;  /* min number of seconds between checkpoints */
 double scr_checkpoint_overhead = SCR_CHECKPOINT_OVERHEAD; /* max allowed overhead for checkpointing */

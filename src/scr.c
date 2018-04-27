@@ -811,11 +811,6 @@ static int scr_get_params()
     scr_crc_on_delete = atoi(value);
   }
 
-  /* whether to create user-specified directories when flushing to file system */
-  if ((value = scr_param_get("SCR_PRESERVE_DIRECTORIES")) != NULL) {
-    scr_preserve_directories = atoi(value);
-  }
-
   /* override default checkpoint interval
    * (number of times to call Need_checkpoint between checkpoints) */
   if ((value = scr_param_get("SCR_CHECKPOINT_INTERVAL")) != NULL) {
@@ -1079,10 +1074,10 @@ static int scr_start_output(const char* name, int flags)
   /* update our file map with this new dataset */
   scr_cache_index_set_dataset(scr_cindex, scr_dataset_id, dataset);
 
+  /* TODO ATM: PRESERVE */
   /* TODO: may want to allow user to specify these values per dataset */
   /* store variables needed for scavenge */
   kvtree* flushdesc = kvtree_new();
-  kvtree_util_set_int(flushdesc, SCR_SCAVENGE_KEY_PRESERVE,  scr_preserve_directories);
   scr_cache_index_set_flushdesc(scr_cindex, scr_dataset_id, flushdesc);
   kvtree_delete(&flushdesc);
 
@@ -2117,25 +2112,17 @@ int SCR_Route_file(const char* file, char* newfile)
 
     /* build absolute path to file */
     spath* path_abs = spath_from_str(file);
-    if (scr_preserve_directories) {
-      if (! spath_is_absolute(path_abs)) {
-        /* the path is not absolute, so prepend the current working directory */
-        char cwd[SCR_MAX_FILENAME];
-        if (scr_getcwd(cwd, sizeof(cwd)) == SCR_SUCCESS) {
-          spath_prepend_str(path_abs, cwd);
-        } else {
-          /* problem acquiring current working directory */
-          scr_abort(-1, "Failed to build absolute path to %s @ %s:%d",
-            file, __FILE__, __LINE__
-          );
-        }
+    if (! spath_is_absolute(path_abs)) {
+      /* the path is not absolute, so prepend the current working directory */
+      char cwd[SCR_MAX_FILENAME];
+      if (scr_getcwd(cwd, sizeof(cwd)) == SCR_SUCCESS) {
+        spath_prepend_str(path_abs, cwd);
+      } else {
+        /* problem acquiring current working directory */
+        scr_abort(-1, "Failed to build absolute path to %s @ %s:%d",
+          file, __FILE__, __LINE__
+        );
       }
-    } else {
-      /* we're not preserving directories,
-       * so drop file in prefix/scr.dataset.id/filename */
-      spath_basename(path_abs);
-      spath_prepend_strf(path_abs, "scr.dataset.%d", scr_dataset_id);
-      spath_prepend(path_abs, scr_prefix_path);
     }
 
     /* simplify the absolute path (removes "." and ".." entries) */
