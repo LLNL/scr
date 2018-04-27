@@ -1074,13 +1074,6 @@ static int scr_start_output(const char* name, int flags)
   /* update our file map with this new dataset */
   scr_cache_index_set_dataset(scr_cindex, scr_dataset_id, dataset);
 
-  /* TODO ATM: PRESERVE */
-  /* TODO: may want to allow user to specify these values per dataset */
-  /* store variables needed for scavenge */
-  kvtree* flushdesc = kvtree_new();
-  scr_cache_index_set_flushdesc(scr_cindex, scr_dataset_id, flushdesc);
-  kvtree_delete(&flushdesc);
-
   /* store the name of the directory we're about to create */
   const char* dir = scr_cache_dir_get(scr_rd, scr_dataset_id);
   scr_cache_index_set_dir(scr_cindex, scr_dataset_id, dir);
