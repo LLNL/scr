@@ -37,6 +37,8 @@
 #include "dtcmp.h"
 #endif /* HAVE_LIBDTCMP */
 
+#include "er.h"
+
 /* define which state we're in for API calls, this is to help ensure
  * users call SCR functions in the correct order */
 typedef enum {
@@ -1318,6 +1320,14 @@ int SCR_Init()
   }
 #endif /* HAVE_LIBDTCMP */
 
+  /* initialize ER module */
+  int er_rc = ER_Init(NULL);
+  if (er_rc != ER_SUCCESS) {
+    scr_abort(-1, "Failed to initialize ER library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   /* NOTE: SCR_ENABLE can also be set in a config file, but to read
    * a config file, we must at least create scr_comm_world and call
    * scr_get_params() */
@@ -1358,11 +1368,19 @@ int SCR_Init()
     /* shut down the DTCMP library if we're using it */
     int dtcmp_rc = DTCMP_Finalize();
     if (dtcmp_rc != DTCMP_SUCCESS) {
-      scr_abort(-1, "Failed to finalized DTCMP library @ %s:%d",
+      scr_abort(-1, "Failed to finalize DTCMP library @ %s:%d",
         __FILE__, __LINE__
       );
     }
   #endif /* HAVE_LIBDTCMP */
+
+    /* shut down the ER library */
+    int er_rc = ER_Finalize();
+    if (er_rc != ER_SUCCESS) {
+      scr_abort(-1, "Failed to finalize ER library @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
 
     return SCR_FAILURE;
   }
@@ -1873,6 +1891,14 @@ int SCR_Finalize()
     );
   }
 #endif /* HAVE_LIBDTCMP */
+
+  /* shut down the ER library */
+  int er_rc = ER_Finalize();
+  if (er_rc != ER_SUCCESS) {
+    scr_abort(-1, "Failed to finalize ER library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
 
 #ifdef HAVE_LIBPMIX
   /* sync procs in pmix before shutdown */
