@@ -160,11 +160,9 @@ static int scr_storedesc_create_from_hash(
   /* set the type of the store. Default to POSIX */
   char* tmp_type = NULL;
   kvtree_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &tmp_type);
-  if(tmp_type){
+  if (tmp_type) {
     s->type = strdup(tmp_type);
-  }
-//  kvtree_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &(s->type));
-  if(s->type == NULL){
+  } else {
     s->type = strdup("POSIX");
   }
 
@@ -172,11 +170,9 @@ static int scr_storedesc_create_from_hash(
   /* strdup the view if one exists */
   char* tmp_view = NULL;
   kvtree_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &tmp_view);
-  if(tmp_view){
+  if (tmp_view) {
     s->view = strdup(tmp_view);
-  }
-//  kvtree_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &(s->view));
-  if(s->view == NULL){
+  } else {
     s->view = strdup("PRIVATE");
   }
 
