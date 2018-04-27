@@ -20,11 +20,6 @@
  * and dataset id */
 char* scr_cache_dir_get(const scr_reddesc* c, int id);
 
-/* returns name of hidden .scr subdirectory within the dataset directory
- * for a given redundancy descriptor and dataset id, caller must free
- * returned string */
-char* scr_cache_dir_hidden_get(const scr_reddesc* red, int id);
-
 /* read file map for dataset from cache directory */
 int scr_cache_get_map(const scr_cache_index* cindex, int id, scr_filemap* map);
 

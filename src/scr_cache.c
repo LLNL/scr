@@ -78,7 +78,7 @@ char* scr_cache_dir_get(const scr_reddesc* red, int id)
 /* returns name of hidden .scr subdirectory within the dataset directory
  * for a given redundancy descriptor and dataset id, caller must free
  * returned string */
-char* scr_cache_dir_hidden_get(const scr_reddesc* red, int id)
+static char* scr_cache_dir_hidden_get(const scr_reddesc* red, int id)
 {
   /* fatal error if c or c->directory is not set */
   if (red == NULL || red->directory == NULL) {
@@ -277,22 +277,23 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
     //this
     //if(store->rank == 0){
       /* remove hidden .scr subdirectory from cache */
-    char* dir_scr = scr_cache_dir_hidden_from_str(dir, store->view, id);
+    spath* path_scr = spath_from_str(dir);
+    spath_append_str(path_scr, ".scr");
+    char* dir_scr = spath_strdup(path_scr);
     if (scr_storedesc_dir_delete(store, dir_scr) != SCR_SUCCESS) {
       scr_err("Failed to remove dataset directory: %s @ %s:%d",
         dir_scr, __FILE__, __LINE__
       );
     }
     scr_free(&dir_scr);
+    spath_delete(&path_scr);
     
     /* remove the dataset directory from cache */
-    char* dataset_dir = scr_cache_dir_from_str(dir, store->view, id);
-    if (scr_storedesc_dir_delete(store, dataset_dir) != SCR_SUCCESS) {
+    if (scr_storedesc_dir_delete(store, dir) != SCR_SUCCESS) {
       scr_err("Failed to remove dataset directory: %s @ %s:%d",
-        dataset_dir, __FILE__, __LINE__
+        dir, __FILE__, __LINE__
       );
     }
-    scr_free(&dataset_dir);
     //}
   } else {
     /* TODO: We end up here if at least one process does not have its
