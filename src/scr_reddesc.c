@@ -307,20 +307,36 @@ int scr_reddesc_create_from_hash(
   char* groupname = scr_group;
   kvtree_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &groupname);
 
+  /* get group descriptor */
+  groupdesc = scr_groupdescs_from_name(groupname);
+
+  /* define a string for our failure group, use global rank
+   * for leader of group communicator */
+  char* failure_domain = NULL;
+  if (groupdesc->rank == 0) {
+    char rankstr[128];
+    snprintf(rankstr, sizeof(rankstr), "%d", scr_my_rank_world);
+    failure_domain = strdup(rankstr);
+  }
+  scr_str_bcast(&failure_domain, 0, groupdesc->comm);
+
   /* build the communicator based on the copy type
    * and other parameters */
   d->er_scheme = -1;
   switch (d->copy_type) {
   case SCR_COPY_SINGLE:
-    d->er_scheme = ER_Create_Scheme(scr_comm_world, groupname, scr_ranks_world, 0);
+    d->er_scheme = ER_Create_Scheme(scr_comm_world, failure_domain, scr_ranks_world, 0);
     break;
   case SCR_COPY_PARTNER:
-    d->er_scheme = ER_Create_Scheme(scr_comm_world, groupname, scr_ranks_world, scr_ranks_world);
+    d->er_scheme = ER_Create_Scheme(scr_comm_world, failure_domain, scr_ranks_world, scr_ranks_world);
     break;
   case SCR_COPY_XOR:
-    d->er_scheme = ER_Create_Scheme(scr_comm_world, groupname, scr_ranks_world, 1);
+    d->er_scheme = ER_Create_Scheme(scr_comm_world, failure_domain, scr_ranks_world, 1);
     break;
   }
+
+  /* free failure domain string */
+  scr_free(&failure_domain);
 
   /* disable descriptor if we failed to build a scheme */
   if (d->er_scheme == -1) {
