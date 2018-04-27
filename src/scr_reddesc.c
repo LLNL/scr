@@ -324,7 +324,7 @@ int scr_reddesc_create_from_hash(
 
   /* disable descriptor if we failed to build a scheme */
   if (d->er_scheme == -1) {
-    d->er_enabled = 0;
+    d->enabled = 0;
   }
 
   /* if anyone has disabled this, everyone needs to */
