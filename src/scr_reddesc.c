@@ -322,6 +322,11 @@ int scr_reddesc_create_from_hash(
     break;
   }
 
+  /* disable descriptor if we failed to build a scheme */
+  if (d->er_scheme == -1) {
+    d->er_enabled = 0;
+  }
+
   /* if anyone has disabled this, everyone needs to */
   if (! scr_alltrue(d->enabled, scr_comm_world)) {
     d->enabled = 0;
@@ -380,7 +385,12 @@ int scr_reddesc_apply(
 
   /* create ER set */
   int set_id = ER_Create(scr_comm_world, store->comm, dir, ER_DIRECTION_ENCODE, desc->er_scheme);
-
+  if (set_id < 0) {
+    scr_err("Failed to create ER set @ %s:%d",
+            __FILE__, __LINE__
+    );
+  }
+ 
   /* step through each of my files for the specified dataset
    * to scan for any incomplete files */
   int valid = 1;
@@ -400,7 +410,10 @@ int scr_reddesc_apply(
     }
 
     /* add file to the set */
-    ER_Add(set_id, file);
+    if (ER_Add(set_id, file) != ER_SUCCESS) {
+      scr_err("Failed to add file to ER set: %s @ %s:%d", file, __FILE__, __LINE__);
+      valid = 0;
+    }
 
     /* add up the number of bytes on our way through */
     my_bytes += (double) scr_file_size(file);
@@ -434,11 +447,19 @@ int scr_reddesc_apply(
   }
 
   /* apply the redundancy scheme */
-  int rc = SCR_FAILURE;
-
-  ER_Dispatch(set_id);
-  ER_Wait(set_id);
-  ER_Free(set_id);
+  int rc = SCR_SUCCESS;
+  if (ER_Dispatch(set_id) != ER_SUCCESS) {
+    scr_err("ER_Dispatch failed @ %s:%d", __FILE__, __LINE__);
+    rc = SCR_FAILURE;
+  }
+  if (ER_Wait(set_id) != ER_SUCCESS) {
+    scr_err("ER_Wait failed @ %s:%d", __FILE__, __LINE__);
+    rc = SCR_FAILURE;
+  }
+  if (ER_Free(set_id) != ER_SUCCESS) {
+    scr_err("ER_Free failed @ %s:%d", __FILE__, __LINE__);
+    rc = SCR_FAILURE;
+  }
 
   /* determine whether everyone succeeded in their copy */
   int valid_copy = (rc == SCR_SUCCESS);
