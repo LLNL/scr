@@ -1174,15 +1174,6 @@ static int scr_complete_output(int valid)
   /* write out info to filemap */
   scr_cache_set_map(scr_cindex, scr_dataset_id, scr_map);
 
-  /* TODO: PRESERVE preprocess info needed for flush/scavenge, e.g., container offsets,
-   * list of directories to create, etc. we should also apply redundancy to this info,
-   * this could be done in flush, but it's hard to do in scavenge */
-  if (scr_flush_verify(scr_cindex, scr_dataset_id) != SCR_SUCCESS) {
-    scr_abort(-1, "Dataset cannot be flushed @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
   /* apply redundancy scheme */
   double bytes_copied = 0.0;
   int rc = scr_reddesc_apply(scr_map, scr_rd, scr_dataset_id, &bytes_copied);

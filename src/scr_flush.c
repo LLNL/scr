@@ -144,26 +144,6 @@ static int scr_flush_identify(
   return SCR_SUCCESS;
 }
 
-/* TODO: attach this info to file map */
-/* run some checks to verify that dataset can be flushed */
-int scr_flush_verify(
-  const scr_cache_index* cindex,
-  int id)
-{
-  kvtree* file_list = kvtree_new();
-
-  /* build the list of files to flush, which includes meta data for each one */
-  if (scr_flush_identify(cindex, id, file_list) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to identify data for flush of dataset %d @ %s:%d",
-      id, __FILE__, __LINE__
-    );
-  }
-
-  kvtree_delete(&file_list);
-
-  return SCR_SUCCESS;
-}
-
 /* given a filemap and a dataset id, prepare and return a list of
  * files to be flushed, also create corresponding directories and
  * container files */

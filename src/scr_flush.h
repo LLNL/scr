@@ -19,12 +19,6 @@
  * metadata directory for that dataset, must be freed by caller */
 char* scr_flush_dataset_metadir(const scr_dataset* dataset);
 
-/* ensure that dataset can be flushed */
-int scr_flush_verify(
-  const scr_filemap* map, /* IN  - current filemap */
-  int id                  /* IN  - id of dataset to be flushed */
-);
-
 /* given a filemap and a dataset id, prepare and return a list of files to be flushed,
  * also create corresponding directories and container files */
 int scr_flush_prepare(const scr_filemap* map, int id, kvtree* file_list);
