@@ -381,6 +381,15 @@ scr_storedesc* scr_reddesc_get_store(const scr_reddesc* desc)
   return store;
 }
 
+/* define prefix to ER files given the hidden dataset directory */
+static char* scr_reddesc_prefix(const char* dir)
+{
+  spath* path = spath_from_str(dir);
+  spath_append_str(path, "reddesc");
+  char* prefix = spath_strdup(path);
+  spath_delete(&path);
+  return prefix;
+}
 
 /* apply redundancy scheme to file and return number of bytes copied
  * in bytes parameter */
@@ -396,16 +405,23 @@ int scr_reddesc_apply(
   /* get store descriptor for this redudancy scheme */
   scr_storedesc* store = scr_reddesc_get_store(desc);
 
-  /* get cache directory for this descriptor */
-  const char* dir = scr_cache_dir_get(desc, id);
+  /* define path for hidden directory */
+  const char* dir_hidden = scr_cache_dir_hidden_get(desc, id);
+
+  /* define path to er files */
+  char* reddesc_dir = scr_reddesc_prefix(dir_hidden);
 
   /* create ER set */
-  int set_id = ER_Create(scr_comm_world, store->comm, dir, ER_DIRECTION_ENCODE, desc->er_scheme);
+  int set_id = ER_Create(scr_comm_world, store->comm, reddesc_dir, ER_DIRECTION_ENCODE, desc->er_scheme);
   if (set_id < 0) {
     scr_err("Failed to create ER set @ %s:%d",
             __FILE__, __LINE__
     );
   }
+
+  /* free directory path strings */
+  scr_free(&reddesc_dir);
+  scr_free(&dir_hidden);
  
   /* step through each of my files for the specified dataset
    * to scan for any incomplete files */
@@ -522,8 +538,13 @@ int scr_reddesc_recover(scr_cache_index* cindex, int id, const char* dir)
   /* TODO: verify that everyone found a matching store descriptor */
   scr_storedesc* store = &scr_storedescs[store_index];
 
+  /* build prefix for reddesc files */
+  char* reddesc_dir = scr_reddesc_prefix(dir);
+
   /* create ER set */
-  int set_id = ER_Create(scr_comm_world, store->comm, dir, ER_DIRECTION_REBUILD, 0);
+  int set_id = ER_Create(scr_comm_world, store->comm, reddesc_dir, ER_DIRECTION_REBUILD, 0);
+
+  scr_free(&reddesc_dir);
 
   if (ER_Dispatch(set_id) != ER_SUCCESS) {
     rc = SCR_FAILURE;
@@ -549,11 +570,16 @@ int scr_reddesc_unapply(const scr_cache_index* cindex, int id, const char* dir)
   /* TODO: verify that everyone found a matching store descriptor */
   scr_storedesc* store = &scr_storedescs[store_index];
 
+  /* build prefix for reddesc files */
+  char* reddesc_dir = scr_reddesc_prefix(dir);
+
   /* create ER set */
-  int set_id = ER_Create(scr_comm_world, store->comm, dir, ER_DIRECTION_REMOVE, 0);
+  int set_id = ER_Create(scr_comm_world, store->comm, reddesc_dir, ER_DIRECTION_REMOVE, 0);
   if (set_id < 0) {
     rc = SCR_FAILURE;
   }
+
+  scr_free(&reddesc_dir);
 
   if (ER_Dispatch(set_id) != ER_SUCCESS) {
     rc = SCR_FAILURE;

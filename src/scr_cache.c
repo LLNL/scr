@@ -228,8 +228,14 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
   char* dir = NULL;
   scr_cache_index_get_dir(cindex, id, &dir);
 
+  /* build list to hidden directory */
+  spath* path_scr = spath_from_str(dir);
+  spath_append_str(path_scr, ".scr");
+  char* dir_scr = spath_strdup(path_scr);
+  spath_delete(&path_scr);
+
   /* remove redundancy files */
-  scr_reddesc_unapply(cindex, id, dir);
+  scr_reddesc_unapply(cindex, id, dir_scr);
 
   /* get list of files for this dataset */
   scr_filemap* map = scr_filemap_new();
@@ -282,16 +288,11 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
     //this
     //if(store->rank == 0){
       /* remove hidden .scr subdirectory from cache */
-    spath* path_scr = spath_from_str(dir);
-    spath_append_str(path_scr, ".scr");
-    char* dir_scr = spath_strdup(path_scr);
     if (scr_storedesc_dir_delete(store, dir_scr) != SCR_SUCCESS) {
       scr_err("Failed to remove dataset directory: %s @ %s:%d",
         dir_scr, __FILE__, __LINE__
       );
     }
-    scr_free(&dir_scr);
-    spath_delete(&path_scr);
     
     /* remove the dataset directory from cache */
     if (scr_storedesc_dir_delete(store, dir) != SCR_SUCCESS) {
@@ -319,6 +320,9 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
   /* remove this dataset from the index and write updated index to disk */
   scr_cache_index_remove_dataset(cindex, id);
   scr_cache_index_write(scr_cindex_file, cindex);
+
+  /* free path to hidden directory */
+  scr_free(&dir_scr);
 
   return SCR_SUCCESS;
 }

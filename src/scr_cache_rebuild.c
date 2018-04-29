@@ -77,19 +77,20 @@ static int scr_distribute_datasets(scr_cache_index* cindex, int id)
 }
 
 /* broadcast dir from smallest rank and lookup store descriptor we can find that has a copy */
-static int scr_distribute_dir(scr_cache_index* cindex, int id, char** cache_dir)
+static int scr_distribute_dir(scr_cache_index* cindex, int id, char** hidden_dir)
 {
   int i;
 
   /* initialize output path to NULL */
-  *cache_dir = NULL;
+  *hidden_dir = NULL;
 
   /* determine whether we have the cache directory for this dataset */
+  char* dir  = NULL;
+  char* path = NULL;
   int source_rank = scr_ranks_world;
-  char* path;
   if (scr_cache_index_get_dir(cindex, id, &path) == SCR_SUCCESS) {
     /* we've got a copy, make a copy */
-    *cache_dir = strdup(path);
+    dir = strdup(path);
     source_rank = scr_my_rank_world;
   }
 
@@ -102,25 +103,42 @@ static int scr_distribute_dir(scr_cache_index* cindex, int id, char** cache_dir)
     return SCR_FAILURE;
   }
 
-  /* otherwise, bcast the dataset from the minimum rank */
-  scr_str_bcast(cache_dir, min_rank, scr_comm_world);
+  /* if we're not bcasting the string, free our copy if we have one,
+   * we'll get a new copy from the bcast */
+  if (scr_my_rank_world != min_rank) {
+    scr_free(&dir);
+  }
+
+  /* bcast the dataset from the minimum rank */
+  scr_str_bcast(&dir, min_rank, scr_comm_world);
 
   /* record the directory in the cache index */
-  scr_cache_index_set_dir(cindex, id, *cache_dir);
+  scr_cache_index_set_dir(cindex, id, dir);
   scr_cache_index_write(scr_cindex_file, cindex);
 
   /* lookup store descriptor for this path */
-  int store_index = scr_storedescs_index_from_child_path(path);
+  int store_index = scr_storedescs_index_from_child_path(dir);
 
   /* if someone fails to find their descriptor give up */
   if (! scr_alltrue(store_index >= 0, scr_comm_world)) {
-    scr_free(cache_dir);
+    scr_free(&dir);
     return SCR_FAILURE;
   }
 
-  /* create the directory */
+  /* define hidden directory, which we'll also return to the caller */
+  spath* path_scr = spath_from_str(dir);
+  spath_append_str(path_scr, ".scr");
+  *hidden_dir = spath_strdup(path_scr);
+  spath_delete(&path_scr);
+
+  /* get store descriptor */
   scr_storedesc* store = &scr_storedescs[store_index];
-  scr_storedesc_dir_create(store, *cache_dir);
+
+  /* create the directory */
+  scr_storedesc_dir_create(store, dir);
+
+  /* create the hidden directory */
+  scr_storedesc_dir_create(store, *hidden_dir);
 
   return SCR_SUCCESS;
 }
