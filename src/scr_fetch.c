@@ -163,7 +163,7 @@ static int scr_fetch_data(
 
   /* build path to rank2file map */
   spath* rank2file_path = spath_from_str(fetch_dir);
-  spath_append_str(rank2file_path, "rank2file.scr");
+  spath_append_str(rank2file_path, "rank2file");
   const char* mapfile = spath_strdup(rank2file_path);
 
   /* fetch data using filo */
