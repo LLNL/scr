@@ -538,6 +538,38 @@ int scr_reddesc_recover(scr_cache_index* cindex, int id, const char* dir)
   return rc;
 }
 
+/* remove redundancy files added during scr_reddesc_apply */
+int scr_reddesc_unapply(const scr_cache_index* cindex, int id, const char* dir)
+{
+  int rc = SCR_SUCCESS;
+
+  /* get store descriptor for this redudancy scheme */
+  int store_index = scr_storedescs_index_from_child_path(dir);
+
+  /* TODO: verify that everyone found a matching store descriptor */
+  scr_storedesc* store = &scr_storedescs[store_index];
+
+  /* create ER set */
+  int set_id = ER_Create(scr_comm_world, store->comm, dir, ER_DIRECTION_REMOVE, 0);
+  if (set_id < 0) {
+    rc = SCR_FAILURE;
+  }
+
+  if (ER_Dispatch(set_id) != ER_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+
+  if (ER_Wait(set_id) != ER_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+
+  if (ER_Free(set_id) != ER_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+
+  return rc;
+}
+
 /*
 =========================================
 Routines that operate on scr_reddescs array

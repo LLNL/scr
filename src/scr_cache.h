@@ -18,7 +18,12 @@
 
 /* returns name of the dataset directory for a given redundancy descriptor
  * and dataset id */
-char* scr_cache_dir_get(const scr_reddesc* c, int id);
+char* scr_cache_dir_get(const scr_reddesc* reddesc, int id);
+
+/* returns name of hidden .scr subdirectory within the dataset directory
+ * for a given redundancy descriptor and dataset id, caller must free
+ * returned string */
+char* scr_cache_dir_hidden_get(const scr_reddesc* reddesc, int id);
 
 /* read file map for dataset from cache directory */
 int scr_cache_get_map(const scr_cache_index* cindex, int id, scr_filemap* map);
@@ -31,7 +36,7 @@ int scr_cache_unset_map(const scr_cache_index* cindex, int id);
 
 /* create a dataset directory given a redundancy descriptor and dataset id,
  * waits for all tasks on the same node before returning */
-int scr_cache_dir_create(const scr_reddesc* c, int id);
+int scr_cache_dir_create(const scr_reddesc* reddesc, int id);
 
 /* remove all files associated with specified dataset */
 int scr_cache_delete(scr_cache_index* cindex, int id);

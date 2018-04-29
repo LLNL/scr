@@ -78,7 +78,7 @@ char* scr_cache_dir_get(const scr_reddesc* red, int id)
 /* returns name of hidden .scr subdirectory within the dataset directory
  * for a given redundancy descriptor and dataset id, caller must free
  * returned string */
-static char* scr_cache_dir_hidden_get(const scr_reddesc* red, int id)
+char* scr_cache_dir_hidden_get(const scr_reddesc* red, int id)
 {
   /* fatal error if c or c->directory is not set */
   if (red == NULL || red->directory == NULL) {
@@ -224,6 +224,13 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
     scr_dbg(1, "Deleting dataset %d from cache", id);
   }
 
+  /* get cache directory for this dataset */
+  char* dir = NULL;
+  scr_cache_index_get_dir(cindex, id, &dir);
+
+  /* remove redundancy files */
+  scr_reddesc_unapply(cindex, id, dir);
+
   /* get list of files for this dataset */
   scr_filemap* map = scr_filemap_new();
   scr_cache_get_map(cindex, id, map);
@@ -262,8 +269,6 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
    * from somewhere other than the redundancy descriptor, which may not be defined */
 
   /* remove the cache directory for this dataset */
-  char* dir = NULL;
-  scr_cache_index_get_dir(cindex, id, &dir);
   int store_index = scr_storedescs_index_from_child_path(dir);
   int have_dir = (store_index >= 0 && store_index < scr_nstoredescs && dir != NULL);
   if (scr_alltrue(have_dir, scr_comm_world)) {
@@ -311,7 +316,7 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
 
   /* TODO: remove data from transfer file for this dataset */
 
-  /* remove this dataset from the filemap, and write new filemap to disk */
+  /* remove this dataset from the index and write updated index to disk */
   scr_cache_index_remove_dataset(cindex, id);
   scr_cache_index_write(scr_cindex_file, cindex);
 

@@ -120,6 +120,13 @@ int scr_reddesc_recover(
   const char* path
 );
 
+/* removes redundancy files added during scr_reddesc_apply */
+int scr_reddesc_unapply(
+  const scr_cache_index* cindex,
+  int id,
+  const char* path
+);
+
 /*
 =========================================
 Routines that operate on scr_reddescs array
