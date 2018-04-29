@@ -23,8 +23,8 @@ char* scr_flush_dataset_metadir(const scr_dataset* dataset);
  * also create corresponding directories and container files */
 int scr_flush_prepare(const scr_filemap* map, int id, kvtree* file_list);
 
-/* given a dataset id that has been flushed, the list provided by scr_flush_prepare,
- * and data to include in the summary file, complete the flush by writing the summary file */
-int scr_flush_complete(int id, kvtree* file_list, kvtree* data);
+/* given a dataset id that has been flushed and the list provided by scr_flush_prepare,
+ * complete the flush by writing the summary file */
+int scr_flush_complete(int id, kvtree* file_list);
 
 #endif

@@ -23,8 +23,8 @@ Synchronous flush functions
 =========================================
 */
 
-/* flush files specified in list, and record corresponding entries for summary file */
-static int scr_flush_files_list(kvtree* file_list, kvtree* summary)
+/* flush files specified in list */
+static int scr_flush_files_list(kvtree* file_list)
 {
   /* assume we will succeed in this flush */
   int rc = SCR_SUCCESS;
@@ -37,7 +37,7 @@ static int scr_flush_files_list(kvtree* file_list, kvtree* summary)
   const char** src_filelist = (const char**) SCR_MALLOC(numfiles * sizeof(const char*));
   const char** dst_filelist = (const char**) SCR_MALLOC(numfiles * sizeof(const char*));
 
-  /* flush each of my files and fill in summary data structure */
+  /* record source and destination paths for each file */
   int i = 0;
   kvtree_elem* elem = NULL;
   for (elem = kvtree_elem_first(files);
@@ -47,10 +47,6 @@ static int scr_flush_files_list(kvtree* file_list, kvtree* summary)
     /* get the filename */
     char* file = kvtree_elem_key(elem);
 
-    /* convert file to path and extract name of file */
-    spath* path_name = spath_from_str(file);
-    spath_basename(path_name);
-
     /* get the hash for this element */
     kvtree* hash = kvtree_elem_hash(elem);
 
@@ -58,52 +54,55 @@ static int scr_flush_files_list(kvtree* file_list, kvtree* summary)
     scr_meta* meta = kvtree_get(hash, SCR_KEY_META);
 
     /* get directory to flush file to */
-    char* dir;
-    if (kvtree_util_get_str(hash, SCR_KEY_PATH, &dir) == KVTREE_SUCCESS) {
-      /* create full path of destination file */
-      spath* path_full = spath_from_str(dir);
-      spath_append(path_full, path_name);
-      char* dst_file = spath_strdup(path_full);
+    char* origpath;
+    if (scr_meta_get_origpath(meta, &origpath) == SCR_SUCCESS) {
+      char* origname;
+      if (scr_meta_get_origname(meta, &origname) == SCR_SUCCESS) {
+        /* build full path for destination file */
+        spath* dest_path = spath_from_str(origpath);
+        spath_append_str(dest_path, origname);
+        char* destfile = spath_strdup(dest_path);
 
-      /* add file to our list */
-      src_filelist[i] = strdup(file);
-      dst_filelist[i] = dst_file;
-      i++;
+        /* add file to our list */
+        src_filelist[i] = strdup(file);
+        dst_filelist[i] = strdup(destfile);
+        i++;
 
-      /* get relative path to flushed file from SCR_PREFIX directory */
-      spath* path_relative = spath_relative(scr_prefix_path, path_full);
-      if (! spath_is_null(path_relative)) {
-        /* record the name of the file in the summary hash, and get reference to a hash for this file */
-        char* name = spath_strdup(path_relative);
-        kvtree* file_hash = kvtree_set_kv(summary, SCR_SUMMARY_6_KEY_FILE, name);
-        scr_free(&name);
+        spath_delete(&dest_path);
+        scr_free(&destfile);
       } else {
-        scr_abort(-1, "Failed to get relative path to directory %s from %s @ %s:%d",
-          dir, scr_prefix, __FILE__, __LINE__
+        scr_abort(-1, "Failed to read directory to flush file to @ %s:%d",
+          __FILE__, __LINE__
         );
       }
-
-      /* free relative and full paths */
-      spath_delete(&path_relative);
-      spath_delete(&path_full);
     } else {
       scr_abort(-1, "Failed to read directory to flush file to @ %s:%d",
         __FILE__, __LINE__
       );
     }
-
-    /* free the file name path */
-    spath_delete(&path_name);
   }
 
   /* get the dataset of this flush */
   scr_dataset* dataset = kvtree_get(file_list, SCR_KEY_DATASET);
 
-  /* define path to metadata directory */
+  /* define path to metadata directory for this dataset */
   char* dataset_path_str = scr_flush_dataset_metadir(dataset);
   spath* dataset_path = spath_from_str(dataset_path_str);
   spath_reduce(dataset_path);
   scr_free(&dataset_path_str);
+
+  /* create dataset directory */
+  if (scr_my_rank_world == 0) {
+    char* path = spath_strdup(dataset_path);
+    mode_t mode_dir = scr_getmode(1, 1, 1);
+    if (scr_mkdir(path, mode_dir) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to create dataset subdirectory %s @ %s:%d",
+        path, __FILE__, __LINE__
+      );
+    }
+    scr_free(&path);
+  }
+  MPI_Barrier(scr_comm_world);
 
   /* define path for rank2file map */
   spath_append_str(dataset_path, "rank2file");
@@ -131,12 +130,12 @@ static int scr_flush_files_list(kvtree* file_list, kvtree* summary)
 
 /* flushes data for files specified in file_list (with flow control),
  * and records status of each file in data */
-static int scr_flush_data(kvtree* file_list, kvtree* data)
+static int scr_flush_data(kvtree* file_list)
 {
   int flushed = SCR_SUCCESS;
 
   /* first, flush each of my files and fill in meta data structure */
-  if (scr_flush_files_list(file_list, data) != SCR_SUCCESS) {
+  if (scr_flush_files_list(file_list) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 
@@ -200,21 +199,19 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
   /* mark in the flush file that we are flushing the dataset */
   scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_SYNC_FLUSHING);
 
-  /* get list of files to flush, identify containers,
-   * create directories, and create container files */
+  /* get list of files to flush */
   kvtree* file_list = kvtree_new();
   if (scr_flush_prepare(cindex, id, file_list) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 
   /* write the data out to files */
-  kvtree* data = kvtree_new();
-  if (scr_flush_data(file_list, data) != SCR_SUCCESS) {
+  if (scr_flush_data(file_list) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 
   /* write summary file */
-  if (scr_flush_complete(id, file_list, data) != SCR_SUCCESS) {
+  if (scr_flush_complete(id, file_list) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 
@@ -238,7 +235,6 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
   }
 
   /* free data structures */
-  kvtree_delete(&data);
   kvtree_delete(&file_list);
 
   /* remove sync flushing marker from flush file */

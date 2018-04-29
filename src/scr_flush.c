@@ -162,8 +162,7 @@ int scr_flush_prepare(const scr_cache_index* cindex, int id, kvtree* file_list)
 /* write summary file for flush */
 static int scr_flush_summary(
   const scr_dataset* dataset,
-  const kvtree* file_list,
-  kvtree* data)
+  const kvtree* file_list)
 {
   int rc = SCR_SUCCESS;
 
@@ -237,9 +236,9 @@ static int scr_flush_summary(
   return SCR_FAILURE;
 }
 
-/* given a dataset id that has been flushed, the list provided by scr_flush_prepare,
- * and data to include in the summary file, complete the flush by writing the summary file */
-int scr_flush_complete(int id, kvtree* file_list, kvtree* data)
+/* given a dataset id that has been flushed and the list provided by scr_flush_prepare,
+ * complete the flush by writing the summary file */
+int scr_flush_complete(int id, kvtree* file_list)
 {
   int flushed = SCR_SUCCESS;
 
@@ -247,7 +246,7 @@ int scr_flush_complete(int id, kvtree* file_list, kvtree* data)
   scr_dataset* dataset = kvtree_get(file_list, SCR_KEY_DATASET);
 
   /* write summary file */
-  if (scr_flush_summary(dataset, file_list, data) != SCR_SUCCESS) {
+  if (scr_flush_summary(dataset, file_list) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 
