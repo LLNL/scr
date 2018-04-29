@@ -154,8 +154,10 @@ static int scr_fetch_data(
   const kvtree* summary_hash,
   const char* fetch_dir,
   const char* cache_dir,
-  scr_cache_index* cindex)
+  scr_cache_index* cindex,
+  int id)
 {
+  int i;
   int rc = SCR_SUCCESS;
 
   /* TODO: get list of files */
@@ -167,9 +169,71 @@ static int scr_fetch_data(
   const char* mapfile = spath_strdup(rank2file_path);
 
   /* fetch data using filo */
-  if (filo_fetch(mapfile, cache_dir, scr_comm_world) != FILO_SUCCESS) {
+  int num_files = 0;
+  char** src_filelist = NULL;
+  char** dest_filelist = NULL;
+  if (filo_fetch(mapfile, cache_dir, &num_files, &src_filelist, &dest_filelist, scr_comm_world) != FILO_SUCCESS) {
     rc = SCR_FAILURE;
   }
+
+  /* create a filemap for the files we just read in */
+  scr_filemap* map = scr_filemap_new();
+  for (i = 0; i < num_files; i++) {
+    /* get source and destination file names */
+    const char* src_file  = src_filelist[i];
+    const char* dest_file = dest_filelist[i];
+
+    /* add file to map */
+    scr_filemap_add_file(map, dest_file);
+
+    /* define meta for file */
+    scr_meta* meta = scr_meta_new();
+    scr_meta_set_filename(meta, dest_file);
+    scr_meta_set_filetype(meta, SCR_META_FILE_USER);
+    scr_meta_set_complete(meta, 1);
+    scr_meta_set_ranks(meta, scr_ranks_world);
+    scr_meta_set_orig(meta, src_file);
+
+    /* build absolute path to file */
+    spath* path_abs = spath_from_str(src_file);
+    spath_reduce(path_abs);
+
+    /* cut absolute path into direcotry and file name */
+    spath* path_name = spath_cut(path_abs, -1);
+
+    /* store the full path and name of the original file */
+    char* path = spath_strdup(path_abs);
+    char* name = spath_strdup(path_name);
+    scr_meta_set_origpath(meta, path);
+    scr_meta_set_origname(meta, name);
+    scr_free(&name);
+    scr_free(&path);
+
+    /* free directory and file name paths */
+    spath_delete(&path_name);
+    spath_delete(&path_abs);
+
+    /* get file size */
+    unsigned long filesize = scr_file_size(dest_file);
+    scr_meta_set_filesize(meta, filesize);
+
+    /* add meta to map */
+    scr_filemap_set_meta(map, dest_file, meta);
+    scr_meta_delete(&meta);
+  }
+
+  /* write out filemap */
+  scr_cache_set_map(cindex, id, map);
+  scr_filemap_delete(&map);
+
+  /* free memory allocated for file list */
+  for (i = 0; i < num_files; i++) {
+    /* free filename strings */
+    scr_free(&src_filelist[i]);
+    scr_free(&dest_filelist[i]);
+  }
+  scr_free(&src_filelist);
+  scr_free(&dest_filelist);
 
   scr_free(&mapfile);
   spath_delete(&rank2file_path);
@@ -269,9 +333,11 @@ static int scr_fetch_files(
     return SCR_FAILURE;
   }
 
+  /* TODO: need to add some logic to avoid falling over
+   * if trying to clear the cache of a dataset that does not exist */
   /* delete any existing files for this dataset id (do this before
    * filemap_read) */
-  scr_cache_delete(cindex, id);
+  //scr_cache_delete(cindex, id);
 
   /* store dataset in cache index */
   scr_cache_index_set_dataset(cindex, id, dataset);
@@ -295,7 +361,7 @@ static int scr_fetch_files(
 
   /* now we can finally fetch the actual files */
   int success = 1;
-  if (scr_fetch_data(summary_hash, fetch_dir, cache_dir, cindex) != SCR_SUCCESS) {
+  if (scr_fetch_data(summary_hash, fetch_dir, cache_dir, cindex, id) != SCR_SUCCESS) {
     success = 0;
   }
 
@@ -325,9 +391,13 @@ static int scr_fetch_files(
     return SCR_FAILURE;
   }
 
+  /* read file map for this dataset */
+  scr_filemap* map = scr_filemap_new();
+  scr_cache_get_map(cindex, id, map);
+
   /* apply redundancy scheme */
   double bytes_copied = 0.0;
-  int rc = scr_reddesc_apply(cindex, c, id, &bytes_copied);
+  int rc = scr_reddesc_apply(map, c, id, &bytes_copied);
   if (rc == SCR_SUCCESS) {
     /* record dataset and checkpoint ids */
     *dataset_id = id;
@@ -344,6 +414,9 @@ static int scr_fetch_files(
     /* something went wrong, so delete this checkpoint from the cache */
     scr_cache_delete(scr_cindex, id);
   }
+
+  /* free filemap object */
+  scr_filemap_delete(&map);
 
   /* stop timer, compute bandwidth, and report performance */
   double total_bytes = bytes_copied;
