@@ -38,6 +38,7 @@
 #endif /* HAVE_LIBDTCMP */
 
 #include "er.h"
+#include "filo.h"
 
 /* define which state we're in for API calls, this is to help ensure
  * users call SCR functions in the correct order */
@@ -1320,10 +1321,18 @@ int SCR_Init()
   }
 #endif /* HAVE_LIBDTCMP */
 
-  /* initialize ER module */
+  /* initialize ER for encode/rebuild */
   int er_rc = ER_Init(NULL);
   if (er_rc != ER_SUCCESS) {
     scr_abort(-1, "Failed to initialize ER library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* initialize FILO for data transfers */
+  int filo_rc = filo_init();
+  if (filo_rc != FILO_SUCCESS) {
+    scr_abort(-1, "Failed to initialize FILO library @ %s:%d",
       __FILE__, __LINE__
     );
   }
@@ -1378,6 +1387,14 @@ int SCR_Init()
     int er_rc = ER_Finalize();
     if (er_rc != ER_SUCCESS) {
       scr_abort(-1, "Failed to finalize ER library @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+
+    /* shut down the FILO library */
+    int filo_rc = filo_finalize();
+    if (filo_rc != FILO_SUCCESS) {
+      scr_abort(-1, "Failed to finalize FILO library @ %s:%d",
         __FILE__, __LINE__
       );
     }
@@ -1896,6 +1913,14 @@ int SCR_Finalize()
   int er_rc = ER_Finalize();
   if (er_rc != ER_SUCCESS) {
     scr_abort(-1, "Failed to finalize ER library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* shut down the FILO library */
+  int filo_rc = filo_finalize();
+  if (filo_rc != FILO_SUCCESS) {
+    scr_abort(-1, "Failed to finalize FILO library @ %s:%d",
       __FILE__, __LINE__
     );
   }
