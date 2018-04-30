@@ -78,21 +78,11 @@ static int scr_flush_identify_files(
     /* read meta data for file and attach it to file list */
     scr_meta* meta = scr_meta_new();
     if (scr_filemap_get_meta(map, file, meta) == SCR_SUCCESS) {
-      /* don't flush XOR files */
-      int flush = 1;
-      if (scr_meta_check_filetype(meta, SCR_META_FILE_XOR) == SCR_SUCCESS) {
-        flush = 0;
-      }
-
-      /* TODO: shouldn't we avoid flushing partner files? */
-
       /* if we need to flush this file, add it to the list and attach
        * its meta data */
-      if (flush) {
-        kvtree* file_hash = kvtree_set_kv(file_list, SCR_KEY_FILE, file);
-        kvtree_set(file_hash, SCR_KEY_META, meta);
-        meta = NULL;
-      }
+      kvtree* file_hash = kvtree_set_kv(file_list, SCR_KEY_FILE, file);
+      kvtree_set(file_hash, SCR_KEY_META, meta);
+      meta = NULL;
     } else {
       /* TODO: print error */
       rc = SCR_FAILURE;

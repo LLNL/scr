@@ -595,7 +595,6 @@ int main(int argc, char* argv[])
   unsigned long full_chunk_filesize = scr_file_size(xor_files[0]);
   int missing_complete = 1;
   scr_meta* meta_chunk = scr_meta_new();
-  scr_meta_set_filetype(meta_chunk, SCR_META_FILE_XOR);
   scr_meta_set_filesize(meta_chunk, full_chunk_filesize);
   /* TODO: remove this from meta file, for now it's needed in scr_index.c */
   scr_meta_set_ranks(meta_chunk, num_ranks);

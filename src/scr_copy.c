@@ -453,11 +453,11 @@ int main (int argc, char *argv[])
         scr_meta* meta = scr_meta_new();
         scr_filemap_get_meta(map, file, meta);
 
+        /* TODO: filemap no longer lists redundancy files,
+         * so need another way to grab those */
+
         /* check whether file is application file or SCR file */
-        int user_file = 0;
-        if (scr_meta_check_filetype(meta, SCR_META_FILE_USER) == SCR_SUCCESS) {
-          user_file = 1;
-        }
+        int user_file = 1;
 
         /* get path to copy file */
         char* dst_dir = NULL;

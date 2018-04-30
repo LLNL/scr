@@ -1049,67 +1049,61 @@ int scr_scan_file(const spath* dir, const spath* path_name, int* ranks, regex_t*
         }
 
         /* if the file is an XOR file, read in the XOR set parameters */
-        if (scr_meta_check_filetype(meta, SCR_META_FILE_XOR) == SCR_SUCCESS) {
+        size_t nmatch = 4;
+        regmatch_t pmatch[nmatch];
+        char* value = NULL;
+        int xor_setid, xor_rank, xor_ranks;
+        if (regexec(re_xor_file, full_filename, nmatch, pmatch, 0) == 0) {
           /* mark this file as being an XOR file */
           kvtree_set(file_hash, SCR_SUMMARY_6_KEY_NOFETCH, NULL);
 
           /* extract the xor set id, the size of the xor set, and our position within the set */
-          size_t nmatch = 4;
-          regmatch_t pmatch[nmatch];
-          char* value = NULL;
-          int xor_setid, xor_rank, xor_ranks;
-          if (regexec(re_xor_file, full_filename, nmatch, pmatch, 0) == 0) {
-            xor_setid = -1;
-            xor_rank  = -1;
-            xor_ranks = -1;
+          xor_setid = -1;
+          xor_rank  = -1;
+          xor_ranks = -1;
 
-            /* get the id of the xor set */
-            value = strndup(full_filename + pmatch[1].rm_so, (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so));
-            if (value != NULL) {
-              xor_setid = atoi(value);
-              scr_free(&value);
-            }
+          /* get the id of the xor set */
+          value = strndup(full_filename + pmatch[1].rm_so, (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so));
+          if (value != NULL) {
+            xor_setid = atoi(value);
+            scr_free(&value);
+          }
 
-            /* get the rank in the xor set */
-            value = strndup(full_filename + pmatch[2].rm_so, (size_t)(pmatch[2].rm_eo - pmatch[2].rm_so));
-            if (value != NULL) {
-              xor_rank = atoi(value);
-              scr_free(&value);
-            }
+          /* get the rank in the xor set */
+          value = strndup(full_filename + pmatch[2].rm_so, (size_t)(pmatch[2].rm_eo - pmatch[2].rm_so));
+          if (value != NULL) {
+            xor_rank = atoi(value);
+            scr_free(&value);
+          }
 
-            /* get the size of the xor set */
-            value = strndup(full_filename + pmatch[3].rm_so, (size_t)(pmatch[3].rm_eo - pmatch[3].rm_so));
-            if (value != NULL) {
-              xor_ranks = atoi(value);
-              scr_free(&value);
-            }
+          /* get the size of the xor set */
+          value = strndup(full_filename + pmatch[3].rm_so, (size_t)(pmatch[3].rm_eo - pmatch[3].rm_so));
+          if (value != NULL) {
+            xor_ranks = atoi(value);
+            scr_free(&value);
+          }
 
-            /* add the XOR file entries into our scan hash */
-            if (xor_rank != -1 && xor_ranks != -1 && xor_setid != -1) {
-              /* DLIST
-               *   <dataset_id>
-               *     XOR
-               *       <xor_setid>
-               *         MEMBERS
-               *           <num_members_in_xor_set>
-               *         MEMBER
-               *           <xor_set_member_id>
-               *             FILE
-               *               <filename>
-               *             RANK
-               *               <rank_id> */
-              kvtree* xor_hash = kvtree_set_kv_int(list_hash, SCR_SCAN_KEY_XOR, xor_setid);
-              kvtree_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBERS, xor_ranks);
-              kvtree* xor_rank_hash = kvtree_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, xor_rank);
-              kvtree_set_kv(xor_rank_hash, SCR_SUMMARY_6_KEY_FILE, file_name);
-              kvtree_set_kv_int(xor_rank_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
-            } else {
-              scr_err("Failed to extract XOR rank, set size, or set id from %s @ %s:%d",
-                full_filename, __FILE__, __LINE__
-              );
-            }
+          /* add the XOR file entries into our scan hash */
+          if (xor_rank != -1 && xor_ranks != -1 && xor_setid != -1) {
+            /* DLIST
+             *   <dataset_id>
+             *     XOR
+             *       <xor_setid>
+             *         MEMBERS
+             *           <num_members_in_xor_set>
+             *         MEMBER
+             *           <xor_set_member_id>
+             *             FILE
+             *               <filename>
+             *             RANK
+             *               <rank_id> */
+            kvtree* xor_hash = kvtree_set_kv_int(list_hash, SCR_SCAN_KEY_XOR, xor_setid);
+            kvtree_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBERS, xor_ranks);
+            kvtree* xor_rank_hash = kvtree_set_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, xor_rank);
+            kvtree_set_kv(xor_rank_hash, SCR_SUMMARY_6_KEY_FILE, file_name);
+            kvtree_set_kv_int(xor_rank_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
           } else {
-            scr_err("XOR file does not match expected file name format %s @ %s:%d",
+            scr_err("Failed to extract XOR rank, set size, or set id from %s @ %s:%d",
               full_filename, __FILE__, __LINE__
             );
           }

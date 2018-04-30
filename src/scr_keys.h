@@ -176,11 +176,7 @@ Define common hash key strings
 #define SCR_META_KEY_ORIG     ("ORIG")
 #define SCR_META_KEY_PATH     ("PATH")
 #define SCR_META_KEY_NAME     ("NAME")
-#define SCR_META_KEY_FILE     ("FILE")
 #define SCR_META_KEY_SIZE     ("SIZE")
-#define SCR_META_KEY_TYPE     ("TYPE")
-#define SCR_META_KEY_TYPE_USER ("USER")
-#define SCR_META_KEY_TYPE_XOR  ("XOR")
 #define SCR_META_KEY_CRC      ("CRC")
 #define SCR_META_KEY_COMPLETE ("COMPLETE")
 

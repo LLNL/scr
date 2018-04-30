@@ -42,9 +42,6 @@
 /* compute crc32, needed for uLong */
 #include <zlib.h>
 
-#define SCR_META_FILE_USER (SCR_META_KEY_TYPE_USER)
-#define SCR_META_FILE_XOR  (SCR_META_KEY_TYPE_XOR)
-
 typedef kvtree scr_meta;
 
 /*
@@ -89,9 +86,6 @@ int scr_meta_set_origname(scr_meta* meta, const char* path);
 /* sets the filesize to be the value specified */
 int scr_meta_set_filesize(scr_meta* meta, unsigned long filesize);
 
-/* sets the filename value in meta data, strips any leading directory */
-int scr_meta_set_filetype(scr_meta* meta, const char* filetype);
-
 /* set the completeness field on meta */
 int scr_meta_set_complete(scr_meta* meta, int complete);
 
@@ -125,9 +119,6 @@ int scr_meta_get_origname(const scr_meta* meta, char** name);
 /* gets filesize recorded in meta data, returns SCR_SUCCESS if successful */
 int scr_meta_get_filesize(const scr_meta* meta, unsigned long* filesize);
 
-/* gets filetype recorded in meta data, returns SCR_SUCCESS if successful */
-int scr_meta_get_filetype(const scr_meta* meta, char** filetype);
-
 /* get the completeness field in meta data, returns SCR_SUCCESS if successful */
 int scr_meta_get_complete(const scr_meta* meta, int* complete);
 
@@ -151,9 +142,6 @@ int scr_meta_check_ranks(const scr_meta* meta, int ranks);
 
 /* return SCR_SUCCESS if checkpoint_id is set in meta data, and if it matches the specified value */
 int scr_meta_check_checkpoint(const scr_meta* meta, int checkpoint_id);
-
-/* return SCR_SUCCESS if filetype is set in meta data, and if it matches the specified value */
-int scr_meta_check_filetype(const scr_meta* meta, const char* filetype);
 
 /* returns SCR_SUCCESS if filesize is set in meta data, and if it matches specified value */
 int scr_meta_check_filesize(const scr_meta* meta, unsigned long filesize);

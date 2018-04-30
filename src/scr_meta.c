@@ -131,14 +131,6 @@ int scr_meta_set_filesize(scr_meta* meta, unsigned long filesize)
   return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
 }
 
-/* sets the filename value in meta data, strips any leading directory */
-int scr_meta_set_filetype(scr_meta* meta, const char* filetype)
-{
-  kvtree_unset(meta, SCR_META_KEY_TYPE);
-  kvtree_set_kv(meta, SCR_META_KEY_TYPE, filetype);
-  return SCR_SUCCESS;
-}
-
 /* sets complete value in meta data, overwrites any existing value with new value */
 int scr_meta_set_complete(scr_meta* meta, int complete)
 {
@@ -209,13 +201,6 @@ int scr_meta_get_filesize(const scr_meta* meta, unsigned long* filesize)
   return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
 }
 
-/* gets filetype recorded in meta data, returns SCR_SUCCESS if successful */
-int scr_meta_get_filetype(const scr_meta* meta, char** filetype)
-{
-  int rc = kvtree_util_get_str(meta, SCR_META_KEY_TYPE, filetype);
-  return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
-}
-
 /* get the completeness field in meta data, returns SCR_SUCCESS if successful */
 int scr_meta_get_complete(const scr_meta* meta, int* complete)
 {
@@ -281,18 +266,6 @@ int scr_meta_check_checkpoint(const scr_meta* meta, int ckpt)
       return SCR_SUCCESS;
     }
   }
-  return SCR_FAILURE;
-}
-
-/* return SCR_SUCCESS if filetype is set in meta data, and if it matches the specified value */
-int scr_meta_check_filetype(const scr_meta* meta, const char* filetype)
-{
-  char* filetype_meta = kvtree_elem_get_first_val(meta, SCR_META_KEY_TYPE);
-  if (filetype_meta != NULL) {
-    if (strcmp(filetype, filetype_meta) == 0) {
-      return SCR_SUCCESS;
-    }
-  } 
   return SCR_FAILURE;
 }
 
