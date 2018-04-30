@@ -732,7 +732,7 @@ static int scr_cppr_flush_async_start(scr_filemap* map, int id)
 
       /* get just the file name */
       char *plain_filename = NULL;
-      if (scr_meta_get_filename(meta, &plain_filename) != SCR_SUCCESS) {
+      if (scr_meta_get_origname(meta, &plain_filename) != SCR_SUCCESS) {
         scr_dbg(0,"couldn't get the file name from meta '%s'", file);
         continue;
       }

@@ -86,9 +86,6 @@ int scr_meta_set_origpath(scr_meta* meta, const char* path);
 /* sets the name of the original file */
 int scr_meta_set_origname(scr_meta* meta, const char* path);
 
-/* sets the filename value in meta data, strips any leading directory */
-int scr_meta_set_filename(scr_meta* meta, const char* file);
-
 /* sets the filesize to be the value specified */
 int scr_meta_set_filesize(scr_meta* meta, unsigned long filesize);
 
@@ -125,9 +122,6 @@ int scr_meta_get_origpath(const scr_meta* meta, char** path);
 /* gets name of the original filename recorded in meta data, returns SCR_SUCCESS if successful */
 int scr_meta_get_origname(const scr_meta* meta, char** name);
 
-/* gets filename recorded in meta data, returns SCR_SUCCESS if successful */
-int scr_meta_get_filename(const scr_meta* meta, char** filename);
-
 /* gets filesize recorded in meta data, returns SCR_SUCCESS if successful */
 int scr_meta_get_filesize(const scr_meta* meta, unsigned long* filesize);
 
@@ -157,9 +151,6 @@ int scr_meta_check_ranks(const scr_meta* meta, int ranks);
 
 /* return SCR_SUCCESS if checkpoint_id is set in meta data, and if it matches the specified value */
 int scr_meta_check_checkpoint(const scr_meta* meta, int checkpoint_id);
-
-/* return SCR_SUCCESS if filename is set in meta data, and if it matches the specified value */
-int scr_meta_check_filename(const scr_meta* meta, const char* filename);
 
 /* return SCR_SUCCESS if filetype is set in meta data, and if it matches the specified value */
 int scr_meta_check_filetype(const scr_meta* meta, const char* filetype);

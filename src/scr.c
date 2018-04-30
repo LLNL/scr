@@ -2138,7 +2138,6 @@ int SCR_Route_file(const char* file, char* newfile)
     scr_filemap_get_meta(scr_map, newfile, meta);
 
     /* set parameters for the file */
-    scr_meta_set_filename(meta, newfile);
     scr_meta_set_filetype(meta, SCR_META_FILE_USER);
     scr_meta_set_complete(meta, 0);
     /* TODO: move the ranks field elsewhere, for now it's needed by scr_index.c */

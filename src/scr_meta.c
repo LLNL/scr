@@ -124,24 +124,6 @@ int scr_meta_set_origname(scr_meta* meta, const char* file)
   return SCR_SUCCESS;
 }
 
-/* sets the filename value in meta data, strips any leading directory */
-int scr_meta_set_filename(scr_meta* meta, const char* file)
-{
-  /* extract file name */
-  spath* path_file = spath_from_str(file);
-  spath_basename(path_file);
-  char* name = spath_strdup(path_file);
-
-  kvtree_unset(meta, SCR_META_KEY_FILE);
-  kvtree_set_kv(meta, SCR_META_KEY_FILE, name);
-
-  /* free the path and string */
-  scr_free(&name);
-  spath_delete(&path_file);
-
-  return SCR_SUCCESS;
-}
-
 /* sets the filesize to be the value specified */
 int scr_meta_set_filesize(scr_meta* meta, unsigned long filesize)
 {
@@ -217,13 +199,6 @@ int scr_meta_get_origpath(const scr_meta* meta, char** filename)
 int scr_meta_get_origname(const scr_meta* meta, char** filename)
 {
   int rc = kvtree_util_get_str(meta, SCR_META_KEY_NAME, filename);
-  return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
-}
-
-/* gets filename recorded in meta data, returns SCR_SUCCESS if successful */
-int scr_meta_get_filename(const scr_meta* meta, char** filename)
-{
-  int rc = kvtree_util_get_str(meta, SCR_META_KEY_FILE, filename);
   return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
 }
 
@@ -306,18 +281,6 @@ int scr_meta_check_checkpoint(const scr_meta* meta, int ckpt)
       return SCR_SUCCESS;
     }
   }
-  return SCR_FAILURE;
-}
-
-/* return SCR_SUCCESS if filename is set in meta data, and if it matches the specified value */
-int scr_meta_check_filename(const scr_meta* meta, const char* filename)
-{
-  char* filename_meta = kvtree_elem_get_first_val(meta, SCR_META_KEY_FILE);
-  if (filename_meta != NULL) {
-    if (strcmp(filename, filename_meta) == 0) {
-      return SCR_SUCCESS;
-    }
-  } 
   return SCR_FAILURE;
 }
 

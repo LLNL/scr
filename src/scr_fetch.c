@@ -188,7 +188,6 @@ static int scr_fetch_data(
 
     /* define meta for file */
     scr_meta* meta = scr_meta_new();
-    scr_meta_set_filename(meta, dest_file);
     scr_meta_set_filetype(meta, SCR_META_FILE_USER);
     scr_meta_set_complete(meta, 1);
     scr_meta_set_ranks(meta, scr_ranks_world);

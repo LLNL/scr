@@ -963,17 +963,6 @@ int scr_scan_file(const spath* dir, const spath* path_name, int* ranks, regex_t*
           continue;
         }
 
-        /* read filename from meta data */
-        char* meta_filename = NULL;
-        if (scr_meta_get_filename(meta, &meta_filename) != SCR_SUCCESS) {
-          scr_err("Reading filename from meta data from %s @ %s:%d",
-            full_filename, __FILE__, __LINE__
-          );
-          scr_meta_delete(&meta);
-          scr_free(&full_filename);
-          continue;
-        }
-
         /* read filesize from meta data */
         unsigned long meta_filesize = 0;
         if (scr_meta_get_filesize(meta, &meta_filesize) != SCR_SUCCESS) {
