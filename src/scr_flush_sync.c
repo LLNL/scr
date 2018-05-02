@@ -109,7 +109,7 @@ static int scr_flush_files_list(kvtree* file_list)
   const char* rankfile = spath_strdup(dataset_path);
 
   /* flush data */
-  if (filo_flush(rankfile, numfiles, src_filelist, dst_filelist, scr_comm_world) != FILO_SUCCESS) {
+  if (filo_flush(rankfile, scr_prefix, numfiles, src_filelist, dst_filelist, scr_comm_world) != FILO_SUCCESS) {
     rc = SCR_FAILURE;
   }
 

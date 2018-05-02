@@ -172,7 +172,7 @@ static int scr_fetch_data(
   int num_files = 0;
   char** src_filelist = NULL;
   char** dest_filelist = NULL;
-  if (filo_fetch(mapfile, cache_dir, &num_files, &src_filelist, &dest_filelist, scr_comm_world) != FILO_SUCCESS) {
+  if (filo_fetch(mapfile, scr_prefix, cache_dir, &num_files, &src_filelist, &dest_filelist, scr_comm_world) != FILO_SUCCESS) {
     rc = SCR_FAILURE;
   }
 
