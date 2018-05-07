@@ -29,58 +29,11 @@ static int scr_flush_files_list(kvtree* file_list)
   /* assume we will succeed in this flush */
   int rc = SCR_SUCCESS;
 
-  /* get pointer to file list */
-  kvtree* files = kvtree_get(file_list, SCR_KEY_FILE);
-
-  /* allocate space to hold list of file names */
-  int numfiles = kvtree_size(files);
-  const char** src_filelist = (const char**) SCR_MALLOC(numfiles * sizeof(const char*));
-  const char** dst_filelist = (const char**) SCR_MALLOC(numfiles * sizeof(const char*));
-
-  /* record source and destination paths for each file */
-  int i = 0;
-  kvtree_elem* elem = NULL;
-  for (elem = kvtree_elem_first(files);
-       elem != NULL;
-       elem = kvtree_elem_next(elem))
-  {
-    /* get the filename */
-    char* file = kvtree_elem_key(elem);
-
-    /* get the hash for this element */
-    kvtree* hash = kvtree_elem_hash(elem);
-
-    /* get meta data for this file */
-    scr_meta* meta = kvtree_get(hash, SCR_KEY_META);
-
-    /* get directory to flush file to */
-    char* origpath;
-    if (scr_meta_get_origpath(meta, &origpath) == SCR_SUCCESS) {
-      char* origname;
-      if (scr_meta_get_origname(meta, &origname) == SCR_SUCCESS) {
-        /* build full path for destination file */
-        spath* dest_path = spath_from_str(origpath);
-        spath_append_str(dest_path, origname);
-        char* destfile = spath_strdup(dest_path);
-
-        /* add file to our list */
-        src_filelist[i] = strdup(file);
-        dst_filelist[i] = strdup(destfile);
-        i++;
-
-        spath_delete(&dest_path);
-        scr_free(&destfile);
-      } else {
-        scr_abort(-1, "Failed to read directory to flush file to @ %s:%d",
-          __FILE__, __LINE__
-        );
-      }
-    } else {
-      scr_abort(-1, "Failed to read directory to flush file to @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
-  }
+  /* allocate list for filo calls */
+  int numfiles;
+  char** src_filelist;
+  char** dst_filelist;
+  scr_flush_filolist_alloc(file_list, &numfiles, &src_filelist, &dst_filelist);
 
   /* get the dataset of this flush */
   scr_dataset* dataset = kvtree_get(file_list, SCR_KEY_DATASET);
@@ -109,7 +62,7 @@ static int scr_flush_files_list(kvtree* file_list)
   const char* rankfile = spath_strdup(dataset_path);
 
   /* flush data */
-  if (filo_flush(rankfile, scr_prefix, numfiles, src_filelist, dst_filelist, scr_comm_world) != FILO_SUCCESS) {
+  if (Filo_Flush(rankfile, scr_prefix, numfiles, src_filelist, dst_filelist, scr_comm_world) != FILO_SUCCESS) {
     rc = SCR_FAILURE;
   }
 
@@ -118,12 +71,7 @@ static int scr_flush_files_list(kvtree* file_list)
   spath_delete(&dataset_path);
 
   /* free our file list */
-  for (i = 0; i < numfiles; i++) {
-    scr_free(&src_filelist[i]);
-    scr_free(&dst_filelist[i]);
-  }
-  scr_free(&src_filelist);
-  scr_free(&dst_filelist);
+  scr_flush_filolist_free(numfiles, &src_filelist, &dst_filelist);
 
   return rc;
 }

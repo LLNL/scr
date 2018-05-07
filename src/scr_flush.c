@@ -26,6 +26,97 @@ and creating container files (if any)
 =========================================
 */
 
+/* given file list from flush_prepare, allocate and fill in arrays for filo,
+ * caller should free arrays with call to filolist_free */
+int scr_flush_filolist_alloc(const kvtree* file_list, int* out_num_files, char*** out_src_filelist, char*** out_dst_filelist)
+{
+  /* assume we will succeed in this flush */
+  int rc = SCR_SUCCESS;
+
+  /* initialize output params */
+  *out_num_files = 0;
+  *out_src_filelist = NULL;
+  *out_dst_filelist = NULL;
+
+  /* get pointer to file list */
+  kvtree* files = kvtree_get(file_list, SCR_KEY_FILE);
+
+  /* allocate space to hold list of file names */
+  int numfiles = kvtree_size(files);
+  const char** src_filelist = (const char**) SCR_MALLOC(numfiles * sizeof(const char*));
+  const char** dst_filelist = (const char**) SCR_MALLOC(numfiles * sizeof(const char*));
+
+  /* record source and destination paths for each file */
+  int i = 0;
+  kvtree_elem* elem = NULL;
+  for (elem = kvtree_elem_first(files);
+       elem != NULL;
+       elem = kvtree_elem_next(elem))
+  {
+    /* get the filename */
+    char* file = kvtree_elem_key(elem);
+
+    /* get the hash for this element */
+    kvtree* hash = kvtree_elem_hash(elem);
+
+    /* get meta data for this file */
+    scr_meta* meta = kvtree_get(hash, SCR_KEY_META);
+
+    /* get directory to flush file to */
+    char* origpath;
+    if (scr_meta_get_origpath(meta, &origpath) == SCR_SUCCESS) {
+      char* origname;
+      if (scr_meta_get_origname(meta, &origname) == SCR_SUCCESS) {
+        /* build full path for destination file */
+        spath* dest_path = spath_from_str(origpath);
+        spath_append_str(dest_path, origname);
+        char* destfile = spath_strdup(dest_path);
+
+        /* add file to our list */
+        src_filelist[i] = strdup(file);
+        dst_filelist[i] = strdup(destfile);
+        i++;
+
+        spath_delete(&dest_path);
+        scr_free(&destfile);
+      } else {
+        scr_abort(-1, "Failed to read directory to flush file to @ %s:%d",
+          __FILE__, __LINE__
+        );
+      }
+    } else {
+      scr_abort(-1, "Failed to read directory to flush file to @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+  }
+
+  /* set output params */
+  *out_num_files = numfiles;
+  *out_src_filelist = (char**) src_filelist;
+  *out_dst_filelist = (char**) dst_filelist;
+
+  return rc;
+}
+
+/* free list allocated in filolist_alloc */
+int scr_flush_filolist_free(int num_files, char*** ptr_src_filelist, char*** ptr_dst_filelist)
+{
+  char** src_filelist = *ptr_src_filelist;
+  char** dst_filelist = *ptr_dst_filelist;
+
+  /* free our file list */
+  int i;
+  for (i = 0; i < num_files; i++) {
+    scr_free(&src_filelist[i]);
+    scr_free(&dst_filelist[i]);
+  }
+  scr_free(ptr_src_filelist);
+  scr_free(ptr_dst_filelist);
+
+  return SCR_SUCCESS;
+}
+
 /* given a dataset, return a newly allocated string specifying the
  * metadata directory for that dataset, must be freed by caller */
 char* scr_flush_dataset_metadir(const scr_dataset* dataset)
@@ -100,8 +191,8 @@ static int scr_flush_identify_files(
   return rc;
 }
 
-/* given file map and dataset id, identify files, containers, and
- * directories needed for flush and return in file list hash */
+/* given file map and dataset id, identify files
+ * needed for flush and return in file list hash */
 static int scr_flush_identify(
   const scr_cache_index* cindex,
   int id,
@@ -135,8 +226,7 @@ static int scr_flush_identify(
 }
 
 /* given a filemap and a dataset id, prepare and return a list of
- * files to be flushed, also create corresponding directories and
- * container files */
+ * files to be flushed */
 int scr_flush_prepare(const scr_cache_index* cindex, int id, kvtree* file_list)
 {
   /* build the list of files to flush, which includes meta data for each one */

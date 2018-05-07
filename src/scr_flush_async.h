@@ -18,16 +18,16 @@
 int scr_flush_async_stop(void);
 
 /* start an asynchronous flush from cache to parallel file system under SCR_PREFIX */
-int scr_flush_async_start(scr_filemap* map, int id);
+int scr_flush_async_start(scr_cache_index* cindex, int id);
 
 /* check whether the flush from cache to parallel file system has completed */
-int scr_flush_async_test(scr_filemap* map, int id, double* bytes);
+int scr_flush_async_test(scr_cache_index* cindex, int id);
 
 /* complete the flush from cache to parallel file system */
-int scr_flush_async_complete(scr_filemap* map, int id);
+int scr_flush_async_complete(scr_cache_index* cindex, int id);
 
 /* wait until the checkpoint currently being flushed completes */
-int scr_flush_async_wait(scr_filemap* map);
+int scr_flush_async_wait(scr_cache_index* cindex);
 
 /* initialize the async transfer processes */
 int scr_flush_async_init(void);

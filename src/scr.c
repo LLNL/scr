@@ -1236,16 +1236,13 @@ static int scr_complete_output(int valid)
   /* if we have an async flush ongoing, take this chance to check whether it's completed */
   if (scr_flush_async_in_progress) {
     /* got an outstanding async flush, let's check it */
-    double bytes = 0.0;
-    if (scr_flush_async_test(scr_cindex, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {
+    if (scr_flush_async_test(scr_cindex, scr_flush_async_dataset_id) == SCR_SUCCESS) {
       /* async flush has finished, go ahead and complete it */
       scr_flush_async_complete(scr_cindex, scr_flush_async_dataset_id);
     } else {
       /* not done yet, just print a progress message to the screen */
       if (scr_my_rank_world == 0) {
-        scr_dbg(1, "Flush of dataset %d is %d%% complete",
-          scr_flush_async_dataset_id, (int) (bytes / scr_flush_async_bytes * 100.0)
-        );
+        scr_dbg(1, "Flush of dataset %d is ongoing", scr_flush_async_dataset_id);
       }
     }
   }
@@ -1330,7 +1327,7 @@ int SCR_Init()
   }
 
   /* initialize FILO for data transfers */
-  int filo_rc = filo_init();
+  int filo_rc = Filo_Init();
   if (filo_rc != FILO_SUCCESS) {
     scr_abort(-1, "Failed to initialize FILO library @ %s:%d",
       __FILE__, __LINE__
@@ -1392,7 +1389,7 @@ int SCR_Init()
     }
 
     /* shut down the FILO library */
-    int filo_rc = filo_finalize();
+    int filo_rc = Filo_Finalize();
     if (filo_rc != FILO_SUCCESS) {
       scr_abort(-1, "Failed to finalize FILO library @ %s:%d",
         __FILE__, __LINE__
@@ -1918,7 +1915,7 @@ int SCR_Finalize()
   }
 
   /* shut down the FILO library */
-  int filo_rc = filo_finalize();
+  int filo_rc = Filo_Finalize();
   if (filo_rc != FILO_SUCCESS) {
     scr_abort(-1, "Failed to finalize FILO library @ %s:%d",
       __FILE__, __LINE__

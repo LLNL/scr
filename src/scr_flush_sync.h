@@ -15,6 +15,6 @@
 #include "scr_filemap.h"
 
 /* flush files from cache to parallel file system under SCR_PREFIX */
-int scr_flush_sync(scr_filemap* map, int id);
+int scr_flush_sync(scr_cache_index* cindex, int id);
 
 #endif
