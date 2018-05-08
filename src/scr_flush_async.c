@@ -122,7 +122,6 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
       }
     }
     kvtree_delete(&scr_flush_async_file_list);
-    scr_flush_async_file_list = NULL;
     return SCR_FAILURE;
   }
 

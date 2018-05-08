@@ -140,6 +140,9 @@ static int scr_distribute_dir(scr_cache_index* cindex, int id, char** hidden_dir
   /* create the hidden directory */
   scr_storedesc_dir_create(store, *hidden_dir);
 
+  /* free direcotry string */
+  scr_free(&dir);
+
   return SCR_SUCCESS;
 }
 

@@ -554,6 +554,9 @@ int scr_cache_check_files(const scr_cache_index* cindex, int id)
     scr_meta_delete(&meta);
   }
 
+  /* free the map */
+  scr_filemap_delete(&map);
+
   /* if we failed to read a file, assume the set is incomplete */
   if (failed_read) {
     /* TODO: want to unlink all files in this case? */
