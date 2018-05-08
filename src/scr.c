@@ -1645,6 +1645,7 @@ int SCR_Init()
   /* since we shuffle files around below, stop any ongoing async flush */
   if (scr_flush_async) {
     scr_flush_async_init();
+    scr_flush_async_stop();
   }
 
   /* exit right now if we need to halt */
