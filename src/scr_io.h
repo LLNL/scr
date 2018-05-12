@@ -177,22 +177,4 @@ int scr_file_copy(
   uLong* crc
 );
 
-/*
-=========================================
-File compression functions
-=========================================
-*/
-
-/* compress the specified file using blocks of size block_size and store as file_dst */
-int scr_compress_in_place(const char* file_src, const char* file_dst, unsigned long block_size, int level);
-
-/* uncompress the specified file and store as file_dst */
-int scr_uncompress_in_place(const char* file_src, const char* file_dst);
-
-/* compress the specified file using blocks of size block_size and store as file_dst */
-int scr_compress(const char* file_src, const char* file_dst, unsigned long block_size, int level);
-
-/* uncompress the specified file and store as file_dst */
-int scr_uncompress(const char* file_src, const char* file_dst);
-
 #endif
