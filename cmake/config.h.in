@@ -1,5 +1,4 @@
 // System Specific
-#cmakedefine HAVE_BYTESWAP_H
 
 // Optional Libs
 #cmakedefine HAVE_LIBDTCMP

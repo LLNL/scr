@@ -44,10 +44,6 @@ WRITE:
 #include <string.h>
 #include <unistd.h>
 
-/* need at least version 8.5 of queue.h from Berkeley */
-/*#include <sys/queue.h>*/
-#include "queue.h"
-
 #include "scr.h"
 #include "scr_io.h"
 #include "scr_err.h"

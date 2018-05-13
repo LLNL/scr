@@ -72,25 +72,6 @@ int64_t scr_time_usecs(void);
 /* returns the current linux timestamp (secs + usecs since epoch) as a double */
 double scr_seconds(void);
 
-
-/* pack an unsigned 16 bit value to specified buffer in network order */
-int scr_pack_uint16_t(void* buf, size_t buf_size, size_t* buf_pos, uint16_t val);
-
-/* pack an unsigned 32 bit value to specified buffer in network order */
-int scr_pack_uint32_t(void* buf, size_t buf_size, size_t* buf_pos, uint32_t val);
-
-/* pack an unsigned 64 bit value to specified buffer in network order */
-int scr_pack_uint64_t(void* buf, size_t buf_size, size_t* buf_pos, uint64_t val);
-
-/* unpack an unsigned 16 bit value to specified buffer in network order */
-int scr_unpack_uint16_t(const void* buf, size_t buf_size, size_t* buf_pos, uint16_t* val);
-
-/* unpack an unsigned 32 bit value to specified buffer in network order */
-int scr_unpack_uint32_t(const void* buf, size_t buf_size, size_t* buf_pos, uint32_t* val);
-
-/* unpack an unsigned 64 bit value to specified buffer in network order */
-int scr_unpack_uint64_t(const void* buf, size_t buf_size, size_t* buf_pos, uint64_t* val);
-
 /* convenience to read kvtree from an spath */
 int kvtree_read_path(const spath* path, kvtree* tree);
 

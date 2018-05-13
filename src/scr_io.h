@@ -23,44 +23,6 @@
 #define SCR_MAX_LINE (1024)
 #endif
 
-/* adds byte swapping routines */
-#if defined(__APPLE__)
-#include "machine/endian.h"
-#else
-#include "endian.h"
-#endif
-
-#ifdef HAVE_BYTESWAP_H
-#include "byteswap.h"
-#else
-#include "scr_byteswap.h"
-#endif
-
-#if __BYTE_ORDER == __LITTLE_ENDIAN 
-#ifdef HAVE_BYTESWAP_H
-# define scr_ntoh16(x) bswap_16(x)
-# define scr_ntoh32(x) bswap_32(x)
-# define scr_ntoh64(x) bswap_64(x)
-# define scr_hton16(x) bswap_16(x)
-# define scr_hton32(x) bswap_32(x)
-# define scr_hton64(x) bswap_64(x)
-#else
-# define scr_ntoh16(x) scr_bswap_16(x)
-# define scr_ntoh32(x) scr_bswap_32(x)
-# define scr_ntoh64(x) scr_bswap_64(x)
-# define scr_hton16(x) scr_bswap_16(x)
-# define scr_hton32(x) scr_bswap_32(x)
-# define scr_hton64(x) scr_bswap_64(x)
-#endif
-#else
-# define scr_ntoh16(x) (x)
-# define scr_ntoh32(x) (x)
-# define scr_ntoh64(x) (x)
-# define scr_hton16(x) (x)
-# define scr_hton32(x) (x)
-# define scr_hton64(x) (x)
-#endif
-
 /*
 =========================================
 Basic File I/O
