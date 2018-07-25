@@ -71,7 +71,12 @@ TARGET_LINK_LIBRARIES(test_interpose_multiple ${SCR_LINK_TO})
 SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank*.ckpt")
 
 ADD_EXECUTABLE(test_ckpt_C test_ckpt.C)
-TARGET_LINK_LIBRARIES(test_ckpt_C ${SCR_LINK_TO})
+IF(MPI_CXX_FOUND)
+    TARGET_INCLUDE_DIRECTORIES(test_ckpt_C PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${MPI_CXX_INCLUDE_PATH})
+    TARGET_LINK_LIBRARIES(test_ckpt_C ${SCR_LINK_TO} ${MPI_CXX_LIBRARIES})
+ELSE()
+    TARGET_LINK_LIBRARIES(test_ckpt_C ${SCR_LINK_TO})
+ENDIF(MPI_CXX_FOUND)
 SCR_ADD_TEST(test_ckpt_C "" "rank_0.ckpt")
 
 IF(ENABLE_FORTRAN)
