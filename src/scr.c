@@ -2092,9 +2092,13 @@ int SCR_Route_file(const char* file, char* newfile)
       scr_state != SCR_STATE_CHECKPOINT &&
       scr_state != SCR_STATE_OUTPUT)
   {
-    scr_abort(-1, "Must call SCR_Route_file() from within Start/Complete pair @ %s:%d",
-      __FILE__, __LINE__
-    );
+    /* Route file never fails, instead it returns a copy of the original filename */
+    scr_dbg(3, "SCR_Route_file() called outside of a Start/Complete pair @ %s:%d",
+            __FILE__, __LINE__);
+
+    /* Rely on strcpy to properly error out of bad source strings */
+    strcpy(newfile, file);
+    return SCR_SUCCESS;
   }
 
   /* if not enabled, bail with an error */
