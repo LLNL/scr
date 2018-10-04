@@ -2092,12 +2092,25 @@ int SCR_Route_file(const char* file, char* newfile)
       scr_state != SCR_STATE_CHECKPOINT &&
       scr_state != SCR_STATE_OUTPUT)
   {
-    /* Route file never fails, instead it returns a copy of the original filename */
+    /* Route does not fail outside a start/complete pair,
+       instead it returns a copy of the original filename */
     scr_dbg(3, "SCR_Route_file() called outside of a Start/Complete pair @ %s:%d",
             __FILE__, __LINE__);
 
-    /* Rely on strcpy to properly error out of bad source strings */
-    strcpy(newfile, file);
+    /* check that we got a file and newfile to write to */
+    if (file == NULL || strcmp(file,"") == 0 || newfile == NULL) {
+        return SCR_FALIURE;
+    }
+
+    /* check that user's filename is not too long */
+    if (strlen(file) >= SCR_MAX_FILENAME) {
+        scr_abort(-1, "file name (%s) is longer than SCR_MAX_FILENAME (%d) @ %s:%d",
+                  file, SCR_MAX_FILENAME, __FILE__, __LINE__
+                  );
+    }
+
+    /* return a copy of given file name */
+    strncpy(newfile, file, SCR_MAX_FILENAME);
     return SCR_SUCCESS;
   }
 
