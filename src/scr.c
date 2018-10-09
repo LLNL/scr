@@ -2105,7 +2105,7 @@ int SCR_Route_file(const char* file, char* newfile)
 
     /* check that we got a file and newfile to write to */
     if (file == NULL || strcmp(file,"") == 0 || newfile == NULL) {
-        return SCR_FALIURE;
+        return SCR_FAILURE;
     }
 
     /* check that user's filename is not too long */
