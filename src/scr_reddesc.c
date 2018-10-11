@@ -457,6 +457,16 @@ int scr_reddesc_apply(
     }
   }
 
+  /* include filemap as protected file */
+  spath* mapfile_path = scr_cache_get_map_path(scr_cindex, id);
+  const char* mapfile_str = spath_strdup(mapfile_path);
+  if (ER_Add(set_id, mapfile_str) != ER_SUCCESS) {
+    scr_err("Failed to add map file to ER set: %s @ %s:%d", mapfile_str, __FILE__, __LINE__);
+    valid = 0;
+  }
+  scr_free(&mapfile_str);
+  spath_delete(&mapfile_path);
+
   /* determine whether everyone's files are good */
   int all_valid = scr_alltrue(valid, scr_comm_world);
   if (! all_valid) {
@@ -466,9 +476,6 @@ int scr_reddesc_apply(
     ER_Free(set_id);
     return SCR_FAILURE;
   }
-
-  /* update entries in filemap */
-  scr_cache_set_map(scr_cindex, id, map);
 
   /* start timer */
   time_t timestamp_start;
