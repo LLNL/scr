@@ -59,7 +59,7 @@ scr_meta* scr_meta_new()
 int scr_meta_delete(scr_meta** ptr_meta)
 {
   int rc = kvtree_delete(ptr_meta);
-  return rc;
+  return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
 }
 
 /* clear m1 and copy contents of m2 into m1 */

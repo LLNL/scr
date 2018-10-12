@@ -55,6 +55,12 @@
 #define SCR_DATASET_KEY_FLAG_CKPT   ("FLAG_CKPT")
 #define SCR_DATASET_KEY_FLAG_OUTPUT ("FLAG_OUTPUT")
 
+static int convert_kvtree_rc(int kvtree_rc)
+{
+  int rc = (kvtree_rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
+  return rc;
+}
+
 /*
 =========================================
 Allocate, delete, and copy functions
@@ -74,8 +80,8 @@ scr_dataset* scr_dataset_new()
 /* free memory assigned to dataset object */
 int scr_dataset_delete(scr_dataset** ptr_dataset)
 {
-  int rc = kvtree_delete(ptr_dataset);
-  return rc;
+  int kvtree_rc = kvtree_delete(ptr_dataset);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /*
@@ -87,67 +93,78 @@ Set field values
 /* sets the id in dataset to be the value specified */
 int scr_dataset_set_id(scr_dataset* dataset, int id)
 {
-  return kvtree_util_set_int(dataset, SCR_DATASET_KEY_ID, id);
+  int kvtree_rc = kvtree_util_set_int(dataset, SCR_DATASET_KEY_ID, id);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets the username of the dataset */
 int scr_dataset_set_username(scr_dataset* dataset, const char* name)
 {
-  return kvtree_util_set_str(dataset, SCR_DATASET_KEY_USER, name);
+  int kvtree_rc = kvtree_util_set_str(dataset, SCR_DATASET_KEY_USER, name);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets the simulation name of the dataset */
 int scr_dataset_set_jobname(scr_dataset* dataset, const char* name)
 {
-  return kvtree_util_set_str(dataset, SCR_DATASET_KEY_JOBNAME, name);
+  int kvtree_rc = kvtree_util_set_str(dataset, SCR_DATASET_KEY_JOBNAME, name);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets the name of the dataset */
 int scr_dataset_set_name(scr_dataset* dataset, const char* name)
 {
-  return kvtree_util_set_str(dataset, SCR_DATASET_KEY_NAME, name);
+  int kvtree_rc = kvtree_util_set_str(dataset, SCR_DATASET_KEY_NAME, name);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets the size of the dataset (in bytes) */
 int scr_dataset_set_size(scr_dataset* dataset, unsigned long size)
 {
-  return kvtree_util_set_bytecount(dataset, SCR_DATASET_KEY_SIZE, size);
+  int kvtree_rc = kvtree_util_set_bytecount(dataset, SCR_DATASET_KEY_SIZE, size);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets the number of (logical) files in the dataset */
 int scr_dataset_set_files(scr_dataset* dataset, int files)
 {
-  return kvtree_util_set_int(dataset, SCR_DATASET_KEY_FILES, files);
+  int kvtree_rc = kvtree_util_set_int(dataset, SCR_DATASET_KEY_FILES, files);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets the created timestamp for the dataset */
 int scr_dataset_set_created(scr_dataset* dataset, int64_t usecs)
 {
-  return kvtree_util_set_int64(dataset, SCR_DATASET_KEY_CREATED, usecs);
+  int kvtree_rc = kvtree_util_set_int64(dataset, SCR_DATASET_KEY_CREATED, usecs);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets the jobid in which the dataset is created */
 int scr_dataset_set_jobid(scr_dataset* dataset, const char* jobid)
 {
-  return kvtree_util_set_str(dataset, SCR_DATASET_KEY_JOBID, jobid);
+  int kvtree_rc = kvtree_util_set_str(dataset, SCR_DATASET_KEY_JOBID, jobid);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets the cluster name on which the dataset was created */
 int scr_dataset_set_cluster(scr_dataset* dataset, const char* name)
 {
-  return kvtree_util_set_str(dataset, SCR_DATASET_KEY_CLUSTER, name);
+  int kvtree_rc = kvtree_util_set_str(dataset, SCR_DATASET_KEY_CLUSTER, name);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets the checkpoint id in dataset to be the value specified */
 int scr_dataset_set_ckpt(scr_dataset* dataset, int id)
 {
-  return kvtree_util_set_int(dataset, SCR_DATASET_KEY_CKPT, id);
+  int kvtree_rc = kvtree_util_set_int(dataset, SCR_DATASET_KEY_CKPT, id);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets the complete flag for the dataset to be the value specified */
 int scr_dataset_set_complete(scr_dataset* dataset, int complete)
 {
-  return kvtree_util_set_int(dataset, SCR_DATASET_KEY_COMPLETE, complete);
+  int kvtree_rc = kvtree_util_set_int(dataset, SCR_DATASET_KEY_COMPLETE, complete);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /*
@@ -159,67 +176,78 @@ Get field values
 /* gets id recorded in dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_id(const scr_dataset* dataset, int* id)
 {
-  return kvtree_util_get_int(dataset, SCR_DATASET_KEY_ID, id);
+  int kvtree_rc = kvtree_util_get_int(dataset, SCR_DATASET_KEY_ID, id);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* gets username of dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_username(const scr_dataset* dataset, char** name)
 {
-  return kvtree_util_get_str(dataset, SCR_DATASET_KEY_USER, name);
+  int kvtree_rc = kvtree_util_get_str(dataset, SCR_DATASET_KEY_USER, name);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* gets simulation name of dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_jobname(const scr_dataset* dataset, char** name)
 {
-  return kvtree_util_get_str(dataset, SCR_DATASET_KEY_JOBNAME, name);
+  int kvtree_rc = kvtree_util_get_str(dataset, SCR_DATASET_KEY_JOBNAME, name);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* gets name of dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_name(const scr_dataset* dataset, char** name)
 {
-  return kvtree_util_get_str(dataset, SCR_DATASET_KEY_NAME, name);
+  int kvtree_rc = kvtree_util_get_str(dataset, SCR_DATASET_KEY_NAME, name);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* gets size of dataset (in bytes), returns SCR_SUCCESS if successful */
 int scr_dataset_get_size(const scr_dataset* dataset, unsigned long* size)
 {
-  return kvtree_util_get_bytecount(dataset, SCR_DATASET_KEY_SIZE, size);
+  int kvtree_rc = kvtree_util_get_bytecount(dataset, SCR_DATASET_KEY_SIZE, size);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* gets number of (logical) files in dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_files(const scr_dataset* dataset, int* files)
 {
-  return kvtree_util_get_int(dataset, SCR_DATASET_KEY_FILES, files);
+  int kvtree_rc = kvtree_util_get_int(dataset, SCR_DATASET_KEY_FILES, files);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* gets created timestamp of dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_created(const scr_dataset* dataset, int64_t* usecs)
 {
-  return kvtree_util_get_int64(dataset, SCR_DATASET_KEY_CREATED, usecs);
+  int kvtree_rc = kvtree_util_get_int64(dataset, SCR_DATASET_KEY_CREATED, usecs);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* gets the jobid in which the dataset was created, returns SCR_SUCCESS if successful */
 int scr_dataset_get_jobid(const scr_dataset* dataset, char** jobid)
 {
-  return kvtree_util_get_str(dataset, SCR_DATASET_KEY_JOBID, jobid);
+  int kvtree_rc = kvtree_util_get_str(dataset, SCR_DATASET_KEY_JOBID, jobid);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* gets the cluster name on which the dataset was created, returns SCR_SUCCESS if successful */
 int scr_dataset_get_cluster(const scr_dataset* dataset, char** name)
 {
-  return kvtree_util_get_str(dataset, SCR_DATASET_KEY_CLUSTER, name);
+  int kvtree_rc = kvtree_util_get_str(dataset, SCR_DATASET_KEY_CLUSTER, name);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* gets checkpoint id recorded in dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_ckpt(const scr_dataset* dataset, int* id)
 {
-  return kvtree_util_get_int(dataset, SCR_DATASET_KEY_CKPT, id);
+  int kvtree_rc = kvtree_util_get_int(dataset, SCR_DATASET_KEY_CKPT, id);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* gets complete flag recorded in dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_complete(const scr_dataset* dataset, int* complete)
 {
-  return kvtree_util_get_int(dataset, SCR_DATASET_KEY_COMPLETE, complete);
+  int kvtree_rc = kvtree_util_get_int(dataset, SCR_DATASET_KEY_COMPLETE, complete);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /*
@@ -234,19 +262,22 @@ int scr_dataset_set_flags(scr_dataset* dataset, int flags)
   int is_ckpt   = (flags & SCR_FLAG_CHECKPOINT) ? 1 : 0;
   int is_output = (flags & SCR_FLAG_OUTPUT)     ? 1 : 0;
   kvtree_util_set_int(dataset, SCR_DATASET_KEY_FLAG_CKPT, is_ckpt);
-  return kvtree_util_set_int(dataset, SCR_DATASET_KEY_FLAG_OUTPUT, is_output);
+  int kvtree_rc = kvtree_util_set_int(dataset, SCR_DATASET_KEY_FLAG_OUTPUT, is_output);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets flag to 1 if checkpoint flag is set on this dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_flag_ckpt(const scr_dataset* dataset, int* flag)
 {
-  return kvtree_util_get_int(dataset, SCR_DATASET_KEY_FLAG_CKPT, flag);
+  int kvtree_rc = kvtree_util_get_int(dataset, SCR_DATASET_KEY_FLAG_CKPT, flag);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* sets flag to 1 if output flag is set on this dataset, returns SCR_SUCCESS if successful */
 int scr_dataset_get_flag_output(const scr_dataset* dataset, int* flag)
 {
-  return kvtree_util_get_int(dataset, SCR_DATASET_KEY_FLAG_OUTPUT, flag);
+  int kvtree_rc = kvtree_util_get_int(dataset, SCR_DATASET_KEY_FLAG_OUTPUT, flag);
+  return convert_kvtree_rc(kvtree_rc);
 }
 
 /* returns 1 if dataset is a checkpoint, 0 otherwise */

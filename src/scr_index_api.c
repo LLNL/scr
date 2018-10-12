@@ -57,7 +57,8 @@ int scr_index_read(const spath* dir, kvtree* index)
 
   /* if we can access it, read the index file */
   if (scr_file_exists(index_file) == SCR_SUCCESS) {
-    rc = kvtree_read_file(index_file, index);
+    int kvtree_rc = kvtree_read_file(index_file, index);
+    rc = (kvtree_rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
   }
 
   /* free path and string */
@@ -82,7 +83,8 @@ int scr_index_write(const spath* dir, kvtree* index)
   }
 
   /* write out the file */
-  int rc = kvtree_write_path(path_index, index);
+  int kvtree_rc = kvtree_write_path(path_index, index);
+  int rc = (kvtree_rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
 
   /* free path */
   spath_delete(&path_index);
@@ -199,7 +201,8 @@ int scr_index_set_current(kvtree* index, const char* name)
 int scr_index_get_current(kvtree* index, char** name)
 {
   /* get the current dataset */
-  int rc = kvtree_util_get_str(index, SCR_INDEX_1_KEY_CURRENT, name);
+  int kvtree_rc = kvtree_util_get_str(index, SCR_INDEX_1_KEY_CURRENT, name);
+  int rc = (kvtree_rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
   return rc;
 }
 
@@ -207,7 +210,8 @@ int scr_index_get_current(kvtree* index, char** name)
 int scr_index_unset_current(kvtree* index)
 {
   /* unset the current dataset */
-  int rc = kvtree_unset(index, SCR_INDEX_1_KEY_CURRENT);
+  int kvtree_rc = kvtree_unset(index, SCR_INDEX_1_KEY_CURRENT);
+  int rc = (kvtree_rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
   return rc;
 }
 

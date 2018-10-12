@@ -36,7 +36,8 @@ int scr_config_read(const char* file, kvtree* hash)
 
   /* if rank 0 read the file, broadcast the hash */
   if (rc == SCR_SUCCESS) {
-    rc = kvtree_bcast(hash, 0, scr_comm_world);
+    int kvtree_rc = kvtree_bcast(hash, 0, scr_comm_world);
+    rc = (kvtree_rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
   }
 
   return rc;
