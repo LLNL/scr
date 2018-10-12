@@ -34,6 +34,9 @@ int scr_cache_set_map(const scr_cache_index* cindex, int id, const scr_filemap* 
 /* delete file map file for dataset from cache directory */
 int scr_cache_unset_map(const scr_cache_index* cindex, int id);
 
+/* return string pointing to filemap file, caller must free string when done */
+const char* scr_cache_get_map_file(const scr_cache_index* cindex, int id);
+
 /* create a dataset directory given a redundancy descriptor and dataset id,
  * waits for all tasks on the same node before returning */
 int scr_cache_dir_create(const scr_reddesc* reddesc, int id);

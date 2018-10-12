@@ -139,7 +139,7 @@ int scr_cache_dir_create(const scr_reddesc* red, int id)
 
 /* create and return spath object for map file for calling rank,
  * returns NULL on failure */
-spath* scr_cache_get_map_path(const scr_cache_index* cindex, int id)
+static spath* scr_cache_get_map_path(const scr_cache_index* cindex, int id)
 {
   /* get directory for dataset */
   char* dir;
@@ -152,6 +152,24 @@ spath* scr_cache_get_map_path(const scr_cache_index* cindex, int id)
   spath_append_str(path, ".scr");
   spath_append_strf(path, "filemap_%d", scr_my_rank_world);
   return path;
+}
+
+const char* scr_cache_get_map_file(const scr_cache_index* cindex, int id)
+{
+  /* get directory for dataset */
+  spath* path = scr_cache_get_map_path(cindex, id);
+  if (path == NULL) {
+    return NULL;
+  }
+
+  /* get file name as string */
+  const char* file = spath_strdup(path);
+
+  /* free the path to the map file */
+  spath_delete(&path);
+
+  /* return path to caller */
+  return file;
 }
 
 /* read file map for dataset from cache directory */
