@@ -458,14 +458,12 @@ int scr_reddesc_apply(
   }
 
   /* include filemap as protected file */
-  spath* mapfile_path = scr_cache_get_map_path(scr_cindex, id);
-  const char* mapfile_str = spath_strdup(mapfile_path);
+  const char* mapfile_str = scr_cache_get_map_file(scr_cindex, id);
   if (ER_Add(set_id, mapfile_str) != ER_SUCCESS) {
     scr_err("Failed to add map file to ER set: %s @ %s:%d", mapfile_str, __FILE__, __LINE__);
     valid = 0;
   }
   scr_free(&mapfile_str);
-  spath_delete(&mapfile_path);
 
   /* determine whether everyone's files are good */
   int all_valid = scr_alltrue(valid, scr_comm_world);
