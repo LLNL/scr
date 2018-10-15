@@ -164,7 +164,10 @@ A process does not need to create any directories listed in the string returned 
 The SCR implementation creates any necessary directories before returning from the call.
 A call to :code:`SCR_Route_file` is local to the calling process; it is not a collective call.
 
-:code:`SCR_Route_file` can only be called within a Start/Complete pair
+As of version 1.2.2, :code:`SCR_Route_file` can be succesfully called at any point during application execution.
+If it is called outside of a Start/Complete pair, the original file path is simply copied to the return string.
+
+:code:`SCR_Route_file` has special behaviour when called within a Start/Complete pair
 for restart, checkpoint, or output.
 Within a restart operation, the input parameter :code:`name` only requires a file name.
 No path component is needed.
