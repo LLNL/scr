@@ -381,7 +381,7 @@ scr_storedesc* scr_reddesc_get_store(const scr_reddesc* desc)
   return store;
 }
 
-/* define prefix to ER files given the hidden dataset directory */
+/* define prefix to ER files for data files given the hidden dataset directory */
 static char* scr_reddesc_prefix(const char* dir)
 {
   spath* path = spath_from_str(dir);
@@ -389,6 +389,86 @@ static char* scr_reddesc_prefix(const char* dir)
   char* prefix = spath_strdup(path);
   spath_delete(&path);
   return prefix;
+}
+
+/* define prefix to ER files for filemap given the hidden dataset directory */
+static char* scr_reddesc_prefix_filemap(const char* dir)
+{
+  spath* path = spath_from_str(dir);
+  spath_append_str(path, "reddescmap");
+  char* prefix = spath_strdup(path);
+  spath_delete(&path);
+  return prefix;
+}
+
+static int scr_reddesc_apply_to_filemap(const scr_reddesc* desc, int id, const scr_storedesc* store)
+{
+  /* define path for hidden directory */
+  const char* dir_hidden = scr_cache_dir_hidden_get(desc, id);
+
+  /* define path to er files */
+  char* reddesc_dir = scr_reddesc_prefix_filemap(dir_hidden);
+
+  /* create ER set */
+  int set_id = ER_Create(scr_comm_world, store->comm, reddesc_dir, ER_DIRECTION_ENCODE, desc->er_scheme);
+  if (set_id < 0) {
+    scr_err("Failed to create ER set @ %s:%d",
+            __FILE__, __LINE__
+    );
+  }
+
+  /* free directory path strings */
+  scr_free(&reddesc_dir);
+  scr_free(&dir_hidden);
+ 
+  /* step through each of my files for the specified dataset
+   * to scan for any incomplete files */
+  int valid = 1;
+
+  /* include filemap as protected file */
+  const char* mapfile_str = scr_cache_get_map_file(scr_cindex, id);
+  if (ER_Add(set_id, mapfile_str) != ER_SUCCESS) {
+    scr_err("Failed to add map file to ER set: %s @ %s:%d", mapfile_str, __FILE__, __LINE__);
+    valid = 0;
+  }
+  scr_free(&mapfile_str);
+
+  /* determine whether everyone's files are good */
+  int all_valid = scr_alltrue(valid, scr_comm_world);
+  if (! all_valid) {
+    if (scr_my_rank_world == 0) {
+      scr_dbg(1, "Exiting copy since one or more checkpoint files is invalid");
+    }
+    ER_Free(set_id);
+    return SCR_FAILURE;
+  }
+
+  /* apply the redundancy scheme */
+  int rc = SCR_SUCCESS;
+  if (ER_Dispatch(set_id) != ER_SUCCESS) {
+    scr_err("ER_Dispatch failed @ %s:%d", __FILE__, __LINE__);
+    rc = SCR_FAILURE;
+  }
+  if (ER_Wait(set_id) != ER_SUCCESS) {
+    scr_err("ER_Wait failed @ %s:%d", __FILE__, __LINE__);
+    rc = SCR_FAILURE;
+  }
+  if (ER_Free(set_id) != ER_SUCCESS) {
+    scr_err("ER_Free failed @ %s:%d", __FILE__, __LINE__);
+    rc = SCR_FAILURE;
+  }
+
+  /* determine whether everyone succeeded in their copy */
+  int valid_copy = (rc == SCR_SUCCESS);
+  if (! valid_copy) {
+    scr_err("scr_copy_files failed with return code %d @ %s:%d",
+            rc, __FILE__, __LINE__
+    );
+  }
+  int all_valid_copy = scr_alltrue(valid_copy, scr_comm_world);
+  rc = all_valid_copy ? SCR_SUCCESS : SCR_FAILURE;
+
+  return rc;
 }
 
 /* apply redundancy scheme to file and return number of bytes copied
@@ -402,8 +482,28 @@ int scr_reddesc_apply(
   /* initialize to 0 */
   *bytes = 0.0;
 
+  /* start timer */
+  time_t timestamp_start;
+  double time_start;
+  if (scr_my_rank_world == 0) {
+    timestamp_start = scr_log_seconds();
+    time_start = MPI_Wtime();
+  }
+
   /* get store descriptor for this redudancy scheme */
   scr_storedesc* store = scr_reddesc_get_store(desc);
+
+  /* first encode filemap files, need to capture multi-level storage
+   * info (path in cache and path in prefix) in case of a rebuild on scavenge */
+  int filemap_rc = scr_reddesc_apply_to_filemap(desc, id, store);
+  if (filemap_rc != SCR_SUCCESS) {
+    if (scr_my_rank_world == 0) {
+      scr_err("Failed to encode filemaps @ %s:%d",
+              __FILE__, __LINE__
+      );
+    }
+    return SCR_FAILURE;
+  }
 
   /* define path for hidden directory */
   const char* dir_hidden = scr_cache_dir_hidden_get(desc, id);
@@ -457,6 +557,7 @@ int scr_reddesc_apply(
     }
   }
 
+#if 0
   /* include filemap as protected file */
   const char* mapfile_str = scr_cache_get_map_file(scr_cindex, id);
   if (ER_Add(set_id, mapfile_str) != ER_SUCCESS) {
@@ -464,6 +565,7 @@ int scr_reddesc_apply(
     valid = 0;
   }
   scr_free(&mapfile_str);
+#endif
 
   /* determine whether everyone's files are good */
   int all_valid = scr_alltrue(valid, scr_comm_world);
@@ -473,14 +575,6 @@ int scr_reddesc_apply(
     }
     ER_Free(set_id);
     return SCR_FAILURE;
-  }
-
-  /* start timer */
-  time_t timestamp_start;
-  double time_start;
-  if (scr_my_rank_world == 0) {
-    timestamp_start = scr_log_seconds();
-    time_start = MPI_Wtime();
   }
 
   /* apply the redundancy scheme */
@@ -531,6 +625,30 @@ int scr_reddesc_apply(
   return rc;
 }
 
+static int scr_reddesc_er_recover(MPI_Comm comm, const char* name)
+{
+  int rc = SCR_SUCCESS;
+
+  /* create ER set */
+  int set_id = ER_Create(scr_comm_world, comm, name, ER_DIRECTION_REBUILD, 0);
+
+  if (set_id >= 0) {
+    if (ER_Dispatch(set_id) != ER_SUCCESS) {
+      rc = SCR_FAILURE;
+    }
+
+    if (ER_Wait(set_id) != ER_SUCCESS) {
+      rc = SCR_FAILURE;
+    }
+
+    ER_Free(set_id);
+  } else {
+    rc = SCR_FAILURE;
+  }
+
+  return rc;
+}
+
 /* rebuilds files for specified dataset id using specified redundancy descriptor,
  * adds them to filemap, and returns SCR_SUCCESS if all processes succeeded */
 int scr_reddesc_recover(scr_cache_index* cindex, int id, const char* dir)
@@ -543,23 +661,43 @@ int scr_reddesc_recover(scr_cache_index* cindex, int id, const char* dir)
   /* TODO: verify that everyone found a matching store descriptor */
   scr_storedesc* store = &scr_storedescs[store_index];
 
-  /* build prefix for reddesc files */
-  char* reddesc_dir = scr_reddesc_prefix(dir);
+  /* recover filemap files */
+  char* reddesc_filemap = scr_reddesc_prefix_filemap(dir);
+  if (scr_reddesc_er_recover(store->comm, reddesc_filemap) != SCR_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+  scr_free(&reddesc_filemap);
+
+  /* recover data files */
+  char* reddesc_data = scr_reddesc_prefix(dir);
+  if (scr_reddesc_er_recover(store->comm, reddesc_data) != SCR_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+  scr_free(&reddesc_data);
+
+  return rc;
+}
+
+static int scr_reddesc_er_unapply(MPI_Comm comm, const char* name)
+{
+  int rc = SCR_SUCCESS;
 
   /* create ER set */
-  int set_id = ER_Create(scr_comm_world, store->comm, reddesc_dir, ER_DIRECTION_REBUILD, 0);
+  int set_id = ER_Create(scr_comm_world, comm, name, ER_DIRECTION_REMOVE, 0);
 
-  scr_free(&reddesc_dir);
+  if (set_id >= 0) {
+    if (ER_Dispatch(set_id) != ER_SUCCESS) {
+      rc = SCR_FAILURE;
+    }
 
-  if (ER_Dispatch(set_id) != ER_SUCCESS) {
+    if (ER_Wait(set_id) != ER_SUCCESS) {
+      rc = SCR_FAILURE;
+    }
+
+    ER_Free(set_id);
+  } else {
     rc = SCR_FAILURE;
   }
-
-  if (ER_Wait(set_id) != ER_SUCCESS) {
-    rc = SCR_FAILURE;
-  }
-
-  ER_Free(set_id);
 
   return rc;
 }
@@ -575,28 +713,19 @@ int scr_reddesc_unapply(const scr_cache_index* cindex, int id, const char* dir)
   /* TODO: verify that everyone found a matching store descriptor */
   scr_storedesc* store = &scr_storedescs[store_index];
 
-  /* build prefix for reddesc files */
-  char* reddesc_dir = scr_reddesc_prefix(dir);
-
-  /* create ER set */
-  int set_id = ER_Create(scr_comm_world, store->comm, reddesc_dir, ER_DIRECTION_REMOVE, 0);
-  if (set_id < 0) {
+  /* recover filemap files */
+  char* reddesc_filemap = scr_reddesc_prefix_filemap(dir);
+  if (scr_reddesc_er_unapply(store->comm, reddesc_filemap) != SCR_SUCCESS) {
     rc = SCR_FAILURE;
   }
+  scr_free(&reddesc_filemap);
 
-  scr_free(&reddesc_dir);
-
-  if (ER_Dispatch(set_id) != ER_SUCCESS) {
+  /* recover data files */
+  char* reddesc_data = scr_reddesc_prefix(dir);
+  if (scr_reddesc_er_unapply(store->comm, reddesc_data) != SCR_SUCCESS) {
     rc = SCR_FAILURE;
   }
-
-  if (ER_Wait(set_id) != ER_SUCCESS) {
-    rc = SCR_FAILURE;
-  }
-
-  if (ER_Free(set_id) != ER_SUCCESS) {
-    rc = SCR_FAILURE;
-  }
+  scr_free(&reddesc_data);
 
   return rc;
 }
