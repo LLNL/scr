@@ -27,6 +27,8 @@ LIST(APPEND cliscr_noMPI_srcs
 	scr_meta.c
 	scr_param.c
 	scr_util.c
+	scr_rebuild_xor.c
+	scr_rebuild_partner.c
 )
 
 LIST(APPEND libscr_srcs
@@ -111,8 +113,6 @@ ENDIF(ENABLE_FORTRAN)
 ###########
 
 # Individual binaries generated from a single .c file
-#	scr_copy
-#	scr_index
 #	scr_inspect_cache
 LIST(APPEND cliscr_c_bins
 	scr_crc32
@@ -122,6 +122,10 @@ LIST(APPEND cliscr_c_bins
 	scr_log_transfer
 	scr_nodes_file
 	scr_retries_halt
+	scr_copy
+	scr_index
+        scr_rebuild_xor
+        scr_rebuild_partner
 )
 
 # CLI binaries that require full SCR library
