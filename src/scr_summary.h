@@ -19,7 +19,4 @@
 /* read in the summary file from dir */
 int scr_summary_read(const spath* dir, kvtree* summary_hash);
 
-/* write out the summary file to dir */
-int scr_summary_write(const spath* dir, const scr_dataset* dataset, int all_complete, kvtree* data);
-
 #endif
