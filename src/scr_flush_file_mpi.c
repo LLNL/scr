@@ -174,7 +174,7 @@ int scr_flush_file_location_unset(int id, const char* location)
 
 /* create an entry in the flush file for a dataset for scavenge,
  * including name, location, and flags */
-int scr_flush_file_new_entry(int id, const char* name, const char* location, int ckpt, int output)
+int scr_flush_file_new_entry(int id, const char* name, const scr_dataset* dataset, const char* location, int ckpt, int output)
 {
   /* only rank 0 updates the file */
   if (scr_my_rank_world == 0) {
@@ -192,6 +192,12 @@ int scr_flush_file_new_entry(int id, const char* name, const char* location, int
     if (output) {
       kvtree_util_set_int(dset_hash, SCR_FLUSH_KEY_OUTPUT, output);
     }
+
+    /* record metadata for dataset */
+    /* TODO: this feels hacky since it breaks abstraction of scr_dataset type */
+    kvtree* dataset_copy = kvtree_new();
+    kvtree_merge(dataset_copy, dataset);
+    kvtree_set(dset_hash, SCR_FLUSH_KEY_DSETDESC, dataset_copy);
 
     /* write the hash back to the flush file */
     kvtree_write_path(scr_flush_file, hash);

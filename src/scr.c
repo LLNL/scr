@@ -1217,7 +1217,7 @@ static int scr_complete_output(int valid)
     /* record entry in flush file for this dataset */
     char* dset_name;
     scr_dataset_get_name(dataset, &dset_name);
-    scr_flush_file_new_entry(scr_dataset_id, dset_name, SCR_FLUSH_KEY_LOCATION_CACHE, is_ckpt, is_output);
+    scr_flush_file_new_entry(scr_dataset_id, dset_name, dataset, SCR_FLUSH_KEY_LOCATION_CACHE, is_ckpt, is_output);
 
     /* check_flush may start an async flush, whereas check_halt will call sync flush,
      * so place check_flush after check_halt */

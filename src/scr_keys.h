@@ -116,6 +116,7 @@ Define common hash key strings
 #define SCR_FLUSH_KEY_NAME      ("NAME")
 #define SCR_FLUSH_KEY_CKPT      ("CKPT")
 #define SCR_FLUSH_KEY_OUTPUT    ("OUTPUT")
+#define SCR_FLUSH_KEY_DSETDESC  ("DSETDESC")
 
 #define SCR_SCAVENGE_KEY_PARTNER   ("PARTNER")
 
