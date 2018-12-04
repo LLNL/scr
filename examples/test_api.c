@@ -68,15 +68,15 @@ int test_abtoull(char* str, unsigned long long* val)
 {
   /* check that we have a string */
   if (str == NULL) {
-    sprintf("test_abtoull: Can't convert NULL string to bytes @ %s:%d",
-            __FILE__, __LINE__
+    printf("test_abtoull: Can't convert NULL string to bytes @ %s:%d",
+           __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
 
   /* check that we have a value to write to */
   if (val == NULL) {
-    sprintf("test_abtoull: NULL address to store value @ %s:%d",
+    printf("test_abtoull: NULL address to store value @ %s:%d",
             __FILE__, __LINE__
     );
     return SCR_FAILURE;
@@ -88,15 +88,15 @@ int test_abtoull(char* str, unsigned long long* val)
   double num = strtod(str, &next);
   if (errno != 0) {
     /* conversion failed */
-    sprintf("test_abtoull: Invalid double: %s errno=%d %s @ %s:%d",
-            str, errno, strerror(errno), __FILE__, __LINE__
+    printf("test_abtoull: Invalid double: %s errno=%d %s @ %s:%d",
+           str, errno, strerror(errno), __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
   if (str == next) {
     /* no conversion performed */
-    sprintf("test_abtoull: Invalid double: %s @ %s:%d",
-            str, __FILE__, __LINE__
+    printf("test_abtoull: Invalid double: %s @ %s:%d",
+           str, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -130,8 +130,8 @@ int test_abtoull(char* str, unsigned long long* val)
       units = exa;
       break;
     default:
-      sprintf("test_abtoull: Unexpected byte string %s @ %s:%d",
-              str, __FILE__, __LINE__
+      printf("test_abtoull: Unexpected byte string %s @ %s:%d",
+             str, __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -145,8 +145,8 @@ int test_abtoull(char* str, unsigned long long* val)
 
     /* check that we've hit the end of the string */
     if (*next != 0) {
-      sprintf("test_abtoull: Unexpected byte string: %s @ %s:%d",
-              str, __FILE__, __LINE__
+      printf("test_abtoull: Unexpected byte string: %s @ %s:%d",
+             str, __FILE__, __LINE__
       );
       return SCR_FAILURE;
     }
@@ -154,8 +154,8 @@ int test_abtoull(char* str, unsigned long long* val)
 
   /* check that we got a positive value */
   if (num < 0) {
-    sprintf("test_abtoull: Byte string must be positive: %s @ %s:%d",
-            str, __FILE__, __LINE__
+    printf("test_abtoull: Byte string must be positive: %s @ %s:%d",
+           str, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -167,8 +167,8 @@ int test_abtoull(char* str, unsigned long long* val)
   double max_d = (double) ULLONG_MAX;
   if (val_d > max_d) {
     /* overflow */
-    sprintf("test_abtoull: Byte string overflowed UNSIGNED LONG LONG type: %s @ %s:%d",
-            str, __FILE__, __LINE__
+    printf("test_abtoull: Byte string overflowed UNSIGNED LONG LONG type: %s @ %s:%d",
+           str, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
