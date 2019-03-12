@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# requires: jsrun
+# requires: lrun
 
-launcher="jsrun"
+launcher="lrun"
 prog="scr_${launcher}"
 
 libdir="@X_LIBDIR@"
