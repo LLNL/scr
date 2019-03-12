@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# requires: jsrun
+# requires: mpirun
 
-launcher="jsrun"
+launcher="mpirun"
 prog="scr_${launcher}"
 
 libdir="@X_LIBDIR@"
@@ -130,6 +130,9 @@ if [ $? -ne 0 ] ; then
   exit 1
 fi
 
+# define our hostfile
+hostfile=${prefix}/.scr/hostfile
+
 # start background scr_transfer processes (1 per node) if async flush is enabled
 if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
   #nnodes=`$bindir/scr_glob_hosts --count --hosts $SCR_NODELIST`
@@ -163,8 +166,8 @@ while [ 1 ] ; do
     free_flag="--free"
   fi
 
-  # assume we aren't excluding any nodes
-  exclude_hosts=""
+  # assume that all hosts in hostfile are valid
+  target_hosts=`$bindir/scr_env --hostfile ""`
 
   # are there enough nodes to continue?
   down_nodes=`$bindir/scr_list_down_nodes $free_flag $keep_down`
@@ -205,8 +208,8 @@ while [ 1 ] ; do
       break
     fi
 
-    # assume we aren't excluding any nodes
-    exclude_hosts="--exclude_hosts=$down_nodes"
+    # found some down nodes, drop those from the hostlist
+    target_hosts=`$bindir/scr_env --hostfile "$down_nodes"`
   fi
 
   # make a record of when each run is started
@@ -228,7 +231,9 @@ while [ 1 ] ; do
   $bindir/scr_log_event -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
 
   if [ $use_scr_watchdog -eq 0 ]; then
-     $launcher $exclude_hosts $launch_cmd
+     echo "$target_hosts" > $hostfile
+     $launcher --hostfile $hostfile $launch_cmd
+     #$launcher --host $target_hosts $launch_cmd
 #  else
 #    echo "$prog: Attempting to start watchdog process."
 #     # need to get job step id of the srun command

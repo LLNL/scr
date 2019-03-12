@@ -35,7 +35,13 @@ ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "PMIX")
 
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
 	SET(cliscr_dir_name "LSF")
-	SET(cliscr_run_name "scr_mpirun")
+	SET(cliscr_run_name "scr_jsrun")
+
+	LIST(APPEND resource_manager_bins
+            scr_jsrun
+            scr_lrun
+            scr_mpirun
+        )
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
 
 
