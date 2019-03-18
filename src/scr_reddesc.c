@@ -550,7 +550,7 @@ int scr_reddesc_create_from_hash(
     if (scr_my_rank_world == 0) {
       if (d->copy_type != SCR_COPY_SINGLE) {
         /* print a warning if we changed things on the user */
-        scr_warn("Forcing copy type to SINGLE in redundancy descriptor %d @ %s:%d",
+        scr_dbg(1, "Forcing copy type to SINGLE in redundancy descriptor %d @ %s:%d",
           d->index, __FILE__, __LINE__
         );
       }
