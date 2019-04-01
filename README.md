@@ -8,6 +8,8 @@ load on critical shared resources such as the parallel file system.
 
 Detailed usage is provided at [SCR.ReadTheDocs.io](http://scr.readthedocs.io/en/latest/).
 
+[![User Docs Status](https://readthedocs.org/projects/scr/badge/?version=latest)](https://scr.readthedocs.io/en/latest/?badge=latest)
+
 ## Quickstart
 
 SCR uses the CMake build system and we recommend out-of-source builds.
@@ -69,3 +71,9 @@ To reference SCR in a publication, please cite the following paper:
 Additional information and research publications can be found here:
 
 [http://computation.llnl.gov/projects/scalable-checkpoint-restart-for-mpi](http://computation.llnl.gov/projects/scalable-checkpoint-restart-for-mpi)
+
+## Developers
+
+Developer documentation is provided at [SCR-dev.ReadTheDocs.io](http://scr-dev.readthedocs.io/en/latest/).
+
+[![Developer Docs Status](https://readthedocs.org/projects/scr-dev/badge/?version=latest)](https://scr-dev.readthedocs.io/en/latest/?badge=latest)
