@@ -139,7 +139,7 @@ foreach my $node (@still_up) {
 
 # run an "echo UP" on each node to check whether it works
 if (@still_up > 0) {
-  my $output = `$pdsh -f 256 -w '$upnodes' "echo UP" | $dshbak -c`;
+  my $output = `$pdsh -R ssh -f 256 -w '$upnodes' "echo UP" | $dshbak -c`;
   my @lines = (split "\n", $output);
   while (@lines) {
     my $line = shift @lines;

@@ -90,7 +90,7 @@ my $cmd = undef;
 # gather files via pdsh
 my $filemap = "$cntldir/filemap.scrinfo";
 $cmd = "$bindir/scr_inspect_cache $filemap";
-`$pdsh -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
+`$pdsh -R ssh -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
 
 # scan output file for list of partners and failed copies
 my %groups = ();
