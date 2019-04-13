@@ -89,9 +89,15 @@ if (defined $conf{user}) {
       }
     }
 
-    # build set of unique hostnames, one hostname per line
+    # break on newlines to get list of hosts
     chomp $hoststr;
     my @hosts = split('\n', $hoststr);
+
+    # the first entry is the launch node,
+    # we just want to print compute nodes, so ignore it
+    shift @hosts;
+
+    # build set of unique hostnames, one hostname per line
     my %hosts_unique;
     foreach my $host (@hosts) {
       $hosts_unique{$host} = 1;
