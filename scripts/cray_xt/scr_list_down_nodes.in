@@ -100,6 +100,7 @@ my %reason = ();
 
 # mark the set of nodes the resource manager thinks is down
 my $resmgr_down = `$bindir/scr_env --down`;
+chomp $resmgr_down;
 if ($resmgr_down ne "") {
   my @resmgr_nodes = scr_hostlist::expand($resmgr_down);
   foreach my $node (@resmgr_nodes) {
