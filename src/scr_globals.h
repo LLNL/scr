@@ -33,6 +33,7 @@
 #ifndef SCR_GLOBALS_H
 #define SCR_GLOBALS_H
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
