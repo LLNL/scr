@@ -93,6 +93,9 @@
 /* default name of user config file */
 #define SCR_CONFIG_FILE_USER ".scrconf"
 
+/* name of application config file */
+#define SCR_CONFIG_FILE_APP "app.conf"
+
 /* base control directory */
 #ifndef SCR_CNTL_BASE
 #define SCR_CNTL_BASE "/tmp"

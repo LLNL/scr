@@ -50,6 +50,9 @@ int scr_param_init(void);
 /* free contents from config files */
 int scr_param_finalize(void);
 
+/* write application hash to config file $SCR_PREFIX/.scr/app.conf */
+void scr_param_app_hash_write_file(const char *app_config_file);
+
 /* searchs for name and returns a character pointer to its value if set,
  * returns NULL if not found */
 const char* scr_param_get(const char* name);
@@ -57,5 +60,13 @@ const char* scr_param_get(const char* name);
 /* searchs for name and returns a newly allocated hash of its value if set,
  * returns NULL if not found */
 const kvtree* scr_param_get_hash(const char* name);
+
+/* sets (top level) a parameter to a new value, returning the subkey hash */
+kvtree* scr_param_set(char* name, const char* value);
+
+/* sets a parameter to a new value, returning the hash
+ * hash_value should be the return from scr_param_get_hash() if the top level
+ * value needs to be preserved */
+kvtree* scr_param_set_hash(char* name, kvtree* hash_value);
 
 #endif
