@@ -147,6 +147,46 @@ FORTRAN_API void FORT_CALL scr_should_exit_(int* flag, int* ierror)
 }
 
 /*================================================
+ * Programmatically change configuration options
+ *================================================*/
+FORTRAN_API void FORT_CALL scr_config_(char* cfg FORT_MIXED_LEN(cfg_len),
+                                      char* val FORT_MIXED_LEN(val_len),
+                                      int* ierror FORT_END_LEN(cfg_len) FORT_END_LEN(val_len))
+{
+  *ierror = SCR_SUCCESS;
+
+  /* convert name from a Fortran string to C string */
+  char cfg_tmp[SCR_MAX_FILENAME];
+  if (scr_fstr2cstr(cfg, cfg_len, cfg_tmp, sizeof(cfg_tmp)) != 0) {
+    *ierror = !SCR_SUCCESS;
+    return;
+  }
+
+  const char *val_tmp = SCR_Config(cfg_tmp);
+  if (!val_tmp) {
+    *ierror = !SCR_SUCCESS;
+    return;
+  }
+  /* TODO: there is a memory leak here. scr_config, when called to get a value
+   * scr_config("FOO") returns a copy of the value that needs to be free()'ed
+   * while SCR_Config("FOO=1") returns a pointer to FOO itself that must *not*
+   * be free'ed. I cannot distinguish what needs to be done here without
+   * parsing the string.
+   * The best fix would be to make SCR_Config never return a copy, which may
+   * require changes to scr_param_get.
+   */
+  /* free((void*)val_tmp); */
+
+  /* convert val to Fortran string */
+  if (scr_cstr2fstr(val_tmp, val, val_len) != 0) {
+    *ierror = !SCR_SUCCESS;
+    return;
+  }
+
+  return;
+}
+
+/*================================================
  * Restart functions
  *================================================*/
 

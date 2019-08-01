@@ -1404,10 +1404,13 @@ int SCR_Init()
   }
 
   /* read our configuration: environment variables, config file, etc. */
+  scr_param_init();
   scr_get_params();
 
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
+    scr_param_finalize();
+
     /* we dup'd comm_world to broadcast parameters in scr_get_params,
      * need to free it here */
     MPI_Comm_free(&scr_comm_world);
@@ -1655,6 +1658,23 @@ int SCR_Init()
   /* build the file names using the control directory prefix */
   scr_cindex_file = spath_from_str(scr_cntl_prefix);
   spath_append_strf(scr_cindex_file, "cindex.scrinfo", scr_storedesc_cntl->rank);
+
+  /* store parameters set by app code for use by post-run scripts */
+  if (scr_my_rank_world == 0) {
+    spath* path_app_config = spath_from_str(scr_prefix_scr);
+    spath_append_str(path_app_config, SCR_CONFIG_FILE_APP);
+    spath_reduce(path_app_config);
+    char *app_config = spath_strdup(path_app_config);
+    spath_delete(&path_app_config);
+
+    scr_param_app_hash_write_file(app_config);
+
+    free(app_config);
+  }
+
+  /* done with parameters, can release the data structures now,
+   * this must be after writing the app.conf file to .scr */
+  scr_param_finalize();
 
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
   /* record the number of nodes being used in this job to the nodes file */
@@ -1984,6 +2004,205 @@ int SCR_Finalize()
 #endif /* HAVE_LIBPMIX */
 
   return SCR_SUCCESS;
+}
+
+/* sets or gets a configuration option */
+const char* SCR_Config(const char* config_string)
+{
+  if(!config_string || strlen(config_string) == 0)
+    return NULL;
+
+  char* writable_config_string = strdup(config_string);
+  assert(writable_config_string);
+
+  char* toplevel_key = NULL;
+  char* toplevel_value = NULL;
+  kvtree* value_hash = NULL;
+
+  /* this is a small state machine to parse name=value pairs of settings,
+   * and while I could encode all of this as a table of transitions, it seems
+   * that people are usually unhappy with the table form and like an explicit
+   * set of case / if better.
+   */
+  char *conf = writable_config_string;
+  char* key = NULL;
+  char* value = NULL;
+  int is_query = -1; /* basically tracks if I have seen a '=' but no value yet */
+
+  enum states {before_key, in_key, after_key, before_value, in_value, done};
+  int state = before_key;
+  while(state != done) {
+    switch(state) {
+      case before_key:
+        if(*conf == '\0') {
+          state = done;
+        } else if(*conf == ' ') {
+          state = before_key;
+        } else {
+          key = conf;
+          if(!toplevel_key) {
+            toplevel_key = key;
+          }
+          state = in_key;
+          is_query = 1;
+        }
+        break;
+      case in_key:
+        if(*conf == '\0') {
+          *conf = '\0';
+          state = done;
+        } else if(*conf == ' ') {
+          *conf = '\0';
+          state = after_key;
+        } else if(*conf == '=') {
+          *conf = '\0';
+          state = before_value;
+          is_query = 0;
+        }
+        break;
+      case after_key:
+        if(*conf == '\0') {
+          state = done;
+        } else if(*conf == '=') {
+          state = before_value;
+          is_query = 0;
+        } else if(*conf == ' ') {
+          state = after_key;
+        } else {
+          scr_abort(-1, "Invalid configuration string '%s' @ %s:%d",
+            config_string, __FILE__, __LINE__
+          );
+        }
+        break;
+      case before_value:
+        if(*conf == '\0') {
+          state = done;
+        } else if(*conf == ' ') {
+          state = before_value;
+        } else if(*conf == '=') {
+          scr_abort(-1, "Invalid configuration string '%s' @ %s:%d",
+            config_string, __FILE__, __LINE__
+          );
+        } else {
+          value = conf;
+          if(!toplevel_value) {
+            toplevel_value = value;
+          } else if(!value_hash) {
+            value_hash = kvtree_new();
+            assert(value_hash);
+            kvtree_set(value_hash, value, NULL);
+          }
+          state = in_value;
+        }
+        break;
+      case in_value:
+        if(*conf == '\0') {
+          state = done;
+        } else if(*conf == ' ') {
+          *conf = '\0';
+          state = before_key;
+        } else if(*conf == '=') {
+          scr_abort(-1, "Invalid configuration string '%s' @ %s:%d",
+            config_string, __FILE__, __LINE__
+          );
+        } else {
+          state = in_value;
+        }
+        if(state != in_value) {
+          if(toplevel_value) {
+            kvtree_set_kv(value_hash, key, value);
+          }
+          value = NULL;
+          key = NULL;
+        }
+        break;
+    }
+
+    conf += 1;
+  }
+
+  /* done parsing, now actually do something */
+  assert(is_query != -1);
+
+  /* sanity checks */
+  if(!toplevel_key) {
+    scr_abort(-1,
+      "Could not extract key from config string. '%s' @ %s:%d",
+      config_string, __FILE__, __LINE__
+    );
+  }
+  assert(toplevel_key);
+
+  const char* retval;
+  if(is_query) {
+    if(value_hash) {
+      scr_abort(-1,
+        "Cannot get config options at same time as setting them. '%s' @ %s:%d",
+        config_string, __FILE__, __LINE__
+      );
+    }
+    assert(!value_hash);
+    if(!toplevel_value) {
+      const char *value = scr_param_get(toplevel_key);
+      retval = value ? strdup(value) : NULL;
+    } else {
+      kvtree* toplevel_hash = (kvtree*)scr_param_get_hash(toplevel_key);
+      if(toplevel_hash) {
+        const kvtree* toplevel_value_hash = kvtree_get(toplevel_hash, toplevel_value);
+        if(toplevel_value_hash) {
+          const char *value = kvtree_elem_get_first_val(toplevel_value_hash, key);
+          retval = value ? strdup(value) : NULL;
+        } else {
+          retval = NULL;
+        }
+      } else {
+        retval = NULL;
+      }
+      /* param_get hash returns a copy of the value hash, so free it here */
+      kvtree_delete(&toplevel_hash);
+    }
+  } else {
+    if(!value_hash) {
+      if(toplevel_value) {
+        scr_param_set(toplevel_key, toplevel_value);
+      } else {
+        scr_param_set_hash(toplevel_key, NULL);
+      }
+      retval = scr_param_get(toplevel_key);
+    } else {
+      assert(value_hash);
+
+      kvtree* toplevel_hash = (kvtree*)scr_param_get_hash(toplevel_key);
+      if(!toplevel_hash) {
+        toplevel_hash = kvtree_new();
+      }
+
+      kvtree* toplevel_value_hash = (kvtree*)kvtree_get(toplevel_hash, toplevel_value);
+      if(!toplevel_value_hash) {
+        toplevel_value_hash = kvtree_set(toplevel_hash, toplevel_value,
+          kvtree_new()
+        );
+      }
+
+      assert(value_hash);
+      kvtree_merge(toplevel_value_hash, value_hash);
+
+      const char* first_key = kvtree_elem_key(kvtree_elem_first(value_hash));
+      assert(first_key); /* value_hash cannot be empty */
+      retval = kvtree_elem_get_first_val(toplevel_value_hash, first_key);
+
+      /* need to overwrite the full toplevel hash since there is no function to
+       * modify it */
+      scr_param_set_hash(toplevel_key, toplevel_hash);
+
+      kvtree_delete(&value_hash);
+    }
+    /* do not free toplevel_hash since I passed ownership to the parameter code */
+  }
+
+  free(writable_config_string);
+
+  return retval;
 }
 
 /* sets flag to 1 if a checkpoint should be taken, flag is set to 0 otherwise */
