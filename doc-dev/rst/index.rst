@@ -22,6 +22,8 @@ Files
 Program Flow
     This section describes high-level program flow of various library routines
     and commands.
+Testing
+    This section describes testing practices related to SCR.
 
 -----
 
@@ -115,7 +117,7 @@ Contents
    developers/scheme_xor.rst
    developers/containers.rst
    developers/drain.rst
-   
+
 .. toctree::
    :maxdepth: 2
    :caption: Files
@@ -138,3 +140,9 @@ Contents
    developers/flow_api.rst
    developers/flow_flush.rst
    developers/flow_drain.rst
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Testing
+   developers/testing_new_systems.rst
+   developers/testing_bamboo.rst
