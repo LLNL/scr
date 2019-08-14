@@ -73,6 +73,9 @@ Bamboo Test Plan Overview
 8. **Run SCR/Testing/TEST python script**::
 
      #!/bin/bash -l
+     # This script takes 1 variable, the script you want to run.
+     # This variable, $1, comes from the bamboo command line.
+     # Here, $1 = TEST
 
      . spack/share/spack/setup-env.sh
 
@@ -83,7 +86,7 @@ Bamboo Test Plan Overview
 
      spack cd -i scr@master
      export SCR_INSTALL=`pwd`
-
+     
      cp $SCR_PKG/testing/$1 $SCR_INSTALL/bin/$1
 
      cd $SCR_INSTALL/bin
@@ -93,6 +96,7 @@ Bamboo Test Plan Overview
      jobID=$(sbatch --export=ALL -ppbatch -n4 -N4 -t5 -J SCR-TESTS -o bamboo_test_$1.out $1 | tr -dc [:digit:])
 
      # watch and wait until job has completed
+     # this no longer works because bamboo has its own timeout
      #jobInfo=$(mdiag -j ${jobID})
      #jobStatus=$(echo $jobInfo | awk '{print $13}')
 
