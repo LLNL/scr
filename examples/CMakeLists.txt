@@ -9,6 +9,7 @@ LIST(APPEND example_files
 	test_interpose_multiple.c
 	test_ckpt.cpp
 	test_ckpt.F
+        test_config.c
 	scr.moab
 	scr_interpose.moab
 	README.md
@@ -40,7 +41,7 @@ ELSE(SCR_LINK_STATIC)
 ENDIF(SCR_LINK_STATIC)
 
 
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
 
 ## Move test cleanup script to build directory
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_cleanup.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
@@ -49,6 +50,10 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test.conf DESTINATION ${CMAKE_CURRENT_BINA
 ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api "" "ckpt.*")
+
+ADD_EXECUTABLE(test_config test_config.c)
+TARGET_LINK_LIBRARIES(test_config ${SCR_LINK_TO})
+SCR_ADD_TEST(test_config "" "")
 
 #ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
 #TARGET_LINK_LIBRARIES(test_api_file ${SCR_LINK_TO})
