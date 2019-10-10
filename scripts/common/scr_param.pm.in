@@ -95,7 +95,7 @@ sub interpolate_variables
   foreach my $seg (@value_parts)
   {
     next if (not defined($seg));
-    $seg = ($ENV{$1} || '') if ($seg =~ m/\$\{?(\w+)\}?/);
+    $seg = ($ENV{$1} || '') if ($seg =~ m/^\$(\w+)/ or $seg =~ m/^\$\{(\w+)\}$/);
     $value .= $seg;
   }
 
