@@ -112,14 +112,16 @@ static int scr_flush_async_file_dequeue(scr_hash* hash1, scr_hash* hash2)
 static int bb_check(int rc)
 {
   if (rc) {
-    char* errstring;
-    getLastErrorDetails(BBERRORJSON, &errstring);
-    printf("Error rc:       %d\n", rc);
-    printf("Error details:  %s\n", errstring, errstring);
-    free(errstring);
-
-    //printf("Aborting due to failures\n");
-    //exit(-1);
+    int ret;
+    size_t l_NumBytesAvailable;
+    ret = BB_GetLastErrorDetails(BBERRORJSON, &l_NumBytesAvailable, 0, NULL);
+    if(rc == 0)
+    {
+        char* errstring = (char*) SCR_MALLOC(l_NumBytesAvailable+1);
+        BB_GetLastErrorDetails(BBERRORJSON, NULL, l_NumBytesAvailable, &errstring);
+        scr_err("bb_check() returned error (rc=%d): %s", rc, errstring);
+        scr_free(&errstring);
+    }
   }
   return SCR_SUCCESS;
 }
@@ -309,7 +311,7 @@ int scr_flush_async_start(scr_filemap* map, int id)
   }
 
   /* if we don't need a flush, return right away with success */
-  if (! scr_bool_need_flush(id)) {
+  if (! scr_flush_file_need_flush(id)) {
     return SCR_SUCCESS;
   }
 
@@ -731,7 +733,7 @@ int scr_flush_async_complete(scr_filemap* map, int id)
 int scr_flush_async_wait(scr_filemap* map)
 {
   if (scr_flush_async_in_progress) {
-    while (scr_bool_is_flushing(scr_flush_async_dataset_id)) {
+    while (scr_flush_file_is_flushing(scr_flush_async_dataset_id)) {
       /* test whether the flush has completed, and if so complete the flush */
       double bytes = 0.0;
       if (scr_flush_async_test(map, scr_flush_async_dataset_id, &bytes) == SCR_SUCCESS) {
