@@ -60,4 +60,57 @@ if ($value ne $expected_value) {
   $rc = 1;
 }
 
+# test some invalid input
+$name = "UNBALANCED1";
+$ENV{$name} = "/\${TESTVAR/thing";
+$expected_value = "/\${TESTVAR/thing";
+$value = $param->get($name);
+if ($value ne $expected_value) {
+  print "scr_param->get('$name')=$value instead of $expected_value\n";
+  $rc = 1;
+}
+
+$name = "UNBALANCED2";
+$ENV{$name} = "/\$TESTVAR}/thing";
+$expected_value = "/testvar}/thing";
+$value = $param->get($name);
+if ($value ne $expected_value) {
+  print "scr_param->get('$name')=$value instead of $expected_value\n";
+  $rc = 1;
+}
+
+$name = "NONWORD";
+$ENV{$name} = "\$/thing";
+$expected_value = "\$/thing";
+$value = $param->get($name);
+if ($value ne $expected_value) {
+  print "scr_param->get('$name')=$value instead of $expected_value\n";
+  $rc = 1;
+}
+
+$name = "AT_END";
+$ENV{$name} = "/thing\$";
+$expected_value = "/thing\$";
+$value = $param->get($name);
+if ($value ne $expected_value) {
+  print "scr_param->get('$name')=$value instead of $expected_value\n";
+  $rc = 1;
+}
+
+$name = "NONEXISTING";
+$ENV{$name} = "/thing/\$FAKEVAR/gummy";
+$expected_value = "/thing//gummy";
+$value = $param->get($name);
+if ($value ne $expected_value) {
+  print "scr_param->get('$name')=$value instead of $expected_value\n";
+  $rc = 1;
+}
+
+$name = "";
+$value = $param->get("");
+if (defined $value) {
+  print "scr_param->get('$name') returned something when a variable was not set: $value\n";
+  $rc = 1;
+}
+
 exit $rc;
