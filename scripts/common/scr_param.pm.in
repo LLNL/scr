@@ -201,9 +201,8 @@ sub get_hash
   # if param is set in environment, return that value
   if (not defined $self->{no_user}{$name} and defined $ENV{$name}) {
     my $h = {};
-    %$h = $ENV{$name};
+    $h->{interpolate_variables($ENV{$name})} = {};
     return $h;
-    #return $ENV{$name};
   }
 
   # otherwise, check whether we have it defined in our user config file
