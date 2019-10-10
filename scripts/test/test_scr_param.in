@@ -8,6 +8,52 @@ use scr_param;
 # produce the expected output.
 # Exits with 0 if successful, 1 otherwise.
 
+# helper to recursively compare two hashes
+sub hashes_equal {
+  # input: two references to hashes to compare
+  # output: true if hashes contain the same elements and sub-hashes
+  #         false otherwise
+  my ($hash1, $hash2) = @_;
+  my $key;
+  foreach $key (keys %{$hash1}) {
+    return 0 if not defined $hash2->{$key};
+    return 0 if not (ref($hash1->{$key}) eq ref($hash2->{$key}));
+    if (ref($hash1->{$key}) eq "HASH") {
+      return &hashes_equal($hash1->{$key}, $hash2->{$key});
+    }
+    return 0 if $hash1->{$key} <=> $hash2->{$key};
+  }
+  foreach $key (keys %{$hash2}) {
+    return 0 if not defined $hash1->{$key};
+    return 0 if not (ref($hash1->{$key}) eq ref($hash2->{$key}));
+    if (ref($hash2->{$key}) eq "HASH") {
+      return &hashes_equal($hash1->{$key}, $hash2->{$key});
+    }
+    return 0 if $hash1->{$key} <=> $hash2->{$key};
+  }
+  return 1;
+}
+
+
+# helper to recursively get a string representation of a hash
+sub hash2string {
+  # input: a reference to a hash
+  my ($hash) = @_;
+  my $retval = "{";
+  foreach my $key (keys %{$hash}) {
+    $retval .= " $key => ";
+    if (ref($hash->{$key}) eq "HASH") {
+      $retval .= &hash2string($hash->{$key});
+    } else {
+      $retval .= $hash->{$key}
+    }
+    $retval .= ",";
+  }
+  $retval .= " }";
+  return $retval;
+}
+
+
 # assume no errors
 my $rc = 0;
 
