@@ -159,4 +159,15 @@ if (defined $value) {
   $rc = 1;
 }
 
+# test getting a hash
+$name = "HASHVAR";
+$ENV{$name} = "hashkey";
+$value = $param->get_hash($name);
+$expected_value = {};
+$expected_value->{$ENV{$name}} = {};
+if (not &hashes_equal($value, $expected_value)) {
+  print "scr_param->get('$name')=".&hash2string($value)." instead of ".&hash2string($expected_value)."\n";
+  $rc = 1;
+}
+
 exit $rc;
