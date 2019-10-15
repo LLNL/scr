@@ -20,10 +20,10 @@
  * these values will override any settings below */
 #include "config.h"
 
-#include "scr_globals.h"
 #include "scr_conf.h"
 #include "scr.h"
 #include "scr_io.h"
+#include "scr_keys.h"
 #include "scr_err.h"
 #include "scr_util.h"
 #include "scr_meta.h"
