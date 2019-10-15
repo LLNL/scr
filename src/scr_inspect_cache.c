@@ -38,6 +38,10 @@
 #include <unistd.h>
 #include <libgen.h>
 
+#ifdef SCR_GLOBALS_H
+#error "globals.h accessed from tools"
+#endif
+
 int buffer_size = 128*1024;
 
 static char scr_my_hostname[SCR_MAX_FILENAME];

@@ -36,6 +36,10 @@
 
 #define PROG ("scr_flush_file")
 
+#ifdef SCR_GLOBALS_H
+#error "globals.h accessed from tools"
+#endif
+
 int print_usage()
 {
   printf("\n");

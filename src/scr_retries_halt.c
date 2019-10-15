@@ -38,6 +38,10 @@
 #define NEED_HALT (0)
 #define DONT_HALT (1)
 
+#ifdef SCR_GLOBALS_H
+#error "globals.h accessed from tools"
+#endif
+
 int print_usage()
 {
   printf("\n");

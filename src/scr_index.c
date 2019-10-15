@@ -62,6 +62,10 @@
 
 #define SCR_SCAN_KEY_MAP "MAP"
 
+#ifdef SCR_GLOBALS_H
+#error "globals.h accessed from tools"
+#endif
+
 /* Hash format returned from scr_read_dir
  *
  * DIR

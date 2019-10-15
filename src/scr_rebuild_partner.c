@@ -52,6 +52,10 @@
 #define RIGHT  (1)
 #define CENTER (2)
 
+#ifdef SCR_GLOBALS_H
+#error "globals.h accessed from tools"
+#endif
+
 int buffer_size = 128*1024;
 
 /* execute xor operation with N-1 files and xor file: 
