@@ -15,6 +15,10 @@
 #include "mpi.h"
 #include <stdio.h>
 
+#ifdef SCR_GLOBALS_H
+#error "globals.h accessed from tools"
+#endif
+
 int main(int argc, char *argv[])
 {
     char fname[SCR_MAX_FILENAME];

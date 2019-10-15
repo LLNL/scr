@@ -52,6 +52,11 @@
 #include "pmix.h"
 #include "pmix_tool.h"
 #include "pmix_common.h"
+
+#ifdef SCR_GLOBALS_H
+#error "globals.h accessed from tools"
+#endif
+
 static pmix_proc_t main_proc;
 static pmix_proc_t tool_proc;
 static volatile bool done_flag = false;

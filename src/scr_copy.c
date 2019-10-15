@@ -41,6 +41,10 @@
 #include <dirent.h>
 #include <regex.h>
 
+#ifdef SCR_GLOBALS_H
+#error "globals.h accessed from tools"
+#endif
+
 #define PROG ("scr_copy")
 
 static char hostname[256] = "UNKNOWN_HOST";

@@ -38,6 +38,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef SCR_GLOBALS_H
+#error "globals.h accessed from tools"
+#endif
+
 struct arglist {
   char* file;
   int list;
