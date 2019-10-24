@@ -70,12 +70,12 @@
 
 /* base control directory */
 #ifndef SCR_CNTL_BASE
-#define SCR_CNTL_BASE "/tmp"
+#define SCR_CNTL_BASE "/dev/shm"
 #endif
 
 /* default base cache directory */
 #ifndef SCR_CACHE_BASE
-#define SCR_CACHE_BASE "/tmp"
+#define SCR_CACHE_BASE "/dev/shm"
 #endif
 
 /* default cache size (max number of checkpoints to keep in cache) */
