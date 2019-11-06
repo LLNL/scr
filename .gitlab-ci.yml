@@ -1,0 +1,243 @@
+stages:
+  - build
+  - test
+    
+default:
+  before_script:
+    - echo "before_script" `pwd`
+    - export SRC_DIR=$(pwd)
+    - echo "SRC_DIR=$SRC_DIR"
+    - export BUILD_DIR_BASE=${CI_BUILDS_DIR}/${CI_PIPELINE_ID}
+    - mkdir -p ${BUILD_DIR_BASE}
+    - cd ${BUILD_DIR_BASE}
+    - echo "before_script end" `pwd`
+  
+buildjob-catalyst:
+  stage: build
+  when: manual
+  tags: 
+    - catalyst
+  script:
+    - mkdir catalyst
+    - cd catalyst
+    - uname -a
+    - pwd
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - echo "Working dir " `pwd`
+    - mkdir build install
+    - cd build
+    - cmake -DCMAKE_INSTALL_PREFIX=../install ${SRC_DIR}
+    - make
+    - make install
+  #artifacts:
+  #  paths:
+  #    - build/
+
+testserial-catalyst:
+  stage: test
+  when: manual
+  tags:
+    - catalyst
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pdebug'
+  dependencies:
+    - buildjob-catalyst
+  script:
+    - echo "Running in" `pwd`
+    - uname -a
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - cd ${BUILD_DIR_BASE}/catalyst
+    - export SCR_CONF_FILE=$(pwd)/build/examples/test.conf
+    - pwd
+    - cd build
+    - ctest --verbose -T Test -R serial*
+    - pwd
+    
+testparallel-catalyst:
+  stage: test
+  when: manual
+  tags:
+    - catalyst
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pdebug'
+  dependencies:
+    - buildjob-catalyst
+  script:
+    - echo "Running in" `pwd`
+    - uname -a
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - cd ${BUILD_DIR_BASE}/catalyst
+    - export SCR_CONF_FILE=$(pwd)/build/examples/test.conf
+    - pwd
+    - cd build
+    - ctest --verbose -T Test -R parallel*
+    - pwd
+    - mkdir Testing/Tests
+    - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
+
+buildjob-quartz:
+  stage: build
+  when: manual
+  tags: 
+    - quartz
+  script:
+    - mkdir quartz
+    - cd quartz
+    - uname -a
+    - pwd
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - echo "Working dir " `pwd`
+    - mkdir build install
+    - cd build
+    - cmake -DCMAKE_INSTALL_PREFIX=../install ${SRC_DIR}
+    - make
+    - make install
+  #artifacts:
+  #  paths:
+  #    - build/  stage: build
+
+testserial-quartz:
+  stage: test
+  when: manual
+  tags:
+    - quartz
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pdebug'
+  dependencies:
+    - buildjob-quartz
+  script:
+    - echo "Running in" `pwd`
+    - uname -a
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - cd ${BUILD_DIR_BASE}/quartz
+    - export SCR_CONF_FILE=$(pwd)/build/examples/test.conf
+    - pwd
+    - cd build
+    - ctest --verbose -T Test -R serial*
+    - pwd
+    
+testparallel-quartz:
+  stage: test
+  when: manual
+  tags:
+    - quartz
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pdebug'
+  dependencies:
+    - buildjob-quartz
+  script:
+    - echo "Running in" `pwd`
+    - uname -a
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - cd ${BUILD_DIR_BASE}/quartz
+    - export SCR_CONF_FILE=$(pwd)/build/examples/test.conf
+    - echo "SCR_CONF_FILE is $SCR_CONF_FILE"
+    - pwd
+    - cd build
+    - ctest --verbose -T Test -R parallel*
+    - pwd
+    - mkdir Testing/Tests
+    - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
+    
+buildjob-lassen:
+  stage: build
+  when: manual
+  tags: 
+    - lassen
+  script:
+    - mkdir lassen
+    - cd lassen
+    - uname -a
+    - pwd
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - echo "Working dir " `pwd`
+    - mkdir build install
+    - cd build
+    - cmake -DCMAKE_INSTALL_PREFIX=../install ${SRC_DIR}
+    - make
+    - make install
+  #artifacts:
+  #  paths:
+  #    - build/
+
+testserial-lassen:
+  stage: test
+  when: manual
+  tags:
+    - lassen
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pdebug'
+  dependencies:
+    - buildjob-lassen
+  script:
+    - echo "Running in" `pwd`
+    - uname -a
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - cd ${BUILD_DIR_BASE}/lassen
+    - export SCR_CONF_FILE=$(pwd)/build/examples/test.conf
+    - pwd
+    - cd build
+    - ctest --verbose -T Test -R serial*
+    - pwd
+    
+testparallel-lassen:
+  stage: test
+  when: manual
+  tags:
+    - lassen
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pdebug'
+  dependencies:
+    - buildjob-lassen
+  script:
+    - echo "Running in" `pwd`
+    - uname -a
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - cd ${BUILD_DIR_BASE}/lassen
+    - export SCR_CONF_FILE=$(pwd)/build/examples/test.conf
+    - pwd
+    - cd build
+    - ctest --verbose -T Test -R parallel*
+    - pwd
+    - mkdir Testing/Tests
+    - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
+
