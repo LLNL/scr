@@ -195,7 +195,7 @@ testserial-lassen:
   tags:
     - lassen
     - batch
-    - slurm
+    - lsf
   variables:
     LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pdebug'
   dependencies:
@@ -220,7 +220,7 @@ testparallel-lassen:
   tags:
     - lassen
     - batch
-    - slurm
+    - lsf
   variables:
     LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pdebug'
   dependencies:
