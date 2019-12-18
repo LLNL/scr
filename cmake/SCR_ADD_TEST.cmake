@@ -21,8 +21,8 @@ FUNCTION(SCR_ADD_TEST name args outputs)
 	ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
 	# Note: cleanup scripts automatically cleans /tmp and .scr
-	ADD_TEST(NAME serial_${name}_cleanup COMMAND ./test_cleanup.sh ${outputs} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-	SET_PROPERTY(TEST serial_${name}_cleanup APPEND PROPERTY DEPENDS serial_${name}_restart)
+#	ADD_TEST(NAME serial_${name}_precleanup COMMAND ./test_cleanup.sh ${outputs} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+#	SET_PROPERTY(TEST serial_${name}_start APPEND PROPERTY DEPENDS serial_${name}_precleanup)
 
 	# Parallel Tests
 	SET(p_nodes "4")
@@ -45,7 +45,7 @@ FUNCTION(SCR_ADD_TEST name args outputs)
 	ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
 	# Note: cleanup scripts automatically cleans /tmp and .scr
-	ADD_TEST(NAME parallel_${name}_cleanup COMMAND ./test_cleanup.sh ${outputs} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-	SET_PROPERTY(TEST parallel_${name}_cleanup APPEND PROPERTY DEPENDS parallel_${name}_restart)
+#	ADD_TEST(NAME parallel_${name}_precleanup COMMAND ./test_cleanup.sh ${outputs} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+#	SET_PROPERTY(TEST parallel_${name}_start APPEND PROPERTY DEPENDS parallel_${name}_precleanup)
 
 ENDFUNCTION(SCR_ADD_TEST name args outputs)
