@@ -13,12 +13,10 @@ Detailed usage is provided at [SCR.ReadTheDocs.io](http://scr.readthedocs.io/en/
 SCR uses the CMake build system and we recommend out-of-source builds.
 
 ```shell
-git clone git@github.com:llnl/scr.git
+./bootstrap.sh
 mkdir build
-mkdir install
-
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=../install ../scr
+cmake -DCMAKE_INSTALL_PREFIX=../install ..
 make
 make install
 make test
