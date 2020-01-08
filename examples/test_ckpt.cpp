@@ -70,6 +70,12 @@ int main(int argc, char **argv)
 
     MPI_Init(NULL, NULL);
 
+    /* provide some configuration otions */
+    SCR_Config("STORE=/dev/shm GROUP=NODE COUNT=1");
+    SCR_Config("SCR_COPY_TYPE=FILE");
+    SCR_Config("CKPT=0 INTERVAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=16");
+    SCR_Config("SCR_DEBUG=1");
+
     /* Initialize the SCR library */
     SCR_Init();
 
