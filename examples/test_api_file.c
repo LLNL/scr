@@ -171,6 +171,11 @@ int main (int argc, char* argv[])
   freopen(path_to_stdout, "a+", stdout);
   MPI_Barrier(MPI_COMM_WORLD);
   
+  /* provide test configuration */
+  SCR_Config("STORE=/dev/shm GROUP=NODE COUNT=1");
+  SCR_Config("SCR_COPY_TYPE=FILE");
+  SCR_Config("CKPT=0 INTERVAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=16");
+  SCR_Config("SCR_DEBUG=1");
 
   /* time how long it takes to get through init */
   MPI_Barrier(MPI_COMM_WORLD);
