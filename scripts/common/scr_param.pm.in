@@ -43,6 +43,12 @@ sub new
     $usrfile = "$prefix/.scrconf";
   }
 
+  # read in the app configuration file, if specified
+  my $appfile = "$prefix/.scr/app.conf";
+  if (-r $appfile) {
+    $self->{appconf} = read_config_file($self, $appfile);
+  }
+
   # read in the user configuration file, if specified
   if (defined $usrfile and -r $usrfile) {
     $self->{usrconf} = read_config_file($self, $usrfile);
@@ -168,6 +174,12 @@ sub get
 {
   my $self = shift;
   my $name = shift;
+
+  # if param was set by the code, return that value
+  if (defined $self->{appconf}{$name}) {
+    my $first = (keys %{$self->{appconf}{$name}})[0];
+    return $first;
+  }
 
   # if param is set in environment, return that value
   if (not defined $self->{no_user}{$name} and defined $ENV{$name}) {
