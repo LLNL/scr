@@ -60,8 +60,8 @@ Bamboo Test Plan Overview
      . share/spack/setup-env.sh
      #spack compiler find
 
-     spack install --keep-stage scr@master resource_manager=SLURM
-     #spack install --run-tests scr@master resource_manager=NONE
+     spack install --keep-stage scr@develop resource_manager=SLURM
+     #spack install --run-tests scr@develop resource_manager=NONE
 
      spack cd -i scr
      cd share/scr/examples
