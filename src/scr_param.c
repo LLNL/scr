@@ -60,7 +60,7 @@ static kvtree* scr_env_hash = NULL;
 
 
 /* expand environment variables in parameter value */
-char* expand_env(const char* value)
+static char* expand_env(const char* value)
 {
   ssize_t len = (ssize_t)strlen(value) + 1;
   ssize_t rlen = len;
