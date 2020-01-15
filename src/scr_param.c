@@ -24,6 +24,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -57,6 +58,90 @@ static kvtree* scr_system_hash = NULL;
  * systems */
 static kvtree* scr_env_hash = NULL;
 
+
+/* expand environment variables in parameter value */
+char* expand_env(const char* value)
+{
+  ssize_t len = (ssize_t)strlen(value) + 1;
+  ssize_t rlen = len;
+  char* retval = malloc(rlen);
+  assert(retval); /* TODO: should I check for running out of memory? */
+  for(int i = 0, j = 0 ; i < len ; /*nop*/) {
+    if(value[i] == '$') {
+      /* try and extract an environment variable name the '$' */
+      int envbegin = -1, envend = -1;
+      if(i+1 < len && value[i+1] == '{') {
+        /* look for ${...} construct */
+        envbegin = i+1;
+        envend = envbegin + 1;
+        /* extract variable name in {...} */
+        while(envend < len && value[envend] != '}' &&
+              (isalnum(value[envend]) || value[envend] == '_')) {
+          envend += 1;
+        }
+      } else if(i+1 < len && (isalnum(value[i+1]) || value[i+1] == '_')) {
+        /* look for $... construct */
+        envbegin = i+1;
+        envend = envbegin + 1;
+        /* extract variable name in {...} */
+        while(envend < len && (isalnum(value[envend]) || value[envend] == '_')) {
+          envend += 1;
+        }
+      }
+
+      if(envbegin >= 0 && envend >= 0 && envend < len &&
+         (value[envbegin] == '{') == (value[envend] == '}')) {
+        /* found a begin, and an end, end is not past the end of the string,
+         * and '{' and '}' are balanced */
+
+        /* extract name */
+        const int envnamelen = envend - envbegin;
+        char envname[envnamelen + 1];
+        assert(envbegin + envnamelen <= len);
+        memcpy(envname, &value[envbegin], envnamelen);
+        envname[envnamelen] = '\0';
+
+        /* get value, for ${...} we copied the initial '{' into the name, skip
+         * it here */
+        const char* env = getenv(envname + (value[envbegin]=='{'));
+        if(env == NULL)
+          env = "";
+
+        /* resize retval to make room for expanded value */
+        const int envlen = strlen(env);
+        rlen += envlen - (envnamelen + 1);
+        retval = realloc(retval, rlen);
+        assert(retval); /* TODO: should I check for running out of memory? */
+
+        /* finally copy value into retval */
+        for(int envi = 0 ; envi < envlen ; /*nop*/) {
+          assert(j < rlen);
+          assert(envi < envlen);
+          retval[j++] = env[envi++];
+        }
+
+        /* account for '}' at end */
+        i += 1 + envnamelen + (value[envend]=='}');
+
+
+        assert(i <= len);
+      } else {
+        /* invalid name of some sort, copy it to output string */
+        assert(j < rlen);
+        assert(i < len);
+        retval[j++] = value[i++];
+      }
+    } else {
+      /* regular character */
+      assert(j < rlen);
+      assert(i < len);
+      retval[j++] = value[i++];
+    }
+  } /* for i */
+
+  return retval;
+}
+
 /* searches for name and returns a character pointer to its value if set,
  * returns NULL if not found */
 const char* scr_param_get(const char* name)
@@ -75,7 +160,7 @@ const char* scr_param_get(const char* name)
     /* try to lookup the value for this name in case we've already cached it */
     if (kvtree_util_get_str(scr_env_hash, name, &value) != KVTREE_SUCCESS) {
       /* it's not in the hash yet, so add it */
-      char* tmp_value = strdup(getenv(name));
+      char* tmp_value = expand_env(getenv(name));
       kvtree_util_set_str(scr_env_hash, name, tmp_value);
       scr_free(&tmp_value);
 
@@ -96,8 +181,8 @@ const char* scr_param_get(const char* name)
   value = kvtree_elem_get_first_val(scr_user_hash, name);
   if (no_user == NULL && value != NULL) {
     /* evaluate environment variables */
-    if(*value == '$'){
-      value = strdup(getenv(value+1));
+    if(strchr(value, '$')){
+      value = expand_env(value);
     }
     return value;
   }
@@ -107,8 +192,8 @@ const char* scr_param_get(const char* name)
   value = kvtree_elem_get_first_val(scr_system_hash, name);
   if (value != NULL) {
     /* evaluate environment variables */
-    if(*value == '$'){
-      value = strdup(getenv(value+1));
+    if(strchr(value, '$')){
+      value = expand_env(value);
     }
     return value;
   }
@@ -131,7 +216,7 @@ const kvtree* scr_param_get_hash(const char* name)
   if (no_user == NULL && getenv(name) != NULL) {
     /* TODO: need to strdup here to be safe? */
     hash = kvtree_new();
-    char* tmp_value = strdup(getenv(name));
+    char* tmp_value = expand_env(getenv(name));
     kvtree_set(hash, tmp_value, kvtree_new());
     scr_free(&tmp_value);
     return hash;
@@ -147,8 +232,8 @@ const kvtree* scr_param_get_hash(const char* name)
 	 elem != NULL;
 	 elem = kvtree_elem_next(elem)){
       char* value = kvtree_elem_key(elem);
-      if(*value == '$'){
-	value = strdup(getenv(value+1));
+      if(strchr(value, '$')){
+        value = expand_env(value);
 	elem->key = value;
       }
     }
@@ -169,8 +254,8 @@ const kvtree* scr_param_get_hash(const char* name)
 	 elem != NULL;
 	 elem = kvtree_elem_next(elem)){
       char* value = kvtree_elem_key(elem);
-      if(*value == '$'){
-	value = strdup(getenv(value+1));
+      if(strchr(value, '$')){
+        value = expand_env(value);
 	elem->key = value;
       }
     }
