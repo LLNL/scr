@@ -8,10 +8,10 @@ FUNCTION(SCR_ADD_TEST name args outputs)
   ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
 	# Serial Tests
-	ADD_TEST(NAME serial_${name}_start COMMAND ${test_param} ./${name} ${args})
+	ADD_TEST(NAME serial_${name}_start COMMAND ${test_param} run_test.sh ./${name} start ${args})
 	SET_PROPERTY(TEST serial_${name}_start APPEND PROPERTY ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/test.conf")
 
-	ADD_TEST(NAME serial_${name}_restart COMMAND ${test_param} ./${name} ${args})
+	ADD_TEST(NAME serial_${name}_restart COMMAND ${test_param} run_test.sh ./${name} restart ${args})
 	SET_PROPERTY(TEST serial_${name}_restart APPEND PROPERTY ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/test.conf")
 	SET_PROPERTY(TEST serial_${name}_restart APPEND PROPERTY DEPENDS serial_${name}_start)
 
@@ -32,10 +32,10 @@ FUNCTION(SCR_ADD_TEST name args outputs)
 		SET(test_param srun -ppbatch -t 5 -N ${p_nodes} -n ${p_nodes})
 	ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
-	ADD_TEST(NAME parallel_${name}_start COMMAND ${test_param} ./${name} ${args})
+	ADD_TEST(NAME parallel_${name}_start COMMAND ${test_param} run_test.sh ./${name} start ${args})
 	SET_PROPERTY(TEST parallel_${name}_start APPEND PROPERTY ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/test.conf")
 
-	ADD_TEST(NAME parallel_${name}_restart COMMAND ${test_param} ./${name} ${args})
+	ADD_TEST(NAME parallel_${name}_restart COMMAND ${test_param} run_test.sh ./${name} restart ${args})
 	SET_PROPERTY(TEST parallel_${name}_restart APPEND PROPERTY ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/test.conf")
 	SET_PROPERTY(TEST parallel_${name}_restart APPEND PROPERTY DEPENDS parallel_${name}_start)
 

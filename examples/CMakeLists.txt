@@ -47,19 +47,14 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_cleanup.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test.conf DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-## Move test wrapper scripts
-## Each test needs its own wrapper script so it can do the cleanup as part of the test, to ensure it gets
-## run on the same parallel node
-FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_api.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_api_multiple.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_interpose.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_interpose_multiple.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_ckpt_C.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_ckpt_F.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+## Move test wrapper script
+## Each test needs the wrapper script so it can do the cleanup as part of the test, to ensure it gets
+## run on the same parallel nodes
+FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api ${SCR_LINK_TO})
-SCR_ADD_TEST(test_api.sh "" "ckpt.*")
+SCR_ADD_TEST(test_api "" "ckpt.*")
 
 ADD_EXECUTABLE(test_config test_config.c)
 TARGET_LINK_LIBRARIES(test_config ${SCR_LINK_TO})
@@ -71,7 +66,7 @@ SCR_ADD_TEST(test_config "" "")
 
 ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
 TARGET_LINK_LIBRARIES(test_api_multiple ${SCR_LINK_TO})
-SCR_ADD_TEST(test_api_multiple.sh "" "")
+SCR_ADD_TEST(test_api_multiple "" "")
 
 #ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
 #TARGET_LINK_LIBRARIES(test_api_multiple_file ${SCR_LINK_TO})
@@ -79,11 +74,11 @@ SCR_ADD_TEST(test_api_multiple.sh "" "")
 
 ADD_EXECUTABLE(test_interpose test_interpose.c)
 TARGET_LINK_LIBRARIES(test_interpose ${SCR_LINK_TO})
-SCR_ADD_TEST(test_interpose.sh "" "checkpoint_set_*")
+SCR_ADD_TEST(test_interpose "" "checkpoint_set_*")
 
 ADD_EXECUTABLE(test_interpose_multiple test_common.c test_interpose_multiple.c)
 TARGET_LINK_LIBRARIES(test_interpose_multiple ${SCR_LINK_TO})
-SCR_ADD_TEST(test_interpose_multiple.sh "" "../examplesrank*.ckpt")
+SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank*.ckpt")
 
 ADD_EXECUTABLE(test_ckpt test_ckpt.cpp)
 IF(MPI_CXX_FOUND)
@@ -93,7 +88,7 @@ ELSE(MPI_CXX_FOUND)
     TARGET_LINK_LIBRARIES(test_ckpt ${SCR_LINK_TO})
 ENDIF(MPI_CXX_FOUND)
 
-SCR_ADD_TEST(test_ckpt_C.sh "" "rank_0.ckpt")
+SCR_ADD_TEST(test_ckpt "" "rank_0.ckpt")
 
 IF(ENABLE_FORTRAN)
         SET_SOURCE_FILES_PROPERTIES(test_ckpt.F PROPERTIES LANGUAGE Fortran)
@@ -108,7 +103,7 @@ IF(ENABLE_FORTRAN)
                 TARGET_LINK_LIBRARIES(test_ckpt_F scrf ${MPI_Fortran_LIBRARIES})
         ENDIF(SCR_LINK_STATIC)
 
-	SCR_ADD_TEST(test_ckpt_F.sh "" "rank_00000.ckpt")
+	SCR_ADD_TEST(test_ckpt_F "" "rank_00000.ckpt")
 ENDIF(ENABLE_FORTRAN)
 
 # add target: "make check"
