@@ -160,7 +160,8 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
 
   /* flush data */
   int rc = SCR_SUCCESS;
-  if (Filo_Flush_start(scr_flush_async_rankfile, scr_prefix, numfiles, src_filelist, dst_filelist, scr_comm_world) != FILO_SUCCESS) {
+  if (Filo_Flush_start(scr_flush_async_rankfile, scr_prefix, numfiles,
+    src_filelist, dst_filelist, scr_comm_world, "pthread") != FILO_SUCCESS) {
     rc = SCR_FAILURE;
   }
 
