@@ -22,6 +22,7 @@
 #include "scr_config.h"
 #include "scr_param.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
