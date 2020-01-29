@@ -100,6 +100,27 @@ static int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
   return SCR_SUCCESS;
 }
 
+/*
+ * Given a legacy TYPE value, map it to its new TYPE equivalent
+ *
+ * In older versions of SCR, "TYPE" meant the underlying storage type, not the
+ * AXL transfer type.  They're similar enough meanings though that we can
+ * map the old values to the AXL ones.
+ *
+ * Returns the AXL xfer string equivalent string, or just type if it doesn't
+ * recognize the type value string.
+ */
+static const char *legacy_store_type_to_store_type(const char *type)
+{
+    if (!type)
+        return NULL;
+
+    if (strcmp(type, "DATAWARP") == 0)  return "dw";
+    if (strcmp(type, "DW") == 0)        return "dw";
+    if (strcmp(type, "POSIX") == 0)     return "pthread";
+    return type;
+}
+
 /* build a store descriptor corresponding to the specified hash,
  * this function is collective, because it issues MPI calls */
 static int scr_storedesc_create_from_hash(
@@ -160,10 +181,13 @@ static int scr_storedesc_create_from_hash(
   /* set the type of the store. Default to POSIX */
   char* tmp_type = NULL;
   kvtree_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &tmp_type);
+
+  /* Translate between older TYPE values into the new AXL format */
+  tmp_type = legacy_store_type_to_store_type(tmp_type);
   if (tmp_type) {
     s->type = strdup(tmp_type);
   } else {
-    s->type = strdup("POSIX");
+    s->type = strdup("pthread");
   }
 
   /* set the view of the store. Default to PRIVATE */

@@ -172,8 +172,10 @@ static int scr_fetch_data(
   int num_files = 0;
   char** src_filelist = NULL;
   char** dest_filelist = NULL;
+  const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
+
   if (Filo_Fetch(mapfile, scr_prefix, cache_dir, &num_files, &src_filelist,
-    &dest_filelist, scr_comm_world, "pthread") != FILO_SUCCESS) {
+    &dest_filelist, scr_comm_world, storedesc->type) != FILO_SUCCESS) {
     rc = SCR_FAILURE;
   }
 

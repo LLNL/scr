@@ -38,6 +38,8 @@ Here is the definition for the C struct.
      char*    name;      /* name of store */
      int      max_count; /* maximum number of datasets to be stored in device */
      int      can_mkdir; /* flag indicating whether mkdir/rmdir work */
+     char*    type;      /* AXL xfer type string (bbapi, sync, pthread, etc..) */
+     char*    view;      /* indicates whether store is node-local or global */
      MPI_Comm comm;      /* communicator of processes that can access storage */
      int      rank;      /* local rank of process in communicator */
      int      ranks;     /* number of ranks in communicator */
@@ -51,7 +53,16 @@ field is a copy of the store name. The ``comm`` field is a handle to the
 MPI communicator that defines the group the processes that share access
 to the storage device that the local process uses. The ``rank`` and
 ``ranks`` fields cache the rank of the process in this communicator and
-the number of processes in this communicator, respectively.
+the number of processes in this communicator, respectively.  ``type`` is
+the name of the AXL (https://github.com/ECP-VeloC/AXL) transfer type used
+internally to copy the files into the storage descriptor.  Some transfer
+types are:
+
+sync:       A basic synchronous file copy
+pthread:    Multi-threaded file copy
+bbapi:      Use the IBM Burst Buffer API (if available)
+dw:         Use the Cray DataWarp API (if available)
+
 
 Example store descriptor configuration file entries
 ---------------------------------------------------
@@ -65,9 +76,9 @@ like the following.
 ::
 
    STORE=/tmp          GROUP=NODE   COUNT=1
-   STORE=/ssd          GROUP=NODE   COUNT=3
+   STORE=/ssd          GROUP=NODE   COUNT=3  TYPE=bbapi
    STORE=/dev/persist  GROUP=NODE   COUNT=1  ENABLED=1  MKDIR=0
-   STORE=/p/lscratcha  GROUP=WORLD
+   STORE=/p/lscratcha  GROUP=WORLD  TYPE=pthread
 
 Store descriptor entries are identified by a leading ``STORE`` key. Each
 line corresponds to a class of storage devices. The value associated
@@ -87,7 +98,16 @@ on the storage capacity and the application checkpoint size. The
 enables (1) or disables (0) the store descriptor. This key is optional,
 and it defaults to 1 if not specified. The ``MKDIR`` key specifies
 whether the device supports the creation of directories (1) or not (0).
-This key is optional, and it defaults to 1 if not specified.
+This key is optional, and it defaults to 1 if not specified.  ``TYPE``
+is the AXL transfer type used to copy files into the store descriptor.
+Values for `TYPE` include:
+
+sync:       A basic synchronous file copy
+pthread:    Multi-threaded file copy
+bbapi:      Use the IBM Burst Buffer API (if available)
+dw:         Use the Cray DataWarp API (if available)
+
+``TYPE`` is optional, and will default to pthread if not specified.
 
 In the above example, there are four storage devices specified:
 ``/tmp``, ``/ssd``, ``/dev/persist``, and ``/p/lscratcha``. The storage
