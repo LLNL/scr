@@ -475,7 +475,7 @@ int main (int argc, char* argv[])
     }
 
     /* indicate to library that we're start to read our restart */
-    SCR_Start_restart(dset);
+    scr_retval = SCR_Start_restart(dset);
     if (scr_retval != SCR_SUCCESS) {
       printf("%d: failed calling SCR_Start_restart: %d: @%s:%d\n",
              rank, scr_retval, __FILE__, __LINE__
