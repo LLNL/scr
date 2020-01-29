@@ -24,7 +24,7 @@ Synchronous flush functions
 */
 
 /* flush files specified in list */
-static int scr_flush_files_list(kvtree* file_list)
+static int scr_flush_files_list(scr_cache_index* cindex, int id, kvtree* file_list)
 {
   /* assume we will succeed in this flush */
   int rc = SCR_SUCCESS;
@@ -33,6 +33,7 @@ static int scr_flush_files_list(kvtree* file_list)
   int numfiles;
   char** src_filelist;
   char** dst_filelist;
+
   scr_flush_filolist_alloc(file_list, &numfiles, &src_filelist, &dst_filelist);
 
   /* get the dataset of this flush */
@@ -61,9 +62,10 @@ static int scr_flush_files_list(kvtree* file_list)
   spath_append_str(dataset_path, "rank2file");
   const char* rankfile = spath_strdup(dataset_path);
 
+  const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
   /* flush data */
   if (Filo_Flush(rankfile, scr_prefix, numfiles, src_filelist, dst_filelist,
-    scr_comm_world, "pthread") != FILO_SUCCESS) {
+    scr_comm_world, storedesc->type) != FILO_SUCCESS) {
     rc = SCR_FAILURE;
   }
 
@@ -79,12 +81,12 @@ static int scr_flush_files_list(kvtree* file_list)
 
 /* flushes data for files specified in file_list (with flow control),
  * and records status of each file in data */
-static int scr_flush_data(kvtree* file_list)
+static int scr_flush_data(scr_cache_index* cindex, int id, kvtree* file_list)
 {
   int flushed = SCR_SUCCESS;
 
   /* first, flush each of my files and fill in meta data structure */
-  if (scr_flush_files_list(file_list) != SCR_SUCCESS) {
+  if (scr_flush_files_list(cindex, id, file_list) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 
@@ -155,7 +157,7 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
   }
 
   /* write the data out to files */
-  if (scr_flush_data(file_list) != SCR_SUCCESS) {
+  if (scr_flush_data(cindex, id, file_list) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 

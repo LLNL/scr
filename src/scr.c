@@ -285,7 +285,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 #else
         const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, scr_dataset_id);
         const char* type = storedesc->type;
-        if (!strcmp(type, "DATAWARP") || !strcmp(type, "DW")) {
+        if (strcmp(type, "dw") == 0) {
           scr_flush_async_wait(scr_cindex);
         } else { //if type posix
           scr_flush_async_stop();
