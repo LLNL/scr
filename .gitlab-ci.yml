@@ -18,7 +18,7 @@ buildjob-catalyst:
   tags: 
     - catalyst
   script:
-    - mkdir catalyst
+    - mkdir -p catalyst
     - cd catalyst
     - uname -a
     - pwd
@@ -28,7 +28,7 @@ buildjob-catalyst:
     - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
     - echo "Working dir " `pwd`
     - ${SRC_DIR}/bootstrap.sh
-    - mkdir build install
+    - mkdir -p build install
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=../install ${SRC_DIR}
     - make
@@ -86,7 +86,7 @@ testparallel-catalyst:
     - cd build
     - ctest --verbose -T Test -R parallel*
     - pwd
-    - mkdir Testing/Tests
+    - mkdir -p Testing/Tests
     - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
 
 buildjob-quartz:
@@ -95,7 +95,7 @@ buildjob-quartz:
   tags: 
     - quartz
   script:
-    - mkdir quartz
+    - mkdir -p quartz
     - cd quartz
     - uname -a
     - pwd
@@ -105,7 +105,7 @@ buildjob-quartz:
     - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
     - echo "Working dir " `pwd`
     - ${SRC_DIR}/bootstrap.sh
-    - mkdir build install
+    - mkdir -p build install
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=../install ${SRC_DIR}
     - make
@@ -164,7 +164,7 @@ testparallel-quartz:
     - cd build
     - ctest --verbose -T Test -R parallel*
     - pwd
-    - mkdir Testing/Tests
+    - mkdir -p Testing/Tests
     - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
     
 buildjob-lassen:
@@ -173,7 +173,7 @@ buildjob-lassen:
   tags: 
     - lassen
   script:
-    - mkdir lassen
+    - mkdir -p lassen
     - cd lassen
     - uname -a
     - pwd
@@ -183,7 +183,7 @@ buildjob-lassen:
     - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
     - echo "Working dir " `pwd`
     - ${SRC_DIR}/bootstrap.sh
-    - mkdir build install
+    - mkdir -p build install
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=../install ${SRC_DIR}
     - make
@@ -241,6 +241,6 @@ testparallel-lassen:
     - cd build
     - ctest --verbose -T Test -R parallel*
     - pwd
-    - mkdir Testing/Tests
+    - mkdir -p Testing/Tests
     - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
 
