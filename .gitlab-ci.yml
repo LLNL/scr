@@ -45,7 +45,7 @@ testserial-catalyst:
     - batch
     - slurm
   variables:
-    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pdebug'
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
   dependencies:
     - buildjob-catalyst
   script:
@@ -70,7 +70,7 @@ testparallel-catalyst:
     - batch
     - slurm
   variables:
-    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pdebug'
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pbatch'
   dependencies:
     - buildjob-catalyst
   script:
@@ -122,7 +122,7 @@ testserial-quartz:
     - batch
     - slurm
   variables:
-    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pdebug'
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
   dependencies:
     - buildjob-quartz
   script:
@@ -147,7 +147,7 @@ testparallel-quartz:
     - batch
     - slurm
   variables:
-    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pdebug'
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pbatch'
   dependencies:
     - buildjob-quartz
   script:
@@ -185,7 +185,7 @@ buildjob-lassen:
     - ${SRC_DIR}/bootstrap.sh
     - mkdir -p build install
     - cd build
-    - cmake -DCMAKE_INSTALL_PREFIX=../install ${SRC_DIR}
+    - cmake -DCMAKE_INSTALL_PREFIX=../install -DSCR_RESOURCE_MANAGER=LSF ${SRC_DIR}
     - make
     - make install
   #artifacts:
@@ -200,7 +200,7 @@ testserial-lassen:
     - batch
     - lsf
   variables:
-    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pdebug'
+    LLNL_LSF_SCHEDULER_PARAMETERS: '-nnodes 1 -W 10 /bin/bash'
   dependencies:
     - buildjob-lassen
   script:
@@ -225,7 +225,7 @@ testparallel-lassen:
     - batch
     - lsf
   variables:
-    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pdebug'
+    LLNL_LSF_SCHEDULER_PARAMETERS: '-nnodes 4 -W 10 /bin/bash'
   dependencies:
     - buildjob-lassen
   script:
