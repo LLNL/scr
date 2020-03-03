@@ -5,6 +5,8 @@ FUNCTION(SCR_ADD_TEST name args outputs)
     SET(test_param mpirun -np ${s_nodes})
   ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
     SET(test_param srun -ppbatch -t 5 -N ${s_nodes} ) 
+  ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
+    SET(test_param lrun -N ${s_nodes} -T 1 -v ) 
   ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
 	# Serial Tests
@@ -30,6 +32,8 @@ FUNCTION(SCR_ADD_TEST name args outputs)
 		SET(test_param mpirun -np ${p_nodes})
 	ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
 		SET(test_param srun -ppbatch -t 5 -N ${p_nodes} -n ${p_nodes})
+	ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
+		SET(test_param lrun -N ${p_nodes} -T 1 -v)
 	ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
 	ADD_TEST(NAME parallel_${name}_start COMMAND ${test_param} run_test.sh ./${name} start ${args})
