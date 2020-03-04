@@ -10,12 +10,12 @@ FIND_PATH(WITH_BBAPI_PREFIX
 
 FIND_LIBRARY(BBAPI_LIBRARIES
     NAMES bbAPI
-    HINTS ${WITH_BBAPI_PREFIX}/lib /opt/ibm/bb/lib
+    HINTS ${WITH_BBAPI_PREFIX}/lib
 )
 
 FIND_PATH(BBAPI_INCLUDE_DIRS
     NAMES bbapi.h
-    HINTS ${WITH_BBAPI_PREFIX}/include /opt/ibm/bb/include
+    HINTS ${WITH_BBAPI_PREFIX}/include
 )
 
 INCLUDE(FindPackageHandleStandardArgs)
