@@ -11,7 +11,11 @@ to utilize distributed storage on Linux clusters to attain high file I/O bandwid
 for checkpointing, restarting, and writing large datasets.
 With SCR, jobs run more efficiently, recompute less work upon a failure,
 and reduce load on shared resources like the parallel file system.
-It provides the most benefit to large-scale jobs that write large datasets.
+It provides the most benefit to large-scale jobs that write large datasets. 
+(Check out our video_ on how SCR works for more information.)
+
+.. _video: https://youtu.be/_r6svl_eAns
+
 SCR utilizes tiered storage in a cluster to provide applications
 with the following capabilities:
 
@@ -53,8 +57,8 @@ and copy datasets from cache to the parallel file system upon a failure.
 
 .. _sec-contact:
 
-Support
-=======
+Support and Additional Information
+==================================
 
 The main repository for SCR is located at:
 
@@ -63,14 +67,17 @@ https://github.com/LLNL/scr.
 From this site, you can download the source code and manuals for
 the current release of SCR.
 
-For information about the project including active research efforts, please visit:
+For more information about the project including active research efforts, please visit:
 
-https://computation.llnl.gov/project/scr
+* https://computing.llnl.gov/projects/scalable-checkpoint-restart-for-mpi
+* https://insidehpc.com/2019/12/podcast-scr-scalable-checkpoint-restart-paves-the-way-for-exascale/
+* https://www.youtube.com/watch?v=qt2VgIZaoNA
+* https://youtu.be/_r6svl_eAns
 
 To contact the developers of SCR for help with using or porting SCR,
 please visit:
 
-https://computation.llnl.gov/project/scr/contact.php
+https://computing.llnl.gov/projects/scalable-checkpoint-restart-for-mpi/contact
 
 There you will find links to join our discussion mailing list for help
 topics, and our announcement list for getting notifications of new
