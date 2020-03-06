@@ -32,9 +32,9 @@ and writing and reading datasets in cache can be orders of magnitude faster than
 
 .. _fig-aggr_bw:
 
-.. figure:: users/fig/aggr_bw.png
+.. figure:: users/fig/scr_lassen.png
 
-   Aggregate write bandwidth on Coastal
+   Aggregate write bandwidth on Lassen
 
 When writing a cached dataset to the parallel file system, SCR can transfer data asynchronously.
 The application may continue once the data has been written to the cache
