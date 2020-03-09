@@ -81,12 +81,12 @@ Bamboo Test Plan Overview
 
      # setup environment for script to be run
 
-     spack cd scr@master
+     spack cd scr@develop
      export SCR_PKG=`pwd`
 
-     spack cd -i scr@master
+     spack cd -i scr@develop
      export SCR_INSTALL=`pwd`
-     
+
      cp $SCR_PKG/testing/$1 $SCR_INSTALL/bin/$1
 
      cd $SCR_INSTALL/bin

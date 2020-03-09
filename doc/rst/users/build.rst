@@ -6,8 +6,8 @@ Build SCR
 Dependencies
 ------------
 
-SCR has several dependencies. A C compiler, MPI, CMake, and pdsh are 
-required dependencies. The others are optional, and when they are 
+SCR has several dependencies. A C compiler, MPI, CMake, and pdsh are
+required dependencies. The others are optional, and when they are
 not available some features of SCR may not be available.
 
 * CMake, Version 2.8+
@@ -34,15 +34,16 @@ This will install the DTCMP, LWGRP, and pdsh packages (and possibly an MPI and a
 CMake
 -----
 
-To get started with CMake (version 2.8 or higher), the quick version of 
+To get started with CMake (version 2.8 or higher), the quick version of
 building SCR is::
 
   git clone git@github.com:llnl/scr.git
-  mkdir build
-  mkdir install
-  
+  cd scr
+  ./bootstrap.sh
+  mkdir build install
+
   cd build
-  cmake -DCMAKE_INSTALL_PREFIX=../install ../scr
+  cmake -DCMAKE_INSTALL_PREFIX=../install ..
   make
   make install
   make test

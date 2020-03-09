@@ -16,7 +16,7 @@ SCR uses the CMake build system and we recommend out-of-source builds.
 
 ```shell
 ./bootstrap.sh
-mkdir build
+mkdir build install
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=../install ..
 make
@@ -39,6 +39,7 @@ Some useful CMake command line options:
 
 - C (with support for C++ and Fortran)
 - MPI
+- [ECP-VELOC Components](https://ecp-veloc.github.io/component-user-docs/) (ER, FILO, shuffile, redset, AXL, spath, kvtree, rankstr)
 - CMake, Version 2.8+
 - [PDSH](https://github.com/grondo/pdsh)
 - [DTCMP](https://github.com/llnl/dtcmp) (optional)
