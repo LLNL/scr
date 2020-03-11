@@ -89,6 +89,37 @@ testparallel-catalyst:
     - mkdir -p Testing/Tests
     - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
 
+spack-scr-catalyst:
+  stage: build
+  when: manual
+  tags:
+    - catalyst
+    - shell
+  script:
+    - mkdir -p catalyst
+    - cd catalyst
+    - uname -a
+    - pwd
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - echo "Working dir " `pwd`
+    - rm -rf spack
+#    - git clone -b robertkb-fix-scr-dependencies https://github.com/robertkb/spack.git
+    - git clone https://github.com/spack/spack.git
+    - cd spack
+    - sed -i "s#/.spack#/.spack-${SYS_TYPE}#" lib/spack/spack/__init__.py
+    - . share/spack/setup-env.sh
+    - spack compiler find --scope site
+    - spack install --keep-stage scr@develop resource_manager=SLURM ^axl@master ^kvtree@master
+    - spack cd -i scr
+    - cd share/scr/examples
+    - export MPICC=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpicc
+    - export MPICXX=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpicxx
+    - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
+    - make
+    
 buildjob-quartz:
   stage: build
   when: manual
@@ -166,7 +197,36 @@ testparallel-quartz:
     - pwd
     - mkdir -p Testing/Tests
     - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
-    
+
+spack-scr-quartz:
+  stage: build
+  when: manual
+  tags:
+    - quartz
+    - shell
+  script:
+    - mkdir -p quartz
+    - cd quartz
+    - uname -a
+    - pwd
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - echo "Working dir " `pwd`
+    - rm -rf spack
+    - git clone -b robertkb-fix-scr-dependencies https://github.com/robertkb/spack.git
+    - cd spack
+    - sed -i "s#/.spack#/.spack-${SYS_TYPE}#" lib/spack/spack/__init__.py
+    - . spack/share/spack/setup-env.sh
+    - spack install --keep-stage scr@develop resource_manager=NONE ^axl@master
+    - spack cd -i scr
+    - cd share/scr/examples
+    - export MPICC=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpicc
+    - export MPICXX=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpicxx
+    - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
+    - make
+        
 buildjob-lassen:
   stage: build
   when: manual
@@ -244,3 +304,34 @@ testparallel-lassen:
     - mkdir -p Testing/Tests
     - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
 
+spack-scr-lassen:
+  stage: build
+  when: manual
+  tags:
+    - lassen
+    - shell
+  script:
+    - mkdir -p lassen
+    - cd lassen
+    - uname -a
+    - pwd
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
+    - echo "Working dir " `pwd`
+#    - git clone -b robertkb-fix-scr-dependencies https://github.com/robertkb/spack.git
+    - rm -rf spack
+    - git clone https://github.com/spack/spack.git
+    - cd spack
+    - sed -i "s#/.spack#/.spack-${SYS_TYPE}#" lib/spack/spack/__init__.py
+    - . share/spack/setup-env.sh
+    - spack compiler find --scope site
+    - spack install --keep-stage scr@develop%xl_r resource_manager=LSF ^axl@master ^kvtree@master
+    - spack cd -i scr
+    - cd share/scr/examples
+    - export MPICC=/usr/tce/packages/spectrum-mpi/spectrum-mpi-rolling-release-xl-2020.03.18/bin/mpicc
+    - export MPICXX=/usr/tce/packages/spectrum-mpi/spectrum-mpi-rolling-release-xl-2020.03.18/bin/mpicxx
+    - export MPIF90=/usr/tce/packages/spectrum-mpi/spectrum-mpi-rolling-release-xl-2020.03.18/bin/mpif90
+    - make
+  

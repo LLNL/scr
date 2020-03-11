@@ -34,7 +34,6 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
   int numfiles;
   char** src_filelist;
   char** dst_filelist;
-
   scr_flush_filolist_alloc(file_list, &numfiles, &src_filelist, &dst_filelist);
 
   /* get the dataset of this flush */
@@ -66,7 +65,6 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
   spath_append_str(dataset_path, "rank2file");
   const char* rankfile = spath_strdup(dataset_path);
 
-  const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
   /* flush data */
   const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
   if (Filo_Flush(rankfile, scr_prefix, numfiles, src_filelist, dst_filelist,
