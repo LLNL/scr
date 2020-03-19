@@ -13,6 +13,9 @@ ENDFUNCTION(SCR_INSTALL_BIN file)
 # Common Binaries
 ADD_SUBDIRECTORY(common)
 
+# Tests
+ADD_SUBDIRECTORY(test)
+
 
 # Pick the Resource Manager
 SET(cliscr_dir_name "")

@@ -1,0 +1,228 @@
+#!/usr/bin/perl -w
+use strict;
+use lib '../common';
+use scr_param;
+
+# Runs some tests on scr_param functions to verify that they
+# produce the expected output.
+# Exits with 0 if successful, 1 otherwise.
+
+# helper to recursively compare two hashes
+sub hashes_equal {
+  # input: two references to hashes to compare
+  # output: true if hashes contain the same elements and sub-hashes
+  #         false otherwise
+  my ($hash1, $hash2) = @_;
+  my $key;
+  foreach $key (keys %{$hash1}) {
+    return 0 if not defined $hash2->{$key};
+    return 0 if not (ref($hash1->{$key}) eq ref($hash2->{$key}));
+    if (ref($hash1->{$key}) eq "HASH") {
+      return &hashes_equal($hash1->{$key}, $hash2->{$key});
+    }
+    return 0 if $hash1->{$key} <=> $hash2->{$key};
+  }
+  foreach $key (keys %{$hash2}) {
+    return 0 if not defined $hash1->{$key};
+    return 0 if not (ref($hash1->{$key}) eq ref($hash2->{$key}));
+    if (ref($hash2->{$key}) eq "HASH") {
+      return &hashes_equal($hash1->{$key}, $hash2->{$key});
+    }
+    return 0 if $hash1->{$key} <=> $hash2->{$key};
+  }
+  return 1;
+}
+
+
+# helper to recursively get a string representation of a hash
+sub hash2string {
+  # input: a reference to a hash
+  my ($hash) = @_;
+  my $retval = "{";
+  foreach my $key (keys %{$hash}) {
+    $retval .= " $key => ";
+    if (ref($hash->{$key}) eq "HASH") {
+      $retval .= &hash2string($hash->{$key});
+    } else {
+      $retval .= $hash->{$key}
+    }
+    $retval .= ",";
+  }
+  $retval .= " }";
+  return $retval;
+}
+
+
+# assume no errors
+my $rc = 0;
+
+# initalize
+my $param = new scr_param();
+if (not defined $param) {
+  print __LINE__,": new scr_param() failed\n";
+  $rc = 1;
+  exit $rc;
+}
+# scr_param's new function can add a "CACHE" entry even if no SCR_CONF_FILE is
+# read, so I cannot test for an empty hash to find out if no SCR_CONF_FILE was
+# read
+# Perl 5.10.1 introduces a ~~ array equal operator that could avoid using the
+# string build out of keys
+if (not defined $param->{usrconf} or
+    join(" ", keys %{$param->{usrconf}}) eq "CACHE") {
+  print __LINE__,": no SCR_CONF_FILE provided\n";
+  $rc = 1;
+  exit $rc;
+}
+
+my ($name, $expected_value, $value);
+
+# test that reading a scalar from test.conf worked
+$name = "SCR_COPY_TYPE";
+$expected_value = "FILE";
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get($name)='$value' intead of '$expected_value'\n";
+  $rc = 1;
+}
+
+# test that reading a hash from test.conf worked
+$name = "STORE";
+$expected_value = "/tmp";
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get($name)='$value' intead of '$expected_value'\n";
+  $rc = 1;
+}
+
+# expected value is:
+# STORE=/tmp GROUP=NODE COUNT=1
+$name = "STORE";
+$value = $param->get_hash($name);
+$expected_value = {};
+$expected_value->{"/tmp"} = {
+  "GROUP" => {"NODE" => {}},
+  "COUNT" => {"1" => {}},
+};
+unless (defined $value and &hashes_equal($value, $expected_value)) {
+  print __LINE__,": scr_param->get('$name')='".&hash2string($value)."' instead of '".&hash2string($expected_value)."'\n";
+  $rc = 1;
+}
+
+# test a variable that is not set
+delete $ENV{FAKEVAR};
+my $fake_var = $param->get("FAKEVAR");
+unless (not defined $fake_var) {
+  print __LINE__,": scr_param->get() returned something when a variable was not set\n";
+  $rc = 1;
+}
+
+# set some fake environment variables
+$ENV{TESTVAR}   = 'testvar';
+$ENV{TESTVAR1}  = 'testvar1';
+$ENV{TESTVAR_2} = 'testvar_2';
+
+# simple ENV setting
+$name = "TESTVAR";
+$expected_value = "testvar";
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get($name)='$value' intead of '$expected_value'\n";
+  $rc = 1;
+}
+
+# override a setting from the conf file
+$name = "SCR_COPY_TYPE";
+$expected_value = "XOR";
+$ENV{$name}   = $expected_value;
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get($name)='$value' intead of '$expected_value'\n";
+  $rc = 1;
+}
+
+# test a parameter that uses embedded variables names
+$name = "SCR_PATH_TEST";
+$ENV{$name} = "/\$TESTVAR/\$TESTVAR1/\$TESTVAR_2/thing";
+$expected_value = "/testvar/testvar1/testvar_2/thing";
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get($name)='$value' intead of '$expected_value'\n";
+  $rc = 1;
+}
+
+# test a parameter that uses embedded variables names with braces
+$name = "SCR_PATH_TEST";
+$ENV{$name} = "/\${TESTVAR}/\${TESTVAR1}/\${TESTVAR_2}/thing";
+$expected_value = "/testvar/testvar1/testvar_2/thing";
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get($name)='$value' intead of '$expected_value'\n";
+  $rc = 1;
+}
+
+# test some invalid input
+$name = "UNBALANCED1";
+$ENV{$name} = "/\${TESTVAR/thing";
+$expected_value = "/\${TESTVAR/thing";
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get('$name')='$value' instead of '$expected_value'\n";
+  $rc = 1;
+}
+
+$name = "UNBALANCED2";
+$ENV{$name} = "/\$TESTVAR}/thing";
+$expected_value = "/testvar}/thing";
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get('$name')='$value' instead of '$expected_value'\n";
+  $rc = 1;
+}
+
+$name = "NONWORD";
+$ENV{$name} = "\$/thing";
+$expected_value = "\$/thing";
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get('$name')='$value' instead of '$expected_value'\n";
+  $rc = 1;
+}
+
+$name = "AT_END";
+$ENV{$name} = "/thing\$";
+$expected_value = "/thing\$";
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get('$name')='$value' instead of '$expected_value'\n";
+  $rc = 1;
+}
+
+$name = "NONEXISTING";
+$ENV{$name} = "/thing/\$FAKEVAR/gummy";
+$expected_value = "/thing//gummy";
+$value = $param->get($name);
+unless (defined $value and $value eq $expected_value) {
+  print __LINE__,": scr_param->get('$name')='$value' instead of '$expected_value'\n";
+  $rc = 1;
+}
+
+$name = "";
+$value = $param->get("");
+unless (not defined $value) {
+  print __LINE__,": scr_param->get('$name') returned something when a variable was not set: '$value'\n";
+  $rc = 1;
+}
+
+# test getting a hash
+$name = "HASHVAR";
+$ENV{$name} = "hashkey";
+$value = $param->get_hash($name);
+$expected_value = {};
+$expected_value->{$ENV{$name}} = {};
+unless (defined $value and &hashes_equal($value, $expected_value)) {
+  print __LINE__,": scr_param->get('$name')='".&hash2string($value)."' instead of '".&hash2string($expected_value)."'\n";
+  $rc = 1;
+}
+
+exit $rc;
