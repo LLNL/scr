@@ -482,9 +482,13 @@ int main (int argc, char* argv[])
       );
     }
 
+    /* include checkpoint directory path in name */
+    char newname[SCR_MAX_FILENAME];
+    sprintf(newname, "%s/%s", dset, name);
+
     /* get our file name */
     char file[SCR_MAX_FILENAME];
-    scr_retval = SCR_Route_file(name, file);
+    scr_retval = SCR_Route_file(newname, file);
     if (scr_retval != SCR_SUCCESS) {
       printf("%d: failed calling SCR_Route_file: %d: @%s:%d\n",
              rank, scr_retval, __FILE__, __LINE__

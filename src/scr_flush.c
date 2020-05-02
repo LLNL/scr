@@ -316,6 +316,50 @@ static int scr_flush_summary(
   return SCR_FAILURE;
 }
 
+/* create entry in scr index file to indicate that a new dataset
+ * has been started to be copied to the prefix directory, but mark
+ * it as incomplete */
+int scr_flush_init_index(scr_dataset* dataset)
+{
+  int rc = SCR_SUCCESS;
+
+  /* update index file */
+  if (scr_my_rank_world == 0) {
+    /* read the index file */
+    kvtree* index_hash = kvtree_new();
+    scr_index_read(scr_prefix_path, index_hash);
+
+    /* get id of dataset */
+    int id;
+    if (scr_dataset_get_id(dataset, &id) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to read dataset id @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+
+    /* get name of dataset */
+    char* name;
+    if (scr_dataset_get_name(dataset, &name) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to read dataset name @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
+
+    /* update complete flag in index file */
+    int complete = 0;
+    scr_index_set_dataset(index_hash, id, name, dataset, complete);
+
+    /* write the index file and delete the hash */
+    scr_index_write(scr_prefix_path, index_hash);
+    kvtree_delete(&index_hash);
+  }
+
+  /* have rank 0 broadcast whether the update succeeded */
+  MPI_Bcast(&rc, 1, MPI_INT, 0, scr_comm_world);
+
+  return rc;
+}
+
 /* given a dataset id that has been flushed and the list provided by scr_flush_prepare,
  * complete the flush by writing the summary file */
 int scr_flush_complete(int id, kvtree* file_list)

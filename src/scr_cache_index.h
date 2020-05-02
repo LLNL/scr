@@ -49,15 +49,6 @@ Cache index set/get/unset data functions
 =========================================
 */
 
-/* sets the flush/scavenge descriptor hash for the given dataset id */
-int scr_cache_index_set_flushdesc(scr_cache_index* cindex, int dset, kvtree* hash);
-
-/* copies the flush/scavenge descriptor hash for the given dataset id into hash */
-int scr_cache_index_get_flushdesc(const scr_cache_index* cindex, int dset, kvtree* hash);
-
-/* unset the flush/scavenge descriptor hash for the given dataset id */
-int scr_cache_index_unset_flushdesc(scr_cache_index* cindex, int dset);
-
 /* sets the dataset hash for the given dataset id */
 int scr_cache_index_set_dataset(scr_cache_index* cindex, int dset, kvtree* hash);
 
@@ -75,6 +66,12 @@ int scr_cache_index_get_dir(const scr_cache_index* cindex, int dset, char** path
 
 /* unset the directory for the given dataset id */
 int scr_cache_index_unset_dir(scr_cache_index* cindex, int dset);
+
+/* mark dataset as cache bypass (read/write direct to prefix dir) */
+int scr_cache_index_set_bypass(scr_cache_index* cindex, int dset, int bypass);
+
+/* get value of bypass flag for dataset */
+int scr_cache_index_get_bypass(const scr_cache_index* cindex, int dset, int* bypass);
 
 /*
 =========================================

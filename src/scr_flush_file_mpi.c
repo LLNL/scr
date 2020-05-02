@@ -34,8 +34,8 @@ int scr_flush_file_need_flush(int id)
     /* if we have the dataset in cache, but not on the parallel file system,
      * then it needs to be flushed */
     kvtree* dset_hash = kvtree_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-    kvtree* in_cache = kvtree_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
-    kvtree* in_pfs   = kvtree_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_PFS);
+    kvtree* in_cache  = kvtree_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_CACHE);
+    kvtree* in_pfs    = kvtree_get_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, SCR_FLUSH_KEY_LOCATION_PFS);
     if (in_cache != NULL && in_pfs == NULL) {
       need_flush = 1;
     }

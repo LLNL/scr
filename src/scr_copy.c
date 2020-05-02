@@ -347,9 +347,16 @@ static int copy_files_for_filemap(
         crc_valid = 1;
         crc_p = &crc;
       }
-      if (scr_file_copy(file, dst_file, args->buf_size, crc_p) != SCR_SUCCESS) {
+      if (strcmp(file, dst_file) != 0) {
+        /* in case of bypass, only copy file if source and dest paths are different */
+        if (scr_file_copy(file, dst_file, args->buf_size, crc_p) != SCR_SUCCESS) {
+          crc_valid = 0;
+          rc = 1;
+        }
+      } else {
+        /* TODO: should we stat file and check its size? */
+        /* didn't attempt a copy, so we don't have a valid crc */
         crc_valid = 0;
-        rc = 1;
       }
   
       /* add this file to the rank_map */
@@ -360,7 +367,7 @@ static int copy_files_for_filemap(
       if (crc_valid) {
         uLong meta_crc;
         if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
-          if (crc != meta_crc) { 
+          if (crc != meta_crc) {
             /* detected a crc mismatch during the copy */
   
             /* TODO: unlink the copied file */

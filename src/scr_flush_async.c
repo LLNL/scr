@@ -134,6 +134,9 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   /* get the dataset of this flush */
   scr_dataset* dataset = kvtree_get(scr_flush_async_file_list, SCR_KEY_DATASET);
 
+  /* create enty in index file to indicate that dataset may exist, but is not yet complete */
+  scr_flush_init_index(dataset);
+
   /* define path to metadata directory for this dataset */
   char* dataset_path_str = scr_flush_dataset_metadir(dataset);
   spath* dataset_path = spath_from_str(dataset_path_str);

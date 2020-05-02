@@ -36,9 +36,9 @@
 #include "kvtree_util.h"
 
 #define SCR_CINDEX_KEY_DSET    ("DSET")
-#define SCR_CINDEX_KEY_FLUSH   ("FLUSH")
 #define SCR_CINDEX_KEY_DATA    ("DSETDESC")
 #define SCR_CINDEX_KEY_PATH    ("PATH")
+#define SCR_CINDEX_KEY_BYPASS  ("BYPASS")
 
 /* returns the DSET hash */
 static kvtree* scr_cache_index_get_dh(const kvtree* h)
@@ -72,50 +72,6 @@ static int scr_cache_index_unset_if_empty(scr_cache_index* cindex, int dset)
   if (kvtree_size(d) == 0) {
     kvtree_unset_kv_int(cindex, SCR_CINDEX_KEY_DSET, dset);
   }
-
-  return SCR_SUCCESS;
-}
-
-/* sets the flush/scavenge descriptor hash for the given dataset id */
-int scr_cache_index_set_flushdesc(scr_cache_index* cindex, int dset, kvtree* hash)
-{
-  /* set indicies and get hash reference */
-  kvtree* d = scr_cache_index_set_d(cindex, dset);
-
-  /* set the FLUSH value under the RANK/DSET hash */
-  kvtree_unset(d, SCR_CINDEX_KEY_FLUSH);
-  kvtree* desc = kvtree_new();
-  kvtree_merge(desc, hash);
-  kvtree_set(d, SCR_CINDEX_KEY_FLUSH, desc);
-
-  return SCR_SUCCESS;
-}
-
-/* copies the flush/scavenge descriptor hash for the given dataset id into hash */
-int scr_cache_index_get_flushdesc(const scr_cache_index* cindex, int dset, kvtree* hash)
-{
-  /* get RANK/DSET hash */
-  kvtree* d = scr_cache_index_get_d(cindex, dset);
-
-  /* get the FLUSH value under the RANK/DSET hash */
-  kvtree* desc = kvtree_get(d, SCR_CINDEX_KEY_FLUSH);
-  if (desc != NULL) {
-    kvtree_merge(hash, desc);
-    return SCR_SUCCESS;
-  }
-
-  return SCR_FAILURE; 
-}
-
-/* unset the flush/scavenge descriptor hash for the given dataset id */
-int scr_cache_index_unset_flushdesc(scr_cache_index* cindex, int dset)
-{
-  /* unset FLUSH value */
-  kvtree* d = scr_cache_index_get_d(cindex, dset);
-  kvtree_unset(d, SCR_CINDEX_KEY_FLUSH);
-
-  /* unset DSET if the hash is empty */
-  scr_cache_index_unset_if_empty(cindex, dset);
 
   return SCR_SUCCESS;
 }
@@ -201,6 +157,35 @@ int scr_cache_index_unset_dir(scr_cache_index* cindex, int dset)
   scr_cache_index_unset_if_empty(cindex, dset);
 
   return SCR_SUCCESS;
+}
+
+/* mark dataset as cache bypass (read/write direct to prefix dir) */
+int scr_cache_index_set_bypass(scr_cache_index* cindex, int dset, int bypass)
+{
+  /* set indicies and get hash reference */
+  kvtree* d = scr_cache_index_set_d(cindex, dset);
+
+  /* set the DATA value under the RANK/DSET hash */
+  kvtree_util_set_int(d, SCR_CINDEX_KEY_BYPASS, bypass);
+
+  return SCR_SUCCESS;
+}
+
+/* get value of bypass flag for dataset */
+int scr_cache_index_get_bypass(const scr_cache_index* cindex, int dset, int* bypass)
+{
+  /* assume the dataset has not been marked as bypass */
+  *bypass = 0;
+
+  /* get RANK/CKPT hash */
+  kvtree* d = scr_cache_index_get_d(cindex, dset);
+
+  /* get the REDDESC value under the RANK/DSET hash */
+  if (kvtree_util_get_int(d, SCR_CINDEX_KEY_BYPASS, bypass) == KVTREE_SUCCESS) {
+    return SCR_SUCCESS;
+  }
+
+  return SCR_FAILURE; 
 }
 
 /* remove all associations for a given dataset */
