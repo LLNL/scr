@@ -67,7 +67,10 @@ static char* expand_env(const char* value)
   ssize_t rlen = len;
   char* retval = malloc(rlen);
   assert(retval); /* TODO: should I check for running out of memory? */
-  for(int i = 0, j = 0 ; i < len ; /*nop*/) {
+
+  int i;
+  int j;
+  for(i = 0, j = 0 ; i < len ; /*nop*/) {
     if(value[i] == '$') {
       /* try and extract an environment variable name the '$' */
       int envbegin = -1, envend = -1;
@@ -115,7 +118,8 @@ static char* expand_env(const char* value)
         assert(retval); /* TODO: should I check for running out of memory? */
 
         /* finally copy value into retval */
-        for(int envi = 0 ; envi < envlen ; /*nop*/) {
+        int envi;
+        for(envi = 0 ; envi < envlen ; /*nop*/) {
           assert(j < rlen);
           assert(envi < envlen);
           retval[j++] = env[envi++];
