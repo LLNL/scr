@@ -159,6 +159,7 @@ Define common hash key strings
 #define SCR_CONFIG_KEY_INDEX      ("INDEX")
 #define SCR_CONFIG_KEY_INTERVAL   ("INTERVAL")
 #define SCR_CONFIG_KEY_OUTPUT     ("OUTPUT")
+#define SCR_CONFIG_KEY_BYPASS     ("BYPASS")
 #define SCR_CONFIG_KEY_DIRECTORY  ("DIRECTORY")
 #define SCR_CONFIG_KEY_TYPE       ("TYPE")
 #define SCR_CONFIG_KEY_FAIL_GROUP ("FAIL_GROUP")

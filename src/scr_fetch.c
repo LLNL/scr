@@ -346,6 +346,9 @@ static int scr_fetch_files(
   /* get the redundancy descriptor for this id */
   scr_reddesc* c = scr_reddesc_for_checkpoint(ckpt_id, scr_nreddescs, scr_reddescs);
 
+  /* record bypass property in cache index*/
+  scr_cache_index_set_bypass(cindex, id, c->bypass);
+
   /* store the name of the directory we're about to create */
   const char* dir = scr_cache_dir_get(c, id);
   scr_cache_index_set_dir(scr_cindex, id, dir);
@@ -360,9 +363,16 @@ static int scr_fetch_files(
   /* get the cache directory */
   char* cache_dir = scr_cache_dir_get(c, id);
 
+  /* we fetch into the cache directory, but we use NULL to indicate
+   * that we're in bypass mode and shouldn't actually transfer files */
+  char* target_dir = cache_dir;
+  if (c->bypass) {
+    target_dir = NULL;
+  }
+
   /* now we can finally fetch the actual files */
   int success = 1;
-  if (scr_fetch_data(summary_hash, fetch_dir, cache_dir, cindex, id) != SCR_SUCCESS) {
+  if (scr_fetch_data(summary_hash, fetch_dir, target_dir, cindex, id) != SCR_SUCCESS) {
     success = 0;
   }
 

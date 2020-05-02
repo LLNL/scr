@@ -436,13 +436,37 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
     );
   }
 
-  /* lookup the cache directory for this dataset */
-  char* dir = scr_cache_dir_get(reddesc, id);
-
-  /* chop file to just the file name and prepend directory */
+  /* convert path string to path object */
   spath* path_file = spath_from_str(file);
-  spath_basename(path_file);
-  spath_prepend_str(path_file, dir);
+
+  if (reddesc->bypass) {
+    /* build absolute path to file */
+    if (! spath_is_absolute(path_file)) {
+      /* the path is not absolute, so prepend the current working directory */
+      char cwd[SCR_MAX_FILENAME];
+      if (scr_getcwd(cwd, sizeof(cwd)) == SCR_SUCCESS) {
+        spath_prepend_str(path_file, cwd);
+      } else {
+        /* problem acquiring current working directory */
+        scr_abort(-1, "Failed to build absolute path to %s @ %s:%d",
+          file, __FILE__, __LINE__
+        );
+      }
+    }
+  } else {
+    /* lookup the cache directory for this dataset */
+    char* dir = scr_cache_dir_get(reddesc, id);
+
+    /* chop file to just the file name and prepend directory */
+    spath_basename(path_file);
+    spath_prepend_str(path_file, dir);
+
+    /* free the cache directory */
+    scr_free(&dir);
+  }
+
+  /* simplify the absolute path (removes "." and ".." entries) */
+  spath_reduce(path_file);
 
   /* copy to user's buffer */
   size_t n_size = (size_t) n;
@@ -450,9 +474,6 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
 
   /* free the file path */
   spath_delete(&path_file);
-
-  /* free the cache directory */
-  scr_free(&dir);
 
   return SCR_SUCCESS;
 }
@@ -609,9 +630,22 @@ static int scr_get_params()
     scr_cntl_base = spath_strdup_reduce_str(SCR_CNTL_BASE);
   }
 
+  /* we set this flag if we find the user defining a checkpoint
+   * descriptor by:
+   *   CKPTDESC in a config file or
+   *   SCR_CACHE_BASE
+   *   SCR_CACHE_SIZE
+   *   SCR_COPY_TYPE
+   *   SCR_SET_SIZE
+   *   SCR_GROUP */
+  int found_ckptdesc = 0;
+
   /* override default base directory for checkpoint cache */
   if ((value = scr_param_get("SCR_CACHE_BASE")) != NULL) {
     scr_cache_base = spath_strdup_reduce_str(value);
+
+    /* assume user is defining a checkpoint descriptor */
+    found_ckptdesc = 1;
   } else {
     scr_cache_base = spath_strdup_reduce_str(SCR_CACHE_BASE);
   }
@@ -619,6 +653,9 @@ static int scr_get_params()
   /* set maximum number of checkpoints to keep in cache */
   if ((value = scr_param_get("SCR_CACHE_SIZE")) != NULL) {
     scr_cache_size = atoi(value);
+
+    /* assume user is defining a checkpoint descriptor */
+    found_ckptdesc = 1;
   }
 
   /* fill in a hash of group descriptors */
@@ -658,16 +695,25 @@ static int scr_get_params()
     } else {
       scr_copy_type = SCR_COPY_FILE;
     }
+
+    /* assume user is defining a checkpoint descriptor */
+    found_ckptdesc = 1;
   }
 
   /* specify the number of tasks in xor set */
   if ((value = scr_param_get("SCR_SET_SIZE")) != NULL) {
     scr_set_size = atoi(value);
+
+    /* assume user is defining a checkpoint descriptor */
+    found_ckptdesc = 1;
   }
 
   /* specify the group name to protect failures */
   if ((value = scr_param_get("SCR_GROUP")) != NULL) {
     scr_group = strdup(value);
+
+    /* assume user is defining a checkpoint descriptor */
+    found_ckptdesc = 1;
   } else {
     scr_group = strdup(SCR_GROUP);
   }
@@ -697,11 +743,24 @@ static int scr_get_params()
     tmp = scr_param_get_hash(SCR_CONFIG_KEY_CKPTDESC);
     if (tmp != NULL) {
       kvtree_set(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, tmp);
+
+      /* assume user is defining a checkpoint descriptor */
+      found_ckptdesc = 1;
     } else {
       scr_abort(-1, "Failed to define checkpoints @ %s:%d",
               __FILE__, __LINE__
       );
     }
+  }
+
+  /* set whether to bypass cache and directly read from and write to prefix dir */
+  if ((value = scr_param_get("SCR_CACHE_BYPASS")) != NULL) {
+    /* if BYPASS is set explicitly, we use that */
+    scr_cache_bypass = atoi(value);
+  } else if (found_ckptdesc) {
+    /* if the user has specified a checkpoint descriptor,
+     * we'll assume they actually want to use the cache */
+    scr_cache_bypass = 0;
   }
 
   /* if job has fewer than SCR_HALT_SECONDS remaining after completing a checkpoint,
@@ -1082,11 +1141,20 @@ static int scr_start_output(const char* name, int flags)
   scr_cache_index_set_dir(scr_cindex, scr_dataset_id, dir);
   scr_free(&dir);
 
+  /* mark whether dataset should bypass cache */
+  scr_cache_index_set_bypass(scr_cindex, scr_dataset_id, scr_rd->bypass);
+
   /* save cache index to disk before creating directory, so we have a record of it */
   scr_cache_index_write(scr_cindex_file, scr_cindex);
 
   /* make directory in cache to store files for this dataset */
   scr_cache_dir_create(scr_rd, scr_dataset_id);
+
+  /* since bypass will start writing files to prefix directory immediately,
+   * go ahead and create the initial entry in the index file */
+  if (scr_rd->bypass) {
+    scr_flush_init_index(dataset);
+  }
 
   /* free dataset object */
   scr_dataset_delete(&dataset);
@@ -1218,6 +1286,12 @@ static int scr_complete_output(int valid)
     char* dset_name;
     scr_dataset_get_name(dataset, &dset_name);
     scr_flush_file_new_entry(scr_dataset_id, dset_name, dataset, SCR_FLUSH_KEY_LOCATION_CACHE, is_ckpt, is_output);
+
+    /* go ahead and flush any bypass dataset since
+     * it's just a bit more work to finish at this point */
+    if (scr_rd->bypass) {
+      scr_flush_sync(scr_cindex, scr_dataset_id);
+    }
 
     /* check_flush may start an async flush, whereas check_halt will call sync flush,
      * so place check_flush after check_halt */
@@ -2193,6 +2267,20 @@ int SCR_Route_file(const char* file, char* newfile)
     char* name = spath_strdup(path_name);
     scr_meta_set_origpath(meta, path);
     scr_meta_set_origname(meta, name);
+
+    /* TODO: would be nice to limit mkdir ops here */
+    /* if we're in bypass mode, we need to be sure directory exists
+     * for this file before user starts to write to it */
+    if (scr_rd->bypass) {
+      mode_t mode_dir = scr_getmode(1, 1, 1);
+      if (scr_mkdir(path, mode_dir) != SCR_SUCCESS) {
+        scr_abort(-1, "Failed to create directory %s @ %s:%d",
+          path, __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* free full path and name of original file */
     scr_free(&name);
     scr_free(&path);
 
@@ -2209,6 +2297,81 @@ int SCR_Route_file(const char* file, char* newfile)
     /* delete the meta data object */
     scr_meta_delete(&meta);
   } else {
+    /* TODO: To support backwards compatibility, the user is allowed
+     * to pass just the file name with no path component during restart.
+     * This means that they cannot have two files in the same checkpoint
+     * with the same basename even if those files would be in two
+     * different directories, e.g., one can't do something like:
+     *   ckpt.1.root
+     *   ckpt.1/ckpt.1.root
+     *
+     * With bypass, we need to figure out which directory the file is
+     * in, so we have to scan through the filemap to find a match on
+     * the basename.
+     *
+     * The proper fix would be to force users to include path components
+     * even in restart.  This would make route_file symmetric in output
+     * and restart, which is better.  It would take a step in enabling
+     * two files with the same basename but in different directories.
+     * However, it also requires that users names their checkpoints,
+     * so SCR_Start_checkpoint must be deprecated ro changed to take a
+     * name argument. */
+
+    /* compute basename of new file */
+    spath* path = spath_from_str(newfile);
+    spath_basename(path);
+    char* newfilebase = spath_strdup(path);
+    spath_delete(&path);
+
+    /* get the filemap for this checkpoint */
+    scr_filemap* map = scr_filemap_new();
+    scr_cache_get_map(scr_cindex, scr_dataset_id, map);
+
+    /* loop over each file in the map */
+    int found_file = 0;
+    kvtree_elem* file_elem;
+    for (file_elem = scr_filemap_first_file(map);
+         file_elem != NULL;
+         file_elem = kvtree_elem_next(file_elem))
+    {
+      /* get the filename */
+      char* mapfile = kvtree_elem_key(file_elem);
+
+      /* get meta data for this file */
+      scr_meta* meta = scr_meta_new();
+      if (scr_filemap_get_meta(map, mapfile, meta) == SCR_SUCCESS) {
+        /* lookup basename for this file from meta data */
+        char* origname = NULL;
+        if (scr_meta_get_origname(meta, &origname) == SCR_SUCCESS) {
+          /* check whether basename in meta matches basename of input file */
+          if (strcmp(origname, newfilebase) == 0) {
+            /* found a matching base name in our file map,
+             * overwrite output file path in newfile with
+             * full path to checkpoint file */
+            strncpy(newfile, mapfile, SCR_MAX_FILENAME);
+            found_file = 1;
+          }
+        }
+      }
+      scr_meta_delete(&meta);
+
+      /* stop looping early if we found the file */
+      if (found_file) {
+        break;
+      }
+    }
+
+    /* free the filemap */
+    scr_filemap_delete(&map);
+
+    /* free the base name of new file */
+    scr_free(&newfilebase);
+
+    /* return an error if we failed to find the basename in the file map */
+    if (! found_file) {
+      return SCR_FAILURE;
+    }
+
     /* if we can't read the file, return an error */
     if (scr_file_is_readable(newfile) != SCR_SUCCESS) {
       return SCR_FAILURE;

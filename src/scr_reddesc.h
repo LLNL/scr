@@ -49,6 +49,7 @@ typedef struct {
   int      interval;       /* how often to apply this descriptor, pick largest such
                             * that interval evenly divides checkpoint id */
   int      output;         /* flag indicating whether this descriptor should be used for output */
+  int      bypass;         /* flag indicating whether data should bypass cache */
   int      store_index;    /* index into scr_storedesc for storage descriptor */
   int      group_index;    /* index into scr_groupdesc for failure group */
   char*    base;           /* base cache directory to use */

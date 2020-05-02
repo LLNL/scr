@@ -152,6 +152,7 @@ extern int scr_cache_size;    /* number of checkpoints to keep in cache at one t
 extern int scr_copy_type;     /* select which redundancy algorithm to use */
 extern char* scr_group;       /* name of process group likely to fail */
 extern int scr_set_size;      /* specify number of tasks in xor set */
+extern int scr_cache_bypass;  /* default bypass, whether to directly read/write parallel file system */
 
 extern size_t scr_mpi_buf_size;  /* set MPI buffer size to chunk file transfer */
 extern size_t scr_file_buf_size; /* set buffer size to chunk file copies to/from parallel file system */

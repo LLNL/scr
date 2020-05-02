@@ -40,16 +40,17 @@ int scr_reddesc_init(scr_reddesc* d)
   }
 
   /* initialize the descriptor */
-  d->enabled        =  0;
-  d->index          = -1;
-  d->interval       = -1;
-  d->output         = -1;
-  d->store_index    = -1;
-  d->group_index    = -1;
-  d->base           = NULL;
-  d->directory      = NULL;
-  d->copy_type      = SCR_COPY_NULL;
-  d->er_scheme      = -1;
+  d->enabled     =  0;
+  d->index       = -1;
+  d->interval    = -1;
+  d->output      = -1;
+  d->bypass      = -1;
+  d->store_index = -1;
+  d->group_index = -1;
+  d->base        = NULL;
+  d->directory   = NULL;
+  d->copy_type   = SCR_COPY_NULL;
+  d->er_scheme   = -1;
 
   return SCR_SUCCESS;
 }
@@ -121,6 +122,9 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, kvtree* hash)
 
   /* set the OUTPUT key */
   kvtree_set_kv_int(hash, SCR_CONFIG_KEY_OUTPUT, d->output);
+
+  /* set the BYPASS key */
+  kvtree_set_kv_int(hash, SCR_CONFIG_KEY_BYPASS, d->bypass);
 
   /* we don't set STORE_INDEX because this is dependent on runtime
    * environment */
@@ -229,6 +233,10 @@ int scr_reddesc_create_from_hash(
   /* set output flag, assume this can't be used for output */
   d->output = 0;
   kvtree_util_get_int(hash, SCR_CONFIG_KEY_OUTPUT, &(d->output));
+
+  /* set bypass flag */
+  d->bypass = scr_cache_bypass;
+  kvtree_util_get_int(hash, SCR_CONFIG_KEY_BYPASS, &(d->bypass));
 
   /* get the store name */
   char* base = scr_cache_base;
@@ -505,6 +513,12 @@ int scr_reddesc_apply(
     return SCR_FAILURE;
   }
 
+  /* we only need to protect the filemap for bypass datasets */
+  if (desc->bypass) {
+    /* TODO: want to print and log timing in this case? */
+    return SCR_SUCCESS;
+  }
+
   /* define path for hidden directory */
   const char* dir_hidden = scr_cache_dir_hidden_get(desc, id);
 
@@ -668,6 +682,14 @@ int scr_reddesc_recover(scr_cache_index* cindex, int id, const char* dir)
   }
   scr_free(&reddesc_filemap);
 
+  /* if dataset was a cache bypass, we stop after recovering the filemap,
+   * since no redundancy was applied to data files in prefix directory */
+  int bypass;
+  scr_cache_index_get_bypass(cindex, id, &bypass);
+  if (bypass) {
+    return rc;
+  }
+
   /* recover data files */
   char* reddesc_data = scr_reddesc_prefix(dir);
   if (scr_reddesc_er_recover(store->comm, reddesc_data) != SCR_SUCCESS) {
@@ -713,14 +735,22 @@ int scr_reddesc_unapply(const scr_cache_index* cindex, int id, const char* dir)
   /* TODO: verify that everyone found a matching store descriptor */
   scr_storedesc* store = &scr_storedescs[store_index];
 
-  /* recover filemap files */
+  /* delete redundancy data for filemap files */
   char* reddesc_filemap = scr_reddesc_prefix_filemap(dir);
   if (scr_reddesc_er_unapply(store->comm, reddesc_filemap) != SCR_SUCCESS) {
     rc = SCR_FAILURE;
   }
   scr_free(&reddesc_filemap);
 
-  /* recover data files */
+  /* if dataset was a cache bypass, we stop after removing redudancy for the filemap,
+   * since no redundancy was applied to data files in prefix directory */
+  int bypass;
+  scr_cache_index_get_bypass(cindex, id, &bypass);
+  if (bypass) {
+    return rc;
+  }
+
+  /* delete redundancy data for data files */
   char* reddesc_data = scr_reddesc_prefix(dir);
   if (scr_reddesc_er_unapply(store->comm, reddesc_data) != SCR_SUCCESS) {
     rc = SCR_FAILURE;

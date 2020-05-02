@@ -254,37 +254,46 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
 
   /* remove redundancy files */
   scr_reddesc_unapply(cindex, id, dir_scr);
+  
+  /* if this dataset was a bypass, no need remove files since
+   * those are on the file system (not cache), we will still
+   * delete associated directories from cache and the filemap */
+  int bypass = 0;
+  scr_cache_index_get_bypass(cindex, id, &bypass);
 
-  /* get list of files for this dataset */
-  scr_filemap* map = scr_filemap_new();
-  scr_cache_get_map(cindex, id, map);
-
-  /* for each file we have for this dataset, delete the file */
-  kvtree_elem* file_elem;
-  for (file_elem = scr_filemap_first_file(map);
-       file_elem != NULL;
-       file_elem = kvtree_elem_next(file_elem))
-  {
-    /* get the filename */
-    char* file = kvtree_elem_key(file_elem); 
-
-    /* check file's crc value (monitor that cache hardware isn't corrupting
-     * files on us) */
-    if (scr_crc_on_delete) {
-      /* TODO: if corruption, need to log */
-      if (scr_compute_crc(map, file) != SCR_SUCCESS) {
-        scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
-          file, __FILE__, __LINE__
-        );
+  /* delete data files from cache */
+  if (! bypass) {
+    /* get list of files for this dataset */
+    scr_filemap* map = scr_filemap_new();
+    scr_cache_get_map(cindex, id, map);
+  
+    /* for each file we have for this dataset, delete the file */
+    kvtree_elem* file_elem;
+    for (file_elem = scr_filemap_first_file(map);
+         file_elem != NULL;
+         file_elem = kvtree_elem_next(file_elem))
+    {
+      /* get the filename */
+      char* file = kvtree_elem_key(file_elem); 
+  
+      /* check file's crc value (monitor that cache hardware isn't corrupting
+       * files on us) */
+      if (scr_crc_on_delete) {
+        /* TODO: if corruption, need to log */
+        if (scr_compute_crc(map, file) != SCR_SUCCESS) {
+          scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
+            file, __FILE__, __LINE__
+          );
+        }
       }
+  
+      /* delete the file */
+      scr_file_unlink(file);
     }
-
-    /* delete the file */
-    scr_file_unlink(file);
+  
+    /* delete map object */
+    scr_filemap_delete(&map);
   }
-
-  /* delete map object */
-  scr_filemap_delete(&map);
 
   /* delete the map file */
   scr_cache_unset_map(cindex, id);
@@ -299,13 +308,7 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
     /* get store descriptor */
     scr_storedesc* store = &scr_storedescs[store_index];
 
-    //MPI_Comm store_comm = store->comm;
-    //int store_rank;
-    //MPI_Comm_rank(store_comm, &store_rank);
-
-    //this
-    //if(store->rank == 0){
-      /* remove hidden .scr subdirectory from cache */
+    /* remove hidden .scr subdirectory from cache */
     if (scr_storedesc_dir_delete(store, dir_scr) != SCR_SUCCESS) {
       scr_err("Failed to remove dataset directory: %s @ %s:%d",
         dir_scr, __FILE__, __LINE__
@@ -318,7 +321,6 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
         dir, __FILE__, __LINE__
       );
     }
-    //}
   } else {
     /* TODO: We end up here if at least one process does not have its
      * reddeesc for this dataset.  We could try to have each process delete

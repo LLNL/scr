@@ -66,8 +66,28 @@ static int scr_distribute_datasets(scr_cache_index* cindex, int id)
   }
   kvtree_bcast(dataset, min_rank, scr_comm_world);
 
+  /* attempt to read bypass property from our index */
+  source_rank = scr_ranks_world;
+  int bypass;
+  if (scr_cache_index_get_bypass(cindex, id, &bypass) == SCR_SUCCESS) {
+    source_rank = scr_my_rank_world;
+  }
+
+  /* identify the smallest rank that has the value */
+  MPI_Allreduce(&source_rank, &min_rank, 1, MPI_INT, MPI_MIN, scr_comm_world);
+
+  /* if there is no rank, return with failure */
+  if (min_rank >= scr_ranks_world) {
+    scr_dataset_delete(&dataset);
+    return SCR_FAILURE;
+  }
+
+  /* otherwise, bcast the bypass property from the minimum rank */
+  MPI_Bcast(&bypass, 1, MPI_INT, min_rank, scr_comm_world);
+
   /* record the descriptor in our cache index */
   scr_cache_index_set_dataset(cindex, id, dataset);
+  scr_cache_index_set_bypass(cindex, id, bypass);
   scr_cache_index_write(scr_cindex_file, cindex);
 
   /* free off dataset object */
@@ -227,7 +247,8 @@ int scr_cache_rebuild(scr_cache_index* cindex)
               /* if we rebuild any checkpoint, return success */
               rc = SCR_SUCCESS;
 
-              /* update scr_dataset_id */
+              /* if id of dataset we just rebuilt is newer,
+               * update scr_dataset_id */
               if (current_id > scr_dataset_id) {
                 scr_dataset_id = current_id;
               }
@@ -236,7 +257,8 @@ int scr_cache_rebuild(scr_cache_index* cindex)
               int ckpt_id;
               scr_dataset_get_ckpt(dataset, &ckpt_id);
 
-              /* update scr_checkpoint_id and scr_ckpt_dset_id if needed */
+              /* if checkpoint id of dataset we just rebuilt is newer,
+               * update scr_checkpoint_id and scr_ckpt_dset_id */
               if (ckpt_id > scr_checkpoint_id) {
                 /* got a more recent checkpoint, update our checkpoint info */
                 scr_checkpoint_id = ckpt_id;

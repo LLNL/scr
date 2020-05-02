@@ -26,6 +26,11 @@ int scr_flush_filolist_free(int num_files, char*** ptr_src_filelist, char*** ptr
  * metadata directory for that dataset, must be freed by caller */
 char* scr_flush_dataset_metadir(const scr_dataset* dataset);
 
+/* create entry in scr index file to indicate that a new dataset
+ * has been started to be copied to the prefix directory, but mark
+ * it as incomplete */
+int scr_flush_init_index(scr_dataset* dataset);
+
 /* given a filemap and a dataset id, prepare and return a list of files to be flushed */
 int scr_flush_prepare(const scr_filemap* map, int id, kvtree* file_list);
 

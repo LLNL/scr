@@ -780,41 +780,43 @@ int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
     /* check whether there are any missing files in this dataset */
     kvtree* missing_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_MISSING);
     if (missing_hash != NULL) {
-      /* nede to rebuild some files,
-       * determine the encoding type and call cooresponging rebuild functions */
-      kvtree* partner_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_PARTNER);
-      kvtree* xor_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_XOR);
-      if (partner_hash != NULL) {
-        /* rebuild filemap files */
+      /* need to rebuild some files, determine the encoding type
+       * and call corresponding function to define rebuild command */
+
+      /* rebuild filemap files with PARTNER */
+      kvtree* mappartner_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_MAPPARTNER);
+      if (mappartner_hash != NULL) {
         int tmp_rc = scr_rebuild_partner(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_MAPPARTNER, "map");
         if (tmp_rc != SCR_SUCCESS) {
           rc = SCR_FAILURE;
-          continue;
         }
+      }
 
-        /* rebuild data files */
-        tmp_rc = scr_rebuild_partner(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_PARTNER, "xor");
-        if (tmp_rc != SCR_SUCCESS) {
-          rc = SCR_FAILURE;
-          continue;
-        }
-      } else if (xor_hash != NULL) {
-        /* rebuild filemap files */
+      /* rebuild filemap files with XOR */
+      kvtree* mapxor_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_MAPXOR);
+      if (mapxor_hash != NULL) {
         int tmp_rc = scr_rebuild_xor(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_MAPXOR, "map");
         if (tmp_rc != SCR_SUCCESS) {
           rc = SCR_FAILURE;
-          continue;
         }
+      }
 
-        /* rebuild data files */
-        tmp_rc = scr_rebuild_xor(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_XOR, "xor");
+      /* rebuild data files with PARTNER */
+      kvtree* partner_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_PARTNER);
+      if (partner_hash != NULL) {
+        int tmp_rc = scr_rebuild_partner(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_PARTNER, "partner");
         if (tmp_rc != SCR_SUCCESS) {
           rc = SCR_FAILURE;
-          continue;
         }
-      } else {
-        /* need a rebuild, but failed to find any valid rebuild method */
-        rc = SCR_FAILURE;
+      }
+
+      /* rebuild data files with XOR */
+      kvtree* xor_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_XOR);
+      if (xor_hash != NULL) {
+        int tmp_rc = scr_rebuild_xor(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_XOR, "xor");
+        if (tmp_rc != SCR_SUCCESS) {
+          rc = SCR_FAILURE;
+        }
       }
     }
   }
@@ -2053,10 +2055,10 @@ int index_add(const spath* prefix, int id, int* complete_flag)
 {
   int rc = SCR_SUCCESS;
 
-  /* assume dataset if not complete */
+  /* assume dataset is not complete */
   *complete_flag = 0;
 
-  /* get string versions of prefix and subdir */
+  /* get string versions of prefix */
   char* prefix_str = spath_strdup(prefix);
 
   /* create a new hash to store our index file data */

@@ -33,11 +33,13 @@ static int scr_flush_files_list(scr_cache_index* cindex, int id, kvtree* file_li
   int numfiles;
   char** src_filelist;
   char** dst_filelist;
-
   scr_flush_filolist_alloc(file_list, &numfiles, &src_filelist, &dst_filelist);
 
   /* get the dataset of this flush */
   scr_dataset* dataset = kvtree_get(file_list, SCR_KEY_DATASET);
+
+  /* create enty in index file to indicate that dataset may exist, but is not yet complete */
+  scr_flush_init_index(dataset);
 
   /* define path to metadata directory for this dataset */
   char* dataset_path_str = scr_flush_dataset_metadir(dataset);
@@ -62,8 +64,8 @@ static int scr_flush_files_list(scr_cache_index* cindex, int id, kvtree* file_li
   spath_append_str(dataset_path, "rank2file");
   const char* rankfile = spath_strdup(dataset_path);
 
-  const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
   /* flush data */
+  const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
   if (Filo_Flush(rankfile, scr_prefix, numfiles, src_filelist, dst_filelist,
     scr_comm_world, storedesc->type) != FILO_SUCCESS) {
     rc = SCR_FAILURE;
@@ -102,8 +104,12 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
 {
   int flushed = SCR_SUCCESS;
 
+  /* we flush bypass datasets regardless of setting of scr_flush */
+  int bypass = 0;
+  scr_cache_index_get_bypass(cindex, id, &bypass);
+
   /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
+  if (scr_flush <= 0 && !bypass) {
     return SCR_FAILURE;
   }
 

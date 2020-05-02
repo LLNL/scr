@@ -96,6 +96,7 @@ int scr_cache_size    = SCR_CACHE_SIZE; /* set number of checkpoints to keep at 
 int scr_copy_type     = SCR_COPY_TYPE;  /* select which redundancy algorithm to use */
 char* scr_group       = NULL;           /* name of process group likely to fail */
 int scr_set_size      = SCR_SET_SIZE;   /* specify number of tasks in xor set */
+int scr_cache_bypass  = 1;              /* default bypass, whether to directly read/write parallel file system */
 
 size_t scr_mpi_buf_size  = SCR_MPI_BUF_SIZE;  /* set MPI buffer size to chunk file transfer */
 size_t scr_file_buf_size = SCR_FILE_BUF_SIZE; /* set buffer size to chunk file copies to/from parallel file system */
