@@ -19,22 +19,26 @@ consider that an application has existing checkpointing code that looks like the
     /* initialize our state from checkpoint file */
     state = restart();
   
-    for (t = 0; t < TIMESTEPS; t++) {
+    for (int t = 0; t < TIMESTEPS; t++) {
       /* ... do work ... */
   
       /* every so often, write a checkpoint */
       if (t % CHECKPOINT_FREQUENCY == 0)
-        checkpoint();
+        checkpoint(t);
     }
   
     MPI_Finalize();
     return 0;
   }
   
-  void checkpoint() {
+  void checkpoint(int timestep) {
     /* rank 0 creates a directory on the file system,
      * and then each process saves its state to a file */
   
+    /* define checkpoint directory for the timestep */
+    char checkpoint_dir[256];
+    sprintf(checkpoint_dir, "timestep.%d", timestep);
+
     /* get rank of this process */
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -140,14 +144,14 @@ For example, modify the source to look something like this
     else
       state = new_run_state;
   
-    for (t = 0; t < TIMESTEPS; t++) {
+    for (int t = 0; t < TIMESTEPS; t++) {
       /* ... do work ... */
   
       /**** change #3 ****/
       int need_checkpoint;
       SCR_Need_checkpoint(&need_checkpoint);
       if (need_checkpoint)
-        checkpoint();
+        checkpoint(t);
     }
   
     /**** change #4 ****/
@@ -172,7 +176,7 @@ The same applies to :code:`MPI_Init` if there are multiple calls to this functio
 
 In change #2, the application can call :code:`SCR_Have_restart()` to determine
 whether there is a checkpoint to read in.
-If so, it calls its restart function, otherwise it assumes it is starting from scratch.
+If so, the application calls its restart function, otherwise it assumes it is starting from scratch.
 This should only be called if the application is using the scalable restart feature of SCR.
 
 As shown in change #3,
@@ -194,30 +198,34 @@ Checkpoint
 ^^^^^^^^^^
 
 To actually write a checkpoint, there are three steps.
-First, the application must call :code:`SCR_Start_checkpoint`
+First, the application must call :code:`SCR_Start_output` with the :code:`SCR_FLAG_CHECKPOINT` flag
 to define the start boundary of a new checkpoint.
-It must do this before it opens any file belonging to the new checkpoint.
+It must do this before it creates any file belonging to the new checkpoint.
 Then, the application must call :code:`SCR_Route_file` for each file
 that it will write in order to register the file with SCR and to
 determine the full path and file name to open each file.
-Finally, it must call :code:`SCR_Complete_checkpoint`
+Finally, it must call :code:`SCR_Complete_output`
 to define the end boundary of the checkpoint.
 
 If a process does not write any files during a checkpoint,
-it must still call :code:`SCR_Start_checkpoint` and :code:`SCR_Complete_checkpoint`
+it must still call :code:`SCR_Start_output` and :code:`SCR_Complete_output`
 as these functions are collective.
 All files registered through a call to :code:`SCR_Route_file` between a given
-:code:`SCR_Start_checkpoint` and :code:`SCR_Complete_checkpoint` pair are considered to
+:code:`SCR_Start_output` and :code:`SCR_Complete_output` pair are considered to
 be part of the same checkpoint file set.
 Some example SCR checkpoint code looks like the following
 
 .. code-block:: c
 
-  void checkpoint() {
+  void checkpoint(int timestep) {
     /* each process saves its state to a file */
   
+    /* define checkpoint directory for the timestep */
+    char checkpoint_dir[256];
+    sprintf(checkpoint_dir, "timestep.%d", timestep);
+
     /**** change #5 ****/
-    SCR_Start_checkpoint();
+    SCR_Start_output(checkpoint_dir, SCR_FLAG_CHECKPOINT);
   
     /* get rank of this process */
     int rank;
@@ -264,7 +272,7 @@ Some example SCR checkpoint code looks like the following
     */
   
     /**** change #10 ****/
-    SCR_Complete_checkpoint(valid);
+    SCR_Complete_output(valid);
   
     /**** change #11 ****/
     /* Check whether we should stop */
@@ -276,11 +284,13 @@ Some example SCR checkpoint code looks like the following
   }
 
 As shown in change #5, the application must inform SCR when it is starting a new checkpoint
-by calling :code:`SCR_Start_checkpoint()`.
-Similarly, it must inform SCR when it has completed the checkpoint
-with a corresponding call to :code:`SCR_Complete_checkpoint()`
+by calling :code:`SCR_Start_output()` with the :code:`SCR_FLAG_CHECKPOINT`.
+The application should provide a name for the checkpoint,
+and all processes must provide the same name and the same flags.
+The application must inform SCR when it has completed the checkpoint
+with a corresponding call to :code:`SCR_Complete_output()`
 as shown in change #10.
-When calling :code:`SCR_Complete_checkpoint()`, each process sets the :code:`valid` flag to indicate
+When calling :code:`SCR_Complete_output()`, each process sets the :code:`valid` flag to indicate
 whether it wrote all of its checkpoint files successfully.
 
 SCR manages checkpoint directories,
@@ -288,17 +298,22 @@ so the :code:`mkdir` operation is removed in change #6.
 Additionally, the application can rely on SCR to track the latest checkpoint,
 so the logic to track the latest checkpoint is removed in change #9.
 
-Between the call to :code:`SCR_Start_checkpoint()` and :code:`SCR_Complete_checkpoint()`,
+Between the call to :code:`SCR_Start_output()` and :code:`SCR_Complete_output()`,
 the application must register each of its checkpoint files by calling
 :code:`SCR_Route_file()` as shown in change #7.
-SCR "routes" the file by replacing any leading directory
-on the file name with a path that points to another directory in which SCR caches data for the checkpoint.
+As input, the process may provide either an absolute or relative path to its checkpoint file.
+If given a relative path, SCR internally prepends the current working directory to the path when :code:`SCR_Route_file()` is called.
+In either case, the fully resolved path must be located somewhere within the prefix directory.
+If SCR copies the file to the parallel file system, it writes the file to this path.
+When storing the file in cache, SCR "routes" the file by replacing any leading directory
+on the file name with a path that points to a cache directory.
+SCR returns this routed path as output.
 As shown in change #8,
 the application must use the exact string returned by :code:`SCR_Route_file()` to open
 its checkpoint file.
 
 Also note how the application can call :code:`SCR_Should_exit`
-after a checkpoint to determine whether it is time to stop shown in change #11.
+after a checkpoint to determine whether it is time to stop as shown in change #11.
 This is important so that an application stops with sufficient
 time remaining to copy datasets from cache to the parallel file system
 before the allocation expires.
@@ -319,10 +334,20 @@ If there is a checkpoint available, the application
 can call :code:`SCR_Start_restart` to tell SCR that a restart operation is beginning.
 Then, the application must call :code:`SCR_Route_file` to determine the
 full path and file name to each of its checkpoint files that it will read for restart.
-The input file name to :code:`SCR_Route_file` does not need a path during restart,
-as SCR will identify the file just based on its file name.
+The calling process can specify either an absolute or relative path in its input file name.
+If given a relative path, SCR internally prepends the active current working directory when :code:`SCR_Route_file()` is called.
+In either case, the fully resolved path must be located somewhere within the prefix directory and it must correspond
+to a file associated with the particular checkpoint name that is returned in :code:`SCR_Start_restart`.
 After the application reads in its checkpoint files, it must call 
 :code:`SCR_Complete_restart` to indicate that it has completed reading its checkpoint files.
+
+Note: For backwards compatibility, the application can provide just a file name in :code:`SCR_Route_file`
+during restart, where the combination of the current working directory and the provided file name
+do not actually refer to the correct path on the parallel file system.
+This usage is deprecated, and it may be not be supported in future releases.
+Instead it is recommended that one construct the full path to the checkpoint file
+using information from the checkpoint name returned by :code:`SCR_Start_restart`.
+
 Some example SCR restart code may look like the following
 
 .. code-block:: c
@@ -331,7 +356,8 @@ Some example SCR restart code may look like the following
     /* each process reads its state from a file */
   
     /**** change #12 ****/
-    SCR_Start_restart(NULL);
+    char checkpoint_dir[SCR_MAX_FILENAME];
+    SCR_Start_restart(checkpoint_dir);
   
     /* get rank of this process */
     int rank;
@@ -354,8 +380,8 @@ Some example SCR restart code may look like the following
     /**** change #14 ****/
     /* build file name of checkpoint file for this rank */
     char checkpoint_file[256];
-    sprintf(checkpoint_file, "rank_%d.ckpt",
-      rank
+    sprintf(checkpoint_file, "%s/rank_%d.ckpt",
+      checkpoint_dir, rank
     );
   
     /**** change #15 ****/
@@ -380,11 +406,11 @@ As shown in change #12,
 the application calls :code:`SCR_Start_restart()` to inform SCR that it is beginning its restart.
 SCR automatically loads the most recent checkpoint,
 so the application logic to identify the latest checkpoint is removed in change #13.
-During a restart, the application only needs the file name,
-so the checkpoint directory can be dropped from the path in change #14.
-Instead, the application gets the path to use to open the checkpoint file
+The application can use the checkpoint name returned in :code:`SCR_Start_restart()`
+to construct the input path to its checkpoint file as shown in change #14.
+Then the application gets the routed path to use to open the checkpoint file
 via a call to :code:`SCR_Route_file()` in change #15.
-It then uses that path to open the file for reading in change #16.
+It uses that path to open the file for reading in change #16.
 After the process has read each of its checkpoint files,
 it informs SCR that it has completed reading its data with a call
 to :code:`SCR_Complete_restart()` in change #17.
@@ -405,16 +431,17 @@ The counter will be reset to its upper limit with each restart.
 Thus, each restart may introduce some fixed offset in a series of periodic SCR flushes.
 When not using SCR for restart, one should set the :code:`SCR_FLUSH_ON_RESTART` parameter to :code:`1`,
 which will cause SCR to flush any cached checkpoint to the file system during :code:`SCR_Init`.
+The application can then read the checkpoint from the parallel file system after :code:`SCR_Init`.
 
 Building with the SCR library
 -----------------------------
 
 To compile and link with the SCR library,
-add the flags in Table~\ref{table:build_flags} to your compile and link lines.
+add the flags in Table :ref:`table-buildflags` to your compile and link lines.
 The value of the variable :code:`SCR_INSTALL_DIR` should be the path
 to the installation directory for SCR.
 
-SCR build flags
+.. _table-buildflags
 
 ========================== ============================================================================
 Compile Flags              :code:`-I$(SCR_INSTALL_DIR)/include`

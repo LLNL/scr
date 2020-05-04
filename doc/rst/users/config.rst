@@ -74,7 +74,7 @@ with entries like the following::
 
 Group descriptor entries are identified by a leading :code:`GROUPS` key.
 Each line corresponds to a single compute node,
-where the hostname is the value of the :code:`GROUPS` key.
+where the hostname of the compute node is the value of the :code:`GROUPS` key.
 There must be one line for every compute node in the allocation.
 It is recommended to specify groups in the system configuration file.
 
@@ -82,7 +82,7 @@ The remaining values on the line specify a set of group name / value pairs.
 The group name is the string to be referenced by store and checkpoint descriptors.
 The value can be an arbitrary character string.
 The only requirement is that for a given group name,
-nodes that form a group must provide identical strings the value.
+nodes that form a group must provide identical strings for the value.
 
 In the above example, there are four compute nodes: host1, host2, host3, and host4.
 There are two groups defined: :code:`POWER` and :code:`SWITCH`.
@@ -152,11 +152,11 @@ These descriptors look like the following::
   #   a set size of 16
   CKPT=0 INTERVAL=1 GROUP=NODE   STORE=/tmp TYPE=XOR     SET_SIZE=16
   CKPT=1 INTERVAL=4 GROUP=NODE   STORE=/ssd TYPE=XOR     SET_SIZE=8  OUTPUT=1
-  CKPT=2 INTERVAL=8 GROUP=SWITCH STORE=/ssd TYPE=PARTNER
+  CKPT=2 INTERVAL=8 GROUP=SWITCH STORE=/ssd TYPE=PARTNER             BYPASS=1
   
   CKPT=0 INTERVAL=1 GROUP=NODE   STORE=/tmp TYPE=XOR     SET_SIZE=16
 
-First, one must set the :code:`SCR_COPY_TYPE` parameter to ":code:`FILE`".
+First, one must set the :code:`SCR_COPY_TYPE` parameter to :code:`FILE`.
 Otherwise, an implied checkpoint descriptor is constructed using various SCR parameters
 including :code:`SCR_GROUP`, :code:`SCR_CACHE_BASE`,
 :code:`SCR_COPY_TYPE`, and :code:`SCR_SET_SIZE`.
@@ -179,6 +179,13 @@ This key is optional, and it defaults to the value of the
 The :code:`TYPE` key identifies the redundancy scheme to be applied.
 This key is optional, and it defaults to the value of the
 :code:`SCR_COPY_TYPE` parameter if not specified.
+The :code:`BYPASS` key indicates whether to bypass cache
+and access data files directly on the parallel file system (1)
+or whether to store them in cache (0).  In either case,
+redundancy is applied to internal SCR metadata using the specified
+descriptor settings.
+This key is optional, and it defaults to the value of the
+:code:`SCR_CACHE_BYPASS` parameter if not specified.
 
 Other keys may exist depending on the selected redundancy scheme.
 For :code:`XOR` schemes, the :code:`SET_SIZE` key specifies
@@ -240,6 +247,14 @@ The table in this section specifies the full set of SCR configuration parameters
      - Set to a non-negative integer to specify the maximum number of checkpoints SCR
        should keep in cache.  SCR will delete the oldest checkpoint from cache before
        saving another in order to keep the total count below this limit.
+   * - :code:`SCR_CACHE_BYPASS`
+     - N/A
+     - When bypass is enabled, data files are directly read from and written to the
+       parallel file system, thus bypassing the cache.  Even in bypass mode, internal
+       SCR metadata corresponding to the dataset is still kept in cache.
+       Bypass mode is enabled by default, unless one has specified a checkpoint
+       descriptor or set one of :code:`SCR_GROUP`, :code:`SCR_COPY_TYPE`,
+       :code:`SCR_CACHE_BASE`, :code:`SCR_CACHE_SIZE`, or :code:`SCR_SET_SIZE`.
    * - :code:`SCR_SET_SIZE`
      - 8
      - Specify the minimum number of processes to include in an XOR set.
@@ -276,9 +291,6 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_FLUSH_ON_RESTART`
      - 0
      - Set to 1 to force SCR to flush a checkpoint during restart.  This is useful for codes that must restart from the parallel file system.
-   * - :code:`SCR_PRESERVE_DIRECTORIES`
-     - 1
-     - Whether SCR should preserve the application directory structure in prefix directory in flush and scavenge operations.  Set to 0 to rely on SCR-defined directory layouts.
    * - :code:`SCR_RUNS`
      - 1
      - Specify the maximum number of times the :code:`scr_srun` command should attempt to run a job within an allocation.  Set to -1 to specify an unlimited number of times.

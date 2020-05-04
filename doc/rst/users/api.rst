@@ -118,8 +118,7 @@ and it is set to :code:`0` otherwise.
 The call returns the same value in :code:`flag` on all processes.
 It is recommended to call this function after each checkpoint.
 
-Since datasets in cache may be deleted by the system at the end of an allocation,
-it is critical for a job to stop early enough to leave time to copy datasets
+It is critical for a job to stop early enough to leave time to copy datasets
 from cache to the parallel file system before the allocation expires.
 By default, the SCR library automatically calls :code:`exit` at certain points.
 This works especially well in conjunction with the :code:`SCR_HALT_SECONDS` parameter.
@@ -164,27 +163,34 @@ A process does not need to create any directories listed in the string returned 
 The SCR implementation creates any necessary directories before returning from the call.
 A call to :code:`SCR_Route_file` is local to the calling process; it is not a collective call.
 
-As of version 1.2.2, :code:`SCR_Route_file` can be succesfully called at any point during application execution.
+As of version 1.2.2, :code:`SCR_Route_file` can be successfully called at any point during application execution.
 If it is called outside of a Start/Complete pair, the original file path is simply copied to the return string.
 
-:code:`SCR_Route_file` has special behaviour when called within a Start/Complete pair
+:code:`SCR_Route_file` has special behavior when called within a Start/Complete pair
 for restart, checkpoint, or output.
-Within a restart operation, the input parameter :code:`name` only requires a file name.
-No path component is needed.
-SCR will return a full path to the file from the most recent checkpoint having the same name.
-It will return an error if no file by that name exists.
-Within checkpoint and output operations, the input parameter :code:`name` also specifies
-the final path on the parallel file system.
+The input parameter :code:`name` specifies the final path on the parallel file system.
 The caller may provide either absolute or relative path components in :code:`name`.
 If the path is relative, SCR prepends the current working directory to :code:`name`
-at the time that :code:`SCR_Route_file` is called.
+when :code:`SCR_Route_file` is called.
 With either an absolute or relative path, all paths must resolve to a location
 within the subtree rooted at the SCR prefix directory.
+During a restart, :code:`SCR_Route_file` returns an error code if no file by that name exists.
+
+Note: For the purpose of backwards compatibility,
+the caller can provide just a file name for :code:`name` during restart,
+even if the current working directory and the provided file name
+do not refer to the correct path to the file on the parallel file system.
+Based on the file name, SCR internally identifies the full path to the file
+for the currently loaded checkpoint.
+This usage is deprecated, and it may be not be supported in future releases.
+Instead it is recommended that one construct the full path to the checkpoint file
+using information from the checkpoint name returned in :code:`SCR_Start_restart`,
+and to name a checkpoint, one must create the checkpoint using :code:`SCR_Start_output`.
 
 In the current implementation,
-SCR only changes the directory portion of :code:`name`.
+SCR only changes the directory portion of :code:`name` when storing files in cache.
 It extracts the base name of the file by removing any directory components in :code:`name`.
-Then it prepends a directory to the base file name
+Then it prepends a cache directory to the base file name
 and returns the full path and file name in :code:`file`.
 
 
@@ -329,7 +335,7 @@ A process must call this function before it opens any files belonging to the res
 :code:`SCR_Start_restart` must be called by all processes,
 including processes that do not read files as part of the restart.
 
-SCR returns the name of loaded checkpoint in :code:`name`.
+SCR returns the name of the loaded checkpoint in :code:`name`.
 A pointer to a character buffer of at least :code:`SCR_MAX_FILENAME` bytes can be passed in :code:`name`.
 The value returned in :code:`name` is the same string that was passed to :code:`SCR_Start_output`
 when the checkpoint was created.
@@ -375,23 +381,20 @@ Output API
 
 As of SCR version 1.2.0, SCR has the ability to manage application output datasets in 
 addition to checkpoint datasets.
-Using a combination of bit flags, a dataset can be designated as a checkpoint, output, or both.
-The checkpoint property means that the dataset can be used to restart the application.
-The output property means that the dataset must be written to the prefix directory.
 This enables an application to utilize asynchronous transfers to the parallel file system
 for both its checkpoints and large output sets,
 so that it can return to computation while the dataset migrates to the parallel file system in the background.
 
-If a user specifies that a dataset is a checkpoint only, then the 
-dataset will be managed with the SCR Output API as it would be
-if the SCR Checkpoint API were used.
-In particular, SCR may delete the checkpoint
-when a more recent checkpoint is established.
+Using a combination of bit flags, a dataset can be designated as a checkpoint, output, or both.
+The checkpoint property means that the dataset can be used to restart the application.
+The output property means that the dataset must be written to the prefix directory.
+
+If a user specifies that a dataset is a checkpoint only,
+then SCR may delete the checkpoint when a more recent checkpoint is established
+without having ever copied the checkpoint to the prefix directory.
 
 If a user specifies that a dataset is for output only,
-the dataset will first be cached on a
-tier of storage specified in the configuration file for the run
-and protected with the corresponding redundancy scheme.
+the dataset will first be cached and protected with its corresponding redundancy scheme.
 Then, the dataset will be moved to the prefix directory.
 When the transfer to the prefix directory is complete,
 the cached copy of the output dataset will be deleted.
@@ -422,7 +425,7 @@ SCR_Start_output
     INTEGER FLAGS, IERROR
 
 Inform SCR that a new output phase is about to start.
-A process must call this function before it opens any files belonging to the dataset.
+A process must call this function before it creates any files belonging to the dataset.
 :code:`SCR_Start_output` must be called by all processes,
 including processes that do not write files as part of the dataset.
 
@@ -433,7 +436,7 @@ Second, it is exposed to the user when listing datasets using the :code:`scr_ind
 and the user may specify the name as a command line argument at times.
 For this reason, it is recommended to use short but meaningful names that are easy to type.
 The name value must be less than :code:`SCR_MAX_FILENAME` characters.
-All processes should provide identical values in :code:`name`.
+All processes must provide identical values in :code:`name`.
 In C, the application may pass :code:`NULL` for name
 in which case SCR generates a default name for the dataset based on its internal dataset id.
 
@@ -444,7 +447,7 @@ Additionally, a :code:`SCR_FLAG_NONE` flag is defined for initializing variables
 In C, these values can be combined with the :code:`|` bitwise OR operator.
 In Fortran, these values can be added together using the :code:`+` sum operator.
 Note that with Fortran, the values should be used at most once in the addition.
-All processes should provide identical values in :code:`flags`.
+All processes must provide identical values in :code:`flags`.
 
 This function should be called as soon as possible when initiating a dataset output.
 It is used internally within SCR for timing the cost of output operations.

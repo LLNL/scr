@@ -30,11 +30,10 @@ The goal is to expand the implementation to support a large number of applicatio
   current dataset to a file containing data from a previous dataset.
   Each dataset must be self-contained.
 * On some systems, datasets are cached in RAM disk.
-  This restricts usage of SCR on those machines to applications whose memory
-  footprint leaves sufficient room to store the dataset files in memory
-  simultaneously with the running application.
+  One must ensure there is sufficient memory capacity to store the dataset files
+  after accounting for the memory consumed by the application.
   The amount of storage needed depends on the number of cached datasets
-  and the redundancy scheme used.
+  and the redundancy scheme that is applied.
   See Section :ref:`sec-redundancy` for details.
 * SCR occasionally flushes files from cache to the parallel file system.
   All files must reside under a top-level directory on the parallel file system
@@ -44,5 +43,4 @@ The goal is to expand the implementation to support a large number of applicatio
   See Section :ref:`sec-checkpoint_directories` for details.
 * Time limits should be imposed so that the SCR library has sufficient time
   to flush files from cache to the parallel file system before the resource allocation expires.
-  Additionally, care should be taken so that the run does not stop in the middle of a checkpoint.
   See Section :ref:`sec-halt` for details.
