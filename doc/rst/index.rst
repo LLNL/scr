@@ -12,18 +12,19 @@ for checkpointing, restarting, and writing large datasets.
 With SCR, jobs run more efficiently, recompute less work upon a failure,
 and reduce load on shared resources like the parallel file system.
 It provides the most benefit to large-scale jobs that write large datasets. 
-(Check out our video_ on how SCR works for more information.)
+Check out our video_ on how SCR works for more information.
 
 .. _video: https://youtu.be/_r6svl_eAns
 
-SCR utilizes tiered storage in a cluster to provide applications
-with the following capabilities:
+SCR provides the following capabilities:
 
 * guidance for the optimal checkpoint frequency,
 * scalable checkpoint bandwidth,
 * scalable restart bandwidth,
 * scalable output bandwidth,
-* asynchronous data transfers to the parallel file system.
+* asynchronous data transfers to the parallel file system,
+* automated tracking and restart from most recent checkpoint,
+* automated job relaunch within an allocation after hangs or failures.
 
 SCR originated as a production-level implementation of a multi-level checkpoint system
 of the type analyzed by [Vaidya]_

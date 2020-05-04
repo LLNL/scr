@@ -126,7 +126,7 @@ Assuming all goes well, you should see output similar to the following
 
 If you did not see output similar to this, there is likely a problem
 with your environment set up or build of SCR. Please see the
-detailed sections of this user guide for more help or email us (See
+detailed sections of this user guide for more help or email us (see
 the Support and Contacts section of this user guide.)
 
 If you want to get into more depth, in the SCR source directory,
@@ -160,29 +160,35 @@ other programs in the examples directory.
       /* Ask SCR if we should take a checkpoint now */
       SCR_Need_checkpoint(&flag);
       if (flag)
-        checkpoint();
+        checkpoint(t);
     }
 
     /* Call SCR_Finalize before MPI_Finalize */
     SCR_Finalize();
+
     MPI_Finalize();
+
     return 0;
   }
 
-  void checkpoint() {
+  void checkpoint(int timestep) {
+    /* define a name for your checkpoint */
+    char name[256];
+    sprintf(name, "timestep.%d", timestep);
+
     /* Tell SCR that you are getting ready to start a checkpoint phase */
-    SCR_Start_checkpoint();
+    SCR_Start_output(name, SCR_FLAG_CHECKPOINT);
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    char file[256];
     /* create your checkpoint file name */
-    sprintf(file, "rank_%d.ckpt", rank);
+    char file[256];
+    sprintf(file, "%s/rank_%d.ckpt", name, rank);
 
     /* Call SCR_Route_file to request a new file name (scr_file) that will cause
-       your application to write the file to a fast tier of storage, e.g.,
-       a burst buffer */
+     * your application to write the file to a fast tier of storage, e.g.,
+     * a burst buffer */
     char scr_file[SCR_MAX_FILENAME];
     SCR_Route_file(file, scr_file);
 
@@ -194,7 +200,8 @@ other programs in the examples directory.
     }
 
     /* Tell SCR that you are done with your checkpoint phase */
-    SCR_Complete_checkpoint(1);
+    SCR_Complete_output(1);
+
     return;
   }
 

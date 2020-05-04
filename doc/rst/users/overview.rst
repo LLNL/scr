@@ -5,6 +5,7 @@ Concepts
 
 This section discusses concepts one should understand about the SCR library
 implementation including how it interacts with file systems.
+Terms defined here are used throughout the documentation.
 
 Jobs, allocations, and runs
 ---------------------------
@@ -14,9 +15,9 @@ It may be interrupted due to a failure,
 or it may be interrupted due to time limits imposed by the resource scheduler.
 We use the term *allocation* to refer to an assigned set of compute resources
 that are available to the user for a period of time.
-A resource manager typically assigns an identifier to each resource allocation,
+A resource manager typically assigns an identifier label to each resource allocation,
 which we refer to as the *allocation id*.
-SCR uses the allocation id in some directory and file names.
+SCR embeds the allocation id in some directory and file names.
 Within an allocation, a user may execute a simulation one or more times.
 We call each execution a *run*.
 For MPI applications, each run corresponds to a single invocation
@@ -91,7 +92,7 @@ The *control directory* is where SCR writes files to store internal state about 
 This directory is expected to be stored in node-local storage.
 SCR writes multiple, small files in the control directory,
 and it may access these files frequently.
-It is best to configure this directory to be stored in a node-local RAM disk.
+It is best to configure this directory to be in node-local RAM disk.
 
 To construct the full path of the control directory,
 SCR incorporates a control base directory name along with
@@ -249,7 +250,7 @@ After the run is killed,
 and if there are sufficient healthy nodes remaining,
 the same job can be restarted within the same allocation.
 In practice, such a restart typically amounts to issuing another
-":code:`mpirun`" in the job batch script.
+:code:`mpirun` in the job batch script.
 
 Of the set of nodes used by the previous run,
 the restarted run should use as many of the same nodes as it can
@@ -368,7 +369,8 @@ Set :code:`SCR_FLUSH` to 0 to disable periodic writes in SCR.
 If an application disables the periodic flush feature,
 the application is responsible for writing occasional checkpoint sets to the parallel file system.
 
-By default, SCR computes and stores a CRC32 checksum value for each checkpoint file during a flush.
-It then uses the checksum to verify the integrity of each file as it is read back into cache during a fetch.
-If data corruption is detected, SCR falls back to fetch an earlier checkpoint set.
-To disable this checksum feature, set the :code:`SCR_CRC_ON_FLUSH` parameter to 0.
+.. TODO: fetch/flush crc32 does not currently work with filo, consider how to add this back
+.. By default, SCR computes and stores a CRC32 checksum value for each checkpoint file during a flush.
+   It then uses the checksum to verify the integrity of each file as it is read back into cache during a fetch.
+   If data corruption is detected, SCR falls back to fetch an earlier checkpoint set.
+   To disable this checksum feature, set the :code:`SCR_CRC_ON_FLUSH` parameter to 0.
