@@ -57,10 +57,10 @@ For a given storage class, it is assumed that all compute nodes refer
 to the class using the same directory prefix.
 Each store descriptor is referenced by its directory prefix.
 
-The library creates one store descriptor by default: :code:`/tmp`.
-The assumption is made that :code:`/tmp` is mounted as a local file system
+The library creates one store descriptor by default: :code:`/dev/shm`.
+The assumption is made that :code:`/dev/shm` is mounted as a local file system
 on each compute node.
-On Linux clusters, :code:`/tmp` is often RAM disk or a local hard drive.
+On Linux clusters, :code:`/dev/shm` is typically RAM disk.
 Additional store descriptors can be defined by the user or
 system administrator in configuration files (Section :ref:`sec-config`).
 
@@ -72,7 +72,7 @@ Redundancy descriptors reference both store and group descriptors.
 
 The library creates a default redundancy descriptor.
 It assumes that processes on the same node are likely to fail at the same time.
-It also assumes that datasets can be cached in :code:`/tmp`,
+It also assumes that datasets can be cached in :code:`/dev/shm`,
 which is assumed to be storage local to each compute node.
 It applies an :code:`XOR` redundancy scheme using a group size of 8.
 Additional redundancy descriptors may be defined by the user

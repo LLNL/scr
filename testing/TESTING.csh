@@ -45,11 +45,19 @@ rm -rf ${SCR_BUILD}
 mkdir ${SCR_BUILD}
 cd ${SCR_BUILD}
 setenv CFLAGS "-g -O0"
+setenv depsinstalldir ${SCR_PKG}/deps/install
 cmake \
   -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_VERBOSE_MAKEFILE=true \
-  -DCMAKE_SPATH_PREFIX=${SCR_INSTALL} \
+  -DWITH_SPATH_PREFIX=$depsinstalldir \
+  -DWITH_KVTREE_PREFIX=$depsinstalldir \
+  -DWITH_AXL_PREFIX=$depsinstalldir \
+  -DWITH_FILO_PREFIX=$depsinstalldir \
+  -DWITH_RANKSTR_PREFIX=$depsinstalldir \
+  -DWITH_REDSET_PREFIX=$depsinstalldir \
+  -DWITH_SHUFFILE_PREFIX=$depsinstalldir \
+  -DWITH_ER_PREFIX=$depsinstalldir \
   ${SCR_PKG}
 make
 make install
@@ -91,7 +99,7 @@ setenv SCR_CACHE_SIZE 2
 
 # clean out any cruft from previous runs
 # deletes files from cache and any halt, flush, nodes files
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
 
@@ -102,24 +110,23 @@ srun -n4 -N4 ./test_api
 srun -n4 -N4 ./test_api
 
 # delete all files from /ssd on rank 0, run again, check that rebuild works
-rm -rf /tmp/${USER}/scr.$jobid
+rm -rf /dev/shm/${USER}/scr.$jobid
 rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 ./test_api
 
 # delete latest checkpoint directory from two nodes, run again,
 # check that rebuild works for older checkpoint
 srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid/scr.dataset.18
-srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/scr.dataset.18
-srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/scr.dataset.18
+srun -n2 -N2 /bin/rm -rf /dev/shm/${USER}/scr.$jobid/scr.dataset.18
 srun -n4 -N4 ./test_api
 
 # delete all files from all nodes, run again, check that run starts over
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 ./test_api
 
 # clear the cache and control directory
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
 
@@ -165,7 +172,7 @@ ${scrbin}/scr_prerun
 ${scrbin}/scr_postrun
 
 # clear the cache, make a new run, and check that scr_postrun scavenges successfully (no rebuild)
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_postrun
@@ -179,20 +186,20 @@ unsetenv SCR_EXCLUDE_NODES
 ${scrbin}/scr_index --list
 
 # delete all files, enable fetch, run again, check that fetch succeeds
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 setenv SCR_FETCH 1
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
 # delete all files from 2 nodes, run again, check that distribute fails but fetch succeeds
-srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n2 -N2 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
 # delete all files, corrupt file on disc, run again, check that fetch of current fails but old succeeds
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 vi -b ${SCR_INSTALL}/share/scr/examples/ckpt.12/rank_2.ckpt
 # change some characters and save file (:wq)
@@ -206,7 +213,7 @@ ${scrbin}/scr_postrun
 ${scrbin}/scr_index --list
 
 # clear cache and check that scr_srun works
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
 ${scrbin}/scr_srun -n4 -N4 ./test_api

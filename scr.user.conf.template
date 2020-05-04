@@ -13,7 +13,7 @@
 # a device.  The first two describe node-local storage and the last
 # describes a global parallel file system.
 #
-STORE=/tmp         GROUP=NODE  COUNT=1
+STORE=/dev/shm     GROUP=NODE  COUNT=1
 STORE=/ssd         GROUP=NODE  COUNT=3
 STORE=/p/lscratcha GROUP=WORLD
 
@@ -24,8 +24,8 @@ SCR_COPY_TYPE=FILE
 # Specify the different types of checkpoints for a job.  The following
 # instructs SCR to run with three checkpoint configurations:
 # - save every 4th checkpoint to /ssd using XOR with a set size of 8
-# - save all other checkpoints (not divisible by 4) to /tmp using
+# - save all other checkpoints (not divisible by 4) to /dev/shm using
 #   XOR with a set size of 16
 #
-CKPT=0 INTERVAL=1 GROUP=NODE STORE=/tmp TYPE=XOR SET_SIZE=16
-CKPT=1 INTERVAL=4 GROUP=NODE STORE=/ssd TYPE=XOR SET_SIZE=8
+CKPT=0 INTERVAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=16
+CKPT=1 INTERVAL=4 GROUP=NODE STORE=/ssd     TYPE=XOR SET_SIZE=8
