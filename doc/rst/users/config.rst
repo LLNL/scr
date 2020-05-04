@@ -93,11 +93,11 @@ as do nodes host2 and host4.
 In addition to groups,
 SCR must know about the storage devices available on a system.
 SCR requires that all processes be able to access the prefix directory,
-and it assumes that :code:`/tmp` is storage local to each compute node.
+and it assumes that :code:`/dev/shm` is storage local to each compute node.
 Additional storage can be described in configuration files
 with entries like the following::
 
-  STORE=/tmp          GROUP=NODE   COUNT=1
+  STORE=/dev/shm      GROUP=NODE   COUNT=1
   STORE=/ssd          GROUP=NODE   COUNT=3
   STORE=/dev/persist  GROUP=NODE   COUNT=1  ENABLED=1  MKDIR=0
   STORE=/p/lscratcha  GROUP=WORLD
@@ -126,8 +126,8 @@ creation of directories (1) or not (0).
 This key is optional, and it defaults to 1 if not specified.
 
 In the above example, there are four storage devices specified:
-:code:`/tmp`, :code:`/ssd`, :code:`/dev/persist`, and :code:`/p/lscratcha`.
-The storage at :code:`/tmp`, :code:`/ssd`, and :code:`/dev/persist`
+:code:`/dev/shm`, :code:`/ssd`, :code:`/dev/persist`, and :code:`/p/lscratcha`.
+The storage at :code:`/dev/shm`, :code:`/ssd`, and :code:`/dev/persist`
 specify the :code:`NODE` group, which means that they are node-local storage.
 Processes on the same compute node access the same device.
 The storage at :code:`/p/lscratcha` specifies the :code:`WORLD` group,
@@ -136,7 +136,7 @@ In other words, it is a globally accessible file system.
 
 Finally, SCR must be configured with redundancy schemes.
 By default, SCR protects against single compute node failures using :code:`XOR`,
-and it caches one checkpoint in :code:`/tmp`.
+and it caches one checkpoint in :code:`/dev/shm`.
 To specify something different,
 edit a configuration file to include checkpoint and output descriptors.
 These descriptors look like the following::
@@ -148,13 +148,11 @@ These descriptors look like the following::
   # - save every 8th checkpoint to /ssd using the PARTNER scheme
   # - save every 4th checkpoint (not divisible by 8) to /ssd using XOR with
   #   a set size of 8
-  # - save all other checkpoints (not divisible by 4 or 8) to /tmp using XOR with
+  # - save all other checkpoints (not divisible by 4 or 8) to /dev/shm using XOR with
   #   a set size of 16
-  CKPT=0 INTERVAL=1 GROUP=NODE   STORE=/tmp TYPE=XOR     SET_SIZE=16
-  CKPT=1 INTERVAL=4 GROUP=NODE   STORE=/ssd TYPE=XOR     SET_SIZE=8  OUTPUT=1
-  CKPT=2 INTERVAL=8 GROUP=SWITCH STORE=/ssd TYPE=PARTNER             BYPASS=1
-  
-  CKPT=0 INTERVAL=1 GROUP=NODE   STORE=/tmp TYPE=XOR     SET_SIZE=16
+  CKPT=0 INTERVAL=1 GROUP=NODE   STORE=/dev/shm TYPE=XOR     SET_SIZE=16
+  CKPT=1 INTERVAL=4 GROUP=NODE   STORE=/ssd     TYPE=XOR     SET_SIZE=8  OUTPUT=1
+  CKPT=2 INTERVAL=8 GROUP=SWITCH STORE=/ssd     TYPE=PARTNER             BYPASS=1
 
 First, one must set the :code:`SCR_COPY_TYPE` parameter to :code:`FILE`.
 Otherwise, an implied checkpoint descriptor is constructed using various SCR parameters
@@ -240,7 +238,7 @@ The table in this section specifies the full set of SCR configuration parameters
      - :code:`XOR`
      - Set to one of: :code:`SINGLE`, :code:`PARTNER`, :code:`XOR`, or :code:`FILE`.
    * - :code:`SCR_CACHE_BASE`
-     - :code:`/tmp`
+     - :code:`/dev/shm`
      - Specify the base directory SCR should use to cachecheckpoints.
    * - :code:`SCR_CACHE_SIZE`
      - 1

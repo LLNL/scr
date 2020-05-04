@@ -46,7 +46,7 @@ export SCR_CACHE_SIZE=2
 
 # clean out any cruft from previous runs
 # deletes files from cache and any halt, flush, nodes files
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
 
@@ -60,7 +60,7 @@ srun -n4 -N4 ./test_api
 
 
 # delete all files from /ssd on rank 0, run again, check that rebuild works
-rm -rf /tmp/${USER}/scr.$jobid
+rm -rf /dev/shm/${USER}/scr.$jobid
 rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 ./test_api
 
@@ -68,19 +68,18 @@ srun -n4 -N4 ./test_api
 # delete latest checkpoint directory from two nodes, run again,
 # check that rebuild works for older checkpoint
 srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid/scr.dataset.18
-srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/scr.dataset.18
-srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid/scr.dataset.18
+srun -n2 -N2 /bin/rm -rf /dev/shm/${USER}/scr.$jobid/scr.dataset.18
 srun -n4 -N4 ./test_api
 
 
 # delete all files from all nodes, run again, check that run starts over
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 ./test_api
 
 
 # clear the cache and control directory
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
 
@@ -133,7 +132,7 @@ ${scrbin}/scr_postrun
 
 
 # clear the cache, make a new run, and check that scr_postrun scavenges successfully (no rebuild)
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_postrun
@@ -149,7 +148,7 @@ ${scrbin}/scr_index --list
 
 
 # delete all files, enable fetch, run again, check that fetch succeeds
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 export SCR_FETCH=1
 srun -n4 -N4 ./test_api
@@ -157,14 +156,14 @@ ${scrbin}/scr_index --list
 
 
 # delete all files from 2 nodes, run again, check that distribute fails but fetch succeeds
-srun -n2 -N2 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n2 -N2 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
 
 # delete all files, corrupt file on disc, run again, check that fetch of current fails but old succeeds
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 #vi -b ${SCR_INSTALL}/share/scr/examples/scr.dataset.12/rank_2.ckpt
 sed -i 's/\?/i/' ${SCR_INSTALL}/share/scr/examples/scr.dataset.12/rank_2.ckpt
@@ -181,7 +180,7 @@ ${scrbin}/scr_index --list
 
 
 # clear cache and check that scr_srun works
-srun -n4 -N4 /bin/rm -rf /tmp/${USER}/scr.$jobid
+srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
 ${scrbin}/scr_srun -n4 -N4 ./test_api

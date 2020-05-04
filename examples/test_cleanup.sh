@@ -10,7 +10,7 @@ if [ $# -gt 1 ]; then
 	exit 1
 fi
 
-rm -rf /tmp/$USER/scr.*/
+rm -rf /dev/shm/$USER/scr.*/
 rm -rf .scr/
 if [ $# -eq 1 ]; then
 	rm -rf $1
