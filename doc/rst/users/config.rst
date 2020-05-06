@@ -248,13 +248,10 @@ The table in this section specifies the full set of SCR configuration parameters
        should keep in cache.  SCR will delete the oldest checkpoint from cache before
        saving another in order to keep the total count below this limit.
    * - :code:`SCR_CACHE_BYPASS`
-     - N/A
-     - When bypass is enabled, data files are directly read from and written to the
+     - 1
+     - Specify the bypass mode.  When bypass is enabled, data files are directly read from and written to the
        parallel file system, thus bypassing the cache.  Even in bypass mode, internal
-       SCR metadata corresponding to the dataset is still kept in cache.
-       Bypass mode is enabled by default, unless one has specified a checkpoint
-       descriptor or set one of :code:`SCR_GROUP`, :code:`SCR_COPY_TYPE`,
-       :code:`SCR_CACHE_BASE`, :code:`SCR_CACHE_SIZE`, or :code:`SCR_SET_SIZE`.
+       SCR metadata corresponding to the dataset is stored in cache.
    * - :code:`SCR_SET_SIZE`
      - 8
      - Specify the minimum number of processes to include in an XOR set.
