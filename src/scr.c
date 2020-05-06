@@ -630,22 +630,9 @@ static int scr_get_params()
     scr_cntl_base = spath_strdup_reduce_str(SCR_CNTL_BASE);
   }
 
-  /* we set this flag if we find the user defining a checkpoint
-   * descriptor by:
-   *   CKPTDESC in a config file or
-   *   SCR_CACHE_BASE
-   *   SCR_CACHE_SIZE
-   *   SCR_COPY_TYPE
-   *   SCR_SET_SIZE
-   *   SCR_GROUP */
-  int found_ckptdesc = 0;
-
   /* override default base directory for checkpoint cache */
   if ((value = scr_param_get("SCR_CACHE_BASE")) != NULL) {
     scr_cache_base = spath_strdup_reduce_str(value);
-
-    /* assume user is defining a checkpoint descriptor */
-    found_ckptdesc = 1;
   } else {
     scr_cache_base = spath_strdup_reduce_str(SCR_CACHE_BASE);
   }
@@ -653,9 +640,6 @@ static int scr_get_params()
   /* set maximum number of checkpoints to keep in cache */
   if ((value = scr_param_get("SCR_CACHE_SIZE")) != NULL) {
     scr_cache_size = atoi(value);
-
-    /* assume user is defining a checkpoint descriptor */
-    found_ckptdesc = 1;
   }
 
   /* fill in a hash of group descriptors */
@@ -695,25 +679,16 @@ static int scr_get_params()
     } else {
       scr_copy_type = SCR_COPY_FILE;
     }
-
-    /* assume user is defining a checkpoint descriptor */
-    found_ckptdesc = 1;
   }
 
   /* specify the number of tasks in xor set */
   if ((value = scr_param_get("SCR_SET_SIZE")) != NULL) {
     scr_set_size = atoi(value);
-
-    /* assume user is defining a checkpoint descriptor */
-    found_ckptdesc = 1;
   }
 
   /* specify the group name to protect failures */
   if ((value = scr_param_get("SCR_GROUP")) != NULL) {
     scr_group = strdup(value);
-
-    /* assume user is defining a checkpoint descriptor */
-    found_ckptdesc = 1;
   } else {
     scr_group = strdup(SCR_GROUP);
   }
@@ -743,9 +718,6 @@ static int scr_get_params()
     tmp = scr_param_get_hash(SCR_CONFIG_KEY_CKPTDESC);
     if (tmp != NULL) {
       kvtree_set(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, tmp);
-
-      /* assume user is defining a checkpoint descriptor */
-      found_ckptdesc = 1;
     } else {
       scr_abort(-1, "Failed to define checkpoints @ %s:%d",
               __FILE__, __LINE__
@@ -757,10 +729,6 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_CACHE_BYPASS")) != NULL) {
     /* if BYPASS is set explicitly, we use that */
     scr_cache_bypass = atoi(value);
-  } else if (found_ckptdesc) {
-    /* if the user has specified a checkpoint descriptor,
-     * we'll assume they actually want to use the cache */
-    scr_cache_bypass = 0;
   }
 
   /* if job has fewer than SCR_HALT_SECONDS remaining after completing a checkpoint,
