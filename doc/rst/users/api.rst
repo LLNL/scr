@@ -371,7 +371,13 @@ all of its files successfully or it read no files during the checkpoint.
 Otherwise, the process should call :code:`SCR_Complete_restart` with :code:`valid` set to :code:`0`.
 SCR will determine whether all processes read their checkpoint files 
 successfully based on the values supplied in the :code:`valid` parameter.
-If any process failed to read its checkpoint files, then SCR will abort.
+:code:`SCR_Complete_restart` only returns :code:`SCR_SUCCESS` if
+all processes called with :code:`valid` set to :code:`1`,
+meaning that all processes succeeded in their restart.
+If the restart failed on any process, SCR loads the next most recent checkpoint,
+and the application can call :code:`SCR_Have_restart` to determine whether a new checkpoint is available.
+An application can loop until it either successfully restarts from a checkpoint
+or it exhausts all known checkpoints.
 
 Each call to :code:`SCR_Complete_restart` must be preceded by a corresponding call
 to :code:`SCR_Start_restart`.

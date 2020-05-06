@@ -2528,23 +2528,128 @@ int SCR_Complete_restart(int valid)
   /* set redundancy descriptor back to NULL */
   scr_rd = NULL;
 
+  /* turn off our restart flag */
+  scr_have_restart = 0;
+
+  /* since we have no output flag to return to user whether all procs
+   * passed in valid=1, we'll overload the return code for that purpose,
+   * this should eventually be changed to use an output flag instead */
+  int rc = SCR_SUCCESS;
+
   /* check that all procs read valid data */
   if (! scr_alltrue(valid, scr_comm_world)) {
-    /* TODO: if some process fails, it would be more graceful to fetch
+    /* if some process fails, attempt to restart from
      * the next most recent checkpoint and cycle through
      * the have/start/complete restart calls again,
      * we should also record this current checkpoint as failed in the
      * index file so that we don't fetch it again*/
-    scr_abort(-1, "At least one process reported valid=0 in SCR_Complete_restart() @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
+
+    /* use the return code to indicate that some process failed to
+     * read its checkpoint file */
+    rc = SCR_FAILURE;
+
+    /* mark current checkpoint as bad in our index file so that
+     * we don't attempt to fetch it again */
+    if (scr_my_rank_world == 0) {
+      /* get dataset for current id */
+      scr_dataset* dataset = scr_dataset_new();
+      scr_cache_index_get_dataset(scr_cindex, scr_dataset_id, dataset);
+
+      /* get name of current dataset */
+      char* name;
+      scr_dataset_get_name(dataset, &name);
+
+      /* read the index file */
+      kvtree* index_hash = kvtree_new();
+      if (scr_index_read(scr_prefix_path, index_hash) == SCR_SUCCESS) {
+        /* if there is an entry for this dataset in the index,
+         * mark it as failed so we don't try to restart it with it again */
+        int id;
+        if (scr_index_get_id_by_name(index_hash, name, &id) == SCR_SUCCESS) {
+          /* found an entry, mark it as failed and update index file */
+          scr_index_unset_current(index_hash);
+          scr_index_mark_failed(index_hash, id, name);
+          scr_index_write(scr_prefix_path, index_hash);
+        }
+      }
+      kvtree_delete(&index_hash);
+
+      /* free our dataset object */
+      scr_dataset_delete(&dataset);
+    }
+
+    /* delete the current (bad) checkpoint from cache */
+    scr_cache_delete(scr_cindex, scr_dataset_id);
+    scr_dataset_id    = 0;
+    scr_checkpoint_id = 0;
+    scr_ckpt_dset_id  = 0;
+
+    /* get ordered list of datasets we have in our cache */
+    int ndsets;
+    int* dsets;
+    scr_cache_index_list_datasets(scr_cindex, &ndsets, &dsets);
+
+    int found_checkpoint = 0;
+
+    /* loop backwards through datasets looking for most recent checkpoint */
+    int idx = ndsets - 1;
+    while (idx >= 0 && scr_checkpoint_id == 0) {
+      /* get next most recent dataset */
+      int current_id = dsets[idx];
+
+      /* get dataset for this id */
+      scr_dataset* dataset = scr_dataset_new();
+      scr_cache_index_get_dataset(scr_cindex, current_id, dataset);
+
+      /* see if we have a checkpoint */
+      int is_ckpt = scr_dataset_is_ckpt(dataset);
+      if (is_ckpt) {
+        /* if we rebuild any checkpoint, return success */
+        found_checkpoint = 1;
+
+        /* if id of dataset we just rebuilt is newer,
+         * update scr_dataset_id */
+        if (current_id > scr_dataset_id) {
+          scr_dataset_id = current_id;
+        }
+
+        /* get checkpoint id for dataset */
+        int ckpt_id;
+        scr_dataset_get_ckpt(dataset, &ckpt_id);
+
+        /* if checkpoint id of dataset we just rebuilt is newer,
+         * update scr_checkpoint_id and scr_ckpt_dset_id */
+        if (ckpt_id > scr_checkpoint_id) {
+          /* got a more recent checkpoint, update our checkpoint info */
+          scr_checkpoint_id = ckpt_id;
+          scr_ckpt_dset_id = current_id;
+        }
+      }
+
+      /* release the dataset object */
+      scr_dataset_delete(&dataset);
+
+      /* move on to next most recent dataset */
+      idx--;
+    }
+
+    /* free our list of dataset ids */
+    scr_free(&dsets);
+
+    /* if we still don't have a checkpoint and fetch is enabled,
+     * attempt to fetch files from parallel file system */
+    if (!found_checkpoint && scr_fetch) {
+      /* sets scr_dataset_id and scr_checkpoint_id upon success */
+      int fetch_attempted = 0;
+      int fetch_rc = scr_fetch_sync(scr_cindex, &fetch_attempted);
+    }
+
+    /* set flag depending on whether checkpoint_id is greater than 0,
+     * we'll take this to mean that we have a checkpoint in cache */
+    scr_have_restart = (scr_checkpoint_id > 0);
   }
 
-  /* turn off our restart flag */
-  scr_have_restart = 0;
-
-  return SCR_SUCCESS;
+  return rc;
 }
 
 /* get and return the SCR version */
