@@ -88,14 +88,19 @@
 #define SCR_COPY_TYPE (SCR_COPY_XOR)
 #endif
 
-/* default set size */
+/* default failure group */
+#ifndef SCR_GROUP
+#define SCR_GROUP (SCR_GROUP_NODE)
+#endif
+
+/* default failure group set size */
 #ifndef SCR_SET_SIZE
 #define SCR_SET_SIZE (8)
 #endif
 
-/* default hop distance */
-#ifndef SCR_GROUP
-#define SCR_GROUP (SCR_GROUP_NODE)
+/* default cache bypass setting */
+#ifndef SCR_CACHE_BYPASS
+#define SCR_CACHE_BYPASS (1)
 #endif
 
 /* =========================================================================
