@@ -292,6 +292,20 @@ int scr_index_mark_failed(kvtree* index, int id, const char* name)
   return SCR_SUCCESS;
 }
 
+/* clear any failed fetch event for given dataset id and name in given hash */
+int scr_index_clear_failed(kvtree* index, int id, const char* name)
+{
+  /* mark the dataset as failed at current timestamp */
+  kvtree* dset_hash = kvtree_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
+  kvtree* dir_hash  = kvtree_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
+  kvtree_unset(dir_hash, SCR_INDEX_1_KEY_FAILED);
+
+  /* add entry to directory index (maps name to dataset id) */
+  scr_index_set_directory(index, name, id);
+
+  return SCR_SUCCESS;
+}
+
 /* record flush event for given dataset id and name in given hash */
 int scr_index_mark_flushed(kvtree* index, int id, const char* name)
 {

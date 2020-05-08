@@ -52,6 +52,9 @@ int scr_index_mark_fetched(kvtree* index, int id, const char* name);
 /* record failed fetch event for given dataset id and name in given hash */
 int scr_index_mark_failed(kvtree* index, int id, const char* name);
 
+/* clear failed fetch events for given dataset id and name in given hash */
+int scr_index_clear_failed(kvtree* index, int id, const char* name);
+
 /* record flush time for given dataset id and name in given hash */
 int scr_index_mark_flushed(kvtree* index, int id, const char* name);
 
