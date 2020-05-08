@@ -397,6 +397,13 @@ int scr_flush_complete(int id, kvtree* file_list)
       /* update complete flag in index file */
       scr_index_set_dataset(index_hash, id, name, dataset, complete);
 
+      /* record flushed tag */
+      scr_index_mark_flushed(index_hash, id, name);
+
+      /* remove any failed marker, since we may have flushed over
+       * a previously failed dataset */
+      scr_index_clear_failed(index_hash, id, name);
+
       /* if this is a checkpoint, update current to point to new dataset,
        * this must come after index_set_dataset above because set_current
        * checks that named dataset is a checkpoint */
