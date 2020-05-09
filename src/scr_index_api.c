@@ -434,54 +434,67 @@ int scr_index_get_most_recent_complete(const kvtree* index, int earlier_than, in
     if (key == NULL) {
       continue;
     }
-
-    /* if this dataset id is less than our limit and it's more than
-     * our current max, check whether it's complete */
     int current_id = atoi(key);
+
+    /* if we have a limit and the current id is beyond that limit,
+     * skip it */
+    if (earlier_than != -1 && current_id > earlier_than) {
+      continue;
+    }
+
+    /* if the current id is earlier than the lastest we've found so far,
+     * skip it */
+    if (current_id < max_id) {
+      continue;
+    }
+
     kvtree* dset_hash = kvtree_elem_hash(dset);
-    if ((earlier_than == -1 || current_id <= earlier_than) && current_id > max_id) {
-      /* alright, this dataset id is within range to be the most recent,
-       * now scan the various names we have for this dataset looking for a complete */
-      int found_one = 1;
 
-      /* look for the complete string */
-      int complete;
-      if (kvtree_util_get_int(dset_hash, SCR_INDEX_1_KEY_COMPLETE, &complete) == KVTREE_SUCCESS) {
-        if (complete != 1) {
-          found_one = 0;
-        }
-      } else {
+    /* alright, this dataset id is within range to be the most recent,
+     * now scan the various names we have for this dataset looking for a complete */
+    int found_one = 1;
+
+    /* this dataset id is less than our limit and it's more than
+     * our current max, check whether it's complete */
+    int complete;
+    if (kvtree_util_get_int(dset_hash, SCR_INDEX_1_KEY_COMPLETE, &complete) == KVTREE_SUCCESS) {
+      if (complete != 1) {
+        /* COMPLETE marker explicitly shows it's bad */
         found_one = 0;
       }
+    } else {
+      /* no COMPLETE marker at all, assume it'd bad */
+      found_one = 0;
+    }
 
-      /* check that there is no failed string */
-      kvtree* failed = kvtree_get(dset_hash, SCR_INDEX_1_KEY_FAILED);
-      if (failed != NULL) {
-        found_one = 0;
-      }
+    /* check that there is no failed string */
+    kvtree* failed = kvtree_get(dset_hash, SCR_INDEX_1_KEY_FAILED);
+    if (failed != NULL) {
+      /* some previous fetch of this checkpoint failed,
+       * don't try it again */
+      found_one = 0;
+    }
 
-      /* TODO: also avoid dataset if we've tried to read it too many times */
+    /* TODO: also avoid dataset if we've tried to read it too many times */
 
-      /* check that dataset is really a checkpoint */
-      kvtree* dataset_hash = kvtree_get(dset_hash, SCR_INDEX_1_KEY_DATASET);
-      if (! scr_dataset_is_ckpt(dataset_hash)) {
-        /* data set is not a checkpoint */
-        found_one = 0;
-      }
+    /* check that dataset is really a checkpoint */
+    kvtree* dataset_hash = kvtree_get(dset_hash, SCR_INDEX_1_KEY_DATASET);
+    if (! scr_dataset_is_ckpt(dataset_hash)) {
+      /* data set is not a checkpoint */
+      found_one = 0;
+    }
 
-      /* get the name of the dataset */
-      char* name;
-      scr_dataset_get_name(dataset_hash, &name);
+    /* get the name of the dataset */
+    char* name;
+    scr_dataset_get_name(dataset_hash, &name);
 
-      /* if we found one, copy the dataset id and name, and update our max */
-      if (found_one) {
-        *id = current_id;
-        strcpy(name, name);
+    /* if we found one, copy the dataset id and name, and update our max */
+    if (found_one) {
+      *id = current_id;
+      strcpy(name, name);
 
-        /* update our max */
-        max_id = current_id;
-        break;
-      }
+      /* update our max */
+      max_id = current_id;
     }
   }
 
