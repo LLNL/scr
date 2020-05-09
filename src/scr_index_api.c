@@ -44,6 +44,91 @@
 
 #define SCR_INDEX_FILENAME "index.scr"
 
+/* Example contents of an index file:
+ * This contains:
+ *   - a VERSION number indicating the format of the file
+ *   - an optional CURRENT that lists the current checkpoint
+ *     a job should restart from
+ *   - a map from NAME to DSET id, to lookup a dataset id given a name
+ *   - a record for each dataset accessed by daatset id
+ *     - contains FLUSHED, FAILED, FETCHED timestamps
+ *     - contains COMPLETE marker indicating whether checkpoint is valid
+ *     - then a full scr_dataset entry (see scr_dataset.h)
+ *
+ *  CURRENT
+ *    ckpt.6
+ *  VERSION
+ *    1
+ *  NAME
+ *    ckpt.6
+ *      DSET
+ *        6
+ *    ckpt.3
+ *      DSET
+ *        3
+ *  DSET
+ *    6
+ *      FLUSHED
+ *        2020-05-09T11:59:50
+ *      COMPLETE
+ *        1
+ *      DSET
+ *        ID
+ *          6
+ *        NAME
+ *          ckpt.6
+ *        FLAG_CKPT
+ *          1
+ *        FLAG_OUTPUT
+ *          0
+ *        CREATED
+ *          1589050790160919
+ *        USER
+ *          user1
+ *        JOBNAME
+ *          testing_job
+ *        JOBID
+ *          5116040
+ *        CKPT
+ *          6
+ *        FILES
+ *          4
+ *        SIZE
+ *          2097186
+ *        COMPLETE
+ *          1
+ *    3
+ *      FLUSHED
+ *        2020-05-09T11:59:50
+ *      COMPLETE
+ *        1
+ *      DSET
+ *        ID
+ *          3
+ *        NAME
+ *          ckpt.3
+ *        FLAG_CKPT
+ *          1
+ *        FLAG_OUTPUT
+ *          0
+ *        CREATED
+ *          1589050789896295
+ *        USER
+ *          user1
+ *        JOBNAME
+ *          testing_job
+ *        JOBID
+ *          5116040
+ *        CKPT
+ *          3
+ *        FILES
+ *          4
+ *        SIZE
+ *          2097186
+ *        COMPLETE
+ *          1
+ */
+
 /* read the index file from given directory and merge its contents into the given hash */
 int scr_index_read(const spath* dir, kvtree* index)
 {
@@ -96,27 +181,8 @@ int scr_index_write(const spath* dir, kvtree* index)
 static int scr_index_set_directory(kvtree* hash, const char* name, int id)
 {
   /* add entry to directory index */
-  kvtree* dir  = kvtree_set_kv(hash, SCR_INDEX_1_KEY_NAME, name);
-  kvtree* dset = kvtree_set_kv_int(dir, SCR_INDEX_1_KEY_DATASET, id);
-  if (dset == NULL) {
-    return SCR_FAILURE;
-  }
-  return SCR_SUCCESS;
-}
-
-/* add given dataset id and name to given hash */
-int scr_index_add_name(kvtree* index, int id, const char* name)
-{
-  /* set the dataset id */
-  kvtree* dset_hash = kvtree_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-
-  /* unset then set name so we overwrite it if it's already set */
-  kvtree_unset_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
-  kvtree_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
-
-  /* add entry to directory index (maps name to dataset id) */
-  scr_index_set_directory(index, name, id);
-
+  kvtree* dir = kvtree_set_kv(hash, SCR_INDEX_1_KEY_NAME, name);
+  kvtree_util_set_int(dir, SCR_INDEX_1_KEY_DATASET, id);
   return SCR_SUCCESS;
 }
 
@@ -129,17 +195,8 @@ int scr_index_remove(kvtree* index, const char* name)
     /* delete dataset name from the name-to-dataset-id index */
     kvtree_unset_kv(index, SCR_INDEX_1_KEY_NAME, name);
 
-    /* get the hash for this dataset id */
-    kvtree* dset = kvtree_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-
-    /* delete this dataset name from the hash for this dataset id */
-    kvtree_unset_kv(dset, SCR_INDEX_1_KEY_NAME, name);
-
-    /* if that was the only entry for this dataset id,
-     * also delete the dataset id field */
-    if (kvtree_size(dset) == 0) {
-      kvtree_unset_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-    }
+    /* delete the dataset id field */
+    kvtree_unset_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
 
     /* if this is the current dataset, update current */
     char* current = NULL;
@@ -185,8 +242,7 @@ int scr_index_set_current(kvtree* index, const char* name)
 
   /* check that dataset is a checkpoint */
   kvtree* dset_hash = kvtree_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  kvtree* name_hash = kvtree_get_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
-  kvtree* dataset = kvtree_get(name_hash, SCR_INDEX_1_KEY_DATASET);
+  kvtree* dataset = kvtree_get(dset_hash, SCR_INDEX_1_KEY_DATASET);
   if (! scr_dataset_is_ckpt(dataset)) {
     return SCR_FAILURE;
   }
@@ -220,8 +276,7 @@ int scr_index_set_complete(kvtree* index, int id, const char* name, int complete
 {
   /* mark the dataset as complete or incomplete */
   kvtree* dset_hash = kvtree_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  kvtree* dir_hash  = kvtree_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
-  kvtree_util_set_int(dir_hash, SCR_INDEX_1_KEY_COMPLETE, complete);
+  kvtree_util_set_int(dset_hash, SCR_INDEX_1_KEY_COMPLETE, complete);
 
   /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
@@ -236,15 +291,14 @@ int scr_index_set_dataset(kvtree* index, int id, const char* name, const scr_dat
   kvtree* dataset_copy = kvtree_new();
   kvtree_merge(dataset_copy, dataset);
 
-  /* get pointer to name hash */
+  /* get pointer to dataset hash */
   kvtree* dset_hash = kvtree_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  kvtree* dir_hash  = kvtree_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
 
   /* record dataset hash in index */
-  kvtree_set(dir_hash, SCR_INDEX_1_KEY_DATASET, dataset_copy);
+  kvtree_set(dset_hash, SCR_INDEX_1_KEY_DATASET, dataset_copy);
 
   /* mark the dataset as complete or incomplete */
-  kvtree_util_set_int(dir_hash, SCR_INDEX_1_KEY_COMPLETE, complete);
+  kvtree_util_set_int(dset_hash, SCR_INDEX_1_KEY_COMPLETE, complete);
 
   /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
@@ -264,8 +318,7 @@ int scr_index_mark_fetched(kvtree* index, int id, const char* name)
    * timestamps can be recorded */
   /* mark the dataset as fetched at current timestamp */
   kvtree* dset_hash = kvtree_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  kvtree* dir_hash  = kvtree_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
-  kvtree_set_kv(dir_hash, SCR_INDEX_1_KEY_FETCHED, timestamp);
+  kvtree_set_kv(dset_hash, SCR_INDEX_1_KEY_FETCHED, timestamp);
 
   /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
@@ -283,8 +336,7 @@ int scr_index_mark_failed(kvtree* index, int id, const char* name)
 
   /* mark the dataset as failed at current timestamp */
   kvtree* dset_hash = kvtree_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  kvtree* dir_hash  = kvtree_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
-  kvtree_util_set_str(dir_hash, SCR_INDEX_1_KEY_FAILED, timestamp);
+  kvtree_util_set_str(dset_hash, SCR_INDEX_1_KEY_FAILED, timestamp);
 
   /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
@@ -297,8 +349,7 @@ int scr_index_clear_failed(kvtree* index, int id, const char* name)
 {
   /* mark the dataset as failed at current timestamp */
   kvtree* dset_hash = kvtree_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  kvtree* dir_hash  = kvtree_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
-  kvtree_unset(dir_hash, SCR_INDEX_1_KEY_FAILED);
+  kvtree_unset(dset_hash, SCR_INDEX_1_KEY_FAILED);
 
   /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
@@ -316,8 +367,7 @@ int scr_index_mark_flushed(kvtree* index, int id, const char* name)
 
   /* mark the dataset as flushed at current timestamp */
   kvtree* dset_hash = kvtree_set_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  kvtree* dir_hash  = kvtree_set_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
-  kvtree_util_set_str(dir_hash, SCR_INDEX_1_KEY_FLUSHED, timestamp);
+  kvtree_util_set_str(dset_hash, SCR_INDEX_1_KEY_FLUSHED, timestamp);
 
   /* add entry to directory index (maps name to dataset id) */
   scr_index_set_directory(index, name, id);
@@ -335,8 +385,7 @@ int scr_index_get_complete(kvtree* index, int id, const char* name, int* complet
   /* get the value of the COMPLETE key */
   int complete_tmp;
   kvtree* dset_hash = kvtree_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
-  kvtree* dir_hash  = kvtree_get_kv(dset_hash, SCR_INDEX_1_KEY_NAME, name);
-  if (kvtree_util_get_int(dir_hash, SCR_INDEX_1_KEY_COMPLETE, &complete_tmp) == KVTREE_SUCCESS) {
+  if (kvtree_util_get_int(dset_hash, SCR_INDEX_1_KEY_COMPLETE, &complete_tmp) == KVTREE_SUCCESS) {
     *complete = complete_tmp;
     rc = SCR_SUCCESS;
   }
@@ -382,63 +431,58 @@ int scr_index_get_most_recent_complete(const kvtree* index, int earlier_than, in
   {
     /* get the id for this dataset */
     char* key = kvtree_elem_key(dset);
-    if (key != NULL) {
-      /* if this dataset id is less than our limit and it's more than
-       * our current max, check whether it's complete */
-      int current_id = atoi(key);
-      if ((earlier_than == -1 || current_id <= earlier_than) && current_id > max_id) {
-        /* alright, this dataset id is within range to be the most recent,
-         * now scan the various names we have for this dataset looking for a complete */
-        kvtree* dset_hash = kvtree_elem_hash(dset);
-        kvtree* names = kvtree_get(dset_hash, SCR_INDEX_1_KEY_NAME);
-        kvtree_elem* elem = NULL;
-        for (elem = kvtree_elem_first(names);
-             elem != NULL;
-             elem = kvtree_elem_next(elem))
-        {
-          char* name_key = kvtree_elem_key(elem);
-          kvtree* name_hash = kvtree_elem_hash(elem);
-
-          int found_one = 1;
-
-          /* look for the complete string */
-          int complete;
-          if (kvtree_util_get_int(name_hash, SCR_INDEX_1_KEY_COMPLETE, &complete) == KVTREE_SUCCESS) {
-            if (complete != 1) {
-              found_one = 0;
-            }
-          } else {
-            found_one = 0;
-          }
-
-          /* check that there is no failed string */
-          kvtree* failed = kvtree_get(name_hash, SCR_INDEX_1_KEY_FAILED);
-          if (failed != NULL) {
-            found_one = 0;
-          }
-
-          /* TODO: also avoid dataset if we've tried to read it too many times */
-
-          /* check that dataset is really a checkpoint */
-          kvtree* dataset_hash = kvtree_get(name_hash, SCR_INDEX_1_KEY_DATASET);
-          if (! scr_dataset_is_ckpt(dataset_hash)) {
-            /* data set is not a checkpoint */
-            found_one = 0;
-          }
-
-          /* if we found one, copy the dataset id and name, and update our max */
-          if (found_one) {
-            *id = current_id;
-            strcpy(name, name_key);
-
-            /* update our max */
-            max_id = current_id;
-            break;
-          }
-        }
-      }
+    if (key == NULL) {
+      continue;
     }
 
+    /* if this dataset id is less than our limit and it's more than
+     * our current max, check whether it's complete */
+    int current_id = atoi(key);
+    kvtree* dset_hash = kvtree_elem_hash(dset);
+    if ((earlier_than == -1 || current_id <= earlier_than) && current_id > max_id) {
+      /* alright, this dataset id is within range to be the most recent,
+       * now scan the various names we have for this dataset looking for a complete */
+      int found_one = 1;
+
+      /* look for the complete string */
+      int complete;
+      if (kvtree_util_get_int(dset_hash, SCR_INDEX_1_KEY_COMPLETE, &complete) == KVTREE_SUCCESS) {
+        if (complete != 1) {
+          found_one = 0;
+        }
+      } else {
+        found_one = 0;
+      }
+
+      /* check that there is no failed string */
+      kvtree* failed = kvtree_get(dset_hash, SCR_INDEX_1_KEY_FAILED);
+      if (failed != NULL) {
+        found_one = 0;
+      }
+
+      /* TODO: also avoid dataset if we've tried to read it too many times */
+
+      /* check that dataset is really a checkpoint */
+      kvtree* dataset_hash = kvtree_get(dset_hash, SCR_INDEX_1_KEY_DATASET);
+      if (! scr_dataset_is_ckpt(dataset_hash)) {
+        /* data set is not a checkpoint */
+        found_one = 0;
+      }
+
+      /* get the name of the dataset */
+      char* name;
+      scr_dataset_get_name(dataset_hash, &name);
+
+      /* if we found one, copy the dataset id and name, and update our max */
+      if (found_one) {
+        *id = current_id;
+        strcpy(name, name);
+
+        /* update our max */
+        max_id = current_id;
+        break;
+      }
+    }
   }
 
   return SCR_FAILURE;
