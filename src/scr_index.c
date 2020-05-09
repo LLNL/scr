@@ -1835,7 +1835,8 @@ int index_list(const spath* prefix)
   kvtree_sort_int(dset_hash, KVTREE_SORT_DESCENDING);
 
   /* print header */
-  printf("   DSET VALID FLUSHED             NAME\n");
+  //printf("   DSET VALID FLUSHED             NAME\n");
+  printf("  DSET VALID FLUSHED              NAME\n");
 
   /* iterate over each of the datasets and print the id and other info */
   kvtree_elem* elem;
@@ -1847,107 +1848,103 @@ int index_list(const spath* prefix)
     int dset = kvtree_elem_key_int(elem);
 
     /* get the hash for this dataset */
-    kvtree* hash = kvtree_elem_hash(elem);
-    kvtree* name_hash = kvtree_get(hash, SCR_INDEX_1_KEY_NAME);
+    kvtree* info_hash = kvtree_elem_hash(elem);
 
-    /* sort dataset names in descending order */
-    kvtree_sort(name_hash, KVTREE_SORT_DESCENDING);
-
-    kvtree_elem* name_elem;
-    for (name_elem = kvtree_elem_first(name_hash);
-         name_elem != NULL;
-         name_elem = kvtree_elem_next(name_elem))
-    {
-      /* get the dataset name for this dataset */
-      char* name = kvtree_elem_key(name_elem);
-
-      /* get the directory hash */
-      kvtree* info_hash = kvtree_elem_hash(name_elem);
-
-      /* skip this dataset if it's not a checkpoint */
-      kvtree* dataset_hash = kvtree_get(info_hash, SCR_INDEX_1_KEY_DATASET);
-      if (! scr_dataset_is_ckpt(dataset_hash)) {
-        continue;
-      }
-
-      /* determine whether this dataset is complete */
-      int complete = 0;
-      kvtree_util_get_int(info_hash, SCR_INDEX_1_KEY_COMPLETE, &complete);
-
-      /* determine time at which this checkpoint was marked as failed */
-      char* failed_str = NULL;
-      kvtree_util_get_str(info_hash, SCR_INDEX_1_KEY_FAILED, &failed_str);
-
-      /* determine time at which this checkpoint was flushed */
-      char* flushed_str = NULL;
-      kvtree_util_get_str(info_hash, SCR_INDEX_1_KEY_FLUSHED, &flushed_str);
-
-      /* compute number of times (and last time) checkpoint has been fetched */
-/*
-      kvtree* fetched_hash = kvtree_get(info_hash, SCR_INDEX_1_KEY_FETCHED);
-      int num_fetch = kvtree_size(fetched_hash);
-      kvtree_sort(fetched_hash, KVTREE_SORT_DESCENDING);
-      kvtree_elem* fetched_elem = kvtree_elem_first(fetched_hash);
-      char* fetched_str = kvtree_elem_key(fetched_elem);
-*/
-
-      /* print a star beside the dataset directory marked as current */
-      if (current != NULL && strcmp(name, current) == 0) {
-        printf("*");
-      } else {
-        printf(" ");
-      }
-
-      printf("%6d", dset);
-
-      printf(" ");
-
-      /* to be valid, the dataset must be marked as vaild and it must
-       * not have failed a fetch attempt */
-      if (complete == 1 && failed_str == NULL) {
-        printf("YES  ");
-      } else {
-        printf("NO   ");
-      }
-
-      printf(" ");
-
-/*
-      if (failed_str != NULL) {
-        printf("YES   ");
-      } else {
-        printf("NO    ");
-      }
-
-      printf(" ");
-*/
-
-      if (flushed_str != NULL) {
-        printf("%s", flushed_str);
-      } else {
-        printf("                   ");
-      }
-
-      printf(" ");
-
-/*
-      printf("%7d", num_fetch);
-
-      printf("  ");
-      if (fetched_str != NULL) {
-        printf("%s", fetched_str);
-      } else {
-        printf("                   ");
-      }
-*/
-
-      if (name != NULL) {
-        printf("%s", name);
-      } else {
-        printf("UNKNOWN_NAME");
-      }
-      printf("\n");
+    /* skip this dataset if it's not a checkpoint */
+    kvtree* dataset_hash = kvtree_get(info_hash, SCR_INDEX_1_KEY_DATASET);
+    if (! scr_dataset_is_ckpt(dataset_hash)) {
+      continue;
     }
+
+    /* get the dataset name for this dataset */
+    char* name;
+    scr_dataset_get_name(dataset_hash, &name);
+
+    /* determine whether this dataset is complete */
+    int complete = 0;
+    kvtree_util_get_int(info_hash, SCR_INDEX_1_KEY_COMPLETE, &complete);
+
+    /* determine time at which this checkpoint was marked as failed */
+    char* failed_str = NULL;
+    kvtree_util_get_str(info_hash, SCR_INDEX_1_KEY_FAILED, &failed_str);
+
+    /* determine time at which this checkpoint was flushed */
+    char* flushed_str = NULL;
+    kvtree_util_get_str(info_hash, SCR_INDEX_1_KEY_FLUSHED, &flushed_str);
+
+    /* compute number of times (and last time) checkpoint has been fetched */
+/*
+    kvtree* fetched_hash = kvtree_get(info_hash, SCR_INDEX_1_KEY_FETCHED);
+    int num_fetch = kvtree_size(fetched_hash);
+    kvtree_sort(fetched_hash, KVTREE_SORT_DESCENDING);
+    kvtree_elem* fetched_elem = kvtree_elem_first(fetched_hash);
+    char* fetched_str = kvtree_elem_key(fetched_elem);
+*/
+
+    /* print a star beside the dataset directory marked as current */
+/*
+    if (current != NULL && strcmp(name, current) == 0) {
+      printf("*");
+    } else {
+      printf(" ");
+    }
+*/
+
+    printf("%6d", dset);
+
+    printf(" ");
+
+    /* to be valid, the dataset must be marked as vaild and it must
+     * not have failed a fetch attempt */
+    if (complete == 1 && failed_str == NULL) {
+      printf("YES  ");
+    } else {
+      printf("NO   ");
+    }
+
+    printf(" ");
+
+/*
+    if (failed_str != NULL) {
+      printf("YES   ");
+    } else {
+      printf("NO    ");
+    }
+
+    printf(" ");
+*/
+
+    if (flushed_str != NULL) {
+      printf("%s", flushed_str);
+    } else {
+      printf("                   ");
+    }
+
+    printf(" ");
+
+/*
+    printf("%7d", num_fetch);
+
+    printf("  ");
+    if (fetched_str != NULL) {
+      printf("%s", fetched_str);
+    } else {
+      printf("                   ");
+    }
+*/
+
+    if (current != NULL && strcmp(name, current) == 0) {
+      printf("*");
+    } else {
+      printf(" ");
+    }
+
+    if (name != NULL) {
+      printf("%s", name);
+    } else {
+      printf("UNKNOWN_NAME");
+    }
+    printf("\n");
   }
 
   /* free off our index hash */
