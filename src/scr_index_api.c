@@ -177,6 +177,55 @@ int scr_index_write(const spath* dir, kvtree* index)
   return rc;
 }
 
+/* read index file and return max dataset and checkpoint ids,
+ *  * returns SCR_SUCCESS if file read successfully */
+int scr_index_get_max_ids(const spath* dir, int* dset_id, int* ckpt_id, int* ckpt_dset_id)
+{
+  int rc = SCR_FAILURE;
+
+  *dset_id      = 0;
+  *ckpt_id      = 0;
+  *ckpt_dset_id = 0;
+
+  kvtree* index = kvtree_new();
+  if (scr_index_read(dir, index) == SCR_SUCCESS) {
+    /* search for the checkpoint with the maximum dataset id which is
+     * complete and less than earlier_than if earlier_than is set */
+    kvtree* dsets = kvtree_get(index, SCR_INDEX_1_KEY_DATASET);
+    kvtree_elem* dset = NULL;
+    for (dset = kvtree_elem_first(dsets);
+         dset != NULL;
+         dset = kvtree_elem_next(dset))
+    {
+      /* get the id for this dataset */
+      char* key = kvtree_elem_key(dset);
+      int current_id = atoi(key);
+      if (current_id > *dset_id) {
+        *dset_id = current_id;
+      }
+
+      /* check that dataset is really a checkpoint */
+      kvtree* dset_hash = kvtree_elem_hash(dset);
+      kvtree* dataset = kvtree_get(dset_hash, SCR_INDEX_1_KEY_DATASET);
+      if (scr_dataset_is_ckpt(dataset)) {
+        int current_ckpt_id;
+        if (scr_dataset_get_ckpt(dataset, &current_ckpt_id) == SCR_SUCCESS) {
+          if (current_ckpt_id > *ckpt_id) {
+            *ckpt_id      = current_ckpt_id;
+            *ckpt_dset_id = current_id;
+          }
+        }
+      }
+    }
+
+    rc = SCR_SUCCESS;
+  }
+
+  kvtree_delete(&index);
+
+  return rc;
+}
+
 /* this adds an entry to the index that maps a name to a dataset id */
 static int scr_index_set_directory(kvtree* hash, const char* name, int id)
 {

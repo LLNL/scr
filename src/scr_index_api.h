@@ -25,6 +25,10 @@ int scr_index_read(const spath* dir, kvtree* index);
 /* overwrite the contents of the index file in given directory with given hash */
 int scr_index_write(const spath* dir, kvtree* index);
 
+/* read index file and return max dataset and checkpoint ids,
+ * returns SCR_SUCCESS if file read successfully */
+int scr_index_get_max_ids(const spath* dir, int* dset_id, int* ckpt_id, int* ckpt_dset_id);
+
 /* remove given dataset name from hash */
 int scr_index_remove(kvtree* index, const char* name);
 
