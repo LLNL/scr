@@ -498,6 +498,43 @@ int scr_reddesc_apply(
     time_start = MPI_Wtime();
   }
 
+  /* TODO scan files and get number of bytes */
+  /* step through each of my files for the specified dataset
+   * to scan for any incomplete files */
+  int valid = 1;
+  double my_bytes = 0.0;
+  kvtree_elem* file_elem;
+  for (file_elem = scr_filemap_first_file(map);
+       file_elem != NULL;
+       file_elem = kvtree_elem_next(file_elem))
+  {
+    /* get the filename */
+    char* file = kvtree_elem_key(file_elem);
+
+    /* check the file */
+    if (! scr_bool_have_file(map, file)) {
+      scr_dbg(2, "File determined to be invalid: %s", file);
+      valid = 0;
+    }
+
+    /* add up the number of bytes on our way through */
+    my_bytes += (double) scr_file_size(file);
+
+    /* if crc_on_copy is set, compute crc and update meta file */
+    if (scr_crc_on_copy) {
+      scr_compute_crc(map, file);
+    }
+  }
+
+  /* determine whether everyone's files are good */
+  int all_valid = scr_alltrue(valid, scr_comm_world);
+  if (! all_valid) {
+    if (scr_my_rank_world == 0) {
+      scr_dbg(1, "Exiting copy since one or more checkpoint files is invalid");
+    }
+    return SCR_FAILURE;
+  }
+
   /* get store descriptor for this redudancy scheme */
   scr_storedesc* store = scr_reddesc_get_store(desc);
 
@@ -539,9 +576,6 @@ int scr_reddesc_apply(
  
   /* step through each of my files for the specified dataset
    * to scan for any incomplete files */
-  int valid = 1;
-  double my_bytes = 0.0;
-  kvtree_elem* file_elem;
   for (file_elem = scr_filemap_first_file(map);
        file_elem != NULL;
        file_elem = kvtree_elem_next(file_elem))
@@ -549,25 +583,10 @@ int scr_reddesc_apply(
     /* get the filename */
     char* file = kvtree_elem_key(file_elem);
 
-    /* check the file */
-    if (! scr_bool_have_file(map, file)) {
-      scr_dbg(2, "File determined to be invalid: %s", file);
-      valid = 0;
-    }
-
     /* add file to the set */
     if (ER_Add(set_id, file) != ER_SUCCESS) {
       scr_err("Failed to add file to ER set: %s @ %s:%d", file, __FILE__, __LINE__);
       valid = 0;
-    }
-
-    /* add up the number of bytes on our way through */
-    my_bytes += (double) scr_file_size(file);
-
-    /* if crc_on_copy is set, compute crc and update meta file
-     * (PARTNER does this during the copy) */
-    if (scr_crc_on_copy && desc->copy_type != SCR_COPY_PARTNER) {
-      scr_compute_crc(map, file);
     }
   }
 
@@ -582,7 +601,7 @@ int scr_reddesc_apply(
 #endif
 
   /* determine whether everyone's files are good */
-  int all_valid = scr_alltrue(valid, scr_comm_world);
+  all_valid = scr_alltrue(valid, scr_comm_world);
   if (! all_valid) {
     if (scr_my_rank_world == 0) {
       scr_dbg(1, "Exiting copy since one or more checkpoint files is invalid");
@@ -687,6 +706,34 @@ int scr_reddesc_recover(scr_cache_index* cindex, int id, const char* dir)
   int bypass;
   scr_cache_index_get_bypass(cindex, id, &bypass);
   if (bypass) {
+    /* we don't have to rebuild files for bypass,
+     * but we check that they exist and match meta data */
+    if (rc == SCR_SUCCESS) {
+      /* get the filemap for this dataset */
+      scr_filemap* map = scr_filemap_new();
+      scr_cache_get_map(cindex, id, map);
+
+      /* step through each of my files for the specified dataset
+       * to scan for any incomplete files */
+      kvtree_elem* file_elem;
+      for (file_elem = scr_filemap_first_file(map);
+           file_elem != NULL;
+           file_elem = kvtree_elem_next(file_elem))
+      {
+        /* get the filename */
+        char* file = kvtree_elem_key(file_elem);
+
+        /* check the file */
+        if (! scr_bool_have_file(map, file)) {
+          scr_dbg(2, "File determined to be invalid: %s", file);
+          rc = SCR_FAILURE;
+        }
+      }
+
+      /* free the map */
+      scr_filemap_delete(&map);
+    }
+
     return rc;
   }
 
