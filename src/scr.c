@@ -1178,8 +1178,12 @@ static int scr_complete_output(int valid)
     return SCR_FAILURE;
   }
 
+  /* assume we'll succeed */
+  int rc = SCR_SUCCESS;
+
   /* count number of files, number of bytes, and record filesize for each file
    * as written by this process */
+  int files_valid = valid;
   unsigned long my_counts[3] = {0, 0, 0};
   kvtree_elem* elem;
   for (elem = scr_filemap_first_file(scr_map);
@@ -1190,24 +1194,36 @@ static int scr_complete_output(int valid)
     char* file = kvtree_elem_key(elem);
     my_counts[0]++;
 
+    /* start with valid flag from caller for this file */
+    int file_valid = valid;
+
+    /* check that we can read the file */
+    if (scr_file_is_readable(file) != SCR_SUCCESS) {
+      scr_dbg(2, "Do not have read access to file: %s @ %s:%d",
+        file, __FILE__, __LINE__
+      );
+      file_valid  = 0;
+      files_valid = 0;
+    }
+
     /* get size of this file */
     unsigned long filesize = scr_file_size(file);
     my_counts[1] += filesize;
 
-   /* TODO: record permissions and/or timestamps? */
+    /* TODO: record permissions and/or timestamps? */
 
     /* fill in filesize and complete flag in the meta data for the file */
     scr_meta* meta = scr_meta_new();
     scr_filemap_get_meta(scr_map, file, meta);
     scr_meta_set_filesize(meta, filesize);
-    scr_meta_set_complete(meta, valid);
+    scr_meta_set_complete(meta, file_valid);
     scr_filemap_set_meta(scr_map, file, meta);
     scr_meta_delete(&meta);
   }
 
   /* we execute a sum as a logical allreduce to determine whether everyone is valid
    * we interpret the result to be true only if the sum adds up to the number of processes */
-  if (valid) {
+  if (files_valid) {
     my_counts[2] = 1;
   }
 
@@ -1230,17 +1246,21 @@ static int scr_complete_output(int valid)
     /* got a valid=1 for every rank, we're complete */
     scr_dataset_set_complete(dataset, 1);
   } else {
-    /* at least one rank has valid=0, so incomplete */
+    /* at least one rank has valid=0, so incomplete,
+     * consider output to be invalid */
     scr_dataset_set_complete(dataset, 0);
+    rc = SCR_FAILURE;
   }
   scr_cache_index_set_dataset(scr_cindex, scr_dataset_id, dataset);
 
   /* write out info to filemap */
   scr_cache_set_map(scr_cindex, scr_dataset_id, scr_map);
 
-  /* apply redundancy scheme */
+  /* apply redundancy scheme if we're still valid */
   double bytes_copied = 0.0;
-  int rc = scr_reddesc_apply(scr_map, scr_rd, scr_dataset_id, &bytes_copied);
+  if (rc == SCR_SUCCESS) {
+    rc = scr_reddesc_apply(scr_map, scr_rd, scr_dataset_id, &bytes_copied);
+  }
 
   /* record the cost of the output and log its completion */
   if (is_ckpt && scr_my_rank_world == 0) {
