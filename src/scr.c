@@ -942,6 +942,38 @@ static int scr_start_output(const char* name, int flags)
     }
   }
 
+  /* If we loaded a checkpoint, but user didn't restart from it,
+   * then we really have no idea where they are in their sequence.
+   * The app may be restarting from parallel file system on its own,
+   * or maybe they reset the run to start over.  We could also end up
+   * in a similar situatino if the user did not attempt or failed to
+   * fetch but there happens to be a dataset out there.  Either way to avoid
+   * colliding with existing checkpoints, set dataset_id and checkpoint_id
+   * to be max of all known values. */
+  if (scr_have_restart || scr_dataset_id == 0) {
+    /* if we find larger dataset or checkpoint id values in the index file,
+     * use those instead */
+    int ids[4]; /* return code, dataset_id, checkpoint_id, ckpt_dset_id */
+    if (scr_my_rank_world == 0) {
+      ids[0] = scr_index_get_max_ids(scr_prefix_path, &ids[1], &ids[2], &ids[3]);
+    }
+    MPI_Bcast(ids, 4, MPI_INT, 0, scr_comm_world);
+    if (ids[0] == SCR_SUCCESS) {
+      /* got some values from the index file,
+       * update our values if they are larger */
+      if (ids[1] > scr_dataset_id) {
+        scr_dataset_id = ids[1];
+      }
+      if (ids[2] > scr_checkpoint_id) {
+        scr_checkpoint_id = ids[2];
+        scr_ckpt_dset_id  = ids[3];
+      }
+    }
+
+    /* forget that we have a restart loaded */
+    scr_have_restart = 0;
+  }
+
   /* increment our dataset counter */
   scr_dataset_id++;
 
