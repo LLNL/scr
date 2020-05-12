@@ -135,15 +135,17 @@ which means that all processes in the job can access the device.
 In other words, it is a globally accessible file system.
 
 Finally, SCR must be configured with redundancy schemes.
-By default, SCR protects against single compute node failures using :code:`XOR`,
-and it caches one checkpoint in :code:`/dev/shm`.
-To specify something different,
-edit a configuration file to include checkpoint and output descriptors.
-These descriptors look like the following::
+By default, SCR uses bypass mode and writes all datasets to the parallel file system.
+To specify something different, one must set various SCR configuration parameters
+through environment variables or by creating a configuration file that defines checkpoint and output descriptors.
+Example descriptors in a configuration file look like the following::
 
   # instruct SCR to use the CKPT descriptors from the config file
   SCR_COPY_TYPE=FILE
   
+  # enable datasets to be stored in cache
+  SCR_CACHE_BYPASS=0
+
   # the following instructs SCR to run with three checkpoint configurations:
   # - save every 8th checkpoint to /ssd using the PARTNER scheme
   # - save every 4th checkpoint (not divisible by 8) to /ssd using XOR with
@@ -155,9 +157,13 @@ These descriptors look like the following::
   CKPT=2 INTERVAL=8 GROUP=SWITCH STORE=/ssd     TYPE=PARTNER             BYPASS=1
 
 First, one must set the :code:`SCR_COPY_TYPE` parameter to :code:`FILE`.
-Otherwise, an implied checkpoint descriptor is constructed using various SCR parameters
+Otherwise, SCR uses an implied checkpoint descriptor that is defined using various SCR parameters
 including :code:`SCR_GROUP`, :code:`SCR_CACHE_BASE`,
 :code:`SCR_COPY_TYPE`, and :code:`SCR_SET_SIZE`.
+
+To store datasets in cache,
+one must set :code:`SCR_CACHE_BYPASS` to disable bypass mode, which is enabled by default.
+Otherwise all datasets will be written directly to the parallel file system.
 
 Checkpoint descriptor entries are identified by a leading :code:`CKPT` key.
 The values of the :code:`CKPT` keys must be numbered sequentially starting from 0.
@@ -199,6 +205,15 @@ SCR will choose the checkpoint descriptor according to the normal policy.
 Otherwise, if there is no descriptor with the :code:`OUTPUT` key defined
 and if the dataset is not a checkpoint,
 SCR will use the checkpoint descriptor having interval of 1.
+
+If one does not explicitly define a checkpoint descriptor,
+the default SCR descriptor can be defined in pseudocode as::
+
+  CKPT=0 INTERVAL=1 GROUP=$SCR_GROUP STORE=$SCR_CACHE_BASE TYPE=$SCR_COPY_TYPE SET_SIZE=$SCR_SET_SIZE BYPASS=$SCR_CACHE_BYPASS
+
+If those parameters are not set otherwise, this defaults to the following::
+
+  CKPT=0 INTERVAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=8 BYPASS=1
 
 .. _sec-variables:
 
