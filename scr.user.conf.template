@@ -21,6 +21,10 @@ STORE=/p/lscratcha GROUP=WORLD
 #
 SCR_COPY_TYPE=FILE
 
+# Enable datasets to be stored in cache
+#
+SCR_CACHE_BYPASS=0
+
 # Specify the different types of checkpoints for a job.  The following
 # instructs SCR to run with three checkpoint configurations:
 # - save every 4th checkpoint to /ssd using XOR with a set size of 8
