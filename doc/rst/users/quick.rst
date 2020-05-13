@@ -27,6 +27,13 @@ dependencies in this quick start guide, which can be automatically
 obtained with either Spack or CMake. For more help on installing
 dependencies of SCR or building SCR, please see Section :ref:`sec-library`.
 
+On Fedora, you can install the required dependencies with:
+
+  sudo dnf groupinstall "Development Tools"
+  sudo dnf install cmake gcc-c++ mpi mpi-devel environment-modules zlib-devel pdsh
+  [restart shell]
+  module load mpi
+
 Spack
 ^^^^^
 

@@ -19,6 +19,13 @@ not available some features of SCR may not be available.
 * libyogrt (optional, used for determining length of time left in the current allocation) (https://github.com/llnl/libyogrt)
 * MySQL (optional, used for logging SCR activities)
 
+On Fedora, you can install the required dependencies with:
+
+  sudo dnf groupinstall "Development Tools"
+  sudo dnf install cmake gcc-c++ mpi mpi-devel environment-modules zlib-devel pdsh
+  [restart shell]
+  module load mpi
+
 Spack
 -----
 
