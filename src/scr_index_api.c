@@ -142,8 +142,37 @@ int scr_index_read(const spath* dir, kvtree* index)
 
   /* if we can access it, read the index file */
   if (scr_file_exists(index_file) == SCR_SUCCESS) {
-    int kvtree_rc = kvtree_read_file(index_file, index);
+    kvtree* tmp = kvtree_new();
+    int kvtree_rc = kvtree_read_file(index_file, tmp);
     rc = (kvtree_rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
+
+    /* version check on file */
+    if (rc == SCR_SUCCESS) {
+      /* read version value from file */
+      int version;
+      if (kvtree_util_get_int(tmp, SCR_INDEX_KEY_VERSION, &version) == KVTREE_SUCCESS) {
+        /* got a version number, check that it's what we expect */
+        if (version == SCR_INDEX_FILE_VERSION_2) {
+          /* got the correct version, copy file contents into caller's kvtree */
+          kvtree_merge(index, tmp);
+        } else {
+          /* failed to find the version number in the file */
+          scr_err("Found file format version %d but expected %d in index file: %s @ %s:%d",
+            version, SCR_INDEX_FILE_VERSION_2, index_file, __FILE__, __LINE__
+          );
+          rc = SCR_FAILURE;
+        }
+      } else {
+        /* failed to find any version number in the file */
+        scr_err("Failed to find file format version in index file: %s @ %s:%d",
+          index_file, __FILE__, __LINE__
+        );
+        rc = SCR_FAILURE;
+      }
+
+      /* free our temporary tree */
+      kvtree_delete(&tmp);
+    }
   }
 
   /* free path and string */
@@ -164,7 +193,7 @@ int scr_index_write(const spath* dir, kvtree* index)
   /* set the index file version key if it's not set already */
   kvtree* version = kvtree_get(index, SCR_INDEX_KEY_VERSION);
   if (version == NULL) {
-    kvtree_util_set_int(index, SCR_INDEX_KEY_VERSION, SCR_INDEX_FILE_VERSION_1);
+    kvtree_util_set_int(index, SCR_INDEX_KEY_VERSION, SCR_INDEX_FILE_VERSION_2);
   }
 
   /* write out the file */

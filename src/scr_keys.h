@@ -94,6 +94,7 @@ Define common hash key strings
 #define SCR_INDEX_KEY_VERSION ("VERSION")
 
 #define SCR_INDEX_FILE_VERSION_1 (1)
+#define SCR_INDEX_FILE_VERSION_2 (2)
 #define SCR_INDEX_1_KEY_NAME      ("NAME")
 #define SCR_INDEX_1_KEY_DIR       ("DIR")
 #define SCR_INDEX_1_KEY_CKPT      ("CKPT")
