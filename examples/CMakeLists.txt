@@ -7,7 +7,7 @@ LIST(APPEND example_files
 	test_api_multiple.c
 	test_interpose.c
 	test_interpose_multiple.c
-	test_ckpt.C
+	test_ckpt.cpp
 	test_ckpt.F
 	scr.moab
 	scr_interpose.moab
@@ -70,18 +70,18 @@ ADD_EXECUTABLE(test_interpose_multiple test_common.c test_interpose_multiple.c)
 TARGET_LINK_LIBRARIES(test_interpose_multiple ${SCR_LINK_TO})
 SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank*.ckpt")
 
-ADD_EXECUTABLE(test_ckpt_C test_ckpt.C)
+ADD_EXECUTABLE(test_ckpt test_ckpt.cpp)
 IF(MPI_CXX_FOUND)
-    TARGET_INCLUDE_DIRECTORIES(test_ckpt_C PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${MPI_CXX_INCLUDE_PATH})
-    TARGET_LINK_LIBRARIES(test_ckpt_C ${SCR_LINK_TO} ${MPI_CXX_LIBRARIES})
+    TARGET_INCLUDE_DIRECTORIES(test_ckpt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${MPI_CXX_INCLUDE_PATH})
+    TARGET_LINK_LIBRARIES(test_ckpt ${SCR_LINK_TO} ${MPI_CXX_LIBRARIES})
 ELSE(MPI_CXX_FOUND)
-    TARGET_LINK_LIBRARIES(test_ckpt_C ${SCR_LINK_TO})
+    TARGET_LINK_LIBRARIES(test_ckpt ${SCR_LINK_TO})
 ENDIF(MPI_CXX_FOUND)
-SCR_ADD_TEST(test_ckpt_C "" "rank_0.ckpt")
+SCR_ADD_TEST(test_ckpt "" "rank_0.ckpt")
 
 IF(ENABLE_FORTRAN)
         SET_SOURCE_FILES_PROPERTIES(test_ckpt.F PROPERTIES LANGUAGE Fortran)
-	ADD_EXECUTABLE(test_ckpt_F test_ckpt.F)
+	    ADD_EXECUTABLE(test_ckpt_F test_ckpt.F)
         SET_TARGET_PROPERTIES(test_ckpt_F PROPERTIES LINKER_LANGUAGE Fortran)
 
         IF(SCR_LINK_STATIC)
