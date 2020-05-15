@@ -345,6 +345,9 @@ int scr_flush_init_index(scr_dataset* dataset)
       );
     }
 
+    /* clear any existing entry for this dataset */
+    scr_index_remove(index_hash, name);
+
     /* update complete flag in index file */
     int complete = 0;
     scr_index_set_dataset(index_hash, id, name, dataset, complete);
@@ -393,6 +396,9 @@ int scr_flush_complete(int id, kvtree* file_list)
           __FILE__, __LINE__
         );
       }
+
+      /* clear any existing entry for this dataset */
+      scr_index_remove(index_hash, name);
 
       /* update complete flag in index file */
       scr_index_set_dataset(index_hash, id, name, dataset, complete);
