@@ -2090,6 +2090,7 @@ int index_add(const spath* prefix, int id, int* complete_flag)
       int complete;
       if (kvtree_util_get_int(summary, SCR_SUMMARY_6_KEY_COMPLETE, &complete) == KVTREE_SUCCESS) {
         /* write values to the index file */
+        scr_index_remove(index, dataset_name);
         scr_index_set_dataset(index, id, dataset_name, dataset, complete);
         scr_index_mark_flushed(index, id, dataset_name);
         scr_index_write(prefix, index);
