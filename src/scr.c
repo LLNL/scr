@@ -422,7 +422,7 @@ static int scr_check_flush(scr_cache_index* map)
 
 /* given a dataset id and a filename,
  * return the full path to the file which the caller should use to access the file */
-static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, char* newfile, int n)
+static int scr_route_file(int id, const char* file, char* newfile, int n)
 {
   /* check that we got a file and newfile to write to */
   if (file == NULL || strcmp(file, "") == 0 || newfile == NULL) {
@@ -439,7 +439,13 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
   /* convert path string to path object */
   spath* path_file = spath_from_str(file);
 
-  if (reddesc->bypass) {
+  /* determine whether we're in bypass mode for this dataset */
+  int bypass = 0;
+  scr_cache_index_get_bypass(scr_cindex, id, &bypass);
+
+  /* if we're in bypass route file to its location in prefix directory,
+   * otherwise place it in a cache directory */
+  if (bypass) {
     /* build absolute path to file */
     if (! spath_is_absolute(path_file)) {
       /* the path is not absolute, so prepend the current working directory */
@@ -453,16 +459,16 @@ static int scr_route_file(const scr_reddesc* reddesc, int id, const char* file, 
         );
       }
     }
+
+    /* TODO: should we check path is a child in prefix here? */
   } else {
     /* lookup the cache directory for this dataset */
-    char* dir = scr_cache_dir_get(reddesc, id);
+    char* dir = NULL;
+    scr_cache_index_get_dir(scr_cindex, id, &dir);
 
     /* chop file to just the file name and prepend directory */
     spath_basename(path_file);
     spath_prepend_str(path_file, dir);
-
-    /* free the cache directory */
-    scr_free(&dir);
   }
 
   /* simplify the absolute path (removes "." and ".." entries) */
@@ -1749,7 +1755,7 @@ int SCR_Init()
    * disable fetch and enable flush_on_restart */
   if (scr_global_restart) {
     scr_flush_on_restart = 1;
-    scr_fetch = 0;
+    scr_fetch_bypass = 1;
   }
 
   /* allocate a new global filemap object */
@@ -1804,11 +1810,11 @@ int SCR_Init()
 
   /* attempt to fetch files from parallel file system */
   int fetch_attempted = 0;
-  if (rc != SCR_SUCCESS && scr_fetch) {
+  if ((rc != SCR_SUCCESS || scr_global_restart) && scr_fetch) {
     /* sets scr_dataset_id and scr_checkpoint_id upon success */
-    rc = scr_fetch_sync(scr_cindex, &fetch_attempted);
+    rc = scr_fetch_latest(scr_cindex, &fetch_attempted);
     if (scr_my_rank_world == 0) {
-      scr_dbg(2, "scr_fetch_sync attempted on restart");
+      scr_dbg(2, "scr_fetch_latest attempted on restart");
     }
   }
 
@@ -2229,7 +2235,7 @@ int SCR_Route_file(const char* file, char* newfile)
 
   /* route the file based on current redundancy descriptor */
   int n = SCR_MAX_FILENAME;
-  if (scr_route_file(scr_rd, scr_dataset_id, file, newfile, n) != SCR_SUCCESS) {
+  if (scr_route_file(scr_dataset_id, file, newfile, n) != SCR_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -2547,9 +2553,6 @@ int SCR_Start_restart(char* name)
     scr_dataset_delete(&dataset);
   }
 
-  /* set scr_rd if we have files */
-  scr_rd = scr_reddesc_for_checkpoint(scr_checkpoint_id, scr_nreddescs, scr_reddescs);
-
   return SCR_SUCCESS;
 }
 
@@ -2576,9 +2579,6 @@ int SCR_Complete_restart(int valid)
     );
     return SCR_FAILURE;
   }
-
-  /* set redundancy descriptor back to NULL */
-  scr_rd = NULL;
 
   /* turn off our restart flag */
   scr_have_restart = 0;
@@ -2693,7 +2693,7 @@ int SCR_Complete_restart(int valid)
     if (!found_checkpoint && scr_fetch) {
       /* sets scr_dataset_id and scr_checkpoint_id upon success */
       int fetch_attempted = 0;
-      int fetch_rc = scr_fetch_sync(scr_cindex, &fetch_attempted);
+      int fetch_rc = scr_fetch_latest(scr_cindex, &fetch_attempted);
     }
 
     /* set flag depending on whether checkpoint_id is greater than 0,

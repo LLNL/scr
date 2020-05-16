@@ -137,6 +137,11 @@
 #define SCR_FETCH_WIDTH (256)
 #endif
 
+/* whether to use implied bypass on fetch to read files from file system rather than actually copy to cache */
+#ifndef SCR_FETCH_BYPASS
+#define SCR_FETCH_BYPASS (0)
+#endif
+
 /* set to 0 to disable flush, set to a positive number to set how many checkpoints between flushes */
 #ifndef SCR_FLUSH
 #define SCR_FLUSH (10)

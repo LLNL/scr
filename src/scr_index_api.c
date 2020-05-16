@@ -294,16 +294,12 @@ int scr_index_remove(kvtree* index, const char* name)
       }
     }
 
-    /* write out the new index file */
     return SCR_SUCCESS;
   } else {
     /* drop index from current if it matches */
     kvtree_unset_kv(index, SCR_INDEX_1_KEY_CURRENT, name);
 
-    /* couldn't find the named dataset, print an error */
-    scr_err("Named dataset was not found in index file: %s @ %s:%d",
-      name, __FILE__, __LINE__
-    );
+    /* couldn't find the named dataset, return an error */
     return SCR_FAILURE;
   }
 }

@@ -227,9 +227,6 @@ int scr_cache_rebuild(scr_cache_index* cindex)
         scr_dataset* dataset = scr_dataset_new();
         scr_cache_index_get_dataset(cindex, current_id, dataset);
 
-        /* determine whether this is an output dataset */
-        int is_output = scr_dataset_is_output(dataset);
-
         /* get and recreate directory from cindex */
         char* path;
         if (scr_distribute_dir(cindex, current_id, &path) == SCR_SUCCESS) {
@@ -285,6 +282,7 @@ int scr_cache_rebuild(scr_cache_index* cindex)
         }
 
         /* remember if we fail to rebuild an output set */
+        int is_output = scr_dataset_is_output(dataset);
         if (!rebuild_succeeded && is_output) {
           output_failed_rebuild = 1;
         }
