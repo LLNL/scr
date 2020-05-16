@@ -2323,6 +2323,11 @@ int SCR_Route_file(const char* file, char* newfile)
     /* delete the meta data object */
     scr_meta_delete(&meta);
   } else {
+    /* if user specified path to file within prefix, return */
+    if (scr_file_is_readable(newfile) == SCR_SUCCESS) {
+      return SCR_SUCCESS;
+    }
+
     /* TODO: To support backwards compatibility, the user is allowed
      * to pass just the file name with no path component during restart.
      * This means that they cannot have two files in the same checkpoint
