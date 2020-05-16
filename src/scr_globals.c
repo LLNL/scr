@@ -107,6 +107,7 @@ int scr_halt_enabled     = SCR_HALT_ENABLED; /* whether SCR will exit job if hal
 int scr_distribute       = SCR_DISTRIBUTE;       /* whether to call scr_distribute_files during SCR_Init */
 int scr_fetch            = SCR_FETCH;            /* whether to call scr_fetch_files during SCR_Init */
 int scr_fetch_width      = SCR_FETCH_WIDTH;      /* specify number of processes to read files simultaneously */
+int scr_fetch_bypass     = SCR_FETCH_BYPASS;     /* whether to use implied bypass mode on fetch */
 int scr_flush            = SCR_FLUSH;            /* how many checkpoints between flushes */
 int scr_flush_width      = SCR_FLUSH_WIDTH;      /* specify number of processes to write files simultaneously */
 int scr_flush_on_restart = SCR_FLUSH_ON_RESTART; /* specify whether to flush cache on restart */

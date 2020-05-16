@@ -163,6 +163,7 @@ extern int scr_halt_enabled; /* whether SCR will exit job if halt condition is d
 extern int scr_distribute;       /* whether to call scr_distribute_files during SCR_Init */
 extern int scr_fetch;            /* whether to call scr_fetch_files during SCR_Init */
 extern int scr_fetch_width;      /* specify number of processes to read files simultaneously */
+extern int scr_fetch_bypass;     /* whether to use implied bypass on fetch operations */
 extern int scr_flush;            /* how many checkpoints between flushes */
 extern int scr_flush_width;      /* specify number of processes to write files simultaneously */
 extern int scr_flush_on_restart; /* specify whether to flush cache on restart */

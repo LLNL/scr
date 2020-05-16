@@ -13,6 +13,9 @@
 #define SCR_FETCH_H
 
 /* attempt to fetch most recent checkpoint from prefix directory into cache */
-int scr_fetch_sync(scr_filemap* map, int* fetch_attempted);
+int scr_fetch_latest(scr_filemap* map, int* fetch_attempted);
+
+/* fetch files from given dataset from parallel file system */
+int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, int* dataset_id, int* checkpoint_id);
 
 #endif

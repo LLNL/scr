@@ -242,15 +242,15 @@ static int scr_fetch_data(
   return rc;
 }
 
-/* fetch files from parallel file system */
-static int scr_fetch_files(
+/* fetch files from given dataset from parallel file system */
+int scr_fetch_dset(
   scr_cache_index* cindex,
   int dset_id,
   const char* dset_name,
   int* dataset_id,
   int* checkpoint_id)
 {
-  /* get fetch directory as string */
+  /* get path to dataset metadata directory in prefix as string */
   spath* path = spath_from_str(scr_prefix_scr);
   spath_append_strf(path, "scr.dataset.%d", dset_id);
   char* fetch_dir = spath_strdup(path);
@@ -283,7 +283,7 @@ static int scr_fetch_files(
   /* allocate a new hash to get a list of files to fetch */
   kvtree* summary_hash = kvtree_new();
 
-  /* read the summary file */
+  /* read the summary file for this dataset */
   if (scr_fetch_summary(fetch_dir, summary_hash) != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
       scr_dbg(1, "Failed to read summary file @ %s:%d", __FILE__, __LINE__);
@@ -343,25 +343,37 @@ static int scr_fetch_files(
   /* store dataset in cache index */
   scr_cache_index_set_dataset(cindex, id, dataset);
 
-  /* get the redundancy descriptor for this id */
-  scr_reddesc* c = scr_reddesc_for_checkpoint(ckpt_id, scr_nreddescs, scr_reddescs);
+  /* get the redundancy descriptor we'd normally use for this checkpoint id */
+  scr_reddesc* ckpt_rd = scr_reddesc_for_checkpoint(ckpt_id, scr_nreddescs, scr_reddescs);
+
+  /* make a copy of the descriptor so we can tweak its settings for bypass */
+  scr_reddesc rd;
+  scr_reddesc* c = &rd;
+  kvtree* rd_hash = kvtree_new();
+  scr_reddesc_init(c);
+  scr_reddesc_store_to_hash(ckpt_rd, rd_hash);
+  scr_reddesc_create_from_hash(c, -1, rd_hash);
+  kvtree_delete(&rd_hash);
+
+  /* use bypass on fetch if told to do so */
+  if (scr_fetch_bypass) {
+    c->bypass = 1;
+  }
 
   /* record bypass property in cache index*/
   scr_cache_index_set_bypass(cindex, id, c->bypass);
 
+  /* get the name of the cache directory */
+  char* cache_dir = scr_cache_dir_get(c, id);
+
   /* store the name of the directory we're about to create */
-  const char* dir = scr_cache_dir_get(c, id);
-  scr_cache_index_set_dir(scr_cindex, id, dir);
-  scr_free(&dir);
+  scr_cache_index_set_dir(scr_cindex, id, cache_dir);
 
   /* write the cache index out before creating the directory */
   scr_cache_index_write(scr_cindex_file, cindex);
 
   /* create the cache directory */
   scr_cache_dir_create(c, id);
-
-  /* get the cache directory */
-  char* cache_dir = scr_cache_dir_get(c, id);
 
   /* we fetch into the cache directory, but we use NULL to indicate
    * that we're in bypass mode and shouldn't actually transfer files */
@@ -398,6 +410,10 @@ static int scr_fetch_files(
         scr_log_event("FETCH FAILED", fetch_dir, &id, &now, &time_diff);
       }
     }
+
+    /* free our temporary fetch redudancy descriptor */
+    scr_reddesc_free(c);
+
     scr_free(&fetch_dir);
     return SCR_FAILURE;
   }
@@ -429,13 +445,16 @@ static int scr_fetch_files(
   /* free filemap object */
   scr_filemap_delete(&map);
 
+  /* free our temporary fetch redudancy descriptor */
+  scr_reddesc_free(c);
+
   /* stop timer, compute bandwidth, and report performance */
   double total_bytes = bytes_copied;
   if (scr_my_rank_world == 0) {
     double time_end = MPI_Wtime();
     double time_diff = time_end - time_start;
     double bw = total_bytes / (1024.0 * 1024.0 * time_diff);
-    scr_dbg(1, "scr_fetch_files: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
+    scr_dbg(1, "scr_fetch_dset: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
       time_diff, total_bytes, bw, bw/scr_ranks_world
     );
 
@@ -465,7 +484,7 @@ static int scr_fetch_files(
 /* attempt to fetch most recent checkpoint from prefix directory into
  * cache, fills in map if successful and sets fetch_attempted to 1 if
  * any fetch is attempted, returns SCR_SUCCESS if successful */
-int scr_fetch_sync(scr_cache_index* cindex, int* fetch_attempted)
+int scr_fetch_latest(scr_cache_index* cindex, int* fetch_attempted)
 {
   /* we only return success if we successfully fetch a checkpoint */
   int rc = SCR_FAILURE;
@@ -557,7 +576,7 @@ int scr_fetch_sync(scr_cache_index* cindex, int* fetch_attempted)
     if (strcmp(target, "") != 0) {
       /* got something, attempt to fetch the checkpoint */
       int dset_id, ckpt_id;
-      rc = scr_fetch_files(cindex, target_id, target, &dset_id, &ckpt_id);
+      rc = scr_fetch_dset(cindex, target_id, target, &dset_id, &ckpt_id);
       if (rc == SCR_SUCCESS) {
         /* set the dataset and checkpoint ids */
         scr_dataset_id    = dset_id;
@@ -603,7 +622,7 @@ int scr_fetch_sync(scr_cache_index* cindex, int* fetch_attempted)
   if (scr_my_rank_world == 0) {
     time_end = MPI_Wtime();
     time_diff = time_end - time_start;
-    scr_dbg(1, "scr_fetch_files: return code %d, %f secs", rc, time_diff);
+    scr_dbg(1, "scr_fetch_latest: return code %d, %f secs", rc, time_diff);
   }
 
   return rc;
