@@ -15,7 +15,8 @@
 /* attempt to fetch most recent checkpoint from prefix directory into cache */
 int scr_fetch_latest(scr_filemap* map, int* fetch_attempted);
 
-/* fetch files from given dataset from parallel file system */
-int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, int* dataset_id, int* checkpoint_id);
+/* fetch files from given dataset id and name from parallel file system,
+ * return its checkpoint id */
+int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, int* checkpoint_id);
 
 #endif
