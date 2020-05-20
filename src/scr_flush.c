@@ -15,10 +15,6 @@
 #include "kvtree.h"
 #include "kvtree_util.h"
 
-#ifdef HAVE_LIBDTCMP
-#include "dtcmp.h"
-#endif /* HAVE_LIBDTCMP */
-
 /*
 =========================================
 Prepare for flush by building list of files, creating directories,
