@@ -32,11 +32,7 @@
 
 #include "scr_globals.h"
 
-/* include the DTCMP library if it's available */
-#ifdef HAVE_LIBDTCMP
 #include "dtcmp.h"
-#endif /* HAVE_LIBDTCMP */
-
 #include "er.h"
 #include "filo.h"
 
@@ -1173,6 +1169,121 @@ static int scr_start_output(const char* name, int flags)
   return SCR_SUCCESS;
 }
 
+/* detect files that have been registered by more than one process,
+ * drop filemap entries from all but one process */
+static int scr_assign_ownership(scr_filemap* map, int bypass)
+{
+  int rc = SCR_SUCCESS;
+
+  /* allocate buffers to hold index info for each file */
+  int count = scr_filemap_num_files(map);
+  char**    mapfiles    = (char**)    SCR_MALLOC(sizeof(char*)    * count);
+  char**    filelist    = (char**)    SCR_MALLOC(sizeof(char*)    * count);
+  uint64_t* group_id    = (uint64_t*) SCR_MALLOC(sizeof(uint64_t) * count);
+  uint64_t* group_ranks = (uint64_t*) SCR_MALLOC(sizeof(uint64_t) * count);
+  uint64_t* group_rank  = (uint64_t*) SCR_MALLOC(sizeof(uint64_t) * count);
+
+  /* build list of files with their full path under prefix directory */
+  int i = 0;
+  kvtree_elem* elem;
+  for (elem = scr_filemap_first_file(map);
+       elem != NULL;
+       elem = kvtree_elem_next(elem))
+  {
+    /* get the filename */
+    char* file = kvtree_elem_key(elem);
+
+    /* make a copy of the file name,
+     * we need this string to potentially remove it later */
+    mapfiles[i] = strdup(file);
+
+    /* get metadata for this file from file map */
+    scr_meta* meta = scr_meta_new();
+    scr_filemap_get_meta(map, file, meta);
+
+    /* get the directory to the file in the prefix directory */
+    char* origpath;
+    if (scr_meta_get_origpath(meta, &origpath) != SCR_SUCCESS) {
+    }
+
+    /* get the name of the file in the prefix directory */
+    char* origname;
+    if (scr_meta_get_origname(meta, &origname) != SCR_SUCCESS) {
+    }
+
+    /* build full path for file in prefix dir */
+    spath* path = spath_from_str(origpath);
+    spath_append_str(path, origname);
+    filelist[i] = spath_strdup(path);
+    spath_delete(&path);
+
+    /* free meta data */
+    scr_meta_delete(&meta);
+
+    /* move on to the next file */
+    i++;
+  }
+
+  /* identify the set of unique files across all ranks */
+  uint64_t groups;
+  int dtcmp_rc = DTCMP_Rankv_strings(
+    count, filelist, &groups, group_id, group_ranks, group_rank,
+    DTCMP_FLAG_NONE, scr_comm_world
+  );
+  if (dtcmp_rc != DTCMP_SUCCESS) {
+    rc = SCR_FAILURE;
+  }
+
+  /* keep rank 0 for each file as its owner, remove any entry from the filemap
+   * for which we are not rank 0 */
+  int multiple_owner = 0;
+  for (i = 0; i < count; i++) {
+    /* check whether this file exists on multiple ranks */
+    if (group_ranks[i] > 1) {
+      /* found the same file on more than one rank */
+      multiple_owner = 1;
+
+      /* print error if we're not in bypass */
+      if (! bypass) {
+        scr_err("Multiple procs registered file while not in bypass mode: `%s' @ %s:%d",
+          filelist[i], __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* only keep entry for this file in filemap if we're the
+     * first rank in the set of ranks that have this file */
+    if (group_rank[i] != 0) {
+      scr_filemap_remove_file(map, mapfiles[i]);
+    }
+  }
+
+  /* fatal error if any file is on more than one rank and not in bypass */
+  int any_multiple_owner = 0;
+  MPI_Allreduce(&multiple_owner, &any_multiple_owner, 1, MPI_INT, MPI_LOR, scr_comm_world);
+  if (any_multiple_owner && !bypass) {
+    scr_abort(-1, "Shared file access detected while not in bypass mode @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* free dtcmp buffers */
+  scr_free(&group_id);
+  scr_free(&group_ranks);
+  scr_free(&group_rank);
+
+  /* free list of file names */
+  for (i = 0; i < count; i++) {
+    scr_free(&mapfiles[i]);
+    scr_free(&filelist[i]);
+  }
+  scr_free(&mapfiles);
+  scr_free(&filelist);
+
+  /* determine whether all leaders successfully created their directories */
+  return rc;
+}
+
 /* end phase for current output dataset */
 static int scr_complete_output(int valid)
 {
@@ -1186,6 +1297,14 @@ static int scr_complete_output(int valid)
 
   /* assume we'll succeed */
   int rc = SCR_SUCCESS;
+
+  /* When using bypass mode, we allow different procs to write to the same file,
+   * in which case, both should have registered the file in Route_file and thus
+   * have an entry in the file map.  The proper thing to do here is to list the
+   * set of ranks that share a file, however, that requires fixing up lots of
+   * other parts of the code.  For now, ensure that at most one file lists the
+   * file in their file map. */
+  rc = scr_assign_ownership(scr_map, scr_rd->bypass);
 
   /* count number of files, number of bytes, and record filesize for each file
    * as written by this process */
@@ -1407,7 +1526,6 @@ int SCR_Init()
     return SCR_FAILURE;
   }
 
-#ifdef HAVE_LIBDTCMP
   /* initialize the DTCMP library for sorting and ranking routines
    * if we're using it */
   int dtcmp_rc = DTCMP_Init();
@@ -1416,7 +1534,6 @@ int SCR_Init()
       __FILE__, __LINE__
     );
   }
-#endif /* HAVE_LIBDTCMP */
 
   /* initialize ER for encode/rebuild */
   int er_rc = ER_Init(NULL);
@@ -1470,7 +1587,6 @@ int SCR_Init()
      * need to free it here */
     MPI_Comm_free(&scr_comm_world);
 
-  #ifdef HAVE_LIBDTCMP
     /* shut down the DTCMP library if we're using it */
     int dtcmp_rc = DTCMP_Finalize();
     if (dtcmp_rc != DTCMP_SUCCESS) {
@@ -1478,7 +1594,6 @@ int SCR_Init()
         __FILE__, __LINE__
       );
     }
-  #endif /* HAVE_LIBDTCMP */
 
     /* shut down the ER library */
     int er_rc = ER_Finalize();
@@ -1997,7 +2112,6 @@ int SCR_Finalize()
   /* we're no longer in an initialized state */
   scr_initialized = 0;
 
-#ifdef HAVE_LIBDTCMP
   /* shut down the DTCMP library if we're using it */
   int dtcmp_rc = DTCMP_Finalize();
   if (dtcmp_rc != DTCMP_SUCCESS) {
@@ -2005,7 +2119,6 @@ int SCR_Finalize()
       __FILE__, __LINE__
     );
   }
-#endif /* HAVE_LIBDTCMP */
 
   /* shut down the ER library */
   int er_rc = ER_Finalize();
