@@ -165,7 +165,7 @@ const char* scr_param_get(const char* name)
   value = kvtree_elem_get_first_val(scr_app_hash, name);
   if (value != NULL) {
     /* evaluate environment variables */
-    if(*value == '$'){
+    if(strchr(value, '$')){
       value = expand_env(value);
     }
     return value;
