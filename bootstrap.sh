@@ -13,6 +13,16 @@ INSTALL_DIR=$ROOT/install
 
 cd deps
 
+lwgrp=lwgrp-1.0.2
+dtcmp=dtcmp-1.0.3
+
+if [ ! -f ${lwgrp}.tar.gz ] ; then
+  wget https://github.com/hpc/lwgrp/releases/download/v1.0.2/${lwgrp}.tar.gz
+fi
+if [ ! -f ${dtcmp}.tar.gz ] ; then
+  wget https://github.com/hpc/dtcmp/releases/download/v1.0.3/${dtcmp}.tar.gz
+fi
+
 repos=(https://github.com/ECP-Veloc/KVTree.git
     https://github.com/ECP-Veloc/AXL.git
     https://github.com/ECP-Veloc/spath.git
@@ -36,6 +46,33 @@ for i in "${repos[@]}" ; do
 		fi
 	fi
 done
+
+rm -rf ${lwgrp}
+tar -zxf ${lwgrp}.tar.gz
+pushd ${lwgrp}
+  ./configure CFLAGS="-g -O0" \
+    --prefix=${INSTALL_DIR} && \
+  make && \
+  make install
+  if [ $? -ne 0 ]; then
+    echo "failed to configure, build, or install liblwgrp"
+    exit 1
+  fi
+popd
+
+rm -rf ${dtcmp}
+tar -zxf ${dtcmp}.tar.gz
+pushd ${dtcmp}
+  ./configure CFLAGS="-g -O0" \
+    --prefix=${INSTALL_DIR} \
+    --with-lwgrp=${INSTALL_DIR} && \
+  make && \
+  make install
+  if [ $? -ne 0 ]; then
+    echo "failed to configure, build, or install libdtcmp"
+    exit 1
+  fi
+popd
 
 cd KVTree
 mkdir -p build && cd build
