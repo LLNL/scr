@@ -172,16 +172,16 @@ sub get
   my $self = shift;
   my $name = shift;
 
-  # if param was set by the code, return that value
-  if (defined $self->{appconf}{$name}) {
-    my $first = (keys %{$self->{appconf}{$name}})[0];
-    return $first;
-  }
-
   # if param is set in environment, return that value
   if (not defined $self->{no_user}{$name} and defined $ENV{$name}) {
     my $value = interpolate_variables($ENV{$name});
     return $value;
+  }
+
+  # if param was set by the code, return that value
+  if (defined $self->{appconf}{$name}) {
+    my $first = (keys %{$self->{appconf}{$name}})[0];
+    return $first;
   }
 
   # otherwise, check whether we have it defined in our user config file
