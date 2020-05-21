@@ -161,16 +161,6 @@ const char* scr_param_get(const char* name)
 {
   char* value = NULL;
 
-  /* see if this parameter is one which has been set by the application */
-  value = kvtree_elem_get_first_val(scr_app_hash, name);
-  if (value != NULL) {
-    /* evaluate environment variables */
-    if(strchr(value, '$')){
-      value = expand_env(value);
-    }
-    return value;
-  }
-
   /* see if this parameter is one which is restricted from user */
   kvtree* no_user = kvtree_get(scr_no_user_hash, name);
 
@@ -196,6 +186,16 @@ const char* scr_param_get(const char* name)
       }
     }
 
+    return value;
+  }
+
+  /* see if this parameter is one which has been set by the application */
+  value = kvtree_elem_get_first_val(scr_app_hash, name);
+  if (value != NULL) {
+    /* evaluate environment variables */
+    if(strchr(value, '$')){
+      value = expand_env(value);
+    }
     return value;
   }
 
@@ -232,6 +232,19 @@ const kvtree* scr_param_get_hash(const char* name)
   kvtree* hash = NULL;
   kvtree* value_hash = NULL;
 
+  /* see if this parameter is one which is restricted from user */
+  kvtree* no_user = kvtree_get(scr_no_user_hash, name);
+
+  /* if parameter is set in environment, return that value */
+  if (no_user == NULL && getenv(name) != NULL) {
+    /* TODO: need to strdup here to be safe? */
+    hash = kvtree_new();
+    char* tmp_value = expand_env(getenv(name));
+    kvtree_set(hash, tmp_value, kvtree_new());
+    scr_free(&tmp_value);
+    return hash;
+  }
+
   /* see if this parameter is one which has been set by the application */
   value_hash = kvtree_get(scr_app_hash, name);
   if (value_hash != NULL) {
@@ -251,19 +264,6 @@ const kvtree* scr_param_get_hash(const char* name)
     /* return the resulting hash */
     hash = kvtree_new();
     kvtree_merge(hash, value_hash);
-    return hash;
-  }
-
-  /* see if this parameter is one which is restricted from user */
-  kvtree* no_user = kvtree_get(scr_no_user_hash, name);
-
-  /* if parameter is set in environment, return that value */
-  if (no_user == NULL && getenv(name) != NULL) {
-    /* TODO: need to strdup here to be safe? */
-    hash = kvtree_new();
-    char* tmp_value = expand_env(getenv(name));
-    kvtree_set(hash, tmp_value, kvtree_new());
-    scr_free(&tmp_value);
     return hash;
   }
 
