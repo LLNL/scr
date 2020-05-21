@@ -1950,7 +1950,7 @@ int SCR_Init()
 
     scr_param_app_hash_write_file(app_config);
 
-    free(app_config);
+    scr_free(&app_config);
   }
 
   /* done with parameters, can release the data structures now,
