@@ -187,6 +187,39 @@ int scr_cache_rebuild(scr_cache_index* cindex)
   /* clean any incomplete files from our cache */
   //scr_cache_clean(cindex);
 
+  /* set the current marker to the value held on the lowest rank
+   * that has a value */
+  int source_rank = scr_ranks_world;
+  char* current_name = NULL;
+  char* current_tmp;
+  if (scr_cache_index_get_current(cindex, &current_tmp) == SCR_SUCCESS) {
+    /* we have a current marker, make a copy of its value */
+    source_rank = scr_my_rank_world;
+    current_name = strdup(current_tmp);
+  }
+
+  /* determine min rank that has a value, if any */
+  int min_rank;
+  MPI_Allreduce(&source_rank, &min_rank, 1, MPI_INT, MPI_MIN, scr_comm_world);
+
+  /* if any rank has a value, bcast value from that rank,
+   * and set value consistently on all nodes */
+  if (min_rank < scr_ranks_world) {
+    /* if we're not bcasting the string, free our copy if we have one,
+     * we'll get a new copy from the bcast */
+    if (scr_my_rank_world != min_rank) {
+      scr_free(&current_name);
+    }
+
+    /* bcast the current value from the minimum rank */
+    scr_str_bcast(&current_name, min_rank, scr_comm_world);
+
+    /* set current marker in our cache index */
+    scr_cache_index_set_current(cindex, current_name);
+    scr_cache_index_write(scr_cindex_file, cindex);
+  }
+  scr_free(&current_name);
+
   /* get ordered list of datasets we have in our cache */
   int ndsets;
   int* dsets;
