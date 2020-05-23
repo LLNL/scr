@@ -160,14 +160,15 @@ extern size_t scr_file_buf_size; /* set buffer size to chunk file copies to/from
 extern int scr_halt_seconds; /* secs remaining in allocation before job should be halted */
 extern int scr_halt_enabled; /* whether SCR will exit job if halt condition is detected */
 
-extern int scr_distribute;       /* whether to call scr_distribute_files during SCR_Init */
-extern int scr_fetch;            /* whether to call scr_fetch_files during SCR_Init */
-extern int scr_fetch_width;      /* specify number of processes to read files simultaneously */
-extern int scr_fetch_bypass;     /* whether to use implied bypass on fetch operations */
-extern int scr_flush;            /* how many checkpoints between flushes */
-extern int scr_flush_width;      /* specify number of processes to write files simultaneously */
-extern int scr_flush_on_restart; /* specify whether to flush cache on restart */
-extern int scr_global_restart;   /* set if code must be restarted from parallel file system */
+extern int   scr_distribute;       /* whether to call scr_distribute_files during SCR_Init */
+extern int   scr_fetch;            /* whether to call scr_fetch_files during SCR_Init */
+extern int   scr_fetch_width;      /* specify number of processes to read files simultaneously */
+extern int   scr_fetch_bypass;     /* whether to use implied bypass on fetch operations */
+extern char* scr_fetch_current;    /* specify name of checkpoint to start with in fetch_latest */
+extern int   scr_flush;            /* how many checkpoints between flushes */
+extern int   scr_flush_width;      /* specify number of processes to write files simultaneously */
+extern int   scr_flush_on_restart; /* specify whether to flush cache on restart */
+extern int   scr_global_restart;   /* set if code must be restarted from parallel file system */
 
 extern int scr_flush_async;             /* whether to use asynchronous flush */
 extern double scr_flush_async_bw;       /* bandwidth limit imposed during async flush */

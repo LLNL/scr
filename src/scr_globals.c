@@ -104,14 +104,15 @@ size_t scr_file_buf_size = SCR_FILE_BUF_SIZE; /* set buffer size to chunk file c
 int scr_halt_seconds     = SCR_HALT_SECONDS; /* secs remaining in allocation before job should be halted */
 int scr_halt_enabled     = SCR_HALT_ENABLED; /* whether SCR will exit job if halt condition is detected */
 
-int scr_distribute       = SCR_DISTRIBUTE;       /* whether to call scr_distribute_files during SCR_Init */
-int scr_fetch            = SCR_FETCH;            /* whether to call scr_fetch_files during SCR_Init */
-int scr_fetch_width      = SCR_FETCH_WIDTH;      /* specify number of processes to read files simultaneously */
-int scr_fetch_bypass     = SCR_FETCH_BYPASS;     /* whether to use implied bypass mode on fetch */
-int scr_flush            = SCR_FLUSH;            /* how many checkpoints between flushes */
-int scr_flush_width      = SCR_FLUSH_WIDTH;      /* specify number of processes to write files simultaneously */
-int scr_flush_on_restart = SCR_FLUSH_ON_RESTART; /* specify whether to flush cache on restart */
-int scr_global_restart   = SCR_GLOBAL_RESTART;   /* set if code must be restarted from parallel file system */
+int   scr_distribute       = SCR_DISTRIBUTE;       /* whether to call scr_distribute_files during SCR_Init */
+int   scr_fetch            = SCR_FETCH;            /* whether to call scr_fetch_files during SCR_Init */
+int   scr_fetch_width      = SCR_FETCH_WIDTH;      /* specify number of processes to read files simultaneously */
+int   scr_fetch_bypass     = SCR_FETCH_BYPASS;     /* whether to use implied bypass mode on fetch */
+char* scr_fetch_current    = NULL;                 /* name of checkpoint to start with during fetch */
+int   scr_flush            = SCR_FLUSH;            /* how many checkpoints between flushes */
+int   scr_flush_width      = SCR_FLUSH_WIDTH;      /* specify number of processes to write files simultaneously */
+int   scr_flush_on_restart = SCR_FLUSH_ON_RESTART; /* specify whether to flush cache on restart */
+int   scr_global_restart   = SCR_GLOBAL_RESTART;   /* set if code must be restarted from parallel file system */
 
 int    scr_flush_async             = SCR_FLUSH_ASYNC;         /* whether to use asynchronous flush */
 double scr_flush_async_bw          = SCR_FLUSH_ASYNC_BW;      /* bandwidth limit imposed during async flush */

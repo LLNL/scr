@@ -491,6 +491,44 @@ int scr_fetch_latest(scr_cache_index* cindex, int* fetch_attempted)
     continue_fetching = 0;
   }
 
+  /* TODO: move this logic from scr_fetch to scr_init? */
+  /* if user has set SCR_CURRENT, then update current marker for them
+   * in the index file */
+  if (scr_fetch_current != NULL) {
+    /* check that current marker doesn't already exist, we set this marker
+     * after we process the SCR_CURRENT value so that we don't keep resetting
+     * the current marker in later runs after we have written out more checkpoints  */
+    char* current_name;
+    if (scr_cache_index_get_current(cindex, &current_name) == SCR_FAILURE) {
+      /* there is no current marker in cache, so let's process the SCR_CURRENT
+       * request and update the current maker in the index file in the prefix directory */
+      if (scr_my_rank_world == 0) {
+        /* first lookup this name to verify it exists */
+        int dset_id = -1;
+        scr_index_get_id_by_name(index_hash, scr_fetch_current, &dset_id);
+        if (dset_id != -1) {
+          /* found it, mark it as current and update index file */
+          scr_index_set_current(index_hash, scr_fetch_current);
+          scr_index_write(scr_prefix_path, index_hash);
+        } else {
+          /* checkpoint user named isn't in index file,
+           * print a warning and keep going */
+          scr_warn("Checkpoint named in SCR_CURRENT does not exist in index file: `%s' @ %s:%d",
+            scr_fetch_current, __FILE__, __LINE__
+          );
+        }
+      }
+
+      /* record current marker on each node to not do this again */
+      scr_cache_index_set_current(cindex, scr_fetch_current);
+      scr_cache_index_write(scr_cindex_file, cindex);
+    }
+
+    /* forget this value so that if we call fetch_latest again
+     * we don't apply this setting again */
+    scr_free(&scr_fetch_current);
+  }
+
   /* now start fetching, we keep trying until we exhaust all valid
    * checkpoints */
   char target[SCR_MAX_FILENAME];

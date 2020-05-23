@@ -770,6 +770,11 @@ static int scr_get_params()
     scr_fetch_width = atoi(value);
   }
 
+  /* allow user to specify checkpoint to start with on fetch */
+  if ((value = scr_param_get("SCR_CURRENT")) != NULL) {
+    scr_fetch_current = strdup(value);
+  }
+
   /* specify how often we should flush files */
   if ((value = scr_param_get("SCR_FLUSH")) != NULL) {
     scr_flush = atoi(value);
@@ -2091,6 +2096,7 @@ int SCR_Finalize()
   }
 
   /* free memory allocated for variables */
+  scr_free(&scr_fetch_current);
   scr_free(&scr_username);
   scr_free(&scr_jobid);
   scr_free(&scr_jobname);
