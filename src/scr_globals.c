@@ -91,15 +91,15 @@ int scr_enabled       = SCR_ENABLE;     /* indicates whether the library is enab
 int scr_debug         = SCR_DEBUG;      /* set debug verbosity */
 int scr_page_size     = 0;              /* records block size for aligning MPI and file buffers */
 
-int scr_log_enable        = SCR_LOG_ENABLE; /* whether to log SCR events at all */
-int scr_log_txt_enable    = 1;              /* whether to log SCR events to text file */
-int scr_log_syslog_enable = 0;              /* whether to log SCR events to syslog */
-int scr_log_db_enable     = 0;              /* whether to log SCR events to database */
-int scr_log_db_debug      = 0;              /* debug level for logging to database */
-char* scr_log_db_host     = NULL;           /* mysql host name */
-char* scr_log_db_user     = NULL;           /* mysql user name */
-char* scr_log_db_pass     = NULL;           /* mysql password */
-char* scr_log_db_name     = NULL;           /* mysql database name */
+int scr_log_enable        = SCR_LOG_ENABLE;        /* whether to log SCR events at all */
+int scr_log_txt_enable    = SCR_LOG_TXT_ENABLE;    /* whether to log SCR events to text file */
+int scr_log_syslog_enable = SCR_LOG_SYSLOG_ENABLE; /* whether to log SCR events to syslog */
+int scr_log_db_enable     = 0;                     /* whether to log SCR events to database */
+int scr_log_db_debug      = 0;                     /* debug level for logging to database */
+char* scr_log_db_host     = NULL;                  /* mysql host name */
+char* scr_log_db_user     = NULL;                  /* mysql user name */
+char* scr_log_db_pass     = NULL;                  /* mysql password */
+char* scr_log_db_name     = NULL;                  /* mysql database name */
 
 int scr_cache_size    = SCR_CACHE_SIZE;   /* set number of checkpoints to keep at one time */
 int scr_copy_type     = SCR_COPY_TYPE;    /* select which redundancy algorithm to use */
@@ -140,14 +140,6 @@ double scr_checkpoint_overhead = SCR_CHECKPOINT_OVERHEAD; /* max allowed overhea
 int    scr_need_checkpoint_count = 0;   /* tracks the number of times Need_checkpoint has been called */
 double scr_time_checkpoint_total = 0.0; /* keeps a running total of the time spent to checkpoint */
 int    scr_time_checkpoint_count = 0;   /* keeps a running count of the number of checkpoints taken */
-
-time_t scr_timestamp_checkpoint_start;  /* record timestamp of start of checkpoint */
-double scr_time_checkpoint_start;       /* records the start time of the current checkpoint */
-double scr_time_checkpoint_end;         /* records the end time of the current checkpoint */
-
-time_t scr_timestamp_compute_start;     /* record timestamp of start of compute phase */
-double scr_time_compute_start;          /* records the start time of the current compute phase */
-double scr_time_compute_end;            /* records the end time of the current compute phase */
 
 char* scr_my_hostname  = NULL; /* hostname of local process */
 int   scr_my_hostid    = MPI_PROC_NULL; /* unique identifier of the node on which this rank resides */

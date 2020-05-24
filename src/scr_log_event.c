@@ -35,12 +35,14 @@ struct arglist {
   char*  prefix;
   char*  username;
   char*  jobname;
+  char*  jobid;
   time_t start;
 
   int     event;
   char*   event_type;
   char*   event_note;
   int*    event_dset;
+  char*   event_name;
   time_t* event_start;
   double* event_secs;
 };
@@ -60,11 +62,13 @@ void print_usage()
   printf("  -p <prefix>    Prefix directory\n");
   printf("  -u <username>  Username of job owner, reads $USER if not specified\n");
   printf("  -j <jobname>   Job name of job, reads $SCR_JOB_NAME if not specified\n");
+  printf("  -i <jobid>     Job id\n");
   printf("  -s <seconds>   Job start time, uses current UNIX timestamp if not specified\n");
   printf("\n");
   printf("  -T <type>      Event type (string)\n");
   printf("  -N <note>      Note (string)\n");
   printf("  -D <id>        Dataset id (integer)\n");
+  printf("  -n <name>      Dataset name (string)\n");
   printf("  -S <start>     Event start time as UNIX timestamp (integer)\n");
   printf("  -L <duration>  Duration in seconds (integer)\n");
   printf("\n");
@@ -81,12 +85,14 @@ int processArgs(int argc, char **argv, struct arglist* args)
   args->prefix   = NULL;
   args->username = NULL;
   args->jobname  = NULL;
+  args->jobid    = NULL;
   args->start    = 0;
 
   args->event             = 0;
   args->event_type        = NULL;
   args->event_note        = NULL;
   args->event_dset        = NULL;
+  args->event_name        = NULL;
   args->event_start       = NULL;
   args->event_secs        = NULL;
 
@@ -107,7 +113,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
       }
 
       /* single argument parameters */
-      if (strchr("pujsTNDSL", flag)) {
+      if (strchr("pujisTNDnSL", flag)) {
         switch(flag) {
         case 'p':
           args->prefix = strdup(argptr);
@@ -117,6 +123,9 @@ int processArgs(int argc, char **argv, struct arglist* args)
           break;
         case 'j':
           args->jobname = strdup(argptr);
+          break;
+        case 'i':
+          args->jobid = strdup(argptr);
           break;
         case 's':
           args->start = (time_t) strtoul(argptr, NULL, 0);
@@ -131,6 +140,9 @@ int processArgs(int argc, char **argv, struct arglist* args)
         case 'D':
           global_dset = (int) atoi(argptr);
           args->event_dset = &global_dset;
+          break;
+        case 'n':
+          args->event_name = strdup(argptr);
           break;
         case 'S':
           global_start = (time_t) strtoul(argptr, NULL, 0);
@@ -199,15 +211,22 @@ int main (int argc, char *argv[])
   if ((value = scr_param_get("SCR_LOG_ENABLE")) != NULL) {
     scr_log_enable = atoi(value);
   }
-  value = scr_param_get("SCR_PREFIX");
   scr_param_finalize();
+
+  /* we just use the string returned by gethostname */
+  char hostname[256] = "nullhost";
+  if (gethostname(hostname, sizeof(hostname)) != 0) {
+    scr_err("scr_log_event: Call to gethostname failed @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
 
   if (scr_log_enable) {
     /* init logging */
     if (scr_log_init(args.prefix) == SCR_SUCCESS) {
       /* register job */
       if (args.username != NULL && args.jobname != NULL) {
-        if (scr_log_job(args.username, args.jobname, args.start) != SCR_SUCCESS) {
+        if (scr_log_job(args.username, hostname, args.jobid, args.prefix, args.start) != SCR_SUCCESS) {
           scr_err("scr_log_event: Failed to register job, disabling logging @ %s:%d",
                   __FILE__, __LINE__
           );
@@ -231,7 +250,8 @@ int main (int argc, char *argv[])
   }
 
   if (scr_log_enable) {
-    if (scr_log_event(args.event_type, args.event_note, args.event_dset, args.event_start, args.event_secs) != SCR_SUCCESS)
+    if (scr_log_event(args.event_type, args.event_note, args.event_dset,
+          args.event_name, args.event_start, args.event_secs) != SCR_SUCCESS)
     {
       rc = 1;
     }

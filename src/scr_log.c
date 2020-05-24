@@ -64,12 +64,17 @@
 #include <mysql.h>
 #endif
 
-static int   txt_enable      = 0;    /* whether to log event in text file */
-static int   txt_initialized = 0;    /* flag indicating whether we have opened the log file */
-static char* txt_name        = NULL; /* name of log file */
-static int   txt_fd          = -1;   /* file descriptor of log file */
+static char* id_username = NULL;
+static char* id_hostname = NULL;
+static char* id_prefix   = NULL;
+static char* id_jobid    = NULL;
 
-static int syslog_enable = 0; /* whether to write log messages to syslog */
+static int   txt_enable      = SCR_LOG_TXT_ENABLE; /* whether to log event in text file */
+static int   txt_initialized = 0;                  /* flag indicating whether we have opened the log file */
+static char* txt_name        = NULL;               /* name of log file */
+static int   txt_fd          = -1;                 /* file descriptor of log file */
+
+static int syslog_enable = SCR_LOG_SYSLOG_ENABLE; /* whether to write log messages to syslog */
 
 static int db_enable = 0;    /* whether to log event in SCR log database */
 static int db_debug  = 0;    /* database debug level */
@@ -791,7 +796,7 @@ int scr_log_init_syslog(void)
 
   /* open connection to syslog if we're using it,
    * file messages under "SCR" */
-  openlog("SCR", LOG_ODELAY, LOG_USER);
+  openlog(SCR_LOG_SYSLOG_PREFIX, LOG_ODELAY, SCR_LOG_SYSLOG_FACILITY);
 
   return rc; 
 }
@@ -927,26 +932,41 @@ int scr_log_finalize()
   scr_free(&db_pass);
   scr_free(&db_name);
 
+  scr_free(&id_username);
+  scr_free(&id_hostname);
+  scr_free(&id_prefix);
+  scr_free(&id_jobid);
+
   return SCR_SUCCESS;
 }
 
 /* given a username, a jobname, and a start time, lookup (or create) the id for this job */
-int scr_log_job(const char* username, const char* jobname, time_t start)
+int scr_log_job(const char* username, const char* hostname, const char* jobid, const char* prefix, time_t start)
 {
   int rc = SCR_SUCCESS;
 
+  /* TODO: rather than jobname, which most people won't define,
+   * we could capture the prefix directory instead, and maybe
+   * hash that to hide details */
+
+  /* copy user and job name to use in other log entries */
+  id_username = strdup(username);
+  id_hostname = strdup(hostname);
+  id_jobid    = strdup(jobid);
+  id_prefix   = strdup(prefix);
+
   if (db_enable) {
-    if (username != NULL && jobname != NULL) {
-      int rc = scr_mysql_register_job(username, jobname, start, &scr_db_jobid);
+    if (username != NULL && prefix != NULL) {
+      int rc = scr_mysql_register_job(username, prefix, start, &scr_db_jobid);
       if (rc != SCR_SUCCESS) {
-        scr_err("Failed to register job for username %s and jobname %s, disabling database logging @ %s:%d",
-                username, jobname, __FILE__, __LINE__
+        scr_err("Failed to register job for username %s and prefix %s, disabling database logging @ %s:%d",
+                username, prefix, __FILE__, __LINE__
         );
         db_enable = 0;
         rc = SCR_FAILURE;
       }
     } else {
-      scr_err("Failed to read username or jobname from environment, disabling database logging @ %s:%d",
+      scr_err("Failed to read username or prefix from environment, disabling database logging @ %s:%d",
               __FILE__, __LINE__
       );
       db_enable = 0;
@@ -958,29 +978,49 @@ int scr_log_job(const char* username, const char* jobname, time_t start)
 }
 
 /* log start time of current run */
-int scr_log_run(time_t start)
+int scr_log_run(time_t start, int procs, int nodes)
 {
   int rc = SCR_SUCCESS;
 
   struct tm* timeinfo = localtime(&start);
-  char timestr[1024];
+  char timestr[100];
   strftime(timestr, sizeof(timestr), "%s", timeinfo);
+  char timestamp[32];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", timeinfo);
 
   if (txt_enable) {
     char buf[1024];
-    snprintf(buf, sizeof(buf),
-      "EVENT=\"%s\", start=%s\n",
-      "START", timestr
+    size_t remaining = sizeof(buf);
+    size_t nwritten = snprintf(buf, remaining,
+      "%s: host=%s, jobid=%s, event=%s, procs=%d, nodes=%d",
+      timestamp, id_hostname, id_jobid, "START", procs, nodes
     );
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    nwritten += snprintf(buf + nwritten, remaining, "\n");
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (nwritten >= sizeof(buf)) {
+        buf[sizeof(buf)-2] = '\n';
+        buf[sizeof(buf)-1] = '\0';
+    }
     scr_write(txt_name, txt_fd, buf, strlen(buf));
     //fsync(txt_fd);
   }
 
   if (syslog_enable) {
-    syslog(LOG_INFO,
-      "EVENT=\"%s\", start=%s\n",
-      "START", timestr
+    char buf[1024];
+    size_t remaining = sizeof(buf);
+    size_t nwritten = snprintf(buf, remaining,
+      "user=%s, jobid=%s, prefix=%s, event=%s, procs=%d, nodes=%d",
+      id_username, id_jobid, id_prefix, "START", procs, nodes
     );
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    nwritten += snprintf(buf + nwritten, remaining, "\n");
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (nwritten >= sizeof(buf)) {
+        buf[sizeof(buf)-2] = '\n';
+        buf[sizeof(buf)-1] = '\0';
+    }
+    syslog(SCR_LOG_SYSLOG_LEVEL, buf);
   }
 
   if (db_enable) {
@@ -991,36 +1031,62 @@ int scr_log_run(time_t start)
 }
 
 /* log reason and time for halting current run */
-int scr_log_halt(const char* reason, const int* dset)
+int scr_log_halt(const char* reason)
 {
   int rc = SCR_SUCCESS;
 
   time_t now = scr_log_seconds();
   struct tm* timeinfo = localtime(&now);
-  char timestr[1024];
+  char timestr[100];
   strftime(timestr, sizeof(timestr), "%s", timeinfo);
-
-  int dset_val = (dset != NULL) ? *dset : 0.0;
+  char timestamp[32];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", timeinfo);
 
   if (txt_enable) {
     char buf[1024];
-    snprintf(buf, sizeof(buf),
-      "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s\n",
-      "HALT", reason, dset_val, timestr
+    size_t remaining = sizeof(buf);
+    size_t nwritten = snprintf(buf, remaining,
+      "%s: host=%s, jobid=%s, event=%s",
+      timestamp, id_hostname, id_jobid, "HALT"
     );
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (reason != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", note=\"%s\"", reason);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    nwritten += snprintf(buf + nwritten, remaining, "\n");
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (nwritten >= sizeof(buf)) {
+        buf[sizeof(buf)-2] = '\n';
+        buf[sizeof(buf)-1] = '\0';
+    }
     scr_write(txt_name, txt_fd, buf, strlen(buf));
     //fsync(txt_fd);
   }
 
   if (syslog_enable) {
-    syslog(LOG_INFO,
-      "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s\n",
-      "HALT", reason, dset_val, timestr
+    char buf[1024];
+    size_t remaining = sizeof(buf);
+    size_t nwritten = snprintf(buf, remaining,
+      "user=%s, jobid=%s, prefix=%s, event=%s",
+      id_username, id_jobid, id_prefix, "HALT"
     );
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (reason != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", note=\"%s\"", reason);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    nwritten += snprintf(buf + nwritten, remaining, "\n");
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (nwritten >= sizeof(buf)) {
+        buf[sizeof(buf)-2] = '\n';
+        buf[sizeof(buf)-1] = '\0';
+    }
+    syslog(LOG_INFO, buf);
   }
 
   if (db_enable) {
-    rc = scr_mysql_log_event("HALT", reason, dset, &now, NULL);
+    rc = scr_mysql_log_event("HALT", reason, NULL, &now, NULL);
   }
 
   return rc;
@@ -1031,37 +1097,91 @@ int scr_log_event(
   const char* type,
   const char* note,
   const int* dset,
+  const char* name,
   const time_t* start,
   const double* secs)
 {
   int rc = SCR_SUCCESS;
 
-  struct tm* timeinfo = localtime(start);
-  char timestr[1024];
-  strftime(timestr, sizeof(timestr), "%s", timeinfo);
+  int    dset_val  = (dset  != NULL) ? *dset  : -1;
+  double secs_val  = (secs  != NULL) ? *secs  : 0.0;
+  time_t start_val = (start != NULL) ? *start : scr_log_seconds();
 
-  int    dset_val = (dset != NULL) ? *dset  : -1;
-  double secs_val = (secs != NULL) ? *secs  : 0.0;
+  struct tm* timeinfo = localtime(&start_val);
+  char timestr[100];
+  strftime(timestr, sizeof(timestr), "%s", timeinfo);
+  char timestamp[32];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", timeinfo);
 
   if (txt_enable) {
     char buf[1024];
-    snprintf(buf, sizeof(buf),
-      "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s, secs=%f\n",
-      type, note, dset_val, timestr, secs_val
+    size_t remaining = sizeof(buf);
+    size_t nwritten = snprintf(buf, remaining,
+      "%s: host=%s, jobid=%s, event=%s",
+      timestamp, id_hostname, id_jobid, type
     );
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (note != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", note=\"%s\"", note);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (dset != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", dset=%d", dset_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (name != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", name=\"%s\"", name);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (secs != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", secs=%f", secs_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    nwritten += snprintf(buf + nwritten, remaining, "\n");
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (nwritten >= sizeof(buf)) {
+        buf[sizeof(buf)-2] = '\n';
+        buf[sizeof(buf)-1] = '\0';
+    }
     scr_write(txt_name, txt_fd, buf, strlen(buf));
     //fsync(txt_fd);
   }
 
   if (syslog_enable) {
-    syslog(LOG_INFO,
-      "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s, secs=%f\n",
-      type, note, dset_val, timestr, secs_val
+    char buf[1024];
+    size_t remaining = sizeof(buf);
+    size_t nwritten = snprintf(buf, remaining,
+      "user=%s, jobid=%s, prefix=%s, event=%s",
+      id_username, id_jobid, id_prefix, type
     );
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (note != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", note=\"%s\"", note);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (dset != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", dset=%d", dset_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (name != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", name=\"%s\"", name);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (secs != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", secs=%f", secs_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    nwritten += snprintf(buf + nwritten, remaining, "\n");
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (nwritten >= sizeof(buf)) {
+        buf[sizeof(buf)-2] = '\n';
+        buf[sizeof(buf)-1] = '\0';
+    }
+    syslog(LOG_INFO, buf);
   }
 
   if (db_enable) {
-    rc = scr_mysql_log_event(type, note, dset, start, secs);
+    rc = scr_mysql_log_event(type, note, dset, &start_val, secs);
   }
 
   scr_dbg(1, "scr_log_event: type %s, note %s, dset %d, start %s, secs %f",
@@ -1077,43 +1197,122 @@ int scr_log_transfer(
   const char* from,
   const char* to,
   const int* dset,
+  const char* name,
   const time_t* start,
   const double* secs,
-  const double* bytes)
+  const double* bytes,
+  const int* files)
 {
   int rc = SCR_SUCCESS;
 
   struct tm* timeinfo = localtime(start);
-  char timestr[1024];
+  char timestr[100];
   strftime(timestr, sizeof(timestr), "%s", timeinfo);
+  char timestamp[32];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", timeinfo);
 
   int    dset_val  = (dset != NULL)  ? *dset  : -1;
   double secs_val  = (secs != NULL)  ? *secs  : 0.0;
   double bytes_val = (bytes != NULL) ? *bytes : 0.0;
+  int    files_val = (files != NULL) ? *files : 0;
 
   if (txt_enable) {
     char buf[1024];
-    snprintf(buf, sizeof(buf),
-      "XFER=\"%s\", from=\"%s\", to=\"%s\", dset=%d start=%s, secs=%f, bytes=%f\n",
-      type, from, to, dset_val, timestr, secs_val, bytes_val
+    size_t remaining = sizeof(buf);
+    size_t nwritten = snprintf(buf, remaining,
+      "%s: host=%s, jobid=%s, xfer=%s",
+      timestamp, id_hostname, id_jobid, type
     );
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (from != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", from=%s", from);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (to != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", to=%s", to);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (dset != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", dset=%d", dset_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (name != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", name=\"%s\"", name);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (secs != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", secs=%f", secs_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (bytes != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", bytes=%f", bytes_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (files != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", files=%d", files_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    nwritten += snprintf(buf + nwritten, remaining, "\n");
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (nwritten >= sizeof(buf)) {
+        buf[sizeof(buf)-2] = '\n';
+        buf[sizeof(buf)-1] = '\0';
+    }
     scr_write(txt_name, txt_fd, buf, strlen(buf));
     //fsync(txt_fd);
   }
 
   if (syslog_enable) {
-    syslog(LOG_INFO,
-      "XFER=\"%s\", from=\"%s\", to=\"%s\", dset=%d start=%s, secs=%f, bytes=%f\n",
-      type, from, to, dset_val, timestr, secs_val, bytes_val
+    char buf[1024];
+    size_t remaining = sizeof(buf);
+    size_t nwritten = snprintf(buf, remaining,
+      "user=%s, jobid=%s, prefix=%s, xfer=%s",
+      id_username, id_jobid, id_prefix, type
     );
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (from != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", from=%s", from);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (to != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", to=%s", to);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (dset != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", dset=%d", dset_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (name != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", name=\"%s\"", name);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (secs != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", secs=%f", secs_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (bytes != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", bytes=%f", bytes_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    if (files != NULL) {
+      nwritten += snprintf(buf + nwritten, remaining, ", files=%d", files_val);
+      remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    }
+    nwritten += snprintf(buf + nwritten, remaining, "\n");
+    remaining = (sizeof(buf) > nwritten) ? sizeof(buf) - nwritten : 0;
+    if (nwritten >= sizeof(buf)) {
+        buf[sizeof(buf)-2] = '\n';
+        buf[sizeof(buf)-1] = '\0';
+    }
+    syslog(LOG_INFO, buf);
   }
 
   if (db_enable) {
     rc = scr_mysql_log_transfer(type, from, to, dset, start, secs, bytes);
   }
 
-  scr_dbg(1, "scr_log_transfer: type %s, src %s, dst %s, dset %d, start %s, secs %f, bytes %f",
-    type, from, to, dset_val, asctime(timeinfo), secs_val, bytes_val
+  scr_dbg(1, "scr_log_transfer: type %s, src %s, dst %s, dset %d, start %s, secs %f, bytes %f, files%d",
+    type, from, to, dset_val, asctime(timeinfo), secs_val, bytes_val, files_val
   );
 
   return rc;

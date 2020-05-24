@@ -197,14 +197,6 @@ extern int    scr_need_checkpoint_count; /* tracks the number of times Need_chec
 extern double scr_time_checkpoint_total; /* keeps a running total of the time spent to checkpoint */
 extern int    scr_time_checkpoint_count; /* keeps a running count of the number of checkpoints taken */
 
-extern time_t scr_timestamp_checkpoint_start; /* record timestamp of start of checkpoint */
-extern double scr_time_checkpoint_start;      /* records the start time of the current checkpoint */
-extern double scr_time_checkpoint_end;        /* records the end time of the current checkpoint */
-
-extern time_t scr_timestamp_compute_start;    /* record timestamp of start of compute phase */
-extern double scr_time_compute_start;         /* records the start time of the current compute phase */
-extern double scr_time_compute_end;           /* records the end time of the current compute phase */
-
 extern char* scr_my_hostname; /* hostname of local process */
 extern int   scr_my_hostid;   /* unique id of the node on which this rank resides */
 extern int   scr_my_rank_host; /* my rank within the node */

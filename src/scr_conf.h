@@ -46,6 +46,31 @@
 #define SCR_LOG_ENABLE (0)
 #endif
 
+/* whether to enable text file logging in SCR */
+#ifndef SCR_LOG_TXT_ENABLE
+#define SCR_LOG_TXT_ENABLE (1)
+#endif
+
+/* whether to enable syslog logging in SCR */
+#ifndef SCR_LOG_SYSLOG_ENABLE
+#define SCR_LOG_SYSLOG_ENABLE (1)
+#endif
+
+/* text to prepend to syslog messages */
+#ifndef SCR_LOG_SYSLOG_PREFIX
+#define SCR_LOG_SYSLOG_PREFIX "SCR"
+#endif
+
+/* syslog facility */
+#ifndef SCR_LOG_SYSLOG_FACILITY
+#define SCR_LOG_SYSLOG_FACILITY LOG_LOCAL7
+#endif
+
+/* syslog level */
+#ifndef SCR_LOG_SYSLOG_LEVEL
+#define SCR_LOG_SYSLOG_LEVEL LOG_INFO
+#endif
+
 /* default number of halt seconds to apply to a job */
 #ifndef SCR_HALT_SECONDS
 #define SCR_HALT_SECONDS (0)

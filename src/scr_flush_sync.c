@@ -106,9 +106,17 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
     return SCR_SUCCESS;
   }
 
+  /* get the dataset corresponding to this id */
+  scr_dataset* dataset = scr_dataset_new();
+  scr_cache_index_get_dataset(cindex, id, dataset);
+
+  /* get name of dataset */
+  char* dset_name = NULL;
+  scr_dataset_get_name(dataset, &dset_name);
+
   /* this may take a while, so tell user what we're doing */
   if (scr_my_rank_world == 0) {
-    scr_dbg(1, "Initiating flush of dataset %d", id);
+    scr_dbg(1, "Initiating flush of dataset %d %s", id, dset_name);
   }
 
   /* make sure all processes make it this far before progressing */
@@ -129,6 +137,7 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
     /* the flush we just waited on could be the requested dataset,
      * so perhaps we're already done */
     if (! scr_flush_file_need_flush(id)) {
+      scr_dataset_delete(&dataset);
       return SCR_SUCCESS;
     }
   }
@@ -136,8 +145,7 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
   /* log the flush start */
   if (scr_my_rank_world == 0) {
     if (scr_log_enable) {
-      time_t now = scr_log_seconds();
-      scr_log_event("FLUSH STARTED", NULL, &id, &now, NULL);
+      scr_log_event("FLUSH_START", NULL, &id, dset_name, NULL, NULL);
     }
   }
 
@@ -166,25 +174,6 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
     flushed = SCR_FAILURE;
   }
 
-  /* get number of bytes for this dataset */
-  double total_bytes = 0.0;
-  if (scr_my_rank_world == 0) {
-    if (flushed == SCR_SUCCESS) {
-      /* get the dataset corresponding to this id */
-      scr_dataset* dataset = scr_dataset_new();
-      scr_cache_index_get_dataset(cindex, id, dataset);
-
-      /* get the number of bytes in the dataset */
-      unsigned long dataset_bytes;
-      if (scr_dataset_get_size(dataset, &dataset_bytes) == SCR_SUCCESS) {
-        total_bytes = (double) dataset_bytes;
-      }
-
-      /* delete the dataset object */
-      scr_dataset_delete(&dataset);
-    }
-  }
-
   /* free data structures */
   kvtree_delete(&file_list);
 
@@ -193,10 +182,24 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
 
   /* stop timer, compute bandwidth, and report performance */
   if (scr_my_rank_world == 0) {
+    /* get the number of bytes in the dataset */
+    double total_bytes = 0.0;
+    unsigned long dataset_bytes;
+    if (scr_dataset_get_size(dataset, &dataset_bytes) == SCR_SUCCESS) {
+      total_bytes = (double) dataset_bytes;
+    }
+
+    /* get the number of files in the dataset */
+    int total_files = 0.0;
+    scr_dataset_get_files(dataset, &total_files);
+
     /* stop timer and compute bandwidth */
     double time_end = MPI_Wtime();
     double time_diff = time_end - time_start;
-    double bw = total_bytes / (1024.0 * 1024.0 * time_diff);
+    double bw = 0.0;
+    if (time_diff > 0.0) {
+      bw = total_bytes / (1024.0 * 1024.0 * time_diff);
+    }
     scr_dbg(1, "scr_flush_sync: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
             time_diff, total_bytes, bw, bw/scr_ranks_world
     );
@@ -204,24 +207,34 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
     /* log messages about flush */
     if (flushed == SCR_SUCCESS) {
       /* the flush worked, print a debug message */
-      scr_dbg(1, "scr_flush_sync: Flush of dataset %d succeeded", id);
+      scr_dbg(1, "scr_flush_sync: Flush of dataset succeeded %d %s", id, dset_name);
 
       /* log details of flush */
       if (scr_log_enable) {
-        time_t now = scr_log_seconds();
-        scr_log_event("FLUSH SUCCEEDED", NULL, &id, &now, &time_diff);
+        scr_log_event("FLUSH_SUCCESS", NULL, &id, dset_name, NULL, &time_diff);
       }
     } else {
       /* the flush failed, this is more serious so print an error message */
-      scr_err("scr_flush_sync: Flush of dataset %d failed", id);
+      scr_err("scr_flush_sync: Flush of dataset failed %d %s", id, dset_name);
 
       /* log details of flush */
       if (scr_log_enable) {
-        time_t now = scr_log_seconds();
-        scr_log_event("FLUSH FAILED", NULL, &id, &now, &time_diff);
+        scr_log_event("FLUSH_FAIL", NULL, &id, dset_name, NULL, &time_diff);
       }
     }
+
+    /* log transfer stats */
+    if (scr_log_enable) {
+      char* dir = NULL;
+      scr_cache_index_get_dir(cindex, id, &dir);
+      scr_log_transfer("FLUSH_SYNC", dir, scr_prefix, &id, dset_name,
+        &timestamp_start, &time_diff, &total_bytes, &total_files
+      );
+    }
   }
+
+  /* delete the dataset object */
+  scr_dataset_delete(&dataset);
 
   return flushed;
 }

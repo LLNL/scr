@@ -218,7 +218,7 @@ while [ 1 ] ; do
 
   # launch the job, make sure we include the script node and exclude down nodes
   start_secs=`date +%s`
-  $bindir/scr_log_event -p $prefix -T "RUN STARTED" -N "Job=$jobid, Run=$attempts" -S $start_secs
+  $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
 
   if [ $use_scr_watchdog -eq 0 ]; then
      $launcher $exclude $launch_cmd
@@ -249,7 +249,7 @@ while [ 1 ] ; do
   $bindir/scr_list_down_nodes $keep_down --log --reason --secs $run_secs
 
   # log stats on the latest run attempt
-  $bindir/scr_log_event -p $prefix -T "RUN ENDED" -N "Job=$jobid, Run=$attempts" -S $end_secs -L $run_secs
+  $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_END" -N "run=$attempts" -S $end_secs -L $run_secs
 
   # any retry attempts left?
   if [ $runs -gt -1 ] ; then
