@@ -64,21 +64,19 @@
 #include <mysql.h>
 #endif
 
-static char* scr_prefix = NULL; /* path to job's prefix directory */
+static int   txt_enable      = 0;    /* whether to log event in text file */
+static int   txt_initialized = 0;    /* flag indicating whether we have opened the log file */
+static char* txt_name        = NULL; /* name of log file */
+static int   txt_fd          = -1;   /* file descriptor of log file */
 
-static int   scr_txt_enable = 0;  /* whether to log event in text file */
-static char* scr_txt_name = NULL; /* name of log file */
-static int   scr_txt_fd = -1;     /* file descriptor of log file */
-static int   scr_txt_initialized = 0; /* flag indicating whether we have opened the log file */
+static int syslog_enable = 0; /* whether to write log messages to syslog */
 
-static int scr_syslog_enable = 0; /* whether to write log messages to syslog */
-
-static int scr_db_enable = 0;    /* whether to log event in SCR log database */
-static int scr_db_debug  = 0;    /* database debug level */
-static char* scr_db_host = NULL; /* hostname or IP running DB server */
-static char* scr_db_user = NULL; /* username to use to connect to DB server */
-static char* scr_db_pass = NULL; /* password to use to connect to DB server */
-static char* scr_db_name = NULL; /* database name to connect to */
+static int db_enable = 0;    /* whether to log event in SCR log database */
+static int db_debug  = 0;    /* database debug level */
+static char* db_host = NULL; /* hostname or IP running DB server */
+static char* db_user = NULL; /* username to use to connect to DB server */
+static char* db_pass = NULL; /* password to use to connect to DB server */
+static char* db_name = NULL; /* database name to connect to */
 
 /*
 =========================================
@@ -97,7 +95,7 @@ static kvtree* scr_db_types = NULL; /* caches type string to type id lookups */
 #endif
 
 /* connects to the SCR log database */
-int scr_mysql_connect()
+int scr_mysql_connect(const char* host, const char* user, const char* pass, const char* name)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* create our type-string-to-id cache */
@@ -113,9 +111,9 @@ int scr_mysql_connect()
   mysql_init(&scr_mysql);
 
   /* connect to the database */
-  if (! mysql_real_connect(&scr_mysql, scr_db_host, scr_db_user, scr_db_pass, scr_db_name, 0, NULL, 0)) {
-    scr_err("Failed to connect to SCR log database %s on host %s @ %s:%d",
-            scr_db_name, scr_db_host, __FILE__, __LINE__
+  if (! mysql_real_connect(&scr_mysql, host, user, pass, name, 0, NULL, 0)) {
+    scr_err("Failed to connect to SCR log database %s on host %s for user %s @ %s:%d",
+            name, host, user, __FILE__, __LINE__
     );
     return SCR_FAILURE;
   }
@@ -272,7 +270,7 @@ int scr_mysql_read_id(const char* table, const char* name, unsigned long* id)
   }
 
   /* execute the query */
-  if (scr_db_debug >= 1) {
+  if (db_debug >= 1) {
     scr_dbg(0, "%s", query);
   }
   if (mysql_real_query(&scr_mysql, query, (unsigned int) strlen(query))) {
@@ -360,7 +358,7 @@ int scr_mysql_read_write_id(const char* table, const char* name, unsigned long* 
   }
 
   /* execute the query */
-  if (scr_db_debug >= 1) {
+  if (db_debug >= 1) {
     scr_dbg(0, "%s", query);
   }
   if (mysql_real_query(&scr_mysql, query, (unsigned int) strlen(query))) {
@@ -474,7 +472,7 @@ int scr_mysql_log_event(const char* type, const char* note, const int* dset, con
   }
 
   /* execute the query */
-  if (scr_db_debug >= 1) {
+  if (db_debug >= 1) {
     scr_dbg(0, "%s", query);
   }
   if (mysql_real_query(&scr_mysql, query, (unsigned int) strlen(query))) {
@@ -574,7 +572,7 @@ int scr_mysql_log_transfer(const char* type, const char* from, const char* to, c
   }
 
   /* execute the query */
-  if (scr_db_debug >= 1) {
+  if (db_debug >= 1) {
     scr_dbg(0, "%s", query);
   }
   if (mysql_real_query(&scr_mysql, query, (unsigned int) strlen(query))) {
@@ -608,7 +606,7 @@ int scr_mysql_read_job(unsigned long username_id, unsigned long jobname_id, unsi
   }
 
   /* execute the query */
-  if (scr_db_debug >= 1) {
+  if (db_debug >= 1) {
     scr_dbg(0, "%s", query);
   }
   if (mysql_real_query(&scr_mysql, query, (unsigned int) strlen(query))) {
@@ -721,7 +719,7 @@ int scr_mysql_register_job(const char* username, const char* jobname, unsigned l
   }
 
   /* execute the query */
-  if (scr_db_debug >= 1) {
+  if (db_debug >= 1) {
     scr_dbg(0, "%s", query);
   }
   if (mysql_real_query(&scr_mysql, query, (unsigned int) strlen(query))) {
@@ -739,22 +737,6 @@ int scr_mysql_register_job(const char* username, const char* jobname, unsigned l
   return rc;
 }
 
-/* we'd like to open this log file during scr_log_init,
- * but this gets called before the prefix directory has
- * been created in the SCR library */
-void scr_txt_init(void)
-{
-  if (! scr_txt_initialized) {
-    scr_txt_fd = scr_open(scr_txt_name, O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
-    if (scr_txt_fd < 0) {
-      scr_err("Failed to open log file: `%s' errno=%d (%s) @ %s:%d",
-              scr_txt_name, errno, strerror(errno), __FILE__, __LINE__
-      );
-    }
-    scr_txt_initialized = 1;
-  }
-}
-
 /*
 =========================================
 Log functions
@@ -770,76 +752,147 @@ time_t scr_log_seconds()
   return now;
 }
 
+/* initialize text file logging in prefix directory */
+int scr_log_init_txt(const char* prefix)
+{
+  int rc = SCR_SUCCESS;
+
+  txt_enable = 1;
+
+  if (! txt_initialized) {
+    /* build path to log file */
+    char logname[SCR_MAX_FILENAME];
+    snprintf(logname, sizeof(logname), "%s/.scr/log", prefix);
+    txt_name = strdup(logname);
+
+    /* open log file */
+    txt_fd = scr_open(txt_name, O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
+    if (txt_fd < 0) {
+      scr_err("Failed to open log file: `%s' errno=%d (%s) @ %s:%d",
+        txt_name, errno, strerror(errno), __FILE__, __LINE__
+      );
+      txt_enable = 0;
+      scr_free(&txt_name);
+      return SCR_FAILURE;
+    }
+
+    txt_initialized = 1;
+  }
+
+  return rc; 
+}
+
+/* initialize syslog logging */
+int scr_log_init_syslog(void)
+{
+  int rc = SCR_SUCCESS;
+
+  syslog_enable = 1;
+
+  /* open connection to syslog if we're using it,
+   * file messages under "SCR" */
+  openlog("SCR", LOG_ODELAY, LOG_USER);
+
+  return rc; 
+}
+
+/* initialize the mysql database logging */
+int scr_log_init_db(
+  int debug,
+  const char* host,
+  const char* user,
+  const char* pass,
+  const char* name)
+{
+  int rc = SCR_SUCCESS;
+
+  db_enable = 1;
+
+  /* read in the debug level for database log messages */
+  db_debug = debug;
+
+  /* connect to the database, if enabled */
+  if (scr_mysql_connect(host, user, pass, name) != SCR_SUCCESS) {
+    scr_err("Failed to connect to SCR logging database, disabling database logging @ %s:%d",
+            __FILE__, __LINE__
+    );
+    db_enable = 0;
+    rc = SCR_FAILURE;
+  }
+
+  return rc; 
+}
+
 /* initialize the logging */
 int scr_log_init(const char* prefix)
 {
+  int tmp_rc;
+
   int rc = SCR_SUCCESS;
 
   /* read in parameters */
   const char* value = NULL;
 
-  /* copy the prefix directory */
-  scr_prefix = strdup(prefix);
-
   scr_param_init();
 
   /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_LOG_TXT_ENABLE")) != NULL) {
-    scr_txt_enable = atoi(value);
+    txt_enable = atoi(value);
   }
 
   /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_LOG_SYSLOG_ENABLE")) != NULL) {
-    scr_syslog_enable = atoi(value);
+    syslog_enable = atoi(value);
   }
 
   /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_DB_ENABLE")) != NULL) {
-    scr_db_enable = atoi(value);
+    db_enable = atoi(value);
   }
 
   /* read in the debug level for database log messages */
   if ((value = scr_param_get("SCR_DB_DEBUG")) != NULL) {
-    scr_db_debug = atoi(value);
+    db_debug = atoi(value);
   }
 
   /* SCR log DB connection parameters */
   if ((value = scr_param_get("SCR_DB_HOST")) != NULL) {
-    scr_db_host = strdup(value);
+    db_host = strdup(value);
   }
   if ((value = scr_param_get("SCR_DB_USER")) != NULL) {
-    scr_db_user = strdup(value);
+    db_user = strdup(value);
   }
   if ((value = scr_param_get("SCR_DB_PASS")) != NULL) {
-    scr_db_pass = strdup(value);
+    db_pass = strdup(value);
   }
   if ((value = scr_param_get("SCR_DB_NAME")) != NULL) {
-    scr_db_name = strdup(value);
+    db_name = strdup(value);
   }
 
   scr_param_finalize();
 
   /* open log file if enabled */
-  if (scr_txt_enable) {
-    char logname[SCR_MAX_FILENAME];
-    snprintf(logname, sizeof(logname), "%s/.scr/scr.log", scr_prefix);
-    scr_txt_name = strdup(logname);
+  if (txt_enable) {
+    tmp_rc = scr_log_init_txt(prefix);
+    if (tmp_rc != SCR_SUCCESS) {
+      rc = tmp_rc;
+    }
   }
 
   /* open connection to syslog if we're using it,
    * file messages under "SCR" */
-  if (scr_syslog_enable) {
-    openlog("SCR", LOG_ODELAY, LOG_USER);
+  if (syslog_enable) {
+    tmp_rc = scr_log_init_syslog();
+    if (tmp_rc != SCR_SUCCESS) {
+      rc = tmp_rc;
+    }
   }
 
   /* connect to the database, if enabled */
-  if (scr_db_enable) {
-    if (scr_mysql_connect() != SCR_SUCCESS) {
-      scr_err("Failed to connect to SCR logging database, disabling database logging @ %s:%d",
-              __FILE__, __LINE__
-      );
-      scr_db_enable = 0;
-      rc = SCR_FAILURE;
+  if (db_enable) {
+    tmp_rc = scr_log_init_db(db_debug, db_host, db_user, db_pass, db_name);
+    if (tmp_rc != SCR_SUCCESS) {
+      rc = tmp_rc;
     }
   }
 
@@ -850,30 +903,29 @@ int scr_log_init(const char* prefix)
 int scr_log_finalize()
 {
   /* close log file if we opened one */
-  if (scr_txt_enable) {
-    if (scr_txt_fd >= 0) {
-      scr_close(scr_txt_name, scr_txt_fd);
-      scr_txt_fd = -1;
+  if (txt_enable) {
+    if (txt_fd >= 0) {
+      scr_close(txt_name, txt_fd);
+      txt_fd = -1;
     }
-    scr_free(&scr_txt_name);
+    scr_free(&txt_name);
   }
 
   /* close syslog if we're using it */
-  if (scr_syslog_enable) {
+  if (syslog_enable) {
     closelog();
   }
 
   /* disconnect from database */
-  if (scr_db_enable) {
+  if (db_enable) {
     scr_mysql_disconnect();
   }
 
   /* free memory */
-  scr_free(&scr_db_host);
-  scr_free(&scr_db_user);
-  scr_free(&scr_db_pass);
-  scr_free(&scr_db_name);
-  scr_free(&scr_prefix);
+  scr_free(&db_host);
+  scr_free(&db_user);
+  scr_free(&db_pass);
+  scr_free(&db_name);
 
   return SCR_SUCCESS;
 }
@@ -883,21 +935,21 @@ int scr_log_job(const char* username, const char* jobname, time_t start)
 {
   int rc = SCR_SUCCESS;
 
-  if (scr_db_enable) {
+  if (db_enable) {
     if (username != NULL && jobname != NULL) {
       int rc = scr_mysql_register_job(username, jobname, start, &scr_db_jobid);
       if (rc != SCR_SUCCESS) {
         scr_err("Failed to register job for username %s and jobname %s, disabling database logging @ %s:%d",
                 username, jobname, __FILE__, __LINE__
         );
-        scr_db_enable = 0;
+        db_enable = 0;
         rc = SCR_FAILURE;
       }
     } else {
       scr_err("Failed to read username or jobname from environment, disabling database logging @ %s:%d",
               __FILE__, __LINE__
       );
-      scr_db_enable = 0;
+      db_enable = 0;
       rc = SCR_FAILURE;
     }
   }
@@ -914,26 +966,24 @@ int scr_log_run(time_t start)
   char timestr[1024];
   strftime(timestr, sizeof(timestr), "%s", timeinfo);
 
-  if (scr_txt_enable) {
-    scr_txt_init();
-
+  if (txt_enable) {
     char buf[1024];
     snprintf(buf, sizeof(buf),
       "EVENT=\"%s\", start=%s\n",
       "START", timestr
     );
-    scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
-    //fsync(scr_txt_fd);
+    scr_write(txt_name, txt_fd, buf, strlen(buf));
+    //fsync(txt_fd);
   }
 
-  if (scr_syslog_enable) {
+  if (syslog_enable) {
     syslog(LOG_INFO,
       "EVENT=\"%s\", start=%s\n",
       "START", timestr
     );
   }
 
-  if (scr_db_enable) {
+  if (db_enable) {
     rc = scr_mysql_log_event("START", NULL, NULL, &start, NULL);
   }
 
@@ -952,26 +1002,24 @@ int scr_log_halt(const char* reason, const int* dset)
 
   int dset_val = (dset != NULL) ? *dset : 0.0;
 
-  if (scr_txt_enable) {
-    scr_txt_init();
-
+  if (txt_enable) {
     char buf[1024];
     snprintf(buf, sizeof(buf),
       "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s\n",
       "HALT", reason, dset_val, timestr
     );
-    scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
-    //fsync(scr_txt_fd);
+    scr_write(txt_name, txt_fd, buf, strlen(buf));
+    //fsync(txt_fd);
   }
 
-  if (scr_syslog_enable) {
+  if (syslog_enable) {
     syslog(LOG_INFO,
       "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s\n",
       "HALT", reason, dset_val, timestr
     );
   }
 
-  if (scr_db_enable) {
+  if (db_enable) {
     rc = scr_mysql_log_event("HALT", reason, dset, &now, NULL);
   }
 
@@ -995,26 +1043,24 @@ int scr_log_event(
   int    dset_val = (dset != NULL) ? *dset  : -1;
   double secs_val = (secs != NULL) ? *secs  : 0.0;
 
-  if (scr_txt_enable) {
-    scr_txt_init();
-
+  if (txt_enable) {
     char buf[1024];
     snprintf(buf, sizeof(buf),
       "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s, secs=%f\n",
       type, note, dset_val, timestr, secs_val
     );
-    scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
-    //fsync(scr_txt_fd);
+    scr_write(txt_name, txt_fd, buf, strlen(buf));
+    //fsync(txt_fd);
   }
 
-  if (scr_syslog_enable) {
+  if (syslog_enable) {
     syslog(LOG_INFO,
       "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s, secs=%f\n",
       type, note, dset_val, timestr, secs_val
     );
   }
 
-  if (scr_db_enable) {
+  if (db_enable) {
     rc = scr_mysql_log_event(type, note, dset, start, secs);
   }
 
@@ -1045,26 +1091,24 @@ int scr_log_transfer(
   double secs_val  = (secs != NULL)  ? *secs  : 0.0;
   double bytes_val = (bytes != NULL) ? *bytes : 0.0;
 
-  if (scr_txt_enable) {
-    scr_txt_init();
-
+  if (txt_enable) {
     char buf[1024];
     snprintf(buf, sizeof(buf),
       "XFER=\"%s\", from=\"%s\", to=\"%s\", dset=%d start=%s, secs=%f, bytes=%f\n",
       type, from, to, dset_val, timestr, secs_val, bytes_val
     );
-    scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
-    //fsync(scr_txt_fd);
+    scr_write(txt_name, txt_fd, buf, strlen(buf));
+    //fsync(txt_fd);
   }
 
-  if (scr_syslog_enable) {
+  if (syslog_enable) {
     syslog(LOG_INFO,
       "XFER=\"%s\", from=\"%s\", to=\"%s\", dset=%d start=%s, secs=%f, bytes=%f\n",
       type, from, to, dset_val, timestr, secs_val, bytes_val
     );
   }
 
-  if (scr_db_enable) {
+  if (db_enable) {
     rc = scr_mysql_log_transfer(type, from, to, dset, start, secs, bytes);
   }
 

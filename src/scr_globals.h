@@ -145,8 +145,17 @@ extern int scr_in_output;     /* flag tracks whether we are between start and co
 extern int scr_initialized;   /* indicates whether the library has been initialized */
 extern int scr_enabled;       /* indicates whether the library is enabled */
 extern int scr_debug;         /* set debug verbosity */
-extern int scr_log_enable;    /* whether to log SCR events */
 extern int scr_page_size;     /* records block size for aligning MPI and file buffers */
+
+extern int scr_log_enable;        /* whether to log SCR events at all */
+extern int scr_log_txt_enable;    /* whether to log SCR events to text file */
+extern int scr_log_syslog_enable; /* whether to log SCR events to syslog */
+extern int scr_log_db_enable;     /* whether to log SCR events to database */
+extern int scr_log_db_debug;      /* debug level for logging to database */
+extern char* scr_log_db_host;     /* mysql host name */
+extern char* scr_log_db_user;     /* mysql user name */
+extern char* scr_log_db_pass;     /* mysql password */
+extern char* scr_log_db_name;     /* mysql database name */
 
 extern int scr_cache_size;    /* number of checkpoints to keep in cache at one time */
 extern int scr_copy_type;     /* select which redundancy algorithm to use */
