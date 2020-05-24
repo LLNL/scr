@@ -157,8 +157,7 @@ MPI_Comm scr_comm_world = MPI_COMM_NULL; /* dup of MPI_COMM_WORLD */
 int scr_ranks_world     = 0;             /* number of ranks in the job */
 int  scr_my_rank_world  = MPI_PROC_NULL; /* my rank in world */
 
-MPI_Comm scr_comm_node        = MPI_COMM_NULL; /* communicator of all tasks on the same node */
-MPI_Comm scr_comm_node_across = MPI_COMM_NULL; /* communicator of tasks with same rank on each node */
+MPI_Comm scr_comm_node = MPI_COMM_NULL; /* communicator of all tasks on the same node */
 
 kvtree* scr_groupdesc_hash = NULL; /* hash defining group descriptors to be used */
 kvtree* scr_storedesc_hash = NULL; /* hash defining store descriptors to be used */
