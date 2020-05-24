@@ -58,6 +58,8 @@
 /* localtime, asctime */
 #include <time.h>
 
+#include <syslog.h>
+
 #ifdef HAVE_LIBMYSQLCLIENT
 #include <mysql.h>
 #endif
@@ -68,6 +70,8 @@ static int   scr_txt_enable = 0;  /* whether to log event in text file */
 static char* scr_txt_name = NULL; /* name of log file */
 static int   scr_txt_fd = -1;     /* file descriptor of log file */
 static int   scr_txt_initialized = 0; /* flag indicating whether we have opened the log file */
+
+static int scr_syslog_enable = 0; /* whether to write log messages to syslog */
 
 static int scr_db_enable = 0;    /* whether to log event in SCR log database */
 static int scr_db_debug  = 0;    /* database debug level */
@@ -785,6 +789,11 @@ int scr_log_init(const char* prefix)
   }
 
   /* check whether SCR logging DB is enabled */
+  if ((value = scr_param_get("SCR_LOG_SYSLOG_ENABLE")) != NULL) {
+    scr_syslog_enable = atoi(value);
+  }
+
+  /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_DB_ENABLE")) != NULL) {
     scr_db_enable = atoi(value);
   }
@@ -817,6 +826,12 @@ int scr_log_init(const char* prefix)
     scr_txt_name = strdup(logname);
   }
 
+  /* open connection to syslog if we're using it,
+   * file messages under "SCR" */
+  if (scr_syslog_enable) {
+    openlog("SCR", LOG_ODELAY, LOG_USER);
+  }
+
   /* connect to the database, if enabled */
   if (scr_db_enable) {
     if (scr_mysql_connect() != SCR_SUCCESS) {
@@ -841,6 +856,11 @@ int scr_log_finalize()
       scr_txt_fd = -1;
     }
     scr_free(&scr_txt_name);
+  }
+
+  /* close syslog if we're using it */
+  if (scr_syslog_enable) {
+    closelog();
   }
 
   /* disconnect from database */
@@ -906,6 +926,13 @@ int scr_log_run(time_t start)
     //fsync(scr_txt_fd);
   }
 
+  if (scr_syslog_enable) {
+    syslog(LOG_INFO,
+      "EVENT=\"%s\", start=%s\n",
+      "START", timestr
+    );
+  }
+
   if (scr_db_enable) {
     rc = scr_mysql_log_event("START", NULL, NULL, &start, NULL);
   }
@@ -923,10 +950,11 @@ int scr_log_halt(const char* reason, const int* dset)
   char timestr[1024];
   strftime(timestr, sizeof(timestr), "%s", timeinfo);
 
+  int dset_val = (dset != NULL) ? *dset : 0.0;
+
   if (scr_txt_enable) {
     scr_txt_init();
 
-    int dset_val = (dset != NULL) ? *dset : 0.0;
     char buf[1024];
     snprintf(buf, sizeof(buf),
       "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s\n",
@@ -934,6 +962,13 @@ int scr_log_halt(const char* reason, const int* dset)
     );
     scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
     //fsync(scr_txt_fd);
+  }
+
+  if (scr_syslog_enable) {
+    syslog(LOG_INFO,
+      "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s\n",
+      "HALT", reason, dset_val, timestr
+    );
   }
 
   if (scr_db_enable) {
@@ -970,6 +1005,13 @@ int scr_log_event(
     );
     scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
     //fsync(scr_txt_fd);
+  }
+
+  if (scr_syslog_enable) {
+    syslog(LOG_INFO,
+      "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s, secs=%f\n",
+      type, note, dset_val, timestr, secs_val
+    );
   }
 
   if (scr_db_enable) {
@@ -1013,6 +1055,13 @@ int scr_log_transfer(
     );
     scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
     //fsync(scr_txt_fd);
+  }
+
+  if (scr_syslog_enable) {
+    syslog(LOG_INFO,
+      "XFER=\"%s\", from=\"%s\", to=\"%s\", dset=%d start=%s, secs=%f, bytes=%f\n",
+      type, from, to, dset_val, timestr, secs_val, bytes_val
+    );
   }
 
   if (scr_db_enable) {
