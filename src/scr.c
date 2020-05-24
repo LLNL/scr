@@ -1716,18 +1716,11 @@ int SCR_Init()
     }
   }
 
-  /* if we're using containers we need two other communicators during
-   * each flush, one contains all procs on each node, and one contains
-   * all procs that have the same rank per node */
+  /* create global communicator of all ranks on the node */
   scr_groupdesc* groupdesc_node = scr_groupdescs_from_name(SCR_GROUP_NODE);
   if (groupdesc_node != NULL) {
     /* just dup the communicator from the NODE group */
     MPI_Comm_dup(groupdesc_node->comm, &scr_comm_node);
-
-    /* then split comm_world by our rank within this comm */
-    int rank_node;
-    MPI_Comm_rank(scr_comm_node, &rank_node);
-    MPI_Comm_split(scr_comm_world, rank_node, scr_my_rank_world, &scr_comm_node_across);
   } else {
     scr_err("Failed to create communicator for procs on each node @ %s:%d",
       __FILE__, __LINE__
@@ -1894,8 +1887,6 @@ int SCR_Init()
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
   /* record the number of nodes being used in this job to the nodes file */
   /* Each rank records its node number in the global scr_my_hostid */
-  //  int ranks_across;
-  //MPI_Comm_size(scr_comm_node_across, &ranks_across);
   if (scr_my_rank_world == 0) {
     kvtree* nodes_hash = kvtree_new();
     kvtree_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);
@@ -2158,9 +2149,6 @@ int SCR_Finalize()
   scr_cache_index_delete(&scr_cindex);
 
   /* free off the library's communicators */
-  if (scr_comm_node_across != MPI_COMM_NULL) {
-    MPI_Comm_free(&scr_comm_node_across);
-  }
   if (scr_comm_node != MPI_COMM_NULL) {
     MPI_Comm_free(&scr_comm_node);
   }
