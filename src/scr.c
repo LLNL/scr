@@ -598,26 +598,26 @@ static int scr_get_params()
   }
 
   /* check whether SCR logging DB is enabled */
-  if ((value = scr_param_get("SCR_DB_ENABLE")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_ENABLE")) != NULL) {
     scr_log_db_enable = atoi(value);
   }
 
   /* read in the debug level for database log messages */
-  if ((value = scr_param_get("SCR_DB_DEBUG")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_DEBUG")) != NULL) {
     scr_log_db_debug = atoi(value);
   }
 
   /* SCR log DB connection parameters */
-  if ((value = scr_param_get("SCR_DB_HOST")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_HOST")) != NULL) {
     scr_log_db_host = strdup(value);
   }
-  if ((value = scr_param_get("SCR_DB_USER")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_USER")) != NULL) {
     scr_log_db_user = strdup(value);
   }
-  if ((value = scr_param_get("SCR_DB_PASS")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_PASS")) != NULL) {
     scr_log_db_pass = strdup(value);
   }
-  if ((value = scr_param_get("SCR_DB_NAME")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_NAME")) != NULL) {
     scr_log_db_name = strdup(value);
   }
 
