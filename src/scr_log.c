@@ -846,26 +846,26 @@ int scr_log_init(const char* prefix)
   }
 
   /* check whether SCR logging DB is enabled */
-  if ((value = scr_param_get("SCR_DB_ENABLE")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_ENABLE")) != NULL) {
     db_enable = atoi(value);
   }
 
   /* read in the debug level for database log messages */
-  if ((value = scr_param_get("SCR_DB_DEBUG")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_DEBUG")) != NULL) {
     db_debug = atoi(value);
   }
 
   /* SCR log DB connection parameters */
-  if ((value = scr_param_get("SCR_DB_HOST")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_HOST")) != NULL) {
     db_host = strdup(value);
   }
-  if ((value = scr_param_get("SCR_DB_USER")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_USER")) != NULL) {
     db_user = strdup(value);
   }
-  if ((value = scr_param_get("SCR_DB_PASS")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_PASS")) != NULL) {
     db_pass = strdup(value);
   }
-  if ((value = scr_param_get("SCR_DB_NAME")) != NULL) {
+  if ((value = scr_param_get("SCR_LOG_DB_NAME")) != NULL) {
     db_name = strdup(value);
   }
 
