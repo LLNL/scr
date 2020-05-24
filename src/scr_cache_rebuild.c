@@ -171,10 +171,9 @@ int scr_cache_rebuild(scr_cache_index* cindex)
 {
   int rc = SCR_FAILURE;
 
-  double time_start, time_end, time_diff;
-
   /* start timer */
   time_t time_t_start;
+  double time_start;
   if (scr_my_rank_world == 0) {
     time_t_start = scr_log_seconds();
     time_start = MPI_Wtime();
@@ -246,8 +245,7 @@ int scr_cache_rebuild(scr_cache_index* cindex)
       if (scr_my_rank_world == 0) {
         scr_dbg(1, "Attempting to distribute and rebuild dataset %d", current_id);
         if (scr_log_enable) {
-          time_t now = scr_log_seconds();
-          scr_log_event("REBUILD STARTED", NULL, &current_id, &now, NULL);
+          scr_log_event("REBUILD_START", NULL, &current_id, NULL, NULL, NULL);
         }
       }
 
@@ -334,8 +332,7 @@ int scr_cache_rebuild(scr_cache_index* cindex)
         if (scr_my_rank_world == 0) {
           scr_dbg(1, "Failed to rebuild dataset %d", current_id);
           if (scr_log_enable) {
-            time_t now = scr_log_seconds();
-            scr_log_event("REBUILD FAILED", NULL, &current_id, &now, NULL);
+            scr_log_event("REBUILD_FAIL", NULL, &current_id, NULL, NULL, NULL);
           }
         }
 
@@ -351,8 +348,7 @@ int scr_cache_rebuild(scr_cache_index* cindex)
         if (scr_my_rank_world == 0) {
           scr_dbg(1, "Rebuilt dataset %d", current_id);
           if (scr_log_enable) {
-            time_t now = scr_log_seconds();
-            scr_log_event("REBUILD SUCCEEDED", NULL, &current_id, &now, NULL);
+            scr_log_event("REBUILD_SUCCESS", NULL, &current_id, NULL, NULL, NULL);
           }
         }
       }
@@ -384,8 +380,8 @@ int scr_cache_rebuild(scr_cache_index* cindex)
 
   /* stop timer and report performance */
   if (scr_my_rank_world == 0) {
-    time_end = MPI_Wtime();
-    time_diff = time_end - time_start;
+    double time_end = MPI_Wtime();
+    double time_diff = time_end - time_start;
 
     if (distribute_attempted) {
       if (rc == SCR_SUCCESS) {
@@ -393,13 +389,13 @@ int scr_cache_rebuild(scr_cache_index* cindex)
           scr_checkpoint_id, time_diff
         );
         if (scr_log_enable) {
-          scr_log_event("RESTART SUCCEEDED", NULL, &scr_checkpoint_id, &time_t_start, &time_diff);
+          scr_log_event("RESTART_SUCCESS", NULL, &scr_dataset_id, NULL, &time_t_start, &time_diff);
         }
       } else {
         /* scr_checkpoint_id is not defined */
         scr_dbg(1, "Scalable restart failed, took %f secs", time_diff);
         if (scr_log_enable) {
-          scr_log_event("RESTART FAILED", NULL, NULL, &time_t_start, &time_diff);
+          scr_log_event("RESTART_FAIL", NULL, NULL, NULL, &time_t_start, &time_diff);
         }
       }
     }

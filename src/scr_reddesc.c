@@ -479,17 +479,12 @@ static int scr_reddesc_apply_to_filemap(const scr_reddesc* desc, int id, const s
   return rc;
 }
 
-/* apply redundancy scheme to file and return number of bytes copied
- * in bytes parameter */
+/* apply redundancy scheme to files */
 int scr_reddesc_apply(
   scr_filemap* map,
   const scr_reddesc* desc,
-  int id,
-  double* bytes)
+  int id)
 {
-  /* initialize to 0 */
-  *bytes = 0.0;
-
   /* start timer */
   time_t timestamp_start;
   double time_start;
@@ -498,11 +493,10 @@ int scr_reddesc_apply(
     time_start = MPI_Wtime();
   }
 
-  /* TODO scan files and get number of bytes */
   /* step through each of my files for the specified dataset
    * to scan for any incomplete files */
   int valid = 1;
-  double my_bytes = 0.0;
+  unsigned long my_counts[3] = {0};
   kvtree_elem* file_elem;
   for (file_elem = scr_filemap_first_file(map);
        file_elem != NULL;
@@ -517,8 +511,9 @@ int scr_reddesc_apply(
       valid = 0;
     }
 
-    /* add up the number of bytes on our way through */
-    my_bytes += (double) scr_file_size(file);
+    /* add up the number of files and bytes on our way through */
+    my_counts[0] += 1;
+    my_counts[1] += scr_file_size(file);
 
     /* if crc_on_copy is set, compute crc and update meta file */
     if (scr_crc_on_copy) {
@@ -526,9 +521,18 @@ int scr_reddesc_apply(
     }
   }
 
+  /* record valid flag, we'll sum these up to determine if all ranks are valid */
+  my_counts[2] = valid;
+
+  /* add up total number of files, bytes, and valid flags */
+  unsigned long total_counts[3];
+  MPI_Allreduce(&my_counts, &total_counts, 3, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
+  int files       = (int)    total_counts[0];
+  double bytes    = (double) total_counts[1];
+  int total_valid = (int)    total_counts[2];
+
   /* determine whether everyone's files are good */
-  int all_valid = scr_alltrue(valid, scr_comm_world);
-  if (! all_valid) {
+  if (total_valid != scr_ranks_world) {
     if (scr_my_rank_world == 0) {
       scr_dbg(1, "Exiting copy since one or more checkpoint files is invalid");
     }
@@ -601,7 +605,7 @@ int scr_reddesc_apply(
 #endif
 
   /* determine whether everyone's files are good */
-  all_valid = scr_alltrue(valid, scr_comm_world);
+  int all_valid = scr_alltrue(valid, scr_comm_world);
   if (! all_valid) {
     if (scr_my_rank_world == 0) {
       scr_dbg(1, "Exiting copy since one or more checkpoint files is invalid");
@@ -635,22 +639,22 @@ int scr_reddesc_apply(
   int all_valid_copy = scr_alltrue(valid_copy, scr_comm_world);
   rc = all_valid_copy ? SCR_SUCCESS : SCR_FAILURE;
 
-  /* add up total number of bytes */
-  MPI_Allreduce(&my_bytes, bytes, 1, MPI_DOUBLE, MPI_SUM, scr_comm_world);
-
   /* stop timer and report performance info */
   if (scr_my_rank_world == 0) {
     double time_end = MPI_Wtime();
     double time_diff = time_end - time_start;
-    double bw = *bytes / (1024.0 * 1024.0 * time_diff);
+    double bw = 0.0;
+    if (time_diff > 0.0) {
+      bw = bytes / (1024.0 * 1024.0 * time_diff);
+    }
     scr_dbg(1, "scr_reddesc_apply: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-            time_diff, *bytes, bw, bw/scr_ranks_world
+            time_diff, bytes, bw, bw/scr_ranks_world
     );
 
     /* log data on the copy in the database */
     if (scr_log_enable) {
       char* dir = scr_cache_dir_get(desc, id);
-      scr_log_transfer("COPY", desc->base, dir, &id, &timestamp_start, &time_diff, bytes);
+      scr_log_transfer("ENCODE", desc->base, dir, &id, NULL, &timestamp_start, &time_diff, &bytes, &files);
       scr_free(&dir);
     }
   }

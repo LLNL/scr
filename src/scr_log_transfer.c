@@ -35,6 +35,7 @@ struct arglist {
   char*  prefix;
   char*  username;
   char*  jobname;
+  char*  jobid;
   time_t start;
 
   int     transfer;
@@ -42,9 +43,11 @@ struct arglist {
   char*   transfer_from;
   char*   transfer_to;
   int*    transfer_dset;
+  char*   transfer_name;
   time_t* transfer_start;
   double* transfer_secs;
   double* transfer_bytes;
+  int*    transfer_files;
 };
 
 int scr_log_enable = SCR_LOG_ENABLE;
@@ -53,6 +56,7 @@ int global_dset;
 time_t global_start;
 double global_secs;
 double global_bytes;
+int    global_files;
 
 void print_usage()
 {
@@ -63,15 +67,18 @@ void print_usage()
   printf("  -p <prefix>    Prefix directory\n");
   printf("  -u <username>  Username of job owner, reads $USER if not specified\n");
   printf("  -j <jobname>   Job name of job, reads $SCR_JOB_NAME if not specified\n");
+  printf("  -i <jobid>     Job id\n");
   printf("  -s <seconds>   Job start time, uses current UNIX timestamp if not specified\n");
   printf("\n");
   printf("  -T <type>      Event type (string)\n");
   printf("  -X <from>      From directory (string)\n");
   printf("  -Y <to>        To directory (string)\n");
   printf("  -D <id>        Dataset id (integer)\n");
+  printf("  -n <name>      Dataset name (string)\n");
   printf("  -S <start>     Transfer start time as UNIX timestamp (integer)\n");
   printf("  -L <duration>  Duration in seconds (integer)\n");
   printf("  -B <bytes>     Number of bytes transfered (integer)\n");
+  printf("  -F <files>     Number of files transfered (integer)\n");
   printf("\n");
   return;
 }
@@ -86,6 +93,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
   args->prefix   = NULL;
   args->username = NULL;
   args->jobname  = NULL;
+  args->jobid    = NULL;
   args->start    = 0;
 
   args->transfer          = 0;
@@ -93,9 +101,11 @@ int processArgs(int argc, char **argv, struct arglist* args)
   args->transfer_from     = NULL;
   args->transfer_to       = NULL;
   args->transfer_dset     = NULL;
+  args->transfer_name     = NULL;
   args->transfer_start    = NULL;
   args->transfer_secs     = NULL;
   args->transfer_bytes    = NULL;
+  args->transfer_files    = NULL;
 
   for (i=1; i<argc; i++) {
     /* check for options */
@@ -114,7 +124,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
       }
 
       /* single argument parameters */
-      if (strchr("pujsTXYDSLB", flag)) {
+      if (strchr("pujisTXYDnSLBF", flag)) {
         switch(flag) {
         case 'p':
           args->prefix = strdup(argptr);
@@ -124,6 +134,9 @@ int processArgs(int argc, char **argv, struct arglist* args)
           break;
         case 'j':
           args->jobname = strdup(argptr);
+          break;
+        case 'i':
+          args->jobid = strdup(argptr);
           break;
         case 's':
           args->start = (time_t) strtoul(argptr, NULL, 0);
@@ -142,6 +155,9 @@ int processArgs(int argc, char **argv, struct arglist* args)
           global_dset = (int) atoi(argptr);
           args->transfer_dset = &global_dset;
           break;
+        case 'n':
+          args->transfer_name = strdup(argptr);
+          break;
         case 'S':
           global_start = (time_t) strtoul(argptr, NULL, 0);
           args->transfer_start = &global_start;
@@ -153,6 +169,10 @@ int processArgs(int argc, char **argv, struct arglist* args)
         case 'B':
           global_bytes = (double) atoi(argptr);
           args->transfer_bytes = &global_bytes;
+          break;
+        case 'F':
+          global_files = atoi(argptr);
+          args->transfer_files = &global_files;
           break;
         }
         continue;
@@ -215,12 +235,20 @@ int main (int argc, char *argv[])
   }
   scr_param_finalize();
 
+  /* we just use the string returned by gethostname */
+  char hostname[256] = "nullhost";
+  if (gethostname(hostname, sizeof(hostname)) != 0) {
+    scr_err("scr_log_transfer: Call to gethostname failed @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
   if (scr_log_enable) {
     /* init logging */
     if (scr_log_init(args.prefix) == SCR_SUCCESS) {
       /* register job */
       if (args.username != NULL && args.jobname != NULL) {
-        if (scr_log_job(args.username, args.jobname, args.start) != SCR_SUCCESS) {
+        if (scr_log_job(args.username, hostname, args.jobid, args.prefix, args.start) != SCR_SUCCESS) {
           scr_err("scr_log_transfer: Failed to register job, disabling logging @ %s:%d",
                   __FILE__, __LINE__
           );
@@ -244,9 +272,9 @@ int main (int argc, char *argv[])
   }
 
   if (scr_log_enable) {
-  //  if (scr_log_event(args.event_type, args.event_note, args.event_dset, args.event_start, args.event_secs) != SCR_SUCCESS)
     if (scr_log_transfer(args.transfer_type, args.transfer_from, args.transfer_to,
-          args.transfer_dset, args.transfer_start, args.transfer_secs, args.transfer_bytes) != SCR_SUCCESS)
+          args.transfer_dset, args.transfer_name, args.transfer_start, args.transfer_secs,
+          args.transfer_bytes, args.transfer_files) != SCR_SUCCESS)
     {
       rc = 1;
     }

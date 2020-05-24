@@ -105,12 +105,11 @@ scr_storedesc* scr_reddesc_get_store(
   const scr_reddesc* desc
 );
 
-/* apply redundancy scheme to file and return number of bytes copied in bytes parameter */
+/* apply redundancy scheme to files */
 int scr_reddesc_apply(
   scr_filemap* map,
   const scr_reddesc* c,
-  int id,
-  double* bytes
+  int id
 );
 
 /* rebuilds files for specified dataset id using specified redundancy descriptor,

@@ -270,8 +270,7 @@ int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, 
   /* log the fetch attempt */
   if (scr_my_rank_world == 0) {
     if (scr_log_enable) {
-      time_t now = scr_log_seconds();
-      scr_log_event("FETCH STARTED", fetch_dir, NULL, &now, NULL);
+      scr_log_event("FETCH_START", fetch_dir, &dset_id, dset_name, NULL, NULL);
     }
   }
 
@@ -285,8 +284,7 @@ int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, 
       if (scr_log_enable) {
         double time_end = MPI_Wtime();
         double time_diff = time_end - time_start;
-        time_t now = scr_log_seconds();
-        scr_log_event("FETCH FAILED", fetch_dir, NULL, &now, &time_diff);
+        scr_log_event("FETCH_FAIL", fetch_dir, &dset_id, dset_name, NULL, &time_diff);
       }
     }
     kvtree_delete(&summary_hash);
@@ -309,6 +307,14 @@ int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, 
     scr_free(&fetch_dir);
     return SCR_FAILURE;
   }
+
+   /* get number of bytes in this dataset */
+  unsigned long bytes = 0;
+  scr_dataset_get_size(dataset, &bytes);
+
+   /* get number of files in this dataset */
+  int files = 0;
+  scr_dataset_get_files(dataset, &files);
 
   /* TODO: need to add some logic to avoid falling over
    * if trying to clear the cache of a dataset that does not exist */
@@ -364,17 +370,15 @@ int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, 
     success = 0;
   }
 
-  /* free cache directory name */
-  scr_free(&cache_dir);
-
   /* free the hash holding the summary file data */
   kvtree_delete(&summary_hash);
 
   /* check that all processes copied their file successfully */
   if (! scr_alltrue(success, scr_comm_world)) {
-    /* someone failed, so let's delete the partial checkpoint */
+    /* delete the partial checkpoint */
     scr_cache_delete(cindex, dset_id);
 
+    /* someone failed to fetch, log it */
     if (scr_my_rank_world == 0) {
       scr_dbg(1, "One or more processes failed to read its files @ %s:%d",
         __FILE__, __LINE__
@@ -382,10 +386,12 @@ int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, 
       if (scr_log_enable) {
         double time_end = MPI_Wtime();
         double time_diff = time_end - time_start;
-        time_t now = scr_log_seconds();
-        scr_log_event("FETCH FAILED", fetch_dir, &dset_id, &now, &time_diff);
+        scr_log_event("FETCH_FAIL", fetch_dir, &dset_id, dset_name, NULL, &time_diff);
       }
     }
+
+    /* free cache directory name */
+    scr_free(&cache_dir);
 
     /* free our temporary fetch redudancy descriptor */
     scr_reddesc_free(c);
@@ -399,8 +405,7 @@ int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, 
   scr_cache_get_map(cindex, dset_id, map);
 
   /* apply redundancy scheme */
-  double bytes_copied = 0.0;
-  int rc = scr_reddesc_apply(map, c, dset_id, &bytes_copied);
+  int rc = scr_reddesc_apply(map, c, dset_id);
   if (rc == SCR_SUCCESS) {
     /* record checkpoint id */
     *checkpoint_id = ckpt_id;
@@ -424,31 +429,33 @@ int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, 
   scr_reddesc_free(c);
 
   /* stop timer, compute bandwidth, and report performance */
-  double total_bytes = bytes_copied;
   if (scr_my_rank_world == 0) {
+    double total_bytes = (double) bytes;
     double time_end = MPI_Wtime();
     double time_diff = time_end - time_start;
-    double bw = total_bytes / (1024.0 * 1024.0 * time_diff);
+    double bw = 0.0;
+    if (time_diff > 0.0) {
+      bw = total_bytes / (1024.0 * 1024.0 * time_diff);
+    }
     scr_dbg(1, "scr_fetch_dset: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
       time_diff, total_bytes, bw, bw/scr_ranks_world
     );
 
     /* log data on the fetch to the database */
     if (scr_log_enable) {
-      time_t now = scr_log_seconds();
       if (rc == SCR_SUCCESS) {
-        scr_log_event("FETCH SUCCEEDED", fetch_dir, &dset_id, &now, &time_diff);
+        scr_log_event("FETCH_SUCCESS", fetch_dir, &dset_id, dset_name, NULL, &time_diff);
       } else {
-        scr_log_event("FETCH FAILED", fetch_dir, &dset_id, &now, &time_diff);
+        scr_log_event("FETCH_FAIL", fetch_dir, &dset_id, dset_name, NULL, &time_diff);
       }
-
-      char* cache_dir = scr_cache_dir_get(c, dset_id);
-      scr_log_transfer("FETCH", fetch_dir, cache_dir, &dset_id,
-        &timestamp_start, &time_diff, &total_bytes
+      scr_log_transfer("FETCH", fetch_dir, cache_dir, &dset_id, dset_name,
+        &timestamp_start, &time_diff, &total_bytes, &files
       );
-      scr_free(&cache_dir);
     }
   }
+
+  /* free cache directory name */
+  scr_free(&cache_dir);
 
   /* free fetch direcotry string */
   scr_free(&fetch_dir);

@@ -68,27 +68,51 @@ int scr_log_init(const char* prefix);
 /* shut down the logging */
 int scr_log_finalize(void);
 
-/* given a username, a jobname, and a start time, lookup (or create) the id for this job */
-int scr_log_job(const char* username, const char* jobname, time_t start);
+/* register a job with a username and prefix directory,
+ * also take the hostname, jobid, and start time to capture
+ * some state of the current run */
+int scr_log_job(
+  const char* username,
+  const char* hostname,
+  const char* jobid,
+  const char* prefix,
+  time_t start
+);
 
-/* log start time of current run */
-int scr_log_run(time_t start);
+/* log start time of current run along with
+ * its number of procs and nodes */
+int scr_log_run(
+  time_t start,
+  int procs,
+  int nodes
+);
 
 /* log reason and time for halting current run */
-int scr_log_halt(const char* reason, const int* ckpt);
+int scr_log_halt(
+  const char* reason
+);
 
 /* log an event */
-int scr_log_event(const char* type, const char* note, const int* ckpt, const time_t* start, const double* secs);
+int scr_log_event(
+  const char* type,
+  const char* note,
+  const int* dset,
+  const char* name,
+  const time_t* start,
+  const double* secs
+);
 
 /* log a transfer: copy / checkpoint / fetch / flush */
 int scr_log_transfer(
   const char* type,
   const char* from,
   const char* to,
-  const int* ckpt_id,
+  const int* dset,
+  const char* name,
   const time_t* start,
   const double* secs,
-  const double* bytes
+  const double* bytes,
+  const int* files
 );
 
 #endif

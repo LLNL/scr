@@ -55,6 +55,16 @@ static scr_filemap* scr_map = NULL;
 /* tracks redundancy descriptor for current dataset */
 static scr_reddesc* scr_rd = NULL;
 
+static double scr_time_compute_start;     /* records the start time of the current compute phase */
+static double scr_time_compute_end;       /* records the end time of the current compute phase */
+
+static double scr_time_checkpoint_start;  /* records the start time of the current checkpoint */
+static double scr_time_checkpoint_end;    /* records the end time of the current checkpoint */
+
+static time_t scr_timestamp_output_start; /* record timestamp of start of output phase */
+static double scr_time_output_start;      /* records the start time of the current output phase */
+static double scr_time_output_end;        /* records the end time of the current output phase */
+
 /* look up redundancy descriptor we should use for this dataset */
 static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_reddesc* descs)
 {
@@ -141,11 +151,7 @@ static int scr_halt(const char* reason)
   }
 
   /* log the halt condition */
-  int* dset = NULL;
-  if (scr_dataset_id > 0) {
-    dset = &scr_dataset_id;
-  }
-  scr_log_halt(reason, dset);
+  scr_log_halt(reason);
 
   /* and write out the halt file */
   int rc = scr_halt_sync_and_decrement(scr_halt_file, scr_halt_hash, 0);
@@ -971,10 +977,8 @@ static int scr_start_output(const char* name, int flags)
 
     /* log the end of this compute phase */
     if (scr_log_enable) {
-      int compute_id = scr_checkpoint_id + 1;
       double time_diff = scr_time_compute_end - scr_time_compute_start;
-      time_t now = scr_log_seconds();
-      scr_log_event("COMPUTE COMPLETED", NULL, &compute_id, &now, &time_diff);
+      scr_log_event("COMPUTE_END", NULL, NULL, NULL, NULL, &time_diff);
     }
   }
 
@@ -1085,13 +1089,20 @@ static int scr_start_output(const char* name, int flags)
   scr_rd = scr_get_reddesc(dataset, scr_nreddescs, scr_reddescs);
 
   /* start the clock to record how long it takes to write output */
-  if (is_ckpt && scr_my_rank_world == 0) {
-    scr_time_checkpoint_start = MPI_Wtime();
+  if (scr_my_rank_world == 0) {
+    scr_time_output_start = MPI_Wtime();
+    if (is_ckpt) {
+      scr_time_checkpoint_start = scr_time_output_start;
+    }
 
-    /* log the start of this checkpoint phase */
+    /* log the start of this output phase */
     if (scr_log_enable) {
-      scr_timestamp_checkpoint_start = scr_log_seconds();
-      scr_log_event("CHECKPOINT STARTED", scr_rd->base, &scr_checkpoint_id, &scr_timestamp_checkpoint_start, NULL);
+      scr_timestamp_output_start = scr_log_seconds();
+      if (is_ckpt) {
+        scr_log_event("CHECKPOINT_START", scr_rd->base, &scr_dataset_id, dataset_name, &scr_timestamp_output_start, NULL);
+      } else {
+        scr_log_event("OUTPUT_START", scr_rd->base, &scr_dataset_id, dataset_name, &scr_timestamp_output_start, NULL);
+      }
     }
   }
 
@@ -1391,9 +1402,12 @@ static int scr_complete_output(int valid)
     my_counts[2] = 1;
   }
 
-  /* execute allreduce */
+  /* execute allreduce to total up number of files, bytes, and number of valid ranks */
   unsigned long total_counts[3];
   MPI_Allreduce(my_counts, total_counts, 3, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
+  unsigned long total_files = total_counts[0];
+  unsigned long total_bytes = total_counts[1];
+  unsigned long total_valid = total_counts[2];
 
   /* get dataset from filemap */
   scr_dataset* dataset = scr_dataset_new();
@@ -1404,9 +1418,9 @@ static int scr_complete_output(int valid)
   int is_output = scr_dataset_is_output(dataset);
 
   /* store total number of files, total number of bytes, and complete flag in dataset */
-  scr_dataset_set_files(dataset, (int) total_counts[0]);
-  scr_dataset_set_size(dataset,        total_counts[1]);
-  if (total_counts[2] == scr_ranks_world) {
+  scr_dataset_set_files(dataset, (int) total_files);
+  scr_dataset_set_size(dataset,        total_bytes);
+  if (total_valid == scr_ranks_world) {
     /* got a valid=1 for every rank, we're complete */
     scr_dataset_set_complete(dataset, 1);
   } else {
@@ -1420,40 +1434,79 @@ static int scr_complete_output(int valid)
   /* write out info to filemap */
   scr_cache_set_map(scr_cindex, scr_dataset_id, scr_map);
 
+  /* record the cost of the output before copy */
+  int files    = (int) total_files;
+  double bytes = (double) total_bytes;
+  if (scr_my_rank_world == 0) {
+    /* stop the clock for this output */
+    double end = MPI_Wtime();
+    double time_diff = end - scr_time_output_start;
+    double bw = 0.0;
+    if (time_diff > 0.0) {
+      bw = bytes / (1024.0 * 1024.0 * time_diff);
+    }
+    scr_dbg(1, "scr_complete_output: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
+            time_diff, bytes, bw, bw/scr_ranks_world
+    );
+
+    /* log data on the output */
+    if (scr_log_enable) {
+      /* log the end of this write phase */
+      char* dset_name;
+      scr_dataset_get_name(dataset, &dset_name);
+      char* dir = scr_cache_dir_get(scr_rd, scr_dataset_id);
+      scr_log_transfer("WRITE", scr_rd->base, dir, &scr_dataset_id, dset_name,
+        &scr_timestamp_output_start, &time_diff, &bytes, &files
+      );
+      scr_free(&dir);
+    }
+  }
+
   /* apply redundancy scheme if we're still valid */
-  double bytes_copied = 0.0;
   if (rc == SCR_SUCCESS) {
-    rc = scr_reddesc_apply(scr_map, scr_rd, scr_dataset_id, &bytes_copied);
+    rc = scr_reddesc_apply(scr_map, scr_rd, scr_dataset_id);
   }
 
   /* record the cost of the output and log its completion */
-  if (is_ckpt && scr_my_rank_world == 0) {
-    /* stop the clock for this checkpoint */
-    scr_time_checkpoint_end = MPI_Wtime();
-
-    /* compute and record the cost for this checkpoint */
-    double cost = scr_time_checkpoint_end - scr_time_checkpoint_start;
-    if (cost < 0) {
-      scr_err("Checkpoint end time (%f) is less than start time (%f) @ %s:%d",
-        scr_time_checkpoint_end, scr_time_checkpoint_start, __FILE__, __LINE__
-      );
-      cost = 0;
+  if (scr_my_rank_world == 0) {
+    /* stop the clock for this output */
+    scr_time_output_end = MPI_Wtime();
+    if (is_ckpt) {
+      scr_time_checkpoint_end = scr_time_output_end;
     }
-    scr_time_checkpoint_total += cost;
-    scr_time_checkpoint_count++;
 
-    /* log data on the checkpoint in the database */
-    if (scr_log_enable) {
-      /* log the end of this checkpoint phase */
-      double time_diff = scr_time_checkpoint_end - scr_time_checkpoint_start;
-      time_t now = scr_log_seconds();
-      scr_log_event("CHECKPOINT COMPLETED", scr_rd->base, &scr_checkpoint_id, &now, &time_diff);
-
-      /* log the transfer details */
-      char* dir = scr_cache_dir_get(scr_rd, scr_dataset_id);
-      scr_log_transfer("CHECKPOINT", scr_rd->base, dir, &scr_checkpoint_id,
-        &scr_timestamp_checkpoint_start, &cost, &bytes_copied
+    /* compute and record the cost for this output */
+    double time_diff = scr_time_output_end - scr_time_output_start;
+    if (time_diff < 0.0) {
+      scr_err("Output end time (%f) is less than start time (%f) @ %s:%d",
+        scr_time_output_end, scr_time_output_start, __FILE__, __LINE__
       );
+      time_diff = 0.0;
+    }
+
+    /* tally up running total of checkpoint costs */
+    if (is_ckpt) {
+      scr_time_checkpoint_total += time_diff;
+      scr_time_checkpoint_count++;
+    }
+
+    /* log data on the output */
+    if (scr_log_enable) {
+      /* log the end of this output phase */
+      char* dset_name;
+      scr_dataset_get_name(dataset, &dset_name);
+      char* dir = scr_cache_dir_get(scr_rd, scr_dataset_id);
+      if (is_ckpt) {
+        scr_log_event("CHECKPOINT_END", scr_rd->base, &scr_dataset_id, dset_name, NULL, &time_diff);
+        scr_log_transfer("CHECKPOINT", scr_rd->base, dir, &scr_dataset_id, dset_name,
+          &scr_timestamp_output_start, &time_diff, &bytes, &files
+        );
+      } else {
+        scr_log_event("OUTPUT_END", scr_rd->base, &scr_dataset_id, dset_name, NULL, &time_diff);
+        scr_log_transfer("OUTPUT", scr_rd->base, dir, &scr_dataset_id, dset_name,
+          &scr_timestamp_output_start, &time_diff, &bytes, &files
+        );
+      }
       scr_free(&dir);
     }
 
@@ -1537,9 +1590,7 @@ static int scr_complete_output(int valid)
 
     /* log the start time of this compute phase */
     if (scr_log_enable) {
-      int compute_id = scr_checkpoint_id + 1;
-      scr_timestamp_compute_start = scr_log_seconds();
-      scr_log_event("COMPUTE STARTED", NULL, &compute_id, &scr_timestamp_compute_start, NULL);
+      scr_log_event("COMPUTE_START", NULL, NULL, NULL, NULL, NULL);
     }
   }
 
@@ -1727,6 +1778,14 @@ int SCR_Init()
     );
   }
 
+  /* num_nodes will be used later, this line is moved above cache_dir creation
+   * to make sure scr_my_hostid is set before we try to create directories.
+   * The logic that uses num_nodes can't be moved here because it relies on the
+   * scr_node_file variable computed later */
+  int num_nodes;
+  MPI_Comm_rank(scr_comm_node, &scr_my_rank_host);
+  rankstr_mpi(scr_my_hostname, scr_comm_world, 0, 1, &num_nodes, &scr_my_hostid);
+
   /* check that scr_prefix is set */
   if (scr_prefix == NULL || strcmp(scr_prefix, "") == 0) {
     if (scr_my_rank_world == 0) {
@@ -1769,9 +1828,9 @@ int SCR_Init()
   if (scr_my_rank_world == 0 && scr_log_enable) {
     if (scr_username != NULL && scr_jobname != NULL) {
       time_t job_start = scr_log_seconds();
-      if (scr_log_job(scr_username, scr_jobname, job_start) == SCR_SUCCESS) {
+      if (scr_log_job(scr_username, scr_my_hostname, scr_jobid, scr_prefix, job_start) == SCR_SUCCESS) {
         /* record the start time for this run */
-        scr_log_run(job_start);
+        scr_log_run(job_start, scr_ranks_world, num_nodes);
       } else {
         scr_warn("Failed to log job for username %s and jobname %s, disabling logging @ %s:%d",
           scr_username, scr_jobname, __FILE__, __LINE__
@@ -1807,14 +1866,6 @@ int SCR_Init()
 
   /* TODO: should we check for access and required space in cntl
    * directory at this point? */
-
-  /* num_nodes will be used later, this line is moved above cache_dir creation
-   * to make sure scr_my_hostid is set before we try to create directories.
-   * The logic that uses num_nodes can't be moved here because it relies on the
-   * scr_node_file variable computed later */
-  int num_nodes;
-  MPI_Comm_rank(scr_comm_node, &scr_my_rank_host);
-  rankstr_mpi(scr_my_hostname, scr_comm_world, 0, 1, &num_nodes, &scr_my_hostid);
 
   /* create the cache directories */
   for (i=0; i < scr_nreddescs; i++) {
@@ -2034,9 +2085,7 @@ int SCR_Init()
 
     /* log the start time of this compute phase */
     if (scr_log_enable) {
-      int compute_id = scr_checkpoint_id + 1;
-      scr_timestamp_compute_start = scr_log_seconds();
-      scr_log_event("COMPUTE STARTED", NULL, &compute_id, &scr_timestamp_compute_start, NULL);
+      scr_log_event("COMPUTE_START", NULL, NULL, NULL, NULL, NULL);
     }
   }
 

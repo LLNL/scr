@@ -85,9 +85,17 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
     return SCR_SUCCESS;
   }
 
+  /* get the dataset corresponding to this id */
+  scr_dataset* dataset = scr_dataset_new();
+  scr_cache_index_get_dataset(cindex, id, dataset);
+
+  /* lookup dataset name */
+  char* dset_name = NULL;
+  scr_dataset_get_name(dataset, &dset_name);
+
   /* this may take a while, so tell user what we're doing */
   if (scr_my_rank_world == 0) {
-    scr_dbg(1, "scr_flush_async_start: Initiating flush of dataset %d", id);
+    scr_dbg(1, "Initiating flush of dataset %d %s", id, dset_name);
   }
 
   /* make sure all processes make it this far before progressing */
@@ -100,7 +108,7 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
 
     /* log the start of the flush */
     if (scr_log_enable) {
-      scr_log_event("ASYNC FLUSH STARTED", NULL, &id,
+      scr_log_event("ASYNC_FLUSH_START", NULL, &id, dset_name,
                     &scr_flush_async_timestamp_start, NULL);
     }
   }
@@ -123,11 +131,11 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
       if (scr_log_enable) {
         double time_end = MPI_Wtime();
         double time_diff = time_end - scr_flush_async_time_start;
-        time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH FAILED", "Failed to prepare flush",
-                      &id, &now, &time_diff);
+        scr_log_event("ASYNC_FLUSH_FAIL", "Failed to prepare flush",
+                      &id, dset_name, NULL, &time_diff);
       }
     }
+    scr_dataset_delete(&dataset);
     kvtree_delete(&scr_flush_async_file_list);
     scr_flush_async_flushed = SCR_FAILURE;
     return SCR_FAILURE;
@@ -138,9 +146,6 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   char** src_filelist;
   char** dst_filelist;
   scr_flush_filolist_alloc(scr_flush_async_file_list, &numfiles, &src_filelist, &dst_filelist);
-
-  /* get the dataset of this flush */
-  scr_dataset* dataset = kvtree_get(scr_flush_async_file_list, SCR_KEY_DATASET);
 
   /* create enty in index file to indicate that dataset may exist, but is not yet complete */
   scr_flush_init_index(dataset);
@@ -183,6 +188,9 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   /* free our file list */
   scr_flush_filolist_free(numfiles, &src_filelist, &dst_filelist);
 
+  /* free the dataset */
+  scr_dataset_delete(&dataset);
+
   /* make sure all processes have started before we leave */
   MPI_Barrier(scr_comm_world);
 
@@ -219,7 +227,17 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
     return SCR_FAILURE;
   }
 
-  scr_dbg(1,"scr_flush_async_complete called @ %s:%d", __FILE__, __LINE__);
+  /* get the dataset corresponding to this id */
+  scr_dataset* dataset = scr_dataset_new();
+  scr_cache_index_get_dataset(cindex, id, dataset);
+
+  /* lookup dataset name */
+  char* dset_name = NULL;
+  scr_dataset_get_name(dataset, &dset_name);
+
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "Completing flush of dataset %d %s @ %s:%d", id, dset_name, __FILE__, __LINE__);
+  }
 
   /* TODO: wait on Filo if we failed to start? */
   /* wait for transfer to complete */
@@ -244,9 +262,31 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
 
   /* stop timer, compute bandwidth, and report performance */
   if (scr_my_rank_world == 0) {
+    /* get the dataset corresponding to this id */
+    scr_dataset* dataset = scr_dataset_new();
+    scr_cache_index_get_dataset(cindex, id, dataset);
+
+    /* get the number of bytes in the dataset */
+    double total_bytes = 0.0;
+    unsigned long dataset_bytes;
+    if (scr_dataset_get_size(dataset, &dataset_bytes) == SCR_SUCCESS) {
+      total_bytes = (double) dataset_bytes;
+    }
+
+    /* get the number of files in the dataset */
+    int total_files = 0.0;
+    scr_dataset_get_files(dataset, &total_files);
+
+    /* delete the dataset object */
+    scr_dataset_delete(&dataset);
+
+    /* stop timer and compute bandwidth */
     double time_end = MPI_Wtime();
     double time_diff = time_end - scr_flush_async_time_start;
-    double bw = scr_flush_async_bytes / (1024.0 * 1024.0 * time_diff);
+    double bw = 0.0;
+    if (time_diff > 0.0) {
+      bw = scr_flush_async_bytes / (1024.0 * 1024.0 * time_diff);
+    }
     scr_dbg(1, "scr_flush_async_complete: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
       time_diff, scr_flush_async_bytes, bw, bw/scr_ranks_world
     );
@@ -254,24 +294,34 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
     /* log messages about flush */
     if (scr_flush_async_flushed == SCR_SUCCESS) {
       /* the flush worked, print a debug message */
-      scr_dbg(1, "scr_flush_async_complete: Flush of dataset %d succeeded", id);
+      scr_dbg(1, "scr_flush_async_complete: Flush of dataset succeeded %d %s", id, dset_name);
 
       /* log details of flush */
       if (scr_log_enable) {
-        time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH SUCCEEDED", NULL, &id, &now, &time_diff);
+        scr_log_event("ASYNC_FLUSH_SUCCESS", NULL, &id, dset_name, NULL, &time_diff);
       }
     } else {
       /* the flush failed, this is more serious so print an error message */
-      scr_err("scr_flush_async_complete: Flush failed");
+      scr_err("scr_flush_async_complete: Flush of dataset failed %d %s", id, dset_name);
 
       /* log details of flush */
       if (scr_log_enable) {
-        time_t now = scr_log_seconds();
-        scr_log_event("ASYNC FLUSH FAILED", NULL, &id, &now, &time_diff);
+        scr_log_event("ASYNC_FLUSH_FAIL", NULL, &id, dset_name, NULL, &time_diff);
       }
     }
+
+    /* log transfer stats */
+    if (scr_log_enable) {
+      char* dir = NULL;
+      scr_cache_index_get_dir(cindex, id, &dir);
+      scr_log_transfer("FLUSH_ASYNC", dir, scr_prefix, &id, dset_name,
+        &scr_flush_async_timestamp_start, &time_diff, &total_bytes, &total_files
+      );
+    }
   }
+
+  /* free the dataset */
+  scr_dataset_delete(&dataset);
 
   return scr_flush_async_flushed;
 }

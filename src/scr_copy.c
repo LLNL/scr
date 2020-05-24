@@ -385,8 +385,7 @@ static int copy_files_for_filemap(
              * rank 0 can write log entries */
             /*
             if (scr_log_enable) {
-              time_t now = scr_log_seconds();
-              scr_log_event("CRC32 MISMATCH", my_flushed_file, NULL, &now, NULL);
+              scr_log_event("CRC32_MISMATCH", my_flushed_file, NULL, NULL, NULL);
             }
             */
           }
