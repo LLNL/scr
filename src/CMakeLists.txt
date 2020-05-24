@@ -126,6 +126,7 @@ LIST(APPEND cliscr_c_bins
 	scr_index
         scr_rebuild_xor
         scr_rebuild_partner
+	scr_print
 )
 
 # CLI binaries that require full SCR library
