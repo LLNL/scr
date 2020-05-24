@@ -47,8 +47,10 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <string.h>
 #include <strings.h>
+#include <errno.h>
 
 /* gettimeofday */
 #include <sys/time.h>
@@ -59,6 +61,13 @@
 #ifdef HAVE_LIBMYSQLCLIENT
 #include <mysql.h>
 #endif
+
+static char* scr_prefix = NULL; /* path to job's prefix directory */
+
+static int   scr_txt_enable = 0;  /* whether to log event in text file */
+static char* scr_txt_name = NULL; /* name of log file */
+static int   scr_txt_fd = -1;     /* file descriptor of log file */
+static int   scr_txt_initialized = 0; /* flag indicating whether we have opened the log file */
 
 static int scr_db_enable = 0;    /* whether to log event in SCR log database */
 static int scr_db_debug  = 0;    /* database debug level */
@@ -726,6 +735,22 @@ int scr_mysql_register_job(const char* username, const char* jobname, unsigned l
   return rc;
 }
 
+/* we'd like to open this log file during scr_log_init,
+ * but this gets called before the prefix directory has
+ * been created in the SCR library */
+void scr_txt_init(void)
+{
+  if (! scr_txt_initialized) {
+    scr_txt_fd = scr_open(scr_txt_name, O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR);
+    if (scr_txt_fd < 0) {
+      scr_err("Failed to open log file: `%s' errno=%d (%s) @ %s:%d",
+              scr_txt_name, errno, strerror(errno), __FILE__, __LINE__
+      );
+    }
+    scr_txt_initialized = 1;
+  }
+}
+
 /*
 =========================================
 Log functions
@@ -742,14 +767,22 @@ time_t scr_log_seconds()
 }
 
 /* initialize the logging */
-int scr_log_init()
+int scr_log_init(const char* prefix)
 {
   int rc = SCR_SUCCESS;
 
   /* read in parameters */
   const char* value = NULL;
 
+  /* copy the prefix directory */
+  scr_prefix = strdup(prefix);
+
   scr_param_init();
+
+  /* check whether SCR logging DB is enabled */
+  if ((value = scr_param_get("SCR_LOG_TXT_ENABLE")) != NULL) {
+    scr_txt_enable = atoi(value);
+  }
 
   /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_DB_ENABLE")) != NULL) {
@@ -777,6 +810,13 @@ int scr_log_init()
 
   scr_param_finalize();
 
+  /* open log file if enabled */
+  if (scr_txt_enable) {
+    char logname[SCR_MAX_FILENAME];
+    snprintf(logname, sizeof(logname), "%s/.scr/scr.log", scr_prefix);
+    scr_txt_name = strdup(logname);
+  }
+
   /* connect to the database, if enabled */
   if (scr_db_enable) {
     if (scr_mysql_connect() != SCR_SUCCESS) {
@@ -794,6 +834,15 @@ int scr_log_init()
 /* shut down the logging */
 int scr_log_finalize()
 {
+  /* close log file if we opened one */
+  if (scr_txt_enable) {
+    if (scr_txt_fd >= 0) {
+      scr_close(scr_txt_name, scr_txt_fd);
+      scr_txt_fd = -1;
+    }
+    scr_free(&scr_txt_name);
+  }
+
   /* disconnect from database */
   if (scr_db_enable) {
     scr_mysql_disconnect();
@@ -804,6 +853,7 @@ int scr_log_finalize()
   scr_free(&scr_db_user);
   scr_free(&scr_db_pass);
   scr_free(&scr_db_name);
+  scr_free(&scr_prefix);
 
   return SCR_SUCCESS;
 }
@@ -839,9 +889,27 @@ int scr_log_job(const char* username, const char* jobname, time_t start)
 int scr_log_run(time_t start)
 {
   int rc = SCR_SUCCESS;
+
+  struct tm* timeinfo = localtime(&start);
+  char timestr[1024];
+  strftime(timestr, sizeof(timestr), "%s", timeinfo);
+
+  if (scr_txt_enable) {
+    scr_txt_init();
+
+    char buf[1024];
+    snprintf(buf, sizeof(buf),
+      "EVENT=\"%s\", start=%s\n",
+      "START", timestr
+    );
+    scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
+    //fsync(scr_txt_fd);
+  }
+
   if (scr_db_enable) {
     rc = scr_mysql_log_event("START", NULL, NULL, &start, NULL);
   }
+
   return rc;
 }
 
@@ -849,38 +917,111 @@ int scr_log_run(time_t start)
 int scr_log_halt(const char* reason, const int* dset)
 {
   int rc = SCR_SUCCESS;
+
+  time_t now = scr_log_seconds();
+  struct tm* timeinfo = localtime(&now);
+  char timestr[1024];
+  strftime(timestr, sizeof(timestr), "%s", timeinfo);
+
+  if (scr_txt_enable) {
+    scr_txt_init();
+
+    int dset_val = (dset != NULL) ? *dset : 0.0;
+    char buf[1024];
+    snprintf(buf, sizeof(buf),
+      "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s\n",
+      "HALT", reason, dset_val, timestr
+    );
+    scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
+    //fsync(scr_txt_fd);
+  }
+
   if (scr_db_enable) {
-    time_t now = scr_log_seconds();
     rc = scr_mysql_log_event("HALT", reason, dset, &now, NULL);
   }
+
   return rc;
 }
 
 /* log an event */
-int scr_log_event(const char* type, const char* note, const int* dset, const time_t* start, const double* secs)
+int scr_log_event(
+  const char* type,
+  const char* note,
+  const int* dset,
+  const time_t* start,
+  const double* secs)
 {
   int rc = SCR_SUCCESS;
+
+  struct tm* timeinfo = localtime(start);
+  char timestr[1024];
+  strftime(timestr, sizeof(timestr), "%s", timeinfo);
+
+  int    dset_val = (dset != NULL) ? *dset  : -1;
+  double secs_val = (secs != NULL) ? *secs  : 0.0;
+
+  if (scr_txt_enable) {
+    scr_txt_init();
+
+    char buf[1024];
+    snprintf(buf, sizeof(buf),
+      "EVENT=\"%s\", note=\"%s\", dset=%d, start=%s, secs=%f\n",
+      type, note, dset_val, timestr, secs_val
+    );
+    scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
+    //fsync(scr_txt_fd);
+  }
+
   if (scr_db_enable) {
     rc = scr_mysql_log_event(type, note, dset, start, secs);
   }
-  struct tm *timeinfo;
-  timeinfo = localtime(start);
-  //TODO cppr check null
-  scr_dbg(1,"scr_log_event: type %s, note %s, dset %d, start %s, secs %f", type, note, dset, asctime(timeinfo), secs);
+
+  scr_dbg(1, "scr_log_event: type %s, note %s, dset %d, start %s, secs %f",
+    type, note, dset_val, asctime(timeinfo), secs_val
+  );
+
   return rc;
 }
 
 /* log a transfer: copy / checkpoint / fetch / flush */
-int scr_log_transfer(const char* type, const char* from, const char* to, const int* dset_id, const time_t* start, const double* secs, const double* bytes)
+int scr_log_transfer(
+  const char* type,
+  const char* from,
+  const char* to,
+  const int* dset,
+  const time_t* start,
+  const double* secs,
+  const double* bytes)
 {
   int rc = SCR_SUCCESS;
-  if (scr_db_enable) {
-    rc = scr_mysql_log_transfer(type, from, to, dset_id, start, secs, bytes);
+
+  struct tm* timeinfo = localtime(start);
+  char timestr[1024];
+  strftime(timestr, sizeof(timestr), "%s", timeinfo);
+
+  int    dset_val  = (dset != NULL)  ? *dset  : -1;
+  double secs_val  = (secs != NULL)  ? *secs  : 0.0;
+  double bytes_val = (bytes != NULL) ? *bytes : 0.0;
+
+  if (scr_txt_enable) {
+    scr_txt_init();
+
+    char buf[1024];
+    snprintf(buf, sizeof(buf),
+      "XFER=\"%s\", from=\"%s\", to=\"%s\", dset=%d start=%s, secs=%f, bytes=%f\n",
+      type, from, to, dset_val, timestr, secs_val, bytes_val
+    );
+    scr_write(scr_txt_name, scr_txt_fd, buf, strlen(buf));
+    //fsync(scr_txt_fd);
   }
 
-  struct tm *timeinfo;
-  timeinfo = localtime(start);
-  //TODO cppr check null
-  scr_dbg(1,"scr_log_transfer: type %s, src %s, dst %s, dset %d, start %s, secs %f, bytes %f", type, from, to, *dset_id, asctime(timeinfo), *secs, *bytes);
+  if (scr_db_enable) {
+    rc = scr_mysql_log_transfer(type, from, to, dset, start, secs, bytes);
+  }
+
+  scr_dbg(1, "scr_log_transfer: type %s, src %s, dst %s, dset %d, start %s, secs %f, bytes %f",
+    type, from, to, dset_val, asctime(timeinfo), secs_val, bytes_val
+  );
+
   return rc;
 }

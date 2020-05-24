@@ -32,6 +32,7 @@
 #include "scr_param.h"
 
 struct arglist {
+  char*  prefix;
   char*  username;
   char*  jobname;
   time_t start;
@@ -56,6 +57,7 @@ void print_usage()
   printf("scr_log_event -- record an event in the SCR log\n");
   printf("\n");
   printf("Options:\n");
+  printf("  -p <prefix>    Prefix directory\n");
   printf("  -u <username>  Username of job owner, reads $USER if not specified\n");
   printf("  -j <jobname>   Job name of job, reads $SCR_JOB_NAME if not specified\n");
   printf("  -s <seconds>   Job start time, uses current UNIX timestamp if not specified\n");
@@ -76,6 +78,7 @@ int processArgs(int argc, char **argv, struct arglist* args)
   char flag;
 
   /* set to default values */
+  args->prefix   = NULL;
   args->username = NULL;
   args->jobname  = NULL;
   args->start    = 0;
@@ -104,8 +107,11 @@ int processArgs(int argc, char **argv, struct arglist* args)
       }
 
       /* single argument parameters */
-      if (strchr("ujsTNDSL", flag)) {
+      if (strchr("pujsTNDSL", flag)) {
         switch(flag) {
+        case 'p':
+          args->prefix = strdup(argptr);
+          break;
         case 'u':
           args->username = strdup(argptr);
           break;
@@ -148,6 +154,13 @@ int processArgs(int argc, char **argv, struct arglist* args)
     }
   }
 
+  /* require -p prefix option */
+  if (args->prefix == NULL) {
+    scr_err("-p <prefix> required");
+    print_usage();
+    return 0;
+  }
+
   return 1;
 }
 
@@ -186,11 +199,12 @@ int main (int argc, char *argv[])
   if ((value = scr_param_get("SCR_LOG_ENABLE")) != NULL) {
     scr_log_enable = atoi(value);
   }
+  value = scr_param_get("SCR_PREFIX");
   scr_param_finalize();
 
   if (scr_log_enable) {
     /* init logging */
-    if (scr_log_init() == SCR_SUCCESS) {
+    if (scr_log_init(args.prefix) == SCR_SUCCESS) {
       /* register job */
       if (args.username != NULL && args.jobname != NULL) {
         if (scr_log_job(args.username, args.jobname, args.start) != SCR_SUCCESS) {
