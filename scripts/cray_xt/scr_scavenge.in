@@ -133,7 +133,7 @@ my $error  = "$prefixdir/.scr/scr.dataset.$dset/$prog.pdsh.e" . $jobid;
 my $cmd = undef;
 
 # log the start of the scavenge operation
-`$bindir/scr_log_event -T 'SCAVENGE STARTED' -D $dset -S $start_time`;
+`$bindir/scr_log_event -p $prefixdir -T 'SCAVENGE STARTED' -D $dset -S $start_time`;
 
 # gather files via pdsh
 my $partner_flag = "";
@@ -298,6 +298,6 @@ if (@copy_failed > 0 or @pdsh_failed > 0) {
 # get a timestamp for logging timing values
 my $end_time = time();
 my $diff_time = $end_time - $start_time;
-`$bindir/scr_log_event -T 'SCAVENGE COMPLETED' -D $dset -S $start_time -L $diff_time`;
+`$bindir/scr_log_event -p $prefixdir -T 'SCAVENGE COMPLETED' -D $dset -S $start_time -L $diff_time`;
 
 exit 0;

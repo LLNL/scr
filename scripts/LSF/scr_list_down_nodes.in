@@ -65,6 +65,9 @@ if ($conf{help} or not $rc) {
   print_usage();
 }
 
+# get prefix directory
+my $prefix = `$bindir/scr_prefix`
+
 # read the nodeset from command line or environment
 my $nodeset = undef;
 if (@ARGV) {
@@ -302,7 +305,7 @@ if (@failed_nodes) {
       if (defined $conf{runtime_secs}) {
         $duration = "-D $conf{runtime_secs}";
       }
-      `$bindir/scr_log_event -T 'FAILED NODE' -N '$node: $reason{$node}' -S $start_time $duration`;
+      `$bindir/scr_log_event -p $prefix -T 'FAILED NODE' -N '$node: $reason{$node}' -S $start_time $duration`;
     }
   }
 

@@ -902,7 +902,7 @@ static int scr_get_params()
    * config file, which in turn requires a bcast.  However, only rank 0 calls scr_log_init(),
    * so the bcast would fail if scr_param_init really had to read the config file again. */
   if (scr_my_rank_world == 0 && scr_log_enable) {
-    if (scr_log_init() != SCR_SUCCESS) {
+    if (scr_log_init(scr_prefix) != SCR_SUCCESS) {
       scr_warn("Failed to initialize SCR logging, disabling logging @ %s:%d",
               __FILE__, __LINE__
       );
@@ -1714,29 +1714,6 @@ int SCR_Init()
     );
   }
 
-  /* register this job in the logging database */
-  if (scr_my_rank_world == 0 && scr_log_enable) {
-    if (scr_username != NULL && scr_jobname != NULL) {
-      time_t job_start = scr_log_seconds();
-      if (scr_log_job(scr_username, scr_jobname, job_start) == SCR_SUCCESS) {
-        /* record the start time for this run */
-        scr_log_run(job_start);
-      } else {
-        scr_warn("Failed to log job for username %s and jobname %s, disabling logging @ %s:%d",
-          scr_username, scr_jobname, __FILE__, __LINE__
-        );
-        scr_log_enable = 0;
-      }
-    } else {
-      scr_warn("Failed to read username or jobname from environment, disabling logging @ %s:%d",
-        __FILE__, __LINE__
-      );
-      scr_log_enable = 0;
-    }
-  }
-
-  /* TODO MEMFS: mount storage for control directory */
-
   /* check that scr_prefix is set */
   if (scr_prefix == NULL || strcmp(scr_prefix, "") == 0) {
     if (scr_my_rank_world == 0) {
@@ -1761,6 +1738,29 @@ int SCR_Init()
       );
     }
   }
+
+  /* register this job in the logging database */
+  if (scr_my_rank_world == 0 && scr_log_enable) {
+    if (scr_username != NULL && scr_jobname != NULL) {
+      time_t job_start = scr_log_seconds();
+      if (scr_log_job(scr_username, scr_jobname, job_start) == SCR_SUCCESS) {
+        /* record the start time for this run */
+        scr_log_run(job_start);
+      } else {
+        scr_warn("Failed to log job for username %s and jobname %s, disabling logging @ %s:%d",
+          scr_username, scr_jobname, __FILE__, __LINE__
+        );
+        scr_log_enable = 0;
+      }
+    } else {
+      scr_warn("Failed to read username or jobname from environment, disabling logging @ %s:%d",
+        __FILE__, __LINE__
+      );
+      scr_log_enable = 0;
+    }
+  }
+
+  /* TODO MEMFS: mount storage for control directory */
 
   /* build the control directory name: CNTL_BASE/username/scr.jobid */
   spath* path_cntl_prefix = spath_from_str(scr_cntl_base);
