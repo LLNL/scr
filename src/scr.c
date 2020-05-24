@@ -587,6 +587,40 @@ static int scr_get_params()
     scr_log_enable = atoi(value);
   }
 
+  /* check whether SCR logging DB is enabled */
+  if ((value = scr_param_get("SCR_LOG_TXT_ENABLE")) != NULL) {
+    scr_log_txt_enable = atoi(value);
+  }
+
+  /* check whether SCR logging DB is enabled */
+  if ((value = scr_param_get("SCR_LOG_SYSLOG_ENABLE")) != NULL) {
+    scr_log_syslog_enable = atoi(value);
+  }
+
+  /* check whether SCR logging DB is enabled */
+  if ((value = scr_param_get("SCR_DB_ENABLE")) != NULL) {
+    scr_log_db_enable = atoi(value);
+  }
+
+  /* read in the debug level for database log messages */
+  if ((value = scr_param_get("SCR_DB_DEBUG")) != NULL) {
+    scr_log_db_debug = atoi(value);
+  }
+
+  /* SCR log DB connection parameters */
+  if ((value = scr_param_get("SCR_DB_HOST")) != NULL) {
+    scr_log_db_host = strdup(value);
+  }
+  if ((value = scr_param_get("SCR_DB_USER")) != NULL) {
+    scr_log_db_user = strdup(value);
+  }
+  if ((value = scr_param_get("SCR_DB_PASS")) != NULL) {
+    scr_log_db_pass = strdup(value);
+  }
+  if ((value = scr_param_get("SCR_DB_NAME")) != NULL) {
+    scr_log_db_name = strdup(value);
+  }
+
   /* read username from SCR_USER_NAME, if not set, try to read from environment */
   if ((value = scr_param_get("SCR_USER_NAME")) != NULL) {
     scr_username = strdup(value);
@@ -895,20 +929,6 @@ static int scr_get_params()
   value = scr_param_get("SCR_PREFIX");
   scr_prefix_path = scr_get_prefix(value);
   scr_prefix = spath_strdup(scr_prefix_path);
-
-  /* connect to the SCR log database if enabled */
-  /* NOTE: We do this inbetween our existing calls to scr_param_init and scr_param_finalize,
-   * since scr_log_init itself calls param_init to read the db username and password from the
-   * config file, which in turn requires a bcast.  However, only rank 0 calls scr_log_init(),
-   * so the bcast would fail if scr_param_init really had to read the config file again. */
-  if (scr_my_rank_world == 0 && scr_log_enable) {
-    if (scr_log_init(scr_prefix) != SCR_SUCCESS) {
-      scr_warn("Failed to initialize SCR logging, disabling logging @ %s:%d",
-              __FILE__, __LINE__
-      );
-      scr_log_enable = 0;
-    }
-  }
 
   /* done reading parameters, can release the data structures now */
   scr_param_finalize();
@@ -1739,6 +1759,19 @@ int SCR_Init()
     }
   }
 
+  /* initialize our logging if enabled */
+  if (scr_my_rank_world == 0 && scr_log_enable) {
+    if (scr_log_txt_enable) {
+      scr_log_init_txt(scr_prefix);
+    }
+    if (scr_log_syslog_enable) {
+      scr_log_init_syslog();
+    }
+    if (scr_log_db_enable) {
+      scr_log_init_db(scr_log_db_debug, scr_log_db_host, scr_log_db_user, scr_log_db_pass, scr_log_db_name);
+    }
+  }
+
   /* register this job in the logging database */
   if (scr_my_rank_world == 0 && scr_log_enable) {
     if (scr_username != NULL && scr_jobname != NULL) {
@@ -2137,6 +2170,10 @@ int SCR_Finalize()
 
   /* free memory allocated for variables */
   scr_free(&scr_fetch_current);
+  scr_free(&scr_log_db_host);
+  scr_free(&scr_log_db_user);
+  scr_free(&scr_log_db_pass);
+  scr_free(&scr_log_db_name);
   scr_free(&scr_username);
   scr_free(&scr_jobid);
   scr_free(&scr_jobname);

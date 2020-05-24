@@ -47,6 +47,21 @@ extern char* scr_db_name;
 /* returns the current linux timestamp */
 time_t scr_log_seconds(void);
 
+/* initialize text file logging in prefix directory */
+int scr_log_init_txt(const char* prefix);
+
+/* initialize syslog logging */
+int scr_log_init_syslog(void);
+
+/* initialize the mysql database logging */
+int scr_log_init_db(
+  int debug,
+  const char* host,
+  const char* user,
+  const char* pass,
+  const char* name
+);
+
 /* initialize the logging */
 int scr_log_init(const char* prefix);
 
