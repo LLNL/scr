@@ -9,7 +9,7 @@ LIST(APPEND example_files
 	test_interpose_multiple.c
 	test_ckpt.cpp
 	test_ckpt.F
-        test_config.c
+	test_config.c
 	scr.moab
 	scr_interpose.moab
 	README.md

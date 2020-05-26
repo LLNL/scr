@@ -14,7 +14,7 @@
 int verbose = 0;
 
 static int set_cfg(const char *cfg, const char *expected) {
-  if(verbose) {
+  if (verbose) {
     fprintf(stdout, "Setting config '%s', expecting '%s'\n",
             cfg ? cfg : "(null)", expected ? expected : "(null)");
   }
@@ -22,11 +22,11 @@ static int set_cfg(const char *cfg, const char *expected) {
   int rc = ((val == NULL && expected == NULL) ||
             (val != NULL && expected != NULL && 0 == strcmp(val, expected)));
 
-  if(!rc) {
+  if (!rc) {
     fprintf(stderr, "Failed to set '%s'. Expected '%s' but got '%s'\n",
             cfg ? cfg : "(null)", expected ? expected : "(null)",
             val ? val : "(null)");
-  } else if(verbose) {
+  } else if (verbose) {
     fprintf(stdout, "Successfully set '%s' to '%s'\n",
             cfg ? cfg : "(null)", expected ? expected : "(null)");
   }
@@ -37,7 +37,7 @@ static int set_cfg(const char *cfg, const char *expected) {
 }
 
 static int test_cfg(const char *cfg, const char *expected) {
-  if(verbose) {
+  if (verbose) {
     fprintf(stdout, "Getting config '%s', expecting '%s'\n",
             cfg ? cfg : "(null)", expected ? expected : "(null)");
   }
@@ -45,10 +45,10 @@ static int test_cfg(const char *cfg, const char *expected) {
   int rc = ((val == NULL && expected == NULL) ||
             (val != NULL && expected != NULL && 0 == strcmp(val, expected)));
 
-  if(!rc) {
+  if (!rc) {
     fprintf(stderr, "Failed to get '%s'. Expected '%s' but got '%s'\n", cfg,
             expected ? expected : "(null)", val ? val : "(null)");
-  } else if(verbose) {
+  } else if (verbose) {
     fprintf(stdout, "Successfully got '%s': '%s'\n",
             cfg ? cfg : "(null)", expected ? expected : "(null)");
   }
@@ -59,7 +59,7 @@ static int test_cfg(const char *cfg, const char *expected) {
 }
 
 static int test_param_get(const char *cfg, const char *expected) {
-  if(verbose) {
+  if (verbose) {
     fprintf(stdout, "Getting parameter '%s', expecting '%s'\n",
             cfg ? cfg : "(null)", expected ? expected : "(null)");
   }
@@ -67,10 +67,10 @@ static int test_param_get(const char *cfg, const char *expected) {
   int rc = ((val == NULL && expected == NULL) ||
             (val != NULL && expected != NULL && 0 == strcmp(val, expected)));
 
-  if(!rc) {
+  if (!rc) {
     fprintf(stderr, "Failed to get '%s'. Expected '%s' but got '%s'\n", cfg,
             expected ? expected : "(null)", val ? val : "(null)");
-  } else if(verbose) {
+  } else if (verbose) {
     fprintf(stdout, "Successfully got '%s': '%s'\n",
             cfg ? cfg : "(null)", expected ? expected : "(null)");
   }
@@ -80,7 +80,7 @@ static int test_param_get(const char *cfg, const char *expected) {
 
 #define test_global_var(var, expected) test_global_var_(var, #var, expected)
 static int test_global_var_(int var, const char* varname, int expected) {
-  if(verbose) {
+  if (verbose) {
     fprintf(stdout, "Getting global parameter '%s', expecting '%d'\n", varname, expected);
   }
 
@@ -88,7 +88,7 @@ static int test_global_var_(int var, const char* varname, int expected) {
 
   if (!rc) {
     fprintf(stderr, "Failed to test global var '%s'. Expected '%d' but got '%d'\n", varname, expected, var);
-  } else if(verbose) {
+  } else if (verbose) {
     fprintf(stdout, "Successfully got global parameter '%s': '%d'\n", varname, expected);
   }
 
@@ -96,7 +96,7 @@ static int test_global_var_(int var, const char* varname, int expected) {
 }
 
 static int test_env(const char *cfg, const char *expected) {
-  if(verbose) {
+  if (verbose) {
     fprintf(stdout, "Getting env string '%s', expecting '%s'\n",
             cfg ? cfg : "(null)", expected ? expected : "(null)");
   }
@@ -111,10 +111,10 @@ static int test_env(const char *cfg, const char *expected) {
   int rc = ((val == NULL && expected == NULL) ||
             (val != NULL && expected != NULL && 0 == strcmp(val, expected)));
 
-  if(!rc) {
+  if (!rc) {
     fprintf(stderr, "Failed to get '%s'. Expected '%s' but got '%s'\n", cfg,
             expected ? expected : "(null)", val ? val : "(null)");
-  } else if(verbose) {
+  } else if (verbose) {
     fprintf(stdout, "Successfully got '%s': '%s'\n",
             cfg ? cfg : "(null)", expected ? expected : "(null)");
   }
@@ -127,7 +127,7 @@ int main (int argc, char* argv[])
   int rc = 1;
   MPI_Init(&argc, &argv);
 
-  if(argc == 2 && strcmp(argv[1], "--verbose") == 0)
+  if (argc == 2 && strcmp(argv[1], "--verbose") == 0)
     verbose = 1;
 
   int rank, ranks;
@@ -215,7 +215,7 @@ int main (int argc, char* argv[])
   // re-enable debugging
   tests_passed &= set_cfg("DEBUG=1", "1");
 
-  if(SCR_Init() == SCR_SUCCESS) {
+  if (SCR_Init() == SCR_SUCCESS) {
 
     tests_passed &= test_global_var(scr_copy_type, SCR_COPY_SINGLE);
     tests_passed &= test_global_var(scr_debug, 0);
@@ -238,7 +238,7 @@ int main (int argc, char* argv[])
   MPI_Finalize();
 
   rc = tests_passed ? 0 : 1;
-  if(rc != 0) {
+  if (rc != 0) {
     fprintf(stderr, "%s failed", argv[0]);
   }
 
