@@ -194,7 +194,7 @@ const char* scr_param_get(const char* name)
   value = kvtree_elem_get_first_val(scr_app_hash, name);
   if (value != NULL) {
     /* evaluate environment variables */
-    if(strchr(value, '$')){
+    if (strchr(value, '$')) {
       value = expand_env(value);
     }
     return value;
@@ -205,7 +205,7 @@ const char* scr_param_get(const char* name)
   value = kvtree_elem_get_first_val(scr_user_hash, name);
   if (no_user == NULL && value != NULL) {
     /* evaluate environment variables */
-    if(strchr(value, '$')) {
+    if (strchr(value, '$')) {
       value = expand_env(value);
     }
     return value;
@@ -253,10 +253,10 @@ const kvtree* scr_param_get_hash(const char* name)
     kvtree_elem* elem;
     for (elem = kvtree_elem_first(value_hash);
 	 elem != NULL;
-	 elem = kvtree_elem_next(elem)){
+	 elem = kvtree_elem_next(elem)) {
       char* value = kvtree_elem_key(elem);
       assert(value);
-      if(strchr(value, '$')){
+      if (strchr(value, '$')) {
         value = expand_env(value);
 	elem->key = value;
       }
@@ -514,8 +514,9 @@ kvtree* scr_param_set(char* name, const char* value)
   scr_app_hash_init();
 
   /* cannot set parameters that are used by scripts */
-  if (kvtree_get(scr_no_app_hash, name))
+  if (kvtree_get(scr_no_app_hash, name)) {
     return NULL;
+  }
 
   kvtree* k = kvtree_new();
   kvtree* v = kvtree_set(k, value, kvtree_new());
@@ -532,8 +533,9 @@ kvtree* scr_param_set_hash(char* name, kvtree* hash_value)
   scr_app_hash_init();
 
   /* cannot set parameters that are used by scripts */
-  if (kvtree_get(scr_no_app_hash, name))
+  if (kvtree_get(scr_no_app_hash, name)) {
     return NULL;
+  }
 
   return kvtree_set(scr_app_hash, name, hash_value);
 }
@@ -545,24 +547,26 @@ void scr_param_app_hash_write_file(const char *app_config_file)
   if (fh != NULL) {
     if (scr_app_hash != NULL) {
       int success = 1;
-      for(kvtree_elem *topkey = kvtree_elem_first(scr_app_hash) ;
-          topkey != NULL && success ;
-          topkey = kvtree_elem_next(topkey)) {
-        for(kvtree_elem *topval = kvtree_elem_first(kvtree_elem_hash(topkey)) ;
-            topval != NULL && success ;
-            topval = kvtree_elem_next(topval)) {
-          if (topval == NULL) /* NULL values mark deleted entries */
+      for (kvtree_elem *topkey = kvtree_elem_first(scr_app_hash) ;
+           topkey != NULL && success ;
+           topkey = kvtree_elem_next(topkey)) {
+        for (kvtree_elem *topval = kvtree_elem_first(kvtree_elem_hash(topkey)) ;
+             topval != NULL && success ;
+             topval = kvtree_elem_next(topval)) {
+          if (topval == NULL) { /* NULL values mark deleted entries */
             continue;
+          }
           if (fprintf(fh, "%s=%s", kvtree_elem_key(topkey),
                       kvtree_elem_key(topval)) < 0) {
             success = 0;
             break;
           }
-          for(kvtree_elem *key = kvtree_elem_first(kvtree_elem_hash(topval)) ;
-              key != NULL ; key = kvtree_elem_next(key)) {
+          for (kvtree_elem *key = kvtree_elem_first(kvtree_elem_hash(topval)) ;
+               key != NULL ; key = kvtree_elem_next(key)) {
             kvtree_elem *val = kvtree_elem_first(kvtree_elem_hash(key));
-            if (val == NULL) /* NULL values mark deleted entries */
+            if (val == NULL) { /* NULL values mark deleted entries */
               continue;
+            }
             if (fprintf(fh, " %s=%s", kvtree_elem_key(key),
                         kvtree_elem_key(val)) < 0) {
               success = 0;
