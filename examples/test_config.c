@@ -139,29 +139,29 @@ int main (int argc, char* argv[])
 
   int tests_passed = 1;
 
-  // test basic parsing
+  /* test basic parsing */
   tests_passed &= set_cfg("DEBUG=1", "1");
   tests_passed &= set_cfg("DEBUG =1", "1");
   tests_passed &= set_cfg("DEBUG= 1", "1");
   tests_passed &= set_cfg("DEBUG  = 1", "1");
 
-  // clean entry in case anything was read from app.conf
+  /* clean entry in case anything was read from app.conf */
   tests_passed &= set_cfg("STORE=", NULL);
 
-  // set a couple of parameters to be used by SCR
+  /* set a couple of parameters to be used by SCR */
   tests_passed &=set_cfg("DEBUG=1", "1");
   tests_passed &=set_cfg("SCR_COPY_TYPE =SINGLE", "SINGLE");
   tests_passed &=set_cfg("STORE= /dev/shm/foo GROUP = NODE COUNT  =1", "1");
   tests_passed &=set_cfg("CKPT=0 INTERNAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=16", "16");
 
-  // check if values are all set
+  /* check if values are all set */
   tests_passed &= test_cfg("DEBUG", "1");
   tests_passed &= test_cfg("STORE", "/dev/shm/foo");
   tests_passed &= test_cfg("STORE=/dev/shm/foo GROUP", "NODE");
   tests_passed &= test_cfg("FOOBAR", NULL);
   tests_passed &= test_cfg("CKPT=1 FOOBAR", NULL);
 
-  // modify values
+  /* modify values */
   tests_passed &= set_cfg("DEBUG=0", "0");
   tests_passed &= test_cfg("DEBUG", "0");
 
@@ -169,35 +169,35 @@ int main (int argc, char* argv[])
   tests_passed &= test_cfg("STORE", "/dev/shm");
   tests_passed &= test_cfg("STORE=/dev/shm GROUP", "NODE");
 
-  // delete values
+  /* delete values */
   tests_passed &= set_cfg("STORE=", NULL);
   tests_passed &= test_cfg("STORE", NULL);
 
-  // test some invalid input
+  /* test some invalid input */
   tests_passed &= test_cfg(NULL, NULL);
   tests_passed &= test_cfg("", NULL);
 
-  // I cannot test results for invalid formats since SCR_Config aborts
-  // SCR_Config(" ");
-  // SCR_Config("KEY==");
-  // SCR_Config("KEY=VALUE=VALUE");
-  // SCR_Config("KEY VALUE");
+  /* I cannot test results for invalid formats since SCR_Config aborts */
+  /* SCR_Config(" "); */
+  /* SCR_Config("KEY=="); */
+  /* SCR_Config("KEY=VALUE=VALUE"); */
+  /* SCR_Config("KEY VALUE"); */
 
-  // test setting parammeters that is not settable
-  // need to use test_cfg here even though this (tries to) set something
+  /* test setting parammeters that is not settable */
+  /* need to use test_cfg here even though this (tries to) set something */
   tests_passed &= test_cfg("SCR_DB_NAME=dbname1", NULL);
 
-  // this and the corresponding scr_param_finalize call must surround SCR_Init
-  // / SCR_Finalize to avoid tha parameter db being cleared by scr_finalize
-  // before SCR_Init can use it
+  /* this and the corresponding scr_param_finalize call must surround SCR_Init */
+  /* / SCR_Finalize to avoid tha parameter db being cleared by scr_finalize */
+  /* before SCR_Init can use it */
   scr_param_init();
 
-  // test that non-settable parameters can be read from ENV vars
+  /* test that non-settable parameters can be read from ENV vars */
   int ierr = setenv("SCR_DB_NAME", "dbname2", 1);
   assert(!ierr);
   tests_passed &= test_cfg("SCR_DB_NAME", "dbname2");
 
-  // test expansion of env variables
+  /* test expansion of env variables */
   ierr = setenv("VAR_A", "value a", 1);
   assert(!ierr);
   ierr = setenv("VAR_B", "value b", 1);
@@ -215,7 +215,7 @@ int main (int argc, char* argv[])
   tests_passed &= test_env("$VAR_A ${VAR_B>}", "value a ${VAR_B>}");
   tests_passed &= test_env("$VAR_C", "");
 
-  // re-enable debugging
+  /* re-enable debugging */
   tests_passed &= set_cfg("DEBUG=1", "1");
 
   if (SCR_Init() == SCR_SUCCESS) {
