@@ -134,6 +134,9 @@ int main (int argc, char* argv[])
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &ranks);
 
+  /* since I want to test SCR_Config, avoid loading "test.conf" */
+  unsetenv("SCR_CONF_FILE");
+
   int tests_passed = 1;
 
   // test basic parsing
