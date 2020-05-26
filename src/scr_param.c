@@ -190,9 +190,10 @@ const char* scr_param_get(const char* name)
     return value;
   }
 
-  /* see if this parameter is one which has been set by the application */
-  value = kvtree_elem_get_first_val(scr_app_hash, name);
-  if (value != NULL) {
+  /* otherwise, if parameter is set in user configuration file,
+   * return that value */
+  value = kvtree_elem_get_first_val(scr_user_hash, name);
+  if (no_user == NULL && value != NULL) {
     /* evaluate environment variables */
     if (strchr(value, '$')) {
       value = expand_env(value);
@@ -200,10 +201,10 @@ const char* scr_param_get(const char* name)
     return value;
   }
 
-  /* otherwise, if parameter is set in user configuration file,
+  /* otherwise, if this parameter is one which has been set by the application
    * return that value */
-  value = kvtree_elem_get_first_val(scr_user_hash, name);
-  if (no_user == NULL && value != NULL) {
+  value = kvtree_elem_get_first_val(scr_app_hash, name);
+  if (value != NULL) {
     /* evaluate environment variables */
     if (strchr(value, '$')) {
       value = expand_env(value);
@@ -246,16 +247,16 @@ const kvtree* scr_param_get_hash(const char* name)
     return hash;
   }
 
-  /* see if this parameter is one which has been set by the application */
-  value_hash = kvtree_get(scr_app_hash, name);
-  if (value_hash != NULL) {
+  /* otherwise, if parameter is set in user configuration file,
+   * return that value */
+  value_hash = kvtree_get(scr_user_hash, name);
+  if (no_user == NULL && value_hash != NULL) {
     /* walk value_hash and evaluate environment variables */
     kvtree_elem* elem;
     for (elem = kvtree_elem_first(value_hash);
 	 elem != NULL;
 	 elem = kvtree_elem_next(elem)) {
       char* value = kvtree_elem_key(elem);
-      assert(value);
       if (strchr(value, '$')) {
         value = expand_env(value);
 	elem->key = value;
@@ -268,16 +269,17 @@ const kvtree* scr_param_get_hash(const char* name)
     return hash;
   }
 
-  /* otherwise, if parameter is set in user configuration file,
+  /* otherwise, if this parameter is one which has been set by the application
    * return that value */
-  value_hash = kvtree_get(scr_user_hash, name);
-  if (no_user == NULL && value_hash != NULL) {
+  value_hash = kvtree_get(scr_app_hash, name);
+  if (value_hash != NULL) {
     /* walk value_hash and evaluate environment variables */
     kvtree_elem* elem;
     for (elem = kvtree_elem_first(value_hash);
 	 elem != NULL;
 	 elem = kvtree_elem_next(elem)) {
       char* value = kvtree_elem_key(elem);
+      assert(value);
       if (strchr(value, '$')) {
         value = expand_env(value);
 	elem->key = value;
