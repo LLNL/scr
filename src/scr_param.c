@@ -389,6 +389,8 @@ static char* app_config_path()
 void scr_app_hash_init()
 {
   if (scr_app_hash == NULL) {
+    int i;
+
     /* allocate hash object to store values from app itself */
     scr_app_hash = kvtree_new();
     assert(scr_app_hash);
@@ -419,7 +421,7 @@ void scr_app_hash_init()
       "SCR_USE_CONTAINERS",
     };
     */
-    for (int i = 0; i < sizeof(no_app_params)/sizeof(no_app_params[0]); i++) {
+    for (i = 0; i < sizeof(no_app_params)/sizeof(no_app_params[0]); i++) {
       kvtree* v = kvtree_set(scr_no_app_hash, no_app_params[i], kvtree_new());
       assert(v);
     }
@@ -548,13 +550,15 @@ void scr_param_app_hash_write_file(const char *app_config_file)
   FILE *fh = fopen(app_config_file, "w");
   if (fh != NULL) {
     if (scr_app_hash != NULL) {
+      kvtree_elem *topkey;
       int success = 1;
-      for (kvtree_elem *topkey = kvtree_elem_first(scr_app_hash) ;
-           topkey != NULL && success ;
+      for (topkey = kvtree_elem_first(scr_app_hash) ; topkey != NULL && success ;
            topkey = kvtree_elem_next(topkey)) {
-        for (kvtree_elem *topval = kvtree_elem_first(kvtree_elem_hash(topkey)) ;
+        kvtree_elem *topval;
+        for (topval = kvtree_elem_first(kvtree_elem_hash(topkey)) ;
              topval != NULL && success ;
              topval = kvtree_elem_next(topval)) {
+          kvtree_elem *key;
           if (topval == NULL) { /* NULL values mark deleted entries */
             continue;
           }
@@ -563,8 +567,8 @@ void scr_param_app_hash_write_file(const char *app_config_file)
             success = 0;
             break;
           }
-          for (kvtree_elem *key = kvtree_elem_first(kvtree_elem_hash(topval)) ;
-               key != NULL ; key = kvtree_elem_next(key)) {
+          for (key = kvtree_elem_first(kvtree_elem_hash(topval)) ; key != NULL ;
+               key = kvtree_elem_next(key)) {
             kvtree_elem *val = kvtree_elem_first(kvtree_elem_hash(key));
             if (val == NULL) { /* NULL values mark deleted entries */
               continue;
