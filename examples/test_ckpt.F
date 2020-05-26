@@ -7,7 +7,6 @@
 
       character*1024 :: basefname = "rank_"
       character*1024 :: fname, file_suffix
-      character*1024 :: val
       character(len=SCR_MAX_FILENAME) :: fname_scr
       character(len=SCR_MAX_FILENAME) :: ckptname
       integer(kind=4) :: flag;
@@ -34,11 +33,6 @@
       call MPI_COMM_SIZE(MPI_COMM_WORLD, nprocs, ierr)
       call MPI_COMM_RANK(MPI_COMM_WORLD, mynod, ierr)
 
-      call SCR_Config("STORE=/dev/shm GROUP=NODE COUNT=1", val, ierr)
-      call SCR_Config("SCR_COPY_TYPE=FILE", val, ierr)
-      call SCR_Config("CKPT=0 INTERVAL=1 GROUP=NODE STORE=/dev/shm "
-     &             // "TYPE=XOR SET_SIZE=16", val, ierr)
-      call SCR_Config("SCR_DEBUG=1", val, ierr)
       call SCR_INIT(ierr)
 
       nodeoff=2**21
