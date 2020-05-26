@@ -28,6 +28,8 @@ int times = 5;
 int seconds = 0;
 int ckptout = 0;
 int output = 0;
+int use_config_api = 0;
+int use_conf_file = 1;
 
 char* path = NULL;
 int use_scr = 1;
@@ -338,6 +340,34 @@ double getbw(char* name, char* buf, size_t size, int times)
   return bw;
 }
 
+/* convert a string to bool
+ * acceotable strings for true (1): yes, true, y, 1
+ * acceptable strings for false(0): no, false, n, 0
+ * all other strings are errors and return -1
+ */
+int atob(const char *s)
+{
+  if (strcmp(s, "yes") == 0 || strcmp(s, "true") == 0 || strcmp(s, "y") == 0 ||
+      strcmp(s, "1") == 0) {
+    return 0;
+  } else if (strcmp(s, "no") == 0 || strcmp(s, "false") == 0 || strcmp(s, "n") == 0 ||
+             strcmp(s, "0") == 0) {
+    return 1;
+  } else {
+    return -1;
+  }
+}
+
+/* convert a truth value to "yes" or "no" */
+const char *btoa(const int b)
+{
+  if (b) {
+    return "yes";
+  } else {
+    return "no";
+  }
+}
+
 void print_usage()
 {
   printf("\n");
@@ -350,6 +380,9 @@ void print_usage()
   printf("    -p, --path=<DIR>     Directory to create and write files to\n");
   printf("    -f, --flush=<COUNT>  Mark every Nth write as checkpoint+output (default %d)\n", ckptout);
   printf("    -o, --output=<COUNT> Mark every Nth write as pure output (default %d)\n", output);
+  printf("    -o, --output=<COUNT> Mark every Nth write as pure output (default %d)\n", output);
+  printf("    -a, --config-api=<BOOL> Use SCR_Config to set values (default %s)\n", btoa(use_config_api));
+  printf("    -c, --conf-file=<BOOL> Use SCR_CONF_FILE file to set values (default %s)\n", btoa(use_conf_file));
   printf("    -h, --help           Print usage\n");
   printf("\n");
   return;
@@ -362,7 +395,7 @@ int main (int argc, char* argv[])
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &ranks);
 
-  static const char *opt_string = "s:t:z:p:f:o:h";
+  static const char *opt_string = "s:t:z:p:f:o:a:c:h";
   static struct option long_options[] = {
     {"size",    required_argument, NULL, 's'},
     {"times",   required_argument, NULL, 't'},
@@ -370,6 +403,8 @@ int main (int argc, char* argv[])
     {"path",    required_argument, NULL, 'p'},
     {"flush",   required_argument, NULL, 'f'},
     {"output",  required_argument, NULL, 'o'},
+    {"config-api", required_argument, NULL, 'a'},
+    {"conf-file", required_argument, NULL, 'c'},
     {"help",    no_argument,       NULL, 'h'},
     {NULL,      no_argument,       NULL,   0}
   };
@@ -403,6 +438,12 @@ int main (int argc, char* argv[])
       case 'o':
         output = atoi(optarg);
         break;
+      case 'a':
+        use_config_api = atob(optarg);
+        break;
+      case 'c':
+        use_conf_file = atob(optarg);
+        break;
       case 'h':
       default:
         usage = 1;
@@ -426,6 +467,17 @@ int main (int argc, char* argv[])
   MPI_Barrier(MPI_COMM_WORLD);
   double init_start = MPI_Wtime();
   if (use_scr) {
+    if (!use_conf_file) {
+      unsetenv("SCR_CONF_FILE");
+    }
+
+    if (use_config_api) {
+      SCR_Config("STORE=/dev/shm GROUP=NODE COUNT=1");
+      SCR_Config("SCR_COPY_TYPE=FILE");
+      SCR_Config("CKPT=0 INTERVAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=16");
+      SCR_Config("SCR_DEBUG=1");
+    }
+
     if (SCR_Init() != SCR_SUCCESS){
       printf("Failed initializing SCR\n");
       return 1;
