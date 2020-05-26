@@ -116,8 +116,9 @@ static char* expand_env(const char* value)
         /* get value, for ${...} we copied the initial '{' into the name, skip
          * it here */
         const char* env = getenv(envname + (value[envbegin]=='{'));
-        if(env == NULL)
+        if(env == NULL) {
           env = "";
+        }
 
         /* resize retval to make room for expanded value */
         const int envlen = strlen(env);
@@ -204,7 +205,7 @@ const char* scr_param_get(const char* name)
   value = kvtree_elem_get_first_val(scr_user_hash, name);
   if (no_user == NULL && value != NULL) {
     /* evaluate environment variables */
-    if(strchr(value, '$')){
+    if(strchr(value, '$')) {
       value = expand_env(value);
     }
     return value;
@@ -215,7 +216,7 @@ const char* scr_param_get(const char* name)
   value = kvtree_elem_get_first_val(scr_system_hash, name);
   if (value != NULL) {
     /* evaluate environment variables */
-    if(strchr(value, '$')){
+    if (strchr(value, '$')) {
       value = expand_env(value);
     }
     return value;
@@ -275,9 +276,9 @@ const kvtree* scr_param_get_hash(const char* name)
     kvtree_elem* elem;
     for (elem = kvtree_elem_first(value_hash);
 	 elem != NULL;
-	 elem = kvtree_elem_next(elem)){
+	 elem = kvtree_elem_next(elem)) {
       char* value = kvtree_elem_key(elem);
-      if(strchr(value, '$')){
+      if (strchr(value, '$')) {
         value = expand_env(value);
 	elem->key = value;
       }
@@ -297,9 +298,9 @@ const kvtree* scr_param_get_hash(const char* name)
     kvtree_elem* elem;
     for (elem = kvtree_elem_first(value_hash);
 	 elem != NULL;
-	 elem = kvtree_elem_next(elem)){
+	 elem = kvtree_elem_next(elem)) {
       char* value = kvtree_elem_key(elem);
-      if(strchr(value, '$')){
+      if(strchr(value, '$')) {
         value = expand_env(value);
 	elem->key = value;
       }
