@@ -2009,8 +2009,9 @@ int SCR_Finalize()
 /* sets or gets a configuration option */
 const char* SCR_Config(const char* config_string)
 {
-  if(!config_string || strlen(config_string) == 0)
+  if (config_string == NULL || strlen(config_string) == 0) {
     return NULL;
+  }
 
   char* writable_config_string = strdup(config_string);
   assert(writable_config_string);
@@ -2031,16 +2032,16 @@ const char* SCR_Config(const char* config_string)
 
   enum states {before_key, in_key, after_key, before_value, in_value, done};
   int state = before_key;
-  while(state != done) {
+  while (state != done) {
     switch(state) {
       case before_key:
-        if(*conf == '\0') {
+        if (*conf == '\0') {
           state = done;
-        } else if(*conf == ' ') {
+        } else if (*conf == ' ') {
           state = before_key;
         } else {
           key = conf;
-          if(!toplevel_key) {
+          if (toplevel_key == NULL) {
             toplevel_key = key;
           }
           state = in_key;
@@ -2048,25 +2049,25 @@ const char* SCR_Config(const char* config_string)
         }
         break;
       case in_key:
-        if(*conf == '\0') {
+        if (*conf == '\0') {
           *conf = '\0';
           state = done;
-        } else if(*conf == ' ') {
+        } else if (*conf == ' ') {
           *conf = '\0';
           state = after_key;
-        } else if(*conf == '=') {
+        } else if (*conf == '=') {
           *conf = '\0';
           state = before_value;
           is_query = 0;
         }
         break;
       case after_key:
-        if(*conf == '\0') {
+        if (*conf == '\0') {
           state = done;
-        } else if(*conf == '=') {
+        } else if (*conf == '=') {
           state = before_value;
           is_query = 0;
-        } else if(*conf == ' ') {
+        } else if (*conf == ' ') {
           state = after_key;
         } else {
           scr_abort(-1, "Invalid configuration string '%s' @ %s:%d",
@@ -2075,19 +2076,19 @@ const char* SCR_Config(const char* config_string)
         }
         break;
       case before_value:
-        if(*conf == '\0') {
+        if (*conf == '\0') {
           state = done;
-        } else if(*conf == ' ') {
+        } else if (*conf == ' ') {
           state = before_value;
-        } else if(*conf == '=') {
+        } else if (*conf == '=') {
           scr_abort(-1, "Invalid configuration string '%s' @ %s:%d",
             config_string, __FILE__, __LINE__
           );
         } else {
           value = conf;
-          if(!toplevel_value) {
+          if (toplevel_value == NULL) {
             toplevel_value = value;
-          } else if(!value_hash) {
+          } else if (value_hash == NULL) {
             value_hash = kvtree_new();
             assert(value_hash);
             kvtree_set(value_hash, value, NULL);
@@ -2096,20 +2097,20 @@ const char* SCR_Config(const char* config_string)
         }
         break;
       case in_value:
-        if(*conf == '\0') {
+        if (*conf == '\0') {
           state = done;
-        } else if(*conf == ' ') {
+        } else if (*conf == ' ') {
           *conf = '\0';
           state = before_key;
-        } else if(*conf == '=') {
+        } else if (*conf == '=') {
           scr_abort(-1, "Invalid configuration string '%s' @ %s:%d",
             config_string, __FILE__, __LINE__
           );
         } else {
           state = in_value;
         }
-        if(state != in_value) {
-          if(toplevel_value) {
+        if (state != in_value) {
+          if (toplevel_value) {
             kvtree_set_kv(value_hash, key, value);
           }
           value = NULL;
@@ -2125,7 +2126,7 @@ const char* SCR_Config(const char* config_string)
   assert(is_query != -1);
 
   /* sanity checks */
-  if(!toplevel_key) {
+  if (toplevel_key == NULL) {
     scr_abort(-1,
       "Could not extract key from config string. '%s' @ %s:%d",
       config_string, __FILE__, __LINE__
@@ -2134,22 +2135,22 @@ const char* SCR_Config(const char* config_string)
   assert(toplevel_key);
 
   const char* retval;
-  if(is_query) {
-    if(value_hash) {
+  if (is_query) {
+    if (value_hash) {
       scr_abort(-1,
         "Cannot get config options at same time as setting them. '%s' @ %s:%d",
         config_string, __FILE__, __LINE__
       );
     }
-    assert(!value_hash);
-    if(!toplevel_value) {
+    assert(value_hash == NULL);
+    if (toplevel_value == NULL) {
       const char *value = scr_param_get(toplevel_key);
       retval = value ? strdup(value) : NULL;
     } else {
       kvtree* toplevel_hash = (kvtree*)scr_param_get_hash(toplevel_key);
-      if(toplevel_hash) {
+      if (toplevel_hash) {
         const kvtree* toplevel_value_hash = kvtree_get(toplevel_hash, toplevel_value);
-        if(toplevel_value_hash) {
+        if (toplevel_value_hash) {
           const char *value = kvtree_elem_get_first_val(toplevel_value_hash, key);
           retval = value ? strdup(value) : NULL;
         } else {
@@ -2162,8 +2163,8 @@ const char* SCR_Config(const char* config_string)
       kvtree_delete(&toplevel_hash);
     }
   } else {
-    if(!value_hash) {
-      if(toplevel_value) {
+    if (value_hash == NULL) {
+      if (toplevel_value) {
         scr_param_set(toplevel_key, toplevel_value);
       } else {
         scr_param_set_hash(toplevel_key, NULL);
@@ -2173,12 +2174,12 @@ const char* SCR_Config(const char* config_string)
       assert(value_hash);
 
       kvtree* toplevel_hash = (kvtree*)scr_param_get_hash(toplevel_key);
-      if(!toplevel_hash) {
+      if (toplevel_hash == NULL) {
         toplevel_hash = kvtree_new();
       }
 
       kvtree* toplevel_value_hash = (kvtree*)kvtree_get(toplevel_hash, toplevel_value);
-      if(!toplevel_value_hash) {
+      if (toplevel_value_hash == NULL) {
         toplevel_value_hash = kvtree_set(toplevel_hash, toplevel_value,
           kvtree_new()
         );
