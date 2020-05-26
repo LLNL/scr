@@ -426,10 +426,6 @@ int main (int argc, char* argv[])
   MPI_Barrier(MPI_COMM_WORLD);
   double init_start = MPI_Wtime();
   if (use_scr) {
-    SCR_Config("STORE=/dev/shm GROUP=NODE COUNT=1");
-    SCR_Config("SCR_COPY_TYPE=FILE");
-    SCR_Config("CKPT=0 INTERVAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=16");
-    SCR_Config("SCR_DEBUG=1");
     if (SCR_Init() != SCR_SUCCESS){
       printf("Failed initializing SCR\n");
       return 1;
