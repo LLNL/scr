@@ -1,14 +1,21 @@
 #!/usr/bin/perl -w
 use strict;
 
+# get the current working dir
+my $prefix = `pwd`;
+chomp $prefix;
+
 # use value in $SCR_PREFIX if set
 if (defined $ENV{SCR_PREFIX}) {
-  print "$ENV{SCR_PREFIX}\n";
-  exit 0;
+  $prefix = $ENV{SCR_PREFIX};
 }
 
-# otherwise, assume it's the current working directory
-my $cwd = `pwd`;
-chomp $cwd;
-print "$cwd\n";
+# tack on current working dir if needed
+# don't resolve symlinks
+# don't worry about missing parts, the calling script might create it
+$prefix = `realpath -m -s $prefix`;
+chomp $prefix;
+
+# print path and exit
+print "$prefix\n";
 exit 0;
