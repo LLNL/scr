@@ -18,17 +18,20 @@ sub new
   $self->{compile} = undef;
   $self->{no_user} = undef;
 
-  # define prefix directory
-  my $prefix = undef;
+  # get current working dir
+  my $prefix = `pwd`;
+  chomp $prefix;
+
+  # use value in $SCR_PREFIX if set
   if (defined $ENV{SCR_PREFIX}) {
-    # use SCR_PREFIX if set
     $prefix = $ENV{SCR_PREFIX};
-  } else {
-    # otherwise, use the current working dir
-    my $cwd = `pwd`;
-    chomp $cwd;
-    $prefix = $cwd;
   }
+  
+  # tack on current working dir if needed
+  # don't resolve symlinks
+  # don't worry about missing parts, the calling script calling might create it
+  $prefix = `realpath -m -s $prefix`;
+  chomp $prefix;
 
   # define user config file
   my $usrfile = undef;
