@@ -23,11 +23,12 @@ Synchronous flush functions
 =========================================
 */
 
-/* flush files specified in list */
-static int scr_flush_files_list(scr_cache_index* cindex, int id, kvtree* file_list)
+/* flushes data for files specified in file_list (with flow control),
+ * and records status of each file in data */
+static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_list)
 {
   /* assume we will succeed in this flush */
-  int rc = SCR_SUCCESS;
+  int flushed = SCR_SUCCESS;
 
   /* allocate list for filo calls */
   int numfiles;
@@ -67,8 +68,9 @@ static int scr_flush_files_list(scr_cache_index* cindex, int id, kvtree* file_li
   /* flush data */
   const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
   if (Filo_Flush(rankfile, scr_prefix, numfiles, src_filelist, dst_filelist,
-    scr_comm_world, storedesc->type) != FILO_SUCCESS) {
-    rc = SCR_FAILURE;
+      scr_comm_world, storedesc->type) != FILO_SUCCESS)
+  {
+    flushed = SCR_FAILURE;
   }
 
   /* free path and file name */
@@ -77,20 +79,6 @@ static int scr_flush_files_list(scr_cache_index* cindex, int id, kvtree* file_li
 
   /* free our file list */
   scr_flush_filolist_free(numfiles, &src_filelist, &dst_filelist);
-
-  return rc;
-}
-
-/* flushes data for files specified in file_list (with flow control),
- * and records status of each file in data */
-static int scr_flush_data(scr_cache_index* cindex, int id, kvtree* file_list)
-{
-  int flushed = SCR_SUCCESS;
-
-  /* first, flush each of my files and fill in meta data structure */
-  if (scr_flush_files_list(cindex, id, file_list) != SCR_SUCCESS) {
-    flushed = SCR_FAILURE;
-  }
 
   /* determine whether everyone wrote their files ok */
   if (scr_alltrue((flushed == SCR_SUCCESS), scr_comm_world)) {
@@ -158,17 +146,23 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
 
   /* get list of files to flush */
   kvtree* file_list = kvtree_new();
-  if (scr_flush_prepare(cindex, id, file_list) != SCR_SUCCESS) {
+  if (flushed == SCR_SUCCESS &&
+      scr_flush_prepare(cindex, id, file_list) != SCR_SUCCESS)
+  {
     flushed = SCR_FAILURE;
   }
 
   /* write the data out to files */
-  if (scr_flush_data(cindex, id, file_list) != SCR_SUCCESS) {
+  if (flushed == SCR_SUCCESS &&
+      scr_flush_sync_data(cindex, id, file_list) != SCR_SUCCESS)
+  {
     flushed = SCR_FAILURE;
   }
 
   /* write summary file */
-  if (scr_flush_complete(id, file_list) != SCR_SUCCESS) {
+  if (flushed == SCR_SUCCESS &&
+      scr_flush_complete(id, file_list) != SCR_SUCCESS)
+  {
     flushed = SCR_FAILURE;
   }
 
