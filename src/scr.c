@@ -974,6 +974,21 @@ static int scr_get_params()
     }
   }
 
+  /* TODO: allow someone to silence this if they are not using scripts? */
+  /* check that user didn't set something different in $SCR_PREFIX or current working dir */
+  value = getenv("SCR_PREFIX");
+  spath* prefix_path = scr_get_prefix(value);
+  char* prefix_str = spath_strdup(prefix_path);
+  if (strcmp(prefix_str, scr_prefix) != 0) {
+    if (scr_my_rank_world == 0) {
+      scr_warn("SCR_PREFIX in environment or cwd `%s' does not match value from config `%s' @ %s:%d",
+        prefix_str, scr_prefix, __FILE__, __LINE__
+      );
+    }
+  }
+  scr_free(&prefix_str);
+  spath_delete(&prefix_path);
+
   /* done reading parameters, can release the data structures now */
   scr_param_finalize();
 
