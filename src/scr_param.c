@@ -288,31 +288,9 @@ static char* user_config_path()
     return file;
   }
 
-  /* get current working directory */
-  char current_dir[SCR_MAX_FILENAME];
-  if (scr_getcwd(current_dir, sizeof(current_dir)) != SCR_SUCCESS) {
-    scr_abort(-1, "Problem reading current working directory @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
   /* otherwise, look in the prefix directory */
-  spath* prefix_path = NULL;
   value = getenv("SCR_PREFIX");
-  if (value != NULL) {
-    /* user explicitly set SCR_PREFIX to something, so use that */
-    prefix_path = spath_from_str(value);
-
-    /* prepend current working dir if prefix is relative */
-    if (! spath_is_absolute(prefix_path)) {
-      spath_prepend_str(prefix_path, current_dir);
-    }
-  } else {
-    /* user didn't set SCR_PREFIX,
-     * use the current working directory as a default */
-    prefix_path = spath_from_str(current_dir);
-  }
-  spath_reduce(prefix_path);
+  spath* prefix_path = scr_get_prefix(value);
 
   /* tack file name on to directory */
   spath_append_str(prefix_path, SCR_CONFIG_FILE_USER);
