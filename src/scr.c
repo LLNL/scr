@@ -870,29 +870,9 @@ static int scr_get_params()
     }
   }
 
-  /* get current working directory */
-  char current_dir[SCR_MAX_FILENAME];
-  if (scr_getcwd(current_dir, sizeof(current_dir)) != SCR_SUCCESS) {
-    scr_abort(-1, "Problem reading current working directory @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
   /* set scr_prefix_path and scr_prefix */
-  if ((value = scr_param_get("SCR_PREFIX")) != NULL) {
-    /* user explicitly set SCR_PREFIX to something, so use that */
-    scr_prefix_path = spath_from_str(value);
-
-    /* prepend current working dir if prefix is relative */
-    if (! spath_is_absolute(scr_prefix_path)) {
-      spath_prepend_str(scr_prefix_path, current_dir);
-    }
-  } else {
-    /* user didn't set SCR_PREFIX,
-     * use the current working directory as a default */
-    scr_prefix_path = spath_from_str(current_dir);
-  }
-  spath_reduce(scr_prefix_path);
+  value = scr_param_get("SCR_PREFIX");
+  scr_prefix_path = scr_get_prefix(value);
   scr_prefix = spath_strdup(scr_prefix_path);
 
   /* connect to the SCR log database if enabled */
