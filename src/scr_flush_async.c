@@ -28,6 +28,10 @@ static kvtree* scr_flush_async_file_list = NULL;
 /* path to rankfile for ongoing flush */
 static char* scr_flush_async_rankfile = NULL;
 
+/* flag indicating whether we have detected failure
+ * at any point in process of async flush */
+static int scr_flush_async_flushed = SCR_FAILURE;
+
 /*
 =========================================
 Asynchronous flush functions
@@ -106,6 +110,9 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   scr_flush_async_dataset_id = id;
   scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_FLUSHING);
 
+  /* this flag will remember whether any stage fails */
+  scr_flush_async_flushed = SCR_SUCCESS;
+
   /* get list of files to flush and create directories */
   scr_flush_async_file_list = kvtree_new();
   if (scr_flush_prepare(cindex, id, scr_flush_async_file_list) != SCR_SUCCESS) {
@@ -122,6 +129,7 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
       }
     }
     kvtree_delete(&scr_flush_async_file_list);
+    scr_flush_async_flushed = SCR_FAILURE;
     return SCR_FAILURE;
   }
 
@@ -165,9 +173,11 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   int rc = SCR_SUCCESS;
   const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
   if (Filo_Flush_start(scr_flush_async_rankfile, scr_prefix, numfiles,
-    src_filelist, dst_filelist, scr_comm_world, storedesc->type)
-    != FILO_SUCCESS) {
+      src_filelist, dst_filelist, scr_comm_world, storedesc->type)
+      != FILO_SUCCESS)
+  {
     rc = SCR_FAILURE;
+    scr_flush_async_flushed = SCR_FAILURE;
   }
 
   /* free our file list */
@@ -194,36 +204,34 @@ int scr_flush_async_test(scr_cache_index* cindex, int id)
   }
 
   /* determine whether the transfer is complete on all tasks */
+  int rc = SCR_FAILURE;
   if (scr_alltrue(transfer_complete, scr_comm_world)) {
-    if (scr_my_rank_world == 0) {
-      scr_dbg(0, "#demo SCR async daemon successfully transferred dset %d", id);
-    }
-    return SCR_SUCCESS;
+    rc = SCR_SUCCESS;
   }
-  return SCR_FAILURE;
+  return rc;
 }
 
 /* complete the flush from cache to parallel file system */
 int scr_flush_async_complete(scr_cache_index* cindex, int id)
 {
-  int flushed = SCR_SUCCESS;
-
   /* if user has disabled flush, return failure */
   if (scr_flush <= 0) {
     return SCR_FAILURE;
   }
 
-  /* TODO: have master tell each rank on node whether its files were written successfully */
   scr_dbg(1,"scr_flush_async_complete called @ %s:%d", __FILE__, __LINE__);
 
+  /* TODO: wait on Filo if we failed to start? */
   /* wait for transfer to complete */
   if (Filo_Flush_wait(scr_flush_async_rankfile, scr_comm_world) != FILO_SUCCESS) {
-    flushed = SCR_FAILURE;
+    scr_flush_async_flushed = SCR_FAILURE;
   }
 
   /* write summary file */
-  if (scr_flush_complete(id, scr_flush_async_file_list) != SCR_SUCCESS) {
-    flushed = SCR_FAILURE;
+  if (scr_flush_async_flushed == SCR_SUCCESS &&
+      scr_flush_complete(id, scr_flush_async_file_list) != SCR_SUCCESS)
+  {
+    scr_flush_async_flushed = SCR_FAILURE;
   }
 
   /* mark that we've stopped the flush */
@@ -244,7 +252,7 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
     );
 
     /* log messages about flush */
-    if (flushed == SCR_SUCCESS) {
+    if (scr_flush_async_flushed == SCR_SUCCESS) {
       /* the flush worked, print a debug message */
       scr_dbg(1, "scr_flush_async_complete: Flush of dataset %d succeeded", id);
 
@@ -265,7 +273,7 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
     }
   }
 
-  return flushed;
+  return scr_flush_async_flushed;
 }
 
 /* wait until the checkpoint currently being flushed completes */

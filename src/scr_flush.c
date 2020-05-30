@@ -134,14 +134,30 @@ char* scr_flush_dataset_metadir(const scr_dataset* dataset)
   return dir;
 }
 
-/* fills in hash with a list of filenames and associated meta data
- * that should be flushed for specified dataset id */
-static int scr_flush_identify_files(
-  const scr_cache_index* cindex,
-  int id,
-  kvtree* file_list)
+/* given a filemap and a dataset id, prepare and return a list of
+ * files to be flushed */
+int scr_flush_prepare(const scr_cache_index* cindex, int id, kvtree* file_list)
 {
+  /* assume we'll succeed */
   int rc = SCR_SUCCESS;
+
+  /* check that we have all of our files */
+  int have_files = 1;
+  if (scr_cache_check_files(cindex, id) != SCR_SUCCESS) {
+    scr_err("Missing one or more files for dataset %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+    have_files = 0;
+  }
+
+  if (! scr_alltrue(have_files, scr_comm_world)) {
+    if (scr_my_rank_world == 0) {
+      scr_err("One or more processes are missing files for dataset %d @ %s:%d",
+        id, __FILE__, __LINE__
+      );
+    }
+    return SCR_FAILURE;
+  }
 
   /* lookup dataset from filemap and store in file list */
   scr_dataset* dataset = kvtree_new();
@@ -184,66 +200,25 @@ static int scr_flush_identify_files(
   /* free map object */
   scr_filemap_delete(&map);
 
-  return rc;
-}
-
-/* given file map and dataset id, identify files
- * needed for flush and return in file list hash */
-static int scr_flush_identify(
-  const scr_cache_index* cindex,
-  int id,
-  kvtree* file_list)
-{
-  /* check that we have all of our files */
-  int have_files = 1;
-  if (scr_cache_check_files(cindex, id) != SCR_SUCCESS) {
-    scr_err("Missing one or more files for dataset %d @ %s:%d",
-      id, __FILE__, __LINE__
-    );
-    have_files = 0;
-  }
-  if (! scr_alltrue(have_files, scr_comm_world)) {
+  if (! scr_alltrue(rc == SCR_SUCCESS, scr_comm_world)) {
     if (scr_my_rank_world == 0) {
-      scr_err("One or more processes are missing files for dataset %d @ %s:%d",
+      scr_err("Failed to create list of files and metadata for dataset %d @ %s:%d",
         id, __FILE__, __LINE__
       );
     }
-    return SCR_FAILURE;
+    rc = SCR_FAILURE;
   }
 
-  /* build the list of files to flush, which includes meta data for each one */
-  if (scr_flush_identify_files(cindex, id, file_list) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to get list of files for dataset %d @ %s:%d",
-      id, __FILE__, __LINE__
-    );
-  }
-
-  return SCR_SUCCESS;
-}
-
-/* given a filemap and a dataset id, prepare and return a list of
- * files to be flushed */
-int scr_flush_prepare(const scr_cache_index* cindex, int id, kvtree* file_list)
-{
-  /* build the list of files to flush, which includes meta data for each one */
-  if (scr_flush_identify(cindex, id, file_list) != SCR_SUCCESS) {
-    scr_abort(-1, "Failed to identify data for flush of dataset %d @ %s:%d",
-      id, __FILE__, __LINE__
-    );
-  }
-
-  return SCR_SUCCESS;
+  return rc;
 }
 
 /* write summary file for flush */
 static int scr_flush_summary(
   const scr_dataset* dataset,
-  const kvtree* file_list)
+  const kvtree* file_list,
+  int complete)
 {
   int rc = SCR_SUCCESS;
-
-  /* TODO: need to determine whether everyone flushed successfully */
-  int all_complete = 1;
 
   /* define path to metadata directory */
   char* dataset_path_str = scr_flush_dataset_metadir(dataset);
@@ -277,7 +252,7 @@ static int scr_flush_summary(
       kvtree_util_set_int(summary_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_6);
 
       /* mark whether the flush is complete in the summary file */
-      kvtree_util_set_int(summary_hash, SCR_SUMMARY_6_KEY_COMPLETE, all_complete);
+      kvtree_util_set_int(summary_hash, SCR_SUMMARY_6_KEY_COMPLETE, complete);
 
       /* write the dataset descriptor */
       kvtree* dataset_hash = kvtree_new();
@@ -365,22 +340,20 @@ int scr_flush_complete(int id, kvtree* file_list)
 {
   int flushed = SCR_SUCCESS;
 
+  /* to get this far, the dataset must be complete */
+  int complete = 1;
+
   /* get the dataset of this flush */
   scr_dataset* dataset = kvtree_get(file_list, SCR_KEY_DATASET);
 
   /* write summary file */
-  if (scr_flush_summary(dataset, file_list) != SCR_SUCCESS) {
+  if (scr_flush_summary(dataset, file_list, complete) != SCR_SUCCESS) {
     flushed = SCR_FAILURE;
   }
 
   /* update index file */
   if (scr_my_rank_world == 0) {
-    /* assume the flush failed */
-    int complete = 0;
     if (flushed == SCR_SUCCESS) {
-      /* remember that the flush was successful */
-      complete = 1;
-
       /* read the index file */
       kvtree* index_hash = kvtree_new();
       scr_index_read(scr_prefix_path, index_hash);
