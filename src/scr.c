@@ -270,6 +270,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     /* handle any async flush */
     if (scr_flush_async_in_progress) {
       /* there's an async flush ongoing, see which dataset is being flushed */
+      int flush_rc;
       if (scr_flush_async_dataset_id == scr_dataset_id) {
         /* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
         /* else wait */
@@ -277,19 +278,24 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
         /* neither strdup nor free */
 #ifdef HAVE_LIBCPPR
         /* it's faster to wait on async flush if we have CPPR  */
-        scr_flush_async_wait(scr_cindex);
+        flush_rc = scr_flush_async_wait(scr_cindex);
 #else
         const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, scr_dataset_id);
         const char* type = storedesc->type;
         if (strcmp(type, "dw") == 0) {
-          scr_flush_async_wait(scr_cindex);
+          flush_rc = scr_flush_async_wait(scr_cindex);
         } else { //if type posix
           scr_flush_async_stop();
         }
 #endif
       } else {
         /* the async flush is flushing a different dataset, so wait for it */
-        scr_flush_async_wait(scr_cindex);
+        flush_rc = scr_flush_async_wait(scr_cindex);
+      }
+      if (flush_rc != SCR_SUCCESS) {
+        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+          scr_flush_async_dataset_id, __FILE__, __LINE__
+        );
       }
     }
 
@@ -298,7 +304,12 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
       if (scr_my_rank_world == 0) {
 	scr_dbg(2, "sync flush due to need to halt @ %s:%d", __FILE__, __LINE__);
       }
-      scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
+      int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+          scr_ckpt_dset_id, __FILE__, __LINE__
+        );
+      }
     }
 
     /* give our async flush method a chance to shut down */
@@ -396,7 +407,12 @@ static int scr_check_flush(scr_cache_index* map)
       if (scr_flush_async_in_progress) {
         /* we need to flush the current dataset, however, another flush is ongoing,
          * so wait for this other flush to complete before starting the next one */
-        scr_flush_async_wait(scr_cindex);
+        int flush_rc = scr_flush_async_wait(scr_cindex);
+        if (flush_rc != SCR_SUCCESS) {
+          scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+            scr_flush_async_dataset_id, __FILE__, __LINE__
+          );
+        }
       }
 
       /* start an async flush on the current dataset id */
@@ -406,7 +422,12 @@ static int scr_check_flush(scr_cache_index* map)
       if (scr_my_rank_world == 0) {
         scr_dbg(2, "sync flush attempt @ %s:%d", __FILE__, __LINE__);
       }
-      scr_flush_sync(scr_cindex, scr_dataset_id);
+      int flush_rc = scr_flush_sync(scr_cindex, scr_dataset_id);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+          scr_dataset_id, __FILE__, __LINE__
+        );
+      }
     }
 
     /* free the dataset info */
@@ -1118,7 +1139,12 @@ static int scr_start_output(const char* name, int flags)
     /* TODO: we could increase the transfer bandwidth to reduce our wait time */
 
     /* wait for this dataset to complete its flush */
-    scr_flush_async_wait(scr_cindex);
+    int flush_rc = scr_flush_async_wait(scr_cindex);
+    if (flush_rc != SCR_SUCCESS) {
+      scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+        scr_flush_async_dataset_id, __FILE__, __LINE__
+      );
+    }
 
     /* now dataset is no longer flushing, we can delete it and continue on */
     scr_cache_delete(scr_cindex, flushing);
@@ -1428,7 +1454,12 @@ static int scr_complete_output(int valid)
     /* go ahead and flush any bypass dataset since
      * it's just a bit more work to finish at this point */
     if (scr_rd->bypass) {
-      scr_flush_sync(scr_cindex, scr_dataset_id);
+      int flush_rc = scr_flush_sync(scr_cindex, scr_dataset_id);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+          scr_dataset_id, __FILE__, __LINE__
+        );
+      }
     }
 
     /* check_flush may start an async flush, whereas check_halt will call sync flush,
@@ -1450,7 +1481,12 @@ static int scr_complete_output(int valid)
     /* got an outstanding async flush, let's check it */
     if (scr_flush_async_test(scr_cindex, scr_flush_async_dataset_id) == SCR_SUCCESS) {
       /* async flush has finished, go ahead and complete it */
-      scr_flush_async_complete(scr_cindex, scr_flush_async_dataset_id);
+      int flush_rc = scr_flush_async_complete(scr_cindex, scr_flush_async_dataset_id);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+          scr_flush_async_dataset_id, __FILE__, __LINE__
+        );
+      }
     } else {
       /* not done yet, just print a progress message to the screen */
       if (scr_my_rank_world == 0) {
@@ -1891,7 +1927,12 @@ int SCR_Init()
       /* check whether we need to flush data */
       if (scr_flush_on_restart) {
         /* always flush on restart if scr_flush_on_restart is set */
-        scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
+        int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
+        if (flush_rc != SCR_SUCCESS) {
+          scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+            scr_ckpt_dset_id, __FILE__, __LINE__
+          );
+        }
       } else {
         /* otherwise, flush only if we need to flush */
         scr_check_flush(scr_cindex);
@@ -2009,10 +2050,11 @@ int SCR_Finalize()
 
   /* handle any async flush */
   if (scr_flush_async_in_progress) {
+    int flush_rc;
     if (scr_flush_async_dataset_id == scr_dataset_id) {
 #ifdef HAVE_LIBCPPR
       /* if we have CPPR, async flush is faster than sync flush, so let it finish */
-      scr_flush_async_wait(scr_cindex);
+      flush_rc = scr_flush_async_wait(scr_cindex);
 #else
       /* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
       /* else wait */
@@ -2022,7 +2064,7 @@ int SCR_Finalize()
       const char* type = storedesc->type;
       if (strcmp(type, "DATAWARP") == 0 || strcmp(type, "DW") == 0) {
         /* wait for datawarp flushes to finish */
-        scr_flush_async_wait(scr_cindex);
+        flush_rc = scr_flush_async_wait(scr_cindex);
       } else { // if type posix
         /* kill the async flush, we'll get this with a sync flush instead */
         scr_flush_async_stop();
@@ -2030,7 +2072,12 @@ int SCR_Finalize()
 #endif
     } else {
       /* the async flush is flushing a different checkpoint, so wait for it */
-      scr_flush_async_wait(scr_cindex);
+      flush_rc = scr_flush_async_wait(scr_cindex);
+    }
+    if (flush_rc != SCR_SUCCESS) {
+      scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+        scr_flush_async_dataset_id, __FILE__, __LINE__
+      );
     }
   }
 
@@ -2039,7 +2086,12 @@ int SCR_Finalize()
     if (scr_my_rank_world == 0) {
       scr_dbg(2, "Sync flush in SCR_Finalize @ %s:%d", __FILE__, __LINE__);
     }
-    scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
+    int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
+    if (flush_rc != SCR_SUCCESS) {
+      scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+        scr_ckpt_dset_id, __FILE__, __LINE__
+      );
+    }
   }
 
   if(scr_flush_async){
