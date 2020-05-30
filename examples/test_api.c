@@ -380,7 +380,6 @@ void print_usage()
   printf("    -p, --path=<DIR>     Directory to create and write files to\n");
   printf("    -f, --flush=<COUNT>  Mark every Nth write as checkpoint+output (default %d)\n", ckptout);
   printf("    -o, --output=<COUNT> Mark every Nth write as pure output (default %d)\n", output);
-  printf("    -o, --output=<COUNT> Mark every Nth write as pure output (default %d)\n", output);
   printf("    -a, --config-api=<BOOL> Use SCR_Config to set values (default %s)\n", btoa(use_config_api));
   printf("    -c, --conf-file=<BOOL> Use SCR_CONF_FILE file to set values (default %s)\n", btoa(use_conf_file));
   printf("    -h, --help           Print usage\n");

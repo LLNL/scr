@@ -141,8 +141,8 @@ if [ "$UPNODES" != "" ] ; then
           # if not, don't update current marker
           update_current=1
           echo "$prog: Checking that dataset is complete"
-          echo "$bindir/scr_index --prefix $pardir --add $d"
-          $bindir/scr_index --prefix $pardir --add $d
+          echo "$bindir/scr_index --prefix $pardir --build $d"
+          $bindir/scr_index --prefix $pardir --build $d
           if [ $? -ne 0 ] ; then
             # failed to get dataset, stop trying for later sets
             failed_dataset=$d
@@ -215,8 +215,8 @@ if [ "$UPNODES" != "" ] ; then
           # if not, don't update current marker
           update_current=1
           echo "$prog: Checking that dataset is complete"
-          echo "$bindir/scr_index --prefix $pardir --add $d"
-          $bindir/scr_index --prefix $pardir --add $d
+          echo "$bindir/scr_index --prefix $pardir --build $d"
+          $bindir/scr_index --prefix $pardir --build $d
           if [ $? -ne 0 ] ; then
             # incomplete dataset, don't update current marker
             update_current=0
