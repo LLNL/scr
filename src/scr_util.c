@@ -365,29 +365,22 @@ int kvtree_write_path(const spath* path, const kvtree* tree)
  * return spath of fully qualified path, user should free */
 spath* scr_get_prefix(const char* str)
 {
-  spath* prefix_path = spath_new();
+  spath* prefix_path = NULL;
 
-  /* get current working directory */
-  char current_dir[SCR_MAX_FILENAME];
-  if (scr_getcwd(current_dir, sizeof(current_dir)) != SCR_SUCCESS) {
-    scr_abort(-1, "Problem reading current working directory @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* prepend current working dir if needed */
+  /* start with path given by caller if one is provided */
   if (str != NULL) {
     /* user explicitly set SCR_PREFIX to something, so use that */
     prefix_path = spath_from_str(str);
 
     /* prepend current working dir if prefix is relative */
     if (! spath_is_absolute(prefix_path)) {
-      spath_prepend_str(prefix_path, current_dir);
+      spath* cwd = spath_cwd();
+      spath_prepend(prefix_path, cwd);
     }
   } else {
     /* user didn't set SCR_PREFIX,
      * use the current working directory as a default */
-    prefix_path = spath_from_str(current_dir);
+    prefix_path = spath_cwd();
   }
 
   /* take out any '.', '..', or extra or trailing '/' */
