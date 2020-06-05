@@ -151,7 +151,9 @@ static int scr_halt(const char* reason)
   }
 
   /* log the halt condition */
-  scr_log_halt(reason);
+  if (scr_log_enable) {
+    scr_log_halt(reason);
+  }
 
   /* and write out the halt file */
   int rc = scr_halt_sync_and_decrement(scr_halt_file, scr_halt_hash, 0);
