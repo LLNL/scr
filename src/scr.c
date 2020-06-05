@@ -2113,6 +2113,10 @@ int SCR_Finalize()
     return SCR_FAILURE;
   }
 
+  /* this is not required, but it helps ensure apps
+   * are calling this as a collective */
+  MPI_Barrier(scr_comm_world);
+
   if (scr_my_rank_world == 0) {
     /* stop the clock for measuring the compute time */
     scr_time_compute_end = MPI_Wtime();
@@ -2299,6 +2303,10 @@ int SCR_Need_checkpoint(int* flag)
     );
     return SCR_FAILURE;
   }
+
+  /* this is not required, but it helps ensure apps
+   * are calling this as a collective */
+  MPI_Barrier(scr_comm_world);
 
   /* track the number of times a user has called SCR_Need_checkpoint */
   scr_need_checkpoint_count++;
@@ -2723,6 +2731,10 @@ int SCR_Have_restart(int* flag, char* name)
     return SCR_FAILURE;
   }
 
+  /* this is not required, but it helps ensure apps
+   * are calling this as a collective */
+  MPI_Barrier(scr_comm_world);
+
   /* TODO: a more proper check would be to examine the filemap, perhaps across ranks */
 
   /* set flag depending on whether checkpoint_id is greater than 0,
@@ -2772,6 +2784,10 @@ int SCR_Start_restart(char* name)
     );
     return SCR_FAILURE;
   }
+
+  /* this is not required, but it helps ensure apps
+   * are calling this as a collective */
+  MPI_Barrier(scr_comm_world);
 
   /* bail out if there is no checkpoint to restart from */
   if (! scr_have_restart) {
@@ -2968,6 +2984,10 @@ int SCR_Should_exit(int* flag)
     );
     return SCR_FAILURE;
   }
+
+  /* this is not required, but it helps ensure apps
+   * are calling this as a collective */
+  MPI_Barrier(scr_comm_world);
 
   /* check that we have a flag variable to write to */
   if (flag == NULL) {
