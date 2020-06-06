@@ -35,6 +35,7 @@ LIST(APPEND libscr_srcs
 	scr.c
 	scr_cache.c
 	scr_cache_rebuild.c
+	scr_cache_index.c
 	scr_config.c
 	scr_config_mpi.c
 	scr_dataset.c
@@ -42,7 +43,6 @@ LIST(APPEND libscr_srcs
 	scr_env.c
 	scr_err_mpi.c
 	scr_fetch.c
-	scr_cache_index.c
 	scr_filemap.c
 	scr_flush.c
 	scr_flush_file_mpi.c
@@ -56,6 +56,7 @@ LIST(APPEND libscr_srcs
 	scr_log.c
 	scr_meta.c
 	scr_param.c
+	scr_prefix.c
 	scr_reddesc.c
 	scr_storedesc.c
 	scr_summary.c

@@ -97,6 +97,7 @@
 #include "scr_flush_file_mpi.h"
 #include "scr_cache.h"
 #include "scr_cache_rebuild.h"
+#include "scr_prefix.h"
 #include "scr_fetch.h"
 #include "scr_flush.h"
 #include "scr_flush_sync.h"
@@ -179,6 +180,8 @@ extern int   scr_flush;            /* how many checkpoints between flushes */
 extern int   scr_flush_width;      /* specify number of processes to write files simultaneously */
 extern int   scr_flush_on_restart; /* specify whether to flush cache on restart */
 extern int   scr_global_restart;   /* set if code must be restarted from parallel file system */
+
+extern int scr_prefix_size; /* max number of checkpoints to keep in prefix directory */
 
 extern int scr_flush_async;             /* whether to use asynchronous flush */
 extern double scr_flush_async_bw;       /* bandwidth limit imposed during async flush */

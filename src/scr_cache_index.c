@@ -77,14 +77,6 @@ static int scr_cache_index_unset_if_empty(scr_cache_index* cindex, int dset)
   return SCR_SUCCESS;
 }
 
-/* returns the CURRENT name */
-int scr_cache_index_get_current(const kvtree* h, char** current)
-{
-  int kvtree_rc = kvtree_util_get_str(h, SCR_CINDEX_KEY_CURRENT, current);
-  int rc = (kvtree_rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
-  return rc;
-}
-
 /* set the CURRENT name, used to rememeber if we already proccessed
  * a SCR_CURRENT name a user may have provided to set the current value,
  * we ignore that request in later runs and use this marker to remember */
@@ -92,6 +84,14 @@ int scr_cache_index_set_current(const kvtree* h, const char* current)
 {
   kvtree_util_set_str(h, SCR_CINDEX_KEY_CURRENT, current);
   return SCR_SUCCESS;
+}
+
+/* returns the CURRENT name */
+int scr_cache_index_get_current(const kvtree* h, char** current)
+{
+  int kvtree_rc = kvtree_util_get_str(h, SCR_CINDEX_KEY_CURRENT, current);
+  int rc = (kvtree_rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
+  return rc;
 }
 
 /* sets the dataset hash for the given dataset id */

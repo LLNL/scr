@@ -205,6 +205,11 @@
 #define SCR_FLUSH_ASYNC_PERCENT (0.0) /* TODO: the fsync complicates this throttling, disable it for now */
 #endif
 
+/* max number of checkpoints to keep in prefix (0 disables) */
+#ifndef SCR_PREFIX_SIZE
+#define SCR_PREFIX_SIZE (0)
+#endif
+
 /* =========================================================================
  * Default checksum settings.
  * ========================================================================= */

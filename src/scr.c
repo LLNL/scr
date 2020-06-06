@@ -437,10 +437,10 @@ static int scr_check_flush(scr_cache_index* map)
         );
       }
     }
-
-    /* free the dataset info */
-    scr_dataset_delete(&dataset);
   }
+
+  /* free the dataset info */
+  scr_dataset_delete(&dataset);
 
   return SCR_SUCCESS;
 }
@@ -858,6 +858,13 @@ static int scr_get_params()
     scr_global_restart = atoi(value);
   }
 
+  /* specify window of number of checkpoints to keep in prefix directory,
+   * set to positive integer to enable, then older checkpoints will be deleted
+   * after a successful flush */
+  if ((value = scr_param_get("SCR_PREFIX_SIZE")) != NULL) {
+    scr_prefix_size = atoi(value);
+  }
+
   /* specify whether to use asynchronous flush */
   if ((value = scr_param_get("SCR_FLUSH_ASYNC")) != NULL) {
     scr_flush_async = atoi(value);
@@ -1215,7 +1222,7 @@ static int scr_start_output(const char* name, int flags)
 
   /* print a debug message to indicate we've started the dataset */
   if (scr_my_rank_world == 0) {
-    scr_dbg(1, "Starting dataset %s", dataset_name);
+    scr_dbg(1, "Starting dataset %d `%s'", scr_dataset_id, dataset_name);
   }
 
   return SCR_SUCCESS;
@@ -3225,4 +3232,111 @@ int SCR_Should_exit(int* flag)
   }
 
   return SCR_SUCCESS;
+}
+
+/* drop named dataset from index */
+int SCR_Drop(const char* name)
+{
+  int rc = SCR_SUCCESS;
+
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Drop()", __FILE__, __LINE__);
+  }
+
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* this is not required, but it helps ensure apps
+   * are calling this as a collective */
+  MPI_Barrier(scr_comm_world);
+
+  /* delete dataset from prefix directory, if it exists */
+  if (scr_my_rank_world == 0) {
+      /* read the index file */
+      kvtree* index_hash = kvtree_new();
+      if (scr_index_read(scr_prefix_path, index_hash) == SCR_SUCCESS) {
+        /* if there is an entry for this dataset in the index,
+         * mark it as failed so we don't try to restart it with it again */
+        int id;
+        if (scr_index_get_id_by_name(index_hash, name, &id) == SCR_SUCCESS) {
+          /* found an entry, remove it from the index */
+          scr_index_remove(index_hash, name);
+          scr_index_write(scr_prefix_path, index_hash);
+        }
+      }
+      kvtree_delete(&index_hash);
+  }
+
+  /* hold everyone until delete is complete */
+  MPI_Barrier(scr_comm_world);
+
+  return rc;
+}
+
+/* delete named checkpoint from cache and parallel file system */
+int SCR_Delete(const char* name)
+{
+  int rc = SCR_SUCCESS;
+
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Delete()", __FILE__, __LINE__);
+  }
+
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* this is not required, but it helps ensure apps
+   * are calling this as a collective */
+  MPI_Barrier(scr_comm_world);
+
+  /* NOTE: It is possible that two datasets exist with the same name
+   * if one is on the parallel file system and a newer one is in cache
+   * but has yet to have been flushed.  Those will have two different
+   * id values */
+
+  /* delete dataset from cache first, if it exists */
+  scr_cache_delete_by_name(scr_cindex, name);
+
+  /* delete dataset from prefix directory, if it exists */
+  if (scr_my_rank_world == 0) {
+      /* read the index file */
+      kvtree* index_hash = kvtree_new();
+      if (scr_index_read(scr_prefix_path, index_hash) == SCR_SUCCESS) {
+        /* if there is an entry for this dataset in the index,
+         * mark it as failed so we don't try to restart it with it again */
+        int id;
+        if (scr_index_get_id_by_name(index_hash, name, &id) == SCR_SUCCESS) {
+          /* found an entry, let's delete it */
+          scr_prefix_delete(id, name);
+        }
+      }
+      kvtree_delete(&index_hash);
+  }
+
+  /* hold everyone until delete is complete */
+  MPI_Barrier(scr_comm_world);
+
+  return rc;
 }

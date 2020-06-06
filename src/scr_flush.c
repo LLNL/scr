@@ -336,7 +336,7 @@ int scr_flush_init_index(scr_dataset* dataset)
 
 /* given a dataset id that has been flushed and the list provided by scr_flush_prepare,
  * complete the flush by writing the summary file */
-int scr_flush_complete(int id, kvtree* file_list)
+int scr_flush_complete(const scr_cache_index* cindex, int id, kvtree* file_list)
 {
   int flushed = SCR_SUCCESS;
 
@@ -399,6 +399,15 @@ int scr_flush_complete(int id, kvtree* file_list)
   /* mark this dataset as flushed to the parallel file system */
   if (flushed == SCR_SUCCESS) {
     scr_flush_file_location_set(id, SCR_FLUSH_KEY_LOCATION_PFS);
+
+    /* if we just flushed a checkpoint,
+     * delete others to maintain a sliding window */
+    if (scr_prefix_size > 0) {
+      int is_ckpt = scr_dataset_is_ckpt(dataset);
+      if (is_ckpt) {
+        scr_prefix_delete_sliding(id, scr_prefix_size);
+      }
+    }
 
     /* TODODSET: if this dataset is not a checkpoint, delete it from cache now */
 #if 0

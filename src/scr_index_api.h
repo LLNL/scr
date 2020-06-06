@@ -59,6 +59,10 @@ int scr_index_clear_failed(kvtree* index, int id, const char* name);
 /* record flush time for given dataset id and name in given hash */
 int scr_index_mark_flushed(kvtree* index, int id, const char* name);
 
+/* copy dataset into given dataset object,
+ * returns SCR_FAILURE if key is not set */
+int scr_index_get_dataset(kvtree* index, int id, const char* name, scr_dataset* dataset);
+
 /* get completeness code for given dataset id and name in given hash,
  * sets complete=0 and returns SCR_FAILURE if key is not set */
 int scr_index_get_complete(kvtree* index, int id, const char* name, int* complete);

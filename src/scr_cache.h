@@ -44,6 +44,9 @@ int scr_cache_dir_create(const scr_reddesc* reddesc, int id);
 /* remove all files associated with specified dataset */
 int scr_cache_delete(scr_cache_index* cindex, int id);
 
+/* delete dataset with matching name from cache, if one exists */
+int scr_cache_delete_by_name(scr_cache_index* cindex, const char* name);
+
 /* each process passes in an ordered list of dataset ids along with a current
  * index, this function identifies the next smallest id across all processes
  * and returns this id in current, it also updates index on processes as

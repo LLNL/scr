@@ -95,7 +95,7 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
 
   /* this may take a while, so tell user what we're doing */
   if (scr_my_rank_world == 0) {
-    scr_dbg(1, "Initiating flush of dataset %d %s", id, dset_name);
+    scr_dbg(1, "Initiating async flush of dataset %d `%s'", id, dset_name);
   }
 
   /* make sure all processes make it this far before progressing */
@@ -247,7 +247,7 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
 
   /* write summary file */
   if (scr_flush_async_flushed == SCR_SUCCESS &&
-      scr_flush_complete(id, scr_flush_async_file_list) != SCR_SUCCESS)
+      scr_flush_complete(cindex, id, scr_flush_async_file_list) != SCR_SUCCESS)
   {
     scr_flush_async_flushed = SCR_FAILURE;
   }
@@ -294,7 +294,7 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
     /* log messages about flush */
     if (scr_flush_async_flushed == SCR_SUCCESS) {
       /* the flush worked, print a debug message */
-      scr_dbg(1, "scr_flush_async_complete: Flush of dataset succeeded %d %s", id, dset_name);
+      scr_dbg(1, "scr_flush_async_complete: Flush of dataset succeeded %d `%s'", id, dset_name);
 
       /* log details of flush */
       if (scr_log_enable) {
@@ -302,7 +302,7 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
       }
     } else {
       /* the flush failed, this is more serious so print an error message */
-      scr_err("scr_flush_async_complete: Flush of dataset failed %d %s", id, dset_name);
+      scr_err("scr_flush_async_complete: Flush of dataset failed %d `%s'", id, dset_name);
 
       /* log details of flush */
       if (scr_log_enable) {

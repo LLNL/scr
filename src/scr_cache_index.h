@@ -49,13 +49,13 @@ Cache index set/get/unset data functions
 =========================================
 */
 
-/* returns the CURRENT name */
-int scr_cache_index_get_current(const kvtree* h, char** current);
-
 /* set the CURRENT name, used to rememeber if we already proccessed
  * a SCR_CURRENT name a user may have provided to set the current value,
  * we ignore that request in later runs and use this marker to remember */
 int scr_cache_index_set_current(const kvtree* h, const char* current);
+
+/* returns the CURRENT name */
+int scr_cache_index_get_current(const kvtree* h, char** current);
 
 /* sets the dataset hash for the given dataset id */
 int scr_cache_index_set_dataset(scr_cache_index* cindex, int dset, kvtree* hash);
