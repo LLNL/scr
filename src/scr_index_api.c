@@ -449,6 +449,26 @@ int scr_index_mark_flushed(kvtree* index, int id, const char* name)
   return SCR_SUCCESS;
 }
 
+/* copy dataset into given dataset object,
+ * returns SCR_FAILURE if not found */
+int scr_index_get_dataset(kvtree* index, int id, const char* name, scr_dataset* dataset)
+{
+  int rc = SCR_FAILURE;
+
+  /* get pointer to dataset hash */
+  kvtree* dset_hash = kvtree_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
+
+  /* lookup dataset hash in index */
+  kvtree* dset = kvtree_get(dset_hash, SCR_INDEX_1_KEY_DATASET);
+  if (dset != NULL) {
+    /* found it, copy contents of dataset hash */
+    kvtree_merge(dataset, dset);
+    rc = SCR_SUCCESS;
+  }
+
+  return rc;
+}
+
 /* get completeness code for given dataset id and name in given hash,
  * sets complete=0 and returns SCR_FAILURE if key is not set */
 int scr_index_get_complete(kvtree* index, int id, const char* name, int* complete)
@@ -512,7 +532,7 @@ int scr_index_get_most_recent_complete(const kvtree* index, int earlier_than, in
 
     /* if we have a limit and the current id is beyond that limit,
      * skip it */
-    if (earlier_than != -1 && current_id > earlier_than) {
+    if (earlier_than != -1 && current_id >= earlier_than) {
       continue;
     }
 
@@ -559,13 +579,13 @@ int scr_index_get_most_recent_complete(const kvtree* index, int earlier_than, in
     }
 
     /* get the name of the dataset */
-    char* name;
-    scr_dataset_get_name(dataset_hash, &name);
+    char* current_name;
+    scr_dataset_get_name(dataset_hash, &current_name);
 
     /* if we found one, copy the dataset id and name, and update our max */
     if (found_one) {
       *id = current_id;
-      strcpy(name, name);
+      strcpy(name, current_name);
 
       /* update our max */
       max_id = current_id;

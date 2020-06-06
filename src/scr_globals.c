@@ -130,6 +130,8 @@ int    scr_flush_async_in_progress = 0;                       /* tracks whether 
 int    scr_flush_async_dataset_id  = -1;                      /* tracks the id of the checkpoint being flushed */
 double scr_flush_async_bytes       = 0.0;                     /* records the total number of bytes to be flushed */
 
+int scr_prefix_size = SCR_PREFIX_SIZE; /* max number of checkpoints to keep in prefix directory */
+
 int scr_crc_on_copy   = SCR_CRC_ON_COPY;   /* whether to enable crc32 checks during scr_swap_files() */
 int scr_crc_on_flush  = SCR_CRC_ON_FLUSH;  /* whether to enable crc32 checks during flush and fetch */
 int scr_crc_on_delete = SCR_CRC_ON_DELETE; /* whether to enable crc32 checks when deleting checkpoints */

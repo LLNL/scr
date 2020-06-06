@@ -13,7 +13,7 @@
 #define SCR_FLUSH_H
 
 #include "kvtree.h"
-#include "scr_filemap.h"
+#include "scr_cache_index.h"
 
 /* given file list from flush_prepare, allocate and fill in arrays for filo,
  * caller should free arrays with call to filolist_free*/
@@ -31,11 +31,11 @@ char* scr_flush_dataset_metadir(const scr_dataset* dataset);
  * it as incomplete */
 int scr_flush_init_index(scr_dataset* dataset);
 
-/* given a filemap and a dataset id, prepare and return a list of files to be flushed */
-int scr_flush_prepare(const scr_filemap* map, int id, kvtree* file_list);
+/* given a cache index and a dataset id, prepare and return a list of files to be flushed */
+int scr_flush_prepare(const scr_cache_index* cindex, int id, kvtree* file_list);
 
 /* given a dataset id that has been flushed and the list provided by scr_flush_prepare,
  * complete the flush by writing the summary file */
-int scr_flush_complete(int id, kvtree* file_list);
+int scr_flush_complete(const scr_cache_index* cindex, int id, kvtree* file_list);
 
 #endif

@@ -237,14 +237,22 @@ int scr_cache_unset_map(const scr_cache_index* cindex, int id)
 /* remove all files associated with specified dataset */
 int scr_cache_delete(scr_cache_index* cindex, int id)
 {
-  /* print a debug messages */
-  if (scr_my_rank_world == 0) {
-    scr_dbg(1, "Deleting dataset %d from cache", id);
-  }
-
   /* get cache directory for this dataset */
   char* dir = NULL;
-  scr_cache_index_get_dir(cindex, id, &dir);
+  if (scr_cache_index_get_dir(cindex, id, &dir) == SCR_FAILURE) {
+    /* assume dataset is not in cache if we fail to find its directory */
+    return SCR_SUCCESS;
+  }
+
+  /* print a debug messages */
+  if (scr_my_rank_world == 0) {
+    scr_dataset* dataset = scr_dataset_new();
+    scr_cache_index_get_dataset(cindex, id, dataset);
+    char* dset_name;
+    scr_dataset_get_name(dataset, &dset_name);
+    scr_dbg(1, "Deleting dataset %d `%s' from cache", id, dset_name);
+    scr_dataset_delete(&dataset);
+  }
 
   /* build list to hidden directory */
   spath* path_scr = spath_from_str(dir);
@@ -343,6 +351,40 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
 
   /* free path to hidden directory */
   scr_free(&dir_scr);
+
+  return SCR_SUCCESS;
+}
+
+/* delete dataset with matching name from cache, if one exists */
+int scr_cache_delete_by_name(scr_cache_index* cindex, const char* name)
+{
+  /* lookup dataset id from cache that matches given name, if any,
+   * start with oldest dataset and iterate to newer datasets */
+  int cache_id = -1;
+  int id = scr_cache_index_oldest_dataset(cindex, -1);
+  while (id != -1 && cache_id == -1) {
+    /* get dataset for this id */
+    scr_dataset* dataset = scr_dataset_new();
+    scr_cache_index_get_dataset(cindex, id, dataset);
+
+    /* check the name of this dataset to the given name */
+    char* dset_name;
+    if (scr_dataset_get_name(dataset, &dset_name) == SCR_SUCCESS) {
+      if (strcmp(name, dset_name) == 0) {
+        /* found a match, record the id */
+        cache_id = id;
+      }
+    }
+
+    /* release the dataset and lookup the id of the next oldest dataset */
+    scr_dataset_delete(&dataset);
+    id = scr_cache_index_oldest_dataset(cindex, id);
+  }
+
+  /* delete dataset from cache, if it exists */
+  if (cache_id != -1) {
+    scr_cache_delete(cindex, cache_id);
+  }
 
   return SCR_SUCCESS;
 }

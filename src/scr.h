@@ -104,6 +104,16 @@ int SCR_Start_output(const char* name, int flags);
 int SCR_Complete_output(int valid);
 
 /*****************
+ * Dataset management routines
+ ****************/
+
+/* drop named dataset from index */
+int SCR_Drop(const char* name);
+
+/* delete files for named dataset */
+int SCR_Delete(const char* name);
+
+/*****************
  * Environment and configuration routines
  ****************/
 
