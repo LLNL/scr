@@ -231,7 +231,7 @@ double getbw(char* name, char* buf, size_t size, int times)
         /* using scr, start our output */
         scr_retval = SCR_Start_output(label, flags);
         if (scr_retval != SCR_SUCCESS) {
-          printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
+          printf("%d: failed calling SCR_Start_output(): %d: @%s:%d\n",
                  rank, scr_retval, __FILE__, __LINE__
           );
         }
@@ -301,7 +301,8 @@ double getbw(char* name, char* buf, size_t size, int times)
 
       /* mark this checkpoint as complete */
       if (use_scr) {
-        scr_retval = SCR_Complete_output(valid);
+        int allvalid;
+        scr_retval = SCR_Complete_output(valid, &allvalid);
         if (scr_retval != SCR_SUCCESS) {
           printf("%d: failed calling SCR_Complete_output: %d: @%s:%d\n",
                  rank, scr_retval, __FILE__, __LINE__
@@ -510,12 +511,8 @@ int main (int argc, char* argv[])
         }
 
         /* indicate to library that we're done with restart, tell it whether we read our data ok */
-        scr_retval = SCR_Complete_restart(found_checkpoint);
-        if (scr_retval == SCR_SUCCESS) {
-          /* all procs succeeded in reading their checkpoint file,
-           * we've successfully restarted */
-          restarted = 1;
-        } else {
+        scr_retval = SCR_Complete_restart(found_checkpoint, &restarted);
+        if (scr_retval != SCR_SUCCESS) {
           printf("%d: failed calling SCR_Complete_restart: %d: @%s:%d\n",
                  rank, scr_retval, __FILE__, __LINE__
           );

@@ -131,11 +131,10 @@ int main (int argc, char* argv[])
     }
 
     // done reading our checkpoint
-    SCR_Complete_restart(valid);
+    int all_valid = 0;
+    SCR_Complete_restart(valid, &all_valid);
 
     // check that everyone found their checkpoint files ok
-    int all_valid = 0;
-    MPI_Allreduce(&valid, &all_valid, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
     if (!all_valid && rank == 0) {
       printf("At least one rank (perhaps all) did not find its checkpoint\n");
     }
@@ -183,7 +182,7 @@ int main (int argc, char* argv[])
   int t;
   for(t=0; t < 1; t++) {
     int rc;
-    int all_valid = 1;
+    int valid = 1;
 
     // define a name for this checkpoint
     sprintf(ckptname, "timestep.%d", timestep);
@@ -198,8 +197,6 @@ int main (int argc, char* argv[])
 
     // write out each of our checkpoint files
     for (i=0; i < num_files; i++) {
-      int valid = 0;
-
       // define path to checkpoint file
       char origpath[1024];
       sprintf(origpath, "%s/%s", ckptname, files[i]);
@@ -216,8 +213,6 @@ int main (int argc, char* argv[])
       // open file and write checkpoint
       int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
       if (fd_me > 0) {
-        valid = 1;
-        
         // write the checkpoint
         rc = write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
         if (rc < 0) { valid = 0; }
@@ -228,12 +223,14 @@ int main (int argc, char* argv[])
         // make sure the close is without error
         rc = close(fd_me);
         if (rc < 0) { valid = 0; }
+      } else {
+        valid = 0;
       }
-      if (!valid) { all_valid = 0; }
     }
 
     // complete the checkpoint
-    scr_retval = SCR_Complete_output(all_valid);
+    int allvalid;
+    scr_retval = SCR_Complete_output(valid, &allvalid);
     if (scr_retval != SCR_SUCCESS) {
       printf("%d: failed calling SCR_Complete_output(): %d: @%s:%d\n",
              rank, scr_retval, __FILE__, __LINE__
@@ -250,7 +247,7 @@ int main (int argc, char* argv[])
     double time_start = MPI_Wtime();
     for(t=0; t < times; t++) {
       int rc;
-      int all_valid = 1;
+      int valid = 1;
       
       // define a name for this checkpoint
       sprintf(ckptname, "timestep.%d", timestep);
@@ -265,8 +262,6 @@ int main (int argc, char* argv[])
 
       // write out each of our checkpoint files
       for (i=0; i < num_files; i++) {
-        int valid = 0;
-
         // define path to checkpoint file
         char origpath[1024];
         sprintf(origpath, "%s/%s", ckptname, files[i]);
@@ -284,7 +279,6 @@ int main (int argc, char* argv[])
         int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
         if (fd_me > 0) {
           count++;
-          valid = 1;
           
           // write the checkpoint
           rc = write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
@@ -296,12 +290,14 @@ int main (int argc, char* argv[])
           // make sure the close is without error
           rc = close(fd_me);
           if (rc < 0) { valid = 0; }
+        } else {
+          valid = 0;
         }
-        if (!valid) { all_valid = 0; }
       }
 
       // complete the checkpoint
-      scr_retval = SCR_Complete_output(all_valid);
+      int allvalid;
+      scr_retval = SCR_Complete_output(valid, &allvalid);
       if (scr_retval != SCR_SUCCESS) {
         printf("%d: failed calling SCR_Complete_output(): %d: @%s:%d\n",
                rank, scr_retval, __FILE__, __LINE__

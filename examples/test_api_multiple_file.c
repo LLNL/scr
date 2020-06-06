@@ -170,15 +170,14 @@ int main (int argc, char* argv[])
   int t;
   for(t=0; t < 1; t++) {
     int rc;
-    int all_valid = 1;
-    scr_retval = SCR_Start_checkpoint();
+    int valid = 1;
+    scr_retval = SCR_Start_output(NULL, SCR_FLAG_CHECKPOINT);
     if (scr_retval != SCR_SUCCESS) {
-      printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
+      printf("%d: failed calling SCR_Start_output(): %d: @%s:%d\n",
              rank, scr_retval, __FILE__, __LINE__
       );
     }
   for (i=0; i < num_files; i++) {
-    int valid = 0;
     char file[2094];
     scr_retval = SCR_Route_file(files[i], file);
     if (scr_retval != SCR_SUCCESS) {
@@ -188,8 +187,6 @@ int main (int argc, char* argv[])
     }
     int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd_me > 0) {
-      valid = 1;
-
       // write the checkpoint
       rc = write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
       if (rc < 0) { valid = 0; }
@@ -200,12 +197,14 @@ int main (int argc, char* argv[])
       // make sure the close is without error
       rc = close(fd_me);
       if (rc < 0) { valid = 0; }
+    } else {
+      valid = 0;
     }
-    if (!valid) { all_valid = 0; }
   }
-  scr_retval = SCR_Complete_checkpoint(all_valid);
+  int allvalid;
+  scr_retval = SCR_Complete_output(valid, &allvalid);
   if (scr_retval != SCR_SUCCESS) {
-    printf("%d: failed calling SCR_Complete_checkpoint(): %d: @%s:%d\n",
+    printf("%d: failed calling SCR_Complete_output(): %d: @%s:%d\n",
            rank, scr_retval, __FILE__, __LINE__
     );
   }
@@ -220,15 +219,14 @@ int main (int argc, char* argv[])
     double time_start = MPI_Wtime();
     for(t=0; t < times; t++) {
       int rc;
-      int all_valid = 1;
-      scr_retval = SCR_Start_checkpoint();
+      int valid = 1;
+      scr_retval = SCR_Start_output(NULL, SCR_FLAG_CHECKPOINT);
       if (scr_retval != SCR_SUCCESS) {
-        printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
+        printf("%d: failed calling SCR_Start_output(): %d: @%s:%d\n",
                rank, scr_retval, __FILE__, __LINE__
         );
       }
       for (i=0; i < num_files; i++) {
-        int valid = 0;
         char file[2094];
         scr_retval = SCR_Route_file(files[i], file);
         if (scr_retval != SCR_SUCCESS) {
@@ -239,7 +237,6 @@ int main (int argc, char* argv[])
         int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
         if (fd_me > 0) {
           count++;
-          valid = 1;
           
           // write the checkpoint
           rc = write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
@@ -251,12 +248,14 @@ int main (int argc, char* argv[])
           // make sure the close is without error
           rc = close(fd_me);
           if (rc < 0) { valid = 0; }
+        } else {
+          valid = 0;
         }
-        if (!valid) { all_valid = 0; }
       }
-      scr_retval = SCR_Complete_checkpoint(all_valid);
+      int allvalid;
+      scr_retval = SCR_Complete_output(valid, &allvalid);
       if (scr_retval != SCR_SUCCESS) {
-        printf("%d: failed calling SCR_Complete_checkpoint(): %d: @%s:%d\n",
+        printf("%d: failed calling SCR_Complete_output(): %d: @%s:%d\n",
                rank, scr_retval, __FILE__, __LINE__
         );
       }

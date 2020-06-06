@@ -54,9 +54,9 @@ double getbw(char* name, char* buf, size_t size, int times)
 */
 
       /* instruct SCR we are starting the next checkpoint */
-      scr_retval = SCR_Start_checkpoint();
+      scr_retval = SCR_Start_output(NULL, SCR_FLAG_CHECKPOINT);
       if (scr_retval != SCR_SUCCESS) {
-        printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
+        printf("%d: failed calling SCR_Start_output(): %d: @%s:%d\n",
                rank, scr_retval, __FILE__, __LINE__
         );
       }
@@ -107,9 +107,10 @@ double getbw(char* name, char* buf, size_t size, int times)
       */
 
       /* mark this checkpoint as complete */
-      scr_retval = SCR_Complete_checkpoint(valid);
+      int allvalid;
+      scr_retval = SCR_Complete_output(valid, &allvalid);
       if (scr_retval != SCR_SUCCESS) {
-        printf("%d: failed calling SCR_Complete_checkpoint: %d: @%s:%d\n",
+        printf("%d: failed calling SCR_Complete_output: %d: @%s:%d\n",
                rank, scr_retval, __FILE__, __LINE__
         );
       }
