@@ -200,14 +200,28 @@ other programs in the examples directory.
     SCR_Route_file(file, scr_file);
 
     /* Use the new file name to perform your checkpoint I/O */
+    int valid = 1;
     FILE* fs = fopen(scr_file, "w");
     if (fs != NULL) {
-      fwrite(state, ..., fs);
-      fclose(fs);
+      size_t nwritten = fwrite(state, size, count, fs);
+      if (nwritten < count) {
+        /* write failed, tell SCR this process failed */
+        valid = 0;
+      }
+
+      int close_rc = fclose(fs);
+      if (close_rc != 0) {
+        /* failed to close file, tell SCR this process failed */
+        valid = 0;
+      }
+    } else {
+      /* failed to open file, tell SCR this process failed */
+      valid = 0;
     }
 
     /* Tell SCR that you are done with your checkpoint phase */
-    SCR_Complete_output(1);
+    int allvalid;
+    SCR_Complete_output(valid, &allvalid);
 
     return;
   }
