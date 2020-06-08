@@ -15,13 +15,101 @@
 #include "kvtree.h"
 #include "kvtree_util.h"
 
-#include "filo.h"
+#include "axl_mpi.h"
 
 /*
 =========================================
 Synchronous flush functions
 =========================================
 */
+
+/*
+ * Flush files to the parallel file system
+ *
+ * axl_xfer_str: The AXL transfer type you want to use for your transfer
+ *               (like "default", "sync", "pthread", "bbapi", etc).
+ */
+static int scr_flush_filo(
+  const char* rank2file,
+  const char* basepath,
+  int num_files,
+  const char** src_filelist,
+  const char** dest_filelist,
+  axl_xfer_t xfer_type,
+  MPI_Comm comm)
+{
+  int rc = SCR_SUCCESS;
+
+  /* we can skip transfer if all paths match */
+  int skip_transfer = 1;
+
+  /* build a list of files for this rank */
+  int i;
+  kvtree* filelist = kvtree_new();
+  for (i = 0; i < num_files; i++) {
+    const char* filename = dest_filelist[i];
+
+    /* found a source and destination path that are different */
+    if (strcmp(src_filelist[i], filename) != 0) {
+      skip_transfer = 0;
+    }
+
+    /* if basepath is valid, compute relative path,
+     * otherwise use dest path verbatim */
+    if (basepath != NULL) {
+      /* generate relateive path to destination file */
+      spath* base = spath_from_str(basepath);
+      spath* dest = spath_from_str(filename);
+      spath* rel = spath_relative(base, dest);
+      char* relfile = spath_strdup(rel);
+
+      kvtree_set_kv(filelist, "FILE", relfile);
+
+      scr_free(&relfile);
+      spath_delete(&rel);
+      spath_delete(&dest);
+      spath_delete(&base);
+    } else {
+      /* use destination file name verbatim */
+      kvtree_set_kv(filelist, "FILE", filename);
+    }
+  }
+
+  /* save our file list to disk */
+  kvtree_write_gather(rank2file, filelist, comm);
+
+  /* after writing out file above, see if we can skip the transfer */
+  int success = 1;
+  if (! scr_alltrue(skip_transfer, comm)) {
+    /* create directories */
+    rc = scr_flush_create_dirs(basepath, num_files, dest_filelist, comm);
+
+    /* write files (via AXL) */
+    if (scr_axl(num_files, src_filelist, dest_filelist, xfer_type, comm) != SCR_SUCCESS) {
+      success = 0;
+    }
+  } else {
+    /* just stat the file to check that it exists */
+    for (i = 0; i < num_files; i++) {
+      if (access(src_filelist[i], R_OK) < 0) {
+        /* either can't read this file or it doesn't exist */
+        success = 0;
+        break;
+      }
+    }
+  }
+
+  /* free the list of files */
+  kvtree_delete(&filelist);
+
+  /* check that all processes copied their file successfully */
+  if (! scr_alltrue(success, comm)) {
+    /* TODO: auto delete files? */
+    rc = SCR_FAILURE;
+  }
+
+  return rc;
+}
 
 /* flushes data for files specified in file_list (with flow control),
  * and records status of each file in data */
@@ -39,7 +127,8 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
   /* get the dataset of this flush */
   scr_dataset* dataset = kvtree_get(file_list, SCR_KEY_DATASET);
 
-  /* create enty in index file to indicate that dataset may exist, but is not yet complete */
+  /* create entry in index file to indicate that dataset may exist,
+   * but is not yet complete */
   scr_flush_init_index(dataset);
 
   /* define path to metadata directory for this dataset */
@@ -65,10 +154,14 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
   spath_append_str(dataset_path, "rank2file");
   const char* rankfile = spath_strdup(dataset_path);
 
-  /* flush data */
+  /* get AXL transfer type to use */
   const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
-  if (Filo_Flush(rankfile, scr_prefix, numfiles, src_filelist, dst_filelist,
-      scr_comm_world, storedesc->type) != FILO_SUCCESS)
+  axl_xfer_t xfer_type = axl_xfer_str_to_type(storedesc->type);
+
+  /* flush data */
+  if (scr_flush_filo(rankfile, scr_prefix,
+      numfiles, src_filelist, dst_filelist,
+      xfer_type, scr_comm_world) != SCR_SUCCESS)
   {
     flushed = SCR_FAILURE;
   }

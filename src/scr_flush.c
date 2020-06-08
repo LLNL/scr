@@ -14,6 +14,7 @@
 #include "spath.h"
 #include "kvtree.h"
 #include "kvtree_util.h"
+#include "dtcmp.h"
 
 /*
 =========================================
@@ -110,6 +111,87 @@ int scr_flush_filolist_free(int num_files, char*** ptr_src_filelist, char*** ptr
   scr_free(ptr_src_filelist);
   scr_free(ptr_dst_filelist);
 
+  return SCR_SUCCESS;
+}
+
+/* create directories from basepath down to each file as needed */
+int scr_flush_create_dirs(
+  const char* basepath,       /* top-level directory, assumed to exist */
+  int count,                  /* number of files */
+  const char** dest_filelist, /* list of files */
+  MPI_Comm comm)              /* communicator of participating processes */
+{
+  /* TODO: need to list dirs in order from parent to child */
+
+  /* allocate buffers to hold the directory needed for each file */
+  int* leader           = (int*)         SCR_MALLOC(sizeof(int)         * count);
+  const char** dirs     = (const char**) SCR_MALLOC(sizeof(const char*) * count);
+  uint64_t* group_id    = (uint64_t*)    SCR_MALLOC(sizeof(uint64_t)    * count);
+  uint64_t* group_ranks = (uint64_t*)    SCR_MALLOC(sizeof(uint64_t)    * count);
+  uint64_t* group_rank  = (uint64_t*)    SCR_MALLOC(sizeof(uint64_t)    * count);
+
+  /* lookup directory from meta data for each file */
+  int i;
+  for (i = 0; i < count; i++) {
+    /* extract directory from filename */
+    const char* filename = dest_filelist[i];
+    char* path = strdup(filename);
+    dirs[i] = strdup(dirname(path));
+    scr_free(&path);
+
+    /* we'll use DTCMP to select one leader for each directory later */
+    leader[i] = 0;
+  }
+
+  /* with DTCMP we identify a single process to create each directory */
+
+  /* identify the set of unique directories */
+  uint64_t groups;
+  DTCMP_Rankv_strings(
+    count, dirs, &groups, group_id, group_ranks, group_rank,
+    DTCMP_FLAG_NONE, comm
+  );
+
+  /* select leader for each directory */
+  for (i = 0; i < count; i++) {
+    if (group_rank[i] == 0) {
+      leader[i] = 1;
+    }
+  }
+
+  /* get file mode for directory permissions */
+  mode_t mode_dir = scr_getmode(1, 1, 1);
+
+  /* TODO: add flow control here */
+
+  /* create other directories in file list */
+  int success = 1;
+  for (i = 0; i < count; i++) {
+    /* get directory name */
+    const char* dir = dirs[i];
+
+    /* if we're the leader, create directory */
+    if (leader[i]) {
+      if (scr_mkdir(dir, mode_dir) != SCR_SUCCESS) {
+        success = 0;
+      }
+    }
+
+    /* free the dirname we strdup'd */
+    scr_free(&dir);
+  }
+
+  /* free buffers */
+  scr_free(&group_id);
+  scr_free(&group_ranks);
+  scr_free(&group_rank);
+  scr_free(&dirs);
+  scr_free(&leader);
+
+  /* determine whether all leaders successfully created their directories */
+  if (! scr_alltrue(success == 1, comm)) {
+    return SCR_FAILURE;
+  }
   return SCR_SUCCESS;
 }
 

@@ -34,7 +34,7 @@
 
 #include "dtcmp.h"
 #include "er.h"
-#include "filo.h"
+#include "axl_mpi.h"
 
 /* define which state we're in for API calls, this is to help ensure
  * users call SCR functions in the correct order */
@@ -1626,35 +1626,6 @@ int SCR_Init()
     return SCR_FAILURE;
   }
 
-  /* initialize the DTCMP library for sorting and ranking routines
-   * if we're using it */
-  int dtcmp_rc = DTCMP_Init();
-  if (dtcmp_rc != DTCMP_SUCCESS) {
-    scr_abort(-1, "Failed to initialize DTCMP library @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* initialize ER for encode/rebuild */
-  int er_rc = ER_Init(NULL);
-  if (er_rc != ER_SUCCESS) {
-    scr_abort(-1, "Failed to initialize ER library @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* initialize FILO for data transfers */
-  int filo_rc = Filo_Init();
-  if (filo_rc != FILO_SUCCESS) {
-    scr_abort(-1, "Failed to initialize FILO library @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* NOTE: SCR_ENABLE can also be set in a config file, but to read
-   * a config file, we must at least create scr_comm_world and call
-   * scr_get_params() */
-
   /* create a context for the library */
   MPI_Comm_dup(MPI_COMM_WORLD,  &scr_comm_world);
   MPI_Comm_rank(scr_comm_world, &scr_my_rank_world);
@@ -1678,6 +1649,35 @@ int SCR_Init()
     MPI_Abort(scr_comm_world, 0);
   }
 
+  /* initialize the DTCMP library for sorting and ranking routines
+   * if we're using it */
+  int dtcmp_rc = DTCMP_Init();
+  if (dtcmp_rc != DTCMP_SUCCESS) {
+    scr_abort(-1, "Failed to initialize DTCMP library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* initialize ER for encode/rebuild */
+  int er_rc = ER_Init(NULL);
+  if (er_rc != ER_SUCCESS) {
+    scr_abort(-1, "Failed to initialize ER library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* initialize AXL for data transfers */
+  int axl_rc = AXL_Init_comm(NULL, scr_comm_world);
+  if (axl_rc != AXL_SUCCESS) {
+    scr_abort(-1, "Failed to initialize AXL library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* NOTE: SCR_ENABLE can also be set in a config file, but to read
+   * a config file, we must at least create scr_comm_world and call
+   * scr_get_params() */
+
   /* read our configuration: environment variables, config file, etc. */
   scr_param_init();
   scr_get_params();
@@ -1690,10 +1690,10 @@ int SCR_Init()
      * need to free it here */
     MPI_Comm_free(&scr_comm_world);
 
-    /* shut down the DTCMP library if we're using it */
-    int dtcmp_rc = DTCMP_Finalize();
-    if (dtcmp_rc != DTCMP_SUCCESS) {
-      scr_abort(-1, "Failed to finalize DTCMP library @ %s:%d",
+    /* shut down the AXL library */
+    int axl_rc = AXL_Finalize_comm(scr_comm_world);
+    if (axl_rc != AXL_SUCCESS) {
+      scr_abort(-1, "Failed to finalize AXL library @ %s:%d",
         __FILE__, __LINE__
       );
     }
@@ -1706,13 +1706,17 @@ int SCR_Init()
       );
     }
 
-    /* shut down the FILO library */
-    int filo_rc = Filo_Finalize();
-    if (filo_rc != FILO_SUCCESS) {
-      scr_abort(-1, "Failed to finalize FILO library @ %s:%d",
+    /* shut down the DTCMP library if we're using it */
+    int dtcmp_rc = DTCMP_Finalize();
+    if (dtcmp_rc != DTCMP_SUCCESS) {
+      scr_abort(-1, "Failed to finalize DTCMP library @ %s:%d",
         __FILE__, __LINE__
       );
     }
+
+    /* we dup'd comm_world to broadcast parameters in scr_get_params,
+     * need to free it here */
+    MPI_Comm_free(&scr_comm_world);
 
     return SCR_FAILURE;
   }
@@ -2195,22 +2199,15 @@ int SCR_Finalize()
     scr_flush_async_finalize();
   }
 
-  /* disconnect from database */
-  if (scr_my_rank_world == 0 && scr_log_enable) {
-    scr_log_finalize();
-  }
-
-  /* TODO MEMFS: unmount storage */
-
   /* free off the memory allocated for our descriptors */
+  scr_reddescs_free();
   scr_storedescs_free();
   scr_groupdescs_free();
-  scr_reddescs_free();
 
   /* delete the descriptor hashes */
+  kvtree_delete(&scr_reddesc_hash);
   kvtree_delete(&scr_storedesc_hash);
   kvtree_delete(&scr_groupdesc_hash);
-  kvtree_delete(&scr_reddesc_hash);
 
   /* Free memory cache of a halt file */
   kvtree_delete(&scr_halt_hash);
@@ -2221,12 +2218,51 @@ int SCR_Finalize()
   /* free off our global filemap object */
   scr_cache_index_delete(&scr_cindex);
 
-  /* free off the library's communicators */
-  if (scr_comm_node != MPI_COMM_NULL) {
-    MPI_Comm_free(&scr_comm_node);
+  /* disconnect from database */
+  if (scr_my_rank_world == 0 && scr_log_enable) {
+    scr_log_finalize();
   }
-  if (scr_comm_world != MPI_COMM_NULL) {
-    MPI_Comm_free(&scr_comm_world);
+
+#ifdef HAVE_LIBPMIX
+  /* sync procs in pmix before shutdown */
+  int retval = PMIx_Fence(NULL, 0, NULL, 0);
+  if (retval != PMIX_SUCCESS) {
+    scr_err("PMIx_Fence failed: rc=%d, rank: %d @ %s:%d",
+      retval, scr_pmix_proc.rank, __FILE__, __LINE__
+    );
+  }
+
+  /* shutdown pmix */
+  retval = PMIx_Finalize(NULL, 0);
+  if (retval != PMIX_SUCCESS) {
+    scr_err("PMIx_Finalize failed: rc=%d, rank: %d @ %s:%d",
+      retval, scr_pmix_proc.rank, __FILE__, __LINE__
+    );
+  }
+#endif /* HAVE_LIBPMIX */
+
+  /* shut down the AXL library */
+  int axl_rc = AXL_Finalize_comm(scr_comm_world);
+  if (axl_rc != AXL_SUCCESS) {
+    scr_abort(-1, "Failed to finalize AXL library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* shut down the ER library */
+  int er_rc = ER_Finalize();
+  if (er_rc != ER_SUCCESS) {
+    scr_abort(-1, "Failed to finalize ER library @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+
+  /* shut down the DTCMP library if we're using it */
+  int dtcmp_rc = DTCMP_Finalize();
+  if (dtcmp_rc != DTCMP_SUCCESS) {
+    scr_abort(-1, "Failed to finalized DTCMP library @ %s:%d",
+      __FILE__, __LINE__
+    );
   }
 
   /* free memory allocated for variables */
@@ -2253,50 +2289,16 @@ int SCR_Finalize()
   spath_delete(&scr_halt_file);
   spath_delete(&scr_prefix_path);
 
+  /* free off the library's communicators */
+  if (scr_comm_node != MPI_COMM_NULL) {
+    MPI_Comm_free(&scr_comm_node);
+  }
+  if (scr_comm_world != MPI_COMM_NULL) {
+    MPI_Comm_free(&scr_comm_world);
+  }
+
   /* we're no longer in an initialized state */
   scr_initialized = 0;
-
-  /* shut down the DTCMP library if we're using it */
-  int dtcmp_rc = DTCMP_Finalize();
-  if (dtcmp_rc != DTCMP_SUCCESS) {
-    scr_abort(-1, "Failed to finalized DTCMP library @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* shut down the ER library */
-  int er_rc = ER_Finalize();
-  if (er_rc != ER_SUCCESS) {
-    scr_abort(-1, "Failed to finalize ER library @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* shut down the FILO library */
-  int filo_rc = Filo_Finalize();
-  if (filo_rc != FILO_SUCCESS) {
-    scr_abort(-1, "Failed to finalize FILO library @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-#ifdef HAVE_LIBPMIX
-  /* sync procs in pmix before shutdown */
-  int retval = PMIx_Fence(NULL, 0, NULL, 0);
-  if (retval != PMIX_SUCCESS) {
-    scr_err("PMIx_Fence failed: rc=%d, rank: %d @ %s:%d",
-      retval, scr_pmix_proc.rank, __FILE__, __LINE__
-    );
-  }
-
-  /* shutdown pmix */
-  retval = PMIx_Finalize(NULL, 0);
-  if (retval != PMIX_SUCCESS) {
-    scr_err("PMIx_Finalize failed: rc=%d, rank: %d @ %s:%d",
-      retval, scr_pmix_proc.rank, __FILE__, __LINE__
-    );
-  }
-#endif /* HAVE_LIBPMIX */
 
   return SCR_SUCCESS;
 }

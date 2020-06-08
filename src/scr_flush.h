@@ -22,6 +22,14 @@ int scr_flush_filolist_alloc(const kvtree* file_list, int* out_num_files, char**
 /* free list allocated in filolist_alloc */
 int scr_flush_filolist_free(int num_files, char*** ptr_src_filelist, char*** ptr_dst_filelist);
 
+/* create directories from basepath down to each file as needed */
+int scr_flush_create_dirs(
+  const char* basepath,       /* top-level directory, assumed to exist */
+  int count,                  /* number of files */
+  const char** dest_filelist, /* list of files */
+  MPI_Comm comm               /* communicator of participating processes */
+);
+
 /* given a dataset, return a newly allocated string specifying the
  * metadata directory for that dataset, must be freed by caller */
 char* scr_flush_dataset_metadir(const scr_dataset* dataset);
