@@ -290,3 +290,110 @@ int scr_set_partners(
 
   return SCR_SUCCESS;
 }
+
+/* Return the number of elements in an array */
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
+
+/* Given an AXL transfer string (like "bbapi") return a axl_xfer_t.
+ *
+ * Default to "pthread" if axl_xfer_str = NULL, since it has good performance
+ * and works across all filesystems. */
+axl_xfer_t axl_xfer_str_to_type(const char *axl_xfer_str)
+{
+  struct {
+    char *str;
+    axl_xfer_t type;
+  } axl_str_to_type[] = {
+    {"default", AXL_XFER_DEFAULT},
+    {"native", AXL_XFER_NATIVE},
+    {"pthread", AXL_XFER_PTHREAD},
+    {"sync", AXL_XFER_SYNC},
+    {"dw", AXL_XFER_ASYNC_DW},
+    {"bbapi", AXL_XFER_ASYNC_BBAPI},
+    {"cprr", AXL_XFER_ASYNC_CPPR},
+    {"AXL_XFER_SYNC", AXL_XFER_SYNC},
+    {"AXL_XFER_PTHREAD", AXL_XFER_PTHREAD},
+    {"AXL_XFER_ASYNC_DW", AXL_XFER_ASYNC_DW},
+    {"AXL_XFER_ASYNC_BBAPI", AXL_XFER_ASYNC_BBAPI},
+    {"AXL_XFER_ASYNC_CPPR", AXL_XFER_ASYNC_CPPR},
+  };
+
+  if (! axl_xfer_str) {
+    axl_xfer_str = "pthread";
+  }
+
+  int i;
+  axl_xfer_t type = AXL_XFER_NULL;
+  for (i = 0; i < ARRAY_SIZE(axl_str_to_type); i++) {
+    if (strcmp(axl_xfer_str, axl_str_to_type[i].str) == 0) {
+      /* Match */
+      type = axl_str_to_type[i].type;
+      break;
+    }
+  }
+  return type;
+}
+
+int scr_axl(
+  int num_files,
+  const char** src_filelist,
+  const char** dest_filelist,
+  axl_xfer_t type,
+  MPI_Comm comm)
+{
+  int rc = SCR_SUCCESS;
+
+  /* TODO: allow user to name this transfer */
+
+  /* define a transfer handle */
+  int id = AXL_Create_comm(type, "transfer", comm);
+  if (id < 0) {
+    scr_err("Failed to create AXL transfer handle @ %s:%d",
+      __FILE__, __LINE__
+    );
+
+    /* if we fail to create, bail out now */
+    return SCR_FAILURE;
+  }
+
+  /* add files to transfer list */
+  int i;
+  for (i = 0; i < num_files; i++) {
+    const char* src_file  = src_filelist[i];
+    const char* dest_file = dest_filelist[i];
+    if (AXL_Add(id, src_file, dest_file) != AXL_SUCCESS) {
+      scr_err("Failed to add file to AXL transfer handle %d: %s --> %s @ %s:%d",
+        id, src_file, dest_file, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+  }
+
+  /* kick off the transfer */
+  if (AXL_Dispatch_comm(id, comm) != AXL_SUCCESS) {
+    scr_err("Failed to dispatch AXL transfer handle %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  }
+
+  /* wait for transfer to complete */
+  int rc_axl = AXL_Wait_comm(id, comm);
+  if (rc_axl != AXL_SUCCESS) {
+    /* transfer failed */
+    scr_err("Failed to wait on AXL transfer handle %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  }
+
+  /* release the handle */
+  if (AXL_Free_comm(id, comm) != AXL_SUCCESS) {
+    scr_err("Failed to free AXL transfer handle %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  }
+
+  return rc;
+}

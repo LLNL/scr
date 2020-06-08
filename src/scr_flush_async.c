@@ -14,7 +14,10 @@
 #include "spath.h"
 #include "kvtree.h"
 #include "kvtree_util.h"
-#include "filo.h"
+#include "axl_mpi.h"
+
+#define FILO_KEY_OUT_NAME "NAME"
+#define FILO_KEY_OUT_AXL  "AXL"
 
 /* records the time the async flush started */
 static time_t scr_flush_async_timestamp_start;
@@ -24,6 +27,9 @@ static double scr_flush_async_time_start;
 
 /* tracks list of files written with flush */
 static kvtree* scr_flush_async_file_list = NULL;
+
+/* tracks AXL id for outstanding transfer */
+static kvtree* scr_flush_async_axl_list = NULL;
 
 /* path to rankfile for ongoing flush */
 static char* scr_flush_async_rankfile = NULL;
@@ -37,6 +43,106 @@ static int scr_flush_async_flushed = SCR_FAILURE;
 Asynchronous flush functions
 =========================================
 */
+
+static int scr_axl_start(
+  const char* name,
+  int num_files,
+  const char** src_filelist,
+  const char** dest_filelist,
+  axl_xfer_t xfer_type,
+  MPI_Comm comm)
+{
+  int rc = SCR_SUCCESS;
+
+  /* define a transfer handle */
+  int id = AXL_Create_comm(xfer_type, name, comm);
+  if (id < 0) {
+    scr_err("Failed to create AXL transfer handle @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* create record for this transfer in outstanding list,
+   * record AXL id in outstanding list */
+  kvtree* name_hash = kvtree_set_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
+  kvtree_util_set_int(name_hash, FILO_KEY_OUT_AXL, id);
+
+  /* add files to transfer list */
+  int i;
+  for (i = 0; i < num_files; i++) {
+    const char* src_file  = src_filelist[i];
+    const char* dest_file = dest_filelist[i];
+    if (AXL_Add(id, src_file, dest_file) != AXL_SUCCESS) {
+      scr_err("Failed to add file to AXL transfer handle %d: %s --> %s @ %s:%d",
+        id, src_file, dest_file, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+  }
+
+  /* kick off the transfer */
+  if (AXL_Dispatch_comm(id, comm) != AXL_SUCCESS) {
+    scr_err("Failed to dispatch AXL transfer handle %d @ %s:%d",
+      id, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  }
+
+  /* TODO: it would be nice to delete the AXL id from the list if the dispatch
+   * fails, but dispatch does not currently clean up properly if some procs failed
+   * to dispatch and others succeeded */
+
+  return rc;
+}
+
+static int scr_axl_test(const char* name, MPI_Comm comm)
+{
+  int rc = SCR_FAILURE;
+
+  /* lookup AXL id in outstanding list */
+  int id;
+  kvtree* name_hash = kvtree_get_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
+  if (kvtree_util_get_int(name_hash, FILO_KEY_OUT_AXL, &id) == KVTREE_SUCCESS) {
+    /* test whether transfer is still active */
+    if (AXL_Test_comm(id, comm) == AXL_SUCCESS) {
+      rc = SCR_SUCCESS;
+    }
+  }
+
+  return rc;
+}
+
+static int scr_axl_wait(const char* name, MPI_Comm comm)
+{
+  int rc = SCR_SUCCESS;
+
+  /* lookup AXL id in outstanding list */
+  int id;
+  kvtree* name_hash = kvtree_get_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
+  if (kvtree_util_get_int(name_hash, FILO_KEY_OUT_AXL, &id) == KVTREE_SUCCESS) {
+    /* test whether transfer is still active */
+    if (AXL_Wait_comm(id, comm) != AXL_SUCCESS) {
+      scr_err("Failed to test AXL transfer handle %d @ %s:%d",
+        id, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+
+    /* release the handle */
+    if (AXL_Free_comm(id, comm) != AXL_SUCCESS) {
+      scr_err("Failed to free AXL transfer handle %d @ %s:%d",
+        id, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+  } else {
+    /* failed to lookup id */
+    rc = SCR_FAILURE;
+  }
+
+  return rc;
+}
 
 /* stop all ongoing asynchronous flush operations */
 int scr_flush_async_stop()
@@ -52,7 +158,7 @@ int scr_flush_async_stop()
   }
 
   /* stop all ongoing transfers */
-  if (Filo_Flush_stop(scr_comm_world) != FILO_SUCCESS) {
+  if (AXL_Stop_comm(scr_comm_world) != AXL_SUCCESS) {
     return SCR_FAILURE;
   }
 
@@ -69,6 +175,70 @@ int scr_flush_async_stop()
   /* make sure all processes have made it this far before we leave */
   MPI_Barrier(scr_comm_world);
   return SCR_SUCCESS;
+}
+
+int scr_flush_async_filo_start(
+  const char* rank2file,
+  const char* basepath,
+  int num_files,
+  const char** src_filelist,
+  const char** dest_filelist,
+  axl_xfer_t xfer_type,
+  MPI_Comm comm)
+{
+  int rc = SCR_SUCCESS;
+
+  /* build a list of files for this rank */
+  int i;
+  kvtree* filelist = kvtree_new();
+  for (i = 0; i < num_files; i++) {
+    const char* filename = dest_filelist[i];
+
+    /* if basepath is valid, compute relative path,
+     * otherwise use dest path verbatim */
+    if (basepath != NULL) {
+      /* generate relateive path to destination file */
+      spath* base = spath_from_str(basepath);
+      spath* dest = spath_from_str(filename);
+      spath* rel = spath_relative(base, dest);
+      char* relfile = spath_strdup(rel);
+
+      kvtree_set_kv(filelist, "FILE", relfile);
+
+      scr_free(&relfile);
+      spath_delete(&rel);
+      spath_delete(&dest);
+      spath_delete(&base);
+    } else {
+      /* use destination file name verbatim */
+      kvtree_set_kv(filelist, "FILE", filename);
+    }
+  }
+
+  /* save our file list to disk */
+  kvtree_write_gather(rank2file, filelist, comm);
+
+  /* free the list of files */
+  kvtree_delete(&filelist);
+
+  /* create directories */
+  rc = scr_flush_create_dirs(basepath, num_files, dest_filelist, comm);
+
+  /* write files (via AXL) */
+  int success = 1;
+  if (scr_axl_start(rank2file, num_files, src_filelist, dest_filelist,
+    xfer_type, comm) != SCR_SUCCESS)
+  {
+    success = 0;
+  }
+
+  /* check that all processes started to copy successfully */
+  if (! scr_alltrue(success, comm)) {
+    /* TODO: auto delete files? */
+    rc = SCR_FAILURE;
+  }
+
+  return rc;
 }
 
 /* start an asynchronous flush from cache to parallel file
@@ -147,7 +317,8 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   char** dst_filelist;
   scr_flush_filolist_alloc(scr_flush_async_file_list, &numfiles, &src_filelist, &dst_filelist);
 
-  /* create enty in index file to indicate that dataset may exist, but is not yet complete */
+  /* create enty in index file to indicate that dataset may exist,
+   * but is not yet complete */
   scr_flush_init_index(dataset);
 
   /* define path to metadata directory for this dataset */
@@ -174,12 +345,15 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   scr_flush_async_rankfile = spath_strdup(dataset_path);
   spath_delete(&dataset_path);
 
+  /* get AXL transfer type to use */
+  const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
+  axl_xfer_t xfer_type = axl_xfer_str_to_type(storedesc->type);
+
   /* flush data */
   int rc = SCR_SUCCESS;
-  const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
-  if (Filo_Flush_start(scr_flush_async_rankfile, scr_prefix, numfiles,
-      src_filelist, dst_filelist, scr_comm_world, storedesc->type)
-      != FILO_SUCCESS)
+  if (scr_flush_async_filo_start(scr_flush_async_rankfile, scr_prefix,
+      numfiles, src_filelist, dst_filelist,
+      xfer_type, scr_comm_world) != SCR_SUCCESS)
   {
     rc = SCR_FAILURE;
     scr_flush_async_flushed = SCR_FAILURE;
@@ -206,15 +380,9 @@ int scr_flush_async_test(scr_cache_index* cindex, int id)
   }
 
   /* test whether transfer is done */
-  int transfer_complete = 1;
-  if (Filo_Flush_test(scr_flush_async_rankfile, scr_comm_world) != FILO_SUCCESS) {
-    transfer_complete = 0;
-  }
-
-  /* determine whether the transfer is complete on all tasks */
-  int rc = SCR_FAILURE;
-  if (scr_alltrue(transfer_complete, scr_comm_world)) {
-    rc = SCR_SUCCESS;
+  int rc = SCR_SUCCESS;
+  if (scr_axl_test(scr_flush_async_rankfile, scr_comm_world) != SCR_SUCCESS) {
+    rc = SCR_FAILURE;
   }
   return rc;
 }
@@ -241,7 +409,7 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
 
   /* TODO: wait on Filo if we failed to start? */
   /* wait for transfer to complete */
-  if (Filo_Flush_wait(scr_flush_async_rankfile, scr_comm_world) != FILO_SUCCESS) {
+  if (scr_axl_wait(scr_flush_async_rankfile, scr_comm_world) != SCR_SUCCESS) {
     scr_flush_async_flushed = SCR_FAILURE;
   }
 
@@ -347,8 +515,7 @@ int scr_flush_async_wait(scr_cache_index* cindex)
 /* start any processes for later asynchronous flush operations */
 int scr_flush_async_init()
 {
-  /* TODO: filo async init? */
-
+  scr_flush_async_axl_list = kvtree_new();
   return SCR_SUCCESS;
 }
 
@@ -365,7 +532,7 @@ int scr_flush_async_finalize()
     scr_dbg(1, "scr_flush_async_shutdown: shutdown async procs");
   }
 
-  /* TODO: filo async finalize? */
+  kvtree_delete(&scr_flush_async_axl_list);
 
   MPI_Barrier(scr_comm_world);
 
