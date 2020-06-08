@@ -135,9 +135,10 @@ int scr_flush_create_dirs(
   for (i = 0; i < count; i++) {
     /* extract directory from filename */
     const char* filename = dest_filelist[i];
-    char* path = strdup(filename);
-    dirs[i] = strdup(dirname(path));
-    scr_free(&path);
+    spath* path = spath_from_str(filename);
+    spath_dirname(path);
+    dirs[i] = spath_strdup(path);
+    spath_delete(&path);
 
     /* we'll use DTCMP to select one leader for each directory later */
     leader[i] = 0;
