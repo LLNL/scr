@@ -12,6 +12,8 @@
 #ifndef SCR_UTIL_MPI_H
 #define SCR_UTIL_MPI_H
 
+#include "axl_mpi.h"
+
 /*
 =========================================
 Functions to send/recv strings
@@ -55,6 +57,20 @@ int scr_set_partners(
   MPI_Comm comm, int dist,
   int* lhs_rank, int* lhs_rank_world, char** lhs_hostname,
   int* rhs_rank, int* rhs_rank_world, char** rhs_hostname
+);
+
+/* Given an AXL transfer string (like "bbapi") return a axl_xfer_t.
+ *
+ * Default to "pthread" if axl_xfer_str = NULL, since it has good performance
+ * and works across all filesystems. */
+axl_xfer_t axl_xfer_str_to_type(const char *axl_xfer_str);
+
+int scr_axl(
+  int num_files,
+  const char** src_filelist,
+  const char** dest_filelist,
+  axl_xfer_t type,
+  MPI_Comm comm
 );
 
 #endif
