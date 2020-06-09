@@ -149,111 +149,6 @@ cleanup:
   return rc;
 }
 
-/* keep interface similar to filo for now in case we
- * opt to go back to it later */
-static int scr_fetch_filo(
-  const char* rank2file,
-  const char* basepath,
-  const char* path,
-  int* out_num_files,
-  char*** out_src_filelist,
-  char*** out_dest_filelist,
-  axl_xfer_t xfer_type,
-  MPI_Comm comm)
-{
-  int rc = SCR_SUCCESS;
-
-  /* initialize output variables */
-  *out_num_files     = 0;
-  *out_src_filelist  = NULL;
-  *out_dest_filelist = NULL;
-
-  /* get the list of files to read */
-  kvtree* filelist = kvtree_new();
-  if (kvtree_read_scatter(rank2file, filelist, comm) != KVTREE_SUCCESS) {
-    kvtree_delete(&filelist);
-    return SCR_FAILURE;
-  }
-
-  /* allocate list of file names */
-  kvtree* files = kvtree_get(filelist, "FILE");
-  int count = kvtree_size(files);
-  const char** src_filelist  = (const char**) SCR_MALLOC(count * sizeof(char*));
-  const char** dest_filelist = (const char**) SCR_MALLOC(count * sizeof(char*));
-
-  /* create list of file names */
-  int i = 0;
-  kvtree_elem* elem;
-  for (elem = kvtree_elem_first(files);
-       elem != NULL;
-       elem = kvtree_elem_next(elem))
-  {
-    /* strdup the filename into source list */
-    const char* file = kvtree_elem_key(elem);
-
-    /* if basepath is given, prepend basepath to filename */
-    if (basepath != NULL) {
-      spath* fullpath = spath_from_str(basepath);
-      spath_append_str(fullpath, file);
-      spath_reduce(fullpath);
-      src_filelist[i] = spath_strdup(fullpath);
-      spath_delete(&fullpath);
-    } else {
-      /* just use value from path verbatim */
-      src_filelist[i] = strdup(file);
-    }
-
-    /* compute and strdup detination name into dest list */
-    if (path == NULL) {
-      dest_filelist[i] = strdup(src_filelist[i]);
-    } else {
-      char destname[SCR_MAX_FILENAME];
-      char* file2 = strdup(file);
-      char* name = basename(file2);
-      snprintf(destname, sizeof(destname), "%s/%s", path, name);
-      dest_filelist[i] = strdup(destname);
-      scr_free(&file2);
-    }
-
-    i++;
-  }
-
-  /* now we can finally fetch the actual files */
-  int success = 1;
-  if (path != NULL) {
-    /* fetch these files into the directory */
-    if (scr_axl(count, src_filelist, dest_filelist, xfer_type, comm) != SCR_SUCCESS) {
-      success = 0;
-    }
-  } else {
-    /* just stat the file to check that it exists */
-    for (i = 0; i < count; i++) {
-      if (access(src_filelist[i], R_OK) < 0) {
-        /* either can't read this file or it doesn't exist */
-        success = 0;
-        break;
-      }
-    }
-  }
-
-  /* free the list of files */
-  kvtree_delete(&filelist);
-
-  /* check that all processes copied their file successfully */
-  if (! scr_alltrue(success, comm)) {
-    /* TODO: auto delete files? */
-    rc = SCR_FAILURE;
-  }
-
-  /* TODO: should we free lists if all failed? */
-  /* copy values to output variables */
-  *out_num_files     = count;
-  *out_src_filelist  = (char**) src_filelist;
-  *out_dest_filelist = (char**) dest_filelist;
-
-  return rc;
-}
-
 /* fetch files from fetch_dir into cache_dir and update filemap */
 static int scr_fetch_data(
   const kvtree* summary_hash,
@@ -262,29 +157,99 @@ static int scr_fetch_data(
   scr_cache_index* cindex,
   int id)
 {
-  int i;
   int rc = SCR_SUCCESS;
-
-  /* TODO: get list of files */
-  /* TODO: register files in filemap */
 
   /* build path to rank2file map */
   spath* rank2file_path = spath_from_str(fetch_dir);
   spath_append_str(rank2file_path, "rank2file");
-  const char* mapfile = spath_strdup(rank2file_path);
+  const char* rank2file = spath_strdup(rank2file_path);
+
+  /* get the list of files to read */
+  kvtree* filelist = kvtree_new();
+  if (kvtree_read_scatter(rank2file, filelist, scr_comm_world) != KVTREE_SUCCESS) {
+    scr_err("Failed to rank2file map: `%s' @ %s:%d",
+      rank2file, __FILE__, __LINE__
+    );
+    kvtree_delete(&filelist);
+    scr_free(&rank2file);
+    return SCR_FAILURE;
+  }
+  scr_free(&rank2file);
+  spath_delete(&rank2file_path);
 
   /* get AXL transfer type */
   const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
   axl_xfer_t xfer_type = axl_xfer_str_to_type(storedesc->type);
 
-  /* fetch data using filo */
-  int num_files = 0;
-  char** src_filelist = NULL;
-  char** dest_filelist = NULL;
-  if (scr_fetch_filo(mapfile, scr_prefix, cache_dir,
-    &num_files, &src_filelist, &dest_filelist,
-    xfer_type, scr_comm_world) != SCR_SUCCESS)
+  /* TODO: gather list of files to leader for each store descriptor,
+   * then use comm of store descriptor leaders in axl call,
+   * have leaders bcast success/fail back to all procs */
+
+  /* allocate list of file names */
+  kvtree* files = kvtree_get(filelist, "FILE");
+  int num_files = kvtree_size(files);
+  const char** src_filelist  = (const char**) SCR_MALLOC(num_files * sizeof(char*));
+  const char** dest_filelist = (const char**) SCR_MALLOC(num_files * sizeof(char*));
+
+  /* create list of file names */
+  int i = 0;
+  kvtree_elem* elem;
+  for (elem = kvtree_elem_first(files);
+       elem != NULL;
+       elem = kvtree_elem_next(elem))
   {
+    /* get the filename */
+    const char* file = kvtree_elem_key(elem);
+
+    /* prepend prefix directory to each file */
+    spath* srcpath = spath_from_str(scr_prefix);
+    spath_append_str(srcpath, file);
+    spath_reduce(srcpath);
+    src_filelist[i] = spath_strdup(srcpath);
+    spath_delete(&srcpath);
+
+    /* compute and strdup detination name into dest list */
+    if (cache_dir != NULL) {
+      /* take basename of file and prepend cache directory */
+      spath* destpath = spath_from_str(file);
+      spath_basename(destpath);
+      spath_prepend_str(destpath, cache_dir);
+      spath_reduce(destpath);
+      dest_filelist[i] = spath_strdup(destpath);
+      spath_delete(&destpath);
+    } else {
+      /* otherwise, we don't transfer */
+      dest_filelist[i] = strdup(src_filelist[i]);
+    }
+
+    /* move on to the next file */
+    i++;
+  }
+
+  /* free the list of files */
+  kvtree_delete(&filelist);
+
+  /* now we can finally fetch the actual files */
+  int success = 1;
+  if (cache_dir != NULL) {
+    /* fetch these files into the directory */
+    if (scr_axl(num_files, src_filelist, dest_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
+      success = 0;
+    }
+  } else {
+    /* just stat the file to check that it exists */
+    for (i = 0; i < num_files; i++) {
+      if (access(src_filelist[i], R_OK) < 0) {
+        /* either can't read this file or it doesn't exist */
+        success = 0;
+        break;
+      }
+    }
+  }
+
+  /* check that all processes copied their file successfully */
+  if (! scr_alltrue(success, scr_comm_world)) {
+    /* TODO: auto delete files? */
     rc = SCR_FAILURE;
   }
 
@@ -344,9 +309,6 @@ static int scr_fetch_data(
   }
   scr_free(&src_filelist);
   scr_free(&dest_filelist);
-
-  scr_free(&mapfile);
-  spath_delete(&rank2file_path);
 
   return rc;
 }

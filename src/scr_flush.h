@@ -15,12 +15,22 @@
 #include "kvtree.h"
 #include "scr_cache_index.h"
 
-/* given file list from flush_prepare, allocate and fill in arrays for filo,
- * caller should free arrays with call to filolist_free*/
-int scr_flush_filolist_alloc(const kvtree* file_list, int* out_num_files, char*** out_src_filelist, char*** out_dst_filelist);
+/* given file list from flush_prepare,
+ * allocate and fill in lists of source and destination file paths,
+ * caller should free arrays with call to list_free*/
+int scr_flush_list_alloc(
+  const kvtree* file_list,
+  int* out_num_files,
+  char*** out_src_filelist,
+  char*** out_dst_filelist
+);
 
-/* free list allocated in filolist_alloc */
-int scr_flush_filolist_free(int num_files, char*** ptr_src_filelist, char*** ptr_dst_filelist);
+/* free list allocated in list_alloc */
+int scr_flush_list_free(
+  int num_files,
+  char*** ptr_src_filelist,
+  char*** ptr_dst_filelist
+);
 
 /* create directories from basepath down to each file as needed */
 int scr_flush_create_dirs(
