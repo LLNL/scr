@@ -48,7 +48,7 @@ static int scr_axl_start(
   const char* name,
   int num_files,
   const char** src_filelist,
-  const char** dest_filelist,
+  const char** dst_filelist,
   axl_xfer_t xfer_type,
   MPI_Comm comm)
 {
@@ -71,11 +71,11 @@ static int scr_axl_start(
   /* add files to transfer list */
   int i;
   for (i = 0; i < num_files; i++) {
-    const char* src_file  = src_filelist[i];
-    const char* dest_file = dest_filelist[i];
-    if (AXL_Add(id, src_file, dest_file) != AXL_SUCCESS) {
+    const char* src_file = src_filelist[i];
+    const char* dst_file = dst_filelist[i];
+    if (AXL_Add(id, src_file, dst_file) != AXL_SUCCESS) {
       scr_err("Failed to add file to AXL transfer handle %d: %s --> %s @ %s:%d",
-        id, src_file, dest_file, __FILE__, __LINE__
+        id, src_file, dst_file, __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
     }
@@ -177,70 +177,6 @@ int scr_flush_async_stop()
   return SCR_SUCCESS;
 }
 
-int scr_flush_async_filo_start(
-  const char* rank2file,
-  const char* basepath,
-  int num_files,
-  const char** src_filelist,
-  const char** dest_filelist,
-  axl_xfer_t xfer_type,
-  MPI_Comm comm)
-{
-  int rc = SCR_SUCCESS;
-
-  /* build a list of files for this rank */
-  int i;
-  kvtree* filelist = kvtree_new();
-  for (i = 0; i < num_files; i++) {
-    const char* filename = dest_filelist[i];
-
-    /* if basepath is valid, compute relative path,
-     * otherwise use dest path verbatim */
-    if (basepath != NULL) {
-      /* generate relateive path to destination file */
-      spath* base = spath_from_str(basepath);
-      spath* dest = spath_from_str(filename);
-      spath* rel = spath_relative(base, dest);
-      char* relfile = spath_strdup(rel);
-
-      kvtree_set_kv(filelist, "FILE", relfile);
-
-      scr_free(&relfile);
-      spath_delete(&rel);
-      spath_delete(&dest);
-      spath_delete(&base);
-    } else {
-      /* use destination file name verbatim */
-      kvtree_set_kv(filelist, "FILE", filename);
-    }
-  }
-
-  /* save our file list to disk */
-  kvtree_write_gather(rank2file, filelist, comm);
-
-  /* free the list of files */
-  kvtree_delete(&filelist);
-
-  /* create directories */
-  rc = scr_flush_create_dirs(basepath, num_files, dest_filelist, comm);
-
-  /* write files (via AXL) */
-  int success = 1;
-  if (scr_axl_start(rank2file, num_files, src_filelist, dest_filelist,
-    xfer_type, comm) != SCR_SUCCESS)
-  {
-    success = 0;
-  }
-
-  /* check that all processes started to copy successfully */
-  if (! scr_alltrue(success, comm)) {
-    /* TODO: auto delete files? */
-    rc = SCR_FAILURE;
-  }
-
-  return rc;
-}
-
 /* start an asynchronous flush from cache to parallel file
  * system under SCR_PREFIX */
 int scr_flush_async_start(scr_cache_index* cindex, int id)
@@ -311,13 +247,13 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
     return SCR_FAILURE;
   }
 
-  /* allocate list for filo calls */
+  /* allocate lists of source and destination paths */
   int numfiles;
   char** src_filelist;
   char** dst_filelist;
-  scr_flush_filolist_alloc(scr_flush_async_file_list, &numfiles, &src_filelist, &dst_filelist);
+  scr_flush_list_alloc(scr_flush_async_file_list, &numfiles, &src_filelist, &dst_filelist);
 
-  /* create enty in index file to indicate that dataset may exist,
+  /* create entry in index file to indicate that dataset may exist,
    * but is not yet complete */
   scr_flush_init_index(dataset);
 
@@ -345,28 +281,64 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   scr_flush_async_rankfile = spath_strdup(dataset_path);
   spath_delete(&dataset_path);
 
+  /* build a list of files for this rank */
+  int i;
+  kvtree* filelist = kvtree_new();
+  for (i = 0; i < numfiles; i++) {
+    /* get path to destination file */
+    const char* filename = dst_filelist[i];
+
+    /* compute path relative to prefix directory */
+    spath* base = spath_from_str(scr_prefix);
+    spath* dest = spath_from_str(filename);
+    spath* rel = spath_relative(base, dest);
+    char* relfile = spath_strdup(rel);
+
+    kvtree_set_kv(filelist, "FILE", relfile);
+
+    scr_free(&relfile);
+    spath_delete(&rel);
+    spath_delete(&dest);
+    spath_delete(&base);
+  }
+
+  /* save our file list to disk */
+  kvtree_write_gather(scr_flush_async_rankfile, filelist, scr_comm_world);
+  kvtree_delete(&filelist);
+
   /* get AXL transfer type to use */
   const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
   axl_xfer_t xfer_type = axl_xfer_str_to_type(storedesc->type);
 
-  /* flush data */
-  int rc = SCR_SUCCESS;
-  if (scr_flush_async_filo_start(scr_flush_async_rankfile, scr_prefix,
-      numfiles, src_filelist, dst_filelist,
-      xfer_type, scr_comm_world) != SCR_SUCCESS)
+  /* TODO: gather list of files to leader of store descriptor,
+   * use communicator of leaders for AXL, then bcast result back */
+
+  /* TODO: configure AXL to not create directories */
+
+  /* create directories */
+  scr_flush_create_dirs(scr_prefix, numfiles, dst_filelist, scr_comm_world);
+
+  /* write files (via AXL) */
+  int success = 1;
+  if (scr_axl_start(scr_flush_async_rankfile, numfiles, src_filelist, dst_filelist,
+    xfer_type, scr_comm_world) != SCR_SUCCESS)
   {
-    rc = SCR_FAILURE;
-    scr_flush_async_flushed = SCR_FAILURE;
+    success = 0;
   }
 
   /* free our file list */
-  scr_flush_filolist_free(numfiles, &src_filelist, &dst_filelist);
+  scr_flush_list_free(numfiles, &src_filelist, &dst_filelist);
 
   /* free the dataset */
   scr_dataset_delete(&dataset);
 
-  /* make sure all processes have started before we leave */
-  MPI_Barrier(scr_comm_world);
+  /* check that all processes started to copy successfully */
+  int rc = SCR_SUCCESS;
+  if (! scr_alltrue(success, scr_comm_world)) {
+    /* TODO: auto delete files? */
+    rc = SCR_FAILURE;
+    scr_flush_async_flushed = SCR_FAILURE;
+  }
 
   return rc;
 }
