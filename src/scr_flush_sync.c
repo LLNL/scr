@@ -23,106 +23,15 @@ Synchronous flush functions
 =========================================
 */
 
-/*
- * Flush files to the parallel file system
- *
- * axl_xfer_str: The AXL transfer type you want to use for your transfer
- *               (like "default", "sync", "pthread", "bbapi", etc).
- */
-static int scr_flush_filo(
-  const char* rank2file,
-  const char* basepath,
-  int num_files,
-  const char** src_filelist,
-  const char** dest_filelist,
-  axl_xfer_t xfer_type,
-  MPI_Comm comm)
-{
-  int rc = SCR_SUCCESS;
-
-  /* we can skip transfer if all paths match */
-  int skip_transfer = 1;
-
-  /* build a list of files for this rank */
-  int i;
-  kvtree* filelist = kvtree_new();
-  for (i = 0; i < num_files; i++) {
-    const char* filename = dest_filelist[i];
-
-    /* found a source and destination path that are different */
-    if (strcmp(src_filelist[i], filename) != 0) {
-      skip_transfer = 0;
-    }
-
-    /* if basepath is valid, compute relative path,
-     * otherwise use dest path verbatim */
-    if (basepath != NULL) {
-      /* generate relateive path to destination file */
-      spath* base = spath_from_str(basepath);
-      spath* dest = spath_from_str(filename);
-      spath* rel = spath_relative(base, dest);
-      char* relfile = spath_strdup(rel);
-
-      kvtree_set_kv(filelist, "FILE", relfile);
-
-      scr_free(&relfile);
-      spath_delete(&rel);
-      spath_delete(&dest);
-      spath_delete(&base);
-    } else {
-      /* use destination file name verbatim */
-      kvtree_set_kv(filelist, "FILE", filename);
-    }
-  }
-
-  /* save our file list to disk */
-  kvtree_write_gather(rank2file, filelist, comm);
-
-  /* after writing out file above, see if we can skip the transfer */
-  int success = 1;
-  if (! scr_alltrue(skip_transfer, comm)) {
-    /* create directories */
-    rc = scr_flush_create_dirs(basepath, num_files, dest_filelist, comm);
-
-    /* write files (via AXL) */
-    if (scr_axl(num_files, src_filelist, dest_filelist, xfer_type, comm) != SCR_SUCCESS) {
-      success = 0;
-    }
-  } else {
-    /* just stat the file to check that it exists */
-    for (i = 0; i < num_files; i++) {
-      if (access(src_filelist[i], R_OK) < 0) {
-        /* either can't read this file or it doesn't exist */
-        success = 0;
-        break;
-      }
-    }
-  }
-
-  /* free the list of files */
-  kvtree_delete(&filelist);
-
-  /* check that all processes copied their file successfully */
-  if (! scr_alltrue(success, comm)) {
-    /* TODO: auto delete files? */
-    rc = SCR_FAILURE;
-  }
-
-  return rc;
-}
-
 /* flushes data for files specified in file_list (with flow control),
  * and records status of each file in data */
 static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_list)
 {
-  /* assume we will succeed in this flush */
-  int flushed = SCR_SUCCESS;
-
-  /* allocate list for filo calls */
+  /* allocate lists for source and destination paths */
   int numfiles;
   char** src_filelist;
   char** dst_filelist;
-  scr_flush_filolist_alloc(file_list, &numfiles, &src_filelist, &dst_filelist);
+  scr_flush_list_alloc(file_list, &numfiles, &src_filelist, &dst_filelist);
 
   /* get the dataset of this flush */
   scr_dataset* dataset = kvtree_get(file_list, SCR_KEY_DATASET);
@@ -152,32 +61,85 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
 
   /* define path for rank2file map */
   spath_append_str(dataset_path, "rank2file");
-  const char* rankfile = spath_strdup(dataset_path);
+  const char* rank2file = spath_strdup(dataset_path);
+
+  /* we can skip transfer if all paths match */
+  int skip_transfer = 1;
+
+  /* build a list of files for this rank */
+  int i;
+  kvtree* filelist = kvtree_new();
+  for (i = 0; i < numfiles; i++) {
+    /* get path to destination file */
+    const char* filename = dst_filelist[i];
+
+    /* found a source and destination path that are different */
+    if (strcmp(src_filelist[i], filename) != 0) {
+      skip_transfer = 0;
+    }
+
+    /* compute path relative to prefix directory */
+    spath* base = spath_from_str(scr_prefix);
+    spath* dest = spath_from_str(filename);
+    spath* rel = spath_relative(base, dest);
+    char* relfile = spath_strdup(rel);
+
+    kvtree_set_kv(filelist, "FILE", relfile);
+
+    scr_free(&relfile);
+    spath_delete(&rel);
+    spath_delete(&dest);
+    spath_delete(&base);
+  }
+
+  /* save our file list to disk */
+  kvtree_write_gather(rank2file, filelist, scr_comm_world);
+  kvtree_delete(&filelist);
 
   /* get AXL transfer type to use */
   const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
   axl_xfer_t xfer_type = axl_xfer_str_to_type(storedesc->type);
 
-  /* flush data */
-  if (scr_flush_filo(rankfile, scr_prefix,
-      numfiles, src_filelist, dst_filelist,
-      xfer_type, scr_comm_world) != SCR_SUCCESS)
-  {
-    flushed = SCR_FAILURE;
+  /* after writing out file above, see if we can skip the transfer */
+  int success = 1;
+  if (! scr_alltrue(skip_transfer, scr_comm_world)) {
+    /* create directories */
+    scr_flush_create_dirs(scr_prefix, numfiles, dst_filelist, scr_comm_world);
+
+    /* TODO: gather list of files to leader of store descriptor,
+     * use communicator of leaders for AXL, then bcast result back */
+
+    /* TODO: configure AXL to not create directories */
+
+    /* write files (via AXL) */
+    if (scr_axl(numfiles, src_filelist, dst_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
+      success = 0;
+    }
+  } else {
+    /* just stat the file to check that it exists */
+    for (i = 0; i < numfiles; i++) {
+      if (access(src_filelist[i], R_OK) < 0) {
+        /* either can't read this file or it doesn't exist */
+        success = 0;
+        break;
+      }
+    }
   }
 
   /* free path and file name */
-  scr_free(&rankfile);
+  scr_free(&rank2file);
   spath_delete(&dataset_path);
 
   /* free our file list */
-  scr_flush_filolist_free(numfiles, &src_filelist, &dst_filelist);
+  scr_flush_list_free(numfiles, &src_filelist, &dst_filelist);
 
   /* determine whether everyone wrote their files ok */
-  if (scr_alltrue((flushed == SCR_SUCCESS), scr_comm_world)) {
-    return SCR_SUCCESS;
+  int rc = SCR_SUCCESS;
+  if (! scr_alltrue(success, scr_comm_world)) {
+    /* TODO: auto delete files? */
+    rc = SCR_FAILURE;
   }
-  return SCR_FAILURE;
+  return rc;
 }
 
 /* flush files from cache to parallel file system under SCR_PREFIX */

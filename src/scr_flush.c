@@ -23,9 +23,14 @@ and creating container files (if any)
 =========================================
 */
 
-/* given file list from flush_prepare, allocate and fill in arrays for filo,
- * caller should free arrays with call to filolist_free */
-int scr_flush_filolist_alloc(const kvtree* file_list, int* out_num_files, char*** out_src_filelist, char*** out_dst_filelist)
+/* given file list from flush_prepare,
+ * allocate and fill in lists of source and destination file paths,
+ * caller should free arrays with call to list_free */
+int scr_flush_list_alloc(
+  const kvtree* file_list,
+  int* out_num_files,
+  char*** out_src_filelist,
+  char*** out_dst_filelist)
 {
   /* assume we will succeed in this flush */
   int rc = SCR_SUCCESS;
@@ -96,8 +101,11 @@ int scr_flush_filolist_alloc(const kvtree* file_list, int* out_num_files, char**
   return rc;
 }
 
-/* free list allocated in filolist_alloc */
-int scr_flush_filolist_free(int num_files, char*** ptr_src_filelist, char*** ptr_dst_filelist)
+/* free list allocated in list_alloc */
+int scr_flush_list_free(
+  int num_files,
+  char*** ptr_src_filelist,
+  char*** ptr_dst_filelist)
 {
   char** src_filelist = *ptr_src_filelist;
   char** dst_filelist = *ptr_dst_filelist;
