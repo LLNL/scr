@@ -1780,17 +1780,19 @@ int SCR_Init()
     /* just dup the communicator from the NODE group */
     MPI_Comm_dup(groupdesc_node->comm, &scr_comm_node);
   } else {
-    scr_err("Failed to create communicator for procs on each node @ %s:%d",
+    scr_abort(-1, "Failed to create communicator for procs on each node @ %s:%d",
       __FILE__, __LINE__
     );
   }
+
+  /* get our local rank within our node */
+  MPI_Comm_rank(scr_comm_node, &scr_my_rank_host);
 
   /* num_nodes will be used later, this line is moved above cache_dir creation
    * to make sure scr_my_hostid is set before we try to create directories.
    * The logic that uses num_nodes can't be moved here because it relies on the
    * scr_node_file variable computed later */
   int num_nodes;
-  MPI_Comm_rank(scr_comm_node, &scr_my_rank_host);
   rankstr_mpi(scr_my_hostname, scr_comm_world, 0, 1, &num_nodes, &scr_my_hostid);
 
   /* check that scr_prefix is set */
