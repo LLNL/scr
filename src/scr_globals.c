@@ -149,7 +149,7 @@ int   scr_my_rank_host = MPI_PROC_NULL; /* my rank within the node */
 
 MPI_Comm scr_comm_world = MPI_COMM_NULL; /* dup of MPI_COMM_WORLD */
 int scr_ranks_world     = 0;             /* number of ranks in the job */
-int  scr_my_rank_world  = MPI_PROC_NULL; /* my rank in world */
+int scr_my_rank_world   = MPI_PROC_NULL; /* my rank in world */
 
 MPI_Comm scr_comm_node = MPI_COMM_NULL; /* communicator of all tasks on the same node */
 
