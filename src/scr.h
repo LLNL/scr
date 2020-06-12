@@ -107,6 +107,11 @@ int SCR_Complete_output(int valid);
  * Dataset management routines
  ****************/
 
+/* set named dataset as current in index,
+ * and initialize SCR internal counters to assume job
+ * has restarted from this checkpoint */
+int SCR_Current(const char* name);
+
 /* drop named dataset from index */
 int SCR_Drop(const char* name);
 
