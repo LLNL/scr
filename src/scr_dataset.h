@@ -148,10 +148,4 @@ int scr_dataset_is_ckpt(const scr_dataset* dataset);
 /* returns 1 if dataset is a checkpoint, 0 otherwise */
 int scr_dataset_is_output(const scr_dataset* dataset);
 
-/* returns 1 if dataset is a checkpoint, 0 otherwise */
-int scr_dataset_is_ckpt(const scr_dataset* dataset);
-
-/* returns 1 if dataset is output, 0 otherwise */
-int scr_dataset_is_output(const scr_dataset* dataset);
-
 #endif

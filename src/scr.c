@@ -982,12 +982,12 @@ static int scr_start_output(const char* name, int flags)
     }
   }
 
-  /* If we loaded a checkpoint, but user didn't restart from it,
+  /* If we loaded a checkpoint, but the user didn't restart from it,
    * then we really have no idea where they are in their sequence.
-   * The app may be restarting from parallel file system on its own,
+   * The app may be restarting from the parallel file system on its own,
    * or maybe they reset the run to start over.  We could also end up
-   * in a similar situatino if the user did not attempt or failed to
-   * fetch but there happens to be a dataset out there.  Either way to avoid
+   * in a similar situation if the user did not attempt to or failed to
+   * fetch but there happens to be an existing checkpoint.  To avoid
    * colliding with existing checkpoints, set dataset_id and checkpoint_id
    * to be max of all known values. */
   if (scr_have_restart || scr_dataset_id == 0) {
@@ -3223,6 +3223,104 @@ int SCR_Should_exit(int* flag)
   }
 
   return SCR_SUCCESS;
+}
+
+/* user is telling us which checkpoint they loaded,
+ * lookup the dataset and checkpoint ids from the index file,
+ * update the current marker */
+int SCR_Current(const char* name)
+{
+  int rc = SCR_SUCCESS;
+
+  /* manage state transition */
+  if (scr_state != SCR_STATE_IDLE) {
+    scr_state_transition_error(scr_state, "SCR_Current()", __FILE__, __LINE__);
+  }
+
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return SCR_FAILURE;
+  }
+
+  /* bail out if not initialized -- will get bad results */
+  if (! scr_initialized) {
+    scr_abort(-1, "SCR has not been initialized @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return SCR_FAILURE;
+  }
+
+  /* this is not required, but it helps ensure apps
+   * are calling this as a collective */
+  MPI_Barrier(scr_comm_world);
+
+  /* have rank look for named dataset in the prefix directory, if it exists,
+   * set this dataset to be current and initialize our dataset and checkpoint ids */
+  int found = 0;
+  scr_dataset* dataset = scr_dataset_new();
+  if (scr_my_rank_world == 0) {
+    /* read the index file */
+    kvtree* index_hash = kvtree_new();
+    if (scr_index_read(scr_prefix_path, index_hash) == SCR_SUCCESS) {
+      /* if there is an entry for this dataset in the index,
+       * mark it as failed so we don't try to restart it with it again */
+      int id;
+      if (scr_index_get_id_by_name(index_hash, name, &id) == SCR_SUCCESS) {
+        /* get dataset info */
+        scr_index_get_dataset(index_hash, id, name, dataset);
+
+        /* check whether the dataset is a checkpoint */
+        int is_ckpt = scr_dataset_is_ckpt(dataset);
+        if (is_ckpt) {
+          /* found named dataset in index file */
+          found = 1;
+
+          /* set dataset to be current */
+          scr_index_set_current(index_hash, name);
+
+          /* TODO: optionally drop checkpoints that follow this one */
+
+          /* update the index file */
+          scr_index_write(scr_prefix_path, index_hash);
+        }
+      }
+    }
+    kvtree_delete(&index_hash);
+  }
+
+  /* determine whether rank 0 found the dataset in the index file */
+  MPI_Bcast(&found, 1, MPI_INT, 0, scr_comm_world);
+
+  /* if rank 0 found the dataset, update our dataset and checkpoint ids */
+  if (found) {
+    /* get dataset info from rank 0 */
+    kvtree_bcast(dataset, 0, scr_comm_world);
+
+    /* get the dataset id for this dataset */
+    int dset_id;
+    scr_dataset_get_id(dataset, &dset_id);
+
+    /* get the checkpoint id for this dataset */
+    int ckpt_id;
+    scr_dataset_get_ckpt(dataset, &ckpt_id);
+
+    /* initialize internal scr counters to assume job restarted
+     * from this dataset */
+    scr_dataset_id    = dset_id;
+    scr_checkpoint_id = ckpt_id;
+    scr_ckpt_dset_id  = dset_id;
+
+    /* TODO: optionally delete any checkpoints that follow this one? */
+
+    /* we don't want to support a restart from this since it is not
+     * loaded, we just allow the user to initialize the counters */
+    scr_have_restart = 0;
+  }
+
+  /* free the dataset object */
+  scr_dataset_delete(&dataset);
+
+  return rc;
 }
 
 /* drop named dataset from index */
