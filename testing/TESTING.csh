@@ -50,6 +50,7 @@ cmake \
   -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_VERBOSE_MAKEFILE=true \
+  -DWITH_DTCMP_PREFIX=$depsinstalldir \
   -DWITH_SPATH_PREFIX=$depsinstalldir \
   -DWITH_KVTREE_PREFIX=$depsinstalldir \
   -DWITH_AXL_PREFIX=$depsinstalldir \

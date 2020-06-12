@@ -49,7 +49,6 @@ static char scr_config_file[SCR_MAX_FILENAME] = SCR_CONFIG_FILE;
  * environment */
 static kvtree* scr_no_user_hash = NULL;
 
-
 /* this data structure holds variables names which must not be changed by the
  * main code because they are used by scripts that run before the main code */
 static kvtree* scr_no_app_hash = NULL;
@@ -76,33 +75,38 @@ static char* expand_env(const char* value)
   char* retval = malloc(rlen);
   assert(retval); /* TODO: should I check for running out of memory? */
 
-  int i;
-  int j;
-  for(i = 0, j = 0 ; i < len ; /*nop*/) {
-    if(value[i] == '$') {
+  int i = 0;
+  int j = 0;
+  while (i < len) {
+    if (value[i] == '$') {
       /* try and extract an environment variable name the '$' */
-      int envbegin = -1, envend = -1;
-      if(i+1 < len && value[i+1] == '{') {
-        /* look for ${...} construct */
-        envbegin = i+1;
-        envend = envbegin + 1;
-        /* extract variable name in {...} */
-        while(envend < len && value[envend] != '}' &&
-              (isalnum(value[envend]) || value[envend] == '_')) {
+      int envbegin = -1;
+      int envend   = -1;
+      if (i+1 < len && value[i+1] == '{') {
+        /* look for ${...} construct,
+         * extract variable name in {...} */
+        envbegin = i + 1;
+        envend   = envbegin + 1;
+        while (envend < len && value[envend] != '}' &&
+              (isalnum(value[envend]) || value[envend] == '_'))
+        {
           envend += 1;
         }
-      } else if(i+1 < len && (isalnum(value[i+1]) || value[i+1] == '_')) {
-        /* look for $... construct */
-        envbegin = i+1;
-        envend = envbegin + 1;
-        /* extract variable name in {...} */
-        while(envend < len && (isalnum(value[envend]) || value[envend] == '_')) {
+      } else if (i+1 < len && (isalnum(value[i+1]) || value[i+1] == '_')) {
+        /* look for $... construct,
+         * extract variable name in {...} */
+        envbegin = i + 1;
+        envend   = envbegin + 1;
+        while (envend < len &&
+              (isalnum(value[envend]) || value[envend] == '_'))
+        {
           envend += 1;
         }
       }
 
-      if(envbegin >= 0 && envend >= 0 && envend < len &&
-         (value[envbegin] == '{') == (value[envend] == '}')) {
+      if (envbegin >= 0 && envend >= 0 && envend < len &&
+         (value[envbegin] == '{') == (value[envend] == '}'))
+      {
         /* found a begin, and an end, end is not past the end of the string,
          * and '{' and '}' are balanced */
 
@@ -116,7 +120,7 @@ static char* expand_env(const char* value)
         /* get value, for ${...} we copied the initial '{' into the name, skip
          * it here */
         const char* env = getenv(envname + (value[envbegin]=='{'));
-        if(env == NULL) {
+        if (env == NULL) {
           env = "";
         }
 
@@ -127,16 +131,19 @@ static char* expand_env(const char* value)
         assert(retval); /* TODO: should I check for running out of memory? */
 
         /* finally copy value into retval */
-        int envi;
-        for(envi = 0 ; envi < envlen ; /*nop*/) {
+        int envi = 0;
+        while (envi < envlen) {
           assert(j < rlen);
           assert(envi < envlen);
           retval[j++] = env[envi++];
         }
 
-        /* account for '}' at end */
-        i += 1 + envnamelen + (value[envend]=='}');
+        i += (envnamelen + 1);
 
+        /* account for any '}' at end */
+        if (value[envend] == '}') {
+          i += 1;
+        }
 
         assert(i <= len);
       } else {
@@ -151,7 +158,7 @@ static char* expand_env(const char* value)
       assert(i < len);
       retval[j++] = value[i++];
     }
-  } /* for i */
+  } /* while i */
 
   return retval;
 }
@@ -255,7 +262,8 @@ const kvtree* scr_param_get_hash(const char* name)
     kvtree_elem* elem;
     for (elem = kvtree_elem_first(value_hash);
 	 elem != NULL;
-	 elem = kvtree_elem_next(elem)) {
+	 elem = kvtree_elem_next(elem))
+    {
       char* value = kvtree_elem_key(elem);
       if (strchr(value, '$')) {
         value = expand_env(value);
@@ -277,7 +285,8 @@ const kvtree* scr_param_get_hash(const char* name)
     kvtree_elem* elem;
     for (elem = kvtree_elem_first(value_hash);
 	 elem != NULL;
-	 elem = kvtree_elem_next(elem)) {
+	 elem = kvtree_elem_next(elem))
+    {
       char* value = kvtree_elem_key(elem);
       assert(value);
       if (strchr(value, '$')) {
@@ -300,9 +309,10 @@ const kvtree* scr_param_get_hash(const char* name)
     kvtree_elem* elem;
     for (elem = kvtree_elem_first(value_hash);
 	 elem != NULL;
-	 elem = kvtree_elem_next(elem)) {
+	 elem = kvtree_elem_next(elem))
+    {
       char* value = kvtree_elem_key(elem);
-      if(strchr(value, '$')) {
+      if (strchr(value, '$')) {
         value = expand_env(value);
 	elem->key = value;
       }
@@ -389,8 +399,6 @@ static char* app_config_path()
 void scr_app_hash_init()
 {
   if (scr_app_hash == NULL) {
-    int i;
-
     /* allocate hash object to store values from app itself */
     scr_app_hash = kvtree_new();
     assert(scr_app_hash);
@@ -408,19 +416,36 @@ void scr_app_hash_init()
 
     /* all parameters used by scripts that run before main code */
     static const char* no_app_params[] = {
-      "CACHE", "CACHEDIR", "CNTLDIR", "SCR_CACHE_BASE",
-      "SCR_CACHE_SIZE", "SCR_CNTL_BASE", "SCR_CONF_FILE",
-      "SCR_DB_DEBUG", "SCR_DB_ENABLE", "SCR_DB_HOST", "SCR_DB_NAME",
-      "SCR_DB_PASS", "SCR_DB_USER", "SCR_EXCLUDE_NODES",
-      "SCR_JOB_NAME", "SCR_LOG_ENABLE", "SCR_PREFIX",
-      "SCR_WATCHDOG_TIMEOUT", "SCR_WATCHDOG_TIMEOUT_PFS",
+      "CACHE",
+      "CACHEDIR",
+      "CNTLDIR",
+      "SCR_CACHE_BASE",
+      "SCR_CACHE_SIZE",
+      "SCR_CNTL_BASE",
+      "SCR_CONF_FILE",
+      "SCR_EXCLUDE_NODES",
+      "SCR_JOB_NAME",
+      "SCR_LOG_ENABLE",
+      "SCR_LOG_DB_DEBUG",
+      "SCR_LOG_DB_ENABLE",
+      "SCR_LOG_DB_HOST",
+      "SCR_LOG_DB_NAME",
+      "SCR_LOG_DB_PASS",
+      "SCR_LOG_DB_USER",
+      "SCR_LOG_SYSLOG_ENABLE",
+      "SCR_LOG_TXT_ENABLE",
+      "SCR_PREFIX",
+      "SCR_WATCHDOG_TIMEOUT",
+      "SCR_WATCHDOG_TIMEOUT_PFS",
     };
+
     /* parameters used by scripts running after the main code:
     static const char* post_script_params[] = {
       "SCR_CRC_ON_FLUSH", "SCR_FILE_BUF_SIZE", "SCR_HALT_SECONDS",
-      "SCR_USE_CONTAINERS",
     };
     */
+
+    int i;
     for (i = 0; i < sizeof(no_app_params)/sizeof(no_app_params[0]); i++) {
       kvtree* v = kvtree_set(scr_no_app_hash, no_app_params[i], kvtree_new());
       assert(v);
@@ -547,60 +572,80 @@ kvtree* scr_param_set_hash(char* name, kvtree* hash_value)
 /* write application hash to config file $SCR_PREFIX/.scr/app.conf */
 void scr_param_app_hash_write_file(const char *app_config_file)
 {
-  FILE *fh = fopen(app_config_file, "w");
+  FILE* fh = fopen(app_config_file, "w");
   if (fh != NULL) {
     if (scr_app_hash != NULL) {
-      kvtree_elem *topkey;
       int success = 1;
-      for (topkey = kvtree_elem_first(scr_app_hash) ; topkey != NULL && success ;
-           topkey = kvtree_elem_next(topkey)) {
-        kvtree_elem *topval;
-        for (topval = kvtree_elem_first(kvtree_elem_hash(topkey)) ;
-             topval != NULL && success ;
-             topval = kvtree_elem_next(topval)) {
-          kvtree_elem *key;
-          if (topval == NULL) { /* NULL values mark deleted entries */
+      kvtree_elem* topkey;
+      for (topkey = kvtree_elem_first(scr_app_hash);
+           topkey != NULL && success;
+           topkey = kvtree_elem_next(topkey))
+      {
+        kvtree_elem* topval;
+        for (topval = kvtree_elem_first(kvtree_elem_hash(topkey));
+             topval != NULL && success;
+             topval = kvtree_elem_next(topval))
+        {
+          /* NULL values mark deleted entries */
+          if (topval == NULL) {
             continue;
           }
-          if (fprintf(fh, "%s=%s", kvtree_elem_key(topkey),
-                      kvtree_elem_key(topval)) < 0) {
+
+          if (fprintf(fh, "%s=%s",
+              kvtree_elem_key(topkey), kvtree_elem_key(topval)) < 0)
+          {
             success = 0;
             break;
           }
-          for (key = kvtree_elem_first(kvtree_elem_hash(topval)) ; key != NULL ;
-               key = kvtree_elem_next(key)) {
+
+          kvtree_elem* key;
+          for (key = kvtree_elem_first(kvtree_elem_hash(topval));
+               key != NULL;
+               key = kvtree_elem_next(key))
+          {
             kvtree_elem *val = kvtree_elem_first(kvtree_elem_hash(key));
-            if (val == NULL) { /* NULL values mark deleted entries */
+
+            /* NULL values mark deleted entries */
+            if (val == NULL) {
               continue;
             }
-            if (fprintf(fh, " %s=%s", kvtree_elem_key(key),
-                        kvtree_elem_key(val)) < 0) {
+
+            if (fprintf(fh, " %s=%s",
+                kvtree_elem_key(key), kvtree_elem_key(val)) < 0)
+            {
               success = 0;
               break;
             }
+
             /* assert that app hash is at most a 2-level deep nesting */
             assert(kvtree_elem_first(kvtree_elem_hash(val)) == NULL);
           } /* for key */
+
           if (fputc('\n', fh) == EOF) {
             success = 0;
             break;
           }
         } /* for topval */
       } /* for topkey */
-      if (!success) {
+
+      if (! success) {
         scr_abort(-1,
-                  "Failed to write to application parameters hash file '%s' in file %s line %d: %s\n",
-                  app_config_file, __FILE__, __LINE__, strerror(errno));
+          "Failed to write to application parameters hash file '%s' in file %s line %d: %s",
+          app_config_file, __FILE__, __LINE__, strerror(errno)
+        );
       }
-      if (fclose(fh) != 0) {
-        scr_abort(-1,
-                  "Failed to close application parameters hash file '%s' in file %s line %d: %s\n",
-                  app_config_file, __FILE__, __LINE__, strerror(errno));
-      }
+    }
+
+    if (fclose(fh) != 0) {
+      scr_abort(-1,
+        "Failed to close application parameters hash file '%s' in file %s line %d: %s",
+        app_config_file, __FILE__, __LINE__, strerror(errno)
+      );
     }
   } else {
     scr_abort(-1,
-              "Failed to open application parameters hash file '%s' in file %s line %d: %s\n",
-              app_config_file, __FILE__, __LINE__, strerror(errno));
+      "Failed to open application parameters hash file '%s' in file %s line %d: %s",
+      app_config_file, __FILE__, __LINE__, strerror(errno)
+    );
   }
 }
