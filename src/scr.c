@@ -3279,6 +3279,7 @@ int SCR_Current(const char* name)
           scr_index_set_current(index_hash, name);
 
           /* TODO: optionally drop checkpoints that follow this one */
+          scr_index_remove_later(index_hash, id);
 
           /* update the index file */
           scr_index_write(scr_prefix_path, index_hash);
