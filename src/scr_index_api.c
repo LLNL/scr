@@ -594,3 +594,52 @@ int scr_index_get_most_recent_complete(const kvtree* index, int earlier_than, in
 
   return SCR_FAILURE;
 }
+
+int scr_index_remove_later(kvtree* index, int target_id)
+{
+  int rc = SCR_SUCCESS;
+
+  /* search for the checkpoint with the maximum dataset id which is
+   * complete and less than earlier_than if earlier_than is set */
+  kvtree* dsets = kvtree_get(index, SCR_INDEX_1_KEY_DATASET);
+
+  /* get list of dataset ids in index */
+  int count = 0;
+  int* ids = NULL;
+  kvtree_list_int(dsets, &count, &ids);
+
+  int i;
+  for (i = 0; i < count; i++) {
+    /* get id for this dataset */
+    int id = ids[i];
+    if (id <= target_id) {
+      /* this dataset is earlier, throw it back */
+      continue;
+    }
+
+    /* got a dataset that is later than the target,
+     * get the dataset hash for this dataset */
+    kvtree* dset_hash = kvtree_get_kv_int(index, SCR_INDEX_1_KEY_DATASET, id);
+    kvtree* dataset_hash = kvtree_get(dset_hash, SCR_INDEX_1_KEY_DATASET);
+
+#if 0
+    /* don't delete output datasets */
+    int is_output = scr_dataset_is_output(dataset_hash);
+    if (is_output) {
+      continue;
+    }
+#endif
+
+    /* get the name of the dataset */
+    char* name;
+    scr_dataset_get_name(dataset_hash, &name);
+
+    /* delete it from the index */
+    scr_index_remove(index, name);
+  }
+
+  /* free list of dataset ids */
+  scr_free(&ids);
+
+  return rc;
+}
