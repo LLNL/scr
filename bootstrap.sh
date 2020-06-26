@@ -17,20 +17,20 @@ lwgrp=lwgrp-1.0.2
 dtcmp=dtcmp-1.0.3
 
 if [ ! -f ${lwgrp}.tar.gz ] ; then
-  wget https://github.com/hpc/lwgrp/releases/download/v1.0.2/${lwgrp}.tar.gz
+  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.2/${lwgrp}.tar.gz
 fi
 if [ ! -f ${dtcmp}.tar.gz ] ; then
-  wget https://github.com/hpc/dtcmp/releases/download/v1.0.3/${dtcmp}.tar.gz
+  wget https://github.com/LLNL/dtcmp/releases/download/v1.0.3/${dtcmp}.tar.gz
 fi
 
-repos=(https://github.com/ECP-Veloc/KVTree.git
-    https://github.com/ECP-Veloc/AXL.git
-    https://github.com/ECP-Veloc/spath.git
-    https://github.com/ECP-Veloc/rankstr.git
-    https://github.com/ECP-Veloc/redset.git
-    https://github.com/ECP-Veloc/shuffile.git
-    https://github.com/ECP-Veloc/er.git
-    https://github.com/ECP-Veloc/filo.git
+repos=(https://github.com/ECP-VeloC/KVTree.git
+    https://github.com/ECP-VeloC/AXL.git
+    https://github.com/ECP-VeloC/spath.git
+    https://github.com/ECP-VeloC/rankstr.git
+    https://github.com/ECP-VeloC/redset.git
+    https://github.com/ECP-VeloC/shuffile.git
+    https://github.com/ECP-VeloC/er.git
+    https://github.com/ECP-VeloC/filo.git
 )
 
 for i in "${repos[@]}" ; do
