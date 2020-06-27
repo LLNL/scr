@@ -679,15 +679,6 @@ static int scr_get_params()
     scr_clustername = scr_env_cluster();
   }
 
-  /* check that the cluster name is defined, fatal error if not */
-  if (scr_clustername == NULL) {
-    if (scr_my_rank_world == 0) {
-      scr_dbg(1, "Failed to record cluster name @ %s:%d",
-              __FILE__, __LINE__
-      );
-    }
-  }
-
   /* override default base control directory */
   if ((value = scr_param_get("SCR_CNTL_BASE")) != NULL) {
     scr_cntl_base = spath_strdup_reduce_str(value);
