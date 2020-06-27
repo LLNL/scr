@@ -306,3 +306,35 @@ FORTRAN_API void FORT_CALL scr_route_file_(char* name FORT_MIXED_LEN(name_len),
 
   return;
 }
+
+/*================================================
+ * Dataset management
+ *================================================*/
+
+FORTRAN_API void FORT_CALL scr_drop_(char* name FORT_MIXED_LEN(name_len), int* ierror FORT_END_LEN(name_len))
+{
+  /* convert name from a Fortran string to C string */
+  char name_tmp[SCR_MAX_FILENAME];
+  if (scr_fstr2cstr(name, name_len, name_tmp, sizeof(name_tmp)) != 0) {
+    *ierror = !SCR_SUCCESS;
+    return;
+  }
+
+  *ierror = SCR_Drop(name_tmp);
+
+  return;
+}
+
+FORTRAN_API void FORT_CALL scr_delete_(char* name FORT_MIXED_LEN(name_len), int* ierror FORT_END_LEN(name_len))
+{
+  /* convert name from a Fortran string to C string */
+  char name_tmp[SCR_MAX_FILENAME];
+  if (scr_fstr2cstr(name, name_len, name_tmp, sizeof(name_tmp)) != 0) {
+    *ierror = !SCR_SUCCESS;
+    return;
+  }
+
+  *ierror = SCR_Delete(name_tmp);
+
+  return;
+}
