@@ -251,7 +251,7 @@ int main (int argc, char *argv[])
     /* init logging */
     if (scr_log_init(args.prefix) == SCR_SUCCESS) {
       /* register job */
-      if (args.username != NULL && args.jobname != NULL) {
+      if (args.username != NULL && args.prefix != NULL) {
         if (scr_log_job(args.username, hostname, args.jobid, args.prefix, args.start) != SCR_SUCCESS) {
           scr_err("scr_log_transfer: Failed to register job, disabling logging @ %s:%d",
                   __FILE__, __LINE__
@@ -260,7 +260,7 @@ int main (int argc, char *argv[])
           rc = 1;
         }
       } else {
-        scr_err("scr_log_transfer: Missing username, jobname, or start time, disabling logging @ %s:%d",
+        scr_err("scr_log_transfer: Missing username, prefix, or start time, disabling logging @ %s:%d",
                 __FILE__, __LINE__
         );
         scr_log_enable = 0;

@@ -1838,19 +1838,19 @@ int SCR_Init()
 
   /* register this job in the logging database */
   if (scr_my_rank_world == 0 && scr_log_enable) {
-    if (scr_username != NULL && scr_jobname != NULL) {
+    if (scr_username != NULL && scr_prefix != NULL) {
       time_t job_start = scr_log_seconds();
       if (scr_log_job(scr_username, scr_my_hostname, scr_jobid, scr_prefix, job_start) == SCR_SUCCESS) {
         /* record the start time for this run */
         scr_log_run(job_start, scr_ranks_world, num_nodes);
       } else {
-        scr_warn("Failed to log job for username %s and jobname %s, disabling logging @ %s:%d",
-          scr_username, scr_jobname, __FILE__, __LINE__
+        scr_warn("Failed to log job for username %s and prefix %s, disabling logging @ %s:%d",
+          scr_username, scr_prefix, __FILE__, __LINE__
         );
         scr_log_enable = 0;
       }
     } else {
-      scr_warn("Failed to read username or jobname from environment, disabling logging @ %s:%d",
+      scr_warn("Failed to read username or prefix from environment, disabling logging @ %s:%d",
         __FILE__, __LINE__
       );
       scr_log_enable = 0;
