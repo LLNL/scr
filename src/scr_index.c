@@ -1960,8 +1960,8 @@ int index_list(const spath* prefix)
   return rc;
 }
 
-/* delete named dataset from index (does not delete files) */
-int index_remove(const spath* prefix, const char* name)
+/* drop named dataset from index (does not delete files) */
+int index_drop(const spath* prefix, const char* name)
 {
   int rc = SCR_SUCCESS;
 
@@ -1992,6 +1992,68 @@ int index_remove(const spath* prefix, const char* name)
     rc = SCR_FAILURE;
     goto cleanup;
   }
+
+cleanup:
+
+  /* free off our index hash */
+  kvtree_delete(&index);
+
+  /* free our string */
+  scr_free(&prefix_str);
+
+  return rc;
+}
+
+/* drop all datasets after named dataset from index (does not delete files) */
+int index_drop_after(const spath* prefix, const char* name)
+{
+  int rc = SCR_SUCCESS;
+
+  /* get string version of prefix */
+  char* prefix_str = spath_strdup(prefix);
+
+  /* create a new hash to store our index file data */
+  kvtree* index = kvtree_new();
+
+  /* read index file from the prefix directory */
+  if (scr_index_read(prefix, index) != SCR_SUCCESS) {
+    scr_err("Failed to read index file in %s @ %s:%d",
+      prefix_str, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+    goto cleanup;
+  }
+
+  /* lookup dataset id */
+  int id;
+  if (scr_index_get_id_by_name(index, name, &id) != SCR_SUCCESS) {
+    /* couldn't find the named dataset, print an error */
+    scr_err("Named dataset was not found in index file: %s @ %s:%d",
+      name, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+    goto cleanup;
+  }
+
+  /* TODO: this will drop checkpoints and pure output, is that desired? */
+  /* delete all datasets after this id */
+  if (scr_index_remove_later(index, id) != SCR_SUCCESS) {
+    /* couldn't find the named dataset, print an error */
+    scr_err("Failed to drop some datasets after %s from index file: %s @ %s:%d",
+      name, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+
+    /* we might have dropped some, even on error,
+     * so continue on to write to the index file */
+  }
+
+  /* TODO: if one of the dropped datasets is the current checkpoint,
+   * should we automatically set current to the next most recent checkpoint
+   * that is left? */
+
+  /* write out new index file */
+  scr_index_write(prefix, index);
 
 cleanup:
 
@@ -2132,12 +2194,13 @@ int print_usage()
   printf("  Usage: scr_index [options]\n");
   printf("\n");
   printf("  Options:\n");
-  printf("    -l, --list           List indexed datasets (default behavior)\n");
-  printf("    -a, --add=<id>       Add dataset <id> to index\n");
-  printf("    -r, --remove=<name>  Remove dataset <name> from index (does not delete files)\n");
-  printf("    -c, --current=<name> Set <name> as current restart directory\n");
-  printf("    -p, --prefix=<dir>   Specify prefix directory (defaults to current working directory)\n");
-  printf("    -h, --help           Print usage\n");
+  printf("    -l, --list              List indexed datasets (default behavior)\n");
+  printf("    -a, --add=<id>          Add dataset <id> to index\n");
+  printf("        --drop=<name>       Drop dataset <name> from index (does not delete files)\n");
+  printf("        --drop-after=<name> Drop all datasets after <name> from index (does not delete files)\n");
+  printf("    -c, --current=<name>    Set <name> as current restart directory\n");
+  printf("    -p, --prefix=<dir>      Specify prefix directory (defaults to current working directory)\n");
+  printf("    -h, --help              Print usage\n");
   printf("\n");
   return SCR_SUCCESS;
 }
@@ -2148,7 +2211,8 @@ struct arglist {
   int id;
   int list;
   int add;
-  int remove;
+  int drop;
+  int drop_after;
   int current;
 };
 
@@ -2163,23 +2227,25 @@ int free_args(struct arglist* args)
 int get_args(int argc, char **argv, struct arglist* args)
 {
   /* set to default values */
-  args->prefix  = NULL;
-  args->name    = NULL;
-  args->id      = -1;
-  args->list    = 1;
-  args->add     = 0;
-  args->remove  = 0;
-  args->current = 0;
+  args->prefix     = NULL;
+  args->name       = NULL;
+  args->id         = -1;
+  args->list       = 1;
+  args->add        = 0;
+  args->drop       = 0;
+  args->drop_after = 0;
+  args->current    = 0;
 
-  static const char *opt_string = "la:r:p:h";
+  static const char *opt_string = "la:d:p:h";
   static struct option long_options[] = {
-    {"list",    no_argument,       NULL, 'l'},
-    {"add",     required_argument, NULL, 'a'},
-    {"remove",  required_argument, NULL, 'r'},
-    {"current", required_argument, NULL, 'c'},
-    {"prefix",  required_argument, NULL, 'p'},
-    {"help",    no_argument,       NULL, 'h'},
-    {NULL,      no_argument,       NULL,   0}
+    {"list",       no_argument,       NULL, 'l'},
+    {"add",        required_argument, NULL, 'a'},
+    {"drop",       required_argument, NULL, 'd'},
+    {"drop-after", required_argument, NULL, 'z'},
+    {"current",    required_argument, NULL, 'c'},
+    {"prefix",     required_argument, NULL, 'p'},
+    {"help",       no_argument,       NULL, 'h'},
+    {NULL,         no_argument,       NULL,   0}
   };
 
   int long_index = 0;
@@ -2194,10 +2260,15 @@ int get_args(int argc, char **argv, struct arglist* args)
         args->add  = 1;
         args->list = 0;
         break;
-      case 'r':
-        args->name   = strdup(optarg);
-        args->remove = 1;
-        args->list   = 0;
+      case 'd':
+        args->name = strdup(optarg);
+        args->drop = 1;
+        args->list = 0;
+        break;
+      case 'z':
+        args->name       = strdup(optarg);
+        args->drop_after = 1;
+        args->list       = 0;
         break;
       case 'c':
         args->name    = strdup(optarg);
@@ -2253,7 +2324,7 @@ int main(int argc, char *argv[])
   int id = args.id;
 
   /* these options all require a prefix directory */
-  if (args.add == 1 || args.remove == 1 || args.current == 1 || args.list == 1) {
+  if (args.add == 1 || args.drop == 1 || args.drop_after == 1 || args.current == 1 || args.list == 1) {
     if (spath_is_null(prefix)) {
       print_usage();
       return 1;
@@ -2261,7 +2332,7 @@ int main(int argc, char *argv[])
   }
 
   /* these options all require a dataset name */
-  if (args.remove == 1 || args.current == 1) {
+  if (args.drop == 1 || args.drop_after == 1 || args.current == 1) {
     if (name == NULL) {
       print_usage();
       return 1;
@@ -2279,9 +2350,12 @@ int main(int argc, char *argv[])
         rc = SCR_SUCCESS;
       }
     }
-  } else if (args.remove == 1) {
+  } else if (args.drop == 1) {
     /* remove the named dataset from the index file (does not delete files) */
-    rc = index_remove(prefix, name);
+    rc = index_drop(prefix, name);
+  } else if (args.drop_after == 1) {
+    /* remove all datasets after the named dataset from the index file (does not delete files) */
+    rc = index_drop_after(prefix, name);
   } else if (args.current == 1) {
     /* set named dataset as current restart */
     rc = index_current(prefix, name);
