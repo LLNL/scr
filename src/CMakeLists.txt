@@ -62,6 +62,7 @@ LIST(APPEND libscr_srcs
 	scr_summary.c
 	scr_util.c
 	scr_util_mpi.c
+	axl_mpi.c
 )
 
 # Add vendor specific code based on SCR_ASYNC_API
