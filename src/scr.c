@@ -3311,19 +3311,28 @@ int SCR_Delete(const char* name)
   scr_cache_delete_by_name(scr_cindex, name);
 
   /* delete dataset from prefix directory, if it exists */
+  int id = -1;
   if (scr_my_rank_world == 0) {
-      /* read the index file */
-      kvtree* index_hash = kvtree_new();
-      if (scr_index_read(scr_prefix_path, index_hash) == SCR_SUCCESS) {
-        /* if there is an entry for this dataset in the index,
-         * mark it as failed so we don't try to restart it with it again */
-        int id;
-        if (scr_index_get_id_by_name(index_hash, name, &id) == SCR_SUCCESS) {
-          /* found an entry, let's delete it */
-          scr_prefix_delete(id, name);
-        }
+    /* read the index file */
+    kvtree* index_hash = kvtree_new();
+    if (scr_index_read(scr_prefix_path, index_hash) == SCR_SUCCESS) {
+      /* if there is an entry for this dataset in the index,
+       * mark it as failed so we don't try to restart it with it again */
+      int tmp_id;
+      if (scr_index_get_id_by_name(index_hash, name, &tmp_id) == SCR_SUCCESS) {
+        /* found an entry to delete */
+        id = tmp_id;
       }
-      kvtree_delete(&index_hash);
+    }
+    kvtree_delete(&index_hash);
+  }
+
+  /* broadcast id for the named dataset from rank 0 */
+  MPI_Bcast(&id, 1, MPI_INT, 0, scr_comm_world);
+
+  /* delete the dataset if we found it */
+  if (id != -1) {
+    scr_prefix_delete(id, name);
   }
 
   /* hold everyone until delete is complete */
