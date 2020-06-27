@@ -3312,6 +3312,30 @@ int SCR_Current(const char* name)
     scr_ckpt_dset_id  = dset_id;
 
     /* TODO: optionally delete any checkpoints that follow this one? */
+    /* get list of datasets in cache */
+    int ndsets;
+    int* dsets;
+    scr_cache_index_list_datasets(scr_cindex, &ndsets, &dsets);
+
+    /* delete any dataset from cache that follows dset_id */
+    int i;
+    for (i = 0; i < ndsets; i++) {
+      int id = dsets[i];
+      if (id > dset_id) {
+        if (! scr_flush_file_is_flushing(id)) {
+          /* this dataset is after the current dataset,
+           * delete it from cache */
+          scr_cache_delete(scr_cindex, id);
+        } else {
+          scr_warn("Skipping delete of dataset %d from cache because it is flushing @ %s:%d",
+            id, __FILE__, __LINE__
+          );
+        }
+      }
+    }
+
+    /* free list of dataset ids */
+    scr_free(&dsets);
 
     /* we don't want to support a restart from this since it is not
      * loaded, we just allow the user to initialize the counters */
