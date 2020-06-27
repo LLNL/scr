@@ -13,14 +13,14 @@ INSTALL_DIR=$ROOT/install
 
 cd deps
 
-lwgrp=lwgrp-1.0.2
-dtcmp=dtcmp-1.0.3
+lwgrp=lwgrp-1.0.3
+dtcmp=dtcmp-1.1.1
 
 if [ ! -f ${lwgrp}.tar.gz ] ; then
-  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.2/${lwgrp}.tar.gz
+  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.3/${lwgrp}.tar.gz
 fi
 if [ ! -f ${dtcmp}.tar.gz ] ; then
-  wget https://github.com/LLNL/dtcmp/releases/download/v1.0.3/${dtcmp}.tar.gz
+  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.1/${dtcmp}.tar.gz
 fi
 
 repos=(https://github.com/ECP-VeloC/KVTree.git
