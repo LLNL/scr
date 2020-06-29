@@ -2398,6 +2398,10 @@ const char* SCR_Config(const char* config_string)
   kvtree* value_hash   = NULL;
   int is_query         = -1; /* basically tracks if I have seen a '=' but no value yet */
 
+  /* make a copy of the input string, so we can modify it */
+  char* writable_config_string = strdup(config_string);
+  assert(writable_config_string);
+
   /* this is a small state machine to parse name=value pairs of settings,
    * and while I could encode all of this as a table of transitions, it seems
    * that people are usually unhappy with the table form and like an explicit
