@@ -141,10 +141,10 @@ int main (int argc, char* argv[])
   tests_passed &= test_cfg("SCR_COPY_TYPE", "SINGLE");
 
   SCR_Config("STORE= /dev/shm/foo GROUP = NODE COUNT  =1");
-  tests_passed &= test_cfg("STORE= /dev/shm/foo GROUP = NODE COUNT", "1");
+  tests_passed &= test_cfg("STORE= /dev/shm/foo COUNT", "1");
 
   SCR_Config("CKPT=0 INTERNAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=16");
-  tests_passed &= test_cfg("CKPT=0 INTERNAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE", "16");
+  tests_passed &= test_cfg("CKPT=0 SET_SIZE", "16");
 
   /* check if values are all set */
   tests_passed &= test_cfg("DEBUG", "1");
@@ -158,7 +158,7 @@ int main (int argc, char* argv[])
   tests_passed &= test_cfg("DEBUG", "0");
 
   SCR_Config("STORE=/dev/shm GROUP=NODE COUNT=1");
-  tests_passed &= test_cfg("STORE=/dev/shm GROUP=NODE COUNT", "1");
+  tests_passed &= test_cfg("STORE=/dev/shm COUNT", "1");
   tests_passed &= test_cfg("STORE", "/dev/shm");
   tests_passed &= test_cfg("STORE=/dev/shm GROUP", "NODE");
 
