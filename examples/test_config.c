@@ -13,30 +13,6 @@
 
 int verbose = 0;
 
-static int set_cfg(const char *cfg, const char *expected) {
-  if (verbose) {
-    fprintf(stdout, "Setting config '%s', expecting '%s'\n",
-            cfg ? cfg : "(null)", expected ? expected : "(null)");
-  }
-  SCR_Config(cfg);
-  const char *val = SCR_Config(query);
-  int rc = ((val == NULL && expected == NULL) ||
-            (val != NULL && expected != NULL && 0 == strcmp(val, expected)));
-
-  if (!rc) {
-    fprintf(stderr, "Failed to set '%s'. Expected '%s' but got '%s'\n",
-            cfg ? cfg : "(null)", expected ? expected : "(null)",
-            val ? val : "(null)");
-  } else if (verbose) {
-    fprintf(stdout, "Successfully set '%s' to '%s'\n",
-            cfg ? cfg : "(null)", expected ? expected : "(null)");
-  }
-
-  free((void*)val);
-
-  return rc;
-}
-
 static int test_cfg(const char *cfg, const char *expected) {
   if (verbose) {
     fprintf(stdout, "Getting config '%s', expecting '%s'\n",
@@ -141,21 +117,34 @@ int main (int argc, char* argv[])
   int tests_passed = 1;
 
   /* test basic parsing */
-  tests_passed &= set_cfg("DEBUG=1", "DEBUG", "1");
-  tests_passed &= set_cfg("DEBUG =1", "DEBUG", "1");
-  tests_passed &= set_cfg("DEBUG= 1", "DEBUG", "1");
-  tests_passed &= set_cfg("DEBUG  = 1", "DEBUG", "1");
+  SCR_Config("DEBUG=1");
+  tests_passed &= test_cfg("DEBUG", "1");
+
+  SCR_Config("DEBUG =1");
+  tests_passed &= test_cfg("DEBUG", "1");
+
+  SCR_Config("DEBUG= 1");
+  tests_passed &= test_cfg("DEBUG", "1");
+
+  SCR_Config("DEBUG  = 1");
+  tests_passed &= test_cfg("DEBUG", "1");
 
   /* clean entry in case anything was read from app.conf */
-  tests_passed &= set_cfg("STORE=", "STORE", NULL);
+  SCR_Config("STORE=");
+  tests_passed &= test_cfg("STORE", NULL);
 
   /* set a couple of parameters to be used by SCR */
-  tests_passed &=set_cfg("DEBUG=1", "DEBUG", "1");
-  tests_passed &=set_cfg("SCR_COPY_TYPE =SINGLE", "SCR_COPY_TYPE", "SINGLE");
-  tests_passed &=set_cfg("STORE= /dev/shm/foo GROUP = NODE COUNT  =1",
-                         "STORE= /dev/shm/foo GROUP = NODE COUNT", "1");
-  tests_passed &=set_cfg("CKPT=0 INTERNAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=16",
-                         "CKPT=0 INTERNAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE", "16");
+  SCR_Config("DEBUG=1");
+  tests_passed &= test_cfg("DEBUG", "1");
+
+  SCR_Config("SCR_COPY_TYPE =SINGLE");
+  tests_passed &= test_cfg("SCR_COPY_TYPE", "SINGLE");
+
+  SCR_Config("STORE= /dev/shm/foo GROUP = NODE COUNT  =1");
+  tests_passed &= test_cfg("STORE= /dev/shm/foo GROUP = NODE COUNT", "1");
+
+  SCR_Config("CKPT=0 INTERNAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=16");
+  tests_passed &= test_cfg("CKPT=0 INTERNAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE", "16");
 
   /* check if values are all set */
   tests_passed &= test_cfg("DEBUG", "1");
@@ -165,16 +154,16 @@ int main (int argc, char* argv[])
   tests_passed &= test_cfg("CKPT=1 FOOBAR", NULL);
 
   /* modify values */
-  tests_passed &= set_cfg("DEBUG=0", "DEBUG", "0");
+  SCR_Config("DEBUG=0");
   tests_passed &= test_cfg("DEBUG", "0");
 
-  tests_passed &= set_cfg("STORE=/dev/shm GROUP=NODE COUNT=1",
-                          "STORE=/dev/shm GROUP=NODE COUNT", "1");
+  SCR_Config("STORE=/dev/shm GROUP=NODE COUNT=1");
+  tests_passed &= test_cfg("STORE=/dev/shm GROUP=NODE COUNT", "1");
   tests_passed &= test_cfg("STORE", "/dev/shm");
   tests_passed &= test_cfg("STORE=/dev/shm GROUP", "NODE");
 
   /* delete values */
-  tests_passed &= set_cfg("STORE=", "STORE", NULL);
+  SCR_Config("STORE=");
   tests_passed &= test_cfg("STORE", NULL);
 
   /* test some invalid input */
@@ -220,7 +209,8 @@ int main (int argc, char* argv[])
   tests_passed &= test_env("$VAR_C", "");
 
   /* re-enable debugging */
-  tests_passed &= set_cfg("DEBUG=1", "DEBUG", "1");
+  SCR_Config("DEBUG=1");
+  tests_passed &= test_cfg("DEBUG", "1");
 
   if (SCR_Init() == SCR_SUCCESS) {
 
