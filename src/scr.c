@@ -2464,16 +2464,13 @@ const char* SCR_Config(const char* config_string)
         } else {
           value = conf;
           if (toplevel_value == NULL) {
+            /* we use the first value as the top level value */
             toplevel_value = value;
           } else if (value_hash == NULL) {
             /* starting a value after we already have a top level value,
-             * so we're at a point like "CKPT=0 TYPE=<char>" */
+             * so we're at a point like "CKPT=0 TYPE=<char>", need to create
+             * a hash to hold the rest */
             value_hash = kvtree_new();
-            assert(value_hash);
-
-            /* TODO: the value string is not well-defined at this point
-             * do we want to set a value in the kvtree? */
-            kvtree_set(value_hash, value, NULL);
           }
           state = in_value;
         }
@@ -2494,11 +2491,8 @@ const char* SCR_Config(const char* config_string)
 
         /* check whether we have just completed a value string */
         if (state != in_value) {
-          /* TODO: should this be checking for value_hash instead of toplevel_value? */
-
-          /* just finished a value string, if we have a toplevel_value
-           * then insert new key/value into value_hash */
-          if (toplevel_value) {
+          /* just finished a value string, if we have a value_hash, insert new key/value */
+          if (value_hash) {
             kvtree_set_kv(value_hash, key, value);
           }
           key   = NULL;
@@ -2533,6 +2527,7 @@ const char* SCR_Config(const char* config_string)
     }
     assert(value_hash == NULL);
 
+    /* lookup the value for the given parameter */
     if (toplevel_value == NULL) {
       /* user is trying to query for the value of a simple key/value pair,
        * given a parameter name like "SCR_PREFIX" */
