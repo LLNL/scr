@@ -936,6 +936,36 @@ static int scr_get_params()
   scr_prefix_path = scr_get_prefix(value);
   scr_prefix = spath_strdup(scr_prefix_path);
 
+  /* define the path to the .scr subdir within the prefix dir */
+  spath* path_prefix_scr = spath_dup(scr_prefix_path);
+  spath_append_str(path_prefix_scr, ".scr");
+  scr_prefix_scr = spath_strdup(path_prefix_scr);
+  spath_delete(&path_prefix_scr);
+
+  /* TODO: create store descriptor for prefix directory */
+  /* create the .scr subdirectory */
+  if (scr_my_rank_world == 0) {
+    mode_t mode_dir = scr_getmode(1, 1, 1);
+    if (scr_mkdir(scr_prefix_scr, mode_dir) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to create .scr subdirectory %s @ %s:%d",
+        scr_prefix_scr, __FILE__, __LINE__
+      );
+    }
+  }
+
+  /* store parameters set by app code for use by post-run scripts */
+  if (scr_my_rank_world == 0) {
+    spath* path_app_config = spath_from_str(scr_prefix_scr);
+    spath_append_str(path_app_config, SCR_CONFIG_FILE_APP);
+    spath_reduce(path_app_config);
+    char *app_config = spath_strdup(path_app_config);
+    spath_delete(&path_app_config);
+
+    scr_param_app_hash_write_file(app_config);
+
+    scr_free(&app_config);
+  }
+
   /* done reading parameters, can release the data structures now */
   scr_param_finalize();
 
@@ -1626,10 +1656,16 @@ int SCR_Init()
     return SCR_FAILURE;
   }
 
+  /* NOTE: SCR_ENABLE can also be set in a config file, but to read
+   * a config file, we must at least create scr_comm_world and call
+   * scr_get_params() */
+
   /* create a context for the library */
-  MPI_Comm_dup(MPI_COMM_WORLD,  &scr_comm_world);
-  MPI_Comm_rank(scr_comm_world, &scr_my_rank_world);
-  MPI_Comm_size(scr_comm_world, &scr_ranks_world);
+  if (scr_comm_world == MPI_COMM_NULL) {
+    MPI_Comm_dup(MPI_COMM_WORLD,  &scr_comm_world);
+    MPI_Comm_rank(scr_comm_world, &scr_my_rank_world);
+    MPI_Comm_size(scr_comm_world, &scr_ranks_world);
+  }
 
   /* get my hostname (used in debug and error messages) */
   scr_my_hostname = scr_env_nodename();
@@ -1674,22 +1710,11 @@ int SCR_Init()
     );
   }
 
-  /* NOTE: SCR_ENABLE can also be set in a config file, but to read
-   * a config file, we must at least create scr_comm_world and call
-   * scr_get_params() */
-
   /* read our configuration: environment variables, config file, etc. */
-  scr_param_init();
   scr_get_params();
 
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
-    scr_param_finalize();
-
-    /* we dup'd comm_world to broadcast parameters in scr_get_params,
-     * need to free it here */
-    MPI_Comm_free(&scr_comm_world);
-
     /* shut down the AXL library */
     int axl_rc = AXL_Finalize_comm(scr_comm_world);
     if (axl_rc != AXL_SUCCESS) {
@@ -1713,6 +1738,8 @@ int SCR_Init()
         __FILE__, __LINE__
       );
     }
+
+    scr_free(&scr_my_hostname);
 
     /* we dup'd comm_world to broadcast parameters in scr_get_params,
      * need to free it here */
@@ -1801,23 +1828,6 @@ int SCR_Init()
       scr_halt("SCR_INIT_FAILED");
     }
     SCR_ALLABORT(-1, "SCR_PREFIX must be set");
-  }
-
-  /* define the path to the .scr subdir within the prefix dir */
-  spath* path_prefix_scr = spath_dup(scr_prefix_path);
-  spath_append_str(path_prefix_scr, ".scr");
-  scr_prefix_scr = spath_strdup(path_prefix_scr);
-  spath_delete(&path_prefix_scr);
-
-  /* TODO: create store descriptor for prefix directory */
-  /* create the .scr subdirectory */
-  if (scr_my_rank_world == 0) {
-    mode_t mode_dir = scr_getmode(1, 1, 1);
-    if (scr_mkdir(scr_prefix_scr, mode_dir) != SCR_SUCCESS) {
-      scr_abort(-1, "Failed to create .scr subdirectory %s @ %s:%d",
-        scr_prefix_scr, __FILE__, __LINE__
-      );
-    }
   }
 
   /* initialize our logging if enabled */
@@ -1943,23 +1953,6 @@ int SCR_Init()
   /* build the file names using the control directory prefix */
   scr_cindex_file = spath_from_str(scr_cntl_prefix);
   spath_append_strf(scr_cindex_file, "cindex.scrinfo", scr_storedesc_cntl->rank);
-
-  /* store parameters set by app code for use by post-run scripts */
-  if (scr_my_rank_world == 0) {
-    spath* path_app_config = spath_from_str(scr_prefix_scr);
-    spath_append_str(path_app_config, SCR_CONFIG_FILE_APP);
-    spath_reduce(path_app_config);
-    char *app_config = spath_strdup(path_app_config);
-    spath_delete(&path_app_config);
-
-    scr_param_app_hash_write_file(app_config);
-
-    scr_free(&app_config);
-  }
-
-  /* done with parameters, can release the data structures now,
-   * this must be after writing the app.conf file to .scr */
-  scr_param_finalize();
 
   /* TODO: should we also record the list of nodes and / or MPI rank to node mapping? */
   /* record the number of nodes being used in this job to the nodes file */
@@ -2143,6 +2136,9 @@ int SCR_Finalize()
    * are calling this as a collective */
   MPI_Barrier(scr_comm_world);
 
+  /* free user hash if one was allocated */
+  kvtree_delete(&scr_app_hash);
+
   if (scr_my_rank_world == 0) {
     /* stop the clock for measuring the compute time */
     scr_time_compute_end = MPI_Wtime();
@@ -2308,9 +2304,53 @@ int SCR_Finalize()
 /* sets or gets a configuration option */
 const char* SCR_Config(const char* config_string)
 {
+  /* manage state transition */
+  if (scr_state != SCR_STATE_UNINIT) {
+    scr_state_transition_error(scr_state, "SCR_Config()", __FILE__, __LINE__);
+  }
+
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return NULL;
+  }
+
+  /* TODO: how do we clean this up if user does not call Init/Finalize */
+  /* since SCR_Init has not been called yet,
+   * we need to create a context for the library */
+  if (scr_comm_world == MPI_COMM_NULL) {
+    MPI_Comm_dup(MPI_COMM_WORLD,  &scr_comm_world);
+    MPI_Comm_rank(scr_comm_world, &scr_my_rank_world);
+    MPI_Comm_size(scr_comm_world, &scr_ranks_world);
+  }
+
+  /* ensure all ranks specified identical value for config_string */
+  char* tmpstr = NULL;
+  if (scr_my_rank_world == 0) {
+    tmpstr = strdup(config_string);
+  }
+  scr_str_bcast(&tmpstr, 0, scr_comm_world);
+  if (strcmp(config_string, tmpstr) != 0) {
+    scr_abort(-1, "SCR_Config string must be identical on all processes @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  scr_free(&tmpstr);
+
+  /* this is not required, but it helps ensure apps
+   * are calling this as a collective */
+  MPI_Barrier(scr_comm_world);
+
   if (config_string == NULL || strlen(config_string) == 0) {
     return NULL;
   }
+
+  /* allocate a hash to record params set through SCR_Config */
+  if (scr_app_hash == NULL) {
+    scr_app_hash = kvtree_new();
+  }
+
+  /* read in our configuration parameters */
+  scr_param_init();
 
   char* writable_config_string = strdup(config_string);
   assert(writable_config_string);
@@ -2433,7 +2473,7 @@ const char* SCR_Config(const char* config_string)
   }
   assert(toplevel_key);
 
-  const char* retval;
+  const char* retval = NULL;
   if (is_query) {
     if (value_hash) {
       scr_abort(-1,
@@ -2443,20 +2483,20 @@ const char* SCR_Config(const char* config_string)
     }
     assert(value_hash == NULL);
     if (toplevel_value == NULL) {
-      const char *value = scr_param_get(toplevel_key);
-      retval = value ? strdup(value) : NULL;
+      const char* value = scr_param_get(toplevel_key);
+      if (value != NULL) {
+        retval = strdup(value);
+      }
     } else {
       kvtree* toplevel_hash = (kvtree*)scr_param_get_hash(toplevel_key);
       if (toplevel_hash) {
         const kvtree* toplevel_value_hash = kvtree_get(toplevel_hash, toplevel_value);
         if (toplevel_value_hash) {
-          const char *value = kvtree_elem_get_first_val(toplevel_value_hash, key);
-          retval = value ? strdup(value) : NULL;
-        } else {
-          retval = NULL;
+          const char* value = kvtree_elem_get_first_val(toplevel_value_hash, key);
+          if (value != NULL) {
+            retval = strdup(value);
+          }
         }
-      } else {
-        retval = NULL;
       }
       /* param_get hash returns a copy of the value hash, so free it here */
       kvtree_delete(&toplevel_hash);
@@ -2468,7 +2508,6 @@ const char* SCR_Config(const char* config_string)
       } else {
         scr_param_set_hash(toplevel_key, NULL);
       }
-      retval = scr_param_get(toplevel_key);
     } else {
       assert(value_hash);
 
@@ -2487,10 +2526,6 @@ const char* SCR_Config(const char* config_string)
       assert(value_hash);
       kvtree_merge(toplevel_value_hash, value_hash);
 
-      const char* first_key = kvtree_elem_key(kvtree_elem_first(value_hash));
-      assert(first_key); /* value_hash cannot be empty */
-      retval = kvtree_elem_get_first_val(toplevel_value_hash, first_key);
-
       /* need to overwrite the full toplevel hash since there is no function to
        * modify it */
       scr_param_set_hash(toplevel_key, toplevel_hash);
@@ -2501,6 +2536,8 @@ const char* SCR_Config(const char* config_string)
   }
 
   free(writable_config_string);
+
+  scr_param_finalize();
 
   return retval;
 }

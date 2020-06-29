@@ -211,6 +211,8 @@ extern int  scr_my_rank_world;    /* my rank in world */
 
 extern MPI_Comm scr_comm_node; /* communicator of all tasks on the same node */
 
+extern kvtree* scr_app_hash; /* records params set through SCR_Config */
+
 extern kvtree* scr_groupdesc_hash; /* hash defining group descriptors to be used */
 extern kvtree* scr_storedesc_hash; /* hash defining store descriptors to be used */
 extern kvtree* scr_reddesc_hash;   /* hash defining redudancy descriptors to be used */
