@@ -64,8 +64,8 @@ static kvtree* scr_system_hash = NULL;
  * systems */
 static kvtree* scr_env_hash = NULL;
 
-/* this data structure will hold values set by the application */
-static kvtree* scr_app_hash = NULL;
+/* holds param values set through SCR_Config */
+kvtree* scr_app_hash = NULL;
 
 /* expand environment variables in parameter value */
 static char* expand_env(const char* value)
@@ -395,25 +395,11 @@ static char* app_config_path()
   return file;
 }
 
-/* sets up the hash of values set (and settable) programmatically */
-void scr_app_hash_init()
+/* read config files and store contents */
+int scr_param_init()
 {
-  if (scr_app_hash == NULL) {
-    /* allocate hash object to store values from app itself */
-    scr_app_hash = kvtree_new();
-    assert(scr_app_hash);
-
-    /* read previous application settings hash */
-    char* app_file = app_config_path();
-    if (app_file != NULL) {
-      scr_config_read(app_file, scr_app_hash);
-    }
-    scr_free(&app_file);
-
-    /* allocate hash object to store values that must not be changed */
-    scr_no_app_hash = kvtree_new();
-    assert(scr_no_app_hash);
-
+  /* allocate storage and read in config files if we haven't already */
+  if (scr_param_ref_count == 0) {
     /* all parameters used by scripts that run before main code */
     static const char* no_app_params[] = {
       "CACHE",
@@ -439,27 +425,22 @@ void scr_app_hash_init()
       "SCR_WATCHDOG_TIMEOUT_PFS",
     };
 
-    /* parameters used by scripts running after the main code:
+#if 0
+    /* parameters used by scripts running after the main code */
     static const char* post_script_params[] = {
       "SCR_CRC_ON_FLUSH", "SCR_FILE_BUF_SIZE", "SCR_HALT_SECONDS",
     };
-    */
+#endif
 
+    /* allocate hash object to store values that must not be changed */
+    scr_no_app_hash = kvtree_new();
+
+    /* load list of params used in script into the hash listing
+     * params users cannot set with SCR_Config */
     int i;
     for (i = 0; i < sizeof(no_app_params)/sizeof(no_app_params[0]); i++) {
-      kvtree* v = kvtree_set(scr_no_app_hash, no_app_params[i], kvtree_new());
-      assert(v);
+      kvtree_set(scr_no_app_hash, no_app_params[i], kvtree_new());
     }
-  }
-}
-
-/* read config files and store contents */
-int scr_param_init()
-{
-  /* allocate storage and read in config files if we haven't already */
-  if (scr_param_ref_count == 0) {
-    /* read in previous application settings if not yet done */
-    scr_app_hash_init();
 
     /* allocate hash object to hold names we cannot read from the
      * environment */
@@ -518,8 +499,12 @@ int scr_param_finalize()
 
   /* if the reference count is zero, free the data structures */
   if (scr_param_ref_count == 0) {
-    /* free app parameter hash */
-    kvtree_delete(&scr_app_hash);
+    /* NOTE: we do not free scr_app_hash here,
+     * since that is allocated by SCR_Config not scr_param_init,
+     * it will be freed in SCR_Finalize instead */
+
+    /* free the hash listing parameters user cannot set through SCR_Config */
+    kvtree_delete(&scr_no_app_hash);
 
     /* free our parameter hash */
     kvtree_delete(&scr_user_hash);
@@ -540,11 +525,11 @@ int scr_param_finalize()
 /* sets (top level) a parameter to a new value, returning the subkey hash */
 kvtree* scr_param_set(char* name, const char* value)
 {
-  scr_app_hash_init();
-
   /* cannot set parameters that are used by scripts */
   if (kvtree_get(scr_no_app_hash, name)) {
-    return NULL;
+    scr_warn("when using SCR scripts, %s should not be changed at runtime",
+      name
+    );
   }
 
   kvtree* k = kvtree_new();
@@ -559,11 +544,11 @@ kvtree* scr_param_set(char* name, const char* value)
  * value needs to be preserved */
 kvtree* scr_param_set_hash(char* name, kvtree* hash_value)
 {
-  scr_app_hash_init();
-
   /* cannot set parameters that are used by scripts */
   if (kvtree_get(scr_no_app_hash, name)) {
-    return NULL;
+    scr_warn("%s should not be changed at runtime if also using SCR scripts",
+      name
+    );
   }
 
   return kvtree_set(scr_app_hash, name, hash_value);
