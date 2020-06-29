@@ -557,68 +557,73 @@ kvtree* scr_param_set_hash(char* name, kvtree* hash_value)
 /* write application hash to config file $SCR_PREFIX/.scr/app.conf */
 void scr_param_app_hash_write_file(const char *app_config_file)
 {
+  /* no need to write out a file for a NULL hash,
+   * but let's delete any existing file */
+  if (scr_app_hash == NULL) {
+    scr_file_unlink(app_config_file);
+    return;
+  }
+
   FILE* fh = fopen(app_config_file, "w");
   if (fh != NULL) {
-    if (scr_app_hash != NULL) {
-      int success = 1;
-      kvtree_elem* topkey;
-      for (topkey = kvtree_elem_first(scr_app_hash);
-           topkey != NULL && success;
-           topkey = kvtree_elem_next(topkey))
+    int success = 1;
+    kvtree_elem* topkey;
+    for (topkey = kvtree_elem_first(scr_app_hash);
+         topkey != NULL && success;
+         topkey = kvtree_elem_next(topkey))
+    {
+      kvtree_elem* topval;
+      for (topval = kvtree_elem_first(kvtree_elem_hash(topkey));
+           topval != NULL && success;
+           topval = kvtree_elem_next(topval))
       {
-        kvtree_elem* topval;
-        for (topval = kvtree_elem_first(kvtree_elem_hash(topkey));
-             topval != NULL && success;
-             topval = kvtree_elem_next(topval))
+        /* NULL values mark deleted entries */
+        if (topval == NULL) {
+          continue;
+        }
+
+        if (fprintf(fh, "%s=%s",
+            kvtree_elem_key(topkey), kvtree_elem_key(topval)) < 0)
         {
+          success = 0;
+          break;
+        }
+
+        kvtree_elem* key;
+        for (key = kvtree_elem_first(kvtree_elem_hash(topval));
+             key != NULL;
+             key = kvtree_elem_next(key))
+        {
+          kvtree_elem *val = kvtree_elem_first(kvtree_elem_hash(key));
+
           /* NULL values mark deleted entries */
-          if (topval == NULL) {
+          if (val == NULL) {
             continue;
           }
 
-          if (fprintf(fh, "%s=%s",
-              kvtree_elem_key(topkey), kvtree_elem_key(topval)) < 0)
+          if (fprintf(fh, " %s=%s",
+              kvtree_elem_key(key), kvtree_elem_key(val)) < 0)
           {
             success = 0;
             break;
           }
 
-          kvtree_elem* key;
-          for (key = kvtree_elem_first(kvtree_elem_hash(topval));
-               key != NULL;
-               key = kvtree_elem_next(key))
-          {
-            kvtree_elem *val = kvtree_elem_first(kvtree_elem_hash(key));
+          /* assert that app hash is at most a 2-level deep nesting */
+          assert(kvtree_elem_first(kvtree_elem_hash(val)) == NULL);
+        } /* for key */
 
-            /* NULL values mark deleted entries */
-            if (val == NULL) {
-              continue;
-            }
+        if (fputc('\n', fh) == EOF) {
+          success = 0;
+          break;
+        }
+      } /* for topval */
+    } /* for topkey */
 
-            if (fprintf(fh, " %s=%s",
-                kvtree_elem_key(key), kvtree_elem_key(val)) < 0)
-            {
-              success = 0;
-              break;
-            }
-
-            /* assert that app hash is at most a 2-level deep nesting */
-            assert(kvtree_elem_first(kvtree_elem_hash(val)) == NULL);
-          } /* for key */
-
-          if (fputc('\n', fh) == EOF) {
-            success = 0;
-            break;
-          }
-        } /* for topval */
-      } /* for topkey */
-
-      if (! success) {
-        scr_abort(-1,
-          "Failed to write to application parameters hash file '%s' in file %s line %d: %s",
-          app_config_file, __FILE__, __LINE__, strerror(errno)
-        );
-      }
+    if (! success) {
+      scr_abort(-1,
+        "Failed to write to application parameters hash file '%s' in file %s line %d: %s",
+        app_config_file, __FILE__, __LINE__, strerror(errno)
+      );
     }
 
     if (fclose(fh) != 0) {
