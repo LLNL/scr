@@ -2352,23 +2352,58 @@ const char* SCR_Config(const char* config_string)
   /* read in our configuration parameters */
   scr_param_init();
 
-  char* writable_config_string = strdup(config_string);
-  assert(writable_config_string);
-
-  char* toplevel_key = NULL;
+  /* after parsing these values will hold values like the following:
+   *
+   * given a string like "SCR_PREFIX"
+   *   toplevel_key   = "SCR_PREFIX"
+   *   toplevel_value = NULL
+   *   key            = "SCR_PREFIX" (N/A)
+   *   value_hash     = NULL
+   *   is_query       = 1
+   *
+   * given a string like "SCR_PREFIX="
+   *   toplevel_key   = "SCR_PREFIX"
+   *   toplevel_value = NULL
+   *   key            = "SCR_PREFIX" (N/A)
+   *   value_hash     = NULL
+   *   is_query       = 0
+   *
+   * given a string like "SCR_PREFIX=/path/to/prefix"
+   *   toplevel_key   = "SCR_PREFIX"
+   *   toplevel_value = "/path/to/prefix"
+   *   key            = NULL
+   *   value_hash     = NULL
+   *   is_query       = 0
+   *
+   * given an string like "CKPT=0 TYPE"
+   *   toplevel_key   = "CKPT"
+   *   toplevel_value = "0"
+   *   key            = "TYPE"
+   *   value_hash     = NULL
+   *   is_query       = 1
+   *
+   * given an string like "CKPT=0 TYPE=XOR STORE=/tmp"
+   *   toplevel_key   = "CKPT"
+   *   toplevel_value = "0"
+   *   key            = NULL
+   *   value_hash     = TYPE
+   *                      0
+   *                    STORE
+   *                      /tmp
+   *   is_query       = 0
+   */
+  char* toplevel_key   = NULL;
   char* toplevel_value = NULL;
-  kvtree* value_hash = NULL;
+  char* key            = NULL;
+  kvtree* value_hash   = NULL;
+  int is_query         = -1; /* basically tracks if I have seen a '=' but no value yet */
 
   /* this is a small state machine to parse name=value pairs of settings,
    * and while I could encode all of this as a table of transitions, it seems
    * that people are usually unhappy with the table form and like an explicit
-   * set of case / if better.
-   */
-  char *conf = writable_config_string;
-  char* key = NULL;
+   * set of case / if better. */
   char* value = NULL;
-  int is_query = -1; /* basically tracks if I have seen a '=' but no value yet */
-
+  char* conf = writable_config_string;
   enum states {before_key, in_key, after_key, before_value, in_value, done};
   int state = before_key;
   while (state != done) {
@@ -2389,7 +2424,6 @@ const char* SCR_Config(const char* config_string)
         break;
       case in_key:
         if (*conf == '\0') {
-          *conf = '\0';
           state = done;
         } else if (*conf == ' ') {
           *conf = '\0';
@@ -2428,8 +2462,13 @@ const char* SCR_Config(const char* config_string)
           if (toplevel_value == NULL) {
             toplevel_value = value;
           } else if (value_hash == NULL) {
+            /* starting a value after we already have a top level value,
+             * so we're at a point like "CKPT=0 TYPE=<char>" */
             value_hash = kvtree_new();
             assert(value_hash);
+
+            /* TODO: the value string is not well-defined at this point
+             * do we want to set a value in the kvtree? */
             kvtree_set(value_hash, value, NULL);
           }
           state = in_value;
@@ -2448,12 +2487,18 @@ const char* SCR_Config(const char* config_string)
         } else {
           state = in_value;
         }
+
+        /* check whether we have just completed a value string */
         if (state != in_value) {
+          /* TODO: should this be checking for value_hash instead of toplevel_value? */
+
+          /* just finished a value string, if we have a toplevel_value
+           * then insert new key/value into value_hash */
           if (toplevel_value) {
             kvtree_set_kv(value_hash, key, value);
           }
+          key   = NULL;
           value = NULL;
-          key = NULL;
         }
         break;
     }
@@ -2475,6 +2520,7 @@ const char* SCR_Config(const char* config_string)
 
   const char* retval = NULL;
   if (is_query) {
+    /* user wants to query the current value of a setting */
     if (value_hash) {
       scr_abort(-1,
         "Cannot get config options at same time as setting them. '%s' @ %s:%d",
@@ -2482,48 +2528,65 @@ const char* SCR_Config(const char* config_string)
       );
     }
     assert(value_hash == NULL);
+
     if (toplevel_value == NULL) {
+      /* user is trying to query for the value of a simple key/value pair,
+       * given a parameter name like "SCR_PREFIX" */
       const char* value = scr_param_get(toplevel_key);
       if (value != NULL) {
+        /* found a setting for this parameter, strdup and return it */
         retval = strdup(value);
       }
     } else {
-      kvtree* toplevel_hash = (kvtree*)scr_param_get_hash(toplevel_key);
+      /* user is trying to query the subvalue of a two-level parameter
+       * given an input like "CKPT=0 TYPE" with
+       *   toplevel_key   = CKPT
+       *   toplevel_value = 0
+       *   key            = TYPE */
+      kvtree* toplevel_hash = (kvtree*) scr_param_get_hash(toplevel_key);
       if (toplevel_hash) {
         const kvtree* toplevel_value_hash = kvtree_get(toplevel_hash, toplevel_value);
         if (toplevel_value_hash) {
           const char* value = kvtree_elem_get_first_val(toplevel_value_hash, key);
           if (value != NULL) {
+            /* found a setting for this parameter, strdup and return it */
             retval = strdup(value);
           }
         }
       }
-      /* param_get hash returns a copy of the value hash, so free it here */
       kvtree_delete(&toplevel_hash);
     }
   } else {
+    /* user wants to set or unset a parameter */
     if (value_hash == NULL) {
+      /* dealing with a simple key/value parameter pair */
       if (toplevel_value) {
+        /* user want to set a value has given a
+         * string like "SCR_PREFIX=/path/to/prefix" */
         scr_param_set(toplevel_key, toplevel_value);
       } else {
+        /* user wants to unset a value has given
+         * a string like "SCR_PREFIX=" */
         scr_param_set_hash(toplevel_key, NULL);
       }
     } else {
-      assert(value_hash);
+      /* user wants to set or unset a two-level parameter
+       * as in CKPT=0 TYPE=XOR */
 
+      /* lookup hash for top level key, as in "CKPT" */
       kvtree* toplevel_hash = (kvtree*)scr_param_get_hash(toplevel_key);
       if (toplevel_hash == NULL) {
+        /* did not find an existing hash for the given key, so create a new one */
         toplevel_hash = kvtree_new();
       }
 
-      kvtree* toplevel_value_hash = (kvtree*)kvtree_get(toplevel_hash, toplevel_value);
+      /* lookup hash for top level value, as in "0" */
+      kvtree* toplevel_value_hash = kvtree_get(toplevel_hash, toplevel_value);
       if (toplevel_value_hash == NULL) {
-        toplevel_value_hash = kvtree_set(toplevel_hash, toplevel_value,
-          kvtree_new()
-        );
+        toplevel_value_hash = kvtree_set(toplevel_hash, toplevel_value, kvtree_new());
       }
 
-      assert(value_hash);
+      /* copy hash provided by user into two-level parameter */
       kvtree_merge(toplevel_value_hash, value_hash);
 
       /* need to overwrite the full toplevel hash since there is no function to
@@ -2531,8 +2594,9 @@ const char* SCR_Config(const char* config_string)
       scr_param_set_hash(toplevel_key, toplevel_hash);
 
       kvtree_delete(&value_hash);
+
+      /* do not free toplevel_hash since I passed ownership to the parameter code */
     }
-    /* do not free toplevel_hash since I passed ownership to the parameter code */
   }
 
   free(writable_config_string);
