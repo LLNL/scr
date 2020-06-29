@@ -2325,11 +2325,14 @@ const char* SCR_Config(const char* config_string)
 
   /* ensure all ranks specified identical value for config_string */
   char* tmpstr = NULL;
-  if (scr_my_rank_world == 0) {
+  if (scr_my_rank_world == 0 && config_string != NULL) {
     tmpstr = strdup(config_string);
   }
   scr_str_bcast(&tmpstr, 0, scr_comm_world);
-  if (strcmp(config_string, tmpstr) != 0) {
+  if ((config_string == NULL && tmpstr != NULL) ||
+      (config_string != NULL && tmpstr == NULL) ||
+      (config_string != NULL && tmpstr != NULL && strcmp(config_string, tmpstr) != 0))
+  {
     scr_abort(-1, "SCR_Config string must be identical on all processes @ %s:%d",
       __FILE__, __LINE__
     );
