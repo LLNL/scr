@@ -359,38 +359,15 @@ static char* app_config_path()
 {
   char* file = NULL;
 
-  /* look in the prefix directory */
-  char* prefix = NULL;
+  /* get the prefix directory */
   char* value = getenv("SCR_PREFIX");
-  if (value != NULL) {
-    /* user set SCR_PREFIX, strdup that value */
-    prefix = strdup(value);
-  } else {
-    /* if user didn't set with SCR_PREFIX,
-     * pick up the current working directory as a default */
-    char current_dir[SCR_MAX_FILENAME];
-    if (scr_getcwd(current_dir, sizeof(current_dir)) != SCR_SUCCESS) {
-      scr_abort(-1, "Problem reading current working directory @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
-    prefix = strdup(current_dir);
-  }
-
-  /* couldn't find a prefix directory, so bail */
-  if (prefix == NULL) {
-    return file;
-  }
+  spath* prefix_path = scr_get_prefix(value);
 
   /* tack file name on to directory */
-  spath* path_prefix_scr = spath_from_str(prefix);
-  spath_append_str(path_prefix_scr, ".scr");
-  spath_append_str(path_prefix_scr, SCR_CONFIG_FILE_APP);
-  file = spath_strdup(path_prefix_scr);
-  spath_delete(&path_prefix_scr);
-
-  /* free the prefix dir which we strdup'd */
-  scr_free(&prefix);
+  spath_append_str(prefix_path, ".scr");
+  spath_append_str(prefix_path, SCR_CONFIG_FILE_APP);
+  file = spath_strdup(prefix_path);
+  spath_delete(&prefix_path);
 
   return file;
 }
