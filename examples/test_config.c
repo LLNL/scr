@@ -208,6 +208,16 @@ int main (int argc, char* argv[])
   tests_passed &= test_env("$VAR_A ${VAR_B>}", "value a ${VAR_B>}");
   tests_passed &= test_env("$VAR_C", "");
 
+  scr_param_finalize();
+
+  /* test reading in values from app.conf file */
+  /* I cannot use SCR_Config to test for non-existence since it will read in
+   * app.conf */
+  tests_passed &= test_param_get("SCR_COPY_TYPE", NULL);
+  scr_param_init();
+  tests_passed &= test_param_get("SCR_COPY_TYPE", "SINGLE");
+  scr_param_finalize();
+
   /* re-enable debugging */
   SCR_Config("DEBUG=1");
   tests_passed &= test_cfg("DEBUG", "1");
@@ -221,16 +231,6 @@ int main (int argc, char* argv[])
   } else {
     fprintf(stderr, "Failed initializing SCR\n");
   }
-
-  scr_param_finalize();
-
-  /* test reading in values from app.conf file */
-  /* I cannot use SCR_Config to test for non-existence since it will read in
-   * app.conf */
-  tests_passed &= test_param_get("SCR_COPY_TYPE", NULL);
-  scr_param_init();
-  tests_passed &= test_param_get("SCR_COPY_TYPE", "SINGLE");
-  scr_param_finalize();
 
   MPI_Finalize();
 
