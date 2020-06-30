@@ -126,8 +126,8 @@ sub read_config_file
         $line =~ s/\s*$//g; # strip any trailing whitespace from line
         $line =~ s/=/ /g;   # replace '=' with spaces
         my @parts = split(/\s+/, $line);
-        my $master_key   = undef;
-        my $master_value = undef;
+        my $top_key   = undef;
+        my $top_value = undef;
         while (@parts > 0) {
           my $part = shift @parts;
           if ($part =~ /^#/) {
@@ -149,12 +149,12 @@ sub read_config_file
             my $value = interpolate_variables($raw_value);
 
             # record the key value pair in the hash
-            if (defined $master_key) {
-              $$h{$master_key}{$master_value}{$key}{$value} = {};
+            if (defined $top_key) {
+              $$h{$top_key}{$top_value}{$key}{$value} = {};
             } else {
-              $master_key   = $key;
-              $master_value = $value;
-              $$h{$master_key}{$master_value} = {};
+              $top_key   = $key;
+              $top_value = $value;
+              $$h{$top_key}{$top_value} = {};
             }
           }
         }

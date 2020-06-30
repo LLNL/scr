@@ -1037,25 +1037,25 @@ static int scr_start_output(const char* name, int flags)
 
   /* ensure that name and flags match across ranks,
    * broadcast values from rank 0 and compare to that */
-  char* master_name = NULL;
-  int master_flags;
+  char* root_name = NULL;
+  int root_flags;
   if (scr_my_rank_world == 0) {
-    master_name  = strdup(dataset_name);
-    master_flags = flags;
+    root_name  = strdup(dataset_name);
+    root_flags = flags;
   }
-  scr_str_bcast(&master_name, 0, scr_comm_world);
-  MPI_Bcast(&master_flags, 1, MPI_INT, 0, scr_comm_world);
-  if (strcmp(dataset_name, master_name) != 0) {
+  scr_str_bcast(&root_name, 0, scr_comm_world);
+  MPI_Bcast(&root_flags, 1, MPI_INT, 0, scr_comm_world);
+  if (strcmp(dataset_name, root_name) != 0) {
     scr_abort(-1, "Dataset name provided to SCR_Start_output must be identical on all processes @ %s:%d",
       __FILE__, __LINE__
     );
   }
-  if (master_flags != flags) {
+  if (root_flags != flags) {
     scr_abort(-1, "Dataset flags provided to SCR_Start_output must be identical on all processes @ %s:%d",
       __FILE__, __LINE__
     );
   }
-  scr_free(&master_name);
+  scr_free(&root_name);
 
   /* rank 0 builds dataset object and broadcasts it out to other ranks */
   scr_dataset* dataset = scr_dataset_new();
@@ -2006,7 +2006,7 @@ int SCR_Init()
   /* allocate a new global filemap object */
   scr_cindex = scr_cache_index_new();
 
-  /* master on each node reads all filemaps and distributes them to other ranks
+  /* leader on each node reads all filemaps and distributes them to other ranks
    * on the node, we take this step in case the number of ranks on this node
    * has changed since the last run */
   scr_cache_index_read(scr_cindex_file, scr_cindex);

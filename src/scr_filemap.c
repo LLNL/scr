@@ -21,14 +21,14 @@ GOALS:
   - support multiple datasets at different cache levels
 
 READ:
-  master process on each node reads filemap
+  leader process on each node reads filemap
   and distributes pieces to others
 
 WRITE:
-  all processes send their file info to master
-  and master writes it out
+  all processes send their file info to leader
+  and leader writes it out
 
-  master filemap file
+  leader filemap file
     list of ranks this node has files for
       for each rank, list of dataset ids
         for each dataset id, list of locations (RAM, SSD, PFS, etc)

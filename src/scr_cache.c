@@ -464,7 +464,7 @@ int scr_cache_purge(scr_cache_index* cindex)
 
   /* TODO: want to clear the map object here? */
 
-  /* TODO: want to delete the master map file? */
+  /* TODO: want to delete the cache index file? */
 
   /* free our list of dataset ids */
   scr_free(&dsets);

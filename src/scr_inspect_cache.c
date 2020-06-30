@@ -176,7 +176,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  spath* scr_master_map_file = spath_from_str(strdup(argv[1]));
+  spath* scr_main_map_file = spath_from_str(strdup(argv[1]));
 
   /* get my hostname */
   if (gethostname(scr_my_hostname, sizeof(scr_my_hostname)) != 0) {
@@ -186,14 +186,14 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  /* read in the master map */
+  /* read in the main map */
   kvtree* hash = kvtree_new();
-  kvtree_read_path(scr_master_map_file, hash);
+  kvtree_read_path(scr_main_map_file, hash);
 
   /* create an empty filemap */
   scr_filemap* map = scr_filemap_new();
 
-  /* for each filemap listed in the master map */
+  /* for each filemap listed in the main map */
   kvtree_elem* elem;
   for (elem = kvtree_elem_first(kvtree_get(hash, "Filemap"));
        elem != NULL;
@@ -277,7 +277,7 @@ int main(int argc, char* argv[])
     }
   }
 
-  spath_delete(&scr_master_map_file);
+  spath_delete(&scr_main_map_file);
 
   return 0;
 }

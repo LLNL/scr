@@ -87,7 +87,7 @@ static void errhandler_cb(size_t evtHdlr_reg_id,
 {
         int i;
 
-        printf("\n------Master spawn proc %s:%d NOTIFIED!!! with status %d, results #%d, ninfo #%d, called %d times by rank: %d \n",
+        printf("\n------Leader spawn proc %s:%d NOTIFIED!!! with status %d, results #%d, ninfo #%d, called %d times by rank: %d \n",
                main_proc.nspace,
                main_proc.rank,
                status,
@@ -352,7 +352,7 @@ int main(int argc, char **argv, const char **environ)
         }
 
         if(verbose_print){
-                printf("master process will spawn %d instances; app to run: %s\n\n",
+                printf("leader process will spawn %d instances; app to run: %s\n\n",
                        number_of_clients, path_to_app);
                 printf("pmix version: %s (host: %s)\n", PMIx_Get_version(), hostn);
         }
@@ -630,7 +630,7 @@ done:
 
         if(verbose_print){
                 fprintf(stdout,
-                        "spawn master process (rank %d) (host %s) finalizing\n",
+                        "spawn leader process (rank %d) (host %s) finalizing\n",
                         main_proc.rank,
                         hostn);
         }
@@ -642,13 +642,13 @@ done:
         if(retval == PMIX_SUCCESS)
         {
                 if(verbose_print){
-                        printf("spawn master process %d finalize success\n\n",
+                        printf("spawn leader process %d finalize success\n\n",
                                main_proc.rank);
                 }
         }
         else
         {
-                printf("spawn master process %d pmix_finalize FAILURE: %d\n\n",
+                printf("spawn leader process %d pmix_finalize FAILURE: %d\n\n",
                        main_proc.rank,
                        retval);
         }
