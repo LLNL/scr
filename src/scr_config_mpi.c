@@ -44,3 +44,19 @@ int scr_config_read(const char* file, kvtree* hash)
 
   return rc;
 }
+
+/* write parameters to config file */
+int scr_config_write(const char* file, const kvtree* hash)
+{
+  int rc = SCR_FAILURE;
+
+  /* only rank 0 reads the file */
+  if (scr_my_rank_world == 0) {
+    rc = scr_config_write_common(file, hash);
+  }
+
+  /* broadcast whether rank 0 read the file ok */
+  MPI_Bcast(&rc, 1, MPI_INT, 0, scr_comm_world);
+
+  return rc;
+}

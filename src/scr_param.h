@@ -50,9 +50,6 @@ int scr_param_init(void);
 /* free contents from config files */
 int scr_param_finalize(void);
 
-/* write application hash to config file $SCR_PREFIX/.scr/app.conf */
-void scr_param_app_hash_write_file(const char *app_config_file);
-
 /* searchs for name and returns a character pointer to its value if set,
  * returns NULL if not found */
 const char* scr_param_get(const char* name);
