@@ -100,7 +100,11 @@ static kvtree* scr_db_types = NULL; /* caches type string to type id lookups */
 #endif
 
 /* connects to the SCR log database */
-int scr_mysql_connect(const char* host, const char* user, const char* pass, const char* name)
+int scr_mysql_connect(
+  const char* host,
+  const char* user,
+  const char* pass,
+  const char* name)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* create our type-string-to-id cache */
@@ -421,7 +425,12 @@ int scr_mysql_type_id(const char* type, int* id)
 }
 
 /* records an SCR event in the SCR log database */
-int scr_mysql_log_event(const char* type, const char* note, const int* dset, const time_t* start, const double* secs)
+int scr_mysql_log_event(
+  const char* type,
+  const char* note,
+  const int* dset,
+  const time_t* start,
+  const double* secs)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* lookup the id for the type string */
@@ -492,7 +501,14 @@ int scr_mysql_log_event(const char* type, const char* note, const int* dset, con
 }
 
 /* records an SCR file transfer (copy/fetch/flush/drain) in the SCR log database */
-int scr_mysql_log_transfer(const char* type, const char* from, const char* to, const int* dset, const time_t* start, const double* secs, const double* bytes)
+int scr_mysql_log_transfer(
+  const char* type,
+  const char* from,
+  const char* to,
+  const int* dset,
+  const time_t* start,
+  const double* secs,
+  const double* bytes)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* lookup the id for the type string */
@@ -655,7 +671,11 @@ int scr_mysql_read_job(unsigned long username_id, unsigned long jobname_id, unsi
   return SCR_SUCCESS;
 }
 
-int scr_mysql_register_job(const char* username, const char* jobname, unsigned long start, unsigned long* jobid)
+int scr_mysql_register_job(
+  const char* username,
+  const char* jobname,
+  unsigned long start,
+  unsigned long* jobid)
 {
   int rc = SCR_SUCCESS;
 
@@ -941,7 +961,12 @@ int scr_log_finalize()
 }
 
 /* given a username, a jobname, and a start time, lookup (or create) the id for this job */
-int scr_log_job(const char* username, const char* hostname, const char* jobid, const char* prefix, time_t start)
+int scr_log_job(
+  const char* username,
+  const char* hostname,
+  const char* jobid,
+  const char* prefix,
+  time_t start)
 {
   int rc = SCR_SUCCESS;
 
@@ -1184,10 +1209,6 @@ int scr_log_event(
     rc = scr_mysql_log_event(type, note, dset, &start_val, secs);
   }
 
-  scr_dbg(1, "scr_log_event: type %s, note %s, dset %d, start %s, secs %f",
-    type, note, dset_val, asctime(timeinfo), secs_val
-  );
-
   return rc;
 }
 
@@ -1310,10 +1331,6 @@ int scr_log_transfer(
   if (db_enable) {
     rc = scr_mysql_log_transfer(type, from, to, dset, start, secs, bytes);
   }
-
-  scr_dbg(1, "scr_log_transfer: type %s, src %s, dst %s, dset %d, start %s, secs %f, bytes %f, files%d",
-    type, from, to, dset_val, asctime(timeinfo), secs_val, bytes_val, files_val
-  );
 
   return rc;
 }
