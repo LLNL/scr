@@ -424,6 +424,15 @@ int scr_param_init()
     scr_no_user_hash = kvtree_new();
     kvtree_set(scr_no_user_hash, "SCR_CNTL_BASE", kvtree_new());
 
+    /* read in app config file which records any parameters set
+     * by application through calls to SCR_Config */
+    char* app_file = app_config_path();
+    if (app_file != NULL) {
+      scr_app_hash = kvtree_new();
+      scr_config_read(app_file, scr_app_hash);
+    }
+    scr_free(&app_file);
+
     /* allocate hash object to store values from user config file,
      * if specified */
     char* user_file = user_config_path();
@@ -479,6 +488,15 @@ int scr_param_finalize()
     /* NOTE: we do not free scr_app_hash here,
      * since that is allocated by SCR_Config not scr_param_init,
      * it will be freed in SCR_Finalize instead */
+    /* write out scr_app_hash and free it */
+    
+    /* store parameters set by app code for use by post-run scripts */
+    char* app_file = app_config_path();
+    if (app_file != NULL) {
+      scr_config_write(app_file, scr_app_hash);
+    }
+    scr_free(&app_file);
+    kvtree_delete(&scr_app_hash);
 
     /* free the hash listing parameters user cannot set through SCR_Config */
     kvtree_delete(&scr_no_app_hash);
@@ -529,90 +547,4 @@ kvtree* scr_param_set_hash(char* name, kvtree* hash_value)
   }
 
   return kvtree_set(scr_app_hash, name, hash_value);
-}
-
-/* write application hash to config file $SCR_PREFIX/.scr/app.conf */
-void scr_param_app_hash_write_file(const char *app_config_file)
-{
-  /* no need to write out a file for a NULL hash,
-   * but let's delete any existing file */
-  if (scr_app_hash == NULL) {
-    scr_file_unlink(app_config_file);
-    return;
-  }
-
-  FILE* fh = fopen(app_config_file, "w");
-  if (fh != NULL) {
-    int success = 1;
-    kvtree_elem* topkey;
-    for (topkey = kvtree_elem_first(scr_app_hash);
-         topkey != NULL && success;
-         topkey = kvtree_elem_next(topkey))
-    {
-      kvtree_elem* topval;
-      for (topval = kvtree_elem_first(kvtree_elem_hash(topkey));
-           topval != NULL && success;
-           topval = kvtree_elem_next(topval))
-      {
-        /* NULL values mark deleted entries */
-        if (topval == NULL) {
-          continue;
-        }
-
-        if (fprintf(fh, "%s=%s",
-            kvtree_elem_key(topkey), kvtree_elem_key(topval)) < 0)
-        {
-          success = 0;
-          break;
-        }
-
-        kvtree_elem* key;
-        for (key = kvtree_elem_first(kvtree_elem_hash(topval));
-             key != NULL;
-             key = kvtree_elem_next(key))
-        {
-          kvtree_elem *val = kvtree_elem_first(kvtree_elem_hash(key));
-
-          /* NULL values mark deleted entries */
-          if (val == NULL) {
-            continue;
-          }
-
-          if (fprintf(fh, " %s=%s",
-              kvtree_elem_key(key), kvtree_elem_key(val)) < 0)
-          {
-            success = 0;
-            break;
-          }
-
-          /* assert that app hash is at most a 2-level deep nesting */
-          assert(kvtree_elem_first(kvtree_elem_hash(val)) == NULL);
-        } /* for key */
-
-        if (fputc('\n', fh) == EOF) {
-          success = 0;
-          break;
-        }
-      } /* for topval */
-    } /* for topkey */
-
-    if (! success) {
-      scr_abort(-1,
-        "Failed to write to application parameters hash file '%s' in file %s line %d: %s",
-        app_config_file, __FILE__, __LINE__, strerror(errno)
-      );
-    }
-
-    if (fclose(fh) != 0) {
-      scr_abort(-1,
-        "Failed to close application parameters hash file '%s' in file %s line %d: %s",
-        app_config_file, __FILE__, __LINE__, strerror(errno)
-      );
-    }
-  } else {
-    scr_abort(-1,
-      "Failed to open application parameters hash file '%s' in file %s line %d: %s",
-      app_config_file, __FILE__, __LINE__, strerror(errno)
-    );
-  }
 }

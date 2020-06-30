@@ -590,6 +590,28 @@ static int scr_get_params()
     scr_debug = atoi(value);
   }
 
+  /* set scr_prefix_path and scr_prefix */
+  value = scr_param_get("SCR_PREFIX");
+  scr_prefix_path = scr_get_prefix(value);
+  scr_prefix = spath_strdup(scr_prefix_path);
+
+  /* define the path to the .scr subdir within the prefix dir */
+  spath* path_prefix_scr = spath_dup(scr_prefix_path);
+  spath_append_str(path_prefix_scr, ".scr");
+  scr_prefix_scr = spath_strdup(path_prefix_scr);
+  spath_delete(&path_prefix_scr);
+
+  /* TODO: create store descriptor for prefix directory */
+  /* create the .scr subdirectory */
+  if (scr_my_rank_world == 0) {
+    mode_t mode_dir = scr_getmode(1, 1, 1);
+    if (scr_mkdir(scr_prefix_scr, mode_dir) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to create .scr subdirectory %s @ %s:%d",
+        scr_prefix_scr, __FILE__, __LINE__
+      );
+    }
+  }
+
   /* set logging */
   if ((value = scr_param_get("SCR_LOG_ENABLE")) != NULL) {
     scr_log_enable = atoi(value);
@@ -929,41 +951,6 @@ static int scr_get_params()
         __FILE__, __LINE__
       );
     }
-  }
-
-  /* set scr_prefix_path and scr_prefix */
-  value = scr_param_get("SCR_PREFIX");
-  scr_prefix_path = scr_get_prefix(value);
-  scr_prefix = spath_strdup(scr_prefix_path);
-
-  /* define the path to the .scr subdir within the prefix dir */
-  spath* path_prefix_scr = spath_dup(scr_prefix_path);
-  spath_append_str(path_prefix_scr, ".scr");
-  scr_prefix_scr = spath_strdup(path_prefix_scr);
-  spath_delete(&path_prefix_scr);
-
-  /* TODO: create store descriptor for prefix directory */
-  /* create the .scr subdirectory */
-  if (scr_my_rank_world == 0) {
-    mode_t mode_dir = scr_getmode(1, 1, 1);
-    if (scr_mkdir(scr_prefix_scr, mode_dir) != SCR_SUCCESS) {
-      scr_abort(-1, "Failed to create .scr subdirectory %s @ %s:%d",
-        scr_prefix_scr, __FILE__, __LINE__
-      );
-    }
-  }
-
-  /* store parameters set by app code for use by post-run scripts */
-  if (scr_my_rank_world == 0) {
-    spath* path_app_config = spath_from_str(scr_prefix_scr);
-    spath_append_str(path_app_config, SCR_CONFIG_FILE_APP);
-    spath_reduce(path_app_config);
-    char *app_config = spath_strdup(path_app_config);
-    spath_delete(&path_app_config);
-
-    scr_param_app_hash_write_file(app_config);
-
-    scr_free(&app_config);
   }
 
   /* done reading parameters, can release the data structures now */
@@ -2136,8 +2123,10 @@ int SCR_Finalize()
    * are calling this as a collective */
   MPI_Barrier(scr_comm_world);
 
+#if 0
   /* free user hash if one was allocated */
   kvtree_delete(&scr_app_hash);
+#endif
 
   if (scr_my_rank_world == 0) {
     /* stop the clock for measuring the compute time */
@@ -2347,10 +2336,33 @@ const char* SCR_Config(const char* config_string)
     return NULL;
   }
 
+#if 0
   /* allocate a hash to record params set through SCR_Config */
   if (scr_app_hash == NULL) {
     scr_app_hash = kvtree_new();
   }
+#endif
+
+  /* create directory to hold app config file */
+  if (scr_my_rank_world == 0) {
+    /* get the prefix directory */
+    char* value = getenv("SCR_PREFIX");
+    spath* prefix_path = scr_get_prefix(value);
+    spath_append_str(prefix_path, ".scr");
+    const char* dirname = spath_strdup(prefix_path);
+    spath_delete(&prefix_path);
+
+    /* create the directory */
+    mode_t mode_dir = scr_getmode(1, 1, 1);
+    if (scr_mkdir(dirname, mode_dir) != SCR_SUCCESS) {
+      scr_abort(-1, "Failed to create directory %s @ %s:%d",
+        dirname, __FILE__, __LINE__
+      );
+    }
+
+    scr_free(&dirname);
+  }
+  MPI_Barrier(scr_comm_world);
 
   /* read in our configuration parameters */
   scr_param_init();

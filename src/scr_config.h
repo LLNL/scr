@@ -18,4 +18,9 @@ int scr_config_read_common(const char* file, kvtree* hash);
 
 int scr_config_read(const char* file, kvtree* hash);
 
+int scr_config_write_common(const char* file, const kvtree* hash);
+
+/* write parameters to config file */
+int scr_config_write(const char* file, const kvtree* hash);
+
 #endif

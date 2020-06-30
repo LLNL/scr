@@ -37,3 +37,10 @@ int scr_config_read(const char* file, kvtree* hash)
   int rc = scr_config_read_common(file, hash);
   return rc;
 }
+
+/* write parameters from hash to config file */
+int scr_config_write(const char* file, const kvtree* hash)
+{
+  int rc = scr_config_write_common(file, hash);
+  return rc;
+}
