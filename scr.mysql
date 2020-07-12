@@ -3,7 +3,7 @@
 # following instructions should work, however, they have not
 # been well tested.  If you find any problems, please notify
 # the SCR developers.  To disable this feature, configure SCR
-# with the --without-mysql flag, or set SCR_DB_ENABLE=0 at
+# with the --without-mysql flag, or set SCR_LOG_DB_ENABLE=0 at
 # runtime or in the scr.conf file.
 #
 # To use this feature, one must run a MySQL server on a host
@@ -42,15 +42,16 @@
 # For the time being, only the scr_insert user is used, e.g.,
 #
 #   >>: cat /etc/scr.conf
-#   SCR_DB_ENABLE=1
-#   SCR_DB_HOST=host.running.mysql.server
-#   SCR_DB_NAME=scr
-#   SCR_DB_USER=scr_insert
-#   SCR_DB_PASS=MySecretPassword2
+#   SCR_LOG_ENABLE=1
+#   SCR_LOG_DB_ENABLE=1
+#   SCR_LOG_DB_HOST=host.running.mysql.server
+#   SCR_LOG_DB_NAME=scr
+#   SCR_LOG_DB_USER=scr_insert
+#   SCR_LOG_DB_PASS=MySecretPassword2
 
 # !!!! WARNING !!!!
 # Currently all users have full read and write access to the
-# SCR logging database, so clever users can see data on jobs from
+# SCR logging database, so users can see data on jobs from
 # other users.
 # !!!! WARNING !!!!
 
@@ -87,21 +88,21 @@ CREATE TABLE IF NOT EXISTS `types` (
         `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         `name` VARCHAR(512) NOT NULL,
         UNIQUE INDEX `name` (`name`(512))
-) TYPE=MyISAM;
+);
 
 # maps a username string to an id
 CREATE TABLE IF NOT EXISTS `usernames` (
         `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         `name` VARCHAR(512) NOT NULL,
         UNIQUE INDEX `name` (`name`(512))
-) TYPE=MyISAM;
+);
 
 # maps a jobname string to an id
 CREATE TABLE IF NOT EXISTS `jobnames` (
         `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         `name` VARCHAR(512) NOT NULL,
         UNIQUE INDEX `name` (`name`(512))
-) TYPE=MyISAM;
+);
 
 # records username, jobname, and starttime of a job
 # the same username and jobname maps to the same "job"
@@ -112,7 +113,7 @@ CREATE TABLE IF NOT EXISTS `jobs` (
         `jobname_id`  INT UNSIGNED NOT NULL, # id of the name of the job
         `start`       DATETIME     NOT NULL, # time that job started
         UNIQUE INDEX `name` (`username_id`,`jobname_id`)
-) TYPE=MyISAM;
+);
 
 # records checkpoint, fetch, and flush operation times and directories
 CREATE TABLE IF NOT EXISTS `transfers` (
@@ -120,17 +121,19 @@ CREATE TABLE IF NOT EXISTS `transfers` (
         `job_id`        INT          NOT NULL, # id to jobs table
         `type_id`       INT UNSIGNED NOT NULL, # fetch, flush, or drain?
         `dset_id`       INT UNSIGNED NOT NULL, # SCR dataset number
+        `dset_name`     VARCHAR(512) NOT NULL, # dataset name
         `start`         DATETIME     NOT NULL, # start time of operation
         `end`           DATETIME     NOT NULL, # end time of operation
-        `time`          FLOAT        NOT NULL, # total time of operation
+        `secs`          FLOAT        NOT NULL, # total time of operation
         `bytes`         FLOAT        NOT NULL, # total bytes moved
+        `files`         INT UNSIGNED NOT NULL, # total files moved
         `bw`            FLOAT        NOT NULL, # bandwidth of operation
         `from`          BLOB         NOT NULL, # source directory
         `to`            BLOB         NOT NULL, # target directory
         INDEX `jobid_start` (`job_id`,`start`),
         INDEX `jobid_typeid_start` (`job_id`,`type_id`,`start`),
         INDEX `typeid_start` (`type_id`,`start`)
-) TYPE=MyISAM;
+);
 
 # records various events, including failed nodes
 CREATE TABLE IF NOT EXISTS `events` (
@@ -138,10 +141,11 @@ CREATE TABLE IF NOT EXISTS `events` (
         `job_id`        INT          NOT NULL, # id to jobs table
         `type_id`       INT UNSIGNED NOT NULL, # fetch, flush, or drain?
         `dset_id`       INT UNSIGNED     NULL, # SCR dataset number
+        `dset_name`     VARCHAR(512)     NULL, # dataset name
         `start`         DATETIME         NULL, # start time of operation
-        `time`          FLOAT            NULL, # total time of operation
+        `secs`          FLOAT            NULL, # total time of operation
         `note`          BLOB             NULL, # source directory
         INDEX `jobid_start` (`job_id`,`start`),
         INDEX `jobid_typeid_start` (`job_id`,`type_id`,`start`),
         INDEX `typeid_start` (`type_id`,`start`)
-) TYPE=MyISAM;
+);
