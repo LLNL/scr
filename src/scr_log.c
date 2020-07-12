@@ -429,6 +429,7 @@ int scr_mysql_log_event(
   const char* type,
   const char* note,
   const int* dset,
+  const char* name,
   const time_t* start,
   const double* secs)
 {
@@ -444,12 +445,14 @@ int scr_mysql_log_event(
 
   char* qnote  = scr_mysql_quote_string(note);
   char* qdset  = scr_mysql_quote_int(dset);
+  char* qname  = scr_mysql_quote_string(name);
   char* qstart = scr_mysql_quote_seconds(start);
   char* qsecs  = scr_mysql_quote_double(secs);
 
   /* check that we got valid strings for each of our parameters */
   if (qnote  == NULL ||
       qdset  == NULL ||
+      qname  == NULL ||
       qstart == NULL ||
       qsecs  == NULL)
   {
@@ -464,16 +467,17 @@ int scr_mysql_log_event(
   int n = snprintf(query, sizeof(query),
     "INSERT"
     " INTO `events`"
-    " (`id`,`job_id`,`type_id`,`dset_id`,`start`,`time`,`note`)"
+    " (`id`,`job_id`,`type_id`,`dset_id`,`dset_name`,`start`,`secs`,`note`)"
     " VALUES"
-    " (NULL, %lu, %d, %s, %s, %s, %s)"
+    " (NULL, %lu, %d, %s, %s, %s, %s, %s)"
     " ;",
-    scr_db_jobid, type_id, qdset, qstart, qsecs, qnote
+    scr_db_jobid, type_id, qdset, qname, qstart, qsecs, qnote
   );
 
   /* free the strings as they are now encoded into the query */
   scr_free(&qnote);
   scr_free(&qdset);
+  scr_free(&qname);
   scr_free(&qstart);
   scr_free(&qsecs);
 
@@ -506,9 +510,11 @@ int scr_mysql_log_transfer(
   const char* from,
   const char* to,
   const int* dset,
+  const char* name,
   const time_t* start,
   const double* secs,
-  const double* bytes)
+  const double* bytes,
+  const double* files)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* lookup the id for the type string */
@@ -540,21 +546,25 @@ int scr_mysql_log_transfer(
   char* qfrom  = scr_mysql_quote_string(from);
   char* qto    = scr_mysql_quote_string(to);
   char* qdset  = scr_mysql_quote_int(dset);
+  char* qname  = scr_mysql_quote_string(name);
   char* qstart = scr_mysql_quote_seconds(start);
   char* qend   = scr_mysql_quote_seconds(end);
   char* qsecs  = scr_mysql_quote_double(secs);
   char* qbytes = scr_mysql_quote_double(bytes);
   char* qbw    = scr_mysql_quote_double(bw);
+  char* qfiles = scr_mysql_quote_int(files);
 
   /* check that we got valid strings for each of our parameters */
   if (qfrom  == NULL ||
       qto    == NULL ||
       qdset  == NULL ||
+      qname  == NULL ||
       qstart == NULL ||
       qend   == NULL ||
       qsecs  == NULL ||
       qbytes == NULL ||
-      qbw    == NULL)
+      qbw    == NULL ||
+      qfiles == NULL)
   {
     scr_err("Failed to escape and quote one or more arguments @ %s:%d",
             __FILE__, __LINE__
@@ -567,22 +577,24 @@ int scr_mysql_log_transfer(
   int n = snprintf(query, sizeof(query),
     "INSERT"
     " INTO `transfers`"
-    " (`id`,`job_id`,`type_id`,`dset_id`,`start`,`end`,`time`,`bytes`,`bw`,`from`,`to`)"
+    " (`id`,`job_id`,`type_id`,`dset_id`,`dset_name`,`start`,`end`,`secs`,`bytes`,`bw`,`files`,`from`,`to`)"
     " VALUES"
-    " (NULL, %lu, %d, %s, %s, %s, %s, %s, %s, %s, %s)"
+    " (NULL, %lu, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
     " ;",
-    scr_db_jobid, type_id, qdset, qstart, qend, qsecs, qbytes, qbw, qfrom, qto
+    scr_db_jobid, type_id, qdset, qname, qstart, qend, qsecs, qbytes, qbw, qfiles, qfrom, qto
   );
 
   /* free the strings as they are now encoded into the query */
   scr_free(&qfrom);
   scr_free(&qto);
   scr_free(&qdset);
+  scr_free(&qname);
   scr_free(&qstart);
   scr_free(&qend);
   scr_free(&qsecs);
   scr_free(&qbytes);
   scr_free(&qbw);
+  scr_free(&qfiles);
 
   /* check that we were able to construct the query ok */
   if (n >= sizeof(query)) {
@@ -1049,7 +1061,7 @@ int scr_log_run(time_t start, int procs, int nodes)
   }
 
   if (db_enable) {
-    rc = scr_mysql_log_event("START", NULL, NULL, &start, NULL);
+    rc = scr_mysql_log_event("START", NULL, NULL, NULL, &start, NULL);
   }
 
   return rc;
@@ -1111,7 +1123,7 @@ int scr_log_halt(const char* reason)
   }
 
   if (db_enable) {
-    rc = scr_mysql_log_event("HALT", reason, NULL, &now, NULL);
+    rc = scr_mysql_log_event("HALT", reason, NULL, NULL, &now, NULL);
   }
 
   return rc;
@@ -1206,7 +1218,7 @@ int scr_log_event(
   }
 
   if (db_enable) {
-    rc = scr_mysql_log_event(type, note, dset, &start_val, secs);
+    rc = scr_mysql_log_event(type, note, dset, name, &start_val, secs);
   }
 
   return rc;
@@ -1329,7 +1341,7 @@ int scr_log_transfer(
   }
 
   if (db_enable) {
-    rc = scr_mysql_log_transfer(type, from, to, dset, start, secs, bytes);
+    rc = scr_mysql_log_transfer(type, from, to, dset, name, start, secs, bytes, files);
   }
 
   return rc;
