@@ -171,6 +171,7 @@ extern size_t scr_file_buf_size; /* set buffer size to chunk file copies to/from
 extern int scr_halt_seconds; /* secs remaining in allocation before job should be halted */
 extern int scr_halt_enabled; /* whether SCR will exit job if halt condition is detected */
 
+extern int   scr_purge;            /* delete all datasets from cache on restart for debugging */
 extern int   scr_distribute;       /* whether to call scr_distribute_files during SCR_Init */
 extern int   scr_fetch;            /* whether to call scr_fetch_files during SCR_Init */
 extern int   scr_fetch_width;      /* specify number of processes to read files simultaneously */

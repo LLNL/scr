@@ -831,6 +831,12 @@ static int scr_get_params()
     }
   }
 
+  /* whether to delete all datasets from cache on restart,
+   * primarily used for debugging */
+  if ((value = scr_param_get("SCR_CACHE_PURGE")) != NULL) {
+    scr_purge = atoi(value);
+  }
+
   /* whether to distribute files in filemap to ranks */
   if ((value = scr_param_get("SCR_DISTRIBUTE")) != NULL) {
     scr_distribute = atoi(value);
@@ -1990,6 +1996,14 @@ int SCR_Init()
    * on the node, we take this step in case the number of ranks on this node
    * has changed since the last run */
   scr_cache_index_read(scr_cindex_file, scr_cindex);
+
+  /* delete all files in cache on restart if asked to purge,
+   * this is useful during development so the user does not
+   * have to manually delete files from all nodes */
+  if (scr_purge) {
+    /* clear the cache of all files */
+    scr_cache_purge(scr_cindex);
+  }
 
   /* attempt to distribute files for a restart */
   int rc = SCR_FAILURE;
