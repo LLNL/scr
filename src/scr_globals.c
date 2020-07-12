@@ -113,6 +113,7 @@ size_t scr_file_buf_size = SCR_FILE_BUF_SIZE; /* set buffer size to chunk file c
 int scr_halt_seconds     = SCR_HALT_SECONDS; /* secs remaining in allocation before job should be halted */
 int scr_halt_enabled     = SCR_HALT_ENABLED; /* whether SCR will exit job if halt condition is detected */
 
+int   scr_purge            = 0;                    /* whether to delete all datasets from cache during SCR_Init */
 int   scr_distribute       = SCR_DISTRIBUTE;       /* whether to call scr_distribute_files during SCR_Init */
 int   scr_fetch            = SCR_FETCH;            /* whether to call scr_fetch_files during SCR_Init */
 int   scr_fetch_width      = SCR_FETCH_WIDTH;      /* specify number of processes to read files simultaneously */
