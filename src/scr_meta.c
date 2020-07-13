@@ -39,6 +39,17 @@
 /* compute crc32 */
 #include <zlib.h>
 
+
+/* TODO: ugly hack until we get a configure test */
+#if defined(__APPLE__)
+#define HAVE_STRUCT_STAT_ST_MTIMESPEC_TV_NSEC 1
+#else
+#define HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC 1
+#endif
+// HAVE_STRUCT_STAT_ST_MTIME_N
+// HAVE_STRUCT_STAT_ST_UMTIME
+// HAVE_STRUCT_STAT_ST_MTIME_USEC
+
 /*
 =========================================
 Allocate, delete, and copy functions
@@ -144,6 +155,86 @@ int scr_meta_set_crc32(scr_meta* meta, uLong crc)
 {
   int rc = kvtree_util_set_crc32(meta, SCR_META_KEY_CRC, crc);
   return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
+}
+
+static void scr_stat_get_atimes(const struct stat* sb, uint64_t* secs, uint64_t* nsecs)
+{
+    *secs = (uint64_t) sb->st_atime;
+
+#if HAVE_STRUCT_STAT_ST_MTIMESPEC_TV_NSEC
+    *nsecs = (uint64_t) sb->st_atimespec.tv_nsec;
+#elif HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC
+    *nsecs = (uint64_t) sb->st_atim.tv_nsec;
+#elif HAVE_STRUCT_STAT_ST_MTIME_N
+    *nsecs = (uint64_t) sb->st_atime_n;
+#elif HAVE_STRUCT_STAT_ST_UMTIME
+    *nsecs = (uint64_t) sb->st_uatime * 1000;
+#elif HAVE_STRUCT_STAT_ST_MTIME_USEC
+    *nsecs = (uint64_t) sb->st_atime_usec * 1000;
+#else
+    *nsecs = 0;
+#endif
+}
+
+static void scr_stat_get_mtimes (const struct stat* sb, uint64_t* secs, uint64_t* nsecs)
+{
+    *secs = (uint64_t) sb->st_mtime;
+
+#if HAVE_STRUCT_STAT_ST_MTIMESPEC_TV_NSEC
+    *nsecs = (uint64_t) sb->st_mtimespec.tv_nsec;
+#elif HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC
+    *nsecs = (uint64_t) sb->st_mtim.tv_nsec;
+#elif HAVE_STRUCT_STAT_ST_MTIME_N
+    *nsecs = (uint64_t) sb->st_mtime_n;
+#elif HAVE_STRUCT_STAT_ST_UMTIME
+    *nsecs = (uint64_t) sb->st_umtime * 1000;
+#elif HAVE_STRUCT_STAT_ST_MTIME_USEC
+    *nsecs = (uint64_t) sb->st_mtime_usec * 1000;
+#else
+    *nsecs = 0;
+#endif
+}
+
+static void scr_stat_get_ctimes (const struct stat* sb, uint64_t* secs, uint64_t* nsecs)
+{
+    *secs = (uint64_t) sb->st_ctime;
+
+#if HAVE_STRUCT_STAT_ST_MTIMESPEC_TV_NSEC
+    *nsecs = (uint64_t) sb->st_ctimespec.tv_nsec;
+#elif HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC
+    *nsecs = (uint64_t) sb->st_ctim.tv_nsec;
+#elif HAVE_STRUCT_STAT_ST_MTIME_N
+    *nsecs = (uint64_t) sb->st_ctime_n;
+#elif HAVE_STRUCT_STAT_ST_UMTIME
+    *nsecs = (uint64_t) sb->st_uctime * 1000;
+#elif HAVE_STRUCT_STAT_ST_MTIME_USEC
+    *nsecs = (uint64_t) sb->st_ctime_usec * 1000;
+#else
+    *nsecs = 0;
+#endif
+}
+
+int scr_meta_set_stat(scr_meta* meta, struct stat* sb)
+{
+  kvtree_util_set_unsigned_long(meta, SCR_META_KEY_MODE, (unsigned long) sb->st_mode);
+  kvtree_util_set_unsigned_long(meta, SCR_META_KEY_UID,  (unsigned long) sb->st_uid);
+  kvtree_util_set_unsigned_long(meta, SCR_META_KEY_GID,  (unsigned long) sb->st_gid);
+  //kvtree_util_set_unsigned_long(meta, SCR_META_KEY_SIZE, (unsigned long) sb->st_size);
+
+  uint64_t secs, nsecs;
+  scr_stat_get_atimes(sb, &secs, &nsecs);
+  kvtree_util_set_unsigned_long(meta, SCR_META_KEY_ATIME_SECS,  (unsigned long) secs);
+  kvtree_util_set_unsigned_long(meta, SCR_META_KEY_ATIME_NSECS, (unsigned long) nsecs);
+
+  scr_stat_get_ctimes(sb, &secs, &nsecs);
+  kvtree_util_set_unsigned_long(meta, SCR_META_KEY_CTIME_SECS,  (unsigned long) secs);
+  kvtree_util_set_unsigned_long(meta, SCR_META_KEY_CTIME_NSECS, (unsigned long) nsecs);
+
+  scr_stat_get_mtimes(sb, &secs, &nsecs);
+  kvtree_util_set_unsigned_long(meta, SCR_META_KEY_MTIME_SECS,  (unsigned long) secs);
+  kvtree_util_set_unsigned_long(meta, SCR_META_KEY_MTIME_NSECS, (unsigned long) nsecs);
+
+  return SCR_SUCCESS;
 }
 
 /*
@@ -276,6 +367,36 @@ int scr_meta_check_filesize(const scr_meta* meta, unsigned long filesize)
   if (kvtree_util_get_bytecount(meta, SCR_META_KEY_SIZE, &filesize_meta) == KVTREE_SUCCESS) {
     if (filesize == filesize_meta) {
       return SCR_SUCCESS;
+    }
+  }
+  return SCR_FAILURE;
+}
+
+int scr_meta_check_mtime(const scr_meta* meta, struct stat* sb)
+{
+  unsigned long secs_meta, nsecs_meta;
+  if (kvtree_util_get_unsigned_long(meta, SCR_META_KEY_MTIME_SECS,  &secs_meta) == KVTREE_SUCCESS) {
+    if (kvtree_util_get_unsigned_long(meta, SCR_META_KEY_MTIME_NSECS, &nsecs_meta) == KVTREE_SUCCESS) {
+      uint64_t secs, nsecs;
+      scr_stat_get_mtimes(sb, &secs, &nsecs);
+      if (secs == secs_meta && nsecs == nsecs_meta) {
+        return SCR_SUCCESS;
+      }
+    }
+  }
+  return SCR_FAILURE;
+}
+
+int scr_meta_check_ctime(const scr_meta* meta, struct stat* sb)
+{
+  unsigned long secs_meta, nsecs_meta;
+  if (kvtree_util_get_unsigned_long(meta, SCR_META_KEY_CTIME_SECS,  &secs_meta) == KVTREE_SUCCESS) {
+    if (kvtree_util_get_unsigned_long(meta, SCR_META_KEY_CTIME_NSECS, &nsecs_meta) == KVTREE_SUCCESS) {
+      uint64_t secs, nsecs;
+      scr_stat_get_ctimes(sb, &secs, &nsecs);
+      if (secs == (uint64_t)secs_meta && nsecs == (uint64_t)nsecs_meta) {
+        return SCR_SUCCESS;
+      }
     }
   }
   return SCR_FAILURE;

@@ -269,39 +269,69 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
   int bypass = 0;
   scr_cache_index_get_bypass(cindex, id, &bypass);
 
-  /* delete data files from cache */
-  if (! bypass) {
-    /* get list of files for this dataset */
-    scr_filemap* map = scr_filemap_new();
-    scr_cache_get_map(cindex, id, map);
+  /* get list of files for this dataset */
+  scr_filemap* map = scr_filemap_new();
+  scr_cache_get_map(cindex, id, map);
   
-    /* for each file we have for this dataset, delete the file */
-    kvtree_elem* file_elem;
-    for (file_elem = scr_filemap_first_file(map);
-         file_elem != NULL;
-         file_elem = kvtree_elem_next(file_elem))
-    {
-      /* get the filename */
-      char* file = kvtree_elem_key(file_elem); 
+  /* for each file we have for this dataset, delete the file */
+  kvtree_elem* file_elem;
+  for (file_elem = scr_filemap_first_file(map);
+       file_elem != NULL;
+       file_elem = kvtree_elem_next(file_elem))
+  {
+    /* get the filename */
+    char* file = kvtree_elem_key(file_elem); 
   
-      /* check file's crc value (monitor that cache hardware isn't corrupting
-       * files on us) */
-      if (scr_crc_on_delete) {
-        /* TODO: if corruption, need to log */
-        if (scr_compute_crc(map, file) != SCR_SUCCESS) {
-          scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
-            file, __FILE__, __LINE__
-          );
-        }
+    /* verify that file mtime and ctime have not changed since scr_complete_output,
+     * which could idenitfy a bug in the user's code */
+    struct stat statbuf;
+    int stat_rc = stat(file, &statbuf);
+    if (stat_rc == 0) {
+      scr_meta* meta = scr_meta_new();
+      scr_filemap_get_meta(map, file, meta);
+
+      int file_changed = 0;
+      if (scr_meta_check_mtime(meta, &statbuf) != SCR_SUCCESS) {
+        file_changed = 1;
+        scr_warn("Detected mtime change in file `%s' since it was completed @ %s:%d",
+          file, __FILE__, __LINE__
+        );
       }
+      if (scr_meta_check_ctime(meta, &statbuf) != SCR_SUCCESS) {
+        file_changed = 1;
+        scr_warn("Detected ctime change in file `%s' since it was completed @ %s:%d",
+          file, __FILE__, __LINE__
+        );
+      }
+      if (file_changed) {
+        scr_warn("Detected change in file `%s' since it was completed @ %s:%d",
+          file, __FILE__, __LINE__
+        );
+      }
+
+      scr_meta_delete(&meta);
+    }
   
+    /* check file's crc value (monitor that cache hardware isn't corrupting
+     * files on us) */
+    if (scr_crc_on_delete) {
+      /* TODO: if corruption, need to log */
+      if (scr_compute_crc(map, file) != SCR_SUCCESS) {
+        scr_err("Failed to verify CRC32 before deleting file %s, bad drive? @ %s:%d",
+          file, __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* if we're not using bypass, delete data files from cache */
+    if (! bypass) {
       /* delete the file */
       scr_file_unlink(file);
     }
-  
-    /* delete map object */
-    scr_filemap_delete(&map);
   }
+  
+  /* delete map object */
+  scr_filemap_delete(&map);
 
   /* delete the map file */
   scr_cache_unset_map(cindex, id);

@@ -89,6 +89,9 @@ int scr_meta_set_filesize(scr_meta* meta, unsigned long filesize);
 /* set the completeness field on meta */
 int scr_meta_set_complete(scr_meta* meta, int complete);
 
+/* capture stat metadata (uid, gid, mode, atime, ctime, mtime) */
+int scr_meta_set_stat(scr_meta* meta, struct stat* statbuf);
+
 /* set the crc32 field on meta */
 int scr_meta_set_crc32(scr_meta* meta, uLong crc);
 
@@ -145,5 +148,11 @@ int scr_meta_check_checkpoint(const scr_meta* meta, int checkpoint_id);
 
 /* returns SCR_SUCCESS if filesize is set in meta data, and if it matches specified value */
 int scr_meta_check_filesize(const scr_meta* meta, unsigned long filesize);
+
+/* returns SCR_SUCCESS if mtime is set and if it matches values in statbuf */
+int scr_meta_check_mtime(const scr_meta* meta, struct stat* statbuf);
+
+/* returns SCR_SUCCESS if ctime is set and if it matches values in statbuf */
+int scr_meta_check_ctime(const scr_meta* meta, struct stat* statbuf);
 
 #endif

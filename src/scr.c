@@ -1404,8 +1404,16 @@ static int scr_complete_output(int valid)
       files_valid = 0;
     }
 
+    /* stat the file to get its size and other metadata */
+    unsigned long filesize = 0;
+    struct stat stat_buf;
+    int stat_rc = stat(file, &stat_buf);
+    if (stat_rc == 0) {
+      filesize = (unsigned long) stat_buf.st_size;
+    }
+
     /* get size of this file */
-    unsigned long filesize = scr_file_size(file);
+    //unsigned long filesize = scr_file_size(file);
     my_counts[1] += filesize;
 
     /* TODO: record permissions and/or timestamps? */
@@ -1415,6 +1423,9 @@ static int scr_complete_output(int valid)
     scr_filemap_get_meta(scr_map, file, meta);
     scr_meta_set_filesize(meta, filesize);
     scr_meta_set_complete(meta, file_valid);
+    if (stat_rc == 0) {
+      scr_meta_set_stat(meta, &stat_buf);
+    }
     scr_filemap_set_meta(scr_map, file, meta);
     scr_meta_delete(&meta);
   }
