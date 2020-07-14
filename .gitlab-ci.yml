@@ -215,10 +215,11 @@ spack-scr-quartz:
     - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
     - echo "Working dir " `pwd`
     - rm -rf spack
-    - git clone -b robertkb-fix-scr-dependencies https://github.com/robertkb/spack.git
+    - git clone https://github.com/spack/spack.git
     - cd spack
     - sed -i "s#/.spack#/.spack-${SYS_TYPE}#" lib/spack/spack/__init__.py
-    - . spack/share/spack/setup-env.sh
+    - . share/spack/setup-env.sh
+    - spack compiler find --scope site
     - spack install --keep-stage scr@develop resource_manager=NONE ^axl@master
     - spack cd -i scr
     - cd share/scr/examples
@@ -242,6 +243,10 @@ buildjob-lassen:
     - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
     - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
     - echo "Working dir " `pwd`
+    - export CC=xlc_r
+    - export CXX=xlc++_r
+    - export F90=xlf90_r
+    - export FFLAGS=-qextname
     - ${SRC_DIR}/bootstrap.sh
     - mkdir -p build install
     - cd build
@@ -320,7 +325,6 @@ spack-scr-lassen:
     - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
     - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
     - echo "Working dir " `pwd`
-#    - git clone -b robertkb-fix-scr-dependencies https://github.com/robertkb/spack.git
     - rm -rf spack
     - git clone https://github.com/spack/spack.git
     - cd spack
