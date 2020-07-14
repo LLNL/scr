@@ -362,6 +362,14 @@ static int copy_files_for_filemap(
         /* didn't attempt a copy, so we don't have a valid crc */
         crc_valid = 0;
       }
+
+      /* apply metadata to file */
+      if (scr_meta_apply_stat(meta, dst_file) != SCR_SUCCESS) {
+        rc = 1;
+        scr_err("scr_copy: Failed to copy file metadata properties from %s to %s @ %s:%d",
+          file, dst_file, __FILE__, __LINE__
+        );
+      }
   
       /* add this file to the rank_map */
       scr_filemap_add_file(rank_map, file);

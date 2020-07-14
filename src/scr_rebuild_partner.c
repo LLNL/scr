@@ -9,8 +9,8 @@
  * Please also read this file: LICENSE.TXT.
 */
 
-/* Utility to rebuild a missing file given the file names of the
- * remaining N-1 data files and the N-1 XOR segments. */
+/* Utility to rebuild a missing file with partner encoding
+ * given the file names of the left and right partner files. */
 
 #include "scr.h"
 #include "scr_io.h"
@@ -58,20 +58,6 @@
 
 int buffer_size = 128*1024;
 
-/* execute xor operation with N-1 files and xor file: 
-     open each redset file and read header to get info for user files
-     open each user file
-     open missing user file
-     open missing redset file
-     for all chunks
-       read a chunk from missing file (xor file) into memory buffer A
-       for each other file i
-         read chunk from file i into memory buffer B
-         merge chunks and store in memory buffer A
-       write chunk in memory buffer A to missing file
-     close all files
-*/
-
 static int scr_compute_crc(scr_filemap* map, const char* file)
 {
   /* compute crc for the file */
@@ -117,7 +103,7 @@ static int scr_compute_crc(scr_filemap* map, const char* file)
   return rc;
 }
 
-/* given an XOR header, lookup and return global rank given rank in group */
+/* given an PARTNER header, lookup and return global rank given rank in group */
 static int lookup_rank(const kvtree* header, int group_rank, const char* file)
 {
   int rank = -1;
@@ -127,7 +113,7 @@ static int lookup_rank(const kvtree* header, int group_rank, const char* file)
   if (elem != NULL) {
     rank = kvtree_elem_key_int(elem);
   } else {
-    scr_err("Failed to read rank from XOR file header in %s @ %s:%d",
+    scr_err("Failed to read rank from PARTNER file header in %s @ %s:%d",
       file, __FILE__, __LINE__
     );
   }
@@ -284,7 +270,9 @@ int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
 {
   int i, j;
 
-  /* allocate memory for data structures based on the XOR set size */
+  /* allocate memory for data structures, for partner we need 3 ranks:
+   * the target rank that we're rebuilding (CENTER) and the ranks one
+   * less (LEFT) and one more (RIGHT)*/
   int     ranks[3];
   int     num_files[3];
   int     offsets[3];
@@ -357,7 +345,7 @@ int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
       return 1;
     }
 
-    /* read the header from this xor file */
+    /* read the header from this partner file */
     if (kvtree_read_fd(files[i], fds[i], headers[i]) < 0) {
       scr_err("Failed to read header from %s @ %s:%d",
         files[i], __FILE__, __LINE__
@@ -366,16 +354,20 @@ int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
     }
   }
 
-  /* build header for missing partner file */
+  /* build header for missing partner file,
+   * our RIGHT partner has a copy of our header */
   kvtree_merge(headers[CENTER], headers[RIGHT]);
 
-  /* fetch our own file list from rank to our right */
+  /* fetch our own file list from rank to our right,
+   * our RIGHT partner stored this under their PARTNER key,
+   * we copy it as our CURRENT key */
   kvtree* rhs_hash = kvtree_get(headers[RIGHT], REDSET_KEY_COPY_PARTNER_PARTNER);
   kvtree* current_hash = kvtree_new();
   kvtree_merge(current_hash, rhs_hash);
   kvtree_set(headers[CENTER], REDSET_KEY_COPY_PARTNER_CURRENT, current_hash);
 
-  /* we are the partner to the rank to our left */
+  /* we are the partner to the rank to our left,
+   * we need to store a copy of its CURRENT header under our PARTNER key */
   kvtree* lhs_hash = kvtree_get(headers[LEFT], REDSET_KEY_COPY_PARTNER_CURRENT);
   kvtree* partner_hash = kvtree_new();
   kvtree_merge(partner_hash, lhs_hash);
@@ -387,14 +379,18 @@ int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
   /* define name for missing partner file */
   char missing_name[1024];
   if (build_data) {
-    snprintf(missing_name, sizeof(missing_name), "reddesc.er.%d.partner.%d_%d_%d.redset", ranks[CENTER], ranks[LEFT], ranks[CENTER], ranks[RIGHT]);
+    snprintf(missing_name, sizeof(missing_name), "reddesc.er.%d.partner.%d_%d_%d.redset",
+      ranks[CENTER], ranks[LEFT], ranks[CENTER], ranks[RIGHT]
+    );
   } else {
-    snprintf(missing_name, sizeof(missing_name), "reddescmap.er.%d.partner.%d_%d_%d.redset", ranks[CENTER], ranks[LEFT], ranks[CENTER], ranks[RIGHT]);
+    snprintf(missing_name, sizeof(missing_name), "reddescmap.er.%d.partner.%d_%d_%d.redset",
+      ranks[CENTER], ranks[LEFT], ranks[CENTER], ranks[RIGHT]
+    );
   }
   files[CENTER] = strdup(missing_name);
 
   /* determine number of files each member wrote */
-  for (i=0; i < 3; i++) {
+  for (i = 0; i < 3; i++) {
     /* record the number of files for this rank */
     kvtree* current_hash = kvtree_get(headers[i], REDSET_KEY_COPY_PARTNER_CURRENT);
     if (kvtree_util_get_int(current_hash, REDSET_KEY_COPY_PARTNER_FILES, &num_files[i]) != KVTREE_SUCCESS) {
@@ -407,9 +403,23 @@ int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
   
   /* count the total number of files and set the offsets array */
   int total_num_files = 0;
-  for (i=0; i < 3; i++) {
+  for (i = 0; i < 3; i++) {
     offsets[i] = total_num_files;
     total_num_files += num_files[i];
+  }
+
+  /* allocate space to hold meta data for each file */
+  scr_meta** metas = (scr_meta**) malloc(num_files[CENTER] * sizeof(scr_meta*));
+  if (metas == NULL) {
+    scr_err("Failed to allocate memory for metadata @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return 1;
+  }
+
+  /* initialize kvtree for each file */
+  for (i = 0; i < num_files[CENTER]; i++) {
+    metas[i] = scr_meta_new();
   }
 
   /* allocate space for a file descriptor, file name pointer, and filesize for each user file */
@@ -424,7 +434,7 @@ int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
   }
 
   /* get file name, file size, and open each of the user files that we have */
-  for (i=0; i < 3; i++) {
+  for (i = 0; i < 3; i++) {
     /* read in filemap for this member */
     if (build_data) {
       spath* filemap_path = spath_dup(path_prefix);
@@ -436,7 +446,7 @@ int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
     /* for each file belonging to this rank, get filename, filesize, and open file */
     kvtree* current_hash = kvtree_get(headers[i], REDSET_KEY_COPY_PARTNER_CURRENT);
     
-    for (j=0; j < num_files[i]; j++) {
+    for (j = 0; j < num_files[i]; j++) {
       /* compute offset into total files array */
       int offset = offsets[i] + j;
 
@@ -461,6 +471,12 @@ int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
         return 1;
       }
       user_filesizes[offset] = filesize;
+
+      /* for each file we're trying to rebuild, make a copy of its meta data,
+       * we need to use this later to apply stat info to each file we rebuild */
+      if (i == CENTER) {
+        kvtree_merge(metas[j], meta_hash);
+      }
 
       /* get path to user file */
       spath* path_name = spath_from_str(fullpath);
@@ -530,65 +546,89 @@ int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
 
   int rc = 0;
 
-  /* write the header to the XOR file of the missing rank */
+  /* write the header to the partner redundancy file of the missing rank */
   if (kvtree_write_fd(files[CENTER], fds[CENTER], headers[CENTER]) < 0) {
     rc = 1;
   }
 
-  /* apply xor encoding */
+  /* apply partner encoding */
   if (rc == 0) {
     rc = apply_partner(files, fds, offsets, num_files, user_files, user_fds, user_filesizes);
   }
 
   /* close each of the user files */
-  for (i=0; i < total_num_files; i++) {
+  for (i = 0; i < total_num_files; i++) {
     if (scr_close(user_files[i], user_fds[i]) != SCR_SUCCESS) {
       rc = 1;
     }
   }
 
   /* close each of the partner files */
-  for (i=0; i < 3; i++) {
+  for (i = 0; i < 3; i++) {
     if (scr_close(files[i], fds[i]) != SCR_SUCCESS) {
       rc = 1;
     }
   }
 
+  /* copy meta data properties to new file (uid, gid, mode, atime, mtime) */
+  if (rc == 0) {
+    for (j = 0; j < num_files[CENTER]; j++) {
+      int idx = offsets[CENTER] + j;
+      int apply_rc = scr_meta_apply_stat(metas[j], user_files[idx]);
+      if (apply_rc != SCR_SUCCESS) {
+        /* something went wrong, we'll assume the file is still valid,
+         * but let's print a message and return an error condition */
+        scr_err("Failed to copy metadata properties to file: `%s' @ %s:%d",
+          user_files[idx], __FILE__, __LINE__
+        );
+        rc = 1;
+      }
+    }
+  }
+
   /* if the write failed, delete the files we just wrote, and return an error */
   if (rc != 0) {
-    for (j=0; j < num_files[0]; j++) {
-      scr_file_unlink(user_files[j]);
+    for (j = 0; j < num_files[CENTER]; j++) {
+      int idx = offsets[CENTER] + j;
+      scr_file_unlink(user_files[idx]);
     }
-    scr_file_unlink(files[0]);
+    scr_file_unlink(files[CENTER]);
     return 1;
   }
 
   /* check that filesizes are correct */
   unsigned long filesize;
-  for (j=0; j < num_files[0]; j++) {
-    filesize = scr_file_size(user_files[j]);
-    if (filesize != user_filesizes[j]) {
+  for (j = 0; j < num_files[CENTER]; j++) {
+    int idx = offsets[CENTER] + j;
+    filesize = scr_file_size(user_files[idx]);
+    if (filesize != user_filesizes[idx]) {
       /* the filesize check failed, so delete the file */
-      scr_file_unlink(user_files[j]);
+      scr_file_unlink(user_files[idx]);
       rc = 1;
     }
   }
+
   /* TODO: we didn't record the filesize of the partner file for the missing rank anywhere */
 
-  for (i=0; i < total_num_files; i++) {
+  for (i = 0; i < total_num_files; i++) {
     scr_free(&user_files[i]);
   }
+
+  for (j = 0; j < num_files[CENTER]; j++) {
+    scr_meta_delete(&metas[j]);
+  }
+  scr_free(&metas);
 
   scr_free(&user_filesizes);
   scr_free(&user_files);
   scr_free(&user_fds);
 
-  for (i=0; i < 3; i++) {
+  for (i = 0; i < 3; i++) {
     kvtree_delete(&headers[i]);
     scr_filemap_delete(&filemaps[i]);
   }
 
-  for (i=0; i < 3; i++) {
+  for (i = 0; i < 3; i++) {
     scr_free(&files[i]);
   }
 
@@ -601,7 +641,7 @@ int main(int argc, char* argv[])
 
   /* print usage if not enough arguments were given */
   if (argc < 2) {
-    printf("Usage: scr_rebuild_partner <xor|map> <left_partner> <right_partner>\n");
+    printf("Usage: scr_rebuild_partner <data|map> <left_partner> <right_partner>\n");
     return 1;
   }
 
@@ -614,7 +654,8 @@ int main(int argc, char* argv[])
   spath* path_prefix = spath_from_str(dsetdir);
   spath_reduce(path_prefix);
 
-  /* rebuild filemaps if given map command */
+  /* rebuild filemaps if given map command,
+   * otherwise rebuild data files */
   int rc = 1;
   if (strcmp(argv[index++], "map") == 0) {
     rc = rebuild(path_prefix, 0, index, argv);
