@@ -147,3 +147,5 @@ Contents
    
    developers/testing_new_systems.rst
    developers/testing_bamboo.rst
+   developers/testing_gitlab.rst
+   
