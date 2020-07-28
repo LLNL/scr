@@ -23,6 +23,8 @@
 #include "kvtree.h"
 #include "kvtree_util.h"
 
+#include "redset.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -39,15 +41,16 @@
 #include <libgen.h>
 
 #define REDSET_KEY_COPY_XOR_DESC    "DESC"
-#define REDSET_KEY_COPY_XOR_CURRENT "CURRENT"
-#define REDSET_KEY_COPY_XOR_PARTNER "PARTNER"
 #define REDSET_KEY_COPY_XOR_RANKS   "RANKS"
 #define REDSET_KEY_COPY_XOR_RANK    "RANK"
+#define REDSET_KEY_COPY_XOR_GROUPS  "GROUPS"
 #define REDSET_KEY_COPY_XOR_GROUP   "GROUP"
 #define REDSET_KEY_COPY_XOR_FILES   "FILES"
 #define REDSET_KEY_COPY_XOR_FILE    "FILE"
 #define REDSET_KEY_COPY_XOR_SIZE    "SIZE"
 #define REDSET_KEY_COPY_XOR_CHUNK   "CHUNK"
+#define REDSET_KEY_COPY_XOR_GROUP_RANKS "RANKS"
+#define REDSET_KEY_COPY_XOR_GROUP_RANK  "RANK"
 
 #ifdef SCR_GLOBALS_H
 #error "globals.h accessed from tools"
@@ -114,23 +117,6 @@ static int scr_compute_crc(scr_filemap* map, const char* file)
   return rc;
 }
 
-/* given an XOR header, lookup and return global rank given rank in group */
-static int lookup_rank(const kvtree* header, int group_rank, const char* file)
-{
-  int rank = -1;
-  kvtree* group_hash = kvtree_get(header, REDSET_KEY_COPY_XOR_GROUP);
-  kvtree* rank_hash  = kvtree_get_kv_int(group_hash, REDSET_KEY_COPY_XOR_RANK, group_rank);
-  kvtree_elem* elem = kvtree_elem_first(rank_hash);
-  if (elem != NULL) {
-    rank = kvtree_elem_key_int(elem);
-  } else {
-    scr_err("Failed to read rank from XOR file header in %s @ %s:%d",
-      file, __FILE__, __LINE__
-    );
-  }
-  return rank;
-}
-
 /* given a file map, and a path to a file in cache, allocate and return
  * corresponding path to file in prefix directory */
 static char* lookup_path(const scr_filemap* map, const char* file)
@@ -172,396 +158,87 @@ static char* lookup_path(const scr_filemap* map, const char* file)
   return path;
 }
 
-static int apply_xor(
-  int xor_set_size,
-  int root,
-  char* xor_files[],
-  int xor_fds[],
-  int offsets[],
-  int num_files[],
-  char* user_files[],
-  int user_fds[],
-  unsigned long user_filesizes[],
-  size_t chunk_size)
+int build_map_filemap(const spath* path_prefix, int xor_set_size, const char** files, int* ranks, int missing, kvtree* map)
 {
-  int i, j;
   int rc = 0;
 
-  /* allocate buffers */
-  char* buffer_A = malloc(buffer_size * sizeof(char));
-  char* buffer_B = malloc(buffer_size * sizeof(char));
-  if (buffer_A == NULL) {
-    scr_err("Failed to allocate buffer memory @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return 1;
-  }
-  if (buffer_B == NULL) {
-    scr_err("Failed to allocate buffer memory @ %s:%d",
-      __FILE__, __LINE__
-    );
-    free(buffer_A);
-    return 1;
+  /* get file name, file size, and open each of the user files that we have */
+  redset_filelist list = redset_filelist_get_data(xor_set_size - 1, files);
+
+  if (list == NULL) {
   }
 
-  /* this offset array records the current position we are in the logical file for each rank */
-  unsigned long* offset = malloc(xor_set_size * sizeof(unsigned long));
-  if (offset == NULL) {
-    scr_err("Failed to allocate buffer memory @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return 1;
-  }
-  for (i = 0; i < xor_set_size; i++) {
-    offset[i] = 0;
-  }
+  int num = redset_filelist_count(list);
 
-  unsigned long write_pos = 0;
-  int chunk_id;
-  for (chunk_id = 0; chunk_id < xor_set_size && rc == 0; chunk_id++) {
-    size_t nread = 0;
-    while (nread < chunk_size && rc == 0) {
-      /* read upto buffer_size bytes at a time */
-      size_t count = chunk_size - nread;
-      if (count > buffer_size) {
-        count = buffer_size;
-      }
+  int j;
+  for (j = 0; j < num; j++) {
+    const char* file = redset_filelist_file(list, j);
 
-      /* clear our buffer */
-      memset(buffer_A, 0, count);
+    /* for map files, we're running in the same directory,
+     * just use the basename to open the file */
+    spath* path_name = spath_from_str(file);
+    spath_basename(path_name);
+    char* new_file = spath_strdup(path_name);
+    spath_delete(&path_name);
 
-      /* read a segment from each rank and XOR it into our buffer */
-      for (i = 1; i < xor_set_size; i++) {
-        /* read the next set of bytes for this chunk from my file into send_buf */
-        if (chunk_id != ((i + root) % xor_set_size)) {
-          /* read chunk from the logical file for this rank */
-          if (scr_read_pad_n(num_files[i], &user_files[offsets[i]], &user_fds[offsets[i]],
-                             buffer_B, count, offset[i], &user_filesizes[offsets[i]]) != SCR_SUCCESS)
-          {
-            /* our read failed, set the return code to an error */
-            rc = 1;
-            count = 0;
-          }
-          offset[i] += count;
-        } else {
-          /* read chunk from the XOR file for this rank */
-          if (scr_read_attempt(xor_files[i], xor_fds[i], buffer_B, count) != count) {
-            /* our read failed, set the return code to an error */
-            rc = 1;
-            count = 0;
-          }
-        }
+    kvtree_util_set_str(map, file, new_file);
 
-        /* TODO: XORing with unsigned long would be faster here (if chunk size is multiple of this size) */
-        /* merge the blocks via xor operation */
-        for (j = 0; j < count; j++) {
-          buffer_A[j] ^= buffer_B[j];
-        }
-      }
-
-      /* at this point, we have the data from the missing rank, write it out */
-      if (chunk_id != root) {
-        /* write chunk to logical file for the missing rank */
-        if (scr_write_pad_n(num_files[0], &user_files[0], &user_fds[0],
-                            buffer_A, count, write_pos, &user_filesizes[0]) != SCR_SUCCESS)
-        {
-          /* our write failed, set the return code to an error */
-          rc = 1;
-        }
-        write_pos += count;
-      } else {
-        /* write chunk to xor file for the missing rank */
-        if (scr_write_attempt(xor_files[0], xor_fds[0], buffer_A, count) != count) {
-          /* our write failed, set the return code to an error */
-          rc = 1;
-        }
-      }
-
-      nread += count;
-    }
+    scr_free(&new_file);
   }
 
-  scr_free(&offset);
-
-  scr_free(&buffer_B);
-  scr_free(&buffer_A);
+  redset_filelist_release(&list);
 
   return rc;
 }
 
-int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
+int build_map_data(const spath* path_prefix, int xor_set_size, int* ranks, int missing, kvtree* map)
 {
-  int i, j;
-
-  /* read in the size of the XOR set */
-  int xor_set_size = (int) strtol(argv[index++], (char **)NULL, 10);
-  if (xor_set_size <= 0) {
-    scr_err("Invalid XOR set size argument %s @ %s:%d",
-      argv[index-1], __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* allocate memory for data structures based on the XOR set size */
-  int*   num_files  = malloc(xor_set_size * sizeof(int));
-  int*   offsets    = malloc(xor_set_size * sizeof(int));
-  char** xor_files  = malloc(xor_set_size * sizeof(char*));
-  int*   xor_fds    = malloc(xor_set_size * sizeof(int));
-  kvtree** xor_headers = malloc(xor_set_size * sizeof(kvtree*));
-  scr_filemap** filemaps = malloc(xor_set_size * sizeof(scr_filemap*));
-  if (num_files == NULL || offsets == NULL || xor_files == NULL || xor_fds == NULL || xor_headers == NULL || filemaps == NULL) {
-    scr_err("Failed to allocate buffer memory @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* read in the rank of the missing process (the root) */
-  int root = (int) strtol(argv[index++], (char **)NULL, 10);
-  if (root < 0 || root >= xor_set_size) {
-    scr_err("Invalid root argument %s @ %s:%d",
-      argv[index-1], __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* read in the xor filenames (expected to be in order of XOR segment number) */
-  /* we order ranks so that root is index 0, the rank to the right of root is index 1, and so on */
-  for (i = 0; i < xor_set_size; i++) {
-    xor_headers[i] = kvtree_new();
-    filemaps[i] = scr_filemap_new();
-
-    /* we'll get the XOR file name for root from the header stored in the XOR file of the partner */
-    if (i == root) {
-      continue;
-    }
-
-    /* adjust the index relative to root */
-    j = i - root;
-    if (j < 0) {
-      j += xor_set_size;
-    }
-
-    /* copy the XOR file name */
-    xor_files[j] = strdup(argv[index++]);
-    if (xor_files[j] == NULL) {
-      scr_err("Failed to dup XOR filename @ %s:%d",
-        __FILE__, __LINE__
-      );
-      return 1;
-    }
-  }
-
-  /* open each of the xor files and read in the headers */
-  for (i = 1; i < xor_set_size; i++) {
-    /* open each xor file for reading */
-    xor_fds[i] = scr_open(xor_files[i], O_RDONLY);
-    if (xor_fds[i] < 0) {
-      scr_err("Opening xor segment file: scr_open(%s) errno=%d %s @ %s:%d",
-        xor_files[i], errno, strerror(errno), __FILE__, __LINE__
-      );
-      return 1;
-    }
-
-    /* read the header from this xor file */
-    if (kvtree_read_fd(xor_files[i], xor_fds[i], xor_headers[i]) < 0) {
-      scr_err("Failed to read XOR header from %s @ %s:%d",
-        xor_files[i], __FILE__, __LINE__
-      );
-      return 1;
-    }
-  }
-
-  /* build header for missing XOR file */
-  int partner_rank = -1;
-  if (xor_set_size >= 2) {
-    kvtree_merge(xor_headers[0], xor_headers[1]);
-
-    /* fetch our own file list from rank to our right */
-    kvtree* rhs_hash = kvtree_get(xor_headers[1], REDSET_KEY_COPY_XOR_PARTNER);
-    kvtree* current_hash = kvtree_new();
-    kvtree_merge(current_hash, rhs_hash);
-    kvtree_set(xor_headers[0], REDSET_KEY_COPY_XOR_CURRENT, current_hash);
-
-    /* we are the partner to the rank to our left */
-    kvtree* lhs_hash = kvtree_get(xor_headers[xor_set_size-1], REDSET_KEY_COPY_XOR_CURRENT);
-    kvtree* partner_hash = kvtree_new();
-    kvtree_merge(partner_hash, lhs_hash);
-    kvtree_set(xor_headers[0], REDSET_KEY_COPY_XOR_PARTNER, partner_hash);
-
-    /* get global rank of partner */
-    kvtree* desc_hash = kvtree_get(lhs_hash, REDSET_KEY_COPY_XOR_DESC);
-    if (kvtree_util_get_int(desc_hash, REDSET_KEY_COPY_XOR_RANK, &partner_rank) != SCR_SUCCESS) {
-      scr_err("Failed to read partner rank from XOR file header in %s @ %s:%d",
-        xor_files[xor_set_size-1], __FILE__, __LINE__
-      );
-      return 1;
-    }
-  }
-
-  /* get a pointer to the current hash for the missing rank */
-  kvtree* missing_current_hash = kvtree_get(xor_headers[0], REDSET_KEY_COPY_XOR_CURRENT);
-
-  /* get XOR set id */
-  int xor_set_id = -1;
-  kvtree* desc_hash  = kvtree_get(missing_current_hash, REDSET_KEY_COPY_XOR_DESC);
-  if (kvtree_util_get_int(desc_hash, REDSET_KEY_COPY_XOR_GROUP, &xor_set_id) != KVTREE_SUCCESS) {
-    scr_err("Failed to read set id from XOR file header in %s @ %s:%d",
-      xor_files[1], __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* get our global MPI rank from GROUP map */
-  int my_rank = lookup_rank(xor_headers[1], root, xor_files[1]);
-  if (my_rank == -1) {
-    scr_err("Failed to read rank from XOR file header in %s @ %s:%d",
-      xor_files[1], __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* define name for missing XOR file */
-  char xorname[1024];
-  if (build_data) {
-    snprintf(xorname, sizeof(xorname), "reddesc.er.%d.xor.%d_%d_of_%d.redset",
-      my_rank, xor_set_id, root+1, xor_set_size
-    );
-  } else {
-    snprintf(xorname, sizeof(xorname), "reddescmap.er.%d.xor.%d_%d_of_%d.redset",
-      my_rank, xor_set_id, root+1, xor_set_size
-    );
-  }
-  xor_files[0] = strdup(xorname);
-
-  /* read the chunk size */
-  unsigned long chunk_size = 0;
-  if (kvtree_util_get_unsigned_long(xor_headers[0], REDSET_KEY_COPY_XOR_CHUNK, &chunk_size) != SCR_SUCCESS) {
-    scr_err("Failed to read chunk size from XOR file header in %s @ %s:%d",
-      xor_files[0], __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* determine number of files each member wrote in XOR set */
-  for (i = 0; i < xor_set_size; i++) {
-    /* record the number of files for this rank */
-    kvtree* current_hash = kvtree_get(xor_headers[i], REDSET_KEY_COPY_XOR_CURRENT);
-    if (kvtree_util_get_int(current_hash, REDSET_KEY_COPY_XOR_FILES, &num_files[i]) != SCR_SUCCESS) {
-      scr_err("Failed to read number of files from %s @ %s:%d",
-        xor_files[i], __FILE__, __LINE__
-      );
-      return 1;
-    }
-  }
-  
-  /* count the total number of files and set the offsets array */
-  int total_num_files = 0;
-  for (i = 0; i < xor_set_size; i++) {
-    offsets[i] = total_num_files;
-    total_num_files += num_files[i];
-  }
-
-  /* allocate space to hold meta data for each file */
-  scr_meta** metas = (scr_meta**) malloc(num_files[0] * sizeof(scr_meta*));
-  if (metas == NULL) {
-    scr_err("Failed to allocate memory for metadata @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* initialize kvtree for each file */
-  for (i = 0; i < num_files[0]; i++) {
-    metas[i] = scr_meta_new();
-  }
-
-  /* allocate space for a file descriptor, file name pointer, and filesize for each user file */
-  int* user_fds                 = (int*)           malloc(total_num_files * sizeof(int));
-  char** user_files             = (char**)         malloc(total_num_files * sizeof(char*));
-  unsigned long* user_filesizes = (unsigned long*) malloc(total_num_files * sizeof(unsigned long));
-  if (user_fds == NULL || user_files == NULL || user_filesizes == NULL) {
-    scr_err("Failed to allocate buffer memory @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return 1;
-  }
+  int rc = 0;
 
   /* get file name, file size, and open each of the user files that we have */
+  int i;
   for (i = 0; i < xor_set_size; i++) {
     /* lookup global mpi rank for this group rank */
-    int rank = lookup_rank(xor_headers[0], i, xor_files[0]);
+    int rank = ranks[i];
+
+    /* define name of filemap file for this rank */
+    spath* filemap_path = spath_dup(path_prefix);
+    spath_append_strf(filemap_path, "filemap_%d", rank);
 
     /* read in filemap for this member */
-    if (build_data) {
-      spath* filemap_path = spath_dup(path_prefix);
-      spath_append_strf(filemap_path, "filemap_%d", rank);
-      scr_filemap_read(filemap_path, filemaps[i]);
-      spath_delete(&filemap_path);
-    }
+    scr_filemap* filemap = scr_filemap_new();
+    scr_filemap_read(filemap_path, filemap);
 
-    kvtree* current_hash = kvtree_get(xor_headers[i], REDSET_KEY_COPY_XOR_CURRENT);
+    /* free the name of the filemap file */
+    spath_delete(&filemap_path);
 
-    /* for each file belonging to this rank, get filename, filesize, and open file */
-    for (j = 0; j < num_files[i]; j++) {
-      /* compute offset into total files array */
-      int offset = offsets[i] + j;
+    /* get list of files from the filemap */
+    int num;
+    char** files;
+    scr_filemap_list_files(filemap, &num, &files);
 
-      /* get the meta data for this file */
-      kvtree* file_hash = kvtree_get_kv_int(current_hash, REDSET_KEY_COPY_XOR_FILE, j);
-      if (file_hash == NULL) {
-        scr_err("Failed to read hash data for file %d in %s @ %s:%d",
-          j, xor_files[i], __FILE__, __LINE__
-        );
-        return 1;
-      }
+    /* iterate over each file to define its new
+     * path and record in the output map */
+    int j;
+    for (j = 0; j < num; j++) {
+      /* get original file name */
+      char* file = files[j];
 
-      /* should just have one element */
-      kvtree_elem* elem = kvtree_elem_first(file_hash);
+      /* get path of file, we have to remap based on filemap info */
+      char* new_file = lookup_path(filemap, file);
 
-      /* full path to file */
-      const char* fullpath = kvtree_elem_key(elem);
+      /* map original file name to new location */
+      kvtree_util_set_str(map, file, new_file);
 
-      /* meta data for file */
-      kvtree* meta_hash = kvtree_elem_hash(elem);
-
-      /* record the filesize of this file */
-      unsigned long filesize = 0;
-      if (kvtree_util_get_bytecount(meta_hash, REDSET_KEY_COPY_XOR_SIZE, &filesize) != KVTREE_SUCCESS) {
-        scr_err("Failed to read filesize field for file %d in %s @ %s:%d",
-          j, xor_files[i], __FILE__, __LINE__
-        );
-        return 1;
-      }
-      user_filesizes[offset] = filesize;
-
-      /* for each file we're trying to rebuild, make a copy of its meta data,
-       * we need to use this later to apply stat info to each file we rebuild */
+      /* if this is the root, also create pre-create
+       * directory for this file */
       if (i == 0) {
-        kvtree_merge(metas[j], meta_hash);
-      }
-
-      /* get path of file */
-      spath* path_name = spath_from_str(fullpath);
-      if (build_data) {
-        /* for data files, we have to remap based on filemap info */
-        const char* path_file = spath_strdup(path_name);
-        user_files[offset] = lookup_path(filemaps[i], path_file);
-        scr_free(&path_file);
-      } else {
-        /* for map files, we're running in the same directory,
-         * just use the basename to open the file */
-        spath_basename(path_name);
-        user_files[offset] = spath_strdup(path_name);
-      }
-      spath_delete(&path_name);
-
-      /* open the file */
-      if (i == 0) {
-        /* create directory for file */
-        spath* user_dir_path = spath_from_str(user_files[offset]);
+        /* get parent directory for file */
+        spath* user_dir_path = spath_from_str(new_file);
         spath_reduce(user_dir_path);
         spath_dirname(user_dir_path);
+
+        /* create directory */
         if (! spath_is_null(user_dir_path)) {
           char* user_dir = spath_strdup(user_dir_path);
           mode_t mode_dir = scr_getmode(1, 1, 1);
@@ -569,134 +246,81 @@ int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
             scr_err("Failed to create directory for user file %s @ %s:%d",
               user_dir, __FILE__, __LINE__
             );
-            return 1;
+            rc = 1;
           }
           scr_free(&user_dir);
         }
-        spath_delete(&user_dir_path);
 
-        /* open missing file for writing */
-        mode_t mode_file = scr_getmode(1, 1, 0);
-        user_fds[offset] = scr_open(user_files[offset], O_WRONLY | O_CREAT | O_TRUNC, mode_file);
-        if (user_fds[offset] < 0) {
-          scr_err("Opening user file for writing: scr_open(%s) errno=%d %s @ %s:%d",
-            user_files[offset], errno, strerror(errno), __FILE__, __LINE__
-          );
-          return 1;
-        }
-      } else {
-        /* open existing file for reading */
-        user_fds[offset] = scr_open(user_files[offset], O_RDONLY);
-        if (user_fds[offset] < 0) {
-          scr_err("Opening user file for reading: scr_open(%s) errno=%d %s @ %s:%d",
-            user_files[offset], errno, strerror(errno), __FILE__, __LINE__
-          );
-          return 1;
-        }
+        /* free directory */
+        spath_delete(&user_dir_path);
       }
+
+      scr_free(&new_file);
     }
+
+    scr_free(&files);
+    scr_filemap_delete(&filemap);
   }
 
-  /* finally, open the xor file for the missing rank */
-  mode_t mode_file = scr_getmode(1, 1, 0);
-  xor_fds[0] = scr_open(xor_files[0], O_WRONLY | O_CREAT | O_TRUNC, mode_file);
-  if (xor_fds[0] < 0) {
-    scr_err("Opening xor file to be reconstructed: scr_open(%s) errno=%d %s @ %s:%d",
-      xor_files[0], errno, strerror(errno), __FILE__, __LINE__
+  return rc;
+}
+
+int rebuild(const spath* path_prefix, int build_data, int index, const char* argv[])
+{
+  int i, j;
+
+  int rc = 0;
+
+  /* read in the size of the redundancy set */
+  int set_size = (int) strtol(argv[index++], (char **)NULL, 10);
+  if (set_size <= 0) {
+    scr_err("Invalid set size argument %s @ %s:%d",
+      argv[index-1], __FILE__, __LINE__
     );
     return 1;
   }
 
-  int rc = 0;
-
-  /* write the header to the XOR file of the missing rank */
-  if (kvtree_write_fd(xor_files[0], xor_fds[0], xor_headers[0]) < 0) {
-    rc = 1;
-  }
-
-  /* apply xor encoding */
-  if (rc == 0) {
-    rc = apply_xor(xor_set_size, root, xor_files, xor_fds, offsets, num_files, user_files, user_fds, user_filesizes, chunk_size);
-  }
-
-  /* close each of the user files */
-  for (i = 0; i < total_num_files; i++) {
-    if (scr_close(user_files[i], user_fds[i]) != SCR_SUCCESS) {
-      rc = 1;
-    }
-  }
-
-  /* close each of the XOR files */
-  for (i = 0; i < xor_set_size; i++) {
-    if (scr_close(xor_files[i], xor_fds[i]) != SCR_SUCCESS) {
-      rc = 1;
-    }
-  }
-
-  /* copy meta data properties to new file (uid, gid, mode, atime, mtime) */
-  if (rc == 0) {
-    for (j = 0; j < num_files[0]; j++) {
-      int apply_rc = scr_meta_apply_stat(metas[j], user_files[j]);
-      if (apply_rc != SCR_SUCCESS) {
-        /* something went wrong, we'll assume the file is still valid,
-         * but let's print a message and return an error condition */
-        scr_err("Failed to copy metadata properties to file: `%s' @ %s:%d",
-          user_files[j], __FILE__, __LINE__
-        );
-        rc = 1;
-      }
-    }
-  }
-
-  /* if the write failed, delete the files we just wrote, and return an error */
-  if (rc != 0) {
-    for (j = 0; j < num_files[0]; j++) {
-      scr_file_unlink(user_files[j]);
-    }
-    scr_file_unlink(xor_files[0]);
+  /* read in the rank of the missing process (the root) */
+  int root = (int) strtol(argv[index++], (char **)NULL, 10);
+  if (root < 0 || root >= set_size) {
+    scr_err("Invalid root argument %s @ %s:%d",
+      argv[index-1], __FILE__, __LINE__
+    );
     return 1;
   }
 
-  /* check that filesizes are correct */
-  unsigned long filesize;
-  for (j = 0; j < num_files[0]; j++) {
-    filesize = scr_file_size(user_files[j]);
-    if (filesize != user_filesizes[j]) {
-      /* the filesize check failed, so delete the file */
-      scr_file_unlink(user_files[j]);
-      rc = 1;
-    }
-  }
-  /* TODO: we didn't record the filesize of the XOR file for the missing rank anywhere */
-
-  for (i = 0; i < total_num_files; i++) {
-    scr_free(&user_files[i]);
+  /* allocate memory for data structures based on the set size */
+  int* ranks = malloc(set_size * sizeof(int*));
+  if (ranks == NULL) {
+    scr_err("Failed to allocate array for rank list @ %s:%d",
+      __FILE__, __LINE__
+    );
+    return 1;
   }
 
-  for (j = 0; j < num_files[0]; j++) {
-    scr_meta_delete(&metas[j]);
+  /* get list of global rank ids in set, and id of missing rank */
+  int missing = root;
+  redset_lookup_ranks(set_size, &argv[index], ranks, &missing);
+
+  /* define name for missing XOR file */
+  spath* file_prefix = spath_dup(path_prefix);
+  kvtree* map = kvtree_new();
+  if (build_data) {
+    spath_append_str(file_prefix, "reddesc.er.");
+    build_map_data(path_prefix, set_size, ranks, missing, map);
+  } else {
+    spath_append_str(file_prefix, "reddescmap.er.");
+    build_map_filemap(path_prefix, set_size, &argv[index], ranks, missing, map);
   }
-  scr_free(&metas);
+  char* prefix = spath_strdup(file_prefix);
+  spath_delete(&file_prefix);
 
-  scr_free(&user_filesizes);
-  scr_free(&user_files);
-  scr_free(&user_fds);
+  redset_rebuild(set_size, root, &argv[index], prefix, map);
 
-  for (i = 0; i < xor_set_size; i++) {
-    kvtree_delete(&xor_headers[i]);
-    scr_filemap_delete(&filemaps[i]);
-  }
+  scr_free(&prefix);
+  kvtree_delete(&map);
 
-  for (i = 0; i < xor_set_size; i++) {
-    scr_free(&xor_files[i]);
-  }
-
-  scr_free(&filemaps);
-  scr_free(&xor_headers);
-  scr_free(&xor_fds);
-  scr_free(&xor_files);
-  scr_free(&offsets);
-  scr_free(&num_files);
+  scr_free(&ranks);
 
   return rc;
 }
@@ -724,9 +348,9 @@ int main(int argc, char* argv[])
   /* rebuild filemaps if given map command */
   int rc = 1;
   if (strcmp(argv[index++], "map") == 0) {
-    rc = rebuild(path_prefix, 0, index, argv);
+    rc = rebuild(path_prefix, 0, index, (const char**)argv);
   } else {
-    rc = rebuild(path_prefix, 1, index, argv);
+    rc = rebuild(path_prefix, 1, index, (const char**)argv);
   }
 
   spath_delete(&path_prefix);
