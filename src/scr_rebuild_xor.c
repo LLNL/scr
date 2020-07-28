@@ -40,23 +40,9 @@
 #include <unistd.h>
 #include <libgen.h>
 
-#define REDSET_KEY_COPY_XOR_DESC    "DESC"
-#define REDSET_KEY_COPY_XOR_RANKS   "RANKS"
-#define REDSET_KEY_COPY_XOR_RANK    "RANK"
-#define REDSET_KEY_COPY_XOR_GROUPS  "GROUPS"
-#define REDSET_KEY_COPY_XOR_GROUP   "GROUP"
-#define REDSET_KEY_COPY_XOR_FILES   "FILES"
-#define REDSET_KEY_COPY_XOR_FILE    "FILE"
-#define REDSET_KEY_COPY_XOR_SIZE    "SIZE"
-#define REDSET_KEY_COPY_XOR_CHUNK   "CHUNK"
-#define REDSET_KEY_COPY_XOR_GROUP_RANKS "RANKS"
-#define REDSET_KEY_COPY_XOR_GROUP_RANK  "RANK"
-
 #ifdef SCR_GLOBALS_H
 #error "globals.h accessed from tools"
 #endif
-
-int buffer_size = 128*1024;
 
 /* execute xor operation with N-1 files and xor file: 
      open each XOR file and read header to get info for user files
@@ -158,46 +144,77 @@ static char* lookup_path(const scr_filemap* map, const char* file)
   return path;
 }
 
-int build_map_filemap(const spath* path_prefix, int xor_set_size, const char** files, int* ranks, int missing, kvtree* map)
+/* this defines an output map that translates the path of the filemap
+ * as it was stored in cache to the map now stored in the prefix directory
+ * after a scavenge, this map will be needed to tell redset where those
+ * files are now located */
+int build_map_filemap(
+  const spath* path_prefix,
+  int set_size,
+  const char** files,
+  int* ranks,
+  int missing,
+  kvtree* map)
 {
   int rc = 0;
 
-  /* get file name, file size, and open each of the user files that we have */
-  redset_filelist list = redset_filelist_get_data(xor_set_size - 1, files);
+  /* we're missing one rank, so the number of files
+   * is one less than the set size */
+  int numfiles = set_size - 1;
+
+  /* get a full listing of data files that are encoded in redundancy files */
+  redset_filelist list = redset_filelist_get_data(numfiles, files);
 
   if (list == NULL) {
+    /* failed to get a list */
+    return 1;
   }
 
+  /* get number of data files */
   int num = redset_filelist_count(list);
 
+  /* iterate over list of files and define its new path for each one */
   int j;
   for (j = 0; j < num; j++) {
+    /* get name for this file */
     const char* file = redset_filelist_file(list, j);
 
-    /* for map files, we're running in the same directory,
-     * just use the basename to open the file */
+    /* for filemap files, we're running this command in the same directory
+     * so we can just use the basename to open each of those */
     spath* path_name = spath_from_str(file);
     spath_basename(path_name);
     char* new_file = spath_strdup(path_name);
     spath_delete(&path_name);
 
+    /* map from filemap as it was in cache to its new location
+     * in the current working directory */
     kvtree_util_set_str(map, file, new_file);
 
     scr_free(&new_file);
   }
 
+  /* done with the list of files */
   redset_filelist_release(&list);
 
   return rc;
 }
 
-int build_map_data(const spath* path_prefix, int xor_set_size, int* ranks, int missing, kvtree* map)
+/* this defines an output map that translates the path of each user data file
+ * as it was stored in cache to the location where it is now stored within
+ * the prefix directory after a scavenge, this map is needed to tell redset
+ * where those files are now located */
+int build_map_data(
+  const spath* path_prefix, /* path to the filemap (could probably drop this) */
+  int set_size, /* size of redundancy set */
+  int* ranks,   /* global mpi rank of each member in the redundancy set */
+  int missing,  /* index within the redundancy set for the missing member */
+  kvtree* map)  /* output map that maps data file in cache to its location within prefix directory */
 {
   int rc = 0;
 
   /* get file name, file size, and open each of the user files that we have */
   int i;
-  for (i = 0; i < xor_set_size; i++) {
+  for (i = 0; i < set_size; i++) {
     /* lookup global mpi rank for this group rank */
     int rank = ranks[i];
 
@@ -232,7 +249,7 @@ int build_map_data(const spath* path_prefix, int xor_set_size, int* ranks, int m
 
       /* if this is the root, also create pre-create
        * directory for this file */
-      if (i == 0) {
+      if (i == missing) {
         /* get parent directory for file */
         spath* user_dir_path = spath_from_str(new_file);
         spath_reduce(user_dir_path);
@@ -267,8 +284,6 @@ int build_map_data(const spath* path_prefix, int xor_set_size, int* ranks, int m
 
 int rebuild(const spath* path_prefix, int build_data, int index, const char* argv[])
 {
-  int i, j;
-
   int rc = 0;
 
   /* read in the size of the redundancy set */
@@ -298,8 +313,10 @@ int rebuild(const spath* path_prefix, int build_data, int index, const char* arg
     return 1;
   }
 
-  /* get list of global rank ids in set, and id of missing rank */
+  /* set rank of missing rank (within its group) */
   int missing = root;
+
+  /* get list of global rank ids in set */
   redset_lookup_ranks(set_size, &argv[index], ranks, &missing);
 
   /* define name for missing XOR file */
@@ -327,14 +344,13 @@ int rebuild(const spath* path_prefix, int build_data, int index, const char* arg
 
 int main(int argc, char* argv[])
 {
-  int i, j;
-  int index = 1;
-
   /* print usage if not enough arguments were given */
   if (argc < 2) {
     printf("Usage: scr_rebuild_xor <xor|map> <size> <root> <ordered_remaining_xor_filenames>\n");
     return 1;
   }
+
+  int index = 1;
 
   /* TODO: want to pass this on command line? */
   /* get current working directory */
