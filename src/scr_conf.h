@@ -152,6 +152,11 @@
 #define SCR_FILE_BUF_SIZE (1024*1024)
 #endif
 
+/* whether file metadata should also be copied */
+#ifndef SCR_COPY_METADATA
+#define SCR_COPY_METADATA (0)
+#endif
+
 /* =========================================================================
  * Default settings for distribute, fetch, and flush operations.
  * ========================================================================= */
