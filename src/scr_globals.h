@@ -166,7 +166,7 @@ extern int scr_set_size;      /* specify number of tasks in redundancy set */
 extern int scr_set_failures;  /* specify number of failures to tolerate per set */
 extern int scr_cache_bypass;  /* default bypass, whether to directly read/write parallel file system */
 
-extern size_t scr_mpi_buf_size;  /* set MPI buffer size to chunk file transfer */
+extern int scr_mpi_buf_size;     /* set MPI buffer size to chunk file transfer, int due to MPI limits */
 extern size_t scr_file_buf_size; /* set buffer size to chunk file copies to/from parallel file system */
 extern int scr_copy_metadata;    /* whether file metadata should also be copied */
 
