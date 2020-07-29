@@ -839,13 +839,7 @@ static int scr_get_params()
 
   /* set MPI buffer size (file chunk size) */
   if ((value = scr_param_get("SCR_MPI_BUF_SIZE")) != NULL) {
-    if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
-      scr_mpi_buf_size = (size_t) ull;
-    } else {
-      scr_err("Failed to read SCR_MPI_BUF_SIZE successfully @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
+    scr_mpi_buf_size = atoi(value);
   }
 
   /* whether to delete all datasets from cache on restart,
