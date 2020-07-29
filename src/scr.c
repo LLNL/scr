@@ -956,6 +956,11 @@ static int scr_get_params()
     }
   }
 
+  /* whether file metadata should also be copied */
+  if ((value = scr_param_get("SCR_COPY_METADATA")) != NULL) {
+    scr_copy_metadata = atoi(value);
+  }
+
   /* specify whether to compute CRC when applying redundancy scheme */
   if ((value = scr_param_get("SCR_CRC_ON_COPY")) != NULL) {
     scr_crc_on_copy = atoi(value);
@@ -1803,7 +1808,6 @@ int SCR_Init()
 
   /* coonfigure used libraries */
   {
-    const int scr_copy_metadata = 0; /* hard-coded default for now */
     kvtree* axl_config = kvtree_new();
     assert(axl_config);
 
