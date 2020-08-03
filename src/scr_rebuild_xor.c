@@ -44,65 +44,6 @@
 #error "globals.h accessed from tools"
 #endif
 
-/* execute xor operation with N-1 files and xor file: 
-     open each XOR file and read header to get info for user files
-     open each user file
-     open missing user file
-     open missing XOR file
-     for all chunks
-       read a chunk from missing file (xor file) into memory buffer A
-       for each other file i
-         read chunk from file i into memory buffer B
-         merge chunks and store in memory buffer A
-       write chunk in memory buffer A to missing file
-     close all files
-*/
-
-static int scr_compute_crc(scr_filemap* map, const char* file)
-{
-  /* compute crc for the file */
-  uLong crc_file;
-  if (scr_crc32(file, &crc_file) != SCR_SUCCESS) {
-    scr_err("Failed to compute crc for file %s @ %s:%d",
-      file, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* allocate a new meta data object */
-  scr_meta* meta = scr_meta_new();
-  if (meta == NULL) {
-    scr_abort(-1, "Failed to allocate meta data object @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* read meta data from filemap */
-  if (scr_filemap_get_meta(map, file, meta) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  int rc = SCR_SUCCESS;
-
-  /* read crc value from meta data */
-  uLong crc_meta;
-  if (scr_meta_get_crc32(meta, &crc_meta) == SCR_SUCCESS) {
-    /* check that the values are the same */
-    if (crc_file != crc_meta) {
-      rc = SCR_FAILURE;
-    }
-  } else {
-    /* record crc in filemap */
-    scr_meta_set_crc32(meta, crc_file);
-    scr_filemap_set_meta(map, file, meta);
-  }
-
-  /* free our meta data object */
-  scr_meta_delete(&meta);
-
-  return rc;
-}
-
 /* given a file map, and a path to a file in cache, allocate and return
  * corresponding path to file in prefix directory */
 static char* lookup_path(const scr_filemap* map, const char* file)
@@ -163,7 +104,7 @@ int build_map_filemap(
   int numfiles = set_size - 1;
 
   /* get a full listing of data files that are encoded in redundancy files */
-  redset_filelist list = redset_filelist_get_data(numfiles, files);
+  redset_filelist list = redset_filelist_get_data_xor(numfiles, files);
 
   if (list == NULL) {
     /* failed to get a list */
@@ -317,7 +258,7 @@ int rebuild(const spath* path_prefix, int build_data, int index, const char* arg
   int missing = root;
 
   /* get list of global rank ids in set */
-  redset_lookup_ranks(set_size, &argv[index], ranks, &missing);
+  redset_lookup_ranks_xor(set_size, &argv[index], ranks, &missing);
 
   /* define name for missing XOR file */
   spath* file_prefix = spath_dup(path_prefix);
@@ -332,7 +273,7 @@ int rebuild(const spath* path_prefix, int build_data, int index, const char* arg
   char* prefix = spath_strdup(file_prefix);
   spath_delete(&file_prefix);
 
-  redset_rebuild(set_size, root, &argv[index], prefix, map);
+  redset_rebuild_xor(set_size, root, &argv[index], prefix, map);
 
   scr_free(&prefix);
   kvtree_delete(&map);
