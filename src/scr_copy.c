@@ -554,23 +554,19 @@ int main (int argc, char *argv[])
   regcomp(&re_redsetmap_file, "reddescmap.er.([0-9]+).redset", REG_EXTENDED);
 
   regex_t re_redsetmap_partner_file;
-  //regcomp(&re_redsetmap_partner_file, "reddescmap.er.([0-9]+).partner.([0-9]+)_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
-  regcomp(&re_redsetmap_partner_file, "reddescmap.er.([0-9]+).partner.([0-9]+)_([0-9]+)_([0-9]+).redset", REG_EXTENDED);
-  //regcomp(&re_redsetmap_partner_file, "reddescmap.er.([0-9]+).partner.redset", REG_EXTENDED);
+  regcomp(&re_redsetmap_partner_file, "reddescmap.er.([0-9]+).partner.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
 
   regex_t re_redsetmap_xor_file;
-  regcomp(&re_redsetmap_xor_file, "reddescmap.er.([0-9]+).xor.([0-9]+)_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
+  regcomp(&re_redsetmap_xor_file, "reddescmap.er.([0-9]+).xor.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
 
   regex_t re_redset_file;
   regcomp(&re_redset_file, "reddesc.er.([0-9]+).redset", REG_EXTENDED);
 
   regex_t re_redset_partner_file;
-  //regcomp(&re_redset_partner_file, "reddesc.er.([0-9]+).partner.([0-9]+)_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
-  regcomp(&re_redset_partner_file, "reddesc.er.([0-9]+).partner.([0-9]+)_([0-9]+)_([0-9]+).redset", REG_EXTENDED);
-  //regcomp(&re_redset_partner_file, "reddesc.er.([0-9]+).partner.redset", REG_EXTENDED);
+  regcomp(&re_redset_partner_file, "reddesc.er.([0-9]+).partner.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
 
   regex_t re_redset_xor_file;
-  regcomp(&re_redset_xor_file, "reddesc.er.([0-9]+).xor.([0-9]+)_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
+  regcomp(&re_redset_xor_file, "reddesc.er.([0-9]+).xor.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
 
   int rc = 0;
 

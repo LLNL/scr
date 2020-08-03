@@ -23,6 +23,8 @@
 #include "kvtree.h"
 #include "kvtree_util.h"
 
+#include "redset.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -38,16 +40,6 @@
 #include <unistd.h>
 #include <libgen.h>
 
-#define REDSET_KEY_COPY_PARTNER_DESC    "DESC"
-#define REDSET_KEY_COPY_PARTNER_CURRENT "CURRENT"
-#define REDSET_KEY_COPY_PARTNER_PARTNER "PARTNER"
-#define REDSET_KEY_COPY_PARTNER_RANKS   "RANKS"
-#define REDSET_KEY_COPY_PARTNER_RANK    "RANK"
-#define REDSET_KEY_COPY_PARTNER_GROUP   "GROUP"
-#define REDSET_KEY_COPY_PARTNER_FILES   "FILES"
-#define REDSET_KEY_COPY_PARTNER_FILE    "FILE"
-#define REDSET_KEY_COPY_PARTNER_SIZE    "SIZE"
-
 #define LEFT   (0)
 #define RIGHT  (1)
 #define CENTER (2)
@@ -55,70 +47,6 @@
 #ifdef SCR_GLOBALS_H
 #error "globals.h accessed from tools"
 #endif
-
-int buffer_size = 128*1024;
-
-static int scr_compute_crc(scr_filemap* map, const char* file)
-{
-  /* compute crc for the file */
-  uLong crc_file;
-  if (scr_crc32(file, &crc_file) != SCR_SUCCESS) {
-    scr_err("Failed to compute crc for file %s @ %s:%d",
-      file, __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* allocate a new meta data object */
-  scr_meta* meta = scr_meta_new();
-  if (meta == NULL) {
-    scr_abort(-1, "Failed to allocate meta data object @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-
-  /* read meta data from filemap */
-  if (scr_filemap_get_meta(map, file, meta) != SCR_SUCCESS) {
-    return SCR_FAILURE;
-  }
-
-  int rc = SCR_SUCCESS;
-
-  /* read crc value from meta data */
-  uLong crc_meta;
-  if (scr_meta_get_crc32(meta, &crc_meta) == SCR_SUCCESS) {
-    /* check that the values are the same */
-    if (crc_file != crc_meta) {
-      rc = SCR_FAILURE;
-    }
-  } else {
-    /* record crc in filemap */
-    scr_meta_set_crc32(meta, crc_file);
-    scr_filemap_set_meta(map, file, meta);
-  }
-
-  /* free our meta data object */
-  scr_meta_delete(&meta);
-
-  return rc;
-}
-
-/* given an PARTNER header, lookup and return global rank given rank in group */
-static int lookup_rank(const kvtree* header, int group_rank, const char* file)
-{
-  int rank = -1;
-  kvtree* group_hash = kvtree_get(header, REDSET_KEY_COPY_PARTNER_GROUP);
-  kvtree* rank_hash  = kvtree_get_kv_int(group_hash, REDSET_KEY_COPY_PARTNER_RANK, group_rank);
-  kvtree_elem* elem = kvtree_elem_first(rank_hash);
-  if (elem != NULL) {
-    rank = kvtree_elem_key_int(elem);
-  } else {
-    scr_err("Failed to read rank from PARTNER file header in %s @ %s:%d",
-      file, __FILE__, __LINE__
-    );
-  }
-  return rank;
-}
 
 /* given a file map, and a path to a file in cache, allocate and return
  * corresponding path to file in prefix directory */
@@ -161,489 +89,172 @@ static char* lookup_path(const scr_filemap* map, const char* file)
   return path;
 }
 
-static int apply_partner(
-  char* files[],
-  int fds[],
-  int offsets[],
-  int num_files[],
-  char* user_files[],
-  int user_fds[],
-  unsigned long user_filesizes[])
+/* this defines an output map that translates the path of the filemap
+ * as it was stored in cache to the map now stored in the prefix directory
+ * after a scavenge, this map will be needed to tell redset where those
+ * files are now located */
+int build_map_filemap(
+  const spath* path_prefix,
+  int set_size,
+  int* ranks,
+  redset_filelist list,
+  kvtree* map)
 {
-  int i, j;
   int rc = 0;
 
-  /* allocate buffers */
-  char* buffer = malloc(buffer_size * sizeof(char));
-  if (buffer == NULL) {
-    scr_err("Failed to allocate buffer memory @ %s:%d",
-      __FILE__, __LINE__
-    );
+  if (list == NULL) {
+    /* failed to get a list */
     return 1;
   }
 
-  /* get pointers to left and center arrays */
-  int lhs_offset = offsets[LEFT];
-  char** lhs_files             = &user_files[lhs_offset];
-  int* lhs_fds                 = &user_fds[lhs_offset];
-  unsigned long* lhs_filesizes = &user_filesizes[lhs_offset];
+  /* get number of data files */
+  int num = redset_filelist_count(list);
 
-  int center_offset = offsets[CENTER];
-  char** center_files             = &user_files[center_offset];
-  int* center_fds                 = &user_fds[center_offset];
-  unsigned long* center_filesizes = &user_filesizes[center_offset];
+  /* iterate over list of files and define its new path for each one */
+  int j;
+  for (j = 0; j < num; j++) {
+    /* get name for this file */
+    const char* file = redset_filelist_file(list, j);
 
-  /* compute total bytes we'll read from left partner,
-   * sum of data for each user file of our left partner */
-  off_t lhs_datasize = 0;
-  for (i = 0; i < num_files[LEFT]; i++) {
-    lhs_datasize += (off_t)lhs_filesizes[i];
+    /* for filemap files, we're running this command in the same directory
+     * so we can just use the basename to open each of those */
+    spath* path_name = spath_from_str(file);
+    spath_basename(path_name);
+    char* new_file = spath_strdup(path_name);
+    spath_delete(&path_name);
+
+    /* map from filemap as it was in cache to its new location
+     * in the current working directory */
+    kvtree_util_set_str(map, file, new_file);
+
+    scr_free(&new_file);
   }
-
-  /* compute total bytes we'll read from right partner,
-   * sum of data for each of our own user files */
-  off_t center_datasize = 0;
-  for (i = 0; i < num_files[CENTER]; i++) {
-    center_datasize += (off_t)center_filesizes[i];
-  }
-
-  /* copy data from left partner user files into our redset partner file */
-  unsigned long read_pos = 0;
-  off_t nread = 0;
-  while (nread < lhs_datasize && rc == 0) {
-    /* read up to buffer_size bytes at a time */
-    size_t count = buffer_size;
-    if ((lhs_datasize - nread) < (off_t)buffer_size) {
-      count = (size_t)(lhs_datasize - nread);
-    }
-
-    /* read data from left partner user files */
-    if (scr_read_pad_n(num_files[LEFT], lhs_files, lhs_fds, buffer, count, read_pos, lhs_filesizes) != SCR_SUCCESS) {
-      /* our read failed, set the return code to an error */
-      rc = 1;
-      count = 0;
-    }
-    read_pos += count;
-
-    /* write data to partner file for the missing rank */
-    if (scr_write_attempt(files[CENTER], fds[CENTER], buffer, count) != count) {
-      /* our write failed, set the return code to an error */
-      rc = 1;
-    }
-
-    nread += count;
-  }
-
-  /* copy data from right partner redset file into our user files */
-  unsigned long write_pos = 0;
-  nread = 0;
-  while (nread < center_datasize && rc == 0) {
-    /* read up to buffer_size bytes at a time */
-    size_t count = buffer_size;
-    if ((center_datasize - nread) < (off_t)buffer_size) {
-      count = (size_t)(center_datasize - nread);
-    }
-
-    /* read data from right partner file */
-    if (scr_read_attempt(files[RIGHT], fds[RIGHT], buffer, count) != count) {
-      /* our read failed, set the return code to an error */
-      rc = 1;
-      count = 0;
-    }
-
-    /* write data to our user files */
-    if (scr_write_pad_n(num_files[CENTER], center_files, center_fds, buffer, count, write_pos, center_filesizes) != SCR_SUCCESS) {
-      /* our write failed, set the return code to an error */
-      rc = 1;
-    }
-    write_pos += count;
-
-    nread += count;
-  }
-
-  scr_free(&buffer);
 
   return rc;
 }
 
-int rebuild(const spath* path_prefix, int build_data, int index, char* argv[])
+/* this defines an output map that translates the path of each user data file
+ * as it was stored in cache to the location where it is now stored within
+ * the prefix directory after a scavenge, this map is needed to tell redset
+ * where those files are now located */
+int build_map_data(
+  const spath* path_prefix, /* path to the filemap (could probably drop this) */
+  int set_size, /* size of redundancy set */
+  int* ranks,   /* global mpi rank of each member in the redundancy set */
+  redset_filelist list, /* list of source data files in redudancy set */
+  kvtree* map)  /* output map that maps data file in cache to its location within prefix directory */
 {
-  int i, j;
-
-  /* allocate memory for data structures, for partner we need 3 ranks:
-   * the target rank that we're rebuilding (CENTER) and the ranks one
-   * less (LEFT) and one more (RIGHT)*/
-  int     ranks[3];
-  int     num_files[3];
-  int     offsets[3];
-  char*   files[3];
-  int     fds[3];
-  kvtree* headers[3];
-  scr_filemap* filemaps[3];
-
-  headers[LEFT]   = kvtree_new();
-  headers[RIGHT]  = kvtree_new();
-  headers[CENTER] = kvtree_new();
-
-  filemaps[LEFT]   = scr_filemap_new();
-  filemaps[RIGHT]  = scr_filemap_new();
-  filemaps[CENTER] = scr_filemap_new();
-
-  /* read in the rank of the left partner */
-  ranks[LEFT] = (int) strtol(argv[index++], (char **)NULL, 10);
-  if (ranks[LEFT] < 0) {
-    scr_err("Invalid rank argument %s @ %s:%d",
-      argv[index-1], __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* read in the missing rank */
-  ranks[CENTER] = (int) strtol(argv[index++], (char **)NULL, 10);
-  if (ranks[CENTER] < 0) {
-    scr_err("Invalid rank argument %s @ %s:%d",
-      argv[index-1], __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* read in the right rank */
-  ranks[RIGHT] = (int) strtol(argv[index++], (char **)NULL, 10);
-  if (ranks[RIGHT] < 0) {
-    scr_err("Invalid rank argument %s @ %s:%d",
-      argv[index-1], __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* copy the file name of left partner */
-  files[LEFT] = strdup(argv[index++]);
-  if (files[LEFT] == NULL) {
-    scr_err("Failed to dup filename @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* copy the file name of right partner */
-  files[RIGHT] = strdup(argv[index++]);
-  if (files[RIGHT] == NULL) {
-    scr_err("Failed to dup filename @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* open partner files for reading and read in headers */
-  for (i = 0; i < 2; i++) {
-    /* open file for reading */
-    fds[i] = scr_open(files[i], O_RDONLY);
-    if (fds[i] < 0) {
-      scr_err("Opening partner file: scr_open(%s) errno=%d %s @ %s:%d",
-        files[i], errno, strerror(errno), __FILE__, __LINE__
-      );
-      return 1;
-    }
-
-    /* read the header from this partner file */
-    if (kvtree_read_fd(files[i], fds[i], headers[i]) < 0) {
-      scr_err("Failed to read header from %s @ %s:%d",
-        files[i], __FILE__, __LINE__
-      );
-      return 1;
-    }
-  }
-
-  /* build header for missing partner file,
-   * our RIGHT partner has a copy of our header */
-  kvtree_merge(headers[CENTER], headers[RIGHT]);
-
-  /* fetch our own file list from rank to our right,
-   * our RIGHT partner stored this under their PARTNER key,
-   * we copy it as our CURRENT key */
-  kvtree* rhs_hash = kvtree_get(headers[RIGHT], REDSET_KEY_COPY_PARTNER_PARTNER);
-  kvtree* current_hash = kvtree_new();
-  kvtree_merge(current_hash, rhs_hash);
-  kvtree_set(headers[CENTER], REDSET_KEY_COPY_PARTNER_CURRENT, current_hash);
-
-  /* we are the partner to the rank to our left,
-   * we need to store a copy of its CURRENT header under our PARTNER key */
-  kvtree* lhs_hash = kvtree_get(headers[LEFT], REDSET_KEY_COPY_PARTNER_CURRENT);
-  kvtree* partner_hash = kvtree_new();
-  kvtree_merge(partner_hash, lhs_hash);
-  kvtree_set(headers[CENTER], REDSET_KEY_COPY_PARTNER_PARTNER, partner_hash);
-
-  /* get a pointer to the current hash for the missing rank */
-  kvtree* missing_current_hash = kvtree_get(headers[CENTER], REDSET_KEY_COPY_PARTNER_CURRENT);
-
-  /* define name for missing partner file */
-  char missing_name[1024];
-  if (build_data) {
-    snprintf(missing_name, sizeof(missing_name), "reddesc.er.%d.partner.%d_%d_%d.redset",
-      ranks[CENTER], ranks[LEFT], ranks[CENTER], ranks[RIGHT]
-    );
-  } else {
-    snprintf(missing_name, sizeof(missing_name), "reddescmap.er.%d.partner.%d_%d_%d.redset",
-      ranks[CENTER], ranks[LEFT], ranks[CENTER], ranks[RIGHT]
-    );
-  }
-  files[CENTER] = strdup(missing_name);
-
-  /* determine number of files each member wrote */
-  for (i = 0; i < 3; i++) {
-    /* record the number of files for this rank */
-    kvtree* current_hash = kvtree_get(headers[i], REDSET_KEY_COPY_PARTNER_CURRENT);
-    if (kvtree_util_get_int(current_hash, REDSET_KEY_COPY_PARTNER_FILES, &num_files[i]) != KVTREE_SUCCESS) {
-      scr_err("Failed to read number of files from %s @ %s:%d",
-        files[i], __FILE__, __LINE__
-      );
-      return 1;
-    }
-  }
-  
-  /* count the total number of files and set the offsets array */
-  int total_num_files = 0;
-  for (i = 0; i < 3; i++) {
-    offsets[i] = total_num_files;
-    total_num_files += num_files[i];
-  }
-
-  /* allocate space to hold meta data for each file */
-  scr_meta** metas = (scr_meta**) malloc(num_files[CENTER] * sizeof(scr_meta*));
-  if (metas == NULL) {
-    scr_err("Failed to allocate memory for metadata @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* initialize kvtree for each file */
-  for (i = 0; i < num_files[CENTER]; i++) {
-    metas[i] = scr_meta_new();
-  }
-
-  /* allocate space for a file descriptor, file name pointer, and filesize for each user file */
-  int* user_fds                 = (int*)           malloc(total_num_files * sizeof(int));
-  char** user_files             = (char**)         malloc(total_num_files * sizeof(char*));
-  unsigned long* user_filesizes = (unsigned long*) malloc(total_num_files * sizeof(unsigned long));
-  if (user_fds == NULL || user_files == NULL || user_filesizes == NULL) {
-    scr_err("Failed to allocate buffer memory @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return 1;
-  }
-
-  /* get file name, file size, and open each of the user files that we have */
-  for (i = 0; i < 3; i++) {
-    /* read in filemap for this member */
-    if (build_data) {
-      spath* filemap_path = spath_dup(path_prefix);
-      spath_append_strf(filemap_path, "filemap_%d", ranks[i]);
-      scr_filemap_read(filemap_path, filemaps[i]);
-      spath_delete(&filemap_path);
-    }
-
-    /* for each file belonging to this rank, get filename, filesize, and open file */
-    kvtree* current_hash = kvtree_get(headers[i], REDSET_KEY_COPY_PARTNER_CURRENT);
-    
-    for (j = 0; j < num_files[i]; j++) {
-      /* compute offset into total files array */
-      int offset = offsets[i] + j;
-
-      /* get hash for this file */
-      kvtree* file_hash = kvtree_get_kv_int(current_hash, REDSET_KEY_COPY_PARTNER_FILE, j);
-
-      /* should just have one element */
-      kvtree_elem* elem = kvtree_elem_first(file_hash);
-
-      /* full path to file */
-      const char* fullpath = kvtree_elem_key(elem);
-
-      /* meta data for file */
-      kvtree* meta_hash = kvtree_elem_hash(elem);
-
-      /* record the filesize of this file */
-      unsigned long filesize = 0;
-      if (kvtree_util_get_bytecount(meta_hash, REDSET_KEY_COPY_PARTNER_SIZE, &filesize) != KVTREE_SUCCESS) {
-        scr_err("Failed to read filesize field for file %d in %s @ %s:%d",
-          j, files[i], __FILE__, __LINE__
-        );
-        return 1;
-      }
-      user_filesizes[offset] = filesize;
-
-      /* for each file we're trying to rebuild, make a copy of its meta data,
-       * we need to use this later to apply stat info to each file we rebuild */
-      if (i == CENTER) {
-        kvtree_merge(metas[j], meta_hash);
-      }
-
-      /* get path to user file */
-      spath* path_name = spath_from_str(fullpath);
-      if (build_data) {
-        /* for data files, we have to remap based on filemap info */
-        const char* path_file = spath_strdup(path_name);
-        user_files[offset] = lookup_path(filemaps[i], path_file);
-        scr_free(&path_file);
-      } else {
-        /* for map files, we're running in the same directory,
-         * just use the basename to open the file */
-        spath_basename(path_name);
-        user_files[offset] = spath_strdup(path_name);
-      }
-      spath_delete(&path_name);
-
-      /* open the file */
-      if (i == CENTER) {
-        /* create directory for file */
-        spath* user_dir_path = spath_from_str(user_files[offset]);
-        spath_reduce(user_dir_path);
-        spath_dirname(user_dir_path);
-        if (! spath_is_null(user_dir_path)) {
-          char* user_dir = spath_strdup(user_dir_path);
-          mode_t mode_dir = scr_getmode(1, 1, 1);
-          if (scr_mkdir(user_dir, mode_dir) != SCR_SUCCESS) {
-            scr_err("Failed to create directory for user file %s @ %s:%d",
-              user_dir, __FILE__, __LINE__
-            );
-            return 1;
-          }
-          scr_free(&user_dir);
-        }
-        spath_delete(&user_dir_path);
-
-        /* open missing file for writing */
-        mode_t mode_file = scr_getmode(1, 1, 0);
-        user_fds[offset] = scr_open(user_files[offset], O_WRONLY | O_CREAT | O_TRUNC, mode_file);
-        if (user_fds[offset] < 0) {
-          scr_err("Opening user file for writing: scr_open(%s) errno=%d %s @ %s:%d",
-            user_files[offset], errno, strerror(errno), __FILE__, __LINE__
-          );
-          return 1;
-        }
-      } else {
-        /* open existing file for reading */
-        user_fds[offset] = scr_open(user_files[offset], O_RDONLY);
-        if (user_fds[offset] < 0) {
-          scr_err("Opening user file for reading: scr_open(%s) errno=%d %s @ %s:%d",
-            user_files[offset], errno, strerror(errno), __FILE__, __LINE__
-          );
-          return 1;
-        }
-      }
-    }
-  }
-
-  /* finally, open the partner file for the missing rank */
-  mode_t mode_file = scr_getmode(1, 1, 0);
-  fds[CENTER] = scr_open(files[CENTER], O_WRONLY | O_CREAT | O_TRUNC, mode_file);
-  if (fds[CENTER] < 0) {
-    scr_err("Opening partner file to be reconstructed: scr_open(%s) errno=%d %s @ %s:%d",
-      files[CENTER], errno, strerror(errno), __FILE__, __LINE__
-    );
-    return 1;
-  }
-
   int rc = 0;
 
-  /* write the header to the partner redundancy file of the missing rank */
-  if (kvtree_write_fd(files[CENTER], fds[CENTER], headers[CENTER]) < 0) {
-    rc = 1;
-  }
+  /* get file name, file size, and open each of the user files that we have */
+  int i;
+  for (i = 0; i < set_size; i++) {
+    /* lookup global mpi rank for this group rank */
+    int rank = ranks[i];
 
-  /* apply partner encoding */
-  if (rc == 0) {
-    rc = apply_partner(files, fds, offsets, num_files, user_files, user_fds, user_filesizes);
-  }
+    /* define name of filemap file for this rank */
+    spath* filemap_path = spath_dup(path_prefix);
+    spath_append_strf(filemap_path, "filemap_%d", rank);
 
-  /* close each of the user files */
-  for (i = 0; i < total_num_files; i++) {
-    if (scr_close(user_files[i], user_fds[i]) != SCR_SUCCESS) {
-      rc = 1;
-    }
-  }
+    /* read in filemap for this member */
+    scr_filemap* filemap = scr_filemap_new();
+    scr_filemap_read(filemap_path, filemap);
 
-  /* close each of the partner files */
-  for (i = 0; i < 3; i++) {
-    if (scr_close(files[i], fds[i]) != SCR_SUCCESS) {
-      rc = 1;
-    }
-  }
+    /* free the name of the filemap file */
+    spath_delete(&filemap_path);
 
-  /* copy meta data properties to new file (uid, gid, mode, atime, mtime) */
-  if (rc == 0) {
-    for (j = 0; j < num_files[CENTER]; j++) {
-      int idx = offsets[CENTER] + j;
-      int apply_rc = scr_meta_apply_stat(metas[j], user_files[idx]);
-      if (apply_rc != SCR_SUCCESS) {
-        /* something went wrong, we'll assume the file is still valid,
-         * but let's print a message and return an error condition */
-        scr_err("Failed to copy metadata properties to file: `%s' @ %s:%d",
-          user_files[idx], __FILE__, __LINE__
-        );
-        rc = 1;
+    /* get list of files from the filemap */
+    int num;
+    char** files;
+    scr_filemap_list_files(filemap, &num, &files);
+
+    /* iterate over each file to define its new
+     * path and record in the output map */
+    int j;
+    for (j = 0; j < num; j++) {
+      /* get original file name */
+      char* file = files[j];
+
+      /* get path of file, we have to remap based on filemap info */
+      char* new_file = lookup_path(filemap, file);
+
+      /* map original file name to new location */
+      kvtree_util_set_str(map, file, new_file);
+
+      /* get parent directory for file */
+      spath* user_dir_path = spath_from_str(new_file);
+      spath_reduce(user_dir_path);
+      spath_dirname(user_dir_path);
+
+      /* create directory */
+      if (! spath_is_null(user_dir_path)) {
+        char* user_dir = spath_strdup(user_dir_path);
+        mode_t mode_dir = scr_getmode(1, 1, 1);
+        if (scr_mkdir(user_dir, mode_dir) != SCR_SUCCESS) {
+          scr_err("Failed to create directory for user file %s @ %s:%d",
+            user_dir, __FILE__, __LINE__
+          );
+          rc = 1;
+        }
+        scr_free(&user_dir);
       }
+
+      /* free directory */
+      spath_delete(&user_dir_path);
+
+      scr_free(&new_file);
     }
+
+    scr_free(&files);
+    scr_filemap_delete(&filemap);
   }
 
-  /* if the write failed, delete the files we just wrote, and return an error */
-  if (rc != 0) {
-    for (j = 0; j < num_files[CENTER]; j++) {
-      int idx = offsets[CENTER] + j;
-      scr_file_unlink(user_files[idx]);
-    }
-    scr_file_unlink(files[CENTER]);
-    return 1;
+  return rc;
+}
+
+int rebuild(const spath* path_prefix, int build_data, int numfiles, char** files)
+{
+  int rc = 0;
+
+  /* get list of global rank ids in set */
+  int set_size = 0;
+  int* global_ranks = NULL;
+  redset_filelist list = redset_filelist_get_data_partner(numfiles, files, &set_size, &global_ranks);
+
+  /* define name for missing XOR file */
+  spath* file_prefix = spath_dup(path_prefix);
+  kvtree* map = kvtree_new();
+  if (build_data) {
+    spath_append_str(file_prefix, "reddesc.er");
+    build_map_data(path_prefix, set_size, global_ranks, list, map);
+  } else {
+    spath_append_str(file_prefix, "reddescmap.er");
+    build_map_filemap(path_prefix, set_size, global_ranks, list, map);
   }
+  char* prefix = spath_strdup(file_prefix);
+  spath_delete(&file_prefix);
 
-  /* check that filesizes are correct */
-  unsigned long filesize;
-  for (j = 0; j < num_files[CENTER]; j++) {
-    int idx = offsets[CENTER] + j;
-    filesize = scr_file_size(user_files[idx]);
-    if (filesize != user_filesizes[idx]) {
-      /* the filesize check failed, so delete the file */
-      scr_file_unlink(user_files[idx]);
-      rc = 1;
-    }
-  }
+  redset_rebuild_partner(numfiles, files, prefix, map);
 
-  /* TODO: we didn't record the filesize of the partner file for the missing rank anywhere */
+  scr_free(&prefix);
+  kvtree_delete(&map);
 
-  for (i = 0; i < total_num_files; i++) {
-    scr_free(&user_files[i]);
-  }
-
-  for (j = 0; j < num_files[CENTER]; j++) {
-    scr_meta_delete(&metas[j]);
-  }
-  scr_free(&metas);
-
-  scr_free(&user_filesizes);
-  scr_free(&user_files);
-  scr_free(&user_fds);
-
-  for (i = 0; i < 3; i++) {
-    kvtree_delete(&headers[i]);
-    scr_filemap_delete(&filemaps[i]);
-  }
-
-  for (i = 0; i < 3; i++) {
-    scr_free(&files[i]);
-  }
+  /* done with the list of files */
+  redset_filelist_release(&list);
+  scr_free(&global_ranks);
 
   return rc;
 }
 
 int main(int argc, char* argv[])
 {
-  int index = 1;
-
   /* print usage if not enough arguments were given */
   if (argc < 2) {
-    printf("Usage: scr_rebuild_partner <data|map> <left_partner> <right_partner>\n");
+    printf("Usage: scr_rebuild_partner <data|map> partner files ...\n");
     return 1;
   }
+
+  int index = 1;
 
   /* TODO: want to pass this on command line? */
   /* get current working directory */
@@ -658,9 +269,9 @@ int main(int argc, char* argv[])
    * otherwise rebuild data files */
   int rc = 1;
   if (strcmp(argv[index++], "map") == 0) {
-    rc = rebuild(path_prefix, 0, index, argv);
+    rc = rebuild(path_prefix, 0, argc - index, &argv[index]);
   } else {
-    rc = rebuild(path_prefix, 1, index, argv);
+    rc = rebuild(path_prefix, 1, argc - index, &argv[index]);
   }
 
   spath_delete(&path_prefix);
