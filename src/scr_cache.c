@@ -297,12 +297,16 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
           file, __FILE__, __LINE__
         );
       }
+
+      /* TODO: this check triggers when deleting a checkpoint that was rebuilt on restart,
+       * perhaps we can skip this check on rebuilt datasets? */
       if (scr_meta_check_ctime(meta, &statbuf) != SCR_SUCCESS) {
         file_changed = 1;
         scr_warn("Detected ctime change in file `%s' since it was completed @ %s:%d",
           file, __FILE__, __LINE__
         );
       }
+
       if (file_changed) {
         scr_warn("Detected change in file `%s' since it was completed @ %s:%d",
           file, __FILE__, __LINE__
