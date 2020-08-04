@@ -553,20 +553,14 @@ int main (int argc, char *argv[])
   regex_t re_redsetmap_file;
   regcomp(&re_redsetmap_file, "reddescmap.er.([0-9]+).redset", REG_EXTENDED);
 
-  regex_t re_redsetmap_partner_file;
-  regcomp(&re_redsetmap_partner_file, "reddescmap.er.([0-9]+).partner.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
-
-  regex_t re_redsetmap_xor_file;
-  regcomp(&re_redsetmap_xor_file, "reddescmap.er.([0-9]+).xor.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
+  regex_t re_redsetmap_type_file;
+  regcomp(&re_redsetmap_type_file, "reddescmap.er.([0-9]+).[a-z]+.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
 
   regex_t re_redset_file;
   regcomp(&re_redset_file, "reddesc.er.([0-9]+).redset", REG_EXTENDED);
 
-  regex_t re_redset_partner_file;
-  regcomp(&re_redset_partner_file, "reddesc.er.([0-9]+).partner.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
-
-  regex_t re_redset_xor_file;
-  regcomp(&re_redset_xor_file, "reddesc.er.([0-9]+).xor.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
+  regex_t re_redset_type_file;
+  regcomp(&re_redset_type_file, "reddesc.er.([0-9]+).[a-z]+.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
 
   int rc = 0;
 
@@ -613,17 +607,7 @@ int main (int argc, char *argv[])
       }
 
       /* look for file names like: "reddescmap.er.0.partner.0_1.redset" */
-      if (regexec(&re_redsetmap_partner_file, entryname, nmatch, pmatch, 0) == 0) {
-        /* found a filemap, copy its files */
-        int tmp_rc = copy_files_redset(path_prefix, path_scr, cache_path, entryname, &args, hostname);
-        if (tmp_rc != 0) {
-          rc = tmp_rc;
-        }
-        continue;
-      }
-
-      /* look for file names like: "reddescmap.er.0.xor.0_1_of_4.redset" */
-      if (regexec(&re_redsetmap_xor_file, entryname, nmatch, pmatch, 0) == 0) {
+      if (regexec(&re_redsetmap_type_file, entryname, nmatch, pmatch, 0) == 0) {
         /* found a filemap, copy its files */
         int tmp_rc = copy_files_redset(path_prefix, path_scr, cache_path, entryname, &args, hostname);
         if (tmp_rc != 0) {
@@ -643,17 +627,7 @@ int main (int argc, char *argv[])
       }
 
       /* look for file names like: "reddesc.er.0.partner.0_1.redset" */
-      if (regexec(&re_redset_partner_file, entryname, nmatch, pmatch, 0) == 0) {
-        /* found a filemap, copy its files */
-        int tmp_rc = copy_files_redset(path_prefix, path_scr, cache_path, entryname, &args, hostname);
-        if (tmp_rc != 0) {
-          rc = tmp_rc;
-        }
-        continue;
-      }
-
-      /* look for file names like: "reddesc.er.0.xor.0_1_of_4.redset" */
-      if (regexec(&re_redset_xor_file, entryname, nmatch, pmatch, 0) == 0) {
+      if (regexec(&re_redset_type_file, entryname, nmatch, pmatch, 0) == 0) {
         /* found a filemap, copy its files */
         int tmp_rc = copy_files_redset(path_prefix, path_scr, cache_path, entryname, &args, hostname);
         if (tmp_rc != 0) {
@@ -679,11 +653,9 @@ int main (int argc, char *argv[])
   /* free our regular expressions */
   regfree(&re_filemap_file);
   regfree(&re_redsetmap_file);
-  regfree(&re_redsetmap_partner_file);
-  regfree(&re_redsetmap_xor_file);
+  regfree(&re_redsetmap_type_file);
   regfree(&re_redset_file);
-  regfree(&re_redset_partner_file);
-  regfree(&re_redset_xor_file);
+  regfree(&re_redset_type_file);
 
   /* free string pointing to cache directory for this dataset */
   scr_free(&cache_str);
