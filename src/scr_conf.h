@@ -27,6 +27,7 @@
 #define SCR_COPY_PARTNER (2)
 #define SCR_COPY_XOR     (4)
 #define SCR_COPY_FILE    (8)
+#define SCR_COPY_RS      (16)
 
 #define SCR_GROUP_NODE  "NODE"
 #define SCR_GROUP_WORLD "WORLD"
@@ -124,6 +125,11 @@
 /* default failure group set size */
 #ifndef SCR_SET_SIZE
 #define SCR_SET_SIZE (8)
+#endif
+
+/* default number of checksum blocks */
+#ifndef SCR_NUM_ENCS
+#define SCR_NUM_ENCS (2)
 #endif
 
 /* default cache bypass setting */

@@ -153,6 +153,9 @@ int scr_reddesc_store_to_hash(const scr_reddesc* d, kvtree* hash)
   case SCR_COPY_XOR:
     kvtree_set_kv(hash, SCR_CONFIG_KEY_TYPE, "XOR");
     break;
+  case SCR_COPY_RS:
+    kvtree_set_kv(hash, SCR_CONFIG_KEY_TYPE, "RS");
+    break;
   }
 
   return SCR_SUCCESS;
@@ -170,6 +173,8 @@ static int scr_reddesc_type_int_from_str(const char* value, int* type)
     copy_type = SCR_COPY_PARTNER;
   } else if (strcasecmp(value, "XOR") == 0) {
     copy_type = SCR_COPY_XOR;
+  } else if (strcasecmp(value, "RS") == 0) {
+    copy_type = SCR_COPY_RS;
   } else {
     if (scr_my_rank_world == 0) {
       scr_warn("Unknown copy type %s @ %s:%d",
@@ -275,9 +280,20 @@ int scr_reddesc_create_from_hash(
   d->directory = spath_strdup(dir);
   spath_delete(&dir);
     
-  /* set the xor set size */
+  /* set the redundancy set size */
   int set_size = scr_set_size;
   kvtree_util_get_int(hash, SCR_CONFIG_KEY_SET_SIZE, &set_size);
+
+  /* set the number of encoding blocks */
+  int num_encs = scr_num_encs;
+  kvtree_util_get_int(hash, SCR_CONFIG_KEY_NUM_ENCS, &num_encs);
+  if (num_encs < 1 || num_encs > set_size) {
+    if (scr_my_rank_world == 0) {
+      scr_warn("Number of redundancy encodings (%d) must be in the range [1,%d] in redundancy descriptor %d, disabling @ %s:%d",
+        num_encs, set_size, d->index, __FILE__, __LINE__
+      );
+    }
+  }
 
   /* read the redundancy scheme type from the hash */
   char* type;
@@ -340,6 +356,9 @@ int scr_reddesc_create_from_hash(
     break;
   case SCR_COPY_XOR:
     d->er_scheme = ER_Create_Scheme(scr_comm_world, failure_domain, scr_ranks_world, 1);
+    break;
+  case SCR_COPY_RS:
+    d->er_scheme = ER_Create_Scheme(scr_comm_world, failure_domain, scr_ranks_world, num_encs);
     break;
   }
 
