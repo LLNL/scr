@@ -211,10 +211,10 @@ int rebuild(const spath* path_prefix, int build_data, int numfiles, char** files
   kvtree* map = kvtree_new();
   spath* file_prefix = spath_dup(path_prefix);
   if (build_data) {
-    spath_append_str(file_prefix, "reddesc.er");
+    spath_append_str(file_prefix, "reddesc.er.");
     rc = build_map_data(path_prefix, set_size, global_ranks, list, map);
   } else {
-    spath_append_str(file_prefix, "reddescmap.er");
+    spath_append_str(file_prefix, "reddescmap.er.");
     rc = build_map_filemap(path_prefix, set_size, global_ranks, list, map);
   }
   char* prefix = spath_strdup(file_prefix);
