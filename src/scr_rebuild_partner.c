@@ -9,8 +9,7 @@
  * Please also read this file: LICENSE.TXT.
 */
 
-/* Utility to rebuild a missing file with partner encoding
- * given the file names of the left and right partner files. */
+/* Utility to rebuild missing files with partner encoding. */
 
 #include "scr.h"
 #include "scr_io.h"
@@ -22,27 +21,10 @@
 #include "spath.h"
 #include "kvtree.h"
 #include "kvtree_util.h"
-
 #include "redset.h"
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <string.h>
-
-/* variable length args */
-#include <stdarg.h>
-#include <errno.h>
-
-/* basename/dirname */
-#include <unistd.h>
-#include <libgen.h>
-
-#define LEFT   (0)
-#define RIGHT  (1)
-#define CENTER (2)
 
 #ifdef SCR_GLOBALS_H
 #error "globals.h accessed from tools"
@@ -220,23 +202,30 @@ int rebuild(const spath* path_prefix, int build_data, int numfiles, char** files
   int set_size = 0;
   int* global_ranks = NULL;
   redset_filelist list = redset_filelist_get_data_partner(numfiles, files, &set_size, &global_ranks);
+  if (list == NULL) {
+    /* failed to get the file list for some reason */
+    return 1;
+  }
 
-  /* define name for missing XOR file */
-  spath* file_prefix = spath_dup(path_prefix);
+  /* define path to each file on the prefix directory */
   kvtree* map = kvtree_new();
+  spath* file_prefix = spath_dup(path_prefix);
   if (build_data) {
     spath_append_str(file_prefix, "reddesc.er");
-    build_map_data(path_prefix, set_size, global_ranks, list, map);
+    rc = build_map_data(path_prefix, set_size, global_ranks, list, map);
   } else {
     spath_append_str(file_prefix, "reddescmap.er");
-    build_map_filemap(path_prefix, set_size, global_ranks, list, map);
+    rc = build_map_filemap(path_prefix, set_size, global_ranks, list, map);
   }
   char* prefix = spath_strdup(file_prefix);
-  spath_delete(&file_prefix);
 
-  redset_rebuild_partner(numfiles, files, prefix, map);
+  if (redset_rebuild_partner(numfiles, files, prefix, map) != REDSET_SUCCESS) {
+    /* rebuild failed */
+    rc = 1;
+  }
 
   scr_free(&prefix);
+  spath_delete(&file_prefix);
   kvtree_delete(&map);
 
   /* done with the list of files */
@@ -250,7 +239,7 @@ int main(int argc, char* argv[])
 {
   /* print usage if not enough arguments were given */
   if (argc < 2) {
-    printf("Usage: scr_rebuild_partner <data|map> partner files ...\n");
+    printf("Usage: scr_rebuild_partner <data|map> partner_files ...\n");
     return 1;
   }
 
