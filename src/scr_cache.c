@@ -291,6 +291,8 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
       scr_filemap_get_meta(map, file, meta);
 
       int file_changed = 0;
+
+      /* check that file contents have not been modified */
       if (scr_meta_check_mtime(meta, &statbuf) != SCR_SUCCESS) {
         file_changed = 1;
         scr_warn("Detected mtime change in file `%s' since it was completed @ %s:%d",
@@ -298,11 +300,10 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
         );
       }
 
-      /* TODO: this check triggers when deleting a checkpoint that was rebuilt on restart,
-       * perhaps we can skip this check on rebuilt datasets? */
-      if (scr_meta_check_ctime(meta, &statbuf) != SCR_SUCCESS) {
+      /* check that permission bits, uid, and gid have not changed */
+      if (scr_meta_check_metadata(meta, &statbuf) != SCR_SUCCESS) {
         file_changed = 1;
-        scr_warn("Detected ctime change in file `%s' since it was completed @ %s:%d",
+        scr_warn("Detected change in mode bits, uid, or gid on file `%s' since it was completed @ %s:%d",
           file, __FILE__, __LINE__
         );
       }

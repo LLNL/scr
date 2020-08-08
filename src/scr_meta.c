@@ -402,6 +402,39 @@ int scr_meta_check_ctime(const scr_meta* meta, struct stat* sb)
   return SCR_FAILURE;
 }
 
+int scr_meta_check_metadata(const scr_meta* meta, struct stat* sb)
+{
+  /* check that the mode bits (permissions) have not changed */
+  unsigned long mode;
+  if (kvtree_util_get_unsigned_long(meta, SCR_META_KEY_MODE, &mode) != KVTREE_SUCCESS) {
+    return SCR_FAILURE;
+  }
+  if (mode != (unsigned long)sb->st_mode) {
+    return SCR_FAILURE;
+  }
+
+  /* check that the user id for the owner has not changed */
+  unsigned long uid;
+  if (kvtree_util_get_unsigned_long(meta, SCR_META_KEY_UID, &uid) != KVTREE_SUCCESS) {
+    return SCR_FAILURE;
+  }
+  if (uid != (unsigned long)sb->st_uid) {
+    return SCR_FAILURE;
+  }
+
+  /* check that the group id has not changed */
+  unsigned long gid;
+  if (kvtree_util_get_unsigned_long(meta, SCR_META_KEY_GID, &gid) != KVTREE_SUCCESS) {
+    return SCR_FAILURE;
+  }
+  if (gid != (unsigned long)sb->st_gid) {
+    return SCR_FAILURE;
+  }
+
+  /* everything checks out */
+  return SCR_SUCCESS;
+}
+
 int scr_meta_apply_stat(const scr_meta* meta, const char* file)
 {
   int rc = SCR_SUCCESS;
