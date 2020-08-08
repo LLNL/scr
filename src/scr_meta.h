@@ -157,6 +157,9 @@ int scr_meta_check_mtime(const scr_meta* meta, struct stat* statbuf);
 /* returns SCR_SUCCESS if ctime is set and if it matches values in statbuf */
 int scr_meta_check_ctime(const scr_meta* meta, struct stat* statbuf);
 
+/* returns SCR_SUCCESS if mode bits, uid, and gid match values in statbuf */
+int scr_meta_check_metadata(const scr_meta* meta, struct stat* statbuf);
+
 /* apply stat metadata recorded in meta to given file path */
 int scr_meta_apply_stat(const scr_meta* meta, const char* file);
 
