@@ -29,6 +29,7 @@ LIST(APPEND cliscr_noMPI_srcs
 	scr_util.c
 	scr_rebuild_xor.c
 	scr_rebuild_partner.c
+	scr_rebuild_rs.c
 )
 
 LIST(APPEND libscr_srcs
@@ -128,6 +129,7 @@ LIST(APPEND cliscr_c_bins
 	scr_index
         scr_rebuild_xor
         scr_rebuild_partner
+        scr_rebuild_rs
 	scr_print
 )
 

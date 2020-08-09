@@ -57,8 +57,9 @@
 #define SCR_IO_KEY_UNKNOWN ("UNKNOWN")
 
 #define SCR_SUMMARY_FILENAME "summary.scr"
-#define BUILD_XOR_CMD     (X_BINDIR"/scr_rebuild_xor")
 #define BUILD_PARTNER_CMD (X_BINDIR"/scr_rebuild_partner")
+#define BUILD_XOR_CMD     (X_BINDIR"/scr_rebuild_xor")
+#define BUILD_RS_CMD      (X_BINDIR"/scr_rebuild_rs")
 
 #define SCR_SCAN_KEY_MAP "MAP"
 
@@ -178,6 +179,10 @@
 
 #define SCR_SCAN_KEY_XOR      ("XOR")
 #define SCR_SCAN_KEY_MAPXOR   ("MAPXOR")
+
+#define SCR_SCAN_KEY_RS      ("RS")
+#define SCR_SCAN_KEY_MAPRS   ("MAPRS")
+
 #define SCR_SCAN_KEY_MEMBER   ("MEMBER")
 #define SCR_SCAN_KEY_MEMBERS  ("MEMBERS")
 
@@ -798,6 +803,129 @@ static int scr_rebuild_xor(
   return rc;
 }
 
+static int scr_rebuild_rs(
+  const spath* prefix,
+  const spath* dir,
+  int dset_id,
+  kvtree* dset_hash,
+  const kvtree* missing_hash,
+  const char* type_key,
+  const char* type_cmd)
+{
+  int rc = SCR_SUCCESS;
+
+  /* at least one rank is missing files, attempt to rebuild them */
+  int build_command_count = 0;
+
+  /* step through each of our redundancy sets */
+  kvtree_elem* elem = NULL;
+  kvtree* type_hash = kvtree_get(dset_hash, type_key);
+  for (elem = kvtree_elem_first(type_hash);
+       elem != NULL;
+       elem = kvtree_elem_next(elem))
+  {
+    /* get the set id and the hash for this set */
+    int setid = kvtree_elem_key_int(elem);
+    kvtree* set_hash = kvtree_elem_hash(elem);
+
+    /* TODO: Check that there is only one members value */
+
+    /* get the number of members in this set */
+    int members;
+    if (kvtree_util_get_int(set_hash, SCR_SCAN_KEY_MEMBERS, &members) != KVTREE_SUCCESS) {
+      /* unknown number of members in this set, skip this set */
+      scr_err("Unknown number of members in set %d in dataset %d @ %s:%d",
+        setid, dset_id, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+      continue;
+    }
+
+    /* attempt a rebuild if either:
+     *   a member is missing (likely lost all files for that rank)
+     *   or if we have all members but one of the corresponding ranks
+     *     is missing files (got the XOR file, but missing the full file) */
+    int missing_count = 0;
+    int missing_member = -1;
+    int member;
+    for (member = 1; member <= members; member++) {
+      kvtree* member_hash = kvtree_get_kv_int(set_hash, SCR_SCAN_KEY_MEMBER, member);
+      if (member_hash == NULL) {
+        /* we're missing the XOR file for this member */
+        missing_member = member;
+        missing_count++;
+      } else {
+        /* get the rank this member corresponds to */
+        char* rank_str;
+        if (kvtree_util_get_str(member_hash, SCR_SUMMARY_6_KEY_RANK, &rank_str) == KVTREE_SUCCESS) {
+          /* check whether we're missing any files for this rank */
+          kvtree* missing_rank_hash = kvtree_get(missing_hash, rank_str);
+          if (missing_rank_hash != NULL) {
+            /* we have the XOR file for this member, but we're missing one or more regular files */
+            missing_member = member;
+            missing_count++;
+          }
+        } else {
+          /* couldn't identify rank for this member, print an error */
+          scr_err("Could not identify rank corresponding to member %d of set %d in dataset %d @ %s:%d",
+            member, setid, dset_id, __FILE__, __LINE__
+          );
+          rc = SCR_FAILURE;
+        }
+      }
+    }
+
+    /* attempt to rebuild if we're missing any member */
+    if (missing_count > 0) {
+      kvtree* buildcmd_hash = kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_BUILD, build_command_count);
+      build_command_count++;
+
+      int argc = 0;
+
+      /* write the command name */
+      kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, BUILD_RS_CMD);
+      argc++;
+
+      /* option to build data files or map files */
+      kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, type_cmd);
+      argc++;
+
+      /* write each of the existing redundancy file names, skipping the missing member */
+      for (member = 1; member <= members; member++) {
+        kvtree* member_hash = kvtree_get_kv_int(set_hash, SCR_SCAN_KEY_MEMBER, member);
+        if (member_hash != NULL) {
+          char* filename = kvtree_elem_get_first_val(member_hash, SCR_SUMMARY_6_KEY_FILE);
+          kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, filename);
+          argc++;
+        }
+      }
+    }
+  }
+
+  /* rebuild if we can */
+  kvtree* unrecoverable = kvtree_get(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE);
+  char* dir_str = spath_strdup(dir);
+  if (unrecoverable != NULL) {
+    /* at least some files cannot be recovered */
+    scr_err("Insufficient files to attempt rebuild of dataset %d in %s @ %s:%d",
+      dset_id, dir_str, __FILE__, __LINE__
+    );
+    rc = SCR_FAILURE;
+  } else {
+    /* we have a shot to rebuild everything, let's give it a go */
+    kvtree* builds_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_BUILD);
+    if (scr_fork_rebuilds(dir, BUILD_RS_CMD, builds_hash) != SCR_SUCCESS) {
+      scr_err("At least one rebuild failed for dataset %d in %s @ %s:%d",
+        dset_id, dir_str, __FILE__, __LINE__
+      );
+      rc = SCR_FAILURE;
+    }
+  }
+  scr_free(&dir_str);
+
+  return rc;
+}
+
 /* returns SCR_FAILURE if any dataset failed to rebuild, SCR_SUCCESS otherwise */
 int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
 {
@@ -846,6 +974,15 @@ int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
         }
       }
 
+      /* rebuild filemap files with RS */
+      kvtree* maprs_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_MAPRS);
+      if (maprs_hash != NULL) {
+        int tmp_rc = scr_rebuild_rs(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_MAPRS, "map");
+        if (tmp_rc != SCR_SUCCESS) {
+          rc = SCR_FAILURE;
+        }
+      }
+
       /* rebuild data files with PARTNER */
       kvtree* partner_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_PARTNER);
       if (partner_hash != NULL) {
@@ -859,6 +996,15 @@ int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
       kvtree* xor_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_XOR);
       if (xor_hash != NULL) {
         int tmp_rc = scr_rebuild_xor(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_XOR, "xor");
+        if (tmp_rc != SCR_SUCCESS) {
+          rc = SCR_FAILURE;
+        }
+      }
+
+      /* rebuild data files with RS */
+      kvtree* rs_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_RS);
+      if (rs_hash != NULL) {
+        int tmp_rc = scr_rebuild_rs(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_RS, "rs");
         if (tmp_rc != SCR_SUCCESS) {
           rc = SCR_FAILURE;
         }
@@ -1533,6 +1679,73 @@ int match_xor(
   return rc;
 }
 
+/* returns 1 if name matches XOR regex and extracts rank, group, group size, and group rank,
+ * returns 0 if no match */
+int match_rs(
+  const char* name,
+  const regex_t* re,
+  int* rank,
+  int* group_id,
+  int* group_num,
+  int* group_rank,
+  int* group_size)
+{
+  /* assume we don't match */
+  int rc = 0;
+
+  /* if the file is an RS file, read in the RS set parameters */
+  size_t nmatch = 6;
+  regmatch_t pmatch[nmatch];
+  if (regexec(re, name, nmatch, pmatch, 0) == 0) {
+    /* got a match */
+    rc = 1;
+
+    /* intialize output variables */
+    *rank       = -1;
+    *group_id   = -1;
+    *group_num  = -1;
+    *group_rank = -1;
+    *group_size = -1;
+
+    /* get the rank of the xor set */
+    char* value = strndup(name + pmatch[1].rm_so, (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so));
+    if (value != NULL) {
+      *rank = atoi(value);
+      scr_free(&value);
+    }
+
+    /* get the id of the xor set */
+    value = strndup(name + pmatch[2].rm_so, (size_t)(pmatch[2].rm_eo - pmatch[2].rm_so));
+    if (value != NULL) {
+      *group_id = atoi(value);
+      scr_free(&value);
+    }
+
+    /* get the number of xor sets */
+    value = strndup(name + pmatch[3].rm_so, (size_t)(pmatch[3].rm_eo - pmatch[3].rm_so));
+    if (value != NULL) {
+      *group_num = atoi(value);
+      scr_free(&value);
+    }
+
+    /* get the rank in the xor set */
+    value = strndup(name + pmatch[4].rm_so, (size_t)(pmatch[4].rm_eo - pmatch[4].rm_so));
+    if (value != NULL) {
+      *group_rank = atoi(value);
+      scr_free(&value);
+    }
+
+    /* get the size of the xor set */
+    value = strndup(name + pmatch[5].rm_so, (size_t)(pmatch[5].rm_eo - pmatch[5].rm_so));
+    if (value != NULL) {
+      *group_size = atoi(value);
+      scr_free(&value);
+    }
+  }
+
+  return rc;
+}
+
 /* Reads fmap files from given dataset directory and adds them to scan hash.
  * Returns SCR_SUCCESS if the files could be scanned */
 int scr_scan_files(const spath* prefix, const spath* dir, int dset_id, kvtree* scan)
@@ -1567,6 +1780,14 @@ int scr_scan_files(const spath* prefix, const spath* dir, int dset_id, kvtree* s
   /* set up a regular expression so we can extract the xor set information for filemaps */
   regex_t re_mapxor_file;
   regcomp(&re_mapxor_file, "reddescmap.er.([0-9]+).xor.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
+
+  /* set up a regular expression so we can extract the rs set information from a file */
+  regex_t re_rs_file;
+  regcomp(&re_rs_file, "reddesc.er.([0-9]+).rs.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
+
+  /* set up a regular expression so we can extract the rs set information for filemaps */
+  regex_t re_maprs_file;
+  regcomp(&re_maprs_file, "reddescmap.er.([0-9]+).rs.grp_([0-9]+)_of_([0-9]+).mem_([0-9]+)_of_([0-9]+).redset", REG_EXTENDED);
 
   /* function to track ranks value across a set of files to be scanned */
   int ranks = -1;
@@ -1649,6 +1870,22 @@ int scr_scan_files(const spath* prefix, const spath* dir, int dset_id, kvtree* s
             rc = tmp_rc;
             break;
           }
+        } else if (match_rs(name, &re_rs_file, &rank, &group_id, &group_num, &group_rank, &group_size)) {
+          /* add info for RS file to our scan hash */
+          const char* keyname = SCR_SCAN_KEY_RS;
+          int tmp_rc = scr_scan_redset(name, dset_id, keyname, rank, group_id, group_num, group_rank, group_size, scan);
+          if (tmp_rc != SCR_SUCCESS) {
+            rc = tmp_rc;
+            break;
+          }
+        } else if (match_rs(name, &re_maprs_file, &rank, &group_id, &group_num, &group_rank, &group_size)) {
+          /* add info for RS file to our scan hash */
+          const char* keyname = SCR_SCAN_KEY_MAPRS;
+          int tmp_rc = scr_scan_redset(name, dset_id, keyname, rank, group_id, group_num, group_rank, group_size, scan);
+          if (tmp_rc != SCR_SUCCESS) {
+            rc = tmp_rc;
+            break;
+          }
         }
       }
     } else {
@@ -1677,6 +1914,8 @@ cleanup:
   regfree(&re_mappartner_file);
   regfree(&re_xor_file);
   regfree(&re_mapxor_file);
+  regfree(&re_rs_file);
+  regfree(&re_maprs_file);
 
   /* free our directory string */
   scr_free(&dir_str);
