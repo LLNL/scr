@@ -535,282 +535,16 @@ int scr_fork_rebuilds(const spath* dir, const char* build_cmd, kvtree* cmds)
   return rc;
 }
 
-static int scr_rebuild_partner(
+static int scr_rebuild_redset(
   const spath* prefix,
   const spath* dir,
   int dset_id,
   kvtree* dset_hash,
   const kvtree* missing_hash,
   const char* type_key,
-  const char* type_cmd)
-{
-  int rc = SCR_SUCCESS;
-
-  /* at least one rank is missing files, attempt to rebuild them */
-  int build_command_count = 0;
-
-  /* step through each of our sets */
-  kvtree_elem* set_elem = NULL;
-  kvtree* sets_hash = kvtree_get(dset_hash, type_key);
-  for (set_elem = kvtree_elem_first(sets_hash);
-       set_elem != NULL;
-       set_elem = kvtree_elem_next(set_elem))
-  {
-    /* get the set id and the hash for this set */
-    int set_setid = kvtree_elem_key_int(set_elem);
-    kvtree* set_hash = kvtree_elem_hash(set_elem);
-
-    /* get the number of members in this set */
-    int members;
-    if (kvtree_util_get_int(set_hash, SCR_SCAN_KEY_MEMBERS, &members) != KVTREE_SUCCESS) {
-      /* unknown number of members in this set, skip this set */
-      scr_err("Unknown number of members in set %d in dataset %d @ %s:%d",
-        set_setid, dset_id, __FILE__, __LINE__
-      );
-      rc = SCR_FAILURE;
-      continue;
-    }
-
-#if 0
-    /* if we don't have all members, add rebuild command if we can */
-    kvtree* members_hash = kvtree_get(set_hash, SCR_SCAN_KEY_MEMBER);
-    int members_have = kvtree_size(members_hash);
-    if (members_have < members - 1) {
-      /* not enough members to attempt rebuild of this set, skip it */
-      /* TODO: most likely this means that a rank can't be recovered */
-      rc = SCR_FAILURE;
-      continue;
-    }
-#endif
-
-    /* attempt a rebuild if either:
-     *   - a member is missing (likely lost all files for that rank)
-     *   - or if we have all members but one of the corresponding ranks
-     *     is missing files (got the redudancy file, but missing the full file) */
-    int missing_count = 0;
-    int member;
-    for (member = 1; member <= members; member++) {
-      kvtree* member_hash = kvtree_get_kv_int(set_hash, SCR_SCAN_KEY_MEMBER, member);
-      if (member_hash == NULL) {
-        /* we're missing the redundancy file for this member */
-        missing_count++;
-      } else {
-        /* get the rank this member corresponds to */
-        char* rank_str;
-        if (kvtree_util_get_str(member_hash, SCR_SUMMARY_6_KEY_RANK, &rank_str) == KVTREE_SUCCESS) {
-          /* check whether we're missing any files for this rank */
-          kvtree* missing_rank_hash = kvtree_get(missing_hash, rank_str);
-          if (missing_rank_hash != NULL) {
-            /* we have the redundancy file for this member,
-             * but we're missing one or more regular files */
-            missing_count++;
-          }
-        } else {
-          /* couldn't identify rank for this member, print an error */
-          scr_err("Could not identify rank corresponding to member %d of redundancy set %d in dataset %d @ %s:%d",
-            member, set_setid, dset_id, __FILE__, __LINE__
-          );
-          rc = SCR_FAILURE;
-        }
-      }
-    }
-
-    /* construct rebuild command if we're missing any ranks from this set */
-    if (missing_count > 0) {
-      /* define a new hash for a build command */
-      kvtree* buildcmd_hash = kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_BUILD, build_command_count);
-      build_command_count++;
-
-      int argc = 0;
-
-      /* write the command name */
-      kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, BUILD_PARTNER_CMD);
-      argc++;
-
-      /* indicates whether to rebuild data or filemap files */
-      kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, type_cmd);
-      argc++;
-
-      /* write each of the existing redundancy file names, skipping any missing member */
-      for (member = 1; member <= members; member++) {
-        kvtree* member_hash = kvtree_get_kv_int(set_hash, SCR_SCAN_KEY_MEMBER, member);
-        if (member_hash != NULL) {
-          char* filename = kvtree_elem_get_first_val(member_hash, SCR_SUMMARY_6_KEY_FILE);
-          kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, filename);
-          argc++;
-        }
-      }
-    }
-  }
-
-  /* rebuild if we can */
-  kvtree* unrecoverable = kvtree_get(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE);
-  char* dir_str = spath_strdup(dir);
-  if (unrecoverable != NULL) {
-    /* at least some files cannot be recovered */
-    scr_err("Insufficient files to attempt rebuild of dataset %d in %s @ %s:%d",
-      dset_id, dir_str, __FILE__, __LINE__
-    );
-    rc = SCR_FAILURE;
-  } else {
-    /* we have a shot to rebuild everything, let's give it a go */
-    kvtree* builds_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_BUILD);
-    if (scr_fork_rebuilds(dir, BUILD_PARTNER_CMD, builds_hash) != SCR_SUCCESS) {
-      scr_err("At least one rebuild failed for dataset %d in %s @ %s:%d",
-        dset_id, dir_str, __FILE__, __LINE__
-      );
-      rc = SCR_FAILURE;
-    }
-  }
-  scr_free(&dir_str);
-
-  return rc;
-}
-
-static int scr_rebuild_xor(
-  const spath* prefix,
-  const spath* dir,
-  int dset_id,
-  kvtree* dset_hash,
-  const kvtree* missing_hash,
-  const char* type_key,
-  const char* type_cmd)
-{
-  int rc = SCR_SUCCESS;
-
-  /* at least one rank is missing files, attempt to rebuild them */
-  int build_command_count = 0;
-
-  /* step through each of our xor sets */
-  kvtree_elem* xor_elem = NULL;
-  kvtree* xors_hash = kvtree_get(dset_hash, type_key);
-  for (xor_elem = kvtree_elem_first(xors_hash);
-       xor_elem != NULL;
-       xor_elem = kvtree_elem_next(xor_elem))
-  {
-    /* get the set id and the hash for this xor set */
-    int xor_setid = kvtree_elem_key_int(xor_elem);
-    kvtree* xor_hash = kvtree_elem_hash(xor_elem);
-
-    /* TODO: Check that there is only one members value */
-
-    /* get the number of members in this set */
-    int members;
-    if (kvtree_util_get_int(xor_hash, SCR_SCAN_KEY_MEMBERS, &members) != KVTREE_SUCCESS) {
-      /* unknown number of members in this set, skip this set */
-      scr_err("Unknown number of members in XOR set %d in dataset %d @ %s:%d",
-        xor_setid, dset_id, __FILE__, __LINE__
-      );
-      rc = SCR_FAILURE;
-      continue;
-    }
-
-    /* if we don't have all members, add rebuild command if we can */
-    kvtree* members_hash = kvtree_get(xor_hash, SCR_SCAN_KEY_MEMBER);
-    int members_have = kvtree_size(members_hash);
-    if (members_have < members - 1) {
-      /* not enough members to attempt rebuild of this set, skip it */
-      /* TODO: most likely this means that a rank can't be recovered */
-      rc = SCR_FAILURE;
-      continue;
-    }
-
-    /* attempt a rebuild if either:
-     *   a member is missing (likely lost all files for that rank)
-     *   or if we have all members but one of the corresponding ranks
-     *     is missing files (got the XOR file, but missing the full file) */
-    int missing_count = 0;
-    int missing_member = -1;
-    int member;
-    for (member = 1; member <= members; member++) {
-      kvtree* member_hash = kvtree_get_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, member);
-      if (member_hash == NULL) {
-        /* we're missing the XOR file for this member */
-        missing_member = member;
-        missing_count++;
-      } else {
-        /* get the rank this member corresponds to */
-        char* rank_str;
-        if (kvtree_util_get_str(member_hash, SCR_SUMMARY_6_KEY_RANK, &rank_str) == KVTREE_SUCCESS) {
-          /* check whether we're missing any files for this rank */
-          kvtree* missing_rank_hash = kvtree_get(missing_hash, rank_str);
-          if (missing_rank_hash != NULL) {
-            /* we have the XOR file for this member, but we're missing one or more regular files */
-            missing_member = member;
-            missing_count++;
-          }
-        } else {
-          /* couldn't identify rank for this member, print an error */
-          scr_err("Could not identify rank corresponding to member %d of XOR set %d in dataset %d @ %s:%d",
-            member, xor_setid, dset_id, __FILE__, __LINE__
-          );
-          rc = SCR_FAILURE;
-        }
-      }
-    }
-
-    if (missing_count > 1) {
-      /* TODO: unrecoverable */
-      kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE, xor_setid);
-    } else if (missing_count > 0) {
-      kvtree* buildcmd_hash = kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_BUILD, build_command_count);
-      build_command_count++;
-
-      int argc = 0;
-
-      /* write the command name */
-      kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, BUILD_XOR_CMD);
-      argc++;
-
-      /* command to rebuild data files from xor files */
-      kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, type_cmd);
-      argc++;
-
-      /* write each of the existing xor file names, skipping the missing member */
-      for (member = 1; member <= members; member++) {
-        if (member == missing_member) {
-          continue;
-        }
-        kvtree* member_hash = kvtree_get_kv_int(xor_hash, SCR_SCAN_KEY_MEMBER, member);
-        char* filename = kvtree_elem_get_first_val(member_hash, SCR_SUMMARY_6_KEY_FILE);
-        kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, filename);
-        argc++;
-      }
-    }
-  }
-
-  /* rebuild if we can */
-  kvtree* unrecoverable = kvtree_get(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE);
-  char* dir_str = spath_strdup(dir);
-  if (unrecoverable != NULL) {
-    /* at least some files cannot be recovered */
-    scr_err("Insufficient files to attempt rebuild of dataset %d in %s @ %s:%d",
-      dset_id, dir_str, __FILE__, __LINE__
-    );
-    rc = SCR_FAILURE;
-  } else {
-    /* we have a shot to rebuild everything, let's give it a go */
-    kvtree* builds_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_BUILD);
-    if (scr_fork_rebuilds(dir, BUILD_XOR_CMD, builds_hash) != SCR_SUCCESS) {
-      scr_err("At least one rebuild failed for dataset %d in %s @ %s:%d",
-        dset_id, dir_str, __FILE__, __LINE__
-      );
-      rc = SCR_FAILURE;
-    }
-  }
-  scr_free(&dir_str);
-
-  return rc;
-}
-
-static int scr_rebuild_rs(
-  const spath* prefix,
-  const spath* dir,
-  int dset_id,
-  kvtree* dset_hash,
-  const kvtree* missing_hash,
-  const char* type_key,
-  const char* type_cmd)
+  const char* type_cmd,
+  const char* rebuild_cmd,
+  int max_missing)
 {
   int rc = SCR_SUCCESS;
 
@@ -844,15 +578,13 @@ static int scr_rebuild_rs(
     /* attempt a rebuild if either:
      *   a member is missing (likely lost all files for that rank)
      *   or if we have all members but one of the corresponding ranks
-     *     is missing files (got the XOR file, but missing the full file) */
+     *     is missing files (got the redundancy file, but missing the data files) */
     int missing_count = 0;
-    int missing_member = -1;
     int member;
     for (member = 1; member <= members; member++) {
       kvtree* member_hash = kvtree_get_kv_int(set_hash, SCR_SCAN_KEY_MEMBER, member);
       if (member_hash == NULL) {
-        /* we're missing the XOR file for this member */
-        missing_member = member;
+        /* we're missing the redundancy file for this member */
         missing_count++;
       } else {
         /* get the rank this member corresponds to */
@@ -861,8 +593,8 @@ static int scr_rebuild_rs(
           /* check whether we're missing any files for this rank */
           kvtree* missing_rank_hash = kvtree_get(missing_hash, rank_str);
           if (missing_rank_hash != NULL) {
-            /* we have the XOR file for this member, but we're missing one or more regular files */
-            missing_member = member;
+            /* we have the redundancy file for this member,
+             * but we're missing one or more regular files */
             missing_count++;
           }
         } else {
@@ -876,14 +608,17 @@ static int scr_rebuild_rs(
     }
 
     /* attempt to rebuild if we're missing any member */
-    if (missing_count > 0) {
+    if (max_missing != -1 && missing_count > max_missing) {
+      /* TODO: unrecoverable */
+      kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_UNRECOVERABLE, setid);
+    } else if (missing_count > 0) {
       kvtree* buildcmd_hash = kvtree_set_kv_int(dset_hash, SCR_SCAN_KEY_BUILD, build_command_count);
       build_command_count++;
 
       int argc = 0;
 
       /* write the command name */
-      kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, BUILD_RS_CMD);
+      kvtree_setf(buildcmd_hash, NULL, "%d %s", argc, rebuild_cmd);
       argc++;
 
       /* option to build data files or map files */
@@ -914,7 +649,7 @@ static int scr_rebuild_rs(
   } else {
     /* we have a shot to rebuild everything, let's give it a go */
     kvtree* builds_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_BUILD);
-    if (scr_fork_rebuilds(dir, BUILD_RS_CMD, builds_hash) != SCR_SUCCESS) {
+    if (scr_fork_rebuilds(dir, rebuild_cmd, builds_hash) != SCR_SUCCESS) {
       scr_err("At least one rebuild failed for dataset %d in %s @ %s:%d",
         dset_id, dir_str, __FILE__, __LINE__
       );
@@ -959,7 +694,7 @@ int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
       /* rebuild filemap files with PARTNER */
       kvtree* mappartner_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_MAPPARTNER);
       if (mappartner_hash != NULL) {
-        int tmp_rc = scr_rebuild_partner(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_MAPPARTNER, "map");
+        int tmp_rc = scr_rebuild_redset(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_MAPPARTNER, "map", BUILD_PARTNER_CMD, -1);
         if (tmp_rc != SCR_SUCCESS) {
           rc = SCR_FAILURE;
         }
@@ -968,7 +703,7 @@ int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
       /* rebuild filemap files with XOR */
       kvtree* mapxor_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_MAPXOR);
       if (mapxor_hash != NULL) {
-        int tmp_rc = scr_rebuild_xor(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_MAPXOR, "map");
+        int tmp_rc = scr_rebuild_redset(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_MAPXOR, "map", BUILD_XOR_CMD, 1);
         if (tmp_rc != SCR_SUCCESS) {
           rc = SCR_FAILURE;
         }
@@ -977,7 +712,7 @@ int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
       /* rebuild filemap files with RS */
       kvtree* maprs_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_MAPRS);
       if (maprs_hash != NULL) {
-        int tmp_rc = scr_rebuild_rs(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_MAPRS, "map");
+        int tmp_rc = scr_rebuild_redset(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_MAPRS, "map", BUILD_RS_CMD, -1);
         if (tmp_rc != SCR_SUCCESS) {
           rc = SCR_FAILURE;
         }
@@ -986,7 +721,7 @@ int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
       /* rebuild data files with PARTNER */
       kvtree* partner_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_PARTNER);
       if (partner_hash != NULL) {
-        int tmp_rc = scr_rebuild_partner(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_PARTNER, "partner");
+        int tmp_rc = scr_rebuild_redset(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_PARTNER, "partner", BUILD_PARTNER_CMD, -1);
         if (tmp_rc != SCR_SUCCESS) {
           rc = SCR_FAILURE;
         }
@@ -995,7 +730,7 @@ int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
       /* rebuild data files with XOR */
       kvtree* xor_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_XOR);
       if (xor_hash != NULL) {
-        int tmp_rc = scr_rebuild_xor(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_XOR, "xor");
+        int tmp_rc = scr_rebuild_redset(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_XOR, "xor", BUILD_XOR_CMD, 1);
         if (tmp_rc != SCR_SUCCESS) {
           rc = SCR_FAILURE;
         }
@@ -1004,7 +739,7 @@ int scr_rebuild_scan(const spath* prefix, const spath* dir, kvtree* scan)
       /* rebuild data files with RS */
       kvtree* rs_hash = kvtree_get(dset_hash, SCR_SCAN_KEY_RS);
       if (rs_hash != NULL) {
-        int tmp_rc = scr_rebuild_rs(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_RS, "rs");
+        int tmp_rc = scr_rebuild_redset(prefix, dir, dset_id, dset_hash, missing_hash, SCR_SCAN_KEY_RS, "rs", BUILD_RS_CMD, -1);
         if (tmp_rc != SCR_SUCCESS) {
           rc = SCR_FAILURE;
         }
