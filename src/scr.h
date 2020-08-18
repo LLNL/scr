@@ -58,6 +58,9 @@ int SCR_Finalize(void);
  */
 const char* SCR_Config(const char* config);
 
+/* Formatted version of SCR_Config, for printf-like formatting */
+const char* SCR_Configf(const char* format, ...);
+
 /*****************
  * File registration
  ****************/
