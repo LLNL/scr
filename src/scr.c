@@ -2675,6 +2675,39 @@ const char* SCR_Config(const char* config_string)
   return retval;
 }
 
+const char* SCR_Configf(const char* format, ...)
+{
+  /* manage state transition */
+  if (scr_state != SCR_STATE_UNINIT) {
+    scr_state_transition_error(scr_state, "SCR_Configf()", __FILE__, __LINE__);
+  }
+
+  /* if not enabled, bail with an error */
+  if (! scr_enabled) {
+    return NULL;
+  }
+
+  /* compute the size of the string we need to allocate */
+  va_list args;
+  va_start(args, format);
+  int size = vsnprintf(NULL, 0, format, args) + 1;
+  va_end(args);
+
+  /* allocate and print the string */
+  char* str = (char*) SCR_MALLOC(size);
+  va_start(args, format);
+  vsnprintf(str, size, format, args);
+  va_end(args);
+
+  /* delegate work to SCR_Config and get result */
+  char* ret = SCR_Config(str);
+
+  /* free the temporary string */
+  scr_free(&str);
+
+  return ret;
+}
+
 /* sets flag to 1 if a checkpoint should be taken, flag is set to 0 otherwise */
 int SCR_Need_checkpoint(int* flag)
 {
