@@ -288,9 +288,14 @@ static int scr_fetch_data(
     spath_delete(&path_name);
     spath_delete(&path_abs);
 
-    /* get file size */
-    unsigned long filesize = scr_file_size(dest_file);
-    scr_meta_set_filesize(meta, filesize);
+    /* stat the file to get its size and other metadata */
+    struct stat stat_buf;
+    int stat_rc = stat(dest_file, &stat_buf);
+    if (stat_rc == 0) {
+      unsigned long filesize = (unsigned long) stat_buf.st_size;
+      scr_meta_set_filesize(meta, filesize);
+      scr_meta_set_stat(meta, &stat_buf);
+    }
 
     /* add meta to map */
     scr_filemap_set_meta(map, dest_file, meta);
