@@ -757,6 +757,11 @@ int scr_reddesc_recover(scr_cache_index* cindex, int id, const char* dir)
       scr_filemap_delete(&map);
     }
 
+    /* check whether all ranks successfully found their files */
+    if (! scr_alltrue(rc == SCR_SUCCESS, scr_comm_world)) {
+      /* someone failed, so everyone fails */
+      rc = SCR_FAILURE;
+    }
     return rc;
   }
 
