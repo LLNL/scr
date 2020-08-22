@@ -514,7 +514,7 @@ int scr_mysql_log_transfer(
   const time_t* start,
   const double* secs,
   const double* bytes,
-  const double* files)
+  const int* files)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   /* lookup the id for the type string */
