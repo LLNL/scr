@@ -66,6 +66,7 @@ int scr_set_partners(
 axl_xfer_t axl_xfer_str_to_type(const char *axl_xfer_str);
 
 int scr_axl(
+  const char* name,
   int num_files,
   const char** src_filelist,
   const char** dest_filelist,

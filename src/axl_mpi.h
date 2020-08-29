@@ -23,7 +23,6 @@ extern "C" {
  *  \brief asynchronous transfer library for MPI communicators */
 
 int AXL_Init_comm (
-  const char* state_file, 
   MPI_Comm comm     /**< [IN]  - communicator used for coordination and flow control */
 );
 
@@ -33,7 +32,8 @@ int AXL_Finalize_comm (
 
 int AXL_Create_comm (
   axl_xfer_t type,  /**< [IN]  - AXL transfer type (AXL_XFER_SYNC, AXL_XFER_PTHREAD, etc) */
-  const char* name, 
+  const char* name, /**< [IN]  - user-defined name for transfer */
+  const char* file, /**< [IN]  - optional state file to persist transfer state */
   MPI_Comm comm     /**< [IN]  - communicator used for coordination and flow control */
 );
 

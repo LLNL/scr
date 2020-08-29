@@ -55,7 +55,7 @@ static int scr_axl_start(
   int rc = SCR_SUCCESS;
 
   /* define a transfer handle */
-  int id = AXL_Create_comm(xfer_type, name, comm);
+  int id = AXL_Create_comm(xfer_type, name, NULL, comm);
   if (id < 0) {
     scr_err("Failed to create AXL transfer handle @ %s:%d",
       __FILE__, __LINE__
@@ -320,7 +320,7 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
 
   /* write files (via AXL) */
   int success = 1;
-  if (scr_axl_start(scr_flush_async_rankfile, numfiles, src_filelist, dst_filelist,
+  if (scr_axl_start(dset_name, numfiles, src_filelist, dst_filelist,
     xfer_type, scr_comm_world) != SCR_SUCCESS)
   {
     success = 0;
