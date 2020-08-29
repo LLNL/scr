@@ -232,10 +232,21 @@ static int scr_fetch_data(
   /* now we can finally fetch the actual files */
   int success = 1;
   if (cache_dir != NULL) {
+    /* get the dataset corresponding to this id */
+    scr_dataset* dataset = scr_dataset_new();
+    scr_cache_index_get_dataset(cindex, id, dataset);
+
+    /* get name of dataset */
+    char* dset_name = NULL;
+    scr_dataset_get_name(dataset, &dset_name);
+
     /* fetch these files into the directory */
-    if (scr_axl(num_files, src_filelist, dest_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
+    if (scr_axl(dset_name, num_files, src_filelist, dest_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
       success = 0;
     }
+
+    /* free datase */
+    scr_dataset_delete(&dataset);
   } else {
     /* just stat the file to check that it exists */
     for (i = 0; i < num_files; i++) {

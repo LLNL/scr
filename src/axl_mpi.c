@@ -149,11 +149,10 @@ static int axl_create_dirs(int count, const char** filelist, MPI_Comm comm)
 }
 
 int AXL_Init_comm (
-    const char* state_file,
     MPI_Comm comm)    /**< [IN]  - communicator used for coordination and flow control */
 {
     /* initialize AXL */
-    int rc = AXL_Init(state_file);
+    int rc = AXL_Init();
 
     /* return same value on all ranks */
     if (! axl_alltrue(rc == AXL_SUCCESS, comm)) {
@@ -212,9 +211,10 @@ int AXL_Finalize_comm (
 int AXL_Create_comm (
     axl_xfer_t type,  /**< [IN]  - AXL transfer type (AXL_XFER_SYNC, AXL_XFER_PTHREAD, etc) */
     const char* name, 
+    const char* file,
     MPI_Comm comm)    /**< [IN]  - communicator used for coordination and flow control */
 {
-    int id = AXL_Create(type, name);
+    int id = AXL_Create(type, name, file);
 
     /* NOTE: We do not force id to be the same on all ranks.
      * It may be useful to do that, but then we need collective

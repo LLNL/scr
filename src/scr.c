@@ -1737,7 +1737,7 @@ int SCR_Init()
   }
 
   /* initialize AXL for data transfers */
-  int axl_rc = AXL_Init_comm(NULL, scr_comm_world);
+  int axl_rc = AXL_Init_comm(scr_comm_world);
   if (axl_rc != AXL_SUCCESS) {
     scr_abort(-1, "Failed to initialize AXL library @ %s:%d",
       __FILE__, __LINE__

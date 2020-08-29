@@ -335,6 +335,7 @@ axl_xfer_t axl_xfer_str_to_type(const char *axl_xfer_str)
 }
 
 int scr_axl(
+  const char* name,
   int num_files,
   const char** src_filelist,
   const char** dest_filelist,
@@ -343,10 +344,8 @@ int scr_axl(
 {
   int rc = SCR_SUCCESS;
 
-  /* TODO: allow user to name this transfer */
-
   /* define a transfer handle */
-  int id = AXL_Create_comm(type, "transfer", comm);
+  int id = AXL_Create_comm(type, name, NULL, comm);
   if (id < 0) {
     scr_err("Failed to create AXL transfer handle @ %s:%d",
       __FILE__, __LINE__

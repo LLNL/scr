@@ -109,10 +109,14 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
     /* TODO: gather list of files to leader of store descriptor,
      * use communicator of leaders for AXL, then bcast result back */
 
+    /* get name of dataset */
+    char* dset_name = NULL;
+    scr_dataset_get_name(dataset, &dset_name);
+
     /* TODO: configure AXL to not create directories */
 
     /* write files (via AXL) */
-    if (scr_axl(numfiles, src_filelist, dst_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
+    if (scr_axl(dset_name, numfiles, src_filelist, dst_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
       success = 0;
     }
   } else {
