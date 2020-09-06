@@ -182,6 +182,7 @@ extern int   scr_flush;            /* how many checkpoints between flushes */
 extern int   scr_flush_width;      /* specify number of processes to write files simultaneously */
 extern int   scr_flush_on_restart; /* specify whether to flush cache on restart */
 extern int   scr_global_restart;   /* set if code must be restarted from parallel file system */
+extern int   scr_drop_after_current; /* auto-drop datasets from index that come after named checkpoint when calling SCR_Current */
 
 extern int scr_prefix_size; /* max number of checkpoints to keep in prefix directory */
 
