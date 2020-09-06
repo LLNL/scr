@@ -892,6 +892,13 @@ static int scr_get_params()
     scr_global_restart = atoi(value);
   }
 
+  /* set to 1 to auto-drop all datasets that come after dataset named in
+   * call to SCR_Current, this provides an easy way for an application to
+   * restart from a particular checkpoint and truncate all later checkpoints */
+  if ((value = scr_param_get("SCR_DROP_AFTER_CURRENT")) != NULL) {
+    scr_drop_after_current = atoi(value);
+  }
+
   /* specify window of number of checkpoints to keep in prefix directory,
    * set to positive integer to enable, then older checkpoints will be deleted
    * after a successful flush */
@@ -3461,7 +3468,7 @@ int SCR_Current(const char* name)
    * are calling this as a collective */
   MPI_Barrier(scr_comm_world);
 
-  /* have rank look for named dataset in the prefix directory, if it exists,
+  /* have rank 0 look for named dataset in the prefix directory, and if it exists,
    * set this dataset to be current and initialize our dataset and checkpoint ids */
   int found = 0;
   scr_dataset* dataset = scr_dataset_new();
@@ -3470,7 +3477,7 @@ int SCR_Current(const char* name)
     kvtree* index_hash = kvtree_new();
     if (scr_index_read(scr_prefix_path, index_hash) == SCR_SUCCESS) {
       /* if there is an entry for this dataset in the index,
-       * mark it as failed so we don't try to restart it with it again */
+       * get dataset info and set as current in index file */
       int id;
       if (scr_index_get_id_by_name(index_hash, name, &id) == SCR_SUCCESS) {
         /* get dataset info */
@@ -3485,8 +3492,10 @@ int SCR_Current(const char* name)
           /* set dataset to be current */
           scr_index_set_current(index_hash, name);
 
-          /* TODO: optionally drop checkpoints that follow this one */
-          scr_index_remove_later(index_hash, id);
+          /* optionally drop checkpoints that follow this one */
+          if (scr_drop_after_current) {
+            scr_index_remove_later(index_hash, id);
+          }
 
           /* update the index file */
           scr_index_write(scr_prefix_path, index_hash);

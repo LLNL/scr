@@ -124,6 +124,7 @@ int   scr_flush            = SCR_FLUSH;            /* how many checkpoints betwe
 int   scr_flush_width      = SCR_FLUSH_WIDTH;      /* specify number of processes to write files simultaneously */
 int   scr_flush_on_restart = SCR_FLUSH_ON_RESTART; /* specify whether to flush cache on restart */
 int   scr_global_restart   = SCR_GLOBAL_RESTART;   /* set if code must be restarted from parallel file system */
+int   scr_drop_after_current = 0;                  /* whether to drop datasets from index that come after dataset named in SCR_Current */
 
 int    scr_flush_async             = SCR_FLUSH_ASYNC;         /* whether to use asynchronous flush */
 double scr_flush_async_bw          = SCR_FLUSH_ASYNC_BW;      /* bandwidth limit imposed during async flush */
