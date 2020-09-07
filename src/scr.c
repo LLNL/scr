@@ -766,9 +766,9 @@ static int scr_get_params()
     scr_set_size = atoi(value);
   }
 
-  /* specify the number of tasks in xor set */
-  if ((value = scr_param_get("SCR_NUM_ENCS")) != NULL) {
-    scr_num_encs = atoi(value);
+  /* specify the number of failures we should tolerate per set */
+  if ((value = scr_param_get("SCR_SET_FAILURES")) != NULL) {
+    scr_set_failures = atoi(value);
   }
 
   /* specify the group name to protect failures */
@@ -801,11 +801,11 @@ static int scr_get_params()
   } else if (scr_copy_type == SCR_COPY_RS) {
     /* fill in info for one RS checkpoint */
     tmp = kvtree_set_kv(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, "0");
-    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_STORE,    scr_cache_base);
-    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,     "RS");
-    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_GROUP,    scr_group);
-    kvtree_util_set_int(tmp, SCR_CONFIG_KEY_SET_SIZE, scr_set_size);
-    kvtree_util_set_int(tmp, SCR_CONFIG_KEY_NUM_ENCS, scr_num_encs);
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_STORE,        scr_cache_base);
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_TYPE,         "RS");
+    kvtree_util_set_str(tmp, SCR_CONFIG_KEY_GROUP,        scr_group);
+    kvtree_util_set_int(tmp, SCR_CONFIG_KEY_SET_SIZE,     scr_set_size);
+    kvtree_util_set_int(tmp, SCR_CONFIG_KEY_SET_FAILURES, scr_set_failures);
   } else {
     /* read info from our configuration files */
     tmp = scr_param_get_hash(SCR_CONFIG_KEY_CKPTDESC);

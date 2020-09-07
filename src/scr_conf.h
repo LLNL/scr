@@ -128,8 +128,8 @@
 #endif
 
 /* default number of checksum blocks */
-#ifndef SCR_NUM_ENCS
-#define SCR_NUM_ENCS (2)
+#ifndef SCR_SET_FAILURES
+#define SCR_SET_FAILURES (2)
 #endif
 
 /* default cache bypass setting */

@@ -163,7 +163,7 @@ extern int scr_cache_size;    /* number of checkpoints to keep in cache at one t
 extern int scr_copy_type;     /* select which redundancy algorithm to use */
 extern char* scr_group;       /* name of process group likely to fail */
 extern int scr_set_size;      /* specify number of tasks in redundancy set */
-extern int scr_num_encs;      /* specify number of encoding blocks in rs set */
+extern int scr_set_failures;  /* specify number of failures to tolerate per set */
 extern int scr_cache_bypass;  /* default bypass, whether to directly read/write parallel file system */
 
 extern size_t scr_mpi_buf_size;  /* set MPI buffer size to chunk file transfer */
