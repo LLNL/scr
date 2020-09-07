@@ -284,13 +284,13 @@ int scr_reddesc_create_from_hash(
   int set_size = scr_set_size;
   kvtree_util_get_int(hash, SCR_CONFIG_KEY_SET_SIZE, &set_size);
 
-  /* set the number of encoding blocks */
-  int num_encs = scr_num_encs;
-  kvtree_util_get_int(hash, SCR_CONFIG_KEY_NUM_ENCS, &num_encs);
-  if (num_encs < 1 || num_encs > set_size) {
+  /* set the number of failures to tolerate in each set */
+  int set_failures = scr_set_failures;
+  kvtree_util_get_int(hash, SCR_CONFIG_KEY_SET_FAILURES, &set_failures);
+  if (set_failures < 1 || set_failures > set_size) {
     if (scr_my_rank_world == 0) {
       scr_warn("Number of redundancy encodings (%d) must be in the range [1,%d] in redundancy descriptor %d, disabling @ %s:%d",
-        num_encs, set_size, d->index, __FILE__, __LINE__
+        set_failures, set_size, d->index, __FILE__, __LINE__
       );
     }
   }
@@ -358,7 +358,7 @@ int scr_reddesc_create_from_hash(
     d->er_scheme = ER_Create_Scheme(scr_comm_world, failure_domain, scr_ranks_world, 1);
     break;
   case SCR_COPY_RS:
-    d->er_scheme = ER_Create_Scheme(scr_comm_world, failure_domain, scr_ranks_world, num_encs);
+    d->er_scheme = ER_Create_Scheme(scr_comm_world, failure_domain, scr_ranks_world, set_failures);
     break;
   }
 
