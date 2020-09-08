@@ -841,7 +841,14 @@ static int scr_get_params()
 
   /* set MPI buffer size (file chunk size) */
   if ((value = scr_param_get("SCR_MPI_BUF_SIZE")) != NULL) {
-    scr_mpi_buf_size = atoi(value);
+    if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
+      scr_mpi_buf_size = (int) ull;
+      if (scr_mpi_buf_size != ull) {
+        scr_abort(-1, "Value %s given for %s exceeds int range @ %s:%d",
+                  value, SCR_MPI_BUF_SIZE, __FILE__, __LINE__
+        );
+      }
+    }
   }
 
   /* whether to delete all datasets from cache on restart,
@@ -919,8 +926,13 @@ static int scr_get_params()
 
   /* bandwidth limit imposed during async flush (in bytes/sec) */
   if ((value = scr_param_get("SCR_FLUSH_ASYNC_BW")) != NULL) {
-    if (scr_atod(value, &d) == SCR_SUCCESS) {
-      scr_flush_async_bw = d;
+    if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
+      scr_flush_async_bw = (double) ull;
+      if (scr_flush_async_bw != ull) {
+        scr_abort(-1, "Value %s given for %s exceeds double range @ %s:%d",
+                  value, SCR_FLUSH_ASYNC_BW, __FILE__, __LINE__
+        );
+      }
     } else {
       scr_err("Failed to read SCR_FLUSH_ASYNC_BW successfully @ %s:%d",
         __FILE__, __LINE__
@@ -943,6 +955,11 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_FILE_BUF_SIZE")) != NULL) {
     if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
       scr_file_buf_size = (size_t) ull;
+      if (scr_file_buf_size !=  ull) {
+        scr_abort(-1, "Value %s given for %s exceeds size_t range @ %s:%d",
+                  value, SCR_FILE_BUF_SIZE, __FILE__, __LINE__
+        );
+      }
     } else {
       scr_err("Failed to read SCR_FILE_BUF_SIZE successfully @ %s:%d",
         __FILE__, __LINE__
