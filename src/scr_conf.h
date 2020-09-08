@@ -157,6 +157,10 @@
 #define SCR_COPY_METADATA (0)
 #endif
 
+/* whether SCR should first create parent directories before transferring files*/
+#ifndef SCR_MKDIR
+#define SCR_MKDIR (1)
+#endif
 /* =========================================================================
  * Default settings for distribute, fetch, and flush operations.
  * ========================================================================= */

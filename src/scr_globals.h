@@ -169,6 +169,7 @@ extern int scr_cache_bypass;  /* default bypass, whether to directly read/write 
 extern int scr_mpi_buf_size;     /* set MPI buffer size to chunk file transfer, int due to MPI limits */
 extern size_t scr_file_buf_size; /* set buffer size to chunk file copies to/from parallel file system */
 extern int scr_copy_metadata;    /* whether file metadata should also be copied */
+extern int scr_make_directories; /* whether SCR should first create parent directories before transferring files */
 
 extern int scr_halt_seconds; /* secs remaining in allocation before job should be halted */
 extern int scr_halt_enabled; /* whether SCR will exit job if halt condition is detected */

@@ -938,6 +938,11 @@ static int scr_get_params()
     scr_copy_metadata = atoi(value);
   }
 
+  /* whether SCR should first create parent directories before transferring files */
+  if ((value = scr_param_get("SCR_MKDIR")) != NULL) {
+    scr_make_directories = atoi(value);
+  }
+
   /* specify whether to compute CRC when applying redundancy scheme */
   if ((value = scr_param_get("SCR_CRC_ON_COPY")) != NULL) {
     scr_crc_on_copy = atoi(value);
