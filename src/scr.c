@@ -1794,7 +1794,7 @@ int SCR_Init()
         AXL_KEY_CONFIG_FLUSH_ASYNC_BW, __FILE__, __LINE__
       );
     }
-    if (kvtree_util_set_int(axl_config, AXL_KEY_CONFIG_FLUSH_ASYNC_PERCENT,
+    if (kvtree_util_set_double(axl_config, AXL_KEY_CONFIG_FLUSH_ASYNC_PERCENT,
                             scr_flush_async_percent) != KVTREE_SUCCESS) {
       scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
         AXL_KEY_CONFIG_FLUSH_ASYNC_PERCENT, __FILE__, __LINE__
