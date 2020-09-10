@@ -18,12 +18,15 @@ that are available to the user for a period of time.
 A resource manager typically assigns an identifier label to each resource allocation,
 which we refer to as the *allocation id*.
 SCR embeds the allocation id in some directory and file names.
+
 Within an allocation, a user may execute a simulation one or more times.
 We call each execution a *run*.
 For MPI applications, each run corresponds to a single invocation
 of :code:`mpirun` or its equivalent.
+
 Finally, multiple allocations may be required to complete a given simulation.
 We refer to this series of one or more allocations as a *job*.
+
 To summarize,
 one or more runs occur within an allocation,
 and one or more allocations occur within a job.
@@ -37,14 +40,14 @@ it is necessary to identify the set of processes that share a power supply.
 Similarly, it is necessary to identify all processes that can access a given
 storage device, such as an SSD mounted on a compute node.
 To represent these groups, the SCR library uses a *group descriptor*.
-Details of group descriptors are given in Section :ref:`sec-descriptors`.
+Details of group descriptors are given in :ref:`sec-descriptors`.
 
 Each group is given a unique name. 
 The library creates two groups by default: :code:`NODE` and :code:`WORLD`.
 The :code:`NODE` group consists of all processes on the same compute node,
 and :code:`WORLD` consists of all processes in the run.
 The user or system administrator can create additional groups
-via configuration files (Section :ref:`sec-config`).
+via configuration files (see :ref:`sec-config`).
 
 The SCR library must also track details about each class of storage it can access.
 For each available storage class, SCR needs to know the associated directory prefix,
@@ -60,9 +63,10 @@ Each store descriptor is referenced by its directory prefix.
 The library creates one store descriptor by default: :code:`/dev/shm`.
 The assumption is made that :code:`/dev/shm` is mounted as a local file system
 on each compute node.
-On Linux clusters, :code:`/dev/shm` is typically RAM disk.
+On Linux clusters, :code:`/dev/shm` is typically :code:`tmpfs` (RAM disk),
+which implements a file system using main memory as the backing storage.
 Additional store descriptors can be defined by the user or
-system administrator in configuration files (Section :ref:`sec-config`).
+system administrator in configuration files (see :ref:`sec-config`).
 
 Finally, SCR defines *redundancy descriptors* to associate a redundancy scheme
 with a class of storage devices and a group of processes that are likely to fail at the same time.
@@ -70,13 +74,13 @@ It also tracks details about the particular redundancy scheme used,
 and the frequency with which it should be applied.
 Redundancy descriptors reference both store and group descriptors.
 
-The library creates a default redundancy descriptor.
-It assumes that processes on the same node are likely to fail at the same time.
+The library defines a default redundancy descriptor.
+It assumes that processes on the same node are likely to fail at the same time (compute node failure).
 It also assumes that datasets can be cached in :code:`/dev/shm`,
 which is assumed to be storage local to each compute node.
 It applies an :code:`XOR` redundancy scheme using a group size of 8.
 Additional redundancy descriptors may be defined by the user
-or system administrator in configuration files (Section :ref:`sec-config`).
+or system administrator (see :ref:`sec-config`).
 
 .. _sec-checkpoint_directories:
 
@@ -86,9 +90,9 @@ Control, cache, and prefix directories
 SCR manages numerous files and directories to cache datasets and to record its internal state.
 There are three fundamental types of directories: control, cache, and prefix directories.
 For a detailed illustration of how these files and directories are arranged,
-see the example presented in Section :ref:`sec-directories_example`.
+see the example presented in :ref:`sec-directories_example`.
 
-The *control directory* is where SCR writes files to store internal state about the current run.
+The *control directory* is where SCR writes files to store its internal state about the current run.
 This directory is expected to be stored in node-local storage.
 SCR writes multiple, small files in the control directory,
 and it may access these files frequently.
@@ -101,26 +105,25 @@ This enables multiple users, or multiple jobs by the same user,
 to run at the same time without conflicting for the same control directory.
 The control base directory is hard-coded into the SCR library at configure time,
 but this value may be overridden via a system configuration file.
-The user may not change the control base directory.
 
-SCR directs the application to write dataset files to subdirectories
+SCR can direct the application to write dataset files to subdirectories
 within a *cache directory*.
 SCR also stores its redundancy data in these subdirectories.
-The device serving the cache directory must be large enough to hold
+The storage that hosts the cache directory must be large enough to hold
 the data for one or more datasets plus the associated redundancy data.
 Multiple cache directories may be utilized in the same run,
 which enables SCR to use more than one class of storage
 within a run (e.g., RAM disk and SSD).
-Cache directories should be located on scalable storage.
+Cache directories should ideally be located on scalable storage.
 
 To construct the full path of a cache directory,
 SCR incorporates a cache base directory name with
 the user name and the allocation id associated with the resource allocation.
 A set of valid cache base directories is hard-coded into the SCR library at configure time,
 but this set can be overridden in a system configuration file.
-Out of this set, the user may select a subset of cache base
+Out of this set, one may select a subset of cache base
 directories to use during a run.
-A cache directory may be the same as the control directory.
+It is valid for a cache directory to use the same base path as the control directory.
 
 The user must configure the maximum number of datasets
 that SCR should keep in each cache directory.
@@ -137,7 +140,7 @@ a dataset is written to its own subdirectory called the *dataset directory*.
 Finally, the *prefix directory* is a directory on the parallel
 file system that the user specifies.
 SCR copies datasets to the prefix directory
-for permanent storage (Section :ref:`sec-fetch_flush_drain`).
+for permanent storage (see :ref:`sec-fetch_flush_drain`).
 The prefix directory should be accessible from all compute nodes,
 and the user must ensure that the prefix directory is unique for each job.
 For each dataset stored in the prefix directory,
@@ -179,9 +182,9 @@ We refer to a set of processes that share a storage device as a *storage group*.
 
 Users and system administrators can pass information about failure and 
 storage groups to SCR in descriptors defined in configuration files 
-(See Section :ref:`sec-descriptors`).
+(see :ref:`sec-descriptors`).
 Given this knowledge of failure and storage groups,
-the SCR library implements three redundancy schemes
+the SCR library implements four redundancy schemes
 which trade off performance, storage space, and reliability:
 
 * :code:`Single` - each checkpoint file is written to storage accessible to the local process
@@ -189,6 +192,9 @@ which trade off performance, storage space, and reliability:
   and a full copy of each file is written to storage accessible to a partner process from another failure group
 * :code:`XOR` - each checkpoint file is written to storage accessible to the local process,
   XOR parity data are computed from checkpoints of a set of processes from different failure groups,
+  and the parity data are stored among the set.
+* :code:`RS` - each checkpoint file is written to storage accessible to the local process,
+  and Reed-Solomon encoding data are computed from checkpoints of a set of processes from different failure groups,
   and the parity data are stored among the set.
 
 With :code:`Single`, SCR writes each checkpoint file in storage accessible to the local process.
@@ -216,13 +222,23 @@ which in turn was inspired by RAID5 [Patterson]_.
 This scheme can withstand multiple failures so long as two processes from the
 same set do not fail simultaneously.
 
+With :code:`RS`, like :code:`XOR`, SCR defines sets of processes
+where members within a set are selected from different failure groups.
+The processes within a set collectively compute Reed-Solomon encoding data which is
+stored in files along side the application checkpoint files.
+One may configure this scheme with the number of failures to tolerate within each set.
+
 Computationally, :code:`XOR` is more expensive than :code:`Partner`,
 but it requires less storage space.
 Whereas :code:`Partner` must store two full checkpoint files,
 :code:`XOR` stores one full checkpoint file plus one XOR parity segment,
 where the segment size is roughly :math:`1/(N-1)` times the size of a checkpoint file for a set of size N.
-Larger sets demand less storage,
-but they also increase the probability that two processes in the same set will fail simultaneously.
+Similarly, :code:`RS` is computationally more expensive than :code:`XOR`,
+but it tolerates up to a configurable :code:`k` number of failures per set.
+The :code:`RS` encoding data scales as :math:`k/(N-k)`
+times the size of a checkpoint file for a set of size N.
+Larger sets require less storage,
+but they also increase the probability that a given set will suffer multiple failures simultaneously.
 Larger sets may also increase the cost of recovering files in the event of a failure.
 
 .. [Patterson] "A Case for Redundant Arrays of Inexpensive Disks (RAID)", D. Patterson, G. Gibson, and R. Katz, Proc. of 1988 ACM SIGMOD Conf. on Management of Data, 1988, http://web.mit.edu/6.033/2015/wwwdocs/papers/Patterson88.pdf.
@@ -241,7 +257,7 @@ system only to read them back during the restart.
 In addition, SCR provides support for the use of spare nodes.
 A job can allocate more nodes than it needs
 and use the extra nodes to fill in for any failed nodes during a restart.
-SCR includes a set of scripts which encode much of the restart logic (Section :ref:`sec-scripts`).
+SCR includes a set of scripts which encode much of the restart logic (see :ref:`sec-scripts`).
 
 Upon encountering a failure,
 SCR relies on the MPI library, the resource manager, or some other external service
@@ -253,7 +269,7 @@ In practice, such a restart typically amounts to issuing another
 :code:`mpirun` in the job batch script.
 
 Of the set of nodes used by the previous run,
-the restarted run should use as many of the same nodes as it can
+the restarted run should try to use as many of the same nodes as it can
 to maximize the number of files available in cache.
 A given MPI rank in the restarted run does not need to run
 on the same node that it ran on in the previous run.
@@ -326,19 +342,19 @@ SCR manages the transfer of datasets between the prefix directory
 on the parallel file system and the cache.
 We use the term *fetch* to refer to the action of copying
 a dataset from the parallel file system to cache.
-When transferring data in the other direction,
+When transferring data from cache to the parallel file system,
 there are two terms used: *flush* and *scavenge*.
 Under normal circumstances, the library directly copies files
 from cache to the parallel file system,
 and this direct transfer is known as a flush.
 However, sometimes a run is killed before the library can complete this transfer.
 In these cases, a set of SCR commands is executed after the final run to ensure that the
-latest checkpoint is copied to the parallel file system before the allocation expires.
-We say that these scripts scavenge the latest checkpoint.
+latest checkpoint and any output datasets are copied to the parallel file system before the allocation expires.
+We say that these scripts scavenge those datasets.
 
 Each time an SCR job starts,
 SCR first inspects the cache and attempts to distribute files for a scalable restart
-as discussed in Section :ref:`sec-restart`.
+as discussed in :ref:`sec-restart`.
 If the cache is empty or the distribute operation fails or is disabled,
 SCR attempts to fetch a checkpoint from the prefix directory to fill the cache.
 SCR reads the index file and attempts to fetch the most recent checkpoint,
@@ -346,12 +362,16 @@ or otherwise the checkpoint that is marked as current within the index file.
 For a given checkpoint, SCR records whether the fetch attempt succeeds or fails in the index file.
 SCR does not attempt to fetch a checkpoint that is marked as being incomplete
 nor does it attempt to fetch a checkpoint for which a previous fetch attempt has failed.
-If SCR attempts but fails to fetch a checkpoint, it prints an error and continues the run.
+If SCR attempts but fails to fetch a checkpoint, it prints an error and
+it will attempt to fetch the next most recent checkpoint if one is available.
 
 To disable the fetch operation, set the :code:`SCR_FETCH` parameter to 0.
 If an application disables the fetch feature,
 the application is responsible for reading its checkpoint set directly from
 the parallel file system upon a restart.
+In this case, the application should call :code:`SCR_Current` to notify SCR
+which checkpoint it loaded.
+This enables SCR to set its internal state to maintain proper ordering in the checkpoint sequence.
 
 To withstand catastrophic failures,
 it is necessary to write checkpoint sets out to the parallel file system with some moderate frequency.
@@ -362,7 +382,7 @@ When this parameter is set, SCR decrements a counter with each successful checkp
 When the counter hits 0, SCR writes the current checkpoint set out to the file system and resets the counter
 to the value specified in :code:`SCR_FLUSH`.
 SCR preserves this counter between scalable restarts,
-and when used in conjunction with :code:`SCR_FETCH`,
+and when used in conjunction with :code:`SCR_FETCH` or :code:`SCR_Current`,
 it also preserves this counter between fetch and flush operations
 such that it is possible to maintain periodic checkpoint writes across runs.
 Set :code:`SCR_FLUSH` to 0 to disable periodic writes in SCR.

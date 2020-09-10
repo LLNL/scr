@@ -15,6 +15,7 @@ taking the first value it finds.
 
 * Environment variables,
 * User configuration file,
+* Values set with :code:`SCR_Config`,
 * System configuration file,
 * Compile-time constants.
 
@@ -48,6 +49,14 @@ For example, a configuration file may contain something like the following::
   # set SCR to flush every 20 checkpoints
   SCR_FLUSH=20
 
+One can include environment variable expressions in SCR configuration parameters.
+SCR interpolates the value of the environment variable at run time before setting the parameter.
+This is especially useful for some parameters like storage paths,
+which may only be defined within the job environment, e.g.,::
+
+  # set cache directory based on user and jobid
+  SCR_CACHE_BASE=/dev/shm/$USER/scr.$SLURM_JOBID
+
 .. _sec-descriptors:
 
 Group, store, and checkpoint descriptors
@@ -59,9 +68,8 @@ The defaults provide reasonable settings for Linux clusters,
 but one can define custom settings via group, store,
 and checkpoint descriptors in configuration files.
 
-SCR must know which processes are likely to fail
-at the same time (failure groups) and which processes access a common
-storage device (storage groups).
+SCR must know which processes are likely to fail at the same time (failure groups)
+and which processes access a common storage device (storage groups).
 By default, SCR creates a group of all processes in the job called :code:`WORLD`
 and another group of all processes on the same compute node called :code:`NODE`.
 If more groups are needed, they can be defined in configuration files
@@ -76,7 +84,8 @@ Group descriptor entries are identified by a leading :code:`GROUPS` key.
 Each line corresponds to a single compute node,
 where the hostname of the compute node is the value of the :code:`GROUPS` key.
 There must be one line for every compute node in the allocation.
-It is recommended to specify groups in the system configuration file.
+It is recommended to specify groups in the system configuration file,
+since these group definitions often apply to all jobs on the system.
 
 The remaining values on the line specify a set of group name / value pairs.
 The group name is the string to be referenced by store and checkpoint descriptors.
@@ -135,9 +144,9 @@ which means that all processes in the job can access the device.
 In other words, it is a globally accessible file system.
 
 Finally, SCR must be configured with redundancy schemes.
-By default, SCR uses bypass mode and writes all datasets to the parallel file system.
+By default, SCR uses cache bypass mode and writes all datasets to the parallel file system.
 To specify something different, one must set various SCR configuration parameters
-through environment variables or by creating a configuration file that defines checkpoint and output descriptors.
+to define checkpoint and output descriptors.
 Example descriptors in a configuration file look like the following::
 
   # instruct SCR to use the CKPT descriptors from the config file
@@ -148,12 +157,12 @@ Example descriptors in a configuration file look like the following::
 
   # the following instructs SCR to run with three checkpoint configurations:
   # - save every 8th checkpoint to /ssd using the PARTNER scheme
-  # - save every 4th checkpoint (not divisible by 8) to /ssd using XOR with
-  #   a set size of 8
+  # - save every 4th checkpoint (not divisible by 8) and any output dataset
+  #   to /ssd using RS a set size of 8
   # - save all other checkpoints (not divisible by 4 or 8) to /dev/shm using XOR with
   #   a set size of 16
   CKPT=0 INTERVAL=1 GROUP=NODE   STORE=/dev/shm TYPE=XOR     SET_SIZE=16
-  CKPT=1 INTERVAL=4 GROUP=NODE   STORE=/ssd     TYPE=XOR     SET_SIZE=8  OUTPUT=1
+  CKPT=1 INTERVAL=4 GROUP=NODE   STORE=/ssd     TYPE=RS      SET_SIZE=8  OUTPUT=1
   CKPT=2 INTERVAL=8 GROUP=SWITCH STORE=/ssd     TYPE=PARTNER             BYPASS=1
 
 First, one must set the :code:`SCR_COPY_TYPE` parameter to :code:`FILE`.
@@ -230,6 +239,16 @@ The table in this section specifies the full set of SCR configuration parameters
    %value may enable SCR to recover from more severe failures which take down multiple
    %consecutive nodes (e.g., a power breaker which supplies a rack of consecutive nodes).
 
+.. * - :code:`SCR_LOG_SYSLOG_PREFIX`
+     - SCR
+     - Prefix string to use in syslog messages.
+   * - :code:`SCR_LOG_SYSLOG_FACILITY`
+     - :code:`LOG_LOCAL7`
+     - Facility value to be used in syslog messages.
+   * - :code:`SCR_LOG_SYSLOG_LEVEL`
+     - :code:`LOG_INFO`
+     - Level value to be used in syslog messages.
+
 .. list-table:: SCR parameters
    :widths: 10 10 40
    :header-rows: 1
@@ -237,24 +256,37 @@ The table in this section specifies the full set of SCR configuration parameters
    * - Name
      - Default
      - Description
+   * - :code:`SCR_DEBUG`
+     - 0
+     - Set to 1 or 2 for increasing verbosity levels of debug messages.
+   * - :code:`SCR_CHECKPOINT_INTERVAL`
+     - 0
+     - Set to positive number of times :code:`SCR_Need_checkpoint` should be called before returning 1.
+       This provides a simple way to set a periodic checkpoint frequency within application.
+   * - :code:`SCR_CHECKPOINT_SECONDS`
+     - 0
+     - Set to positive number of seconds to specify minimum time between consecutive checkpoints as guided by :code:`SCR_Need_checkpoint`.
+   * - :code:`SCR_CHECKPOINT_OVERHEAD`
+     - 0.0
+     - Set to positive percentage to specify maximum overhead allowed for checkpointing operations as guided by :code:`SCR_Need_checkpoint`.
+   * - :code:`SCR_HALT_ENABLED`
+     - 1
+     - Whether SCR should halt a job by calling :code:`exit()`. Set to 0 to disable
+       in which case the application is responsible for stopping.
    * - :code:`SCR_HALT_SECONDS`
      - 0 
      - Set to a positive integer to instruct SCR to halt the job after completing
        a successful checkpoint if the remaining time in the current job allocation
        is less than the specified number of seconds.
-   * - :code:`SCR_HALT_ENABLED`
-     - 1
-     - Whether SCR should halt a job by calling :code:`exit()`. Set to 0 to disable
-       in which case the application is responsible for stopping.
    * - :code:`SCR_GROUP`
      - :code:`NODE`
      - Specify name of failure group.
    * - :code:`SCR_COPY_TYPE`
      - :code:`XOR`
-     - Set to one of: :code:`SINGLE`, :code:`PARTNER`, :code:`XOR`, or :code:`FILE`.
+     - Set to one of: :code:`SINGLE`, :code:`PARTNER`, :code:`XOR`, :code:`RS`, or :code:`FILE`.
    * - :code:`SCR_CACHE_BASE`
      - :code:`/dev/shm`
-     - Specify the base directory SCR should use to cachecheckpoints.
+     - Specify the base directory SCR should use to cache datasets.
    * - :code:`SCR_CACHE_SIZE`
      - 1
      - Set to a non-negative integer to specify the maximum number of checkpoints SCR
@@ -262,27 +294,38 @@ The table in this section specifies the full set of SCR configuration parameters
        saving another in order to keep the total count below this limit.
    * - :code:`SCR_CACHE_BYPASS`
      - 1
-     - Specify the bypass mode.  When bypass is enabled, data files are directly read from and written to the
-       parallel file system, thus bypassing the cache.  Even in bypass mode, internal
+     - Specify bypass mode.  When enabled, data files are directly read from and written to the
+       parallel file system, bypassing the cache.  Even in bypass mode, internal
        SCR metadata corresponding to the dataset is stored in cache.
+   * - :code:`SCR_CACHE_PURGE`
+     - 0
+     - Whether to delete all datasets from cache during :code:`SCR_Init`.
+       Enabling this setting can be useful while testing.
    * - :code:`SCR_SET_SIZE`
      - 8
-     - Specify the minimum number of processes to include in an XOR set.
+     - Specify the minimum number of processes to include in an redundancy set.
        Increasing this value decreases the amount of storage required to cache the checkpoint data.
        However, higher values have an increased likelihood of encountering a catastrophic error.
        Higher values may also require more time to reconstruct lost files from redundancy data.
+   * - :code:`SCR_SET_FAILURES`
+     - 2
+     - Specify the number of failures to tolerate in each set when using the RS scheme.
+       Increasing this value enables one to tolerate more failures per set, but it increases
+       redundancy storage and encoding costs.
    * - :code:`SCR_PREFIX`
      - $PWD
      - Specify the prefix directory on the parallel file system where checkpoints should be read from and written to.
-   * - :code:`SCR_CHECKPOINT_SECONDS`
+   * - :code:`SCR_PREFIX_SIZE`
      - 0
-     - Set to positive number of seconds to specify minimum time between consecutive checkpoints as guided by :code:`SCR_Need_checkpoint`.
-   * - :code:`SCR_CHECKPOINT_OVERHEAD`
-     - 0.0
-     - Set to positive percentage to specify maximum overhead allowed for checkpointing operations as guided by :code:`SCR_Need_checkpoint`.
+     - Specify number of checkpoints to keep in the prefix directory.  SCR deletes0 older checkpoints as new
+       checkpoints are flushed to maintain a sliding window of the specified size.  Set to 0 to keep all checkpoints.
+       Checkpoints marked with :code:`SCR_FLAG_OUTPUT` are not deleted.
+   * - :code:`SCR_CURRENT`
+     - N/A
+     - Name of checkpoint to mark as current and attempt to fetch in a new run during :code:`SCR_Init`.
    * - :code:`SCR_DISTRIBUTE`
      - 1
-     - Set to 0 to disable file distribution during :code:`SCR_Init`.
+     - Set to 0 to disable cache rebuild during :code:`SCR_Init`.
    * - :code:`SCR_FETCH`
      - 1
      - Set to 0 to disable SCR from fetching files from the parallel file system during :code:`SCR_Init`.
@@ -300,7 +343,14 @@ The table in this section specifies the full set of SCR configuration parameters
      - Specify the number of processes that may write simultaneously to the parallel file system.
    * - :code:`SCR_FLUSH_ON_RESTART`
      - 0
-     - Set to 1 to force SCR to flush a checkpoint during restart.  This is useful for codes that must restart from the parallel file system.
+     - Set to 1 to force SCR to flush datasets during restart.
+       This is useful for applications that restart without using the SCR Restart API.
+       Typically, one should also set :code:`SCR_FETCH=0`.
+   * - :code:`SCR_GLOBAL_RESTART`
+     - 0
+     - Set to 1 to flush checkpoints to the prefix directory during :code:`SCR_Init` and set fetch to use cache bypass mode.
+       This is needed by applications that use the SCR Restart API but require a global file system to restart,
+       e.g., because multiple processes read the same file.
    * - :code:`SCR_RUNS`
      - 1
      - Specify the maximum number of times the :code:`scr_srun` command should attempt to run a job within an allocation.  Set to -1 to specify an unlimited number of times.
@@ -310,6 +360,36 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_EXCLUDE_NODES`
      - N/A
      - Specify a set of nodes, using SLURM node range syntax, which should be excluded from runs.  This is useful to avoid particular nodes while waiting for them to be fixed by system administrators.  Nodes in this list which are not in the current allocation are silently ignored.
+   * - :code:`SCR_LOG_ENABLE`
+     - 0
+     - Whether to enable any form of logging of SCR events.
+   * - :code:`SCR_LOG_TXT_ENABLE`
+     - 1
+     - Whether to log SCR events to text file in prefix directory at :code:`$SCR_PREFIX/.scr/log`.
+       :code:`SCR_LOG_ENABLE` must be set to 1 for this parameter to be active.
+   * - :code:`SCR_LOG_SYSLOG_ENABLE`
+     - 1
+     - Whether to log SCR events to syslog.
+       :code:`SCR_LOG_ENABLE` must be set to 1 for this parameter to be active.
+   * - :code:`SCR_LOG_DB_ENABLE`
+     - 0
+     - Whether to log SCR events to MySQL database.
+       :code:`SCR_LOG_ENABLE` must be set to 1 for this parameter to be active.
+   * - :code:`SCR_LOG_DB_DEBUG`
+     - 0
+     - Whether to print MySQL statements as they are executed.
+   * - :code:`SCR_LOG_DB_HOST`
+     - N/A
+     - Hostname of MySQL server
+   * - :code:`SCR_LOG_DB_NAME`
+     - N/A
+     - Name of SCR MySQL database.
+   * - :code:`SCR_LOG_DB_USER`
+     - N/A
+     - Username of SCR MySQL user.
+   * - :code:`SCR_LOG_DB_PASS`
+     - N/A
+     - Password for SCR MySQL user.
    * - :code:`SCR_MPI_BUF_SIZE`
      - 131072
      - Specify the number of bytes to use for internal MPI send and receive buffers when computing redundancy data or rebuilding lost files.
@@ -325,9 +405,6 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_CRC_ON_FLUSH`
      - 1
      - Set to 0 to disable CRC32 checks during fetch and flush operations.
-   * - :code:`SCR_DEBUG`
-     - 0
-     - Set to 1 or 2 for increasing verbosity levels of debug messages.
    * - :code:`SCR_WATCHDOG_TIMEOUT`
      - N/A
      - Set to the expected time (seconds) for checkpoint writes to in-system storage (See Section :ref:`sec-hang`).

@@ -150,7 +150,7 @@ time between checkpoints as specified by the user. If the time between checkpoin
 is longer than expected, SCR assumes the job is hanging.
 Two SCR parameters determine how many seconds should pass
 between I/O phases in an application, i.e. seconds between
-consecutive calls to :code:`SCR_Start_checkpoint`.
+consecutive calls to :code:`SCR_Start_output`.
 These are :code:`SCR_WATCHDOG_TIMEOUT`
 and :code:`SCR_WATCHDOG_TIMEOUT_PFS`. The first parameter
 specifies the time to wait when SCR writes checkpoints to
@@ -161,13 +161,10 @@ The reason for the two timeouts is that writing to the parallel
 file system generally takes much longer than writing to in-system
 storage, and so a longer timeout period is useful in that case.
 
-
 When using this feature, be careful to check that the job does not hang near the end of its allocation time limit,
 since in this case, SCR may not kill the run with enough time before the allocation ends.
 If you suspect the job to be hanging and you deem that SCR will not
 kill the run in sufficient time, manually cancel the run as described above.
-
-
 
 Combine, list, change, and unset halt conditions
 ------------------------------------------------

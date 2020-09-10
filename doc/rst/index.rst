@@ -11,19 +11,17 @@ to utilize distributed storage on Linux clusters to attain high file I/O bandwid
 for checkpointing, restarting, and writing large datasets.
 With SCR, jobs run more efficiently, recompute less work upon a failure,
 and reduce load on shared resources like the parallel file system.
-It provides the most benefit to large-scale jobs that write large datasets. 
+It provides the most benefit to large-scale jobs that write large datasets.
 Check out our video_ on how SCR works for more information.
 
 .. _video: https://youtu.be/_r6svl_eAns
 
 SCR provides the following capabilities:
 
-* guidance for the optimal checkpoint frequency,
-* scalable checkpoint bandwidth,
-* scalable restart bandwidth,
-* scalable output bandwidth,
+* scalable checkpoint, restart, and output bandwidth,
 * asynchronous data transfers to the parallel file system,
-* automated tracking and restart from most recent checkpoint,
+* guidance for the optimal checkpoint frequency,
+* automated tracking and restart from the most recent checkpoint,
 * automated job relaunch within an allocation after hangs or failures.
 
 SCR originated as a production-level implementation of a multi-level checkpoint system
@@ -31,9 +29,9 @@ of the type analyzed by [Vaidya]_
 SCR caches checkpoints in scalable storage,
 which is faster but less reliable than the parallel file system.
 It applies a redundancy scheme to the cache such that checkpoints can be recovered after common system failures.
-It also copies a subset of checkpoints to the parallel file system to recover from less common but more severe failures.
-In many failure cases, a job can be restarted from a checkpoint in cache,
-and writing and reading datasets in cache can be orders of magnitude faster than the parallel file system.
+It copies a subset of checkpoints to the parallel file system to recover from less common but more severe failures.
+In many failure cases, a job can be restarted from a cached checkpoint.
+Reading and writing datasets to cache may be orders of magnitude faster than the parallel file system.
 
 .. _fig-aggr_bw:
 
