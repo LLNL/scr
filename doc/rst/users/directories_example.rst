@@ -23,7 +23,7 @@ Similarly, the cache directory is :code:`/ssd/user1/scr.5132`,
 which is derived from the concatenation of the cache base directory :code:`/ssd`,
 the user name :code:`user1`, and the allocation id :code:`5132`.
 Within the cache directory, SCR creates a subdirectory for each dataset.
-In this example, there are two datasets with ids 5 and 6.
+In this example, there are two datasets with ids :code:`5` and :code:`6`.
 The application dataset files and SCR redundancy files
 are stored within their corresponding dataset directory.
 On the node running MPI rank 0,
@@ -35,9 +35,9 @@ This is a path on the parallel file system that is specified by the user.
 It is unique to the particular simulation the user is running :code:`simulation123`.
 
 The prefix directory contains a hidden :code:`.scr` directory where SCR writes
-its :code:`index.scr` file to record info for each of the datasets (Section :ref:`sec-scr_index`).
+its :code:`index.scr` file to record info for each of the datasets (see :ref:`sec-scr_index`).
 The SCR library writes other files to this hidden directory,
-including the :code:`halt.scr` file (Section :ref:`sec-halt`).
+including the :code:`halt.scr` file (see :ref:`sec-halt`).
 Within the :code:`.scr` directory, SCR also creates a directory
 for each dataset named :code:`scr.dataset.<id>` where :code:`<id>` is the dataset id.
 SCR stores metadata files that are specific to the dataset in these dataset directories

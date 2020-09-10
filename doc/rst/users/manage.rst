@@ -21,7 +21,7 @@ In this way, the library avoids invalid or problematic checkpoints.
 
 One may list or modify the contents of the index file via the :code:`scr_index` command.
 The :code:`scr_index` command must run within the prefix directory,
-or otherwise, one may specify a prefix directory using the ":code:`--prefix`" option.
+or otherwise, one may specify a prefix directory using the :code:`--prefix` option.
 The default behavior of :code:`scr_index` is to list the contents of the index file, e.g.::
 
   >>: scr_index
@@ -38,16 +38,16 @@ One checkpoint may also be marked as "current".
 When restarting a job, the SCR library starts from the current dataset and works backwards.
 The current dataset is denoted with a leading :code:`*` character in the :code:`CUR` column.
 One can change the current checkpoint using the :code:`--current` option,
-providing the dataset name as an argument.::
+providing the dataset name as an argument::
 
   scr_index --current ckpt.12
 
 If no dataset is marked as current,
 SCR starts with most recent checkpoint that is valid.
 
-One may drop entries from the index file using the ":code:`--drop`" option.
+One may drop entries from the index file using the :code:`--drop` option.
 This operation does not delete the corresponding dataset files.
-It only drops the entry from the :code:`index.scr` file.::
+It only drops the entry from the :code:`index.scr` file::
 
   scr_index --drop ckpt.50
 
@@ -67,7 +67,7 @@ In particular, if the :code:`scr_postrun` command successfully scavenges a datas
 but the resource allocation ends before the command can rebuild missing files,
 an entry may be missing from the index file.
 In such cases, one may manually add the corresponding entry
-using the ":code:`--build`" option.
+using the :code:`--build` option.
 
 When adding a new dataset to the index file,
 the :code:`scr_index` command checks whether the files in a dataset
@@ -76,7 +76,7 @@ It rebuilds missing files if there are sufficient redundant data,
 and it writes the :code:`summary.scr` file for the dataset if needed.
 One must provide the SCR dataset id as an argument.
 To obtain the SCR dataset id value, lookup the trailing integer on the names of :code:`scr.dataset` subdirectories
-in the hidden :code:`.scr` directory within the prefix directory.::
+in the hidden :code:`.scr` directory within the prefix directory::
 
   scr_index --build 50
 

@@ -4,14 +4,14 @@ Quick Start
 ===========
 
 In this quick start guide, we assume that you already have a basic
-understanding of SCR and how it works on HPC systems. We will walk through a
+understanding of SCR and how it works on HPC systems. We walk through a
 bare bones example to get you started quickly. For more in-depth
 information, please see subsequent sections in this user's guide.
 
 Obtaining the SCR Source
 ------------------------
 
-The latest version of the SCR source code is kept at github:
+The latest version of the SCR source code is hosted by github:
 https://github.com/LLNL/scr.
 It can be cloned or you may download a release tarball.
 
@@ -37,20 +37,20 @@ On Fedora, you can install the required dependencies with:
 Spack
 ^^^^^
 
-The most automated way to build SCR is to use the Spack
-package manager (https://github.com/spack/spack).
-SCR and all of its dependencies exist in a Spack package. After downloading
-Spack, simply type::
+The most automated way to build SCR is to use the `Spack <https://github.com/spack/spack>`_ package manager.
+SCR and all of its dependencies have corresponding Spack packages.
+After downloading Spack and defining an appropriate `packages.yaml <https://spack.readthedocs.io/en/latest/configuration.html>`_
+file for your system, SCR can be installed with::
 
   spack install scr
 
-This will download and install SCR and its dependencies automatically.
+This will download and install SCR and its dependencies.
 
 CMake
 ^^^^^
 
-To get started with CMake (version 2.8 or higher), the quick version of
-building SCR is::
+To get started with CMake (version 2.8 or higher),
+the quick version of building SCR is::
 
   git clone git@github.com:llnl/scr.git
   cd scr
@@ -72,13 +72,15 @@ On most systems, MPI should automatically be detected.
 Building the SCR :code:`test_api` Example
 -------------------------------------------
 
-After installing SCR, go to the installation directory, :code:`<install dir>` above. In the :code:`<install dir>/share/scr/examples` directory
-you will find the example programs supplied with SCR. For this quick start
-guide, we will use the :code:`test_api` program. Build it by executing::
+After installing SCR, go to the installation directory, :code:`<install dir>` above.
+In the :code:`<install dir>/share/scr/examples` directory
+you will find the example programs supplied with SCR.
+For this quick start guide, we will use the :code:`test_api` program.
+Build it by executing::
 
   make test_api
 
-Upon successful build, you will have an executable in your directory called
+Upon a successful build, you will have an executable in your directory called
 :code:`test_api`. You can use this test program to get a feel for how
 SCR works and to ensure that your build of SCR is working.
 
@@ -159,12 +161,11 @@ other programs in the examples directory.
     /* Call SCR_Init after MPI_Init */
     SCR_Init();
 
-    for(int t = 0; t < TIMESTEPS; t++)
-    {
+    for(int t = 0; t < TIMESTEPS; t++) {
       /* ... Do work ... */
 
-      int flag;
       /* Ask SCR if we should take a checkpoint now */
+      int flag;
       SCR_Need_checkpoint(&flag);
       if (flag)
         checkpoint(t);
@@ -199,15 +200,25 @@ other programs in the examples directory.
     char scr_file[SCR_MAX_FILENAME];
     SCR_Route_file(file, scr_file);
 
+    /* Each process tells SCR whether it wrote its checkpoint successfully */
+    int valid = 1;
+
     /* Use the new file name to perform your checkpoint I/O */
     FILE* fs = fopen(scr_file, "w");
     if (fs != NULL) {
-      fwrite(state, ..., fs);
+      int rc = fwrite(state, ..., fs);
+      if (rc == 0)
+        /* Failed to write, mark checkpoint as invalid */
+        valid = 0;
+
       fclose(fs);
+    } else {
+      /* Failed to open file, mark checkpoint as invalid */
+      valid = 0;
     }
 
     /* Tell SCR that you are done with your checkpoint phase */
-    SCR_Complete_output(1);
+    SCR_Complete_output(valid);
 
     return;
   }
