@@ -77,9 +77,9 @@
 #define SCR_HALT_SECONDS (0)
 #endif
 
-/* whether SCR will shut down and call exit if halt condition is detected */
-#ifndef SCR_HALT_ENABLED
-#define SCR_HALT_ENABLED (1)
+/* whether SCR will call exit if halt condition is detected */
+#ifndef SCR_HALT_EXIT
+#define SCR_HALT_EXIT (0)
 #endif
 
 /* =========================================================================
@@ -99,12 +99,12 @@
 
 /* base control directory */
 #ifndef SCR_CNTL_BASE
-#define SCR_CNTL_BASE "/tmp"
+#define SCR_CNTL_BASE "/dev/shm"
 #endif
 
 /* default base cache directory */
 #ifndef SCR_CACHE_BASE
-#define SCR_CACHE_BASE "/tmp"
+#define SCR_CACHE_BASE "/dev/shm"
 #endif
 
 /* default cache size (max number of checkpoints to keep in cache) */
@@ -191,7 +191,7 @@
 #define SCR_FLUSH_ON_RESTART (0)
 #endif
 
-/* when set, SCR will flush on restart and disable fetch for codes that must restart from the PFS */
+/* when set, SCR will flush on restart and set fetch to bypass mode for codes that must restart from the PFS */
 #ifndef SCR_GLOBAL_RESTART
 #define SCR_GLOBAL_RESTART (0)
 #endif

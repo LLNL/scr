@@ -173,10 +173,8 @@ It is recommended to call this function after each checkpoint.
 
 It is critical for a job to stop early enough to leave time to copy datasets
 from cache to the parallel file system before the allocation expires.
-By default, the SCR library automatically calls :code:`exit` at certain points.
-This works especially well in conjunction with the :code:`SCR_HALT_SECONDS` parameter.
-However, this default behavior does not provide the application a chance to exit cleanly.
-SCR can be configured to avoid an automatic exit using the :code:`SCR_HALT_ENABLED` parameter.
+One can configure how early the job should exit within its allocation
+by setting the :code:`SCR_HALT_SECONDS` parameter.
 
 This call also enables a running application to react to external commands.
 For instance, if the application has been instructed to halt using the :code:`scr_halt` command,
@@ -381,11 +379,7 @@ that started with the preceding call to :code:`SCR_Start_output`.
 
 In the current implementation,
 SCR applies the redundancy scheme during :code:`SCR_Complete_output`.
-Before returning from the function,
-MPI rank 0 determines whether the job should be halted
-and signals this condition to all other ranks (see :ref:`sec-halt`).
-If the job should be halted, rank 0 records a reason in the halt file,
-and then all tasks call :code:`exit`, unless the auto exit feature is disabled.
+The dataset is then flushed to the prefix directory if needed.
 
 Restart API
 -----------
