@@ -19,11 +19,13 @@ A number of different halt conditions can be specified.
 In most cases, the :code:`scr_halt` command communicates these conditions to the running
 application via the :code:`halt.scr` file,
 which is stored in the hidden :code:`.scr` directory within the prefix directory.
-The SCR library reads the halt file when the application calls :code:`SCR_Init`
-and each time the application completes a checkpoint.
+The application can determine when to exit by calling :code:`SCR_Should_exit`.
+
+Additionally, one can set :code:`SCR_HALT_EXIT=1` to configure SCR to exit the job
+if it detects an active halt condition.
+In that case, the SCR library reads the halt file when the application calls :code:`SCR_Init`
+and during :code:`SCR_Complete_output` after each complete checkpoint.
 If a halt condition is satisfied, all tasks in the application call :code:`exit`.
-One can disable this behavior by setting the :code:`SCR_HALT_ENABLED` parameter to 0.
-In this case, the application can determine when to exit by calling :code:`SCR_Should_exit`.
 
 Halt after next checkpoint
 --------------------------

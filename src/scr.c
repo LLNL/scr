@@ -166,6 +166,10 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
   /* assume we don't have to halt */
   int need_to_halt = 0;
 
+  /* determine whether we should halt the job by calling exit
+   * if we detect an active halt condition */
+  int halt_exit = ((halt_cond == SCR_TEST_AND_HALT) && scr_halt_exit);
+
   /* only rank 0 reads the halt file */
   if (scr_my_rank_world == 0) {
     /* TODO: all epochs are stored in ints, should be in unsigned ints? */
@@ -189,7 +193,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     if (halt_seconds > 0) {
       long int remaining = scr_env_seconds_remaining();
       if (remaining >= 0 && remaining <= halt_seconds) {
-        if (halt_cond == SCR_TEST_AND_HALT) {
+        if (halt_exit) {
           scr_dbg(0, "Job exiting: Reached time limit: (seconds remaining = %ld) <= (SCR_HALT_SECONDS = %d).",
                   remaining, halt_seconds
           );
@@ -209,7 +213,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
           /* since reason points at the EXIT_REASON string in the halt hash, and since
            * scr_halt() resets this value, we need to copy the current reason */
           char* tmp_reason = strdup(reason);
-          if (halt_cond == SCR_TEST_AND_HALT && tmp_reason != NULL) {
+          if (halt_exit && tmp_reason != NULL) {
             scr_dbg(0, "Job exiting: Reason: %s.", tmp_reason);
             scr_halt(tmp_reason);
           }
@@ -223,7 +227,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     int checkpoints_left;
     if (kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_CHECKPOINTS, &checkpoints_left) == KVTREE_SUCCESS) {
       if (checkpoints_left == 0) {
-        if (halt_cond == SCR_TEST_AND_HALT) {
+        if (halt_exit) {
           scr_dbg(0, "Job exiting: No more checkpoints remaining.");
           scr_halt("NO_CHECKPOINTS_LEFT");
         }
@@ -235,7 +239,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     int exit_before;
     if (kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_BEFORE, &exit_before) == KVTREE_SUCCESS) {
       if (now >= (exit_before - halt_seconds)) {
-        if (halt_cond == SCR_TEST_AND_HALT) {
+        if (halt_exit) {
           time_t time_now  = (time_t) now;
           time_t time_exit = (time_t) exit_before - halt_seconds;
           char str_now[256];
@@ -255,7 +259,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     int exit_after;
     if (kvtree_util_get_int(scr_halt_hash, SCR_HALT_KEY_EXIT_AFTER, &exit_after) == KVTREE_SUCCESS) {
       if (now >= exit_after) {
-        if (halt_cond == SCR_TEST_AND_HALT) {
+        if (halt_exit) {
           time_t time_now  = (time_t) now;
           time_t time_exit = (time_t) exit_after;
           char str_now[256];
@@ -274,7 +278,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
   MPI_Bcast(&need_to_halt, 1, MPI_INT, 0, scr_comm_world);
 
   /* halt job if we need to, and flush latest checkpoint if needed */
-  if (need_to_halt && halt_cond == SCR_TEST_AND_HALT && scr_halt_enabled) {
+  if (need_to_halt && halt_exit) {
     /* handle any async flush */
     if (scr_flush_async_in_progress) {
       /* there's an async flush ongoing, see which dataset is being flushed */
@@ -362,8 +366,6 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     MPI_Barrier(scr_comm_world);
     MPI_Finalize();
 #endif /* HAVE_LIBPMIX */
-
-    /* TODOV2: don't exit here, return a flag instead */
 
     /* and exit the job */
     exit(0);
@@ -831,8 +833,8 @@ static int scr_get_params()
   }
 
   /* determine whether we should call exit() upon detecting a halt condition */
-  if ((value = scr_param_get("SCR_HALT_ENABLED")) != NULL) {
-    scr_halt_enabled = atoi(value);
+  if ((value = scr_param_get("SCR_HALT_EXIT")) != NULL) {
+    scr_halt_exit = atoi(value);
   }
 
   /* set MPI buffer size (file chunk size) */

@@ -262,31 +262,31 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_CHECKPOINT_INTERVAL`
      - 0
      - Set to positive number of times :code:`SCR_Need_checkpoint` should be called before returning 1.
-       This provides a simple way to set a periodic checkpoint frequency within application.
+       This provides a simple way to set a periodic checkpoint frequency within an application.
    * - :code:`SCR_CHECKPOINT_SECONDS`
      - 0
      - Set to positive number of seconds to specify minimum time between consecutive checkpoints as guided by :code:`SCR_Need_checkpoint`.
    * - :code:`SCR_CHECKPOINT_OVERHEAD`
      - 0.0
-     - Set to positive percentage to specify maximum overhead allowed for checkpointing operations as guided by :code:`SCR_Need_checkpoint`.
-   * - :code:`SCR_HALT_ENABLED`
-     - 1
-     - Whether SCR should halt a job by calling :code:`exit()`. Set to 0 to disable
-       in which case the application is responsible for stopping.
+     - Set to positive floating-point value to specify maximum percent overhead allowed for checkpointing operations as guided by :code:`SCR_Need_checkpoint`.
+   * - :code:`SCR_HALT_EXIT`
+     - 0
+     - Whether SCR should call :code:`exit()` when it detects an active halt condition.
+       When enabled, SCR can exit the job during :code:`SCR_Init` and :code:`SCR_Complete_output` after each successful checkpoint.
+       Set to 1 to enable.
    * - :code:`SCR_HALT_SECONDS`
      - 0 
-     - Set to a positive integer to instruct SCR to halt the job after completing
-       a successful checkpoint if the remaining time in the current job allocation
-       is less than the specified number of seconds.
+     - Set to a positive integer to instruct SCR to halt the job
+       if the remaining time in the current job allocation is less than the specified number of seconds.
    * - :code:`SCR_GROUP`
      - :code:`NODE`
-     - Specify name of failure group.
+     - Specify name of default failure group.
    * - :code:`SCR_COPY_TYPE`
      - :code:`XOR`
      - Set to one of: :code:`SINGLE`, :code:`PARTNER`, :code:`XOR`, :code:`RS`, or :code:`FILE`.
    * - :code:`SCR_CACHE_BASE`
      - :code:`/dev/shm`
-     - Specify the base directory SCR should use to cache datasets.
+     - Specify the default base directory SCR should use to cache datasets.
    * - :code:`SCR_CACHE_SIZE`
      - 1
      - Set to a non-negative integer to specify the maximum number of checkpoints SCR
@@ -297,19 +297,20 @@ The table in this section specifies the full set of SCR configuration parameters
      - Specify bypass mode.  When enabled, data files are directly read from and written to the
        parallel file system, bypassing the cache.  Even in bypass mode, internal
        SCR metadata corresponding to the dataset is stored in cache.
+       Set to 0 to direct SCR to store datasets in cache.
    * - :code:`SCR_CACHE_PURGE`
      - 0
      - Whether to delete all datasets from cache during :code:`SCR_Init`.
-       Enabling this setting can be useful while testing.
+       Enabling this setting may be useful for test and development while integrating SCR in an application.
    * - :code:`SCR_SET_SIZE`
      - 8
      - Specify the minimum number of processes to include in an redundancy set.
-       Increasing this value decreases the amount of storage required to cache the checkpoint data.
-       However, higher values have an increased likelihood of encountering a catastrophic error.
+       Increasing this value may decrease the amount of storage required to cache the dataset.
+       However, higher values may have an increased likelihood of encountering a catastrophic error.
        Higher values may also require more time to reconstruct lost files from redundancy data.
    * - :code:`SCR_SET_FAILURES`
      - 2
-     - Specify the number of failures to tolerate in each set when using the RS scheme.
+     - Specify the number of failures to tolerate in each set while using the RS scheme.
        Increasing this value enables one to tolerate more failures per set, but it increases
        redundancy storage and encoding costs.
    * - :code:`SCR_PREFIX`
@@ -317,8 +318,9 @@ The table in this section specifies the full set of SCR configuration parameters
      - Specify the prefix directory on the parallel file system where checkpoints should be read from and written to.
    * - :code:`SCR_PREFIX_SIZE`
      - 0
-     - Specify number of checkpoints to keep in the prefix directory.  SCR deletes0 older checkpoints as new
-       checkpoints are flushed to maintain a sliding window of the specified size.  Set to 0 to keep all checkpoints.
+     - Specify number of checkpoints to keep in the prefix directory.
+       SCR deletes older checkpoints as new checkpoints are flushed to maintain a sliding window of the specified size.
+       Set to 0 to keep all checkpoints.
        Checkpoints marked with :code:`SCR_FLAG_OUTPUT` are not deleted.
    * - :code:`SCR_CURRENT`
      - N/A
@@ -334,7 +336,7 @@ The table in this section specifies the full set of SCR configuration parameters
      - Specify the number of processes that may read simultaneously from the parallel file system.
    * - :code:`SCR_FLUSH`
      - 10
-     - Specify the number of checkpoints between periodic SCR flushes to the parallel file system.  Set to 0 to disable periodic flushes.
+     - Specify the number of checkpoints between periodic flushes to the parallel file system.  Set to 0 to disable periodic flushes.
    * - :code:`SCR_FLUSH_ASYNC`
      - 0
      - Set to 1 to enable asynchronous flush methods (if supported).
@@ -345,21 +347,24 @@ The table in this section specifies the full set of SCR configuration parameters
      - 0
      - Set to 1 to force SCR to flush datasets during restart.
        This is useful for applications that restart without using the SCR Restart API.
-       Typically, one should also set :code:`SCR_FETCH=0`.
+       Typically, one should also set :code:`SCR_FETCH=0` when enabling this option.
    * - :code:`SCR_GLOBAL_RESTART`
      - 0
-     - Set to 1 to flush checkpoints to the prefix directory during :code:`SCR_Init` and set fetch to use cache bypass mode.
+     - Set to 1 to flush checkpoints to the prefix directory during :code:`SCR_Init` and internally switch fetch to use cache bypass mode.
        This is needed by applications that use the SCR Restart API but require a global file system to restart,
        e.g., because multiple processes read the same file.
    * - :code:`SCR_RUNS`
      - 1
-     - Specify the maximum number of times the :code:`scr_srun` command should attempt to run a job within an allocation.  Set to -1 to specify an unlimited number of times.
+     - Specify the maximum number of times the :code:`scr_srun` command should attempt to run a job within an allocation.
+       Set to -1 to specify an unlimited number of times.
    * - :code:`SCR_MIN_NODES`
      - N/A
      - Specify the minimum number of nodes required to run a job.
    * - :code:`SCR_EXCLUDE_NODES`
      - N/A
-     - Specify a set of nodes, using SLURM node range syntax, which should be excluded from runs.  This is useful to avoid particular nodes while waiting for them to be fixed by system administrators.  Nodes in this list which are not in the current allocation are silently ignored.
+     - Specify a set of nodes, using SLURM node range syntax, which should be excluded from runs.
+       This is useful to avoid particular problematic nodes.
+       Nodes named in this list that are not part of a the current job allocation are silently ignored.
    * - :code:`SCR_LOG_ENABLE`
      - 0
      - Whether to enable any form of logging of SCR events.
@@ -407,7 +412,7 @@ The table in this section specifies the full set of SCR configuration parameters
      - Set to 0 to disable CRC32 checks during fetch and flush operations.
    * - :code:`SCR_WATCHDOG_TIMEOUT`
      - N/A
-     - Set to the expected time (seconds) for checkpoint writes to in-system storage (See Section :ref:`sec-hang`).
+     - Set to the expected time (seconds) for checkpoint writes to in-system storage (see :ref:`sec-hang`).
    * - :code:`SCR_WATCHDOG_TIMEOUT_PFS`
      - N/A
-     - Set to the expected time (seconds) for checkpoint writes to the parallel file system (See Section :ref:`sec-hang`).
+     - Set to the expected time (seconds) for checkpoint writes to the parallel file system (see :ref:`sec-hang`).
