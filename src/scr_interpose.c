@@ -163,7 +163,7 @@ static int scri_start_checkpoint()
 
     /* start the checkpoint */
     scri_interpose_enabled = 0;
-    SCR_Start_checkpoint();
+    SCR_Start_output(NULL, SCR_FLAG_CHECKPOINT);
     scri_interpose_enabled = 1;
 
     /* mark us inside a checkpoint */
@@ -196,7 +196,8 @@ static int scri_complete_checkpoint(int index)
     if (!still_open) {
       /* disable the interposer since SCR_Complete_checkpoint calls open/close */
       scri_interpose_enabled = 0;
-      SCR_Complete_checkpoint(1);
+      int allvalid;
+      SCR_Complete_output(1, &allvalid);
       scri_interpose_enabled = 1;
 
       /* mark us out of the checkpoint */

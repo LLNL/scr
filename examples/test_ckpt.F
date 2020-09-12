@@ -55,7 +55,7 @@
         read(readunit,iostat=ios) R1
         close(readunit)
 
-        call SCR_COMPLETE_RESTART(valid, ierr)
+        call SCR_COMPLETE_RESTART(valid, flag, ierr)
       endif
 
       if (mynod == 0) then
@@ -71,26 +71,6 @@
 
         forall(i=1:ni,j=1:nj,k=1:nk) W1(i,j,k) = 
      +      nodeoff*mynod+i+ni*(j-1+nj*(k-1))
-
-!       test checkpoint interface
-        call SCR_START_CHECKPOINT(ierr)
-
-        write(file_suffix, '(i5.5)') loop
-        ckptname = "ckpt_" // trim(file_suffix)
-
-        writeunit = mynod
-        write(file_suffix, '(i5.5)') writeunit
-        fname = trim(ckptname) // "/" //
-     +      trim(basefname) // trim(file_suffix) // ".ckpt"
-        call SCR_ROUTE_FILE(fname, fname_scr, ierr)
-
-        valid = 1
-        open(unit=writeunit,file=fname_scr,form='unformatted',
-     +      action='write')
-        write(writeunit,iostat=ios) W1
-        close(writeunit)
-
-        call SCR_COMPLETE_CHECKPOINT(valid, ierr)
 
 !       test output interface
         write(file_suffix, '(i5.5)') loop
@@ -110,7 +90,7 @@
         write(writeunit,iostat=ios) W1
         close(writeunit)
 
-        call SCR_COMPLETE_OUTPUT(valid, ierr)
+        call SCR_COMPLETE_OUTPUT(valid, flag, ierr)
 
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 

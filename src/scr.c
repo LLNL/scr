@@ -1395,7 +1395,7 @@ static int scr_assign_ownership(scr_filemap* map, int bypass)
 }
 
 /* end phase for current output dataset */
-static int scr_complete_output(int valid)
+static int scr_complete_output(int valid, int* allvalid)
 {
   /* bail out if there is no active call to Start_output */
   if (! scr_in_output) {
@@ -1664,6 +1664,9 @@ static int scr_complete_output(int valid)
       scr_log_event("COMPUTE_START", NULL, NULL, NULL, NULL, NULL);
     }
   }
+
+  /* set flag based on return value for now */
+  *allvalid = (rc == SCR_SUCCESS);
 
   return rc;
 }
@@ -2839,32 +2842,6 @@ int SCR_Start_output(const char* name, int flags)
   return scr_start_output(name, flags);
 }
 
-/* informs SCR that a fresh checkpoint set is about to start */
-int SCR_Start_checkpoint()
-{
-  /* manage state transition */
-  if (scr_state != SCR_STATE_IDLE) {
-    scr_state_transition_error(scr_state, "SCR_Start_checkpoint()", __FILE__, __LINE__);
-  }
-  scr_state = SCR_STATE_CHECKPOINT;
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    return SCR_FAILURE;
-  }
-
-  /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  /* delegate the rest to start_output */
-  return scr_start_output(NULL, SCR_FLAG_CHECKPOINT);
-}
-
 /* given a filename, return the full path to the file which the user should write to */
 int SCR_Route_file(const char* file, char* newfile)
 {
@@ -3088,7 +3065,7 @@ int SCR_Route_file(const char* file, char* newfile)
 }
 
 /* inform library that the current dataset is complete */
-int SCR_Complete_output(int valid)
+int SCR_Complete_output(int valid, int* allvalid)
 {
   /* manage state transition */
   if (scr_state != SCR_STATE_OUTPUT) {
@@ -3111,34 +3088,7 @@ int SCR_Complete_output(int valid)
     return SCR_FAILURE;
   }
 
-  return scr_complete_output(valid);
-}
-
-/* completes the checkpoint set and marks it as valid or not */
-int SCR_Complete_checkpoint(int valid)
-{
-  /* manage state transition */
-  if (scr_state != SCR_STATE_CHECKPOINT) {
-    scr_abort(-1, "Must call SCR_Start_checkpoint() before SCR_Complete_checkpoint() @ %s:%d",
-      __FILE__, __LINE__
-    );
-  }
-  scr_state = SCR_STATE_IDLE;
-
-  /* if not enabled, bail with an error */
-  if (! scr_enabled) {
-    return SCR_FAILURE;
-  }
-
-  /* bail out if not initialized -- will get bad results */
-  if (! scr_initialized) {
-    scr_abort(-1, "SCR has not been initialized @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
-
-  return scr_complete_output(valid);
+  return scr_complete_output(valid, allvalid);
 }
 
 /* determine whether SCR has a restart available to read,
@@ -3245,7 +3195,7 @@ int SCR_Start_restart(char* name)
 }
 
 /* inform library that the current restart is complete */
-int SCR_Complete_restart(int valid)
+int SCR_Complete_restart(int valid, int* allvalid)
 {
   /* manage state transition */
   if (scr_state != SCR_STATE_RESTART) {
@@ -3271,10 +3221,11 @@ int SCR_Complete_restart(int valid)
   /* turn off our restart flag */
   scr_have_restart = 0;
 
-  /* since we have no output flag to return to user whether all procs
-   * passed in valid=1, we'll overload the return code for that purpose,
-   * this should eventually be changed to use an output flag instead */
+  /* assume we succeeded */
   int rc = SCR_SUCCESS;
+
+  /* assume restart was valid */
+  *allvalid = 1;
 
   /* check that all procs read valid data */
   if (! scr_alltrue(valid, scr_comm_world)) {
@@ -3284,9 +3235,8 @@ int SCR_Complete_restart(int valid)
      * we should also record this current checkpoint as failed in the
      * index file so that we don't fetch it again*/
 
-    /* use the return code to indicate that some process failed to
-     * read its checkpoint file */
-    rc = SCR_FAILURE;
+    /* indicate that some process failed to read its checkpoint file */
+    *allvalid = 0;
 
     /* mark current checkpoint as bad in our index file so that
      * we don't attempt to fetch it again */

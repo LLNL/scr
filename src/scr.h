@@ -81,30 +81,20 @@ int SCR_Have_restart(int* flag, char* name);
 int SCR_Start_restart(char* name);
 
 /* inform library that the current restart is complete */
-int SCR_Complete_restart(int valid);
-
-/*****************
- * Checkpoint routines (backwards compatibility)
- ****************/
-
-/* determine whether a checkpoint should be taken at the current time */
-int SCR_Need_checkpoint(int* flag);
-
-/* inform library that a new checkpoint is starting */
-int SCR_Start_checkpoint(void);
-
-/* inform library that the current checkpoint is complete */
-int SCR_Complete_checkpoint(int valid);
+int SCR_Complete_restart(int valid, int* allvalid);
 
 /*****************
  * Output routines
  ****************/
 
+/* determine whether a checkpoint should be taken at the current time */
+int SCR_Need_checkpoint(int* flag);
+
 /* inform library that a new output dataset is starting */
 int SCR_Start_output(const char* name, int flags);
 
 /* inform library that the current dataset is complete */
-int SCR_Complete_output(int valid);
+int SCR_Complete_output(int valid, int* allvalid);
 
 /*****************
  * Dataset management routines

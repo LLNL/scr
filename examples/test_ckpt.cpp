@@ -34,7 +34,7 @@ int checkpoint(int size_mb)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     /* Inform SCR that we are starting a new checkpoint */
-    SCR_Start_checkpoint();
+    SCR_Start_output(NULL, SCR_FLAG_CHECKPOINT);
 
     /* Build the filename for our checkpoint file */
     sprintf(tmp, "rank_%d", rank);
@@ -50,7 +50,8 @@ int checkpoint(int size_mb)
     cout << "Out: " << file << "\n";
 
     /* Tell SCR whether this process wrote its checkpoint files successfully */
-    SCR_Complete_checkpoint(1);
+    int allvalid;
+    SCR_Complete_output(1, &allvalid);
 
     return 0;
 }

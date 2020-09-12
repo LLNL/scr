@@ -223,15 +223,15 @@ FORTRAN_API void FORT_CALL scr_start_restart_(char* name FORT_MIXED_LEN(name_len
   return;
 }
 
-FORTRAN_API void FORT_CALL scr_complete_restart_(int* valid, int* ierror)
+FORTRAN_API void FORT_CALL scr_complete_restart_(int* valid, int* allvalid, int* ierror)
 {
   int valid_tmp = *valid;
-  *ierror = SCR_Complete_restart(valid_tmp);
+  *ierror = SCR_Complete_restart(valid_tmp, allvalid);
   return;
 }
 
 /*================================================
- * Checkpoint functions
+ * Output functions
  *================================================*/
 
 FORTRAN_API void FORT_CALL scr_need_checkpoint_(int* flag, int* ierror)
@@ -239,23 +239,6 @@ FORTRAN_API void FORT_CALL scr_need_checkpoint_(int* flag, int* ierror)
   *ierror = SCR_Need_checkpoint(flag);
   return;
 }
-
-FORTRAN_API void FORT_CALL scr_start_checkpoint_(int* ierror)
-{
-  *ierror = SCR_Start_checkpoint();
-  return;
-}
-
-FORTRAN_API void FORT_CALL scr_complete_checkpoint_(int* valid, int* ierror)
-{
-  int valid_tmp = *valid;
-  *ierror = SCR_Complete_checkpoint(valid_tmp);
-  return;
-}
-
-/*================================================
- * Output functions
- *================================================*/
 
 FORTRAN_API void FORT_CALL scr_start_output_(char* name FORT_MIXED_LEN(name_len), int* flags, int* ierror FORT_END_LEN(name_len))
 {
@@ -272,10 +255,10 @@ FORTRAN_API void FORT_CALL scr_start_output_(char* name FORT_MIXED_LEN(name_len)
   return;
 }
 
-FORTRAN_API void FORT_CALL scr_complete_output_(int* valid, int* ierror)
+FORTRAN_API void FORT_CALL scr_complete_output_(int* valid, int* allvalid, int* ierror)
 {
   int valid_tmp = *valid;
-  *ierror = SCR_Complete_output(valid_tmp);
+  *ierror = SCR_Complete_output(valid_tmp, allvalid);
   return;
 }
 
