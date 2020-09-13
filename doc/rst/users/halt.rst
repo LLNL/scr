@@ -59,7 +59,7 @@ For example, you can instruct a job to halt after "12:00pm today" via::
 
   scr_halt --after '12:00pm today'
 
-It is also possible to instruct a job to halt before* a specified time
+It is also possible to instruct a job to halt *before* a specified time
 using the :code:`--before` option.
 For example, you can instruct a job to halt before "8:30am tomorrow" via::
 
