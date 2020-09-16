@@ -1870,7 +1870,7 @@ int SCR_Init()
       );
     }
 
-    if (AXL_Config(axl_config) != AXL_SUCCESS) {
+    if (AXL_Config(axl_config) == NULL) {
       scr_abort(-1, "Failed to configure AXL @ %s:%d",
         __FILE__, __LINE__
       );
@@ -1901,7 +1901,7 @@ int SCR_Init()
       );
     }
 
-    if (ER_Config(er_config) != ER_SUCCESS)
+    if (ER_Config(er_config) == NULL)
     {
       scr_abort(-1, "Failed to configure ER @ %s:%d",
         __FILE__, __LINE__
