@@ -2812,7 +2812,7 @@ const char* SCR_Configf(const char* format, ...)
   va_end(args);
 
   /* delegate work to SCR_Config and get result */
-  char* ret = SCR_Config(str);
+  const char* ret = SCR_Config(str);
 
   /* free the temporary string */
   scr_free(&str);
