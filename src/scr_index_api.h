@@ -75,6 +75,10 @@ int scr_index_get_id_by_name(const kvtree* index, const char* name, int* id);
  * setting earlier_than = -1 disables this filter */
 int scr_index_get_most_recent_complete(const kvtree* index, int earlier_than, int* id, char* name);
 
+/* lookup the dataset having the lowest id, return its id and name,
+ * sets id to -1 to indicate no dataset is left */
+int scr_index_get_oldest(const kvtree* index, int* id, char* name);
+
 /* remove checkpoints from index that are later than given dataset id */
 int scr_index_remove_later(kvtree* index, int id);
 

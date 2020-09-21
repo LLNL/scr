@@ -322,6 +322,9 @@ The table in this section specifies the full set of SCR configuration parameters
        SCR deletes older checkpoints as new checkpoints are flushed to maintain a sliding window of the specified size.
        Set to 0 to keep all checkpoints.
        Checkpoints marked with :code:`SCR_FLAG_OUTPUT` are not deleted.
+   * - :code:`SCR_PREFIX_PURGE`
+     - 0
+     - Set to 1 to delete all datasets from the prefix directory (both checkpoint and output) during :code:`SCR_Init`.
    * - :code:`SCR_CURRENT`
      - N/A
      - Name of checkpoint to mark as current and attempt to fetch in a new run during :code:`SCR_Init`.

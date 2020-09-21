@@ -908,6 +908,14 @@ static int scr_get_params()
     scr_prefix_size = atoi(value);
   }
 
+  /* Some applications provide options so their users can wipe out all checkpoints
+   * and start over.  While one could call SCR_Delete for each of those in turn,
+   * we provide this option as a convenience.  If set, SCR will read the index file
+   * and delete *all* datasets, both checkpoint and output. */
+  if ((value = scr_param_get("SCR_PREFIX_PURGE")) != NULL) {
+    scr_prefix_purge = atoi(value);
+  }
+
   /* specify whether to use asynchronous flush */
   if ((value = scr_param_get("SCR_FLUSH_ASYNC")) != NULL) {
     scr_flush_async = atoi(value);
@@ -2053,6 +2061,12 @@ int SCR_Init()
   if (scr_purge) {
     /* clear the cache of all files */
     scr_cache_purge(scr_cindex);
+  }
+
+  /* delete all datasets listed in the index file if
+   * asked to purge the prefix directory */
+  if (scr_prefix_purge) {
+    scr_prefix_delete_all();
   }
 
   /* attempt to distribute files for a restart */
