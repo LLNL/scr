@@ -405,6 +405,77 @@ int scr_prefix_delete_sliding(int id, int window)
 
       /* delete this dataset from the prefix directory */
       scr_prefix_delete(target_id, target);
+
+      /* remove dataset from index hash */
+      if (scr_my_rank_world == 0) {
+        scr_index_remove(index_hash, target);
+      }
+    } else {
+      /* ran out of checkpoints to consider */
+      continue_deleting = 0;
+    }
+  }
+
+  /* delete the index hash */
+  if (scr_my_rank_world == 0) {
+    kvtree_delete(&index_hash);
+  }
+
+  /* hold everyone until delete is complete */
+  MPI_Barrier(scr_comm_world);
+
+  return SCR_SUCCESS;
+}
+
+/* delete all datasets listed in the index file,
+ * both checkpoint and output */
+int scr_prefix_delete_all(void)
+{
+  /* rank 0 reads the index file */
+  kvtree* index_hash = NULL;
+  int read_index_file = 0;
+  if (scr_my_rank_world == 0) {
+    /* create an empty hash to store our index */
+    index_hash = kvtree_new();
+
+    /* read the index file */
+    if (scr_index_read(scr_prefix_path, index_hash) == SCR_SUCCESS) {
+      read_index_file = 1;
+    }
+  }
+
+  /* don't enter while loop below if rank 0 failed to read index file */
+  int continue_deleting = 1;
+  MPI_Bcast(&read_index_file, 1, MPI_INT, 0, scr_comm_world);
+  if (! read_index_file) {
+    continue_deleting = 0;
+  }
+
+  /* iterate and delete each dataset in the prefix directory */
+  while (continue_deleting) {
+    /* rank 0 determines the directory to fetch from */
+    int target_id;
+    char target[SCR_MAX_FILENAME];
+    if (scr_my_rank_world == 0) {
+      /* get the oldest dataset id */
+      scr_index_get_oldest(index_hash, &target_id, target);
+    }
+
+    /* broadcast target id from rank 0 */
+    MPI_Bcast(&target_id, 1, MPI_INT, 0, scr_comm_world);
+
+    /* if we got an id, delete it, otherwise we're done */
+    if (target_id >= 0) {
+      /* get name from rank 0 */
+      scr_strn_bcast(target, sizeof(target), 0, scr_comm_world);
+
+      /* delete this dataset from the prefix directory */
+      scr_prefix_delete(target_id, target);
+
+      /* remove dataset from index hash */
+      if (scr_my_rank_world == 0) {
+        scr_index_remove(index_hash, target);
+      }
     } else {
       /* ran out of checkpoints to consider */
       continue_deleting = 0;

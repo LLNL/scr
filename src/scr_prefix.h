@@ -21,4 +21,8 @@ int scr_prefix_delete(int id, const char* name);
  * excludes checkpoints that are marked as output */
 int scr_prefix_delete_sliding(int id, int window);
 
+/* delete all datasets listed in the index file,
+ * both checkpoint and output */
+int scr_prefix_delete_all(void);
+
 #endif /* SCR_PREFIX_H */

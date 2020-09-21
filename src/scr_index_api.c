@@ -595,6 +595,53 @@ int scr_index_get_most_recent_complete(const kvtree* index, int earlier_than, in
   return SCR_FAILURE;
 }
 
+/* lookup the dataset having the lowest id, return its id and name,
+ * sets id to -1 to indicate no dataset is left */
+int scr_index_get_oldest(const kvtree* index, int* id, char* name)
+{
+  /* assume that we won't find a valid dataset */
+  *id = -1;
+
+  /* search for the checkpoint with the minimum dataset id */
+  int min_id = -1;
+  kvtree* dsets = kvtree_get(index, SCR_INDEX_1_KEY_DATASET);
+  kvtree_elem* dset = NULL;
+  for (dset = kvtree_elem_first(dsets);
+       dset != NULL;
+       dset = kvtree_elem_next(dset))
+  {
+    /* get the id for this dataset */
+    char* key = kvtree_elem_key(dset);
+    if (key == NULL) {
+      continue;
+    }
+    int current_id = atoi(key);
+
+    /* if the current id is more recent than the oldest we've found so far,
+     * skip it */
+    if (min_id != -1 && current_id > min_id) {
+      continue;
+    }
+
+    /* get dataset info */
+    kvtree* dset_hash = kvtree_elem_hash(dset);
+    kvtree* dataset_hash = kvtree_get(dset_hash, SCR_INDEX_1_KEY_DATASET);
+
+    /* get the name of the dataset */
+    char* current_name;
+    scr_dataset_get_name(dataset_hash, &current_name);
+
+    /* if we found one, copy the dataset id and name, and update our max */
+    *id = current_id;
+    strcpy(name, current_name);
+
+    /* update our min */
+    min_id = current_id;
+  }
+
+  return SCR_FAILURE;
+}
+
 int scr_index_remove_later(kvtree* index, int target_id)
 {
   int rc = SCR_SUCCESS;
