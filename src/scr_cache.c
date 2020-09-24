@@ -492,17 +492,16 @@ int scr_cache_purge(scr_cache_index* cindex)
     }
   } while (current_id != -1);
 
-  /* now delete the cache index itself */
+  /* free our list of dataset ids */
+  scr_free(&dsets);
+
+  /* delete the cache index file itself */
   char* file = spath_strdup(scr_cindex_file);
   scr_file_unlink(file);
   scr_free(&file);
 
-  /* TODO: want to clear the map object here? */
-
-  /* TODO: want to delete the cache index file? */
-
-  /* free our list of dataset ids */
-  scr_free(&dsets);
+  /* clear the cache index object */
+  scr_cache_index_clear(cindex);
 
   return 1;
 }
