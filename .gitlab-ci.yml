@@ -106,8 +106,7 @@ spack-scr-catalyst:
     - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
     - echo "Working dir " `pwd`
     - rm -rf spack
-#    - git clone -b robertkb-fix-scr-dependencies https://github.com/robertkb/spack.git
-    - git clone https://github.com/spack/spack.git
+    - git clone --depth 1 https://github.com/spack/spack.git
     - cd spack
     - . share/spack/setup-env.sh
     - spack compiler find --scope site
@@ -214,7 +213,7 @@ spack-scr-quartz:
     - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
     - echo "Working dir " `pwd`
     - rm -rf spack
-    - git clone https://github.com/spack/spack.git
+    - git clone --depth 1 https://github.com/spack/spack.git
     - cd spack
     - . share/spack/setup-env.sh
     - spack compiler find --scope site
@@ -347,7 +346,7 @@ spack-scr-lassen:
     - echo "BUILD_DIR_BASE is $BUILD_DIR_BASE"
     - echo "Working dir " `pwd`
     - rm -rf spack
-    - git clone https://github.com/spack/spack.git
+    - git clone --depth 1 https://github.com/spack/spack.git
     - cd spack
     - . share/spack/setup-env.sh
     - spack compiler find --scope site
