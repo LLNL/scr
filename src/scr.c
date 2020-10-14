@@ -1810,18 +1810,6 @@ int SCR_Init()
     kvtree* axl_config = kvtree_new();
     assert(axl_config);
 
-    if (kvtree_util_set_double(axl_config, AXL_KEY_CONFIG_FLUSH_ASYNC_BW,
-                               scr_flush_async_bw) != KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
-        AXL_KEY_CONFIG_FLUSH_ASYNC_BW, __FILE__, __LINE__
-      );
-    }
-    if (kvtree_util_set_double(axl_config, AXL_KEY_CONFIG_FLUSH_ASYNC_PERCENT,
-                            scr_flush_async_percent) != KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
-        AXL_KEY_CONFIG_FLUSH_ASYNC_PERCENT, __FILE__, __LINE__
-      );
-    }
     if (kvtree_util_set_bytecount(axl_config, AXL_KEY_CONFIG_FILE_BUF_SIZE,
                                   scr_file_buf_size) != KVTREE_SUCCESS) {
       scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
@@ -1838,12 +1826,6 @@ int SCR_Init()
                             scr_debug) != KVTREE_SUCCESS) {
       scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
         AXL_KEY_CONFIG_MKDIR, __FILE__, __LINE__
-      );
-    }
-    if (kvtree_util_set_int(axl_config, AXL_KEY_CONFIG_CRC_ON_FLUSH,
-                            scr_crc_on_flush) != KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
-        AXL_KEY_CONFIG_CRC_ON_FLUSH, __FILE__, __LINE__
       );
     }
     if (kvtree_util_set_int(axl_config, AXL_KEY_CONFIG_COPY_METADATA,
