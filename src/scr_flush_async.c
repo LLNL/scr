@@ -334,11 +334,11 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   /* TODO: configure AXL to not create directories */
 
   /* create directories */
-  scr_flush_create_dirs(scr_prefix, numfiles, dst_filelist, scr_comm_world);
+  scr_flush_create_dirs(scr_prefix, numfiles, (const char**) dst_filelist, scr_comm_world);
 
   /* start writing files via AXL */
   int rc = SCR_SUCCESS;
-  if (scr_axl_start(dset_name, numfiles, src_filelist, dst_filelist,
+  if (scr_axl_start(dset_name, numfiles, (const char**) src_filelist, (const char**) dst_filelist,
     xfer_type, scr_comm_world) != SCR_SUCCESS)
   {
     /* failed to initiate AXL transfer */

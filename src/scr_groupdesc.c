@@ -77,7 +77,6 @@ static int scr_groupdesc_create_by_str(
   d->name    = strdup(key);
 
   /* get communicator of all tasks with same value */
-  int groups, groupid;
   rankstr_mpi_comm_split(comm, value, 0, 0, 1, &d->comm);
 
   /* find our position in the group communicator */

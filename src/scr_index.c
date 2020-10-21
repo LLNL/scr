@@ -1191,8 +1191,6 @@ int scr_scan_filemap(const spath* path_prefix, const spath* path_filemap, int ds
     //kvtree_setf(list_hash, NULL, "%s %s %s", SCR_SCAN_KEY_MAP, cache_file_name, full_filename);
     kvtree* rank2file_hash = kvtree_get(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
     kvtree_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, meta_ranks);
-    kvtree* rank_hash = kvtree_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
-    kvtree* file_hash = kvtree_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, relative_filename);
     //kvtree_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, meta_filesize);
 
     uLong meta_crc;
@@ -1674,7 +1672,7 @@ int scr_summary_build(const spath* prefix, const spath* dir, int id)
 
   if (scr_summary_read(dir, summary) != SCR_SUCCESS) {
     /* now only return success if we successfully write the file */
-    int rc = SCR_FAILURE;
+    rc = SCR_FAILURE;
 
     /* create a new hash to store our scan results */
     kvtree* scan = kvtree_new();
@@ -1729,6 +1727,9 @@ int scr_summary_build(const spath* prefix, const spath* dir, int id)
 
         /* write the summary file out */
         rc = scr_summary_write(prefix, dir, dset_hash);
+        if (rc != SCR_SUCCESS) {
+          break;
+        }
       }
     }
 
@@ -2400,7 +2401,7 @@ int main(int argc, char *argv[])
   int id = args.id;
 
   /* these options all require a prefix directory */
-  if (args.build == 1 | args.add == 1 || args.drop == 1 || args.drop_after == 1 || args.current == 1 || args.list == 1) {
+  if (args.build == 1 || args.add == 1 || args.drop == 1 || args.drop_after == 1 || args.current == 1 || args.list == 1) {
     if (spath_is_null(prefix)) {
       print_usage();
       return 1;

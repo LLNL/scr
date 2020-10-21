@@ -12,6 +12,7 @@
 #include "mpi.h"
 #include "scr.h"
 #include "test_common.h"
+#include "scr_util.h"
 
 #include <time.h>
 #include <sys/time.h>
@@ -107,7 +108,7 @@ int main (int argc, char* argv[])
     int valid = 1;
     for (i=0; i < num_files; i++) {
       char origpath[1024];
-      sprintf(origpath, "%s/%s", ckptname, files[i]);
+      safe_snprintf(origpath, sizeof(origpath), "%s/%s", ckptname, files[i]);
 
       char file[SCR_MAX_FILENAME];
       scr_retval = SCR_Route_file(origpath, file);
@@ -202,7 +203,7 @@ int main (int argc, char* argv[])
 
       // define path to checkpoint file
       char origpath[1024];
-      sprintf(origpath, "%s/%s", ckptname, files[i]);
+      safe_snprintf(origpath, sizeof(origpath), "%s/%s", ckptname, files[i]);
 
       // register file with SCR
       char file[2094];
@@ -269,7 +270,7 @@ int main (int argc, char* argv[])
 
         // define path to checkpoint file
         char origpath[1024];
-        sprintf(origpath, "%s/%s", ckptname, files[i]);
+        safe_snprintf(origpath, sizeof(origpath), "%s/%s", ckptname, files[i]);
 
         // register file with SCR
         char file[2094];

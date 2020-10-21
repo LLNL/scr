@@ -25,6 +25,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifdef SCR_GLOBALS_H
 #error "globals.h accessed from tools"
@@ -194,7 +195,7 @@ int build_map_data(
   return rc;
 }
 
-int rebuild(const spath* path_prefix, int build_data, int numfiles, char** files)
+int rebuild(const spath* path_prefix, int build_data, int numfiles, const char** files)
 {
   int rc = 0;
 
@@ -256,9 +257,9 @@ int main(int argc, char* argv[])
   /* rebuild filemaps if given map command */
   int rc = 1;
   if (strcmp(argv[index++], "map") == 0) {
-    rc = rebuild(path_prefix, 0, argc - index, &argv[index]);
+    rc = rebuild(path_prefix, 0, argc - index, (const char **) &argv[index]);
   } else {
-    rc = rebuild(path_prefix, 1, argc - index, &argv[index]);
+    rc = rebuild(path_prefix, 1, argc - index, (const char **) &argv[index]);
   }
 
   spath_delete(&path_prefix);

@@ -246,6 +246,7 @@ static int scr_bool_have_file(
   return valid;
 }
 
+#if 0
 static int scr_bool_have_files(scr_filemap* map)
 {
   int have_files = 1;
@@ -265,6 +266,7 @@ static int scr_bool_have_files(scr_filemap* map)
 
   return have_files;
 }
+#endif
 
 static int copy_files_for_filemap(
   const spath* path_prefix,
@@ -505,7 +507,6 @@ int main (int argc, char *argv[])
     printf("scr_copy: %s: Return code: 1\n", hostname);
     return 1;
   }
-  int first_non_option = optind;
 
 #if 0
   /* read cindex file to get metadata for dataset */
@@ -570,7 +571,7 @@ int main (int argc, char *argv[])
   if (d != NULL) {
     errno = 0;
     struct dirent* de;
-    while (de = readdir(d)) {
+    while ((de = readdir(d))) {
       /* get pointer to name of entry */
       const char* entryname = de->d_name;
 

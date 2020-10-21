@@ -145,14 +145,14 @@ int main (int argc, char *argv[])
   gettimeofday(&tv, NULL);
   int now = tv.tv_sec;
 
-  const char* value = NULL;
+  char* value = NULL;
 
   /* initialize our halt seconds */
   int halt_seconds = 0;
 
   /* adjust our halt seconds based on what we find in the parameters */
   scr_param_init();
-  if ((value = scr_param_get("SCR_HALT_SECONDS")) != NULL) {
+  if ((value = (char*) scr_param_get("SCR_HALT_SECONDS")) != NULL) {
     halt_seconds = atoi(value);
   }
   scr_param_finalize();

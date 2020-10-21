@@ -104,7 +104,7 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
   int success = 1;
   if (! scr_alltrue(skip_transfer, scr_comm_world)) {
     /* create directories */
-    scr_flush_create_dirs(scr_prefix, numfiles, dst_filelist, scr_comm_world);
+    scr_flush_create_dirs(scr_prefix, numfiles, (const char**) dst_filelist, scr_comm_world);
 
     /* TODO: gather list of files to leader of store descriptor,
      * use communicator of leaders for AXL, then bcast result back */
@@ -116,7 +116,7 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
     /* TODO: configure AXL to not create directories */
 
     /* write files (via AXL) */
-    if (scr_axl(dset_name, numfiles, src_filelist, dst_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
+    if (scr_axl(dset_name, numfiles, (const char**) src_filelist, (const char **) dst_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
       success = 0;
     }
   } else {

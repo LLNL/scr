@@ -41,8 +41,6 @@ Distribute and file rebuild functions
 /* broadcast dataset hash from smallest rank we can find that has a copy */
 static int scr_distribute_datasets(scr_cache_index* cindex, int id)
 {
-  int i;
-
   /* attempt to read dataset from our index */
   int source_rank = scr_ranks_world;
   scr_dataset* dataset = scr_dataset_new();
@@ -99,8 +97,6 @@ static int scr_distribute_datasets(scr_cache_index* cindex, int id)
 /* broadcast dir from smallest rank and lookup store descriptor we can find that has a copy */
 static int scr_distribute_dir(scr_cache_index* cindex, int id, char** hidden_dir)
 {
-  int i;
-
   /* initialize output path to NULL */
   *hidden_dir = NULL;
 
