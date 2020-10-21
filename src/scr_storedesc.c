@@ -183,7 +183,7 @@ static int scr_storedesc_create_from_hash(
   kvtree_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &tmp_type);
 
   /* Translate between older TYPE values into the new AXL format */
-  tmp_type = legacy_store_type_to_store_type(tmp_type);
+  tmp_type = (char*) legacy_store_type_to_store_type(tmp_type);
   if (tmp_type) {
     s->type = strdup(tmp_type);
   } else {

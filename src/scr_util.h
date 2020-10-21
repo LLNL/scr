@@ -37,6 +37,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 #include "spath.h"
 #include "kvtree.h"
@@ -81,5 +82,7 @@ int kvtree_write_path(const spath* path, const kvtree* tree);
 /* given a string defining SCR_PREFIX value as given by user
  * return spath of fully qualified path, user should free */
 spath* scr_get_prefix(const char* prefix);
+
+int safe_snprintf(char* buf, size_t size, const char* fmt, ...);
 
 #endif

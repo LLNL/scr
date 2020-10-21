@@ -15,6 +15,7 @@
 #include "mpi.h"
 
 #include "scr.h"
+#include "scr_util.h"
 #include "test_common.h"
 
 #include <time.h>
@@ -64,7 +65,9 @@ static unsigned long long exa   = 1152921504606846976ULL;
  *
  * Returns converted value in val parameter.  This
  * parameter is only updated if successful. */
+#ifndef SCR_FAILURE
 #define SCR_FAILURE (!SCR_SUCCESS)
+#endif
 int test_abtoull(char* str, unsigned long long* val)
 {
   /* check that we have a string */
@@ -253,7 +256,7 @@ double getbw(char* name, char* buf, size_t size, int times)
 
       /* get the file name to write our checkpoint file to */
       char newname[SCR_MAX_FILENAME];
-      sprintf(newname, "%s/%s", label, name);
+      safe_snprintf(newname, sizeof(newname), "%s/%s", label, name);
       if (use_scr) {
         scr_retval = SCR_Route_file(newname, file);
         if (scr_retval != SCR_SUCCESS) {
@@ -536,7 +539,7 @@ int main (int argc, char* argv[])
 
         /* include checkpoint directory path in name */
         char newname[SCR_MAX_FILENAME];
-        sprintf(newname, "%s/%s", dset, name);
+        safe_snprintf(newname, sizeof(newname), "%s/%s", dset, name);
 
         /* get our file name */
         char file[SCR_MAX_FILENAME];

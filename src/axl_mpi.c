@@ -27,23 +27,6 @@ static int axl_alltrue(int valid, MPI_Comm comm)
     return all_valid;
 }
 
-/* allocate size bytes, returns NULL if size == 0,
- * calls er_abort if allocation fails */
-static void* axl_malloc(size_t size, const char* file, int line)
-{
-    void* ptr = NULL;
-    if (size > 0) {
-        ptr = malloc(size);
-        if (ptr == NULL) {
-            scr_abort(-1, "Failed to allocate %llu bytes @ %s:%d",
-                (unsigned long long) size, file, line
-            );
-        }
-    }
-    return ptr;
-}
-#define AXL_MALLOC(X) axl_malloc(X, __FILE__, __LINE__);
-
 /* caller really passes in a void**, but we define it as just void* to avoid printing
  * a bunch of warnings */
 void axl_free2(void* p) {
@@ -58,94 +41,6 @@ void axl_free2(void* p) {
         /* set caller's pointer to NULL */
         *(void**)p = NULL;
     }
-}
-
-/* build list of directories needed for file list (one per file) */
-static int axl_create_dirs(int count, const char** filelist, MPI_Comm comm)
-{
-    /* TODO: need to list dirs in order from parent to child */
-
-    /* allocate buffers to hold the directory needed for each file */
-    int* leader           = (int*)         AXL_MALLOC(sizeof(int)         * count);
-    const char** dirs     = (const char**) AXL_MALLOC(sizeof(const char*) * count);
-    uint64_t* group_id    = (uint64_t*)    AXL_MALLOC(sizeof(uint64_t)    * count);
-    uint64_t* group_ranks = (uint64_t*)    AXL_MALLOC(sizeof(uint64_t)    * count);
-    uint64_t* group_rank  = (uint64_t*)    AXL_MALLOC(sizeof(uint64_t)    * count);
-
-    /* lookup directory from meta data for each file */
-    int i;
-    for (i = 0; i < count; i++) {
-        /* extract directory from filename */
-        const char* filename = filelist[i];
-        char* path = strdup(filename);
-        dirs[i] = strdup(dirname(path));
-        axl_free2(&path);
-
-        /* lookup original path where application wants file to go */
-#ifdef HAVE_LIBDTCMP
-        /* we'll use DTCMP to select one leader for each directory later */
-        leader[i] = 0;
-#else
-        /* if we don't have DTCMP,
-         * then we'll just issue a mkdir for each file, lots of extra
-         * load on the file system, but this works */
-        leader[i] = 1;
-#endif
-    }
-
-#ifdef HAVE_LIBDTCMP
-    /* with DTCMP we identify a single process to create each directory */
-
-    /* identify the set of unique directories */
-    uint64_t groups;
-    DTCMP_Rankv_strings(
-        count, dirs, &groups, group_id, group_ranks, group_rank,
-        DTCMP_FLAG_NONE, comm
-    );
-
-    /* select leader for each directory */
-    for (i = 0; i < count; i++) {
-        if (group_rank[i] == 0) {
-            leader[i] = 1;
-        }
-    }
-#endif /* HAVE_LIBDTCMP */
-
-    /* get file mode for directory permissions */
-    mode_t mode_dir = axl_getmode(1, 1, 1);
-
-    /* TODO: add flow control here */
-
-    /* create other directories in file list */
-    int success = 1;
-    for (i = 0; i < count; i++) {
-        /* get dirname */
-        const char* dir = dirs[i];
-
-        /* if we're the leader, create directory */
-        if (leader[i]) {
-            if (axl_mkdir(dir, mode_dir) != AXL_SUCCESS) {
-                success = 0;
-            }
-        }
-
-        /* free the dirname we strdup'd */
-        axl_free2(&dir);
-    }
-
-    /* free buffers */
-    axl_free2(&group_id);
-    axl_free2(&group_ranks);
-    axl_free2(&group_rank);
-    axl_free2(&dirs);
-    axl_free2(&leader);
-
-    /* determine whether all leaders successfully created their directories */
-    if (! axl_alltrue(success == 1, comm)) {
-        return AXL_FAILURE;
-    }
-
-    return AXL_SUCCESS;
 }
 
 int AXL_Init_comm (

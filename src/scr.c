@@ -724,14 +724,14 @@ static int scr_get_params()
 
   /* fill in a hash of group descriptors */
   scr_groupdesc_hash = kvtree_new();
-  tmp = scr_param_get_hash(SCR_CONFIG_KEY_GROUPDESC);
+  tmp = (kvtree*) scr_param_get_hash(SCR_CONFIG_KEY_GROUPDESC);
   if (tmp != NULL) {
     kvtree_set(scr_groupdesc_hash, SCR_CONFIG_KEY_GROUPDESC, tmp);
   }
 
   /* fill in a hash of store descriptors */
   scr_storedesc_hash = kvtree_new();
-  tmp = scr_param_get_hash(SCR_CONFIG_KEY_STOREDESC);
+  tmp = (kvtree*) scr_param_get_hash(SCR_CONFIG_KEY_STOREDESC);
   if (tmp != NULL) {
     kvtree_set(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, tmp);
   } else {
@@ -810,7 +810,7 @@ static int scr_get_params()
     kvtree_util_set_int(tmp, SCR_CONFIG_KEY_SET_FAILURES, scr_set_failures);
   } else {
     /* read info from our configuration files */
-    tmp = scr_param_get_hash(SCR_CONFIG_KEY_CKPTDESC);
+    tmp = (kvtree*) scr_param_get_hash(SCR_CONFIG_KEY_CKPTDESC);
     if (tmp != NULL) {
       kvtree_set(scr_reddesc_hash, SCR_CONFIG_KEY_CKPTDESC, tmp);
     } else {
@@ -1347,7 +1347,7 @@ static int scr_assign_ownership(scr_filemap* map, int bypass)
   /* identify the set of unique files across all ranks */
   uint64_t groups;
   int dtcmp_rc = DTCMP_Rankv_strings(
-    count, filelist, &groups, group_id, group_ranks, group_rank,
+    count, (const char **) filelist, &groups, group_id, group_ranks, group_rank,
     DTCMP_FLAG_NONE, scr_comm_world
   );
   if (dtcmp_rc != DTCMP_SUCCESS) {
@@ -2723,7 +2723,7 @@ const char* SCR_Configf(const char* format, ...)
   va_end(args);
 
   /* delegate work to SCR_Config and get result */
-  char* ret = SCR_Config(str);
+  const char* ret = SCR_Config(str);
 
   /* free the temporary string */
   scr_free(&str);
@@ -3397,7 +3397,7 @@ int SCR_Complete_restart(int valid)
     if (!found_checkpoint && scr_fetch) {
       /* sets scr_dataset_id and scr_checkpoint_id upon success */
       int fetch_attempted = 0;
-      int fetch_rc = scr_fetch_latest(scr_cindex, &fetch_attempted);
+      scr_fetch_latest(scr_cindex, &fetch_attempted);
     }
 
     /* set flag depending on whether checkpoint_id is greater than 0,

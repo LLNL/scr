@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "mpi.h"
+#include "scr_util.h"
 
 #include <time.h>
 #include <sys/time.h>
@@ -62,8 +63,8 @@ int main (int argc, char* argv[])
   // prime the file
   for(i=0; i < 1; i++) {
     id++;
-    sprintf(dir,    "%s/checkpoint_set_%d", prefix, id);
-    sprintf(file,   "%s/rank_%d.ckpt", dir, rank);
+    safe_snprintf(dir, sizeof(dir), "%s/checkpoint_set_%d", prefix, id);
+    safe_snprintf(file, sizeof(file), "%s/rank_%d.ckpt", dir, rank);
     if (rank == 0) {
       mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR);
     }
@@ -81,8 +82,8 @@ printf("File: %s\n", file);
   gettimeofday (tv0, NULL);
   for(i=0; i < times; i++) {
     id++;
-    sprintf(dir,    "%s/checkpoint_set_%d", prefix, id);
-    sprintf(file,   "%s/rank_%d.ckpt", dir, rank);
+    safe_snprintf(dir, sizeof(dir), "%s/checkpoint_set_%d", prefix, id);
+    safe_snprintf(file, sizeof(file), "%s/rank_%d.ckpt", dir, rank);
     if (rank == 0) {
       mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR);
     }

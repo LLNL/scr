@@ -11,6 +11,7 @@
 
 #include "mpi.h"
 #include "test_common.h"
+#include "scr_util.h"
 
 #include <time.h>
 #include <sys/time.h>
@@ -98,7 +99,7 @@ int main (int argc, char* argv[])
       exit(1);
     }
 
-    sprintf(name, "%srank_%d.%d.ckpt", prefix, rank, i);
+    safe_snprintf(name, sizeof(name), "%srank_%d.%d.ckpt", prefix, rank, i);
     files[i] = strdup(name);
     filesizes[i] = filesize + rank + 2*i;
     bufs[i] = (char*) malloc(filesizes[i]);
@@ -158,18 +159,16 @@ int main (int argc, char* argv[])
   // prime system once before timing
   int t;
   for(t=0; t < 1; t++) {
-    int rc;
   for (i=0; i < num_files; i++) {
     char* file = files[i];
     int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd_me > 0) {
       // write the checkpoint
-      rc = write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
+      write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
 
-      rc = fsync(fd_me);
+      fsync(fd_me);
 
-      // make sure the close is without error
-      rc = close(fd_me);
+      close(fd_me);
     }
   }
     if (rank == 0) { printf("Completed checkpoint %d.\n", timestep); fflush(stdout); }
@@ -182,7 +181,6 @@ int main (int argc, char* argv[])
   int count = 0;
   double time_start = MPI_Wtime();
   for(t=0; t < times; t++) {
-    int rc;
   for (i=0; i < num_files; i++) {
     char* file = files[i];
     int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
@@ -190,12 +188,11 @@ int main (int argc, char* argv[])
       count++;
 
       // write the checkpoint
-      rc = write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
+      write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
 
-      rc = fsync(fd_me);
+      fsync(fd_me);
 
-      // make sure the close is without error
-      rc = close(fd_me);
+      close(fd_me);
     }
   }
     if (rank == 0) { printf("Completed checkpoint %d.\n", timestep); fflush(stdout); }

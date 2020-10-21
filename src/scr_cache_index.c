@@ -82,7 +82,7 @@ static int scr_cache_index_unset_if_empty(scr_cache_index* cindex, int dset)
  * we ignore that request in later runs and use this marker to remember */
 int scr_cache_index_set_current(const kvtree* h, const char* current)
 {
-  kvtree_util_set_str(h, SCR_CINDEX_KEY_CURRENT, current);
+  kvtree_util_set_str((kvtree*) h, SCR_CINDEX_KEY_CURRENT, current);
   return SCR_SUCCESS;
 }
 

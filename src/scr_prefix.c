@@ -55,7 +55,7 @@ static int scr_prefix_rmscan(const char* dirname)
   if (dirp != NULL) {
     /* opened the directory, now scan over each item */
     struct dirent* de;
-    while (de = readdir(dirp)) {
+    while ((de = readdir(dirp))) {
       /* get name of the current item */
       char* name = de->d_name;
 
@@ -119,7 +119,6 @@ static int scr_prefix_delete_data(int id)
 
   /* allocate list of file names */
   kvtree* files = kvtree_get(filelist, "FILE");
-  int num_files = kvtree_size(files);
 
   /* delete files and count up number of directories */
   int num_dirs = 0;
@@ -238,7 +237,7 @@ static int scr_prefix_delete_data(int id)
     uint64_t* group_ranks = (uint64_t*) SCR_MALLOC(sizeof(uint64_t) * num_dirs);
     uint64_t* group_rank  = (uint64_t*) SCR_MALLOC(sizeof(uint64_t) * num_dirs);
     int dtcmp_rc = DTCMP_Rankv_strings(
-      num_dirs, dirs, &groups, group_id, group_ranks, group_rank,
+      num_dirs, (const char**) dirs, &groups, group_id, group_ranks, group_rank,
       DTCMP_FLAG_NONE, scr_comm_world
     );
     if (dtcmp_rc != DTCMP_SUCCESS) {

@@ -25,6 +25,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifdef SCR_GLOBALS_H
 #error "globals.h accessed from tools"
@@ -201,7 +202,7 @@ int rebuild(const spath* path_prefix, int build_data, int numfiles, char** files
   /* get list of global rank ids in set */
   int set_size = 0;
   int* global_ranks = NULL;
-  redset_filelist list = redset_filelist_get_data_partner(numfiles, files, &set_size, &global_ranks);
+  redset_filelist list = redset_filelist_get_data_partner(numfiles, (const char**) files, &set_size, &global_ranks);
   if (list == NULL) {
     /* failed to get the file list for some reason */
     return 1;
@@ -219,7 +220,7 @@ int rebuild(const spath* path_prefix, int build_data, int numfiles, char** files
   }
   char* prefix = spath_strdup(file_prefix);
 
-  if (redset_rebuild_partner(numfiles, files, prefix, map) != REDSET_SUCCESS) {
+  if (redset_rebuild_partner(numfiles, (const char**) files, prefix, map) != REDSET_SUCCESS) {
     /* rebuild failed */
     rc = 1;
   }
