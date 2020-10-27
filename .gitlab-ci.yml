@@ -74,6 +74,8 @@ buildjob-catalyst:
 
 testserial-catalyst:
   stage: test
+  needs:
+    - buildjob-catalyst
   when: manual
   tags:
     - catalyst
@@ -100,6 +102,8 @@ testserial-catalyst:
 testparallel-catalyst:
   stage: test
   when: manual
+  needs:
+    - buildjob-catalyst
   tags:
     - catalyst
     - batch
@@ -121,8 +125,9 @@ testparallel-catalyst:
     - cd build
     - ctest --verbose -T Test -R parallel*
     - pwd
-    - mkdir -p Testing/Tests
-    - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
+    - export RESULTSDIR="Testing/Tests-${CI_JOB_ID}"
+    - mkdir -p ${RESULTSDIR}
+    - cp `grep -rl '.xml$' Testing/*` Testing/*/* ${RESULTSDIR}
 
 spack-scr-catalyst:
   stage: build
@@ -153,7 +158,67 @@ spack-scr-catalyst:
     - export MPIF77=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif77
     - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
     - make
-    
+
+testpython-catalyst:
+  stage: test
+  when: manual
+  needs:
+    - spack-scr-catalyst
+  tags:
+    - catalyst
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pbatch'
+  dependencies:
+    - spack-scr-catalyst
+  script:
+    - echo "Running in" `pwd`
+    - uname -a
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "WORK_DIR_BASE is $WORK_DIR_BASE"
+    - cd ${WORK_DIR_BASE}/catalyst/spack
+    - pwd
+    - export TESTNAME="TEST"
+    - . share/spack/setup-env.sh
+    - spack stage scr@develop
+    - spack cd scr@develop
+    - pwd
+    - export SCR_PKG=`pwd`
+    - spack cd -i scr
+    - export SCR_INSTALL=`pwd`
+    - cp $SCR_PKG/testing/$TESTNAME $SCR_INSTALL/bin/$TESTNAME
+    - cd $SCR_INSTALL/bin
+    - export SCR_LAUNCH_DIR=`pwd`
+    - echo "SCR_LAUNCH_DIR is $SCR_LAUNCH_DIR"
+    - jobID=$(srun --export=ALL -ppbatch -n4 -N4 -t5 -J SCR-TESTS -o ${TESTNAME}.out $TESTNAME| tr -dc [:digit:])
+    - echo $jobID
+    - jobStatus=$(checkjob ${jobID} | grep State | awk '{print $2}')
+    - count=1
+    - while [ "$jobStatus" != "Completed" ]; do
+        jobStatus=$(checkjob ${jobID} | grep State | awk '{print $2}')
+        if ([ "$jobStatus" = "Idle" ] || [ "$jobStatus" = "Resources" ]) && [ $((count % 60)) -eq 0 ]; then
+          echo "Job $jobID waiting for resources"
+          count=1
+        fi
+        ((count++))
+        sleep 1
+      done
+    - checkjob ${jobID}
+    - if [ -e ${TESTNAME}.out ]; then
+        cat ${TESTNAME}.out
+      else
+        echo "File ${TESTNAME}.out does not exist"
+        exit 1
+      fi
+    - result=$(cat ${TESTNAME}.out | tail -n5 | grep -o PASSED)
+    - rm -rf .scr/ ckpt.*
+    - if [ "$result" != "PASSED" ]; then
+        exit 1
+      fi
+
 buildjob-quartz:
   stage: build
   when: manual
@@ -196,6 +261,8 @@ buildjob-quartz:
 testserial-quartz:
   stage: test
   when: manual
+  needs:
+    - buildjob-quartz
   tags:
     - quartz
     - batch
@@ -221,6 +288,8 @@ testserial-quartz:
 testparallel-quartz:
   stage: test
   when: manual
+  needs:
+    - buildjob-quartz
   tags:
     - quartz
     - batch
@@ -243,8 +312,9 @@ testparallel-quartz:
     - cd build
     - ctest --verbose -T Test -R parallel*
     - pwd
-    - mkdir -p Testing/Tests
-    - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
+    - export RESULTSDIR="Testing/Tests-${CI_JOB_ID}"
+    - mkdir -p ${RESULTSDIR}
+    - cp `grep -rl '.xml$' Testing/*` Testing/*/* ${RESULTSDIR}
 
 spack-scr-quartz:
   stage: build
@@ -275,7 +345,66 @@ spack-scr-quartz:
     - export MPIF77=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif77
     - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
     - make
-        
+    
+testpython-quartz:
+  stage: test
+  when: manual
+  needs:
+    - spack-scr-quartz
+  tags:
+    - quartz
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pbatch'
+  dependencies:
+    - spack-scr-quartz
+  script:
+    - echo "Running in" `pwd`
+    - uname -a
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "WORK_DIR_BASE is $WORK_DIR_BASE"
+    - pwd
+    - cd ${WORK_DIR_BASE}/quartz/spack
+    - export TESTNAME="TEST"
+    - . share/spack/setup-env.sh
+    - spack stage scr@develop
+    - spack cd scr@develop
+    - export SCR_PKG=`pwd`
+    - spack cd -i scr
+    - export SCR_INSTALL=`pwd`
+    - cp $SCR_PKG/testing/$TESTNAME $SCR_INSTALL/bin/$TESTNAME
+    - cd $SCR_INSTALL/bin
+    - export SCR_LAUNCH_DIR=`pwd`
+    - echo "SCR_LAUNCH_DIR is $SCR_LAUNCH_DIR"
+    - jobID=$(srun --export=ALL -ppbatch -n4 -N4 -t5 -J SCR-TESTS -o ${TESTNAME}.out $TESTNAME| tr -dc [:digit:])
+    - echo $jobID
+    - jobStatus=$(checkjob ${jobID} | grep State | awk '{print $2}')
+    - count=1
+    - while [ "$jobStatus" != "Completed" ]; do
+        jobStatus=$(checkjob ${jobID} | grep State | awk '{print $2}')
+        if ([ "$jobStatus" = "Idle" ] || [ "$jobStatus" = "Resources" ]) && [ $((count % 60)) -eq 0 ]; then
+          echo "Job $jobID waiting for resources"
+          count=1
+        fi
+        ((count++))
+        sleep 1
+      done
+    - checkjob ${jobID}
+    - if [ -e ${TESTNAME}.out ]; then
+        cat ${TESTNAME}.out
+      else
+        echo "File ${TESTNAME}.out does not exist"
+        exit 1
+      fi
+    - result=$(cat ${TESTNAME}.out | tail -n5 | grep -o PASSED)
+    - rm -rf .scr/ ckpt.*
+    - if [ "$result" != "PASSED" ]; then
+        exit 1
+      fi
+    
 buildjob-lassen:
   stage: build
   when: manual
@@ -322,6 +451,8 @@ buildjob-lassen:
 testserial-lassen:
   stage: test
   when: manual
+  needs:
+    - buildjob-lassen
   tags:
     - lassen
     - batch
@@ -347,6 +478,8 @@ testserial-lassen:
 testparallel-lassen:
   stage: test
   when: manual
+  needs:
+    - buildjob-lassen
   tags:
     - lassen
     - batch
@@ -368,8 +501,9 @@ testparallel-lassen:
     - cd build
     - ctest --verbose -T Test -R parallel*
     - pwd
-    - mkdir -p Testing/Tests
-    - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
+    - export RESULTSDIR="Testing/Tests-${CI_JOB_ID}"
+    - mkdir -p ${RESULTSDIR}
+    - cp `grep -rl '.xml$' Testing/*` Testing/*/* ${RESULTSDIR}
 
 spack-scr-lassen:
   stage: build
@@ -427,3 +561,62 @@ spack-scr-lassen:
     - export F90FLAGS="-qextname"
     - make
   
+testpython-lassen:
+  stage: test
+  when: manual
+  needs:
+    - spack-scr-lassen
+  tags:
+    - lassen
+    - batch
+    - lsf
+  variables:
+    LLNL_LSF_SCHEDULER_PARAMETERS: '-nnodes 4 -W 10 /bin/bash'
+  dependencies:
+    - spack-scr-lassen
+  script:
+    - echo "Running in" `pwd`
+    - uname -a
+    - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
+    - echo "CI_PIPELINE_ID is $CI_PIPELINE_ID"
+    - echo "CI_PIPELINE_IID is $CI_PIPELINE_IID"
+    - echo "WORK_DIR_BASE is $WORK_DIR_BASE"
+    - pwd
+    - cd ${WORK_DIR_BASE}/quartz/spack
+    - export TESTNAME="TEST"
+    - . share/spack/setup-env.sh
+    - spack stage scr@develop
+    - spack cd scr@develop
+    - export SCR_PKG=`pwd`
+    - spack cd -i scr
+    - export SCR_INSTALL=`pwd`
+    - cp $SCR_PKG/testing/$TESTNAME $SCR_INSTALL/bin/$TESTNAME
+    - cd $SCR_INSTALL/bin
+    - export SCR_LAUNCH_DIR=`pwd`
+    - echo "SCR_LAUNCH_DIR is $SCR_LAUNCH_DIR"
+    - jobID=$(srun --export=ALL -ppbatch -n4 -N4 -t5 -J SCR-TESTS -o ${TESTNAME}.out $TESTNAME| tr -dc [:digit:])
+    - echo $jobID
+    - jobStatus=$(checkjob ${jobID} | grep State | awk '{print $2}')
+    - count=1
+    - while [ "$jobStatus" != "Completed" ]; do
+        jobStatus=$(checkjob ${jobID} | grep State | awk '{print $2}')
+        if ([ "$jobStatus" = "Idle" ] || [ "$jobStatus" = "Resources" ]) && [ $((count % 60)) -eq 0 ]; then
+          echo "Job $jobID waiting for resources"
+          count=1
+        fi
+        ((count++))
+        sleep 1
+      done
+    - checkjob ${jobID}
+    - if [ -e ${TESTNAME}.out ]; then
+        cat ${TESTNAME}.out
+      else
+        echo "File ${TESTNAME}.out does not exist"
+        exit 1
+      fi
+    - result=$(cat ${TESTNAME}.out | tail -n5 | grep -o PASSED)
+    - rm -rf .scr/ ckpt.*
+    - if [ "$result" != "PASSED" ]; then
+        exit 1
+      fi
+    
