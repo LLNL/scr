@@ -22,7 +22,7 @@
 /* records the time the async flush started */
 static time_t scr_flush_async_timestamp_start;
 
-/* records the time the async flush started */
+/* records the time the async flush started from MPI_Wtime */
 static double scr_flush_async_time_start;
 
 /* tracks list of files written with flush */
@@ -63,8 +63,7 @@ static int scr_axl_start(
     return SCR_FAILURE;
   }
 
-  /* create record for this transfer in outstanding list,
-   * record AXL id in outstanding list */
+  /* create record for this transfer in outstanding list, and record AXL id */
   kvtree* name_hash = kvtree_set_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
   kvtree_util_set_int(name_hash, FILO_KEY_OUT_AXL, id);
 
@@ -79,6 +78,22 @@ static int scr_axl_start(
       );
       rc = SCR_FAILURE;
     }
+  }
+
+  /* verify that all rank added all of their files successfully */
+  if (! scr_alltrue(rc == SCR_SUCCESS, comm)) {
+    /* some process failed to add its files, delete entry from the list */
+    kvtree_unset_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
+
+    /* release the handle */
+    if (AXL_Free_comm(id, comm) != AXL_SUCCESS) {
+      scr_err("Failed to free AXL transfer handle %d @ %s:%d",
+        id, __FILE__, __LINE__
+      );
+    }
+
+    /* and skip the dispatch step */
+    return SCR_FAILURE;
   }
 
   /* kick off the transfer */
@@ -123,7 +138,7 @@ static int scr_axl_wait(const char* name, MPI_Comm comm)
   if (kvtree_util_get_int(name_hash, FILO_KEY_OUT_AXL, &id) == KVTREE_SUCCESS) {
     /* test whether transfer is still active */
     if (AXL_Wait_comm(id, comm) != AXL_SUCCESS) {
-      scr_err("Failed to test AXL transfer handle %d @ %s:%d",
+      scr_err("Failed to wait on AXL transfer handle %d @ %s:%d",
         id, __FILE__, __LINE__
       );
       rc = SCR_FAILURE;
@@ -136,6 +151,9 @@ static int scr_axl_wait(const char* name, MPI_Comm comm)
       );
       rc = SCR_FAILURE;
     }
+
+    /* delete entry for this transfer from AXL list */
+    kvtree_unset_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
   } else {
     /* failed to lookup id */
     rc = SCR_FAILURE;
@@ -227,7 +245,7 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   /* this flag will remember whether any stage fails */
   scr_flush_async_flushed = SCR_SUCCESS;
 
-  /* get list of files to flush and create directories */
+  /* get list of files to flush */
   scr_flush_async_file_list = kvtree_new();
   if (scr_flush_prepare(cindex, id, scr_flush_async_file_list) != SCR_SUCCESS) {
     if (scr_my_rank_world == 0) {
@@ -318,12 +336,15 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   /* create directories */
   scr_flush_create_dirs(scr_prefix, numfiles, dst_filelist, scr_comm_world);
 
-  /* write files (via AXL) */
-  int success = 1;
+  /* start writing files via AXL */
+  int rc = SCR_SUCCESS;
   if (scr_axl_start(dset_name, numfiles, src_filelist, dst_filelist,
     xfer_type, scr_comm_world) != SCR_SUCCESS)
   {
-    success = 0;
+    /* failed to initiate AXL transfer */
+    /* TODO: auto delete files? */
+    rc = SCR_FAILURE;
+    scr_flush_async_flushed = SCR_FAILURE;
   }
 
   /* free our file list */
@@ -332,23 +353,22 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   /* free the dataset */
   scr_dataset_delete(&dataset);
 
-  /* check that all processes started to copy successfully */
-  int rc = SCR_SUCCESS;
-  if (! scr_alltrue(success, scr_comm_world)) {
-    /* TODO: auto delete files? */
-    rc = SCR_FAILURE;
-    scr_flush_async_flushed = SCR_FAILURE;
-  }
-
   return rc;
 }
 
-/* check whether the flush from cache to parallel file system has completed */
+/* check whether the flush from cache to parallel file system has completed,
+ * this does not indicate whether the transfer was successful, only that it
+ * can be completed with either success or error without waiting */
 int scr_flush_async_test(scr_cache_index* cindex, int id)
 {
   /* if user has disabled flush, return failure */
   if (scr_flush <= 0) {
     return SCR_FAILURE;
+  }
+
+  /* if the transfer failed, indicate that transfer has completed */
+  if (scr_flush_async_flushed != SCR_SUCCESS) {
+    return SCR_SUCCESS;
   }
 
   /* test whether transfer is done */
@@ -487,7 +507,13 @@ int scr_flush_async_wait(scr_cache_index* cindex)
 /* start any processes for later asynchronous flush operations */
 int scr_flush_async_init()
 {
+  /* if user has disabled flush, return failure */
+  if (scr_flush <= 0) {
+    return SCR_FAILURE;
+  }
+
   scr_flush_async_axl_list = kvtree_new();
+
   return SCR_SUCCESS;
 }
 
@@ -499,14 +525,7 @@ int scr_flush_async_finalize()
     return SCR_FAILURE;
   }
 
-  /* this may take a while, so tell user what we're doing */
-  if (scr_my_rank_world == 0) {
-    scr_dbg(1, "scr_flush_async_shutdown: shutdown async procs");
-  }
-
   kvtree_delete(&scr_flush_async_axl_list);
-
-  MPI_Barrier(scr_comm_world);
 
   return SCR_SUCCESS;
 }
