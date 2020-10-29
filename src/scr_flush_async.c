@@ -371,11 +371,23 @@ int scr_flush_async_test(scr_cache_index* cindex, int id)
     return SCR_SUCCESS;
   }
 
+  /* get the dataset corresponding to this id */
+  scr_dataset* dataset = scr_dataset_new();
+  scr_cache_index_get_dataset(cindex, id, dataset);
+
+  /* lookup dataset name */
+  char* dset_name = NULL;
+  scr_dataset_get_name(dataset, &dset_name);
+
   /* test whether transfer is done */
   int rc = SCR_SUCCESS;
-  if (scr_axl_test(scr_flush_async_rankfile, scr_comm_world) != SCR_SUCCESS) {
+  if (scr_axl_test(dset_name, scr_comm_world) != SCR_SUCCESS) {
     rc = SCR_FAILURE;
   }
+
+  /* free the dataset */
+  scr_dataset_delete(&dataset);
+
   return rc;
 }
 
@@ -401,7 +413,7 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
 
   /* TODO: wait on Filo if we failed to start? */
   /* wait for transfer to complete */
-  if (scr_axl_wait(scr_flush_async_rankfile, scr_comm_world) != SCR_SUCCESS) {
+  if (scr_axl_wait(dset_name, scr_comm_world) != SCR_SUCCESS) {
     scr_flush_async_flushed = SCR_FAILURE;
   }
 
