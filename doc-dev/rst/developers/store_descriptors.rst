@@ -102,10 +102,10 @@ This key is optional, and it defaults to 1 if not specified.  ``TYPE``
 is the AXL transfer type used to copy files into the store descriptor.
 Values for `TYPE` include:
 
-sync:       A basic synchronous file copy
-pthread:    Multi-threaded file copy
-bbapi:      Use the IBM Burst Buffer API (if available)
-dw:         Use the Cray DataWarp API (if available)
+sync:          A basic synchronous file copy
+pthread:       Multi-threaded file copy
+bbapi:         Use the IBM Burst Buffer API (if available)
+dw:            Use the Cray DataWarp API (if available)
 
 ``TYPE`` is optional, and will default to pthread if not specified.
 

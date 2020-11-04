@@ -241,7 +241,7 @@ static int scr_fetch_data(
     axl_xfer_t xfer_type = scr_xfer_str_to_axl_type(SCR_FETCH_TYPE);
 
     /* fetch these files into the directory */
-    if (scr_axl(dset_name, num_files, src_filelist, dest_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
+    if (scr_axl(dset_name, NULL, num_files, src_filelist, dest_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
       success = 0;
     }
 

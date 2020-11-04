@@ -358,6 +358,16 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_FLUSH_ASYNC`
      - 0
      - Set to 1 to enable asynchronous flush methods (if supported).
+   * - :code:`SCR_FLUSH_POSTSTAGE`
+     - 0
+     - Set to 1 to finalize async flushes using the scr_poststage script,
+       rather than in SCR_Finalize().  This can be used to start a checkpoint
+       flush near the end of your job, and have it run "in the background" after
+       your job finishes.  This is currently only supported by the IBM Burst
+       Buffer API (BBAPI).   To use this, you need to make sure to specify
+       `scr_poststage` as your 2nd-half post-stage script in bsub to
+       finalize the transfers.  See `examples/test_scr_poststage` for a
+       detailed example.
    * - :code:`SCR_FLUSH_TYPE`
      - :code:`SYNC`
      - Specify the flush transfer method.  Set to one of: :code:`SYNC`, :code:`PTHREAD`, :code:`BBAPI`, or :code:`DATAWARP`.

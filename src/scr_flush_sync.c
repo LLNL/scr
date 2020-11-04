@@ -31,6 +31,7 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
   int numfiles;
   char** src_filelist;
   char** dst_filelist;
+
   scr_flush_list_alloc(file_list, &numfiles, &src_filelist, &dst_filelist);
 
   /* get the dataset of this flush */
@@ -58,6 +59,11 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
     scr_free(&path);
   }
   MPI_Barrier(scr_comm_world);
+
+  spath* state_file_path = spath_dup(dataset_path);
+  spath_append_strf(state_file_path, "rank_%d.state_file", scr_my_rank_world);
+  char* state_file = spath_strdup(state_file_path);
+  spath_delete(&state_file_path);
 
   /* define path for rank2file map */
   spath_append_str(dataset_path, "rank2file");
@@ -112,9 +118,8 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
 
     /* TODO: gather list of files to leader of store descriptor,
      * use communicator of leaders for AXL, then bcast result back */
-
     /* write files (via AXL) */
-    if (scr_axl(dset_name, numfiles, (const char**) src_filelist, (const char **) dst_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
+    if (scr_axl(dset_name, state_file, numfiles, (const char**) src_filelist, (const char **) dst_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
       success = 0;
     }
   } else {
@@ -130,6 +135,7 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
 
   /* free path and file name */
   scr_free(&rank2file);
+  scr_free(&state_file);
   spath_delete(&dataset_path);
 
   /* free our file list */
