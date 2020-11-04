@@ -154,7 +154,7 @@
 
 /* whether file metadata should also be copied */
 #ifndef SCR_COPY_METADATA
-#define SCR_COPY_METADATA (0)
+#define SCR_COPY_METADATA (1)
 #endif
 
 /* whether SCR should first create parent directories before transferring files*/
