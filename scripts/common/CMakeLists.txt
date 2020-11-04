@@ -4,6 +4,7 @@ SET(common_bins
 	scr_check_node
 	scr_glob_hosts
 	scr_postrun
+	scr_poststage
 	scr_prerun
 	scr_test_datemanip
 	scr_test_runtime

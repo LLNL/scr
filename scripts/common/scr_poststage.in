@@ -1,0 +1,129 @@
+#!/bin/bash
+#
+# SCR allows you to spawn off dataset transfers "in the background"
+# that will finish some time after a job completes.  This saves you from
+# using your compute time to transfer datasets.  You can do this by
+# specifying SCR_FLUSH_POSTAGE=1 in your SCR config.  This currently is
+# only supported on on IBM burst buffer nodes, and only when FLUSH=BBAPI is
+# specified in the burst buffer's storage descriptor.
+#
+# This script is to be run as a 2nd-half post-stage script on an IBM
+# system.  A 2nd-half post-stage script will run after all the job's burst
+# buffer transfers have finished (which could be hours later after the job
+# finishes).  This script will finalize any completed burst buffer dataset
+# transfers so that they're visible to SCR.
+#
+
+# Please fill in PREFIX below:
+
+# The full path to the dir containing the SCR binaries (scr_index and scr_flush_file)
+BINDIR="@X_BINDIR@"
+
+# The dir path to your SCR PREFIX
+PREFIX="/p/gpfs1/`whoami`"
+
+# Path to where you want the scr_poststage log
+LOGFILE=$PREFIX/scr_poststage.log
+
+if [ ! -d "$BINDIR" ] ; then
+	echo "Please specify BINDIR in scr_poststage" >> $LOGFILE
+	exit
+fi
+
+if [ ! -d "$PREFIX" ] ; then
+	echo "Please specify PREFIX in scr_poststage" >> $LOGFILE
+	exit
+fi
+
+export PATH="$PATH:$BINDIR"
+
+function do_poststage {
+	echo "$(date '+%m/%d/%y %H:%m:%S') Begin post_stage" >> $LOGFILE
+	echo "Current index before finalizing:" >> $LOGFILE
+	scr_index -l -p $PREFIX >> $LOGFILE
+
+	echo "--- Processing output files ---" >> $LOGFILE
+	FAILED_ID=0
+	for ID in $(scr_flush_file --dir $PREFIX --list-output) ; do
+		DSET="$(scr_flush_file --dir $PREFIX --name $ID)"
+		echo "Looking at dataset $ID ($DSET)" >> $LOGFILE
+
+		if ! scr_flush_file --dir $PREFIX --need-flush $ID &>> $LOGFILE ; then
+			echo "Output dataset $ID ($DSET) is already flushed, skip it" >> $LOGFILE
+			# Dataset is already flushed, skip it
+			continue
+		fi
+
+		echo "Finalizing transfer for dataset $ID ($DSET)" >> $LOGFILE
+		if ! scr_flush_file -r -s $ID --dir $PREFIX &>> $LOGFILE ; then
+			echo "Error: Can't resume output dataset $ID" >> $LOGFILE
+			FAILED_ID=$ID
+			break
+		fi
+
+		echo "Writing summary for dataset $ID" >> $LOGFILE
+		if ! scr_flush_file -s $ID -S --dir $PREFIX &>> $LOGFILE ; then
+			echo "ERROR: Can't write summary for output dataset $ID" >> $LOGFILE
+			FAILED_ID=$ID
+			break
+		fi
+
+		echo "Adding dataset $DSET to index" >> $LOGFILE
+		if ! scr_index -p $PREFIX --add=$DSET &>> $LOGFILE ; then
+			echo "Couldn't add output dataset $DSET to index" >> $LOGFILE
+			FAILED_ID=$ID
+			break
+		fi
+	done
+
+	echo "--- Processing checkpoints ---" >> $LOGFILE
+	# Finalize each checkpoint listed in the flush file.  If there are any
+	# failed output files (FAILED_ID > 0) then only finalize checkpoints
+	# up to the last good output file.  If there are no failures
+	# (FAILED_ID = 0) then all checkpoints are iterated over.
+	for ID in $(scr_flush_file --dir $PREFIX --before $FAILED_ID --list-ckpt) ; do
+		DSET="$(scr_flush_file --dir $PREFIX --name $ID)"
+
+		echo "Looking at dataset $ID ($DSET)" >> $LOGFILE
+
+		if ! scr_flush_file --dir $PREFIX --need-flush $ID &>> $LOGFILE ; then
+			# Dataset is already flushed, skip it
+			continue
+		fi
+
+		echo "Finalizing transfer for dataset $ID ($DSET)" >> $LOGFILE
+		if ! scr_flush_file -r -s $ID --dir $PREFIX &>> $LOGFILE ; then
+			echo "Error: Can't resume dataset $ID" >> $LOGFILE
+			continue
+		fi
+
+		echo "Writing summary for dataset $ID" >> $LOGFILE
+		if ! scr_flush_file -s $ID -S --dir $PREFIX &>> $LOGFILE ; then
+			echo "ERROR: Can't write summary for dataset $ID" >> $LOGFILE
+			continue
+		fi
+
+		echo "Adding dataset $DSET to index" >> $LOGFILE
+		if ! scr_index -p $PREFIX --add=$DSET &>> $LOGFILE ; then
+			echo "Couldn't add dataset $DSET to index" >> $LOGFILE
+			continue
+		fi
+
+		echo "Setting current dataset to $DSET" >> $LOGFILE
+		if ! scr_index -p $PREFIX --current=$DSET &>> $LOGFILE ; then
+			echo "Couldn't set current dataset to $DSET" >> $LOGFILE
+			continue
+		fi
+	done
+
+	echo "All done, index now:" >> $LOGFILE
+	scr_index -l -p $PREFIX &>> $LOGFILE
+}
+
+LOCKFILE="$PREFIX/lockfile"
+# Make sure only one poststage is running this script at a time.  Wait forever
+# for the lock.
+(
+	flock -n 9 || exit 1
+	do_poststage
+) 9>$LOCKFILE

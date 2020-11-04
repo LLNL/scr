@@ -33,7 +33,7 @@ int main (int argc, char* argv[])
 {
   int scr_retval;
   if (argc != 1 && argc != 4) {
-    printf("Usage: test_correctness [filesize times sleep_secs]\n");
+    printf("Usage: test_api_multiple [filesize times sleep_secs]\n");
     return 1;
   }
 
