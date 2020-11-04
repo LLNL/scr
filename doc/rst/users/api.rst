@@ -150,6 +150,53 @@ This function returns a string that indicates the version number
 of SCR that is currently in use.
 The caller must not free the returned version string.
 
+SCR_Config
+~~~~~~~~~~
+
+::
+
+ const char* SCR_Config(const char* config);
+
+.. code-block:: fortran
+
+  SCR_CONFIG(CONFIG, CONFIG_VALUE, IERROR)
+    CHARACTER*(*), INTENT(IN) :: CONFIG
+    CHARACTER*(*), INTENT(OUT) :: CONFIG_VALUE
+    INTEGER, INTENT(OUT) :: IERROR
+
+Programmatically change configuration options.
+
+:code:`config` is a string of the form of a line in a configurartion file if it
+consists only of KEY=VALUE pairs then a value is set (including all parent
+values) if it ends in "KEY" then a copy of the value of KEY is returned, which
+must be free()ed. If :code:`config` ends in "KEY=" then KEY is marked as
+removed (value of :code:`NULL`)
+
+In C the return value is the value of the gotten KEY or the last VALUE set,
+:code:`NULL` is returned on failure.
+
+In Fortran :code:`CONFIG_VALUE` is an output buffer use to store the result and
+:code:`IERROR` is :code:`SCR_SUCCES` only on success.
+
+SCR_Configf
+~~~~~~~~~~~
+
+::
+
+  const char* SCR_Configf(const char* format, ...);
+
+Formatted version of :code:`SCR_Config`, for printf-like formatting.
+
+This is a convenience function equivalent to first passing its arguments to
+:code:`sprintf` and the resulting string to :code:`SCR_Config`.
+
+::
+
+  char config[MAX_LEN];
+  vsprintf(config, format, va_args);
+  SCR_Config(config);
+
+
 SCR_Should_exit
 ^^^^^^^^^^^^^^^
 

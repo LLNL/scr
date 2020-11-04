@@ -50,11 +50,12 @@ int SCR_Finalize(void);
 /* config: is a string of the form of a line in a configurartion file
  * if it consists only of KEY=VALUE pairs then a value is set (including all
  * parent values)
- * if it ends in "KEY" then a copy of the value of KEY is returned, it must be
- * free()ed
- * if it ends in "KEY=" then KEY is marked as removed (value of NULL)
+ * If config ends in "KEY" then a copy of the value of KEY is returned, it must
+ * be free()ed.
+ * If config ends in "KEY=" then KEY is marked as removed (value of NULL).
  *
- * the return value is the value of the gotten KEY or the last VALUE set
+ * The return value is the value of the gotten KEY or the last VALUE set, NULL
+ * is returned on failure.
  */
 const char* SCR_Config(const char* config);
 
