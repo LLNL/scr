@@ -15,7 +15,6 @@
 #include "mpi.h"
 
 #include "scr.h"
-#include "scr_util.h"
 #include "test_common.h"
 
 #include <time.h>
@@ -254,9 +253,11 @@ double getbw(char* name, char* buf, size_t size, int times)
         MPI_Barrier(MPI_COMM_WORLD);
       }
 
-      /* get the file name to write our checkpoint file to */
+      /* define name of our file */
       char newname[SCR_MAX_FILENAME];
       safe_snprintf(newname, sizeof(newname), "%s/%s", label, name);
+
+      /* get the file name to write our file to */
       if (use_scr) {
         scr_retval = SCR_Route_file(newname, file);
         if (scr_retval != SCR_SUCCESS) {

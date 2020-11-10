@@ -4,8 +4,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
 #include "mpi.h"
-#include "scr_util.h"
+#include "test_common.h"
 
 #include <time.h>
 #include <sys/time.h>
@@ -69,7 +70,6 @@ int main (int argc, char* argv[])
       mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-printf("File: %s\n", file);
     int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd_me > 0) {
       write(fd_me, buf, filesize);
@@ -88,7 +88,6 @@ printf("File: %s\n", file);
       mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-printf("File: %s\n", file);
     int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd_me > 0) {
       count++;

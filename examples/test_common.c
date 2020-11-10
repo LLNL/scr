@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <stdarg.h>
 #include "mpi.h"
 
 /* reliable read from file descriptor (retries, if necessary, until hard error) */
@@ -178,4 +179,23 @@ int read_checkpoint(char* file, int* ckpt, char* buf, size_t size)
   }
 
   return 0;
+}
+
+/* This is just snprintf(), but will abort if there's a truncation.  This makes
+ * it so you don't have to check the return code for sprintf's that should
+ * "never fail". */
+int safe_snprintf(char* buf, size_t size, const char* fmt, ...)
+{
+  va_list args;
+  va_start(args, fmt);
+  int rc = vsnprintf(buf, size, fmt, args);
+  va_end(args);
+
+  if ((size_t)rc >= size) {
+    /* We truncated the string */
+    printf("%s: truncated string: %s\n", __func__, buf);
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+
+  return rc;
 }

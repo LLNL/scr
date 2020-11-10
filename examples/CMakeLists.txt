@@ -72,7 +72,7 @@ SCR_ADD_TEST(test_api_multiple "" "")
 #TARGET_LINK_LIBRARIES(test_api_multiple_file ${SCR_LINK_TO})
 #SCR_ADD_TEST: proper usage is unknown
 
-ADD_EXECUTABLE(test_interpose test_interpose.c)
+ADD_EXECUTABLE(test_interpose test_common.c test_interpose.c)
 TARGET_LINK_LIBRARIES(test_interpose ${SCR_LINK_TO})
 SCR_ADD_TEST(test_interpose "" "checkpoint_set_*")
 
