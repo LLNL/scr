@@ -17,3 +17,6 @@ int write_checkpoint(int fd, int ckpt, char* buf, size_t size);
 
 /* read the checkpoint data from file into buf, and return whether the read was successful */
 int read_checkpoint(char* file, int* ckpt, char* buf, size_t size);
+
+/* check for truncation on snprintf */
+int safe_snprintf(char* buf, size_t size, const char* fmt, ...);

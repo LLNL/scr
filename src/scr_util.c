@@ -388,25 +388,3 @@ spath* scr_get_prefix(const char* str)
 
   return prefix_path;
 }
-
-/*
- * This is just snprintf(), but will abort if there's a truncation.  This makes
- * it so you don't have to check the return code for sprintf's that should
- * "never fail".
- */
-int safe_snprintf(char* buf, size_t size, const char* fmt, ...)
-{
-  va_list args;
-  int rc;
-
-  va_start(args, fmt);
-  rc = vsnprintf(buf, size, fmt, args);
-  va_end(args);
-
-  if (rc >= size - 1) {
-    /* We truncated */
-    scr_abort(-1, "%s: truncated string: %s\n", __func__, buf);
-  }
-
-  return rc;
-}

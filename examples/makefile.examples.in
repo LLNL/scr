@@ -18,8 +18,8 @@ test_api_multiple: test_common.o test_common.h test_api_multiple.c
 	$(MPICC) $(OPT) $(CFLAGS) $(INCLUDES) -o test_api_multiple test_common.o test_api_multiple.c \
 	  $(LDFLAGS) $(LIBDIR)
 
-test_interpose: test_interpose.c
-	$(MPICC) $(OPT) $(CFLAGS) -o test_interpose test_interpose.c $(LDFLAGS)
+test_interpose: test_common.o test_common.h test_interpose.c
+	$(MPICC) $(OPT) $(CFLAGS) -o test_interpose test_common.o test_interpose.c $(LDFLAGS)
 
 test_interpose_multiple: test_common.o test_common.h test_interpose_multiple.c
 	$(MPICC) $(OPT) $(CFLAGS) -o test_interpose_multiple test_common.o test_interpose_multiple.c $(LDFLAGS)

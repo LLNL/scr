@@ -12,7 +12,6 @@
 #include "mpi.h"
 #include "scr.h"
 #include "test_common.h"
-#include "scr_util.h"
 
 #include <time.h>
 #include <sys/time.h>
