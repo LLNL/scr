@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 
   int long_index = 0;
   while (1) {
-    char c = getopt_long(argc, argv, opt_string, long_options, &long_index);
+    int c = getopt_long(argc, argv, opt_string, long_options, &long_index);
     if (c == -1) {
       break;
     }
