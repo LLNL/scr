@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
         usage = 1;
         break;
       default:
-        printf("ERROR: Unknown option: `%s'\n", argv[optind]);
+        printf("ERROR: Unknown option: `%s'\n", argv[optind-1]);
         usage = 1;
         rc = 1;
         break;
