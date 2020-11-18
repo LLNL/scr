@@ -2,7 +2,7 @@
 
 SCR is an open source project. We welcome contributions via pull requests as well as questions, feature requests, or bug reports via issues. Contact our team through GitHub issues or via the [mailing lists](https://computing.llnl.gov/projects/scalable-checkpoint-restart-for-mpi/contact). Please also refer to our [code of conduct](CODE_OF_CONDUCT.md).
 
-If you aren't an SCR developer at LLNL, you won't have permission to push new branches to the repository. First, you should create a fork. This will create your copy of the SCR repository and ensure you can push your changes up to GitHub and create PRs. SCR uses Travis for continuous integration tests. Our tests are automatically run against every new PR, and passing all tests is a requirement for merging your PR.
+If you aren't an SCR developer at LLNL, you won't have permission to push new branches to the repository. First, you should create a fork. This will create your copy of the SCR repository and ensure you can push your changes up to GitHub and create PRs. SCR uses LLNL internal resources via gitlab runners to test code changes. Please include details on how we can test your contribution.
 
 * Create your branches off the `develop` branch.
 * Clearly name your branches, commits, and PRs as this will help us manage queued work in a timely manner.
