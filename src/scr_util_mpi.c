@@ -298,10 +298,10 @@ int scr_set_partners(
  *
  * Default to "pthread" if axl_xfer_str = NULL, since it has good performance
  * and works across all filesystems. */
-axl_xfer_t axl_xfer_str_to_type(const char *axl_xfer_str)
+axl_xfer_t axl_xfer_str_to_type(const char* axl_xfer_str)
 {
   struct {
-    char *str;
+    char* str;
     axl_xfer_t type;
   } axl_str_to_type[] = {
     {"default", AXL_XFER_DEFAULT},
@@ -318,7 +318,7 @@ axl_xfer_t axl_xfer_str_to_type(const char *axl_xfer_str)
     {"AXL_XFER_ASYNC_CPPR", AXL_XFER_ASYNC_CPPR},
   };
 
-  if (! axl_xfer_str) {
+  if (axl_xfer_str == NULL) {
     axl_xfer_str = "pthread";
   }
 

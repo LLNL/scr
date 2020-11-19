@@ -63,7 +63,7 @@ int scr_set_partners(
  *
  * Default to "pthread" if axl_xfer_str = NULL, since it has good performance
  * and works across all filesystems. */
-axl_xfer_t axl_xfer_str_to_type(const char *axl_xfer_str);
+axl_xfer_t axl_xfer_str_to_type(const char* axl_xfer_str);
 
 int scr_axl(
   const char* name,

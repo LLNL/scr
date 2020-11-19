@@ -66,7 +66,6 @@ void scr_align_free(void* buf);
 /*sprintfs a formatted string into an newly allocated string */
 char* scr_strdupf(const char* format, ...);
 
-
 /* returns the current linux timestamp (in microseconds) */
 int64_t scr_time_usecs(void);
 

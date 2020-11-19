@@ -192,7 +192,7 @@
 
 /* AXL type to use when flushing datasets */
 #ifndef SCR_FLUSH_TYPE
-#define SCR_FLUSH_TYPE ("pthread")
+#define SCR_FLUSH_TYPE ("sync")
 #endif
 
 /* max number of processes which can be flushing data at the same time (flow control) */

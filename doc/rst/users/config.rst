@@ -346,8 +346,8 @@ The table in this section specifies the full set of SCR configuration parameters
      - 0
      - Set to 1 to enable asynchronous flush methods (if supported).
    * - :code:`SCR_FLUSH_TYPE`
-     - :code:`pthread`
-     - Specify the AXL transfer method.  Set to one of: :code:`pthread`, :code:`bbapi`, or :code:`datawarp`.
+     - :code:`sync`
+     - Specify the AXL transfer method.  Set to one of: :code:`sync`, :code:`pthread`, :code:`bbapi`, or :code:`datawarp`.
    * - :code:`SCR_FLUSH_WIDTH`
      - 256
      - Specify the number of processes that may write simultaneously to the parallel file system.
