@@ -190,6 +190,11 @@
 #define SCR_FLUSH (10)
 #endif
 
+/* AXL type to use when flushing datasets */
+#ifndef SCR_FLUSH_TYPE
+#define SCR_FLUSH_TYPE ("pthread")
+#endif
+
 /* max number of processes which can be flushing data at the same time (flow control) */
 #ifndef SCR_FLUSH_WIDTH
 #define SCR_FLUSH_WIDTH (SCR_FETCH_WIDTH)

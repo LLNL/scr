@@ -123,6 +123,7 @@ int   scr_fetch_width      = SCR_FETCH_WIDTH;      /* specify number of processe
 int   scr_fetch_bypass     = SCR_FETCH_BYPASS;     /* whether to use implied bypass mode on fetch */
 char* scr_fetch_current    = NULL;                 /* name of checkpoint to start with during fetch */
 int   scr_flush            = SCR_FLUSH;            /* how many checkpoints between flushes */
+char* scr_flush_type       = NULL;                 /* AXL type to use when flushing data */
 int   scr_flush_width      = SCR_FLUSH_WIDTH;      /* specify number of processes to write files simultaneously */
 int   scr_flush_on_restart = SCR_FLUSH_ON_RESTART; /* specify whether to flush cache on restart */
 int   scr_global_restart   = SCR_GLOBAL_RESTART;   /* set if code must be restarted from parallel file system */

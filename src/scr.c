@@ -882,6 +882,13 @@ static int scr_get_params()
     scr_flush = atoi(value);
   }
 
+  /* specify transfer type */
+  if ((value = scr_param_get("SCR_FLUSH_TYPE")) != NULL) {
+    scr_flush_type = strdup(value);
+  } else {
+    scr_flush_type = strdup(SCR_FLUSH_TYPE);
+  }
+
   /* specify number of processes to write files simultaneously */
   if ((value = scr_param_get("SCR_FLUSH_WIDTH")) != NULL) {
     scr_flush_width = atoi(value);
@@ -2431,6 +2438,7 @@ int SCR_Finalize()
   }
 
   /* free memory allocated for variables */
+  scr_free(&scr_flush_type);
   scr_free(&scr_fetch_current);
   scr_free(&scr_log_db_host);
   scr_free(&scr_log_db_user);
