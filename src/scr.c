@@ -1840,7 +1840,7 @@ int SCR_Init()
       );
     }
     if (kvtree_util_set_int(axl_config, AXL_KEY_CONFIG_MKDIR,
-                            scr_debug) != KVTREE_SUCCESS) {
+                            0) != KVTREE_SUCCESS) {
       scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
         AXL_KEY_CONFIG_MKDIR, __FILE__, __LINE__
       );
@@ -1864,6 +1864,12 @@ int SCR_Init()
     kvtree* er_config = kvtree_new();
     assert(er_config);
 
+    if (kvtree_util_set_int(er_config, ER_KEY_CONFIG_DEBUG,
+                            scr_debug) != KVTREE_SUCCESS) {
+      scr_abort(-1, "Failed to set ER config option %s @ %s:%d",
+        ER_KEY_CONFIG_DEBUG, __FILE__, __LINE__
+      );
+    }
     if (kvtree_util_set_int(er_config, ER_KEY_CONFIG_SET_SIZE, scr_set_size) !=
         KVTREE_SUCCESS) {
       scr_abort(-1, "Failed to set ER config option %s @ %s:%d",
