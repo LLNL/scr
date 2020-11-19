@@ -123,7 +123,7 @@ static const char* legacy_store_type_to_store_type(const char* type)
     return "dw";
   }
   if (strcmp(type, "POSIX") == 0) {
-    return "pthread";
+    return "sync";
   }
 
   return type;
@@ -186,17 +186,13 @@ static int scr_storedesc_create_from_hash(
   s->can_mkdir = 1;
   kvtree_util_get_int(hash, SCR_CONFIG_KEY_MKDIR, &(s->can_mkdir));
 
-  /* set the type of the store. Default to POSIX */
+  /* set the type of the store which selects transfer mode */
   char* tmp_type = scr_flush_type;
   kvtree_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &tmp_type);
 
   /* Translate between older TYPE values into the new AXL format */
   tmp_type = (char*) legacy_store_type_to_store_type(tmp_type);
-  if (tmp_type != NULL) {
-    s->type = strdup(tmp_type);
-  } else {
-    s->type = strdup("pthread");
-  }
+  s->type = strdup(tmp_type);
 
   /* set the view of the store. Default to PRIVATE */
   /* strdup the view if one exists */
