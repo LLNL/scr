@@ -30,7 +30,6 @@ repos=(https://github.com/ECP-VeloC/KVTree.git
     https://github.com/ECP-VeloC/redset.git
     https://github.com/ECP-VeloC/shuffile.git
     https://github.com/ECP-VeloC/er.git
-    https://github.com/ECP-VeloC/filo.git
 )
 
 for i in "${repos[@]}" ; do
@@ -123,13 +122,6 @@ cd ../..
 cd er
 mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DWITH_REDSET_PREFIX=$INSTALL_DIR -DWITH_SHUFFILE_PREFIX=$INSTALL_DIR -DMPI=ON ..
-make -j `nproc`
-make install
-cd ../..
-
-cd filo
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DWITH_AXL_PREFIX=$INSTALL_DIR -DMPI=ON ..
 make -j `nproc`
 make install
 cd ../..

@@ -16,8 +16,8 @@
 #include "kvtree_util.h"
 #include "axl_mpi.h"
 
-#define FILO_KEY_OUT_NAME "NAME"
-#define FILO_KEY_OUT_AXL  "AXL"
+#define ASYNC_KEY_OUT_NAME "NAME"
+#define ASYNC_KEY_OUT_AXL  "AXL"
 
 /* records the time the async flush started */
 static time_t scr_flush_async_timestamp_start;
@@ -64,8 +64,8 @@ static int scr_axl_start(
   }
 
   /* create record for this transfer in outstanding list, and record AXL id */
-  kvtree* name_hash = kvtree_set_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
-  kvtree_util_set_int(name_hash, FILO_KEY_OUT_AXL, id);
+  kvtree* name_hash = kvtree_set_kv(scr_flush_async_axl_list, ASYNC_KEY_OUT_NAME, name);
+  kvtree_util_set_int(name_hash, ASYNC_KEY_OUT_AXL, id);
 
   /* add files to transfer list */
   int i;
@@ -83,7 +83,7 @@ static int scr_axl_start(
   /* verify that all rank added all of their files successfully */
   if (! scr_alltrue(rc == SCR_SUCCESS, comm)) {
     /* some process failed to add its files, delete entry from the list */
-    kvtree_unset_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
+    kvtree_unset_kv(scr_flush_async_axl_list, ASYNC_KEY_OUT_NAME, name);
 
     /* release the handle */
     if (AXL_Free_comm(id, comm) != AXL_SUCCESS) {
@@ -117,8 +117,8 @@ static int scr_axl_test(const char* name, MPI_Comm comm)
 
   /* lookup AXL id in outstanding list */
   int id;
-  kvtree* name_hash = kvtree_get_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
-  if (kvtree_util_get_int(name_hash, FILO_KEY_OUT_AXL, &id) == KVTREE_SUCCESS) {
+  kvtree* name_hash = kvtree_get_kv(scr_flush_async_axl_list, ASYNC_KEY_OUT_NAME, name);
+  if (kvtree_util_get_int(name_hash, ASYNC_KEY_OUT_AXL, &id) == KVTREE_SUCCESS) {
     /* test whether transfer is still active */
     if (AXL_Test_comm(id, comm) == AXL_SUCCESS) {
       rc = SCR_SUCCESS;
@@ -134,8 +134,8 @@ static int scr_axl_wait(const char* name, MPI_Comm comm)
 
   /* lookup AXL id in outstanding list */
   int id;
-  kvtree* name_hash = kvtree_get_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
-  if (kvtree_util_get_int(name_hash, FILO_KEY_OUT_AXL, &id) == KVTREE_SUCCESS) {
+  kvtree* name_hash = kvtree_get_kv(scr_flush_async_axl_list, ASYNC_KEY_OUT_NAME, name);
+  if (kvtree_util_get_int(name_hash, ASYNC_KEY_OUT_AXL, &id) == KVTREE_SUCCESS) {
     /* test whether transfer is still active */
     if (AXL_Wait_comm(id, comm) != AXL_SUCCESS) {
       scr_err("Failed to wait on AXL transfer handle %d @ %s:%d",
@@ -153,7 +153,7 @@ static int scr_axl_wait(const char* name, MPI_Comm comm)
     }
 
     /* delete entry for this transfer from AXL list */
-    kvtree_unset_kv(scr_flush_async_axl_list, FILO_KEY_OUT_NAME, name);
+    kvtree_unset_kv(scr_flush_async_axl_list, ASYNC_KEY_OUT_NAME, name);
   } else {
     /* failed to lookup id */
     rc = SCR_FAILURE;
