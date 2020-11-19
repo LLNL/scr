@@ -389,7 +389,6 @@ Set :code:`SCR_FLUSH` to 0 to disable periodic writes in SCR.
 If an application disables the periodic flush feature,
 the application is responsible for writing occasional checkpoint sets to the parallel file system.
 
-.. TODO: fetch/flush crc32 does not currently work with filo, consider how to add this back
 .. By default, SCR computes and stores a CRC32 checksum value for each checkpoint file during a flush.
    It then uses the checksum to verify the integrity of each file as it is read back into cache during a fetch.
    If data corruption is detected, SCR falls back to fetch an earlier checkpoint set.
