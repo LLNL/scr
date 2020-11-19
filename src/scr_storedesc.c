@@ -110,15 +110,23 @@ static int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
  * Returns the AXL xfer string equivalent string, or just type if it doesn't
  * recognize the type value string.
  */
-static const char *legacy_store_type_to_store_type(const char *type)
+static const char* legacy_store_type_to_store_type(const char* type)
 {
-    if (!type)
-        return NULL;
+  if (type == NULL) {
+    return NULL;
+  }
 
-    if (strcmp(type, "DATAWARP") == 0)  return "dw";
-    if (strcmp(type, "DW") == 0)        return "dw";
-    if (strcmp(type, "POSIX") == 0)     return "pthread";
-    return type;
+  if (strcmp(type, "DATAWARP") == 0) {
+    return "dw";
+  }
+  if (strcmp(type, "DW") == 0) {
+    return "dw";
+  }
+  if (strcmp(type, "POSIX") == 0) {
+    return "pthread";
+  }
+
+  return type;
 }
 
 /* build a store descriptor corresponding to the specified hash,
@@ -179,12 +187,12 @@ static int scr_storedesc_create_from_hash(
   kvtree_util_get_int(hash, SCR_CONFIG_KEY_MKDIR, &(s->can_mkdir));
 
   /* set the type of the store. Default to POSIX */
-  char* tmp_type = NULL;
+  char* tmp_type = scr_flush_type;
   kvtree_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &tmp_type);
 
   /* Translate between older TYPE values into the new AXL format */
   tmp_type = (char*) legacy_store_type_to_store_type(tmp_type);
-  if (tmp_type) {
+  if (tmp_type != NULL) {
     s->type = strdup(tmp_type);
   } else {
     s->type = strdup("pthread");
@@ -194,7 +202,7 @@ static int scr_storedesc_create_from_hash(
   /* strdup the view if one exists */
   char* tmp_view = NULL;
   kvtree_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &tmp_view);
-  if (tmp_view) {
+  if (tmp_view != NULL) {
     s->view = strdup(tmp_view);
   } else {
     s->view = strdup("PRIVATE");

@@ -181,6 +181,7 @@ extern int   scr_fetch_width;      /* specify number of processes to read files 
 extern int   scr_fetch_bypass;     /* whether to use implied bypass on fetch operations */
 extern char* scr_fetch_current;    /* specify name of checkpoint to start with in fetch_latest */
 extern int   scr_flush;            /* how many checkpoints between flushes */
+extern char* scr_flush_type;       /* AXL type to use when flushing datasets */
 extern int   scr_flush_width;      /* specify number of processes to write files simultaneously */
 extern int   scr_flush_on_restart; /* specify whether to flush cache on restart */
 extern int   scr_global_restart;   /* set if code must be restarted from parallel file system */
