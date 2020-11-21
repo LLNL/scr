@@ -44,7 +44,7 @@ static int scr_storedesc_init(scr_storedesc* s)
   s->name      = NULL;
   s->max_count = 0;
   s->can_mkdir = 0;
-  s->type      = NULL;
+  s->xfer      = NULL;
   s->view      = NULL;
   s->comm      = MPI_COMM_NULL;
   s->rank      = MPI_PROC_NULL;
@@ -59,7 +59,7 @@ static int scr_storedesc_free(scr_storedesc* s)
   if (s != NULL) {
     /* free the strings we strdup'd */
     scr_free(&s->name);
-    scr_free(&s->type);
+    scr_free(&s->xfer);
     scr_free(&s->view);
 
     /* free the communicator we created */
@@ -91,42 +91,13 @@ static int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
   out->name      = strdup(in->name);
   out->max_count = in->max_count;
   out->can_mkdir = in->can_mkdir;
-  out->type      = strdup(in->type);
+  out->xfer      = strdup(in->xfer);
   out->view      = strdup(in->view);
   MPI_Comm_dup(in->comm, &out->comm);
   out->rank      = in->rank;
   out->ranks     = in->ranks;
 
   return SCR_SUCCESS;
-}
-
-/*
- * Given a legacy TYPE value, map it to its new TYPE equivalent
- *
- * In older versions of SCR, "TYPE" meant the underlying storage type, not the
- * AXL transfer type.  They're similar enough meanings though that we can
- * map the old values to the AXL ones.
- *
- * Returns the AXL xfer string equivalent string, or just type if it doesn't
- * recognize the type value string.
- */
-static const char* legacy_store_type_to_store_type(const char* type)
-{
-  if (type == NULL) {
-    return NULL;
-  }
-
-  if (strcmp(type, "DATAWARP") == 0) {
-    return "dw";
-  }
-  if (strcmp(type, "DW") == 0) {
-    return "dw";
-  }
-  if (strcmp(type, "POSIX") == 0) {
-    return "sync";
-  }
-
-  return type;
 }
 
 /* build a store descriptor corresponding to the specified hash,
@@ -187,12 +158,9 @@ static int scr_storedesc_create_from_hash(
   kvtree_util_get_int(hash, SCR_CONFIG_KEY_MKDIR, &(s->can_mkdir));
 
   /* set the type of the store which selects transfer mode */
-  char* tmp_type = scr_flush_type;
-  kvtree_util_get_str(hash, SCR_CONFIG_KEY_TYPE, &tmp_type);
-
-  /* Translate between older TYPE values into the new AXL format */
-  tmp_type = (char*) legacy_store_type_to_store_type(tmp_type);
-  s->type = strdup(tmp_type);
+  char* flush_type = scr_flush_type;
+  kvtree_util_get_str(hash, SCR_CONFIG_KEY_FLUSH, &flush_type);
+  s->xfer = strdup(flush_type);
 
   /* set the view of the store. Default to PRIVATE */
   /* strdup the view if one exists */

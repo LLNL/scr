@@ -59,11 +59,8 @@ int scr_set_partners(
   int* rhs_rank, int* rhs_rank_world, char** rhs_hostname
 );
 
-/* Given an AXL transfer string (like "bbapi") return a axl_xfer_t.
- *
- * Default to "pthread" if axl_xfer_str = NULL, since it has good performance
- * and works across all filesystems. */
-axl_xfer_t axl_xfer_str_to_type(const char* axl_xfer_str);
+/* Given an SCR transfer string (like "BBAPI") return corresponding axl_xfer_t. */
+axl_xfer_t scr_xfer_str_to_axl_type(const char* str);
 
 int scr_axl(
   const char* name,

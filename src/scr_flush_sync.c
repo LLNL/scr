@@ -96,24 +96,22 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
   kvtree_write_gather(rank2file, filelist, scr_comm_world);
   kvtree_delete(&filelist);
 
-  /* get AXL transfer type to use */
-  const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
-  axl_xfer_t xfer_type = axl_xfer_str_to_type(storedesc->type);
-
   /* after writing out file above, see if we can skip the transfer */
   int success = 1;
   if (! scr_alltrue(skip_transfer, scr_comm_world)) {
     /* create directories */
     scr_flush_create_dirs(scr_prefix, numfiles, (const char**) dst_filelist, scr_comm_world);
 
-    /* TODO: gather list of files to leader of store descriptor,
-     * use communicator of leaders for AXL, then bcast result back */
-
     /* get name of dataset */
     char* dset_name = NULL;
     scr_dataset_get_name(dataset, &dset_name);
 
-    /* TODO: configure AXL to not create directories */
+    /* get AXL transfer type to use */
+    const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
+    axl_xfer_t xfer_type = scr_xfer_str_to_axl_type(storedesc->xfer);
+
+    /* TODO: gather list of files to leader of store descriptor,
+     * use communicator of leaders for AXL, then bcast result back */
 
     /* write files (via AXL) */
     if (scr_axl(dset_name, numfiles, (const char**) src_filelist, (const char **) dst_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {

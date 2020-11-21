@@ -324,17 +324,15 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   kvtree_write_gather(scr_flush_async_rankfile, filelist, scr_comm_world);
   kvtree_delete(&filelist);
 
+  /* create directories */
+  scr_flush_create_dirs(scr_prefix, numfiles, (const char**) dst_filelist, scr_comm_world);
+
   /* get AXL transfer type to use */
   const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
-  axl_xfer_t xfer_type = axl_xfer_str_to_type(storedesc->type);
+  axl_xfer_t xfer_type = scr_xfer_str_to_axl_type(storedesc->xfer);
 
   /* TODO: gather list of files to leader of store descriptor,
    * use communicator of leaders for AXL, then bcast result back */
-
-  /* TODO: configure AXL to not create directories */
-
-  /* create directories */
-  scr_flush_create_dirs(scr_prefix, numfiles, (const char**) dst_filelist, scr_comm_world);
 
   /* start writing files via AXL */
   int rc = SCR_SUCCESS;
