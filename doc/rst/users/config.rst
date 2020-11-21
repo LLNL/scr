@@ -107,7 +107,7 @@ Additional storage can be described in configuration files
 with entries like the following::
 
   STORE=/dev/shm      GROUP=NODE   COUNT=1
-  STORE=/ssd          GROUP=NODE   COUNT=3  TYPE=pthread
+  STORE=/ssd          GROUP=NODE   COUNT=3  FLUSH=PTHREAD
   STORE=/dev/persist  GROUP=NODE   COUNT=1  ENABLED=1  MKDIR=0
   STORE=/p/lscratcha  GROUP=WORLD
 
@@ -133,7 +133,7 @@ This key is optional, and it defaults to 1 if not specified.
 The :code:`MKDIR` key specifies whether the device supports the
 creation of directories (1) or not (0).
 This key is optional, and it defaults to 1 if not specified.
-The :code:`TYPE` key specifies the transfer type to use to fetch or flush datasets.
+The :code:`FLUSH` key specifies the transfer type to use to flush datasets.
 This key is optional, and it defaults to the value of the :code:`SCR_FLUSH_TYPE` if not specified.
 
 In the above example, there are four storage devices specified:
@@ -346,8 +346,8 @@ The table in this section specifies the full set of SCR configuration parameters
      - 0
      - Set to 1 to enable asynchronous flush methods (if supported).
    * - :code:`SCR_FLUSH_TYPE`
-     - :code:`sync`
-     - Specify the AXL transfer method.  Set to one of: :code:`sync`, :code:`pthread`, :code:`bbapi`, or :code:`datawarp`.
+     - :code:`SYNC`
+     - Specify the AXL transfer method.  Set to one of: :code:`SYNC`, :code:`PTHREAD`, :code:`BBAPI`, or :code:`DATAWARP`.
    * - :code:`SCR_FLUSH_WIDTH`
      - 256
      - Specify the number of processes that may write simultaneously to the parallel file system.

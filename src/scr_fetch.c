@@ -177,10 +177,6 @@ static int scr_fetch_data(
   scr_free(&rank2file);
   spath_delete(&rank2file_path);
 
-  /* get AXL transfer type */
-  const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
-  axl_xfer_t xfer_type = axl_xfer_str_to_type(storedesc->type);
-
   /* TODO: gather list of files to leader for each store descriptor,
    * then use comm of store descriptor leaders in axl call,
    * have leaders bcast success/fail back to all procs */
@@ -239,6 +235,10 @@ static int scr_fetch_data(
     /* get name of dataset */
     char* dset_name = NULL;
     scr_dataset_get_name(dataset, &dset_name);
+
+    /* get AXL transfer type */
+    //const scr_storedesc* storedesc = scr_cache_get_storedesc(cindex, id);
+    axl_xfer_t xfer_type = scr_xfer_str_to_axl_type(SCR_FETCH_TYPE);
 
     /* fetch these files into the directory */
     if (scr_axl(dset_name, num_files, src_filelist, dest_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {

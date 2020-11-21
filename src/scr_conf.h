@@ -180,6 +180,11 @@
 #define SCR_FETCH_WIDTH (256)
 #endif
 
+/* AXL type to use when fetching datasets */
+#ifndef SCR_FETCH_TYPE
+#define SCR_FETCH_TYPE ("SYNC")
+#endif
+
 /* whether to use implied bypass on fetch to read files from file system rather than actually copy to cache */
 #ifndef SCR_FETCH_BYPASS
 #define SCR_FETCH_BYPASS (0)
@@ -190,14 +195,14 @@
 #define SCR_FLUSH (10)
 #endif
 
-/* AXL type to use when flushing datasets */
-#ifndef SCR_FLUSH_TYPE
-#define SCR_FLUSH_TYPE ("sync")
-#endif
-
 /* max number of processes which can be flushing data at the same time (flow control) */
 #ifndef SCR_FLUSH_WIDTH
 #define SCR_FLUSH_WIDTH (SCR_FETCH_WIDTH)
+#endif
+
+/* AXL type to use when flushing datasets */
+#ifndef SCR_FLUSH_TYPE
+#define SCR_FLUSH_TYPE ("SYNC")
 #endif
 
 /* whether to force a flush on a restart (useful for codes that must restart from parallel file system) */

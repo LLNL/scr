@@ -294,38 +294,26 @@ int scr_set_partners(
 /* Return the number of elements in an array */
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 
-/* Given an AXL transfer string (like "bbapi") return a axl_xfer_t.
- *
- * Default to "pthread" if axl_xfer_str = NULL, since it has good performance
- * and works across all filesystems. */
-axl_xfer_t axl_xfer_str_to_type(const char* axl_xfer_str)
+/* Given an SCR transfer string (like "BBAPI") return corresponding axl_xfer_t. */
+axl_xfer_t scr_xfer_str_to_axl_type(const char* str)
 {
   struct {
     char* str;
     axl_xfer_t type;
   } axl_str_to_type[] = {
-    {"default", AXL_XFER_DEFAULT},
-    {"native", AXL_XFER_NATIVE},
-    {"pthread", AXL_XFER_PTHREAD},
-    {"sync", AXL_XFER_SYNC},
-    {"dw", AXL_XFER_ASYNC_DW},
-    {"bbapi", AXL_XFER_ASYNC_BBAPI},
-    {"cprr", AXL_XFER_ASYNC_CPPR},
-    {"AXL_XFER_SYNC", AXL_XFER_SYNC},
-    {"AXL_XFER_PTHREAD", AXL_XFER_PTHREAD},
-    {"AXL_XFER_ASYNC_DW", AXL_XFER_ASYNC_DW},
-    {"AXL_XFER_ASYNC_BBAPI", AXL_XFER_ASYNC_BBAPI},
-    {"AXL_XFER_ASYNC_CPPR", AXL_XFER_ASYNC_CPPR},
+    {"DEFAULT",  AXL_XFER_DEFAULT},
+    {"NATIVE",   AXL_XFER_NATIVE},
+    {"PTHREAD",  AXL_XFER_PTHREAD},
+    {"SYNC",     AXL_XFER_SYNC},
+    {"DATAWARP", AXL_XFER_ASYNC_DW},
+    {"BBAPI",    AXL_XFER_ASYNC_BBAPI},
+    {"CPPR",     AXL_XFER_ASYNC_CPPR},
   };
-
-  if (axl_xfer_str == NULL) {
-    axl_xfer_str = "pthread";
-  }
 
   int i;
   axl_xfer_t type = AXL_XFER_NULL;
   for (i = 0; i < ARRAY_SIZE(axl_str_to_type); i++) {
-    if (strcmp(axl_xfer_str, axl_str_to_type[i].str) == 0) {
+    if (strcmp(str, axl_str_to_type[i].str) == 0) {
       /* Match */
       type = axl_str_to_type[i].type;
       break;

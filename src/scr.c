@@ -286,19 +286,21 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
       /* there's an async flush ongoing, see which dataset is being flushed */
       int flush_rc;
       if (scr_flush_async_dataset_id == scr_dataset_id) {
+#ifdef HAVE_LIBCPPR
+        /* if we have CPPR, async flush is faster than sync flush, so let it finish */
+        flush_rc = scr_flush_async_wait(scr_cindex);
+#else
         /* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
         /* else wait */
         /* get the TYPE of the store for checkpoint */
         /* neither strdup nor free */
-#ifdef HAVE_LIBCPPR
-        /* it's faster to wait on async flush if we have CPPR  */
-        flush_rc = scr_flush_async_wait(scr_cindex);
-#else
         const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, scr_dataset_id);
-        const char* type = storedesc->type;
-        if (strcmp(type, "dw") == 0) {
+        const char* type = storedesc->xfer;
+        if (strcmp(type, "DATAWARP") == 0) {
+          /* wait for datawarp flushes to finish */
           flush_rc = scr_flush_async_wait(scr_cindex);
-        } else { //if type posix
+        } else {
+          /* kill the async flush, we'll get this with a sync flush instead */
           scr_flush_async_stop();
         }
 #endif
@@ -882,16 +884,16 @@ static int scr_get_params()
     scr_flush = atoi(value);
   }
 
-  /* specify transfer type */
+  /* specify number of processes to write files simultaneously */
+  if ((value = scr_param_get("SCR_FLUSH_WIDTH")) != NULL) {
+    scr_flush_width = atoi(value);
+  }
+
+  /* specify flush transfer type */
   if ((value = scr_param_get("SCR_FLUSH_TYPE")) != NULL) {
     scr_flush_type = strdup(value);
   } else {
     scr_flush_type = strdup(SCR_FLUSH_TYPE);
-  }
-
-  /* specify number of processes to write files simultaneously */
-  if ((value = scr_param_get("SCR_FLUSH_WIDTH")) != NULL) {
-    scr_flush_width = atoi(value);
   }
 
   /* specify whether to always flush latest checkpoint from cache on restart */
@@ -2323,6 +2325,7 @@ int SCR_Finalize()
 
   /* handle any async flush */
   if (scr_flush_async_in_progress) {
+    /* there's an async flush ongoing, see which dataset is being flushed */
     int flush_rc;
     if (scr_flush_async_dataset_id == scr_dataset_id) {
 #ifdef HAVE_LIBCPPR
@@ -2334,11 +2337,11 @@ int SCR_Finalize()
       /* get the TYPE of the store for checkpoint */
       /* neither strdup nor free */
       const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, scr_dataset_id);
-      const char* type = storedesc->type;
-      if (strcmp(type, "DATAWARP") == 0 || strcmp(type, "DW") == 0) {
+      const char* type = storedesc->xfer;
+      if (strcmp(type, "DATAWARP") == 0) {
         /* wait for datawarp flushes to finish */
         flush_rc = scr_flush_async_wait(scr_cindex);
-      } else { // if type posix
+      } else {
         /* kill the async flush, we'll get this with a sync flush instead */
         scr_flush_async_stop();
       }
