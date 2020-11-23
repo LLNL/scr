@@ -981,9 +981,9 @@ static int scr_get_params()
     scr_copy_metadata = atoi(value);
   }
 
-  /* whether SCR should first create parent directories before transferring files */
-  if ((value = scr_param_get("SCR_MKDIR")) != NULL) {
-    scr_make_directories = atoi(value);
+  /* whether to have AXL create directories for files during a flush */
+  if ((value = scr_param_get("SCR_AXL_MKDIR")) != NULL) {
+    scr_axl_mkdir = atoi(value);
   }
 
   /* specify whether to compute CRC when applying redundancy scheme */
@@ -1849,7 +1849,7 @@ int SCR_Init()
       );
     }
     if (kvtree_util_set_int(axl_config, AXL_KEY_CONFIG_MKDIR,
-                            0) != KVTREE_SUCCESS) {
+                            scr_axl_mkdir) != KVTREE_SUCCESS) {
       scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
         AXL_KEY_CONFIG_MKDIR, __FILE__, __LINE__
       );

@@ -157,10 +157,12 @@
 #define SCR_COPY_METADATA (1)
 #endif
 
-/* whether SCR should first create parent directories before transferring files*/
-#ifndef SCR_MKDIR
-#define SCR_MKDIR (1)
+/* whether to have AXL create directories for files during a flush,
+ * by default we disable this since SCR takes on that role */
+#ifndef SCR_AXL_MKDIR
+#define SCR_AXL_MKDIR (0)
 #endif
+
 /* =========================================================================
  * Default settings for distribute, fetch, and flush operations.
  * ========================================================================= */
