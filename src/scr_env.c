@@ -73,6 +73,28 @@ machine-dependent information.
 */
 
 /* returns the number of seconds remaining in the time allocation */
+
+#ifdef SCR_RESOURCE_MANAGER_PMIX
+/* callback for PMIX to query remaining walltime */
+static uint32_t seconds_remaining;
+static void seconds_remaining_cbfunc(pmix_status_t status, pmix_info_t *info,
+                                     size_t ninfo, void *cbdata,
+                                     pmix_release_cbfunc_t release_fn,
+                                     void *release_cbdata)
+{
+    volatile int *waiting = (volatile int*)cbdata;
+    /* read time_remaining */
+    if (info != NULL) {
+      seconds_remaining = info->value.data.uint32;
+    }
+
+    if (release_fn != NULL) {
+        release_fn(release_cbdata);
+    }
+    *waiting = 0;
+}
+#endif
+
 long int scr_env_seconds_remaining()
 {
   /* returning a negative number tells the caller this functionality is disabled */
@@ -83,6 +105,26 @@ long int scr_env_seconds_remaining()
     secs = yogrt_remaining();
     if (secs < 0) {
       secs = 0;
+    }
+  #elif defined(SCR_RESOURCE_MANAGER_PMIX)
+    /* query time remaining */
+    pmix_status_t retval;
+    pmix_query_t *query;
+    const int nq = 1;
+    PMIX_QUERY_CREATE(query, nq);
+    if (query != NULL) {
+      PMIX_ARGV_APPEND(retval, query[0].keys, PMIX_TIME_REMAINING);
+      if (retval == PMIX_SUCCESS) {
+        volatile int waiting = 1;
+        retval = PMIx_Query_info_nb(query, nq, seconds_remaining_cbfunc,
+                                    (void*)&waiting);
+        if (retval == PMIX_SUCCESS) {
+          while (waiting) {
+            sleep(1);
+          }
+          secs = (long int)seconds_remaining;
+        }
+      }
     }
   #else
     char* scr_end_time = getenv("SCR_END_TIME");
