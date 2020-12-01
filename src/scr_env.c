@@ -291,5 +291,8 @@ int scr_env_init(void)
 
 int scr_env_finalize(void)
 {
+#ifdef SCR_RESOURCE_MANAGER_PMIX
+    PMIx_Finalize(NULL, 0);
+#endif
     return SCR_SUCCESS;
 }
