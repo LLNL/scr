@@ -53,9 +53,9 @@
 #include "cppr.h"
 #endif /* HAVE_CPPR */
 
-#ifdef HAVE_PMIX
+#ifdef HAVE_LIBPMIX
 #include "pmix.h"
-#endif /* HAVE_PMIX */
+#endif /* HAVE_LIBPMIX */
 
 #ifdef SCR_BGQ
 #include "firmware/include/personality.h" /* Personality_t */
@@ -126,8 +126,8 @@ char* scr_env_jobid()
 {
   char* jobid = NULL;
 
-  char* value;
   #ifdef SCR_RESOURCE_MANAGER_SLURM
+    char* value;
     /* read $SLURM_JOBID environment variable for jobid string */
     if ((value = getenv("SLURM_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -139,6 +139,7 @@ char* scr_env_jobid()
     }
   #endif
   #ifdef SCR_RESOURCE_MANAGER_APRUN
+    char* value;
     /* read $PBS_JOBID environment variable for jobid string */
     if ((value = getenv("PBS_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -178,6 +179,7 @@ char* scr_env_jobid()
     PMIX_PDATA_FREE(pmix_query_data, 1);
   #endif
   #ifdef SCR_RESOURCE_MANAGER_LSF
+    char* value;
     /* read $PBS_JOBID environment variable for jobid string */
     if ((value = getenv("LSB_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -263,12 +265,12 @@ int scr_env_init(void)
 
 #ifdef SCR_RESOURCE_MANAGER_PMIX
   /* init pmix */
+  pmix_proc_t scr_pmix_proc;
   int retval = PMIx_Init(&scr_pmix_proc, NULL, 0);
   if (retval != PMIX_SUCCESS) {
-    scr_err("PMIx_Init failed: rc=%d @ %s:%d",
+    scr_abort(-1, "PMIx_Init failed: rc=%d @ %s:%d",
       retval, __FILE__, __LINE__
     );
-    return SCR_FAILURE;
   }
   scr_dbg(1, "PMIx_Init succeeded @ %s:%d", __FILE__, __LINE__);
 #endif /* SCR_MACHINE_TYPE == SCR_PMIX */
