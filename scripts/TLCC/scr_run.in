@@ -133,6 +133,8 @@ if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
   daemon_pid=$!
 fi
 
+export SCR_END_TIME=$(date -d $(scontrol --oneliner show job $SLURM_JOBID | perl -n -e 'm/EndTime=(\S*)/ and print $1') +%s)
+
 # enter the run loop
 down_nodes=""
 attempts=0
