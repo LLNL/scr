@@ -1,21 +1,4 @@
-
-## Autotools generated files
-
-Makefile.in
-aclocal.m4
-configure
-autom4te.cache/
-config.h.in
-ltmain.sh
-
-m4/libtool.m4
-m4/ltoptions.m4
-m4/ltsugar.m4
-m4/ltversion.m4
-m4/lt~obsolete.m4
-
 ## SCR Conf Files
-
 scr.conf
 scr.user.conf
 
@@ -23,8 +6,6 @@ scr.user.conf
 *.lo
 *.la
 
-src/.deps/
-src/.libs/
 src/Makefile
 src/scr_copy
 src/scr_crc32
@@ -94,19 +75,7 @@ scripts/common/scr_watchdog
 scripts/cray_xt/Makefile
 
 Makefile
-config.log
-config.status
-config/config.h
-config/config.h.in~
-config/stamp-h1
 doc/Makefile
 examples/Makefile
 examples/makefile.examples
-libtool
 man/Makefile
-man/scr.1
-man/scr_halt.1
-man/scr_index.1
-man/scr_postrun.1
-man/scr_prerun.1
-man/scr_srun.1
