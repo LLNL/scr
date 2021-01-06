@@ -70,7 +70,6 @@ sub new
   # set our restricted parameters,
   # these can't be set via env vars or user conf file
   $self->{no_user} = {};
-  $self->{no_user}{"SCR_CNTL_BASE"} = {};
 
   # NOTE: At this point we could scan the environment and user config file
   # for restricted parameters to print a warning.  However, in this case

@@ -422,7 +422,6 @@ int scr_param_init()
     /* allocate hash object to hold names we cannot read from the
      * environment */
     scr_no_user_hash = kvtree_new();
-    kvtree_set(scr_no_user_hash, "SCR_CNTL_BASE", kvtree_new());
 
     /* read in app config file which records any parameters set
      * by application through calls to SCR_Config */
