@@ -288,6 +288,8 @@ int scr_reddesc_create_from_hash(
   int set_failures = scr_set_failures;
   kvtree_util_get_int(hash, SCR_CONFIG_KEY_SET_FAILURES, &set_failures);
   if (set_failures < 1 || set_failures > set_size) {
+    /* invalid value for number of failures within a set, disable this descriptor */
+    d->enabled = 0;
     if (scr_my_rank_world == 0) {
       scr_warn("Number of redundancy encodings (%d) must be in the range [1,%d] in redundancy descriptor %d, disabling @ %s:%d",
         set_failures, set_size, d->index, __FILE__, __LINE__
