@@ -122,19 +122,6 @@ if [ $? -ne 0 ] ; then
   exit 1
 fi
 
-# start background scr_transfer processes (1 per node) if async flush is enabled
-if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-  if [ "$__have_libcppr" != "1" ] ; then
-      nnodes=`$bindir/scr_glob_hosts -c -h $SCR_NODELIST`
-      #$bindir/scr_pmix_spawn -b -l ${nnodes} $bindir/scr_transfer $cntldir/transfer.scrinfo
-      #aprun -n${nnodes} -N 1 $bindir/scr_transfer $cntldir/transfer.scrinfo
-      $bindir/scr_pmix_spawn -x PATH -x CPPR_PREFIX -x LD_LIBRARY_PATH -x SCR -b -P -n ${nnodes} -N 1 $bindir/scr_transfer $cntldir/transfer.scrinfo
-  else
-      echo "#demo USING CPPR, NO ASYNC DAEMON\n"
-      #don't need to launch async daemon
-  fi
-fi
-
 # enter the run loop
 down_nodes=""
 attempts=0
@@ -281,17 +268,6 @@ while [ 1 ] ; do
     break
   fi
 done
-
-# stop scr_transfer processes before we attempt to scavenge
-if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-  if [ "$__have_libcppr" != "1" ] ; then
-      $bindir/scr_halt --immediate $prefix
-  else
-      # don't need to launch async daemon
-      echo "#demo Didn't try to shutdown async daemon because CPPR is present\n"
-  fi
-
-fi
 
 # make a record of time postrun is started
 timestamp=`date`
