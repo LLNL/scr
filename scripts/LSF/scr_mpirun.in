@@ -133,14 +133,6 @@ fi
 # define our hostfile
 hostfile=${prefix}/.scr/hostfile
 
-# start background scr_transfer processes (1 per node) if async flush is enabled
-if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-  #nnodes=`$bindir/scr_glob_hosts --count --hosts $SCR_NODELIST`
-  #srun -W 0 -n${nnodes} -N${nnodes} $bindir/scr_transfer $cntldir/transfer.scrinfo &
-  echo "$prog: ERROR: SCR_FLUSH_ASYNC not supported on LSF"
-  exit 1
-fi
-
 # enter the run loop
 down_nodes=""
 attempts=0
@@ -289,12 +281,6 @@ while [ 1 ] ; do
     break
   fi
 done
-
-# stop scr_transfer processes before we attempt to scavenge
-if [ "$SCR_FLUSH_ASYNC" == "1" ] ; then
-  # TODO: this doesn't currently do anything
-  $bindir/scr_halt --immediate $prefix
-fi
 
 # make a record of time postrun is started
 timestamp=`date`
