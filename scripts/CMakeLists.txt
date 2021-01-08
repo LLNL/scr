@@ -22,7 +22,7 @@ SET(cliscr_dir_name "")
 SET(cliscr_run_name "")
 
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
-	SET(cliscr_dir_name "TLCC")
+	SET(cliscr_dir_name "SLURM")
 	SET(cliscr_run_name "scr_srun")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
 
