@@ -165,11 +165,6 @@ static int scr_axl_wait(const char* name, MPI_Comm comm)
 /* stop all ongoing asynchronous flush operations */
 int scr_flush_async_stop()
 {
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
-    return SCR_FAILURE;
-  }
-
   /* this may take a while, so tell user what we're doing */
   if (scr_my_rank_world == 0) {
     scr_dbg(1, "scr_flush_async_stop_all: Stopping flush");
@@ -199,11 +194,6 @@ int scr_flush_async_stop()
  * system under SCR_PREFIX */
 int scr_flush_async_start(scr_cache_index* cindex, int id)
 {
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
-    return SCR_FAILURE;
-  }
-
   /* if we don't need a flush, return right away with success */
   if (! scr_flush_file_need_flush(id)) {
     return SCR_SUCCESS;
@@ -359,11 +349,6 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
  * can be completed with either success or error without waiting */
 int scr_flush_async_test(scr_cache_index* cindex, int id)
 {
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
-    return SCR_FAILURE;
-  }
-
   /* if the transfer failed, indicate that transfer has completed */
   if (scr_flush_async_flushed != SCR_SUCCESS) {
     return SCR_SUCCESS;
@@ -392,11 +377,6 @@ int scr_flush_async_test(scr_cache_index* cindex, int id)
 /* complete the flush from cache to parallel file system */
 int scr_flush_async_complete(scr_cache_index* cindex, int id)
 {
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
-    return SCR_FAILURE;
-  }
-
   /* get the dataset corresponding to this id */
   scr_dataset* dataset = scr_dataset_new();
   scr_cache_index_get_dataset(cindex, id, dataset);
@@ -517,11 +497,6 @@ int scr_flush_async_wait(scr_cache_index* cindex)
 /* start any processes for later asynchronous flush operations */
 int scr_flush_async_init()
 {
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
-    return SCR_FAILURE;
-  }
-
   scr_flush_async_axl_list = kvtree_new();
 
   return SCR_SUCCESS;
@@ -530,11 +505,6 @@ int scr_flush_async_init()
 /* stop all ongoing asynchronous flush operations */
 int scr_flush_async_finalize()
 {
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0) {
-    return SCR_FAILURE;
-  }
-
   kvtree_delete(&scr_flush_async_axl_list);
 
   return SCR_SUCCESS;
