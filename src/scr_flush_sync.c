@@ -149,15 +149,6 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
 {
   int flushed = SCR_SUCCESS;
 
-  /* we flush bypass datasets regardless of setting of scr_flush */
-  int bypass = 0;
-  scr_cache_index_get_bypass(cindex, id, &bypass);
-
-  /* if user has disabled flush, return failure */
-  if (scr_flush <= 0 && !bypass) {
-    return SCR_FAILURE;
-  }
-
   /* if we don't need a flush, return right away with success */
   if (! scr_flush_file_need_flush(id)) {
     return SCR_SUCCESS;
