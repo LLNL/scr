@@ -68,11 +68,3 @@ Some useful CMake command line options are:
 * :code:`-DSCR_CNTL_BASE=[path]` : Path to SCR Control directory, defaults to :code:`/dev/shm`
 * :code:`-DSCR_CACHE_BASE=[path]` : Path to SCR Cache directory, defaults to :code:`/dev/shm`
 * :code:`-DSCR_CONFIG_FILE=[path]` : Path to SCR system configuration file, defaults to :code:`/etc/scr/scr.conf`
-
-To change the SCR control directory, one must either set :code:`-DSCR_CNTL_BASE` at build time
-or one must specify :code:`SCR_CNTL_BASE` in the SCR system configuration file.
-These paths are hardcoded into the SCR library and scripts during the build process.
-It is not possible to specify the control directory through environment variables or the user configuration file.
-
-Unlike the control directory, the SCR cache directory can be specified at run time
-through either environment variables or the user configuration file.

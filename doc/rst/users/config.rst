@@ -19,11 +19,6 @@ taking the first value it finds.
 * System configuration file,
 * Compile-time constants.
 
-Some parameters, such as the location of the control directory,
-cannot be specified by the user.
-Such parameters must be either set in the system configuration file
-or hard-coded into SCR as compile-time constants.
-
 To find a user configuration file,
 SCR looks for a file named :code:`.scrconf` in the prefix directory (note the leading dot).
 Alternatively, one may specify the name and location of the user configuration file
@@ -271,6 +266,9 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_CHECKPOINT_OVERHEAD`
      - 0.0
      - Set to positive floating-point value to specify maximum percent overhead allowed for checkpointing operations as guided by :code:`SCR_Need_checkpoint`.
+   * - :code:`SCR_CNTL_BASE`
+     - :code:`/dev/shm`
+     - Specify the default base directory SCR should use to store its runtime control metadata.  The control directory should be in fast, node-local storage like RAM disk.
    * - :code:`SCR_HALT_EXIT`
      - 0
      - Whether SCR should call :code:`exit()` when it detects an active halt condition.
