@@ -103,8 +103,8 @@ SCR incorporates a control base directory name along with
 the user name and allocation id associated with the resource allocation.
 This enables multiple users, or multiple jobs by the same user,
 to run at the same time without conflicting for the same control directory.
-The control base directory is hard-coded into the SCR library at configure time,
-but this value may be overridden via a system configuration file.
+A default control base directory is hard-coded into the SCR library at configure time,
+but this value may be overridden at runtime.
 
 SCR can direct the application to write dataset files to subdirectories
 within a *cache directory*.
@@ -119,11 +119,9 @@ Cache directories should ideally be located on scalable storage.
 To construct the full path of a cache directory,
 SCR incorporates a cache base directory name with
 the user name and the allocation id associated with the resource allocation.
-A set of valid cache base directories is hard-coded into the SCR library at configure time,
-but this set can be overridden in a system configuration file.
-Out of this set, one may select a subset of cache base
-directories to use during a run.
 It is valid for a cache directory to use the same base path as the control directory.
+A default cache base directory is hard-coded into the SCR library at configure time,
+but this value may be overridden at runtime.
 
 The user must configure the maximum number of datasets
 that SCR should keep in each cache directory.
