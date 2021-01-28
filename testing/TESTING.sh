@@ -5,20 +5,57 @@ export SCR_PKG=`pwd`
 export SCR_BUILD=`pwd`/scr-dist
 export SCR_INSTALL="${SCR_BUILD}/install"
 
+# CORAL build instructions
+cd ${SCR_PKG}
+rm -rf ${SCR_BUILD}
+mkdir ${SCR_BUILD}
+cd ${SCR_BUILD}
+setenv CFLAGS "-g -O0"
+cmake \
+  -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_VERBOSE_MAKEFILE=true \
+  -DSCR_RESOURCE_MANAGER=LSF \
+  -DWITH_DTCMP_PREFIX=$depsinstalldir \
+  -DWITH_SPATH_PREFIX=$depsinstalldir \
+  -DWITH_KVTREE_PREFIX=$depsinstalldir \
+  -DWITH_AXL_PREFIX=$depsinstalldir \
+  -DWITH_RANKSTR_PREFIX=$depsinstalldir \
+  -DWITH_REDSET_PREFIX=$depsinstalldir \
+  -DWITH_SHUFFILE_PREFIX=$depsinstalldir \
+  -DWITH_ER_PREFIX=$depsinstalldir \
+  ${SCR_PKG}
+make
+make install
+
 # Linux cmake build instructions
 cd ${SCR_PKG}
 rm -rf ${SCR_BUILD}
 mkdir ${SCR_BUILD}
 cd ${SCR_BUILD}
 export CFLAGS="-g -O0"
-cmake -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_VERBOSE_MAKEFILE=true -DSCR_RESOURCE_MANAGER=LSF ${SCR_PKG}
+export depsinstalldir=${SCR_PKG}/deps/install
+cmake \
+  -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_VERBOSE_MAKEFILE=true \
+  -DWITH_DTCMP_PREFIX=$depsinstalldir \
+  -DWITH_SPATH_PREFIX=$depsinstalldir \
+  -DWITH_KVTREE_PREFIX=$depsinstalldir \
+  -DWITH_AXL_PREFIX=$depsinstalldir \
+  -DWITH_RANKSTR_PREFIX=$depsinstalldir \
+  -DWITH_REDSET_PREFIX=$depsinstalldir \
+  -DWITH_SHUFFILE_PREFIX=$depsinstalldir \
+  -DWITH_ER_PREFIX=$depsinstalldir \
+  ${SCR_PKG}
 make
 make install
 
 # cd to examples directory, and check that build of test programs works
-cd ${SCR_INSTALL}/share/scr/examples
-export OPT="-g -O0"
-make
+#cd ${SCR_INSTALL}/share/scr/examples
+#export OPT="-g -O0"
+#make
+cd ${SCR_BUILD}/examples
 
 # set up initial enviroment for testing
 export scrbin=${SCR_INSTALL}/bin
@@ -30,13 +67,15 @@ export downnode=`${scrbin}/scr_glob_hosts -n 1 -h "$nodelist"`
 echo $downnode
 export prefix_files=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 
-export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/deps/install/lib:/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le/lib
+#export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/deps/install/lib:/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le/lib
+export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/deps/install/lib
 export SCR_PREFIX=`pwd`
 export SCR_FETCH=0
 export SCR_FLUSH=0
 export SCR_DEBUG=1
 export SCR_LOG_ENABLE=0
 export SCR_JOB_NAME=testing_job
+export SCR_CACHE_BYPASS=0
 export SCR_CACHE_SIZE=2
 
 #export SCR_CONF_FILE=~/myscr.conf
