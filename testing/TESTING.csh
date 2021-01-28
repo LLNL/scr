@@ -5,36 +5,26 @@ setenv SCR_PKG     `pwd`
 setenv SCR_BUILD   `pwd`/scr-dist
 setenv SCR_INSTALL "${SCR_BUILD}/install"
 
-# commands to debug various items
-#setenv TV /usr/global/tools/totalview/v/totalview.8X.9.9-1/bin/totalview
-#setenv TV /usr/global/tools/totalview/v/totalview.8X.8.0-4/bin/totalview
-#setenv TV totalview
-
-# To use SCR_PRESERVE_USER_DIRS features, you'll need DTCMP, which in turn needs LWGRP
-# NOTE: one must use MPI-2.2 or newer to compile LWGRP and DTCMP
-# e.g., use mvapich2-2.0 or openmpi-1.8.4 or later
-# fetch and build dependencies (LWGRP and DTCMP)
-./buildme_deps
-
-# various CFLAGS for different builds
-# build the dist tarball
-setenv CFLAGS "-g -O3 -Wall -Werror -DHIDE_TV"
-setenv CFLAGS "-g -O3 -Wall -DHIDE_TV"
-setenv CFLAGS "-g -O0 -Wall"
-
 # CORAL build instructions
 cd ${SCR_PKG}
 rm -rf ${SCR_BUILD}
 mkdir ${SCR_BUILD}
 cd ${SCR_BUILD}
-setenv CFLAGS "-g -O3"
+setenv CFLAGS "-g -O0"
+setenv depsinstalldir ${SCR_PKG}/install
 cmake \
   -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} \
-  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_VERBOSE_MAKEFILE=true \
   -DSCR_RESOURCE_MANAGER=LSF \
-  -DSCR_CACHE_BASE=/dev/shm \
-  -DSCR_CNTL_BASE=/dev/shm \
+  -DWITH_DTCMP_PREFIX=$depsinstalldir \
+  -DWITH_SPATH_PREFIX=$depsinstalldir \
+  -DWITH_KVTREE_PREFIX=$depsinstalldir \
+  -DWITH_AXL_PREFIX=$depsinstalldir \
+  -DWITH_RANKSTR_PREFIX=$depsinstalldir \
+  -DWITH_REDSET_PREFIX=$depsinstalldir \
+  -DWITH_SHUFFILE_PREFIX=$depsinstalldir \
+  -DWITH_ER_PREFIX=$depsinstalldir \
   ${SCR_PKG}
 make
 make install
@@ -45,7 +35,7 @@ rm -rf ${SCR_BUILD}
 mkdir ${SCR_BUILD}
 cd ${SCR_BUILD}
 setenv CFLAGS "-g -O0"
-setenv depsinstalldir ${SCR_PKG}/deps/install
+setenv depsinstalldir ${SCR_PKG}/install
 cmake \
   -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} \
   -DCMAKE_BUILD_TYPE=Debug \
@@ -54,7 +44,6 @@ cmake \
   -DWITH_SPATH_PREFIX=$depsinstalldir \
   -DWITH_KVTREE_PREFIX=$depsinstalldir \
   -DWITH_AXL_PREFIX=$depsinstalldir \
-  -DWITH_FILO_PREFIX=$depsinstalldir \
   -DWITH_RANKSTR_PREFIX=$depsinstalldir \
   -DWITH_REDSET_PREFIX=$depsinstalldir \
   -DWITH_SHUFFILE_PREFIX=$depsinstalldir \
@@ -64,15 +53,16 @@ make
 make install
 
 # cd to examples directory, and check that build of test programs works
-cd ${SCR_INSTALL}/share/scr/examples
-setenv OPT "-g -O0"
-make
+#cd ${SCR_INSTALL}/share/scr/examples
+#setenv OPT "-g -O0"
+#make
+cd ${SCR_BUILD}/examples
+
 #cp ~/myscr.conf .scrconf
 
-#mpicc -g -O0 -I${SCR_INSTALL}/include -I. -o test_api test_common.o test_api.c -L${SCR_INSTALL}/lib -lscr -lscr_base -lscr -lscr_base -L/usr/local/tools/zlib-1.2.6/lib -lz
-
 # get an allocation
-mxterm 4 32 120
+#mxterm 4 32 120
+salloc -N4 -ppdebug
 
 # set up initial enviroment for testing
 setenv scrbin ${SCR_INSTALL}/bin
@@ -84,19 +74,17 @@ setenv downnode `${scrbin}/scr_glob_hosts -n 1 -h "$nodelist"`
 echo "$downnode"
 setenv prefix_files ".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 
-setenv LD_LIBRARY_PATH ${SCR_INSTALL}/lib64:${SCR_PKG}/deps/install/lib
+setenv LD_LIBRARY_PATH ${SCR_INSTALL}/lib64:${SCR_PKG}/install/lib
 setenv SCR_PREFIX `pwd`
 setenv SCR_FETCH 0
 setenv SCR_FLUSH 0
 setenv SCR_DEBUG 1
 setenv SCR_LOG_ENABLE 0
 setenv SCR_JOB_NAME testing_job
+setenv SCR_CACHE_BYPASS 0
 setenv SCR_CACHE_SIZE 2
 
 #setenv SCR_CONF_FILE ~/myscr.conf
-
-#setenv BG_PERSISTMEMRESET 0
-#setenv BG_PERSISTMEMSIZE 10
 
 # clean out any cruft from previous runs
 # deletes files from cache and any halt, flush, nodes files
