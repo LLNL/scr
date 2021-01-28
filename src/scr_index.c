@@ -1181,21 +1181,18 @@ int scr_scan_filemap(const spath* path_prefix, const spath* path_filemap, int ds
      *       RANK
      *         <rank>
      *           FILE
-     *             <filename_relative_to_prefix>
-     *               SIZE
-     *                 <filesize>
-     *               CRC
-     *                 <crc> */
+     *             <filename_relative_to_prefix> */
     /* TODODSET: rank2file_hash may not exist yet */
     kvtree* list_hash = kvtree_set_kv_int(scan, SCR_SCAN_KEY_DLIST, dset_id);
     //kvtree_setf(list_hash, NULL, "%s %s %s", SCR_SCAN_KEY_MAP, cache_file_name, full_filename);
     kvtree* rank2file_hash = kvtree_get(list_hash, SCR_SUMMARY_6_KEY_RANK2FILE);
     kvtree_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, meta_ranks);
-    //kvtree_util_set_bytecount(file_hash, SCR_SUMMARY_6_KEY_SIZE, meta_filesize);
+    kvtree* rank_hash = kvtree_set_kv_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANK, rank_id);
+    kvtree_set_kv(rank_hash, SCR_SUMMARY_6_KEY_FILE, relative_filename);
 
     uLong meta_crc;
     if (scr_meta_get_crc32(meta, &meta_crc) == SCR_SUCCESS) {
-    //  kvtree_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, meta_crc);
+      //kvtree_util_set_crc32(file_hash, SCR_SUMMARY_6_KEY_CRC, meta_crc);
     }
 
     scr_meta_delete(&meta);
