@@ -10,7 +10,8 @@ cd ${SCR_PKG}
 rm -rf ${SCR_BUILD}
 mkdir ${SCR_BUILD}
 cd ${SCR_BUILD}
-setenv CFLAGS "-g -O0"
+export CFLAGS="-g -O0"
+export depsinstalldir=${SCR_PKG}/install
 cmake \
   -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} \
   -DCMAKE_BUILD_TYPE=Debug \
@@ -34,7 +35,7 @@ rm -rf ${SCR_BUILD}
 mkdir ${SCR_BUILD}
 cd ${SCR_BUILD}
 export CFLAGS="-g -O0"
-export depsinstalldir=${SCR_PKG}/deps/install
+export depsinstalldir=${SCR_PKG}/install
 cmake \
   -DCMAKE_INSTALL_PREFIX=${SCR_INSTALL} \
   -DCMAKE_BUILD_TYPE=Debug \
@@ -57,6 +58,10 @@ make install
 #make
 cd ${SCR_BUILD}/examples
 
+# get an allocation
+#mxterm 4 32 120
+salloc -N4 -ppdebug
+
 # set up initial enviroment for testing
 export scrbin=${SCR_INSTALL}/bin
 export jobid=`${scrbin}/scr_env --jobid`
@@ -67,8 +72,8 @@ export downnode=`${scrbin}/scr_glob_hosts -n 1 -h "$nodelist"`
 echo $downnode
 export prefix_files=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 
-#export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/deps/install/lib:/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le/lib
-export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/deps/install/lib
+#export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/install/lib:/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le/lib
+export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/install/lib
 export SCR_PREFIX=`pwd`
 export SCR_FETCH=0
 export SCR_FLUSH=0
@@ -79,9 +84,6 @@ export SCR_CACHE_BYPASS=0
 export SCR_CACHE_SIZE=2
 
 #export SCR_CONF_FILE=~/myscr.conf
-
-#export BG_PERSISTMEMRESET=0
-#export BG_PERSISTMEMSIZE=10
 
 # clean out any cruft from previous runs
 # deletes files from cache and any halt, flush, nodes files
