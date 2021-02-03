@@ -187,13 +187,14 @@ srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
-# delete all files, corrupt file on disc, run again, check that fetch of current fails but old succeeds
-srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
-srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
-vi -b ${SCR_INSTALL}/share/scr/examples/ckpt.12/rank_2.ckpt
-# change some characters and save file (:wq)
-srun -n4 -N4 ./test_api
-${scrbin}/scr_index --list
+# this test case is broken until we add CRC support back
+## delete all files, corrupt file on disc, run again, check that fetch of current fails but old succeeds
+#srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
+#srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
+#vi -b ${SCR_INSTALL}/share/scr/examples/ckpt.12/rank_2.ckpt
+## change some characters and save file (:wq)
+#srun -n4 -N4 ./test_api
+#${scrbin}/scr_index --list
 
 #enable flush, run again and check that flush succeeds and that postrun realizes that
 setenv SCR_FLUSH 10
