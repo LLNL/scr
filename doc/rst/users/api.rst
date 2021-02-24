@@ -22,9 +22,9 @@ SCR supplies API calls that enable the application to specify
 limits on its data access in both time and space.
 Start and complete calls indicate when an application needs to write or read its data.
 Files in the dataset cannot be accessed outside of these markers.
-Additionally, for best performance, each MPI process may only read files written
+Additionally, for best performance, each MPI process may only access files written
 by itself or another process having the same MPI rank in a previous run.
-In this mode, an MPI process cannot read files written by a process having a different MPI rank.
+In this mode, an MPI process cannot access files written by a process having a different MPI rank.
 SCR can provide substantial improvements in I/O performance by
 enabling an application to specify its limits on when and where it needs to access its data.
 
@@ -40,56 +40,11 @@ such as computing redundancy data.
 
 In the sections below, we show the function prototypes for C and Fortran.
 Applications written in C should include ":code:`scr.h`",
-and Fortran should include ":code:`scrf.h`".
-All functions return :code:`SCR_SUCCESS` if successful.
+and Fortran applications should include ":code:`scrf.h`".
+Unless otherwise noted, all functions return :code:`SCR_SUCCESS` if successful.
 
-General API
------------
-
-SCR_Config
-^^^^^^^^^^
-
-::
-
-  const char* SCR_Config(const char* config);
-  const char* SCR_Configf(const char* format, ...);
-
-.. code-block:: fortran
-  
-  SCR_CONFIG(CONFIG, VAL, IERROR)
-    CHARACTER*(*) CONFIG , VAL
-    INTEGER IERROR
-
-Configure the SCR library.
-Most of the SCR configuration parameters listed in :ref:`sec-config` can be set at run time using :code:`SCR_Config`.
-The syntax to set parameters matches the syntax used in SCR configuration files.
-The application can make multiple calls to :code:`SCR_Config`.
-All calls to :code:`SCR_Config` must come before the application calls :code:`SCR_Init`.
-This function is collective, and all processes must provide identical values for :code:`config`.
-
-To set a parameter,
-one specifies a parameter name and its value in the form of a :code:`key=value` string in the :code:`config` argument.
-For example, passing the string :code:`SCR_FLUSH=10` sets :code:`SCR_FLUSH` to the value of 10.
-
-To query a value, one specifies the just the parameter name as the string in :code:`config`.
-For example, one can specify the string :code:`SCR_FLUSH` to query its current value.
-For C applications, the call allocates and returns a pointer to a string holding the value of the parameter.
-The caller is responsible for calling :code:`free` to release the returned string.
-For Fortran applications, the value is returned as a string in the :code:`VAL` argument.
-
-Multi-item SCR configuration parameters like :code:`CKPT` can be set using a
-sequence of :code:`key=value` pairs that are separated by spaces.
-For example, to define a :code:`CKPT` redundancy descriptor,
-one can pass a string such as :code:`CKPT=0 TYPE=XOR SET_SIZE=16`.
-
-To query a subvalue, one must specify the top level :code:`key=value` pair followed
-by the name of the key being queried.
-For instance, to get the type of the redundancy scheme of redundancy descriptor :code:`0`,
-one can specify the string :code:`CKPT=0 TYPE`.
-
-For C applications, :code:`SCR_Configf` provides a formatted string variant of :code:`SCR_Config`.
-The caller can use sprintf-style formatting patterns to define the string, as in :code:`SCR_Configf("SCR_FLUSH=%d", 10)`.
-This call otherwise behaves the same as :code:`SCR_Config`.
+Startup and Shutdown API
+------------------------
 
 SCR_Init
 ^^^^^^^^
@@ -133,99 +88,81 @@ If :code:`SCR_FLUSH` is enabled,
 It updates the halt file to indicate that :code:`SCR_Finalize` has been called.
 This halt condition prevents the job from restarting (see :ref:`sec-halt`).
 
-SCR_Get_version
-^^^^^^^^^^^^^^^
-
-::
-
-  char* SCR_Get_version(void);
-  
-.. code-block:: fortran
-  
-  SCR_GET_VERSION(VERSION, IERROR)
-    CHARACTER*(*) VERSION 
-    INTEGER IERROR
-
-This function returns a string that indicates the version number
-of SCR that is currently in use.
-The caller must not free the returned version string.
-
 SCR_Config
-~~~~~~~~~~
+^^^^^^^^^^
 
 ::
 
- const char* SCR_Config(const char* config);
-
-.. code-block:: fortran
-
-  SCR_CONFIG(CONFIG, CONFIG_VALUE, IERROR)
-    CHARACTER*(*), INTENT(IN) :: CONFIG
-    CHARACTER*(*), INTENT(OUT) :: CONFIG_VALUE
-    INTEGER, INTENT(OUT) :: IERROR
-
-Programmatically change configuration options.
-
-:code:`config` is a string of the form of a line in a configurartion file if it
-consists only of KEY=VALUE pairs then a value is set (including all parent
-values) if it ends in "KEY" then a copy of the value of KEY is returned, which
-must be free()ed. If :code:`config` ends in "KEY=" then KEY is marked as
-removed (value of :code:`NULL`)
-
-In C the return value is the value of the gotten KEY or the last VALUE set,
-:code:`NULL` is returned on failure.
-
-In Fortran :code:`CONFIG_VALUE` is an output buffer use to store the result and
-:code:`IERROR` is :code:`SCR_SUCCES` only on success.
-
-SCR_Configf
-~~~~~~~~~~~
-
-::
-
+  const char* SCR_Config(const char* config);
   const char* SCR_Configf(const char* format, ...);
 
-Formatted version of :code:`SCR_Config`, for printf-like formatting.
-
-This is a convenience function equivalent to first passing its arguments to
-:code:`sprintf` and the resulting string to :code:`SCR_Config`.
-
-::
-
-  char config[MAX_LEN];
-  vsprintf(config, format, va_args);
-  SCR_Config(config);
-
-
-SCR_Should_exit
-^^^^^^^^^^^^^^^
-
-::
-
-  int SCR_Should_exit(int* flag);
-  
 .. code-block:: fortran
   
-  SCR_SHOULD_EXIT(FLAG, IERROR)
-    INTEGER FLAG, IERROR
+  SCR_CONFIG(CONFIG, VAL, IERROR)
+    CHARACTER*(*) CONFIG , VAL
+    INTEGER IERROR
 
-:code:`SCR_Should_exit` provides a portable way for an application
-to determine whether it should halt its execution.
-This function is passed a pointer to an integer in :code:`flag`.
-Upon returning from :code:`SCR_Should_exit`,
-:code:`flag` is set to the value :code:`1` if the application should stop,
-and it is set to :code:`0` otherwise.
-The call returns the same value in :code:`flag` on all processes.
-It is recommended to call this function after each checkpoint.
+Configure the SCR library.
+Most of the SCR configuration parameters listed in :ref:`sec-config` can be set at run time using :code:`SCR_Config`.
+The syntax to set parameters matches the syntax used in SCR configuration files.
+The application can make multiple calls to :code:`SCR_Config`.
+All calls to :code:`SCR_Config` must come before the application calls :code:`SCR_Init`.
+This function is collective, and all processes must provide identical values for :code:`config`.
 
-It is critical for a job to stop early enough to leave time to copy datasets
-from cache to the parallel file system before the allocation expires.
-One can configure how early the job should exit within its allocation
-by setting the :code:`SCR_HALT_SECONDS` parameter.
+To set a parameter,
+one specifies a parameter name and its value in the form of a :code:`key=value` string as the :code:`config` argument.
+For example, passing the string :code:`SCR_FLUSH=10` sets :code:`SCR_FLUSH` to the value of 10.
+If one sets the same parameter with multiple calls to :code:`SCR_Config`,
+SCR applies the most recent value.
+When setting a parameter, for C applications, :code:`SCR_Config` always returns :code:`NULL`.
+For Fortran applications, :code:`IERROR` is always set to :code:`SCR_SUCCESS`.
 
-This call also enables a running application to react to external commands.
-For instance, if the application has been instructed to halt using the :code:`scr_halt` command,
-then :code:`SCR_Should_exit` relays that information.
+To query a value, one specifies the just the parameter name as the string in :code:`config`.
+For example, one can specify the string :code:`SCR_FLUSH` to query its current value.
+When querying a value, for C applications,
+the call allocates and returns a pointer to a string holding the value of the parameter.
+The caller is responsible for calling :code:`free` to release the returned string.
+If the parameter has not been set, :code:`NULL` is returned.
+For Fortran applications, the value is returned as a string in the :code:`VAL` argument.
+
+To unset a value, one specifies the parameter name with an empty value
+in the form of a :code:`key=` string as the :code:`config` argument.
+For example, to unset the value assigned to :code:`SCR_FLUSH`, specify the string :code:`SCR_FLUSH=`.
+Unsetting a parameter removes any value that was assigned by a prior call to :code:`SCR_Config`,
+but it does not unset the parameter value that may have been set through other means,
+like an environment variable or in a configuration file (see :ref:`sec-config`).
+When unsetting a value, for C applications, :code:`SCR_Config` always returns :code:`NULL`.
+For Fortran applications, :code:`IERROR` is always set to :code:`SCR_SUCCESS`.
+
+Multi-item SCR configuration parameters like :code:`CKPT` can be set using a
+sequence of :code:`key=value` pairs that are separated by spaces.
+For example, to define a :code:`CKPT` redundancy descriptor,
+one can pass a string such as :code:`CKPT=0 TYPE=XOR SET_SIZE=16`.
+
+To query a subvalue, one must specify the top level :code:`key=value` pair followed
+by the name of the key being queried.
+For instance, to get the type of the redundancy scheme of redundancy descriptor :code:`0`,
+one can specify the string :code:`CKPT=0 TYPE`.
+
+For C applications, :code:`SCR_Configf` provides a formatted string variant of :code:`SCR_Config`.
+The caller can use sprintf-style formatting patterns to define the string, as in :code:`SCR_Configf("SCR_FLUSH=%d", 10)`.
+This call otherwise behaves the same as :code:`SCR_Config`.
+
+File Routing API
+----------------
+
+When files are under control of SCR,
+they may be written to or exist on different levels of the storage hierarchy 
+at different points in time.
+For example, a checkpoint might be written first to the RAM disk of 
+a compute node and then later transferred to the parallel file system by SCR.
+In order for an application to discover where
+a file should be written to or read from,
+one calls the :code:`SCR_Route_file` routine.
+
+This section describes general information about :code:`SCR_Route_file`.
+The precise behavior of :code:`SCR_Route_file` varies depending on the current state of SCR.
+Sections below build on the definition in this section depending on the calling context.
 
 SCR_Route_file
 ^^^^^^^^^^^^^^
@@ -240,56 +177,30 @@ SCR_Route_file
     CHARACTER*(*) NAME, FILE
     INTEGER IERROR
 
-When files are under control of SCR,
-they may be written to or exist on different levels of the storage hierarchy 
-at different points in time.
-For example, a checkpoint might be written first to the RAM disk of 
-a compute node and then later transferred to the parallel file system by SCR.
-In order for an application to discover where
-a file should be written to or read from,
-one calls the :code:`SCR_Route_file` routine.
+A process calls :code:`SCR_Route_file` to obtain the
+full path and file name it must use to access a file.
+A call to :code:`SCR_Route_file` is local to the calling process;
+it is not a collective call.
 
-A process calls :code:`SCR_Route_file` to obtain the full path and file name
-it must use to access a file.
 The name of the file that the process intends to access must be passed in the :code:`name` argument.
-This should be a relative or absolute path to the file where it would appear on the parallel file system.
+This must be a relative or absolute path that specifies the location of the file on the parallel file system.
+If given a relative path, SCR prepends the current working directory at the time :code:`SCR_Route_file` is called.
+This path must resolve to a location under the prefix directory.
+
 A pointer to a character buffer of at least :code:`SCR_MAX_FILENAME` bytes must be passed in :code:`file`.
 When a call to :code:`SCR_Route_file` returns,
 the full path and file name to access the file named in :code:`name` is written
 to the buffer pointed to by :code:`file`.
 The process must use the character string returned in :code:`file` to access the file.
-A call to :code:`SCR_Route_file` is local to the calling process; it is not a collective call.
-
-The exact behavior of :code:`SCR_Route_file` varies depending on the current state of SCR.
-
-When called within an output phase, between :code:`SCR_Start_output` and :code:`SCR_Complete_output`,
-:code:`SCR_Route_file` registers the file as part of the output dataset.
-A process does not need to create any directories listed in the string returned in :code:`file`.
-The SCR implementation creates any necessary directories before it returns from :code:`SCR_Route_file`.
-
-When called within a restart phse, between :code:`SCR_Start_restart` and :code:`SCR_Complete_restart`,
-SCR also checks whether the file exists and is readable.
-In this mode, :code:`SCR_Route_file` returns an error code if the file does not exist or is not readable.
-
-Also during restart, for backwards compatibility,
-the caller may provide just a file name in :code:`name`,
-even if prepending the current working directory to the file name
-does not resolve to the correct path to the file on the parallel file system.
-Using just the file name, SCR internally looks up the full path to the file
-using SCR metadata for the currently loaded checkpoint.
-This usage is deprecated, and it may be not be supported in future releases.
-It is recommended that one construct a proper relative or absolute path to the checkpoint file.
 
 If :code:`SCR_Route_file` is called outside of output and restart phases, i.e., outside of a Start/Complete pair,
 the string in :code:`name` is copied verbatim into the output buffer :code:`file`.
-SCR does not create any directories in this mode nor does it check whether the file is readable.
 
 In the current implementation,
 SCR only changes the directory portion of :code:`name` when storing files in cache.
 It extracts the base name of the file by removing any directory components in :code:`name`.
 Then it prepends a cache directory to the base file name
 and returns the full path and file name in :code:`file`.
-
 
 Checkpoint/Output API
 ---------------------
@@ -395,6 +306,30 @@ In the current implementation, :code:`SCR_Start_output` holds all processes
 at an :code:`MPI_Barrier` to ensure that all processes are ready to start the
 output before it deletes cached files from a previous checkpoint.
 
+SCR_Route_file
+^^^^^^^^^^^^^^
+
+::
+
+  int SCR_Route_file(const char* name, char* file);
+  
+.. code-block:: fortran
+  
+  SCR_ROUTE_FILE(NAME, FILE, IERROR)
+    CHARACTER*(*) NAME, FILE
+    INTEGER IERROR
+
+A process must call :code:`SCR_Route_file` for each file it writes
+as part of the output dataset.
+It is valid for a process to call :code:`SCR_Route_file` multiple times for the same file.
+
+When called within an output phase, between :code:`SCR_Start_output` and :code:`SCR_Complete_output`,
+:code:`SCR_Route_file` registers the file as part of the output dataset.
+
+A process does not need to create any directories listed in the string returned in :code:`file`.
+The SCR implementation creates any necessary directories before it returns from :code:`SCR_Route_file`.
+After returning from :code:`SCR_Route_file`, the process may create and open the target file for writing.
+
 SCR_Complete_output
 ^^^^^^^^^^^^^^^^^^^
 
@@ -494,6 +429,36 @@ when :code:`SCR_Have_restart` indicates that there is a checkpoint to read.
 Each call to :code:`SCR_Start_restart` must be followed by a corresponding call
 to :code:`SCR_Complete_restart`.
 
+SCR_Route_file
+^^^^^^^^^^^^^^
+
+::
+
+  int SCR_Route_file(const char* name, char* file);
+  
+.. code-block:: fortran
+  
+  SCR_ROUTE_FILE(NAME, FILE, IERROR)
+    CHARACTER*(*) NAME, FILE
+    INTEGER IERROR
+
+A process must call :code:`SCR_Route_file` for each file it reads during restart.
+It is valid for a process to call :code:`SCR_Route_file` multiple times for the same file.
+
+When called within a restart phase, between :code:`SCR_Start_restart` and :code:`SCR_Complete_restart`,
+SCR checks whether the file exists and is readable.
+In this mode, :code:`SCR_Route_file` returns an error code if the file does not exist or is not readable.
+
+It is recommended to provide the relative or absolute path to the file
+under the prefix directory in :code:`name`.
+However, for backwards compatibility,
+the caller may provide only a file name in :code:`name`,
+even if prepending the current working directory to the file name
+does not resolve to the correct path to the file on the parallel file system.
+Using just the file name, SCR internally looks up the full path to the file
+using SCR metadata for the currently loaded checkpoint.
+This usage is deprecated, and it may be not be supported in future releases.
+
 SCR_Complete_restart
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -529,6 +494,56 @@ or it exhausts all known checkpoints.
 Each call to :code:`SCR_Complete_restart` must be preceded by a corresponding call
 to :code:`SCR_Start_restart`.
 
+General API
+-----------
+
+SCR_Get_version
+^^^^^^^^^^^^^^^
+
+::
+
+  char* SCR_Get_version(void);
+  
+.. code-block:: fortran
+  
+  SCR_GET_VERSION(VERSION, IERROR)
+    CHARACTER*(*) VERSION 
+    INTEGER IERROR
+
+This function returns a string that indicates the version number
+of SCR that is currently in use.
+The caller must not free the returned version string.
+
+SCR_Should_exit
+^^^^^^^^^^^^^^^
+
+::
+
+  int SCR_Should_exit(int* flag);
+  
+.. code-block:: fortran
+  
+  SCR_SHOULD_EXIT(FLAG, IERROR)
+    INTEGER FLAG, IERROR
+
+:code:`SCR_Should_exit` provides a portable way for an application
+to determine whether it should halt its execution.
+This function is passed a pointer to an integer in :code:`flag`.
+Upon returning from :code:`SCR_Should_exit`,
+:code:`flag` is set to the value :code:`1` if the application should stop,
+and it is set to :code:`0` otherwise.
+The call returns the same value in :code:`flag` on all processes.
+It is recommended to call this function after each checkpoint.
+
+It is critical for a job to stop early enough to leave time to copy datasets
+from cache to the prefix directory before the allocation expires.
+One can configure how early the job should exit within its allocation
+by setting the :code:`SCR_HALT_SECONDS` parameter.
+
+This call also enables a running application to react to external commands.
+For instance, if the application has been instructed to halt using the :code:`scr_halt` command,
+then :code:`SCR_Should_exit` relays that information.
+
 Dataset Management API
 ----------------------
 
@@ -558,7 +573,7 @@ The application should pass the name of the checkpoint it restarted from in the 
 This enables SCR to initialize its internal state to properly order
 any new datasets that the application creates after it restarts.
 
-An application should not call :code:`SCR_Current` if does restart using the SCR Restart API.
+An application should not call :code:`SCR_Current` if it restarts using the SCR Restart API.
 
 SCR_Delete
 ^^^^^^^^^^
