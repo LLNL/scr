@@ -30,6 +30,7 @@ repos=(https://github.com/ECP-VeloC/KVTree.git
     https://github.com/ECP-VeloC/redset.git
     https://github.com/ECP-VeloC/shuffile.git
     https://github.com/ECP-VeloC/er.git
+    https://github.com/chaos/pdsh.git
 )
 
 for i in "${repos[@]}" ; do
@@ -125,6 +126,13 @@ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE
 make -j `nproc`
 make install
 cd ../..
+
+cd pdsh
+./bootstrap
+./configure --prefix=$INSTALL_DIR
+make
+make install
+cd ..
 
 cd "$ROOT"
 mkdir -p build
