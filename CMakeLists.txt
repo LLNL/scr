@@ -229,6 +229,7 @@ ADD_SUBDIRECTORY(scripts)
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(doc)
 ADD_SUBDIRECTORY(examples)
+ADD_SUBDIRECTORY(python)
 
 # Generate config.h with all our build #defs
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/cmake/config.h.in ${PROJECT_BINARY_DIR}/config.h)
