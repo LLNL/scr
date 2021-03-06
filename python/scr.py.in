@@ -1,0 +1,151 @@
+from cffi import FFI
+
+ffi = FFI()
+
+# Describe the data type and function prototype to cffi.
+ffi.cdef('''
+/* constants returned from SCR functions for success and failure */
+#define SCR_SUCCESS 0
+
+/* maximum characters in a filename returned by SCR */
+#define SCR_MAX_FILENAME 1024
+
+/* bit flags to be OR'd in SCR_Start_output */
+#define SCR_FLAG_NONE       0 /* empty flags */
+#define SCR_FLAG_CHECKPOINT 1 /* means that job can be restarted using this dataset */
+#define SCR_FLAG_OUTPUT     2 /* means this dataset must be flushed to the file system */
+
+/* initialize the SCR library */
+int SCR_Init(void);
+
+/* shut down the SCR library */
+int SCR_Finalize(void);
+
+const char* SCR_Config(const char* config);
+
+/* determine the path and filename to be used to open a file */
+int SCR_Route_file(const char* name, char* file);
+
+/* determine whether SCR has a restart available to read,
+ * and get name of restart if one is available */
+int SCR_Have_restart(int* flag, char* name);
+
+/* inform library that restart is starting, get name of 
+ * restart that is available */
+int SCR_Start_restart(char* name);
+
+/* inform library that the current restart is complete */
+int SCR_Complete_restart(int valid);
+
+/* determine whether a checkpoint should be taken at the current time */
+int SCR_Need_checkpoint(int* flag);
+
+/* inform library that a new output dataset is starting */
+int SCR_Start_output(const char* name, int flags);
+
+/* inform library that the current dataset is complete */
+int SCR_Complete_output(int valid);
+
+/* set named dataset as current in index,
+ * and initialize SCR internal counters to assume job
+ * has restarted from this checkpoint */
+int SCR_Current(const char* name);
+
+/* drop named dataset from index */
+int SCR_Drop(const char* name);
+
+/* delete files for named dataset */
+int SCR_Delete(const char* name);
+
+/* query whether it is time to exit */
+int SCR_Should_exit(int* flag);
+''')
+
+libscr = ffi.dlopen('@X_LIBDIR@/libscr.so')
+#print('Loaded lib {0}'.format(libscr))
+
+FLAG_NONE       = libscr.SCR_FLAG_NONE
+FLAG_CHECKPOINT = libscr.SCR_FLAG_CHECKPOINT
+FLAG_OUTPUT     = libscr.SCR_FLAG_OUTPUT
+
+# determine whether we have python 2 or 3
+import sys
+PY3 = (sys.version_info[0] >= 3)
+
+# encode python string into C char array (char[])
+def cstr(val):
+  if PY3:
+    return val.encode("utf-8")
+  return val
+
+# decode C char array into python string
+def pystr(cstr):
+  if PY3:
+    return ffi.string(cstr).decode("utf-8")
+  return ffi.string(cstr)
+
+def init():
+  rc = libscr.SCR_Init()
+  if rc != libscr.SCR_SUCCESS:
+    raise RuntimeError("Failed to initialize SCR")
+
+def finalize():
+  libscr.SCR_Finalize()
+
+def config(conf):
+  val = libscr.SCR_Config(cstr(conf))
+  if val != ffi.NULL:
+    return pystr(val)
+  return None
+
+def route_file(fname):
+  ptr = ffi.new("char[1024]")
+  libscr.SCR_Route_file(cstr(fname), ptr)
+  return pystr(ptr)
+
+def have_restart():
+  flag_ptr = ffi.new("int[1]")
+  name_ptr = ffi.new("char[1024]")
+  libscr.SCR_Have_restart(flag_ptr, name_ptr)
+  if flag_ptr[0]:
+    return pystr(name_ptr)
+  return None
+
+def start_restart():
+  ptr = ffi.new("char[1024]")
+  libscr.SCR_Start_restart(ptr)
+  return pystr(ptr)
+
+def complete_restart(valid):
+  rc = libscr.SCR_Complete_restart(valid)
+  return rc == libscr.SCR_SUCCESS
+
+def need_checkpoint():
+  ptr = ffi.new("int[1]")
+  libscr.SCR_Need_checkpoint(ptr)
+  return ptr[0]
+
+def start_output(name, flags):
+  rc = libscr.SCR_Start_output(cstr(name), flags)
+  return rc == libscr.SCR_SUCCESS
+
+def complete_output(valid):
+  rc = libscr.SCR_Complete_output(valid)
+  return rc == libscr.SCR_SUCCESS
+
+def current(name):
+  rc = libscr.SCR_Current(cstr(name))
+  return rc == libscr.SCR_SUCCESS
+
+def drop(name):
+  rc = libscr.SCR_Drop(cstr(name))
+  return rc == libscr.SCR_SUCCESS
+
+def delete(name):
+  rc = libscr.SCR_Delete(cstr(name))
+  return rc == libscr.SCR_SUCCESS
+
+def should_exit():
+  ptr = ffi.new("int[1]")
+  libscr.SCR_Should_exit(ptr)
+  return ptr[0]
