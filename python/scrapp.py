@@ -36,18 +36,18 @@ while True:
   print("restart route: ", fname, "-->", newfname)
 
   # read checkpoint file
-  valid = 1
+  valid = True
   try:
     with open(newfname, "r") as f:
       data = f.readlines()
       print(str(data))
   except:
     # failed to read file
-    valid = 0
+    valid = False
 
   # test: fake a bad file on rank 0 for timestep 6
   if rank == 0 and timestep == 6:
-    valid = 0
+    valid = False
 
   # check whether everyone read their checkpoint file successfully
   if scr.complete_restart(valid):
@@ -81,14 +81,14 @@ while timestep < laststep:
     print("output route: ", fname, "-->", newfname)
   
     # write checkpoint file
-    valid = 1
+    valid = True
     try:
       with open(newfname, "w") as f:
         f.write('time=' + str(timestep) + "\n")
         f.write('rank=' + str(rank) + "\n")
     except:
       # failed to write file
-      valid = 0
+      valid = False
   
     # complete the checkpoint phase
     rc = scr.complete_output(valid)
