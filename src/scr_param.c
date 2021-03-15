@@ -521,7 +521,7 @@ kvtree* scr_param_set(char* name, const char* value)
 {
   /* cannot set parameters that are used by scripts */
   if (kvtree_get(scr_no_app_hash, name)) {
-    scr_warn("when using SCR scripts, %s should not be changed at runtime",
+    scr_dbg(1, "when using SCR scripts, %s should not be changed at runtime",
       name
     );
   }
@@ -540,7 +540,7 @@ kvtree* scr_param_set_hash(char* name, kvtree* hash_value)
 {
   /* cannot set parameters that are used by scripts */
   if (kvtree_get(scr_no_app_hash, name)) {
-    scr_warn("%s should not be changed at runtime if also using SCR scripts",
+    scr_dbg(1, "%s should not be changed at runtime if also using SCR scripts",
       name
     );
   }
