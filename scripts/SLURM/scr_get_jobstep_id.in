@@ -27,6 +27,7 @@ my $currjobid=-1; # the return value will be -1 if not found
 
 
 foreach my $line (@output){
+  $line=~ s/^\s+//;
   my @fields = split /\s+/, $line;
   #print "@fields[0]\n";
   my @jobidparts=split /\./, $fields[0];
