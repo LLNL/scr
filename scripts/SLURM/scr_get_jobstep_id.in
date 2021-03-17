@@ -29,9 +29,9 @@ my $currjobid=-1; # the return value will be -1 if not found
 foreach my $line (@output){
   $line=~ s/^\s+//;
   my @fields = split /\s+/, $line;
-  #print "@fields[0]\n";
+  #print ("fields ",join(",",@fields),"\n");
   my @jobidparts=split /\./, $fields[0];
-  #print "@jobidparts\n";
+  #print ("jobidparts: ", join(",",@jobidparts),"\n");
   # the first item is the job step id
   # if it is JOBID.0, then it is the allocation ID and we don't want that
   # if it's not 0, then assume it's the one we're looking for
