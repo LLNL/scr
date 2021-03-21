@@ -46,8 +46,7 @@ Each group is given a unique name.
 The library creates two groups by default: :code:`NODE` and :code:`WORLD`.
 The :code:`NODE` group consists of all processes on the same compute node,
 and :code:`WORLD` consists of all processes in the run.
-The user or system administrator can create additional groups
-via configuration files (see :ref:`sec-config`).
+One can define additional groups via configuration files (see :ref:`sec-config`).
 
 The SCR library must also track details about each class of storage it can access.
 For each available storage class, SCR needs to know the associated directory prefix,
@@ -65,8 +64,7 @@ The assumption is made that :code:`/dev/shm` is mounted as a local file system
 on each compute node.
 On Linux clusters, :code:`/dev/shm` is typically :code:`tmpfs` (RAM disk),
 which implements a file system using main memory as the backing storage.
-Additional store descriptors can be defined by the user or
-system administrator in configuration files (see :ref:`sec-config`).
+Additional store descriptors can be defined in configuration files (see :ref:`sec-config`).
 
 Finally, SCR defines *redundancy descriptors* to associate a redundancy scheme
 with a class of storage devices and a group of processes that are likely to fail at the same time.
@@ -79,8 +77,7 @@ It assumes that processes on the same node are likely to fail at the same time (
 It also assumes that datasets can be cached in :code:`/dev/shm`,
 which is assumed to be storage local to each compute node.
 It applies an :code:`XOR` redundancy scheme using a group size of 8.
-Additional redundancy descriptors may be defined by the user
-or system administrator (see :ref:`sec-config`).
+Additional redundancy descriptors may be defined in configuration files (see :ref:`sec-config`).
 
 .. _sec-checkpoint_directories:
 
@@ -95,7 +92,7 @@ see the example presented in :ref:`sec-directories_example`.
 The *control directory* is where SCR writes files to store its internal state about the current run.
 This directory is expected to be stored in node-local storage.
 SCR writes multiple, small files in the control directory,
-and it may access these files frequently.
+and it accesses these files frequently.
 It is best to configure this directory to be in node-local RAM disk.
 
 To construct the full path of the control directory,
@@ -187,13 +184,13 @@ which trade off performance, storage space, and reliability:
 
 * :code:`Single` - each checkpoint file is written to storage accessible to the local process
 * :code:`Partner` - each checkpoint file is written to storage accessible to the local process,
-  and a full copy of each file is written to storage accessible to a partner process from another failure group
+  and a full copy of each file is written to storage accessible to one or more partner processes from another failure group
 * :code:`XOR` - each checkpoint file is written to storage accessible to the local process,
   XOR parity data are computed from checkpoints of a set of processes from different failure groups,
   and the parity data are stored among the set.
 * :code:`RS` - each checkpoint file is written to storage accessible to the local process,
   and Reed-Solomon encoding data are computed from checkpoints of a set of processes from different failure groups,
-  and the parity data are stored among the set.
+  and the encoding data are stored among the set.
 
 With :code:`Single`, SCR writes each checkpoint file in storage accessible to the local process.
 It requires sufficient space to store the maximum checkpoint file size.
@@ -205,11 +202,13 @@ However, it can withstand failures that kill the application processes
 but leave the node intact, such as application bugs and file I/O errors.
 
 With :code:`Partner`, SCR writes checkpoint files to storage accessible to the local process,
-and it also copies each checkpoint file to storage accessible to a partner process from another failure group.
-This scheme is slower than :code:`Single`, and it requires twice the storage space.
+and it also copies each checkpoint file to storage accessible to one or more partner processes from another failure group.
+:code:`Partner` defaults to use a single copy,
+but one may increase the replica count up to one less than the size of the failure group.
+This scheme is slower than :code:`Single`, and it requires at least twice the storage space.
 However, it is capable of withstanding failures that disable a storage device.
 In fact, it can withstand failures of multiple devices,
-so long as a device and the device holding the copy do not fail simultaneously.
+so long as a device and all devices holding the replicas do not fail simultaneously.
 
 With :code:`XOR`, SCR defines sets of processes
 where members within a set are selected from different failure groups.
@@ -228,7 +227,7 @@ One may configure this scheme with the number of failures to tolerate within eac
 
 Computationally, :code:`XOR` is more expensive than :code:`Partner`,
 but it requires less storage space.
-Whereas :code:`Partner` must store two full checkpoint files,
+Whereas :code:`Partner` must store at least two full checkpoint files,
 :code:`XOR` stores one full checkpoint file plus one XOR parity segment,
 where the segment size is roughly :math:`1/(N-1)` times the size of a checkpoint file for a set of size N.
 Similarly, :code:`RS` is computationally more expensive than :code:`XOR`,
