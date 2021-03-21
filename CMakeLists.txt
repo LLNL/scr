@@ -30,6 +30,13 @@ SET(SCR_CACHE_BASE "/dev/shm" CACHE PATH "Default base path for SCR cache direct
 SET(SCR_CNTL_BASE "/dev/shm" CACHE PATH "Default base path for SCR control directory")
 SET(SCR_CONFIG_FILE "/etc/scr/scr.conf" CACHE FILEPATH "Default full path and filename for SCR config file")
 
+SET(SCR_LOG_ENABLE "0" CACHE BOOL "Whether to enable logging of any type")
+SET(SCR_LOG_TXT_ENABLE "1" CACHE BOOL "Whether to enable text file logging")
+SET(SCR_LOG_SYSLOG_ENABLE "1" CACHE BOOL "Whether to enable syslog logging")
+SET(SCR_LOG_SYSLOG_PREFIX "SCR" CACHE STRING "String to use as prefix on all syslog messages")
+SET(SCR_LOG_SYSLOG_FACILITY "LOG_LOCAL7" CACHE STRING "Facility to use on syslog messages (see man openlog)")
+SET(SCR_LOG_SYSLOG_LEVEL "LOG_INFO" CACHE STRING "Level to use on all syslog messages (see man openlog)")
+
 SET(SCR_FILE_LOCK "FLOCK" CACHE STRING "Specify type of file locking to use (FLOCK FCNTL NONE)")
 SET_PROPERTY(CACHE SCR_FILE_LOCK PROPERTY STRINGS FLOCK FCNTL NONE)
 
