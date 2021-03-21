@@ -20,7 +20,7 @@
  * Defines for checkpoint copy type later below, don't change this defines.
  * ========================================================================= */
 
-/* redundancy shemes: enum as powers of two for binary and/or operations,
+/* redundancy schemes: enum as powers of two for binary and/or operations,
  * don't change these */
 #define SCR_COPY_NULL    (0)
 #define SCR_COPY_SINGLE  (1)
@@ -274,15 +274,6 @@
 /* max percent runtime to spend on checkpointing, set to 0 to disable */
 #ifndef SCR_CHECKPOINT_OVERHEAD
 #define SCR_CHECKPOINT_OVERHEAD (0)
-#endif
-
-/* =========================================================================
- * The following applies to the scr_transfer process.
- * ========================================================================= */
-
-/* number of seconds to sleep between checking the transfer file */
-#ifndef SCR_TRANSFER_SECS
-#define SCR_TRANSFER_SECS (60.0)
 #endif
 
 /* =========================================================================
