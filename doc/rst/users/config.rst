@@ -246,6 +246,17 @@ The table in this section specifies the full set of SCR configuration parameters
      - :code:`LOG_INFO`
      - Level value to be used in syslog messages.
 
+.. The CRC support for data integrity needs to be refreshed after refactoring to components.
+..   * - :code:`SCR_CRC_ON_COPY`
+     - 0
+     - Set to 1 to enable CRC32 checks when copying files during the redundancy scheme.
+   * - :code:`SCR_CRC_ON_DELETE`
+     - 0
+     - Set to 1 to enable CRC32 checks when deleting files from cache.
+   * - :code:`SCR_CRC_ON_FLUSH`
+     - 1
+     - Set to 0 to disable CRC32 checks during fetch and flush operations.
+
 .. list-table:: SCR parameters
    :widths: 10 10 40
    :header-rows: 1
@@ -407,15 +418,6 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_FILE_BUF_SIZE`
      - 1048576
      - Specify the number of bytes to use for internal buffers when copying files between the parallel file system and the cache.
-   * - :code:`SCR_CRC_ON_COPY`
-     - 0
-     - Set to 1 to enable CRC32 checks when copying files during the redundancy scheme.
-   * - :code:`SCR_CRC_ON_DELETE`
-     - 0
-     - Set to 1 to enable CRC32 checks when deleting files from cache.
-   * - :code:`SCR_CRC_ON_FLUSH`
-     - 1
-     - Set to 0 to disable CRC32 checks during fetch and flush operations.
    * - :code:`SCR_WATCHDOG_TIMEOUT`
      - N/A
      - Set to the expected time (seconds) for checkpoint writes to in-system storage (see :ref:`sec-hang`).
