@@ -94,7 +94,7 @@ Contents
    users/build.rst
    users/api.rst
    users/integration.rst
-   users/run.rst
    users/config.rst
+   users/run.rst
    users/halt.rst
    users/manage.rst
