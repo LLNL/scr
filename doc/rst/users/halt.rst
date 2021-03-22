@@ -5,8 +5,12 @@
 Halt a job
 ==========
 
-There are several mechanisms to instruct a running SCR application to halt.
-It is often necessary to interact with the resource manager to halt a job.
+When SCR is configured to write datasets to cache,
+one needs to take care when terminating a job early
+so that SCR can copy datasets from cache to the
+parallel file system before the job allocation ends.
+This section describes methods to cleanly halt a job,
+including detection and termination of a hanging job.
 
 scr_halt and the halt file
 --------------------------
@@ -123,7 +127,7 @@ For example, if the job id is 1234 and the step id is 5, then use the following 
   scr_halt
   scancel 1234.5
 
-Do *not* just type ":code:`scancel 1234`" -- be sure to include the job step id.
+Do *not* just type :code:`scancel 1234` -- be sure to include the job step id.
 
 For ALPS, use :code:`apstat` to get the apid of the job step to kill.
 Then, follow the steps as described above: execute :code:`scr_halt`
