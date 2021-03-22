@@ -329,6 +329,17 @@ int scr_reddesc_create_from_hash(
     d->copy_type = SCR_COPY_SINGLE;
   }
 
+  /* ER uses XOR internally when set_failures == 1, so warn user if they also selected RS */
+  if (set_failures == 1 && d->copy_type == SCR_COPY_RS) {
+    if (scr_my_rank_world == 0) {
+      /* print a warning if we changed things on the user */
+      scr_dbg(1, "Forcing copy type to XOR since SET_FAILURES=1 in redundancy descriptor %d @ %s:%d",
+        d->index, __FILE__, __LINE__
+      );
+    }
+    d->copy_type = SCR_COPY_XOR;
+  }
+
   /* read the group name */
   char* groupname = scr_group;
   kvtree_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &groupname);
