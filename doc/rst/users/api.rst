@@ -39,8 +39,8 @@ in a collective manner to optimize performance at critical points
 such as computing redundancy data.
 
 In the sections below, we show the function prototypes for C and Fortran.
-Applications written in C should include ":code:`scr.h`",
-and Fortran applications should include ":code:`scrf.h`".
+Applications written in C should include :code:`scr.h`,
+and Fortran applications should include :code:`scrf.h`.
 Unless otherwise noted, all functions return :code:`SCR_SUCCESS` if successful.
 
 Startup and Shutdown API
@@ -117,7 +117,7 @@ SCR applies the most recent value.
 When setting a parameter, for C applications, :code:`SCR_Config` always returns :code:`NULL`.
 For Fortran applications, :code:`IERROR` is always set to :code:`SCR_SUCCESS`.
 
-To query a value, one specifies the just the parameter name as the string in :code:`config`.
+To query a value, one specifies just the parameter name as the string in :code:`config`.
 For example, one can specify the string :code:`SCR_FLUSH` to query its current value.
 When querying a value, for C applications,
 the call allocates and returns a pointer to a string holding the value of the parameter.
@@ -145,7 +145,7 @@ For instance, to get the type of the redundancy scheme of redundancy descriptor 
 one can specify the string :code:`CKPT=0 TYPE`.
 
 For C applications, :code:`SCR_Configf` provides a formatted string variant of :code:`SCR_Config`.
-The caller can use sprintf-style formatting patterns to define the string, as in :code:`SCR_Configf("SCR_FLUSH=%d", 10)`.
+The caller can use printf-style formatting patterns to define the string, as in :code:`SCR_Configf("SCR_FLUSH=%d", 10)`.
 This call otherwise behaves the same as :code:`SCR_Config`.
 
 File Routing API
@@ -160,9 +160,9 @@ In order for an application to discover where
 a file should be written to or read from,
 one calls the :code:`SCR_Route_file` routine.
 
-This section describes general information about :code:`SCR_Route_file`.
 The precise behavior of :code:`SCR_Route_file` varies depending on the current state of SCR.
-Sections below build on the definition in this section depending on the calling context.
+Depending on the calling context, sections below extend the definition as described in this section.
+This section describes general information about :code:`SCR_Route_file` that applies in all contexts.
 
 SCR_Route_file
 ^^^^^^^^^^^^^^
@@ -299,6 +299,7 @@ This function should be called as soon as possible when initiating a dataset out
 It is used internally within SCR for timing the cost of output operations.
 The SCR implementation uses this call as the starting point to time the cost of the
 checkpoint in order to optimize the checkpoint frequency via :code:`SCR_Need_checkpoint`.
+
 Each call to :code:`SCR_Start_output` must be followed by a corresponding call
 to :code:`SCR_Complete_output`.
 
@@ -352,7 +353,10 @@ including processes that did not write any files as part of the output.
 The parameter :code:`valid` should be set to :code:`1` if either the calling process wrote
 all of its files successfully or it wrote no files during the output phase.
 Otherwise, the process should call :code:`SCR_Complete_output` with :code:`valid` set to :code:`0`.
-SCR will determine whether all processes wrote their output files successfully.
+SCR determines whether all processes wrote their output files successfully.
+:code:`SCR_Complete_output` only returns :code:`SCR_SUCCESS` if all processes called with :code:`valid` set to :code:`1`,
+meaning that all processes succeeded in their output.
+The call returns the same value on all processes.
 
 Each call to :code:`SCR_Complete_output` must be preceded by a corresponding call
 to :code:`SCR_Start_output`.
@@ -485,6 +489,7 @@ successfully based on the values supplied in the :code:`valid` parameter.
 :code:`SCR_Complete_restart` only returns :code:`SCR_SUCCESS` if
 all processes called with :code:`valid` set to :code:`1`,
 meaning that all processes succeeded in their restart.
+The call returns the same value on all processes.
 
 If the restart failed on any process, SCR loads the next most recent checkpoint,
 and the application can call :code:`SCR_Have_restart` to determine whether a new checkpoint is available.
@@ -618,7 +623,7 @@ it can call :code:`SCR_Drop` to maintain a consistent view of available datasets
 Space/time semantics
 --------------------
 
-SCR imposes the following semantics which enables an application to limit where and when it accesses its data:
+SCR imposes the following semantics which enable an application to limit where and when it accesses its data:
 
 * For best performance,
   a process of a given MPI rank may only access files previously written by itself
