@@ -184,7 +184,7 @@ which trade off performance, storage space, and reliability:
 
 * :code:`Single` - each checkpoint file is written to storage accessible to the local process
 * :code:`Partner` - each checkpoint file is written to storage accessible to the local process,
-  and a full copy of each file is written to storage accessible to one or more partner processes from another failure group
+  and a full copy of each file is written to storage accessible to a partner process from another failure group
 * :code:`XOR` - each checkpoint file is written to storage accessible to the local process,
   XOR parity data are computed from checkpoints of a set of processes from different failure groups,
   and the parity data are stored among the set.
@@ -202,13 +202,11 @@ However, it can withstand failures that kill the application processes
 but leave the node intact, such as application bugs and file I/O errors.
 
 With :code:`Partner`, SCR writes checkpoint files to storage accessible to the local process,
-and it also copies each checkpoint file to storage accessible to one or more partner processes from another failure group.
-:code:`Partner` defaults to use a single copy,
-but one may increase the replica count up to one less than the size of the failure group.
-This scheme is slower than :code:`Single`, and it requires at least twice the storage space.
+and it also copies each checkpoint file to storage accessible to a partner process from another failure group.
+This scheme is slower than :code:`Single`, and it requires twice the storage space.
 However, it is capable of withstanding failures that disable a storage device.
 In fact, it can withstand failures of multiple devices,
-so long as a device and all devices holding the replicas do not fail simultaneously.
+so long as a device and the corresponding partner device that holds the copy do not fail simultaneously.
 
 With :code:`XOR`, SCR defines sets of processes
 where members within a set are selected from different failure groups.
@@ -227,7 +225,7 @@ One may configure this scheme with the number of failures to tolerate within eac
 
 Computationally, :code:`XOR` is more expensive than :code:`Partner`,
 but it requires less storage space.
-Whereas :code:`Partner` must store at least two full checkpoint files,
+Whereas :code:`Partner` must store two full checkpoint files,
 :code:`XOR` stores one full checkpoint file plus one XOR parity segment,
 where the segment size is roughly :math:`1/(N-1)` times the size of a checkpoint file for a set of size N.
 Similarly, :code:`RS` is computationally more expensive than :code:`XOR`,

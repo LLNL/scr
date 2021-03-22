@@ -159,8 +159,8 @@ Example descriptors in a configuration file look like the following::
   # - save all other checkpoints (not divisible by 4 or 8) to /dev/shm using XOR with
   #   a set size of 16
   CKPT=0 INTERVAL=1 GROUP=NODE   STORE=/dev/shm TYPE=XOR     SET_SIZE=16
-  CKPT=1 INTERVAL=4 GROUP=NODE   STORE=/ssd     TYPE=RS      SET_SIZE=8  OUTPUT=1
-  CKPT=2 INTERVAL=8 GROUP=SWITCH STORE=/ssd     TYPE=PARTNER             BYPASS=1
+  CKPT=1 INTERVAL=4 GROUP=NODE   STORE=/ssd     TYPE=RS      SET_SIZE=8  SET_FAILURES=3 OUTPUT=1
+  CKPT=2 INTERVAL=8 GROUP=SWITCH STORE=/ssd     TYPE=PARTNER BYPASS=1
 
 First, one must set the :code:`SCR_COPY_TYPE` parameter to :code:`FILE`.
 Otherwise, SCR uses an implied checkpoint descriptor that is defined using various SCR parameters
@@ -168,7 +168,7 @@ including :code:`SCR_GROUP`, :code:`SCR_CACHE_BASE`,
 :code:`SCR_COPY_TYPE`, and :code:`SCR_SET_SIZE`.
 
 To store datasets in cache,
-one must set :code:`SCR_CACHE_BYPASS` to disable bypass mode, which is enabled by default.
+one must set :code:`SCR_CACHE_BYPASS=0` to disable bypass mode, which is enabled by default.
 Otherwise all datasets will be written directly to the parallel file system.
 
 Checkpoint descriptor entries are identified by a leading :code:`CKPT` key.
@@ -198,8 +198,12 @@ This key is optional, and it defaults to the value of the
 :code:`SCR_CACHE_BYPASS` parameter if not specified.
 
 Other keys may exist depending on the selected redundancy scheme.
-For :code:`XOR` schemes, the :code:`SET_SIZE` key specifies
-the minimum number of processes to include in each :code:`XOR` set.
+For :code:`XOR` and :code:`RS` schemes, the :code:`SET_SIZE` key specifies
+the minimum number of processes to include in each redundancy set.
+This defaults to the value of :code:`SCR_SET_SIZE` if not specified.
+For :code:`RS`, the :code:`SET_FAILURES` key specifies
+the maximum number of failures to tolerate within each redundancy set.
+If not specified, this defaults to the value of :code:`SCR_SET_FAILURES`.
 
 One checkpoint descriptor can be marked with the :code:`OUTPUT` key.
 This indicates that the descriptor should be selected to store datasets
