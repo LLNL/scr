@@ -291,10 +291,10 @@ As shown in change #5, the application must inform SCR when it is starting a new
 by calling :code:`SCR_Start_output()` with the :code:`SCR_FLAG_CHECKPOINT`.
 The application should provide a name for the checkpoint,
 and all processes must provide the same name and the same flags values.
+
 The application must inform SCR when it has completed the checkpoint
 with a corresponding call to :code:`SCR_Complete_output()`
 as shown in change #10.
-
 When calling :code:`SCR_Complete_output()`, each process sets the :code:`valid` flag to indicate
 whether it wrote all of its checkpoint files successfully.
 Note how a :code:`valid` variable has been added to track any errors while writing the checkpoint.
@@ -326,20 +326,22 @@ To use SCR for restart, the application can call :code:`SCR_Have_restart`
 to determine whether SCR has a previous checkpoint loaded.
 If there is a checkpoint available, the application 
 can call :code:`SCR_Start_restart` to tell SCR that it is initiating a restart operation.
+
 The application must call :code:`SCR_Route_file` to determine the
 full path and file name to each of its files that it will read during the restart.
 The calling process can specify either an absolute or relative path in its input file name.
 If given a relative path, SCR internally prepends the current working directory at the point when :code:`SCR_Route_file()` is called.
 The fully resolved path must be located somewhere within the prefix directory and it must correspond
 to a file associated with the particular checkpoint name that SCR returned in :code:`SCR_Start_restart`.
-After the application reads in its checkpoint files, it must call 
+
+After the application reads its checkpoint files, it must call 
 :code:`SCR_Complete_restart` to indicate that it has completed reading its checkpoint files.
 If any process fails to read its checkpoint files,
-then :code:`SCR_Complete_restart` will indicate failure on all processes
+:code:`SCR_Complete_restart` returns something other than :code:`SCR_SUCCESS` on all processes
 and SCR prepares the next most recent checkpoint if one is available.
 The application can try again with another call to :code:`SCR_Have_restart`.
 
-Note: For backwards compatibility, the application can provide just a file name in :code:`SCR_Route_file`
+For backwards compatibility, the application can provide just a file name in :code:`SCR_Route_file`
 during restart, even if the combination of the current working directory and the provided file name
 do not specify the correct path on the parallel file system.
 This usage is deprecated, and it may be not be supported in future releases.
@@ -354,70 +356,72 @@ Some example SCR restart code may look like the following
     /* each process reads its state from a file */
   
     /**** change #12 ****/
-    int have_restart = 0;
     int restarted = 0;
-    do {
+    while (! restarted) {
 
       /**** change #13 ****/
+      int have_restart = 0;
       char checkpoint_dir[SCR_MAX_FILENAME];
       SCR_Have_restart(&have_restart, checkpoint_dir);
-      if (have_restart) {
+      if (! have_restart) {
+        /* no checkpoint available from which to restart */
+        break;
+      }
 
-        /**** change #14 ****/
-        SCR_Start_restart(checkpoint_dir);
+      /**** change #14 ****/
+      SCR_Start_restart(checkpoint_dir);
   
-        /* get rank of this process */
-        int rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      /* get rank of this process */
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   
-        /**** change #15 ****/
-        /*
-            // rank 0 reads and broadcasts checkpoint directory name
-            char checkpoint_dir[256];
-            if (rank == 0) {
-              FILE* fs = fopen("latest", "r");
-              if (fs != NULL) {
-                fread(checkpoint_dir, ..., fs);
-                fclose(fs);
-              }
+      /**** change #15 ****/
+      /*
+          // rank 0 reads and broadcasts checkpoint directory name
+          char checkpoint_dir[256];
+          if (rank == 0) {
+            FILE* fs = fopen("latest", "r");
+            if (fs != NULL) {
+              fread(checkpoint_dir, ..., fs);
+              fclose(fs);
             }
-            MPI_Bcast(checkpoint_dir, sizeof(checkpoint_dir), MPI_CHAR, ...);
-        */
-  
-        /**** change #16 ****/
-        /* build file name of checkpoint file for this rank */
-        char checkpoint_file[256];
-        sprintf(checkpoint_file, "%s/rank_%d.ckpt",
-          checkpoint_dir, rank
-        );
-  
-        /**** change #17 ****/
-        char scr_file[SCR_MAX_FILENAME];
-        SCR_Route_file(checkpoint_file, scr_file);
-  
-        /**** change #18 ****/
-        /* each rank opens, reads, and closes its file */
-        int valid = 1;
-        FILE* fs = fopen(scr_file, "r");
-        if (fs != NULL) {
-          int read_rc = fread(state, ..., fs);
-          if (read_rc == 0) {
-            /* failed to read file, mark restart as invalid */
-            valid = 0;
           }
-          fclose(fs);
-        } else {
-          /* failed to open file, mark restart as invalid */
+          MPI_Bcast(checkpoint_dir, sizeof(checkpoint_dir), MPI_CHAR, ...);
+      */
+  
+      /**** change #16 ****/
+      /* build file name of checkpoint file for this rank */
+      char checkpoint_file[256];
+      sprintf(checkpoint_file, "%s/rank_%d.ckpt",
+        checkpoint_dir, rank
+      );
+  
+      /**** change #17 ****/
+      char scr_file[SCR_MAX_FILENAME];
+      SCR_Route_file(checkpoint_file, scr_file);
+  
+      /**** change #18 ****/
+      /* each rank opens, reads, and closes its file */
+      int valid = 1;
+      FILE* fs = fopen(scr_file, "r");
+      if (fs != NULL) {
+        int read_rc = fread(state, ..., fs);
+        if (read_rc == 0) {
+          /* failed to read file, mark restart as invalid */
           valid = 0;
         }
-  
-        /**** change #19 ****/
-        int rc = SCR_Complete_restart(valid);
-
-        /**** change #20 ****/
-        restarted = (rc == SCR_SUCCESS);
+        fclose(fs);
+      } else {
+        /* failed to open file, mark restart as invalid */
+        valid = 0;
       }
-    } while (have_restart && !restarted);
+  
+      /**** change #19 ****/
+      int rc = SCR_Complete_restart(valid);
+
+      /**** change #20 ****/
+      restarted = (rc == SCR_SUCCESS);
+    }
   
     if (restarted) {
       return state;
@@ -456,8 +460,8 @@ If the return code is something other than :code:`SCR_SUCCESS`, then at least on
 In that case, SCR loads the next most recent checkpoint if one is available,
 and the application can call :code:`SCR_Have_restart()` to iterate through the process again.
 
-It is not required for an application to loop on failed restarts, but SCR allows for that as an option.
-SCR never load a checkpoint that is known to be incomplete or one that is explicitly marked as invalid,
+It is not required for an application to loop on failed restarts, but SCR allows for that.
+SCR never loads a checkpoint that is known to be incomplete or one that is explicitly marked as invalid,
 though it is still possible the application will encounter an error while reading those files on restart.
 If an application fails to restart from a checkpoint, SCR marks that checkpoint as invalid
 so that it will not attempt to load that checkpoint again in future runs.
@@ -479,7 +483,7 @@ Instead, it should access files directly from the parallel file system.
 
 When not using SCR for restart, one should set :code:`SCR_FLUSH_ON_RESTART=1`,
 which causes SCR to flush any cached checkpoint to the file system during :code:`SCR_Init`.
-Additionally, one should set :code:`SCR_FETCH=0` to disable SCR from loading a checkpiont during :code:`SCR_Init`.
+Additionally, one should set :code:`SCR_FETCH=0` to disable SCR from loading a checkpoint during :code:`SCR_Init`.
 The application can then read its checkpoint from the parallel file system after calling :code:`SCR_Init`.
 
 If the application reads a checkpoint that it previously wrote through SCR,
@@ -495,11 +499,9 @@ Building with the SCR library
 -----------------------------
 
 To compile and link with the SCR library,
-add the flags in Table :ref:`table-buildflags` to your compile and link lines.
+add the flags shown below to your compile and link lines.
 The value of the variable :code:`SCR_INSTALL_DIR` should be the path
 to the installation directory for SCR.
-
-.. _table-buildflags
 
 ========================== ============================================================================
 Compile Flags              :code:`-I$(SCR_INSTALL_DIR)/include`
