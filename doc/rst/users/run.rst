@@ -4,19 +4,21 @@ Run a job
 =========
 
 In addition to the SCR library,
-one must properly configure the batch system
-and include a set of SCR commands in the job batch script.
-In particular, one must:
-1) inform the batch system that the allocation should remain available even after a failure
-and 2) replace the command to execute the application with an SCR wrapper script.
-The precise set of options and commands to use depends on the system resource manager.
-
+one may optionally include SCR commands in their job script.
+These commands are most useful on systems where failures are common.
 The SCR commands prepare the cache, scavenge files from cache to the parallel file system,
 and check that the scavenged dataset is complete among other things.
+The commands also automate the process of relaunching a job after failure.
+
 These commands are located in the :code:`/bin` directory where SCR is installed.
 There are numerous SCR commands.
 Any command not mentioned in this document is
 not intended to be executed by users.
+
+For best performance, one should:
+1) inform the batch system that the allocation should remain available even after a failure
+and 2) replace the command to execute the application with an SCR wrapper script.
+The precise set of options and commands to use depends on the system resource manager.
 
 Supported platforms
 -------------------
@@ -54,7 +56,7 @@ through :code:`apstat`.
 Ignoring node failures
 ----------------------
 
-Before running an SCR job, it is necessary to configure the job allocation to withstand node failures.
+Before running an SCR job, it is recommended to configure the job allocation to withstand node failures.
 By default, most resource managers terminate the job allocation if a node fails,
 however SCR requires the job allocation to remain active in order to restart the job or to scavenge files.
 To enable the job allocation to continue past node failures,
@@ -91,7 +93,6 @@ It is recommended to set the :code:`SCR_HALT_SECONDS`
 parameter so that the job allocation does not expire before
 datasets can be flushed (Section :ref:`sec-halt`).
 
-
 By default, the SCR wrapper script does not restart an application after the first job step exits.
 To automatically restart a job step within the current allocation,
 set the :code:`SCR_RUNS` environment variable to the maximum number of runs to attempt.
@@ -99,36 +100,35 @@ For an unlimited number of attempts, set this variable to :code:`-1`.
 
 After a job step exits, the wrapper script checks whether it should restart the job.
 If so, the script sleeps for some time to give nodes in the allocation a chance to clean up.
-Then, it checks that there are sufficient healthy nodes remaining in the allocation.
+Then it checks that there are sufficient healthy nodes remaining in the allocation.
 By default, the wrapper script assumes the next run requires the same number of nodes as the previous run,
 which is recorded in a file written by the SCR library.
 If this file cannot be read, the command assumes the application requires all nodes in the allocation.
 Alternatively, one may override these heuristics and precisely specify the number of nodes needed
 by setting the :code:`SCR_MIN_NODES` environment variable to the number of required nodes.
 
-Some applications cannot run via wrapper scripts.
 For applications that cannot invoke the SCR wrapper script as described here,
-one should examine the logic contained in the script and duplicate the necessary parts
+one should examine the logic contained within the script and duplicate the necessary parts
 in the job batch script.
 In particular, one should invoke :code:`scr_postrun` for scavenge support.
 
 Example batch script for using SCR restart capability
 -----------------------------------------------------
 
-An example MOAB / SLURM batch script with :code:`scr_srun` is shown below
+An example SLURM batch script with :code:`scr_srun` is shown below
 
 .. code-block:: bash
 
   #!/bin/bash
-  #MSUB -l partition=atlas
-  #MSUB -l nodes=66
-  #MSUB -l resfailpolicy=ignore
+  #SBATCH --partition pbatch
+  #SBATCH --nodes 66
+  #SBATCH --no-kill
   
-  # above, tell MOAB to not kill the job allocation upon a node failure
+  # above, tell SLURM to not kill the job allocation upon a node failure
   # also note that the job requested 2 spares -- it uses 64 nodes but allocated 66
   
   # specify where datasets should be written
-  export SCR_PREFIX=/my/parallel/file/system/username/run1/checkpoints
+  export SCR_PREFIX=/parallel/file/system/username/run1
   
   # instruct SCR to flush to the file system every 20 checkpoints
   export SCR_FLUSH=20
