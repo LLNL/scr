@@ -72,7 +72,7 @@ my $prefix    = "$conf{prefixdir}";
 my $jobstepid = "$conf{jobstepid}";
 
 # loop periodically checking the flush file for activity
-my $lastCheckpoint    = 0;
+my $lastCheckpoint    = "";
 my $lastCheckpointLoc = "";
 
 my $getLatestCmd    = "scr_flush_file --dir $prefix -l";
@@ -87,7 +87,10 @@ while (1) {
    #print "was sleeping, now awake\n";
    my $latest = `$getLatestCmd`;
    #print "latest was $latest\n";
-   my $latestLoc = `$getLatestLocCmd $latest`;
+   my $latestLoc = "";
+   if ($latest ne "") {
+     $latestLoc =`$getLatestLocCmd $latest`;
+   }
    #print "latestLoc was $latestLoc\n";
    if ($latest eq $lastCheckpoint) {
      if ($latestLoc eq $lastCheckpointLoc) {
