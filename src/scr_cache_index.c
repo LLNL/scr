@@ -242,29 +242,6 @@ int scr_cache_index_latest_dataset(const scr_cache_index* cindex)
   return dset;
 }
 
-/* returns the oldest dataset id (smallest int larger than younger_than) in given index */
-int scr_cache_index_oldest_dataset(const scr_cache_index* cindex, int younger_than)
-{
-  /* initialize our oldest dataset id to be the same as the latest dataset id */
-  int dset = scr_cache_index_latest_dataset(cindex);
-
-  /* now scan through each dataset and find the smallest id that is larger than younger_than */
-  kvtree* hash = scr_cache_index_get_dh(cindex);
-  if (hash != NULL) {
-    kvtree_elem* elem;
-    for (elem = kvtree_elem_first(hash);
-         elem != NULL;
-         elem = kvtree_elem_next(elem))
-    {
-      int d = kvtree_elem_key_int(elem);
-      if (d > younger_than && d < dset) {
-        dset = d;
-      }
-    }
-  }
-  return dset;
-}
-
 /* given a cache index, return a list of datasets */
 int scr_cache_index_list_datasets(const scr_cache_index* cindex, int* n, int** v)
 {
