@@ -124,9 +124,6 @@ Cache index query count functions
 /* returns the latest dataset id (largest int) in given index */
 int scr_cache_index_latest_dataset(const scr_cache_index* cindex);
 
-/* returns the oldest dataset id (smallest int) in given index */
-int scr_cache_index_oldest_dataset(const scr_cache_index* cindex, int higher_than);
-
 /* return the number of datasets in the index */
 int scr_cache_index_num_datasets(const scr_cache_index* cindex);
 

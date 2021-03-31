@@ -390,40 +390,6 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
   return SCR_SUCCESS;
 }
 
-/* delete dataset with matching name from cache, if one exists */
-int scr_cache_delete_by_name(scr_cache_index* cindex, const char* name)
-{
-  /* lookup dataset id from cache that matches given name, if any,
-   * start with oldest dataset and iterate to newer datasets */
-  int cache_id = -1;
-  int id = scr_cache_index_oldest_dataset(cindex, -1);
-  while (id != -1 && cache_id == -1) {
-    /* get dataset for this id */
-    scr_dataset* dataset = scr_dataset_new();
-    scr_cache_index_get_dataset(cindex, id, dataset);
-
-    /* check the name of this dataset to the given name */
-    char* dset_name;
-    if (scr_dataset_get_name(dataset, &dset_name) == SCR_SUCCESS) {
-      if (strcmp(name, dset_name) == 0) {
-        /* found a match, record the id */
-        cache_id = id;
-      }
-    }
-
-    /* release the dataset and lookup the id of the next oldest dataset */
-    scr_dataset_delete(&dataset);
-    id = scr_cache_index_oldest_dataset(cindex, id);
-  }
-
-  /* delete dataset from cache, if it exists */
-  if (cache_id != -1) {
-    scr_cache_delete(cindex, cache_id);
-  }
-
-  return SCR_SUCCESS;
-}
-
 /* each process passes in an ordered list of dataset ids along with a current
  * index, this function identifies the next smallest id across all processes
  * and returns this id in current, it also updates index on processes as
@@ -504,6 +470,61 @@ int scr_cache_purge(scr_cache_index* cindex)
   scr_cache_index_clear(cindex);
 
   return 1;
+}
+
+/* delete dataset with matching name from cache, if one exists */
+int scr_cache_delete_by_name(scr_cache_index* cindex, const char* name)
+{
+  /* TODO: put dataset selection logic into a function */
+  /* TODO: need to worry about different procs having different ids for a given name? */
+
+  /* get the list of datasets we have in our cache */
+  int ndsets;
+  int* dsets;
+  scr_cache_index_list_datasets(cindex, &ndsets, &dsets);
+
+  /* TODO: also attempt to recover datasets which we were in the
+   * middle of flushing */
+  int current_id;
+  int dset_index = 0;
+  do {
+    /* we'll set this to the dataset id if we find one that matches the target name */
+    int delete_id = -1;
+
+    /* get the smallest index across all processes (returned in current_id),
+     * this also updates our dset_index value if appropriate */
+    scr_next_dataset(ndsets, dsets, &dset_index, &current_id);
+    
+    /* if we found a dataset id, check its name against target name */
+    if (current_id != -1) {
+      /* get dataset for this id */
+      scr_dataset* dataset = scr_dataset_new();
+      scr_cache_index_get_dataset(cindex, current_id, dataset);
+
+      /* check the name of this dataset to the given name */
+      char* dset_name;
+      if (scr_dataset_get_name(dataset, &dset_name) == SCR_SUCCESS) {
+        if (strcmp(name, dset_name) == 0) {
+          /* found a match, record the id */
+          delete_id = current_id;
+        }
+      }
+
+      /* release the dataset and lookup the id of the next oldest dataset */
+      scr_dataset_delete(&dataset);
+    }
+
+    /* if we found a matching dataset, delete it */
+    if (delete_id != -1) {
+      /* remove this dataset from all tasks */
+      scr_cache_delete(cindex, delete_id);
+    }
+  } while (current_id != -1);
+
+  /* free our list of dataset ids */
+  scr_free(&dsets);
+
+  return SCR_SUCCESS;
 }
 
 #if 0
