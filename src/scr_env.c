@@ -53,9 +53,9 @@
 #include "cppr.h"
 #endif /* HAVE_CPPR */
 
-#ifdef HAVE_PMIX
+#ifdef HAVE_LIBPMIX
 #include "pmix.h"
-#endif /* HAVE_PMIX */
+#endif /* HAVE_LIBPMIX */
 
 #ifdef SCR_BGQ
 #include "firmware/include/personality.h" /* Personality_t */
@@ -73,6 +73,28 @@ machine-dependent information.
 */
 
 /* returns the number of seconds remaining in the time allocation */
+
+#ifdef SCR_RESOURCE_MANAGER_PMIX
+/* callback for PMIX to query remaining walltime */
+static uint32_t seconds_remaining;
+static void seconds_remaining_cbfunc(pmix_status_t status, pmix_info_t *info,
+                                     size_t ninfo, void *cbdata,
+                                     pmix_release_cbfunc_t release_fn,
+                                     void *release_cbdata)
+{
+    volatile int *waiting = (volatile int*)cbdata;
+    /* read time_remaining */
+    if (info != NULL) {
+      seconds_remaining = info->value.data.uint32;
+    }
+
+    if (release_fn != NULL) {
+        release_fn(release_cbdata);
+    }
+    *waiting = 0;
+}
+#endif
+
 long int scr_env_seconds_remaining()
 {
   /* returning a negative number tells the caller this functionality is disabled */
@@ -83,6 +105,26 @@ long int scr_env_seconds_remaining()
     secs = yogrt_remaining();
     if (secs < 0) {
       secs = 0;
+    }
+  #elif defined(SCR_RESOURCE_MANAGER_PMIX)
+    /* query time remaining */
+    pmix_status_t retval;
+    pmix_query_t *query;
+    const int nq = 1;
+    PMIX_QUERY_CREATE(query, nq);
+    if (query != NULL) {
+      PMIX_ARGV_APPEND(retval, query[0].keys, PMIX_TIME_REMAINING);
+      if (retval == PMIX_SUCCESS) {
+        volatile int waiting = 1;
+        retval = PMIx_Query_info_nb(query, nq, seconds_remaining_cbfunc,
+                                    (void*)&waiting);
+        if (retval == PMIX_SUCCESS) {
+          while (waiting) {
+            sleep(1);
+          }
+          secs = (long int)seconds_remaining;
+        }
+      }
     }
   #else
     char* scr_end_time = getenv("SCR_END_TIME");
@@ -126,8 +168,8 @@ char* scr_env_jobid()
 {
   char* jobid = NULL;
 
-  char* value;
   #ifdef SCR_RESOURCE_MANAGER_SLURM
+    char* value;
     /* read $SLURM_JOBID environment variable for jobid string */
     if ((value = getenv("SLURM_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -139,6 +181,7 @@ char* scr_env_jobid()
     }
   #endif
   #ifdef SCR_RESOURCE_MANAGER_APRUN
+    char* value;
     /* read $PBS_JOBID environment variable for jobid string */
     if ((value = getenv("PBS_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -178,6 +221,7 @@ char* scr_env_jobid()
     PMIX_PDATA_FREE(pmix_query_data, 1);
   #endif
   #ifdef SCR_RESOURCE_MANAGER_LSF
+    char* value;
     /* read $PBS_JOBID environment variable for jobid string */
     if ((value = getenv("LSB_JOBID")) != NULL) {
       jobid = strdup(value);
@@ -263,12 +307,12 @@ int scr_env_init(void)
 
 #ifdef SCR_RESOURCE_MANAGER_PMIX
   /* init pmix */
+  pmix_proc_t scr_pmix_proc;
   int retval = PMIx_Init(&scr_pmix_proc, NULL, 0);
   if (retval != PMIX_SUCCESS) {
-    scr_err("PMIx_Init failed: rc=%d @ %s:%d",
+    scr_abort(-1, "PMIx_Init failed: rc=%d @ %s:%d",
       retval, __FILE__, __LINE__
     );
-    return SCR_FAILURE;
   }
   scr_dbg(1, "PMIx_Init succeeded @ %s:%d", __FILE__, __LINE__);
 #endif /* SCR_MACHINE_TYPE == SCR_PMIX */
@@ -289,5 +333,8 @@ int scr_env_init(void)
 
 int scr_env_finalize(void)
 {
+#ifdef SCR_RESOURCE_MANAGER_PMIX
+    PMIx_Finalize(NULL, 0);
+#endif
     return SCR_SUCCESS;
 }
