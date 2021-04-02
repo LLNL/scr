@@ -5,13 +5,10 @@ LIST(APPEND example_files
 	test_common.h
 	test_api.c
 	test_api_multiple.c
-	test_interpose.c
-	test_interpose_multiple.c
 	test_ckpt.cpp
 	test_ckpt.F
 	test_config.c
 	scr.moab
-	scr_interpose.moab
 	README.md
 )
 INSTALL(FILES ${example_files} DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/examples)
@@ -71,14 +68,6 @@ SCR_ADD_TEST(test_api_multiple "" "")
 #ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
 #TARGET_LINK_LIBRARIES(test_api_multiple_file ${SCR_LINK_TO})
 #SCR_ADD_TEST: proper usage is unknown
-
-ADD_EXECUTABLE(test_interpose test_common.c test_interpose.c)
-TARGET_LINK_LIBRARIES(test_interpose ${SCR_LINK_TO})
-SCR_ADD_TEST(test_interpose "" "checkpoint_set_*")
-
-ADD_EXECUTABLE(test_interpose_multiple test_common.c test_interpose_multiple.c)
-TARGET_LINK_LIBRARIES(test_interpose_multiple ${SCR_LINK_TO})
-SCR_ADD_TEST(test_interpose_multiple "" "../examplesrank*.ckpt")
 
 ADD_EXECUTABLE(test_ckpt test_ckpt.cpp)
 IF(MPI_CXX_FOUND)
