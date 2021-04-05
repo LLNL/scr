@@ -15,12 +15,16 @@ cd deps
 
 lwgrp=lwgrp-1.0.3
 dtcmp=dtcmp-1.1.1
+pdsh=pdsh-2.34
 
 if [ ! -f ${lwgrp}.tar.gz ] ; then
   wget https://github.com/LLNL/lwgrp/releases/download/v1.0.3/${lwgrp}.tar.gz
 fi
 if [ ! -f ${dtcmp}.tar.gz ] ; then
   wget https://github.com/LLNL/dtcmp/releases/download/v1.1.1/${dtcmp}.tar.gz
+fi
+if [ ! -f ${pdsh}.tar.gz ] ; then
+  wget https://github.com/chaos/pdsh/releases/download/${pdsh}/${pdsh}.tar.gz
 fi
 
 repos=(https://github.com/ECP-VeloC/KVTree.git
@@ -30,20 +34,15 @@ repos=(https://github.com/ECP-VeloC/KVTree.git
     https://github.com/ECP-VeloC/redset.git
     https://github.com/ECP-VeloC/shuffile.git
     https://github.com/ECP-VeloC/er.git
-    https://github.com/chaos/pdsh.git
 )
 
 for i in "${repos[@]}" ; do
-	# Get just the name of the project (like "mercury")
+	# Get just the name of the project (like "KVTree")
 	name=$(basename $i | sed 's/\.git//g')
 	if [ -d $name ] ; then
 		echo "$name already exists, skipping it"
 	else
-		if [ "$name" == "mercury" ] ; then
-			git clone --recurse-submodules $i
-		else
-			git clone $i
-		fi
+		git clone $i
 	fi
 done
 
@@ -70,6 +69,18 @@ pushd ${dtcmp}
   make install
   if [ $? -ne 0 ]; then
     echo "failed to configure, build, or install libdtcmp"
+    exit 1
+  fi
+popd
+
+rm -rf ${pdsh}
+tar -zxf ${pdsh}.tar.gz
+pushd ${pdsh}
+  ./configure --prefix=$INSTALL_DIR && \
+  make && \
+  make install
+  if [ $? -ne 0 ]; then
+    echo "failed to configure, build, or install pdsh"
     exit 1
   fi
 popd
@@ -126,13 +137,6 @@ cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE
 make -j `nproc`
 make install
 cd ../..
-
-cd pdsh
-./bootstrap
-./configure --prefix=$INSTALL_DIR
-make
-make install
-cd ..
 
 cd "$ROOT"
 mkdir -p build
