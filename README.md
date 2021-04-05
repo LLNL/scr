@@ -10,54 +10,20 @@ Detailed usage is provided at [SCR.ReadTheDocs.io](http://scr.readthedocs.io/en/
 
 [![User Docs Status](https://readthedocs.org/projects/scr/badge/?version=latest)](https://scr.readthedocs.io/en/latest/?badge=latest)
 
-## Quickstart
+## Contribute
 
-SCR uses the CMake build system and we recommend out-of-source builds.
+As an open source project, we welcome contributions via pull requests, as well as questions, feature requests, or bug reports via issues.
+Please refer to both our [code of conduct](CODE_OF_CONDUCT.md) and our [contributing guidelines](CONTRIBUTING.md).
 
-```shell
-./bootstrap.sh
-mkdir build install
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=../install ..
-make
-make install
-make test
-```
+## Developers
 
-Some useful CMake command line options:
+Developer documentation is provided at [SCR-dev.ReadTheDocs.io](http://scr-dev.readthedocs.io/en/latest/).
 
-- `-DCMAKE_INSTALL_PREFIX=[path]`: Place to install the SCR library
-- `-DCMAKE_BUILD_TYPE=[Debug/Release]`: Build with debugging or optimizations
-- `-DBUILD_PDSH=[OFF/ON]`: CMake can automatically download and build the PDSH dependency
-- `-DWITH_PDSH_PREFIX=[path to PDSH]`: Path to an existing PDSH installation (should not be used with `BUILD_PDSH`)
-- `-DWITH_DTCMP_PREFIX=[path to DTCMP]`
-- `-DWITH_YOGRT_PREFIX=[path to YOGRT]`
-- `-DSCR_ASYNC_API=[CRAY_DW/INTEL_CPPR/IBM_BBAPI/NONE]`
-- `-DSCR_RESOURCE_MANAGER=[SLURM/APRUN/PMIX/LSF/NONE]`
+[![Developer Docs Status](https://readthedocs.org/projects/scr-dev/badge/?version=latest)](https://scr-dev.readthedocs.io/en/latest/?badge=latest)
 
-### Dependencies
-
-- C (with support for C++ and Fortran)
-- MPI
-- [ECP-VELOC Components](https://ecp-veloc.github.io/component-user-docs/) (ER, FILO, shuffile, redset, AXL, spath, kvtree, rankstr)
-- CMake, Version 2.8+
-- [PDSH](https://github.com/grondo/pdsh)
-- [DTCMP](https://github.com/llnl/dtcmp) (optional)
-- [libYOGRT](https://github.com/llnl/libyogrt) (optional)
-- MySQL (optional)
-
-## Configuration Files
-
-SCR searches the following locations in the following order for a parameter value, taking the first value it finds.
-
-1. Environment variables,
-2. User configuration file,
-3. System configuration file,
-4. Compile-time constants.
-
-To find a user configuration file, SCR looks for a file named `.scrconf` in the prefix directory (note the leading dot).
-Alternatively, one may specify the name and location of the user configuration file by setting the `SCR_CONF_FILE` environment variable at run time.
-This repository includes some example configuration files (`scr.conf.template`, `scr.user.conf.template`, and `examples/test.conf`).
+SCR uses components from [ECP-VeloC](https://github.com/ECP-VeloC),
+which have [user](https://github.com/ECP-VeloC/component-user-docs)
+and [developer](https://github.com/ECP-VeloC/component-dev-docs) docs.
 
 ## Authors
 
@@ -70,9 +36,3 @@ To reference SCR in a publication, please cite the following paper:
 Additional information and research publications can be found here:
 
 [http://computation.llnl.gov/projects/scalable-checkpoint-restart-for-mpi](http://computation.llnl.gov/projects/scalable-checkpoint-restart-for-mpi)
-
-## Developers
-
-Developer documentation is provided at [SCR-dev.ReadTheDocs.io](http://scr-dev.readthedocs.io/en/latest/).
-
-[![Developer Docs Status](https://readthedocs.org/projects/scr-dev/badge/?version=latest)](https://scr-dev.readthedocs.io/en/latest/?badge=latest)
