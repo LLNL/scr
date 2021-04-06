@@ -23,12 +23,13 @@ Required:
 * rankstr (https://github.com/ECP-VeloC/rankstr)
 * shuffile (https://github.com/ECP-VeloC/shuffile)
 * spath (https://github.com/ECP-VeloC/spath)
+* DTCMP (https://github.com/llnl/dtcmp)
+* LWGRP (https://github.com/LLNL/lwgrp)
 
 Optional:
 
-* DTCMP (for user-defined directory structure feature)(https://github.com/llnl/dtcmp)
-* LWGRP (for user-defined directory structure feature) (https://github.com/LLNL/lwgrp)
 * libyogrt (for determining length of time left in the current allocation) (https://github.com/llnl/libyogrt)
+* MySQL (optional, used for logging SCR activities)
 
 On Fedora, you can install the required dependencies with::
 
@@ -56,22 +57,59 @@ By default, Spack will attempt to build all dependencies for SCR, including many
 Here is an example of a simple `packages.yaml` file::
 
     packages:
+      all:
+        providers:
+          mpi: [mvapich2,openmpi,spectrum-mpi]
+
       openmpi:
         buildable: false
+	- spec: openmpi/4.1.0
+	  prefix: /usr/tce/packages/openmpi/openmpi-4.1.0
+
+      mvapich2:
+        buildable: false
+	externals:
+	- spec: mvapich2
+        modules:
+        - mvapich2
+
+      spectrum-mpi:
+        buildable: false
+	externals:
+	- spec: spectrum-mpi@rolling-release%xl_r
+	  prefix: /usr/tce/packages/spectrum-mpi/spectrum-mpi-rolling-release-xl-2020.03.18/
+	- spec: spectrum-mpi@rolling-release%xl
+	  prefix: /usr/tce/packages/spectrum-mpi/spectrum-mpi-rolling-release-xl-2020.03.18/
+    
       openssl:
         externals:
         - spec: openssl@1.0.2
           prefix: /usr
-      libyogrt:
-        externals:
-        - spec: libyogrt
-          prefix: /usr
+
+    libyogrt:
+      externals:
+      - spec: libyogrt scheduler=lsf
+	prefix: /usr
+      - spec: libyogrt scheduler=slurm
+	prefix: /usr
+
+    lsf:
+      buildable: False
+      externals:
+      - spec: lsf@10.1
+	prefix: /opt/ibm/spectrumcomputing/lsf/10.1
+
 
 The `packages` key declares the following block as a set of package descriptions. The following descriptions tell Spack how to find items that already installed on the system.
 
-* :code:`openmpi`:, declares that OpenMPI is installed in the system, will be found automatically by the compiler, and the `buildable: false` line declares that Spack should always use that version of MPI rather than try to build its own. This description addresses the common situation where MPI is customized and optimized for the local system, and Spack should never try to compile a replacement. 
+* The `providers` key specifies that one of three different MPI versions are available, MVAPICH2, OpenMPI, or Spectrum-MPI.
+
+* :code:`openmpi`: declares that OpenMPI is installed in the system at the location specified by `prefix`, and the `buildable: false` line declares that Spack should always use that version of MPI rather than try to build its own. This description addresses the common situation where MPI is customized and optimized for the local system, and Spack should never try to compile a replacement.
+* :code:`mvapich2`: declares that mvapich2 is available, and the location is defined in a `mvapich2` module file.
+* :code:`spectrum-mpi`: declares that Spectrum MPI is available if the IBM XL compilers are selected.
 * :code:`openssl`: declares that `openssl` version 1.0.2 is installed on the system and that Spack should use that if it satisfies the dependencies required by any spack-installed packages, but if a different version is requested, Spack should install its own version.
-* :code:`libyogrt`: declares that libyogrt is installed, but Spack may decide to build its own version.
+* :code:`libyogrt`: declares that libyogrt is installed, but Spack may decide to build its own version. If `scheduler=slurm` or `scheduler=lsf` is selected, use the version installed under /usr, otherwise build from scratch using the selected scheduler.
+* :code:`lsf`: declares that if lsf is needed (e.g. to use `scheduler=lsf`) the libraries can be found at the specified `prefix`.
 
 
 CMake
