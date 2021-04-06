@@ -14,14 +14,14 @@ INSTALL_DIR=$ROOT/install
 cd deps
 
 lwgrp=lwgrp-1.0.3
-dtcmp=dtcmp-1.1.1
+dtcmp=dtcmp-1.1.2
 pdsh=pdsh-2.34
 
 if [ ! -f ${lwgrp}.tar.gz ] ; then
   wget https://github.com/LLNL/lwgrp/releases/download/v1.0.3/${lwgrp}.tar.gz
 fi
 if [ ! -f ${dtcmp}.tar.gz ] ; then
-  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.1/${dtcmp}.tar.gz
+  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.2/${dtcmp}.tar.gz
 fi
 if [ ! -f ${pdsh}.tar.gz ] ; then
   wget https://github.com/chaos/pdsh/releases/download/${pdsh}/${pdsh}.tar.gz
