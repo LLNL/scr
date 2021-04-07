@@ -84,18 +84,18 @@ Here is an example of a simple `packages.yaml` file::
         - spec: openssl@1.0.2
           prefix: /usr
 
-    libyogrt:
-      externals:
-      - spec: libyogrt scheduler=lsf
-	prefix: /usr
-      - spec: libyogrt scheduler=slurm
-	prefix: /usr
+      libyogrt:
+        externals:
+        - spec: libyogrt scheduler=lsf
+	  prefix: /usr
+        - spec: libyogrt scheduler=slurm
+	  prefix: /usr
 
-    lsf:
-      buildable: False
-      externals:
-      - spec: lsf@10.1
-	prefix: /opt/ibm/spectrumcomputing/lsf/10.1
+      lsf:
+        buildable: False
+        externals:
+        - spec: lsf@10.1
+	  prefix: /opt/ibm/spectrumcomputing/lsf/10.1
 
 
 The `packages` key declares the following block as a set of package descriptions. The following descriptions tell Spack how to find items that already installed on the system.
