@@ -51,10 +51,10 @@ The quick version of building SCR with CMake is::
 
   git clone git@github.com:llnl/scr.git
   cd scr
-  mkdir build install
 
   ./bootstrap.sh
 
+  mkdir build
   cd build
   cmake -DCMAKE_INSTALL_PREFIX=../install ..
   make install
