@@ -29,7 +29,7 @@ Required:
 Optional:
 
 * libyogrt (for determining length of time left in the current allocation) (https://github.com/llnl/libyogrt)
-* MySQL (optional, used for logging SCR activities)
+* MySQL (for logging SCR activities)
 
 On Fedora, you can install the required dependencies with::
 
@@ -70,8 +70,8 @@ Here is an example of a simple `packages.yaml` file::
         buildable: false
 	externals:
 	- spec: mvapich2
-        modules:
-        - mvapich2
+          modules:
+          - mvapich2
 
       spectrum-mpi:
         buildable: false
