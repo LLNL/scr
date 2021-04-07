@@ -97,6 +97,12 @@ Here is an example of a simple `packages.yaml` file::
         - spec: lsf@10.1
 	  prefix: /opt/ibm/spectrumcomputing/lsf/10.1
 
+      slurm:
+        buildable: false
+	externals:
+	- spec: slurm@20
+	  prefix: /usr
+
 
 The `packages` key declares the following block as a set of package descriptions. The following descriptions tell Spack how to find items that already installed on the system.
 
@@ -108,6 +114,7 @@ The `packages` key declares the following block as a set of package descriptions
 * :code:`openssl`: declares that `openssl` version 1.0.2 is installed on the system and that Spack should use that if it satisfies the dependencies required by any spack-installed packages, but if a different version is requested, Spack should install its own version.
 * :code:`libyogrt`: declares that libyogrt is installed, but Spack may decide to build its own version. If `scheduler=slurm` or `scheduler=lsf` is selected, use the version installed under /usr, otherwise build from scratch using the selected scheduler.
 * :code:`lsf`: declares that if lsf is needed (e.g. to use `scheduler=lsf`) the libraries can be found at the specified `prefix`.
+* :code:`slurm`: declares that if slurm is needed (e.g. to use `scheduler=slurm`) the libraries can be found at the specified `prefix`.
 
 
 CMake
