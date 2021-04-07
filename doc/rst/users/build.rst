@@ -64,7 +64,7 @@ Here is an example of a simple `packages.yaml` file::
       openmpi:
         buildable: false
 	- spec: openmpi/4.1.0
-	  prefix: /usr/tce/packages/openmpi/openmpi-4.1.0
+	  prefix: /opt/openmpi-4.1.0
 
       mvapich2:
         buildable: false
