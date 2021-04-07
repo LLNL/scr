@@ -76,10 +76,8 @@ Here is an example of a simple `packages.yaml` file::
       spectrum-mpi:
         buildable: false
 	externals:
-	- spec: spectrum-mpi@rolling-release%xl_r
-	  prefix: /usr/tce/packages/spectrum-mpi/spectrum-mpi-rolling-release-xl-2020.03.18/
-	- spec: spectrum-mpi@rolling-release%xl
-	  prefix: /usr/tce/packages/spectrum-mpi/spectrum-mpi-rolling-release-xl-2020.03.18/
+	- spec: spectrum-mpi
+	  prefix: /opt/ibm/spectrum_mpi
     
       openssl:
         externals:
