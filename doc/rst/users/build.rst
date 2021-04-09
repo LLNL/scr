@@ -32,128 +32,23 @@ Optional:
 * MySQL (for logging SCR activities)
 
 To simplify the install process,
-one can use Spack or use the SCR :code:`bootstrap.sh` script and CMake.
+one can use the SCR :code:`bootstrap.sh` script with CMake or use Spack.
 
-The Spack and CMake sections below assume that one is installing SCR on a system with
+The CMake and Spack sections below assume that one is installing SCR on a system with
 existing compilers, a resource manager (like SLURM or LSF), and an MPI environment.
 These base software packages are typically preinstalled and configured
 for users by the support staff of HPC clusters.
 
 For those who are installing SCR outside of an HPC cluster,
 are using Fedora, and have sudo access,
-the following steps install and activate most of the necessary base dependencies::
+the following steps install and activate most of the necessary base dependencies:
+
+.. code-block:: bash
 
     sudo dnf groupinstall "Development Tools"
     sudo dnf install cmake gcc-c++ mpi mpi-devel environment-modules zlib-devel pdsh
     [restart shell]
     module load mpi
-
-.. _sec-build-spack:
-
-Spack
------
-
-If you use the `Spack <https://github.com/spack/spack>`_ package manager,
-SCR and many of its dependencies have corresponding packages.
-
-Before installing SCR with Spack,
-one should first properly configure :code:`packages.yaml`.
-In particular, SCR depends on the system resource manager and MPI library,
-and one should define entries for those in :code:`packages.yaml`.
-
-By default, Spack attempts to build all dependencies for SCR,
-including packages such as SLURM, MPI, and OpenSSL that are already installed on most HPC systems.
-It is recommended to use the system-installed software when possible.
-This ensures that the resulting SCR build actually works on the target system,
-and it can significantly reduce the build time.
-
-Spack uses its :code:`packages.yaml` file to locate external packages.
-Full information about :code:`packages.yaml` can be found
-in the `Spack documentation <https://spack.readthedocs.io/en/latest/configuration.html>`_.
-
-At minimum, it is important to register the system MPI library and the system resource manager.
-Other packages can be defined to accelerate the build.
-The following shows example entries for :code:`packages.yaml`::
-
-    packages:
-      all:
-        providers:
-          mpi: [mvapich2,openmpi,spectrum-mpi]
-
-      # example entry for MVAPICH2 MPI, accessed by a module named mvapich2
-      mvapich2:
-        buildable: false
-	externals:
-	- spec: mvapich2
-          modules:
-          - mvapich2
-
-      # example entry for Open MPI
-      openmpi:
-        buildable: false
-	- spec: openmpi@4.1.0
-	  prefix: /opt/openmpi-4.1.0
-
-      # example entry for IBM Spectrum MPI
-      spectrum-mpi:
-        buildable: false
-	externals:
-	- spec: spectrum-mpi
-	  prefix: /opt/ibm/spectrum_mpi
-
-      # example entry for IBM LSF resource manager
-      lsf:
-        buildable: False
-        externals:
-        - spec: lsf@10.1
-	  prefix: /opt/ibm/spectrumcomputing/lsf/10.1
-
-      # example entry for SLURM resource manager
-      slurm:
-        buildable: false
-	externals:
-	- spec: slurm@20
-	  prefix: /usr
-
-      openssl:
-        externals:
-        - spec: openssl@1.0.2
-          prefix: /usr
-
-      libyogrt:
-        externals:
-        - spec: libyogrt scheduler=lsf
-	  prefix: /usr
-        - spec: libyogrt scheduler=slurm
-	  prefix: /usr
-
-The `packages` key declares the following block as a set of package descriptions.
-The following descriptions tell Spack how to find items that already installed on the system.
-
-* The `providers` key specifies that one of three different MPI versions are available, MVAPICH2, Open MPI, or IBM Spectrum MPI.
-
-* :code:`mvapich2`: declares that MVAPICH2 is available, and the location is defined in a `mvapich2` module file.
-* :code:`openmpi`: declares that Open MPI is installed in the system at the location specified by `prefix`, and the `buildable: false` line declares that Spack should always use that version of MPI rather than try to build its own. This description addresses the common situation where MPI is customized and optimized for the local system, and Spack should never try to compile a replacement.
-* :code:`spectrum-mpi`: declares that Spectrum MPI is available.
-* :code:`lsf`: declares that if LSF is needed (e.g. to use `scheduler=lsf`) the libraries can be found at the specified `prefix`.
-* :code:`slurm`: declares that if SLURM is needed (e.g. to use `scheduler=slurm`) the libraries can be found at the specified `prefix`.
-* :code:`openssl`: declares that `openssl` version 1.0.2 is installed on the system and that Spack should use that if it satisfies the dependencies required by any spack-installed packages, but if a different version is requested, Spack should install its own version.
-* :code:`libyogrt`: declares that libyogrt is installed, but Spack may decide to build its own version. If `scheduler=slurm` or `scheduler=lsf` is selected, use the version installed under /usr, otherwise build from scratch using the selected scheduler.
-
-After configuring :code:`packages.yaml`, one can install SCR.
-
-For SLURM systems, SCR can be installed with::
-
-  spack install scr@develop resource_manager=SLURM
-
-For LSF, systems, SCR can be installed with::
-
-  spack install scr@develop resource_manager=LSF
-
-The SCR Spack package provides other variants that may be useful.
-To see the full list, type::
-
-  spack info scr
 
 .. _sec-build-cmake:
 
@@ -165,7 +60,9 @@ The SCR build uses the CMake FindMPI module to link with MPI.
 This module looks for the standard :code:`mpicc` compiler wrapper,
 which must be in your :code:`PATH`.
 
-The quick version of building SCR with CMake is::
+The quick version of building SCR with CMake is:
+
+.. code-block:: bash
 
   git clone git@github.com:llnl/scr.git
   cd scr
@@ -215,3 +112,121 @@ there are CMake options to specify the path to each as needed, e.g.,:
 
 * :code:`-DWITH_YOGRT_PREFIX:PATH=[path to libyogrt]`
 * :code:`-DWITH_MYSQL_PREFIX=[path to MySQL]`
+
+.. _sec-build-spack:
+
+Spack
+-----
+
+If you use the `Spack <https://github.com/spack/spack>`_ package manager,
+SCR and many of its dependencies have corresponding packages.
+
+Before installing SCR with Spack,
+one should first properly configure :code:`packages.yaml`.
+In particular, SCR depends on the system resource manager and MPI library,
+and one should define entries for those in :code:`packages.yaml`.
+
+By default, Spack attempts to build all dependencies for SCR,
+including packages such as SLURM, MPI, and OpenSSL that are already installed on most HPC systems.
+It is recommended to use the system-installed software when possible.
+This ensures that the resulting SCR build actually works on the target system,
+and it can significantly reduce the build time.
+
+Spack uses its :code:`packages.yaml` file to locate external packages.
+Full information about :code:`packages.yaml` can be found
+in the `Spack documentation <https://spack.readthedocs.io/en/latest/configuration.html>`_.
+
+At minimum, it is important to register the system MPI library and the system resource manager.
+Other packages can be defined to accelerate the build.
+The following shows example entries for :code:`packages.yaml`.
+One must modify these example entries to use the proper versions,
+module names, and paths for the target system:
+
+.. code-block:: yaml
+
+    packages:
+      all:
+        providers:
+          mpi: [mvapich2,openmpi,spectrum-mpi]
+
+      # example entry for MVAPICH2 MPI, accessed by a module named mvapich2
+      mvapich2:
+        buildable: false
+        externals:
+        - spec: mvapich2
+          modules:
+          - mvapich2
+
+      # example entry for Open MPI
+      openmpi:
+        buildable: false
+        externals:
+        - spec: openmpi@4.1.0
+          prefix: /opt/openmpi-4.1.0
+
+      # example entry for IBM Spectrum MPI
+      spectrum-mpi:
+        buildable: false
+        externals:
+        - spec: spectrum-mpi
+          prefix: /opt/ibm/spectrum_mpi
+
+      # example entry for IBM LSF resource manager
+      lsf:
+        buildable: false
+        externals:
+        - spec: lsf@10.1
+          prefix: /opt/ibm/spectrumcomputing/lsf/10.1
+
+      # example entry for SLURM resource manager
+      slurm:
+        buildable: false
+        externals:
+        - spec: slurm@20
+          prefix: /usr
+
+      openssl:
+        externals:
+        - spec: openssl@1.0.2
+          prefix: /usr
+
+      libyogrt:
+        externals:
+        - spec: libyogrt scheduler=lsf
+          prefix: /usr
+        - spec: libyogrt scheduler=slurm
+          prefix: /usr
+
+The `packages` key declares the following block as a set of package descriptions.
+The following descriptions tell Spack how to find items that already installed on the system.
+
+* The `providers` key specifies that one of three different MPI versions are available, MVAPICH2, Open MPI, or IBM Spectrum MPI.
+
+* :code:`mvapich2`: declares that MVAPICH2 is available, and the location is defined in a `mvapich2` module file.
+* :code:`openmpi`: declares that Open MPI is installed in the system at the location specified by `prefix`, and the `buildable: false` line declares that Spack should always use that version of MPI rather than try to build its own. This description addresses the common situation where MPI is customized and optimized for the local system, and Spack should never try to compile a replacement.
+* :code:`spectrum-mpi`: declares that Spectrum MPI is available.
+* :code:`lsf`: declares that if LSF is needed (e.g. to use `scheduler=lsf`) the libraries can be found at the specified `prefix`.
+* :code:`slurm`: declares that if SLURM is needed (e.g. to use `scheduler=slurm`) the libraries can be found at the specified `prefix`.
+* :code:`openssl`: declares that `openssl` version 1.0.2 is installed on the system and that Spack should use that if it satisfies the dependencies required by any spack-installed packages, but if a different version is requested, Spack should install its own version.
+* :code:`libyogrt`: declares that libyogrt is installed, but Spack may decide to build its own version. If `scheduler=slurm` or `scheduler=lsf` is selected, use the version installed under /usr, otherwise build from scratch using the selected scheduler.
+
+After configuring :code:`packages.yaml`, one can install SCR.
+
+For SLURM systems, SCR can be installed with:
+
+.. code-block:: bash
+
+  spack install scr@develop resource_manager=SLURM
+
+For LSF, systems, SCR can be installed with:
+
+.. code-block:: bash
+
+  spack install scr@develop resource_manager=LSF
+
+The SCR Spack package provides other variants that may be useful.
+To see the full list, type:
+
+.. code-block:: bash
+
+  spack info scr
