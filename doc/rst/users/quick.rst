@@ -16,9 +16,34 @@ Building SCR
 
 SCR has a number of dependencies.
 To simplify the install process,
-one can use Spack or use our :code:`bootstrap.sh` script and CMake.
+one can use our :code:`bootstrap.sh` script with CMake or use Spack.
 For full details on building SCR,
 please see Section :ref:`sec-library`.
+
+CMake
+^^^^^
+
+SCR requires CMake version 2.8 or higher.
+The SCR build uses the CMake FindMPI module to link with MPI.
+This module looks for the standard :code:`mpicc` compiler wrapper,
+which must be in your :code:`PATH`.
+
+The quick version of building SCR with CMake is:
+
+.. code-block:: bash
+
+  git clone git@github.com:llnl/scr.git
+  cd scr
+
+  ./bootstrap.sh
+
+  mkdir build
+  cd build
+  cmake -DCMAKE_INSTALL_PREFIX=../install ..
+  make install
+
+There are a number of CMake options to configure the build.
+For more details, see Section :ref:`sec-build-cmake`.
 
 Spack
 ^^^^^
@@ -31,33 +56,15 @@ one should first configure `packages.yaml <https://spack.readthedocs.io/en/lates
 In particular, SCR depends on the system resource manager and MPI library,
 and one should define entries for those in :code:`packages.yaml`.
 Examples for configuring common resource managers and MPI libraries
-are listed in Section :ref:`sec-library`.
+are listed in Section :ref:`sec-build-spack`.
 
-SCR can then be installed with::
+SCR can then be installed with:
+
+.. code-block:: bash
 
   spack install scr
 
 This downloads, builds, and installs SCR and its dependencies.
-
-CMake
-^^^^^
-
-SCR requires CMake version 2.8 or higher.
-The SCR build uses the CMake FindMPI module to link with MPI.
-This module looks for the standard :code:`mpicc` compiler wrapper,
-which must be in your :code:`PATH`.
-
-The quick version of building SCR with CMake is::
-
-  git clone git@github.com:llnl/scr.git
-  cd scr
-
-  ./bootstrap.sh
-
-  mkdir build
-  cd build
-  cmake -DCMAKE_INSTALL_PREFIX=../install ..
-  make install
 
 Building the SCR :code:`test_api` Example
 -------------------------------------------
@@ -66,12 +73,16 @@ After installing SCR,
 you will find example programs in the :code:`<install>/share/scr/examples` directory,
 where :code:`<install>` is the path in which you installed SCR.
 If you installed SCR with Spack,
-you can find its install directory with the following command::
+you can find its install directory with the following command:
+
+.. code-block:: bash
 
   spack location -i scr
 
 In this quick start guide, we use the :code:`test_api.c` program.
-Build it by executing::
+Build it by executing:
+
+.. code-block:: bash
 
   cd <install>/share/scr/examples
   make test_api
@@ -94,13 +105,17 @@ If you are not using SLURM, then modify the node allocation and
 run commands as appropriate for your resource manager.
 
 First, obtain compute nodes for testing.
-Here we allocate 4 nodes::
+Here we allocate 4 nodes:
+
+.. code-block:: bash
 
   salloc -N 4
 
 Once you have the compute nodes,
 then set a few environment variables.
-We use bash syntax in this example.::
+We use bash syntax in this example.:
+
+.. code-block:: bash
 
   # make sure the SCR library is in your library path
   export LD_LIBRARY_PATH=${SCR_INSTALL}/lib
@@ -110,7 +125,9 @@ We use bash syntax in this example.::
 **TODO: CMake: Need to verify.**
 
 Now run :code:`test_api`.
-Here we execute a 4-process run on 4 nodes::
+Here we execute a 4-process run on 4 nodes:
+
+.. code-block:: bash
 
   srun -n4 -N4 ./test_api
 
@@ -142,7 +159,9 @@ the :code:`testing` directory includes scripts to demonstrate different aspects 
 Depending on your shell preference,
 :code:`TESTING.csh` or :code:`TESTING.sh` are good for getting started.
 Each script contains a sequence of additional configurations and commands for running :code:`test_api`.
-One can find those :code:`TESTING` scripts in a clone of the repo, e.g.::
+One can find those :code:`TESTING` scripts in a clone of the repo, e.g.:
+
+.. code-block:: bash
 
   git clone git@github.com:llnl/scr.git
   cd scr/testing
