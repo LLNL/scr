@@ -2,8 +2,8 @@ MPICC     ?= mpicc
 MPICXX    ?= mpicxx
 MPIF90    ?= mpif90
 OPT       ?= -g -O3
-LIBDIR     = -L@X_LIBDIR@ -Wl,-rpath,@X_LIBDIR@ -lscr @SCR_LINK_LINE@
-INCLUDES   = -I@X_INCLUDEDIR@ -I/usr/include -I.
+LIBDIR     = -L@X_LIBDIR@ -Wl,-rpath,@X_LIBDIR@ -lscr
+INCLUDES   = -I@X_INCLUDEDIR@
 
 all: test_api test_api_multiple test_interpose test_interpose_multiple test_ckpt test_ckpt_F
 
