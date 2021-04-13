@@ -510,3 +510,6 @@ C Static Link Flags        :code:`-L$(SCR_INSTALL_DIR)/lib64 -lscr`
 Fortran Dynamic Link Flags :code:`-L$(SCR_INSTALL_DIR)/lib64 -lscrf -Wl,-rpath,$(SCR_INSTALL_DIR)/lib64`
 Fortran Static Link Flags  :code:`-L$(SCR_INSTALL_DIR)/lib64 -lscrf`
 ========================== ============================================================================
+
+.. note::
+   On some platforms the default library installation path will be :code:`/lib` instead of :code:`/lib64`.
