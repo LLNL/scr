@@ -506,7 +506,7 @@ to the installation directory for SCR.
 ========================== ============================================================================
 Compile Flags              :code:`-I$(SCR_INSTALL_DIR)/include`
 C Dynamic Link Flags       :code:`-L$(SCR_INSTALL_DIR)/lib64 -lscr -Wl,-rpath,$(SCR_INSTALL_DIR)/lib64`
-C Static Link Flags        :code:`-L$(SCR_INSTALL_DIR)/lib64 -lscr -lz`
+C Static Link Flags        :code:`-L$(SCR_INSTALL_DIR)/lib64 -lscr`
 Fortran Dynamic Link Flags :code:`-L$(SCR_INSTALL_DIR)/lib64 -lscrf -Wl,-rpath,$(SCR_INSTALL_DIR)/lib64`
-Fortran Static Link Flags  :code:`-L$(SCR_INSTALL_DIR)/lib64 -lscrf -lz`
+Fortran Static Link Flags  :code:`-L$(SCR_INSTALL_DIR)/lib64 -lscrf`
 ========================== ============================================================================
