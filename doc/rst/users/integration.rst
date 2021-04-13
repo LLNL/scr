@@ -513,3 +513,9 @@ Fortran Static Link Flags  :code:`-L$(SCR_INSTALL_DIR)/lib64 -lscrf`
 
 .. note::
    On some platforms the default library installation path will be :code:`/lib` instead of :code:`/lib64`.
+
+If Spack was used to build SCR, the :code:`SCR_INSTALL_DIR` can be found with:
+
+.. code-block:: bash
+
+  spack location -i scr
