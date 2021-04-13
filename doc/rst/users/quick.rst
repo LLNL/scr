@@ -87,10 +87,6 @@ Build it by executing:
   cd <install>/share/scr/examples
   make test_api
 
-**TODO: Spack: Need to verify.**
-
-**TODO: CMake: This may not work as written.**
-
 Upon a successful build, you will have a :code:`test_api` executable.
 You can use this test program to get a feel for how
 SCR works and to ensure that your build of SCR is working.
@@ -111,20 +107,7 @@ Here we allocate 4 nodes:
 
   salloc -N 4
 
-Once you have the compute nodes,
-then set a few environment variables.
-We use bash syntax in this example.:
-
-.. code-block:: bash
-
-  # make sure the SCR library is in your library path
-  export LD_LIBRARY_PATH=${SCR_INSTALL}/lib
-
-**TODO: Spack: Need to verify.**
-
-**TODO: CMake: Need to verify.**
-
-Now run :code:`test_api`.
+Once you have the compute nodes you can run :code:`test_api`.
 Here we execute a 4-process run on 4 nodes:
 
 .. code-block:: bash
