@@ -18,26 +18,26 @@ consider that an application has existing checkpointing code that looks like the
 
   int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
-  
+
     /* initialize our state from checkpoint file */
     state = restart();
-  
+
     for (int t = 0; t < TIMESTEPS; t++) {
       /* ... do work ... */
-  
+
       /* every so often, write a checkpoint */
       if (t % CHECKPOINT_FREQUENCY == 0)
         checkpoint(t);
     }
-  
+
     MPI_Finalize();
     return 0;
   }
-  
+
   void checkpoint(int timestep) {
     /* rank 0 creates a directory on the file system,
      * and then each process saves its state to a file */
-  
+
     /* define checkpoint directory for the timestep */
     char checkpoint_dir[256];
     sprintf(checkpoint_dir, "timestep.%d", timestep);
@@ -45,29 +45,29 @@ consider that an application has existing checkpointing code that looks like the
     /* get rank of this process */
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  
+
     /* rank 0 creates directory on parallel file system */
     if (rank == 0) mkdir(checkpoint_dir);
-  
+
     /* hold all processes until directory is created */
     MPI_Barrier(MPI_COMM_WORLD);
-  
+
     /* build file name of checkpoint file for this rank */
     char checkpoint_file[256];
     sprintf(checkpoint_file, "%s/rank_%d.ckpt",
       checkpoint_dir, rank
     );
-  
+
     /* each rank opens, writes, and closes its file */
     FILE* fs = fopen(checkpoint_file, "w");
     if (fs != NULL) {
       fwrite(checkpoint_data, ..., fs);
       fclose(fs);
     }
-  
+
     /* wait for all files to be closed */
     MPI_Barrier(MPI_COMM_WORLD);
-  
+
     /* rank 0 updates the pointer to the latest checkpoint */
     FILE* fs = fopen("latest", "w");
     if (fs != NULL) {
@@ -75,15 +75,15 @@ consider that an application has existing checkpointing code that looks like the
       fclose(fs);
     }
   }
-  
+
   void* restart() {
     /* rank 0 broadcasts directory name to read from,
      * and then each process reads its state from a file */
-  
+
     /* get rank of this process */
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  
+
     /* rank 0 reads and broadcasts checkpoint directory name */
     char checkpoint_dir[256];
     if (rank == 0) {
@@ -94,20 +94,20 @@ consider that an application has existing checkpointing code that looks like the
       }
     }
     MPI_Bcast(checkpoint_dir, sizeof(checkpoint_dir), MPI_CHAR, ...);
-  
+
     /* build file name of checkpoint file for this rank */
     char checkpoint_file[256];
     sprintf(checkpoint_file, "%s/rank_%d.ckpt",
       checkpoint_dir, rank
     );
-  
+
     /* each rank opens, reads, and closes its file */
     FILE* fs = fopen(checkpoint_file, "r");
     if (fs != NULL) {
       fread(state, ..., fs);
       fclose(fs);
     }
-  
+
     return state;
   }
 
@@ -130,15 +130,15 @@ For example, modify the source to look something like this
 
   int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
-  
+
     /**** change #1 ****/
     SCR_Init();
-  
+
     state = restart();
-  
+
     for (int t = 0; t < TIMESTEPS; t++) {
       /* ... do work ... */
-  
+
       /**** change #2 ****/
       int need_checkpoint;
       SCR_Need_checkpoint(&need_checkpoint);
@@ -151,10 +151,10 @@ For example, modify the source to look something like this
       if (should_exit)
         break;
     }
-  
+
     /**** change #4 ****/
     SCR_Finalize();
-  
+
     MPI_Finalize();
     return 0;
   }
@@ -223,37 +223,37 @@ Some example SCR checkpoint code looks like the following
 
   void checkpoint(int timestep) {
     /* each process saves its state to a file */
-  
+
     /* define checkpoint directory for the timestep */
     char checkpoint_dir[256];
     sprintf(checkpoint_dir, "timestep.%d", timestep);
 
     /**** change #5 ****/
     SCR_Start_output(checkpoint_dir, SCR_FLAG_CHECKPOINT);
-  
+
     /* get rank of this process */
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  
+
     /**** change #6 ****/
     /*
         if (rank == 0)
           mkdir(checkpoint_dir);
-  
+
         // hold all processes until directory is created
         MPI_Barrier(MPI_COMM_WORLD);
     */
-  
+
     /* build file name of checkpoint file for this rank */
     char checkpoint_file[256];
     sprintf(checkpoint_file, "%s/rank_%d.ckpt",
       checkpoint_dir, rank
     );
-  
+
     /**** change #7 ****/
     char scr_file[SCR_MAX_FILENAME];
     SCR_Route_file(checkpoint_file, scr_file);
-  
+
     /**** change #8 ****/
     /* each rank opens, writes, and closes its file */
     int valid = 1;
@@ -269,12 +269,12 @@ Some example SCR checkpoint code looks like the following
       /* failed to open file, mark checkpoint as invalid */
       valid = 0;
     }
-  
+
     /**** change #9 ****/
     /*
         // wait for all files to be closed
         MPI_Barrier(MPI_COMM_WORLD);
-  
+
         // rank 0 updates the pointer to the latest checkpoint
         FILE* fs = fopen("latest", "w");
         if (fs != NULL) {
@@ -282,7 +282,7 @@ Some example SCR checkpoint code looks like the following
           fclose(fs);
         }
     */
-  
+
     /**** change #10 ****/
     SCR_Complete_output(valid);
   }
@@ -324,7 +324,7 @@ Restart with SCR
 
 To use SCR for restart, the application can call :code:`SCR_Have_restart`
 to determine whether SCR has a previous checkpoint loaded.
-If there is a checkpoint available, the application 
+If there is a checkpoint available, the application
 can call :code:`SCR_Start_restart` to tell SCR that it is initiating a restart operation.
 
 The application must call :code:`SCR_Route_file` to determine the
@@ -334,7 +334,7 @@ If given a relative path, SCR internally prepends the current working directory 
 The fully resolved path must be located somewhere within the prefix directory and it must correspond
 to a file associated with the particular checkpoint name that SCR returned in :code:`SCR_Start_restart`.
 
-After the application reads its checkpoint files, it must call 
+After the application reads its checkpoint files, it must call
 :code:`SCR_Complete_restart` to indicate that it has completed reading its checkpoint files.
 If any process fails to read its checkpoint files,
 :code:`SCR_Complete_restart` returns something other than :code:`SCR_SUCCESS` on all processes
@@ -354,7 +354,7 @@ Some example SCR restart code may look like the following
 
   void* restart() {
     /* each process reads its state from a file */
-  
+
     /**** change #12 ****/
     int restarted = 0;
     while (! restarted) {
@@ -370,11 +370,11 @@ Some example SCR restart code may look like the following
 
       /**** change #14 ****/
       SCR_Start_restart(checkpoint_dir);
-  
+
       /* get rank of this process */
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  
+
       /**** change #15 ****/
       /*
           // rank 0 reads and broadcasts checkpoint directory name
@@ -388,18 +388,18 @@ Some example SCR restart code may look like the following
           }
           MPI_Bcast(checkpoint_dir, sizeof(checkpoint_dir), MPI_CHAR, ...);
       */
-  
+
       /**** change #16 ****/
       /* build file name of checkpoint file for this rank */
       char checkpoint_file[256];
       sprintf(checkpoint_file, "%s/rank_%d.ckpt",
         checkpoint_dir, rank
       );
-  
+
       /**** change #17 ****/
       char scr_file[SCR_MAX_FILENAME];
       SCR_Route_file(checkpoint_file, scr_file);
-  
+
       /**** change #18 ****/
       /* each rank opens, reads, and closes its file */
       int valid = 1;
@@ -415,14 +415,14 @@ Some example SCR restart code may look like the following
         /* failed to open file, mark restart as invalid */
         valid = 0;
       }
-  
+
       /**** change #19 ****/
       int rc = SCR_Complete_restart(valid);
 
       /**** change #20 ****/
       restarted = (rc == SCR_SUCCESS);
     }
-  
+
     if (restarted) {
       return state;
     } else {
@@ -477,7 +477,7 @@ Restart without SCR
 
 If the application does not use SCR for restart,
 it should not make calls to :code:`SCR_Have_restart`,
-:code:`SCR_Start_restart`, :code:`SCR_Route_file`, or 
+:code:`SCR_Start_restart`, :code:`SCR_Route_file`, or
 :code:`SCR_Complete_restart` during the restart.
 Instead, it should access files directly from the parallel file system.
 
