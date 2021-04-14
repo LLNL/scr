@@ -558,3 +558,16 @@ kvtree* scr_param_set_hash(char* name, kvtree* hash_value)
 
   return kvtree_set(scr_app_hash, name, hash_value);
 }
+
+/* unsets a parameter, returning 0 if the parameter did not exist */
+int scr_param_unset(char* name)
+{
+  /* cannot set parameters that are used by scripts */
+  if (kvtree_get(scr_no_app_hash, name)) {
+    scr_dbg(1, "%s should not be changed at runtime if also using SCR scripts",
+      name
+    );
+  }
+
+  return kvtree_unset(scr_app_hash, name) == KVTREE_SUCCESS ? SCR_SUCCESS : SCR_FAILURE;
+}
