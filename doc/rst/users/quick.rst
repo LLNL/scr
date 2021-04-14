@@ -53,17 +53,17 @@ If you use the `Spack <https://github.com/spack/spack>`_ package manager,
 SCR and many of its dependencies have corresponding packages.
 
 Before installing SCR with Spack,
-one should first configure `packages.yaml <https://spack.readthedocs.io/en/latest/configuration.html>`_.
+one should first configure :code:`packages.yaml`.
 In particular, SCR depends on the system resource manager and MPI library,
 and one should define entries for those in :code:`packages.yaml`.
 Examples for configuring common resource managers and MPI libraries
 are listed in Section :ref:`sec-build-spack`.
 
-SCR can then be installed with:
+SCR can then be installed for SLURM systems with:
 
 .. code-block:: bash
 
-  spack install scr
+  spack install scr@3.0rc1
 
 This downloads, builds, and installs SCR and its dependencies.
 
