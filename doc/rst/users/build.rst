@@ -80,7 +80,7 @@ Some useful CMake command line options are:
 * :code:`-DCMAKE_BUILD_TYPE=[Debug/Release]`: Build with debugging or optimizations
 
 * :code:`-DSCR_RESOURCE_MANAGER=[SLURM/APRUN/PMIX/LSF/NONE]`
-* :code:`-DSCR_ASYNC_API=[CRAY_DW/INTEL_CPPR/IBM_BBAPI/NONE]`
+* :code:`-DSCR_ASYNC_API=[INTEL_CPPR/NONE]`
 
 * :code:`-DSCR_CNTL_BASE=[path]` : Path to SCR Control directory, defaults to :code:`/dev/shm`
 * :code:`-DSCR_CACHE_BASE=[path]` : Path to SCR Cache directory, defaults to :code:`/dev/shm`
