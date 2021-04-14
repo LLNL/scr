@@ -217,13 +217,13 @@ For SLURM systems, SCR can be installed with:
 
 .. code-block:: bash
 
-  spack install scr@develop resource_manager=SLURM
+  spack install scr@3.0rc1 resource_manager=SLURM
 
 For LSF, systems, SCR can be installed with:
 
 .. code-block:: bash
 
-  spack install scr@develop resource_manager=LSF
+  spack install scr@3.0rc1 resource_manager=LSF
 
 The SCR Spack package provides other variants that may be useful.
 To see the full list, type:
