@@ -94,8 +94,8 @@ SCR works and to ensure that your build of SCR is working.
 Running the SCR :code:`test_api` Example
 ------------------------------------------
 
-A quick test of your SCR installation can be done by setting a few
-environment variables and running :code:`test_api` in an interactive job allocation.
+A quick test of your SCR installation can be done by
+running :code:`test_api` in an interactive job allocation.
 The following assumes you are running on a SLURM-based system.
 If you are not using SLURM, then modify the node allocation and
 run commands as appropriate for your resource manager.
@@ -112,7 +112,7 @@ Here we execute a 4-process run on 4 nodes:
 
 .. code-block:: bash
 
-  srun -n4 -N4 ./test_api
+  srun -n 4 -N 4 ./test_api
 
 This example program writes 6 checkpoints using SCR.
 Assuming all goes well, you should see output similar to the following
@@ -132,7 +132,7 @@ Assuming all goes well, you should see output similar to the following
   FileIO: Min   52.38 MB/s        Max   52.39 MB/s        Avg   52.39 MB/s       Agg  209.55 MB/s
 
 If you do not see output similar to this,
-there is likely a problem with your environment set up or build of SCR.
+there may be a problem with your environment or your build of SCR.
 Please see the detailed sections of this user guide for more help
 or email us (see :ref:`sec-contact`.)
 
@@ -163,7 +163,7 @@ into an application to write checkpoints.
     /* Call SCR_Init after MPI_Init */
     SCR_Init();
 
-    for(int t = 0; t < TIMESTEPS; t++) {
+    for (int t = 0; t < TIMESTEPS; t++) {
       /* ... Do work ... */
 
       /* Ask SCR if a checkpoint should be saved (optional) */
