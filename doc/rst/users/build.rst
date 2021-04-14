@@ -66,6 +66,7 @@ The quick version of building SCR with CMake is:
 
   git clone git@github.com:llnl/scr.git
   cd scr
+  git checkout v3.0rc1
 
   ./bootstrap.sh
 
