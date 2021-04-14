@@ -44,9 +44,8 @@
 
         readunit = mynod
         write(file_suffix, '(i5.5)') readunit
-
-        fname = trim(ckptname) // "/" // trim(basefname) // &
-                trim(file_suffix) // ".ckpt"
+        fname = trim(ckptname) // "/" // &
+                trim(basefname) // trim(file_suffix) // ".ckpt"
         call SCR_ROUTE_FILE(fname, fname_scr, ierr)
 
         R1 = 0
@@ -71,7 +70,7 @@
         endif
 
         forall(i=1:ni,j=1:nj,k=1:nk) W1(i,j,k) = &
-            nodeoff*mynod+i+ni*(j-1+nj*(k-1))
+               nodeoff*mynod+i+ni*(j-1+nj*(k-1))
 
 !       test checkpoint interface
         call SCR_START_CHECKPOINT(ierr)
@@ -82,12 +81,12 @@
         writeunit = mynod
         write(file_suffix, '(i5.5)') writeunit
         fname = trim(ckptname) // "/" // &
-            trim(basefname) // trim(file_suffix) // ".ckpt"
+                trim(basefname) // trim(file_suffix) // ".ckpt"
         call SCR_ROUTE_FILE(fname, fname_scr, ierr)
 
         valid = 1
         open(unit=writeunit,file=fname_scr,form='unformatted', &
-            action='write')
+             action='write')
         write(writeunit,iostat=ios) W1
         close(writeunit)
 
@@ -102,12 +101,12 @@
         writeunit = mynod
         write(file_suffix, '(i5.5)') writeunit
         fname = trim(ckptname) // "/" // &
-            trim(basefname) // trim(file_suffix) // ".ckpt" 
+                trim(basefname) // trim(file_suffix) // ".ckpt"
         call SCR_ROUTE_FILE(fname, fname_scr, ierr)
 
         valid = 1
         open(unit=writeunit,file=fname_scr,form='unformatted', &
-            action='write')
+             action='write')
         write(writeunit,iostat=ios) W1
         close(writeunit)
 
@@ -117,7 +116,7 @@
 
         errors = 0
         call MPI_Allreduce(errors, all_errors, 1, MPI_INTEGER, &
-            MPI_SUM,MPI_COMM_WORLD,ierr)
+                           MPI_SUM,MPI_COMM_WORLD,ierr)
         if( all_errors > 0 ) call exit (1)
 
         if (mynod == 0) then
@@ -151,7 +150,7 @@
             ((time1 - time0) * 1.0e+06)
         write (6, 600) overall_transfer_rate 
  600    format ("Overall Transfer Rate =   ", 1pe12.3, &
-            " 10e+06 Bytes/sec")
+                " 10e+06 Bytes/sec")
         write (6, 603) 
  603    format ("all done")
       endif
