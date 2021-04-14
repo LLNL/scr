@@ -13,6 +13,7 @@ fi
 echo "Running $test $@ restart=$restart"
 
 $test "$@"
+RC=$?
 
 if [ "$restart" = "restart" ]; then
     echo "Restarting"
@@ -21,3 +22,4 @@ fi
 
 ./test_cleanup.sh
 
+exit $RC
