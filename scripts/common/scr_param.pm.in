@@ -34,16 +34,15 @@ sub new
   if (defined $ENV{SCR_CONF_FILE}) {
     # use SCR_CONF_FILE if set
     $usrfile = $ENV{SCR_CONF_FILE};
+    $self->{usrconf} = read_config_file($self, $usrfile);
   } else {
     # otherwise, look in the prefix directory
     my $value = get($self, "SCR_PREFIX");
     my $prefix = get_prefix($self, $value);
     $usrfile = "$prefix/.scrconf";
-  }
-
-  # read in the user configuration file, if specified
-  if (-r $usrfile) {
-    $self->{usrconf} = read_config_file($self, $usrfile);
+    if (-r $usrfile) {
+      $self->{usrconf} = read_config_file($self, $usrfile);
+    }
   }
 
   # read in the app configuration file, if specified
@@ -105,49 +104,46 @@ sub read_config_file
 
   my $h = {};
 
-  if (-r $file) {
-    if (open(IN, $file)) {
-      while (my $line = <IN>) {
-        chomp $line;
-        $line =~ s/^\s*//g; # strip any leading whitespace from line
-        $line =~ s/\s*$//g; # strip any trailing whitespace from line
-        $line =~ s/=/ /g;   # replace '=' with spaces
-        my @parts = split(/\s+/, $line);
-        my $top_key   = undef;
-        my $top_value = undef;
-        while (@parts > 0) {
-          my $part = shift @parts;
-          if ($part =~ /^#/) {
-            @parts = ();
+  if (open(IN, $file)) {
+    while (my $line = <IN>) {
+      chomp $line;
+      $line =~ s/^\s*//g; # strip any leading whitespace from line
+      $line =~ s/\s*$//g; # strip any trailing whitespace from line
+      $line =~ s/=/ /g;   # replace '=' with spaces
+      my @parts = split(/\s+/, $line);
+      my $top_key   = undef;
+      my $top_value = undef;
+      while (@parts > 0) {
+        my $part = shift @parts;
+        if ($part =~ /^#/) {
+          @parts = ();
+        } else {
+          # convert the key to upper case
+          my $key = uc($part);
+
+          # read in the value (should have at least one more item in the list)
+          if (@parts == 0) {
+            print "$self->{prog}: ERROR: Invalid key=value pair detected in $file.\n";
+            exit 1;
+          }
+
+          # expand any embedded environment variable names as in
+          # key=$ENVVAR or key=/home/${USER}/${SLURM_JOBID}
+          # replaces variable with its value from the environment
+          my $raw_value = shift @parts;
+          my $value = interpolate_variables($raw_value);
+
+          # record the key value pair in the hash
+          if (defined $top_key) {
+            $$h{$top_key}{$top_value}{$key}{$value} = {};
           } else {
-            # convert the key to upper case
-            my $key = uc($part);
-
-            # read in the value (should have at least one more item in the list)
-            if (@parts == 0) {
-              print "$self->{prog}: ERROR: Invalid key=value pair detected in $file.\n";
-              exit 1;
-            }
-
-            # expand any embedded environment variable names as in
-            # key=$ENVVAR or key=/home/${USER}/${SLURM_JOBID}
-            # replaces variable with its value from the environment
-            my $raw_value = shift @parts;
-            my $value = interpolate_variables($raw_value);
-
-            # record the key value pair in the hash
-            if (defined $top_key) {
-              $$h{$top_key}{$top_value}{$key}{$value} = {};
-            } else {
-              $top_key   = $key;
-              $top_value = $value;
-              $$h{$top_key}{$top_value} = {};
-            }
+            $top_key   = $key;
+            $top_value = $value;
+            $$h{$top_key}{$top_value} = {};
           }
         }
       }
     }
-
     # done reading, close the file
     close(IN);
   } else {
