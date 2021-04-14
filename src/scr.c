@@ -2624,6 +2624,7 @@ const char* SCR_Config(const char* config_string)
              * so we're at a point like "CKPT=0 TYPE=<char>", need to create
              * a hash to hold the rest */
             value_hash = kvtree_new();
+            kvtree_set(value_hash, key, kvtree_new());
           }
           state = in_value;
         }
@@ -2733,7 +2734,7 @@ const char* SCR_Config(const char* config_string)
         if (toplevel_value) {
           scr_param_set(toplevel_key, toplevel_value);
         } else {
-          scr_param_set_hash(toplevel_key, NULL);
+          scr_param_unset(toplevel_key);
         }
       }
 
@@ -2747,7 +2748,7 @@ const char* SCR_Config(const char* config_string)
       } else {
         /* user wants to unset a value has given
          * a string like "SCR_PREFIX=" */
-        scr_param_set_hash(toplevel_key, NULL);
+        scr_param_unset(toplevel_key);
       }
     } else {
       /* user wants to set or unset a two-level parameter
