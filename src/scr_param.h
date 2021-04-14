@@ -66,4 +66,7 @@ kvtree* scr_param_set(char* name, const char* value);
  * value needs to be preserved */
 kvtree* scr_param_set_hash(char* name, kvtree* hash_value);
 
+/* unsets a parameter, returning SCR_FAILURE on failure */
+int scr_param_unset(char* name);
+
 #endif
