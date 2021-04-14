@@ -34,6 +34,7 @@ The quick version of building SCR with CMake is:
 
   git clone git@github.com:llnl/scr.git
   cd scr
+  git checkout v3.0rc1
 
   ./bootstrap.sh
 
@@ -69,18 +70,29 @@ This downloads, builds, and installs SCR and its dependencies.
 Building the SCR :code:`test_api` Example
 -------------------------------------------
 
-After installing SCR,
-you will find example programs in the :code:`<install>/share/scr/examples` directory,
-where :code:`<install>` is the path in which you installed SCR.
+In this quick start guide, we use the :code:`test_api.c` program.
+
+If you installed SCR with CMake,
+:code:`test_api.c` was already compiled as part of the make install step above.
+You just need to change into the :code:`examples` subdirectory
+within the current CMake :code:`build` directory:
+
+.. code-block:: bash
+
+  cd examples
+
+Then skip to the next section to run :code:`test_api.c`.
+
 If you installed SCR with Spack,
-you can find its install directory with the following command:
+you will find example programs in the :code:`<install>/share/scr/examples` directory,
+where :code:`<install>` is the path in which SCR was installed.
+You can find Spack's SCR install directory using the following command:
 
 .. code-block:: bash
 
   spack location -i scr
 
-In this quick start guide, we use the :code:`test_api.c` program.
-Build it by executing:
+Then build :code:`test_api.c` by executing:
 
 .. code-block:: bash
 
@@ -88,8 +100,6 @@ Build it by executing:
   make test_api
 
 Upon a successful build, you will have a :code:`test_api` executable.
-You can use this test program to get a feel for how
-SCR works and to ensure that your build of SCR is working.
 
 Running the SCR :code:`test_api` Example
 ------------------------------------------
@@ -119,7 +129,7 @@ Assuming all goes well, you should see output similar to the following
 
 .. code-block:: none
 
-  >>: srun -N 4 -n 4 ./test_api
+  >>: srun -n 4 -N 4 ./test_api
   Init: Min 0.033856 s    Max 0.033857 s  Avg 0.033856 s
   No checkpoint to restart from
   At least one rank (perhaps all) did not find its checkpoint
