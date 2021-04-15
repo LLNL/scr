@@ -4,6 +4,29 @@
 # dependencies.  The dependencies will be build in scr/deps/ and
 # installed to scr/install/
 #
+# Optional flags:
+#   --debug  compiles dependencies with full debug "-g -O0"
+#   --dev    builds most recent version of each dependency
+#
+
+set -x 
+
+# optional builds
+build_debug=0 # whether to build optimized (0) or debug "-g -O0" (1)
+build_dev=0   # whether to checkout fixed version tags (0) or use latest (1)
+
+while [ $# -ge 1 ]; do
+    case "$1" in
+      "--debug" )
+        build_debug=1 ;;
+      "--dev" )
+        build_dev=1 ;;
+      *)
+        echo "USAGE ERROR: unknown option $1"
+        exit 1 ;;
+    esac
+    shift
+done
 
 ROOT="$(pwd)"
 
@@ -46,10 +69,16 @@ for i in "${repos[@]}" ; do
 	fi
 done
 
+# whether to build optimized or "-g -O0" debug
+buildtype="Release"
+if [ $build_debug -eq 1 ] ; then
+  buildtype="Debug"
+fi
+
 rm -rf ${lwgrp}
 tar -zxf ${lwgrp}.tar.gz
 pushd ${lwgrp}
-  ./configure CFLAGS="-g -O0" \
+  ./configure \
     --prefix=${INSTALL_DIR} && \
   make && \
   make install
@@ -62,7 +91,7 @@ popd
 rm -rf ${dtcmp}
 tar -zxf ${dtcmp}.tar.gz
 pushd ${dtcmp}
-  ./configure CFLAGS="-g -O0" \
+  ./configure \
     --prefix=${INSTALL_DIR} \
     --with-lwgrp=${INSTALL_DIR} && \
   make && \
@@ -86,58 +115,78 @@ pushd ${pdsh}
 popd
 
 cd KVTree
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON ..
-make -j `nproc`
-make install
+  if [ $build_dev -eq 0 ] ; then
+    git checkout v1.1.1
+  fi
+  mkdir -p build && cd build
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON ..
+  make -j `nproc`
+  make install
 cd ../..
 
 cd AXL
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DAXL_ASYNC_DAEMON=OFF -DMPI=ON ..
-make -j `nproc`
-make install
+  if [ $build_dev -eq 0 ] ; then
+    git checkout v0.4.0
+  fi
+  mkdir -p build && cd build
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ..
+  make -j `nproc`
+  make install
 cd ../..
 
-# spath
 cd spath
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON ..
-make -j `nproc`
-make install
-#make test
+  if [ $build_dev -eq 0 ] ; then
+    git checkout v0.0.2
+  fi
+  mkdir -p build && cd build
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON ..
+  make -j `nproc`
+  make install
+  #make test
 cd ../..
 
-# rankstr
 cd rankstr
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON ..
-make -j `nproc`
-make install
-#make test
+  if [ $build_dev -eq 0 ] ; then
+    git checkout v0.0.3
+  fi
+  mkdir -p build && cd build
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON ..
+  make -j `nproc`
+  make install
+  #make test
 cd ../..
 
 cd redset
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DMPI=ON ..
-make -j `nproc`
-make install
+  if [ $build_dev -eq 0 ] ; then
+    git checkout v0.0.5
+  fi
+  mkdir -p build && cd build
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DMPI=ON ..
+  make -j `nproc`
+  make install
 cd ../..
 
 cd shuffile
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DMPI=ON ..
-make -j `nproc`
-make install
+  if [ $build_dev -eq 0 ] ; then
+    git checkout v0.0.4
+  fi
+  mkdir -p build && cd build
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DMPI=ON ..
+  make -j `nproc`
+  make install
 cd ../..
 
 cd er
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DWITH_REDSET_PREFIX=$INSTALL_DIR -DWITH_SHUFFILE_PREFIX=$INSTALL_DIR -DMPI=ON ..
-make -j `nproc`
-make install
+  if [ $build_dev -eq 0 ] ; then
+    git checkout v0.0.4
+  fi
+  mkdir -p build && cd build
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DWITH_REDSET_PREFIX=$INSTALL_DIR -DWITH_SHUFFILE_PREFIX=$INSTALL_DIR -DMPI=ON ..
+  make -j `nproc`
+  make install
 cd ../..
 
+set +x
 cd "$ROOT"
 mkdir -p build
 echo "*************************************************************************"
