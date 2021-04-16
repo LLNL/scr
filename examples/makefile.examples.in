@@ -1,11 +1,12 @@
 MPICC     ?= mpicc
 MPICXX    ?= mpicxx
+MPIF90    ?= mpif77
 MPIF90    ?= mpif90
 OPT       ?= -g -O3
 LIBDIR     = -L@X_LIBDIR@ -Wl,-rpath,@X_LIBDIR@ -lscr
 INCLUDES   = -I@X_INCLUDEDIR@
 
-all: test_api test_api_multiple test_ckpt test_ckpt_F
+all: test_api test_api_multiple test_ckpt test_ckpt_F test_ckpt_F90
 
 clean:
 	rm -rf *.o test_api test_api_multiple test_ckpt
@@ -26,5 +27,9 @@ test_ckpt: test_ckpt.cpp
 	  $(LDFLAGS) $(LIBDIR)
 
 test_ckpt_F: test_ckpt.F
-	$(MPIF90) $(OPT) $(F90FLAGS) $(INCLUDES) -o test_ckpt_F test_ckpt.F \
+	$(MPIF77) $(OPT) $(F77FLAGS) $(INCLUDES) -o test_ckpt_F test_ckpt.F \
+	  $(LDFLAGS) -lscrf $(LIBDIR)
+
+test_ckpt_F90: test_ckpt.F90
+	$(MPIF90) $(OPT) $(F90FLAGS) $(INCLUDES) -o test_ckpt_F90 test_ckpt.F90 \
 	  $(LDFLAGS) -lscrf $(LIBDIR)

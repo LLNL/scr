@@ -150,6 +150,7 @@ spack-scr-catalyst:
     - cd share/scr/examples
     - export MPICC=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpicc
     - export MPICXX=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpicxx
+    - export MPIF77=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif77
     - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
     - make
     
@@ -271,6 +272,7 @@ spack-scr-quartz:
     - cd share/scr/examples
     - export MPICC=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpicc
     - export MPICXX=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpicxx
+    - export MPIF77=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif77
     - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
     - make
         
@@ -300,6 +302,7 @@ buildjob-lassen:
     - ln -s ${TMP_DIR_BASE}/deps deps
     - export CC=xlc_r
     - export CXX=xlc++_r
+    - export F77=xlf_r
     - export F90=xlf90_r
     - export FFLAGS=-qextname
     - ${SRC_DIR}/bootstrap.sh
@@ -418,7 +421,9 @@ spack-scr-lassen:
     - spack install --keep-stage scr@develop%xl_r resource_manager=LSF fflags="-qextname" ^spectrum-mpi
     - spack cd -i scr
     - cd share/scr/examples
-    - export MPIF90=`which mpifort`
-    - export F90FLAGS="-qzerosize -qextname"
+    - export MPIF77=`which mpif77`
+    - export F77FLAGS="-qextname"
+    - export MPIF90=`which mpif90`
+    - export F90FLAGS="-qextname"
     - make
   
