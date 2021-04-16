@@ -44,14 +44,14 @@
 
         readunit = mynod
         write(file_suffix, '(i5.5)') readunit
-        fname = trim(ckptname) // "/" // &
-                trim(basefname) // trim(file_suffix) // ".ckpt"
+        fname = trim(ckptname) // "/" // 
+     +      trim(basefname) // trim(file_suffix) // ".ckpt"
         call SCR_ROUTE_FILE(fname, fname_scr, ierr)
 
         R1 = 0
         valid = 1
-        open(unit=readunit,file=fname_scr,form='unformatted', &
-             action='read')
+        open(unit=readunit,file=fname_scr,form='unformatted',
+     +      action='read')
         read(readunit,iostat=ios) R1
         close(readunit)
 
@@ -69,8 +69,8 @@
           iter_time0 = MPI_Wtime (ierr)
         endif
 
-        forall(i=1:ni,j=1:nj,k=1:nk) W1(i,j,k) = &
-               nodeoff*mynod+i+ni*(j-1+nj*(k-1))
+        forall(i=1:ni,j=1:nj,k=1:nk) W1(i,j,k) = 
+     +      nodeoff*mynod+i+ni*(j-1+nj*(k-1))
 
 !       test checkpoint interface
         call SCR_START_CHECKPOINT(ierr)
@@ -80,13 +80,13 @@
 
         writeunit = mynod
         write(file_suffix, '(i5.5)') writeunit
-        fname = trim(ckptname) // "/" // &
-                trim(basefname) // trim(file_suffix) // ".ckpt"
+        fname = trim(ckptname) // "/" //
+     +      trim(basefname) // trim(file_suffix) // ".ckpt"
         call SCR_ROUTE_FILE(fname, fname_scr, ierr)
 
         valid = 1
-        open(unit=writeunit,file=fname_scr,form='unformatted', &
-             action='write')
+        open(unit=writeunit,file=fname_scr,form='unformatted',
+     +      action='write')
         write(writeunit,iostat=ios) W1
         close(writeunit)
 
@@ -100,13 +100,13 @@
 
         writeunit = mynod
         write(file_suffix, '(i5.5)') writeunit
-        fname = trim(ckptname) // "/" // &
-                trim(basefname) // trim(file_suffix) // ".ckpt"
+        fname = trim(ckptname) // "/" //
+     +      trim(basefname) // trim(file_suffix) // ".ckpt"
         call SCR_ROUTE_FILE(fname, fname_scr, ierr)
 
         valid = 1
-        open(unit=writeunit,file=fname_scr,form='unformatted', &
-             action='write')
+        open(unit=writeunit,file=fname_scr,form='unformatted',
+     +      action='write')
         write(writeunit,iostat=ios) W1
         close(writeunit)
 
@@ -115,8 +115,8 @@
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
         errors = 0
-        call MPI_Allreduce(errors, all_errors, 1, MPI_INTEGER, &
-                           MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_Allreduce(errors, all_errors, 1, MPI_INTEGER,
+     +      MPI_SUM,MPI_COMM_WORLD,ierr)
         if( all_errors > 0 ) call exit (1)
 
         if (mynod == 0) then
@@ -135,10 +135,10 @@
       if (mynod .eq. 0) then
         time1 = MPI_Wtime (ierr)
         total_bytes_transferred = real (2 * 6 * loop_count)
-        total_bytes_transferred = total_bytes_transferred * &
-            real (ni * nj * nk)
-        total_bytes_transferred = total_bytes_transferred * &
-            real (nprocs)
+        total_bytes_transferred = total_bytes_transferred *
+     +      real (ni * nj * nk)
+        total_bytes_transferred = total_bytes_transferred *
+     +      real (nprocs)
 
         write (6, 601) total_bytes_transferred / 1.0e+06
  601    format ("Total bytes transferred = ", 1pe12.3, " 10e+06 Bytes")
@@ -146,11 +146,11 @@
         write (6, 602) time1 - time0
  602    format ("Total time =              ", 1pe12.3, " sec")
 
-        overall_transfer_rate = real(total_bytes_transferred) / &
-            ((time1 - time0) * 1.0e+06)
+        overall_transfer_rate = real(total_bytes_transferred) /
+     +      ((time1 - time0) * 1.0e+06)
         write (6, 600) overall_transfer_rate 
- 600    format ("Overall Transfer Rate =   ", 1pe12.3, &
-                " 10e+06 Bytes/sec")
+ 600    format ("Overall Transfer Rate =   ", 1pe12.3,
+     +      " 10e+06 Bytes/sec")
         write (6, 603) 
  603    format ("all done")
       endif
