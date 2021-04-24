@@ -526,10 +526,8 @@ kvtree* scr_param_set(char* name, const char* value)
     );
   }
 
-  kvtree* k = kvtree_new();
-  kvtree* v = kvtree_set(k, value, kvtree_new());
-  assert(k && v);
-  kvtree_set(scr_app_hash, name, k);
+  kvtree_util_set_str(scr_app_hash, name, value);
+  kvtree* v = kvtree_get(scr_app_hash, name);
   return v;
 }
 
