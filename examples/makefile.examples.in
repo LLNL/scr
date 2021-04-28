@@ -1,6 +1,6 @@
 MPICC     ?= mpicc
 MPICXX    ?= mpicxx
-MPIF90    ?= mpif77
+MPIF77    ?= mpif77
 MPIF90    ?= mpif90
 OPT       ?= -g -O3
 LIBDIR     = -L@X_LIBDIR@ -Wl,-rpath,@X_LIBDIR@ -lscr
