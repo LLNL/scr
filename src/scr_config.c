@@ -120,7 +120,7 @@ static int scr_config_read_token(
 
 /* expand environment variables in the input and output the result
  * primarily useful for paths in config files*/
-static char *scr_expand_value(char *raw_value)
+static char* scr_expand_value(char* raw_value)
 {
   char value[SCR_MAX_FILENAME+1];
   char envvar[SCR_MAX_FILENAME+1];
@@ -152,13 +152,12 @@ static char *scr_expand_value(char *raw_value)
       i++;
     }
     else if (raw_value[i] == '$') {
-      char *env_start = raw_value + i + 1;
-      char *env_end = env_start;
-      size_t envvar_len, env_value_len;
-      char *env_value;
-
-      while (IS_ENVVAR_CHAR(*env_end)) env_end++;
-      envvar_len = env_end - env_start;
+      char* env_start = raw_value + i + 1;
+      char* env_end = env_start;
+      while (IS_ENVVAR_CHAR(*env_end)) {
+        env_end++;
+      }
+      size_t envvar_len = env_end - env_start;
       if (envvar_len > SCR_MAX_FILENAME) {
 	scr_err("The environment variable specified by %s is too long, the maximum length is %d\n", raw_value, SCR_MAX_FILENAME);
 	return NULL;
@@ -166,12 +165,12 @@ static char *scr_expand_value(char *raw_value)
       strncpy(envvar, env_start, envvar_len);
       envvar[envvar_len] = '\0';
 
-      env_value = getenv(envvar);
+      char* env_value = getenv(envvar);
       if (!env_value) {
 	scr_err("No environment variable %s is defined, needed to satisfy %s\n", envvar, raw_value);
 	return NULL;
       }
-      env_value_len = strlen(env_value);
+      size_t env_value_len = strlen(env_value);
       if (env_value_len + j > SCR_MAX_FILENAME) {
 	scr_err("File path %s is too long when expanded with %s replacing %s. The maximum length is %d\n", raw_value, env_value, envvar);
 	return NULL;
@@ -201,11 +200,8 @@ static int scr_config_read_kv(
   int  n = *n_external;
   char c = *c_external;
 
-  char key[SCR_MAX_FILENAME];
-  char raw_value[SCR_MAX_FILENAME];
-  char *value;
-
   /* read in the key token */
+  char key[SCR_MAX_FILENAME];
   scr_config_read_token(fs, file, linenum, &n, &c, key, sizeof(key));
 
   /* optional white space between key and '=' sign */
@@ -225,8 +221,9 @@ static int scr_config_read_kv(
   scr_config_read_whitespace(fs, file, linenum, &n, &c);
 
   /* read in the value token */
+  char raw_value[SCR_MAX_FILENAME];
   scr_config_read_token(fs, file, linenum, &n, &c, raw_value, sizeof(raw_value));
-  value = scr_expand_value(raw_value);
+  char* value = scr_expand_value(raw_value);
 
   /* convert key to upper case */
   int i = 0;
