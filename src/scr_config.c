@@ -236,6 +236,7 @@ static int scr_config_read_kv(
 
   /* insert key/value into hash */
   kvtree* tmp_hash = kvtree_set_kv(hash, key, value);
+  scr_free(&value);
 
   *n_external = n;
   *c_external = c;

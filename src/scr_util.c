@@ -376,6 +376,7 @@ spath* scr_get_prefix(const char* str)
     if (! spath_is_absolute(prefix_path)) {
       spath* cwd = spath_cwd();
       spath_prepend(prefix_path, cwd);
+      spath_delete(&cwd);
     }
   } else {
     /* user didn't set SCR_PREFIX,
