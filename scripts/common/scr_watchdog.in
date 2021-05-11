@@ -107,5 +107,6 @@ while (1) {
    }
 }
 
+print "Killing simulation using '$killCmd'\n";
 `$killCmd`;
 exit 0;
