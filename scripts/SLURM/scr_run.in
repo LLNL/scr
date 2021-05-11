@@ -282,7 +282,8 @@ if [ $? -ne 0 ] ; then
 fi
 
 # kill the watchdog process if it is running
-if [ $use_scr_watchdog -eq 1 ] && [ $watchdog_pid -ne -1 ]; then
+if [ $use_scr_watchdog -eq 1 ] && [ $watchdog_pid -ne -1 ] &&
+	kill -0 >/dev/null 2>&1 $watchdog_pid ; then
   echo "kill -n KILL $watchdog_pid";
   kill -n KILL $watchdog_pid;
 fi
