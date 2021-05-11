@@ -13,8 +13,10 @@
 my $pid=$ARGV[0]; # unused
 my $user=`scr_env -u`;
 chomp($user);
+die "Could not determine user ID" if $user eq "";
 my $jobid=`scr_env -j`;
 chomp($jobid);
+die "Could not determine job ID" if $jobid eq "";
 # get job steps for this user and job, order by decreasing job step
 # so first one should be the one we are looking for
 # -h means print no header, so just the data in this order:
