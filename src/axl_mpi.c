@@ -14,11 +14,6 @@
 
 #include "scr_globals.h"
 #define AXL_FAILURE (1)
-//#define HAVE_LIBDTCMP 1
-
-#ifdef HAVE_LIBDTCMP
-#include "dtcmp.h"
-#endif
 
 static int axl_alltrue(int valid, MPI_Comm comm)
 {
@@ -63,14 +58,6 @@ int AXL_Init_comm (
         return AXL_FAILURE;
     }
 
-#ifdef HAVE_LIBDTCMP
-    int dtcmp_rc = DTCMP_Init();
-    if (dtcmp_rc != DTCMP_SUCCESS) {
-        /* failed to initialize DTCMP */
-        rc = AXL_FAILURE;
-    }
-#endif
-
     return rc;
 }
 
@@ -78,14 +65,6 @@ int AXL_Finalize_comm (
     MPI_Comm comm)    /**< [IN]  - communicator used for coordination and flow control */
 {
     int rc = AXL_SUCCESS;
-
-#ifdef HAVE_LIBDTCMP
-    int dtcmp_rc = DTCMP_Finalize();
-    if (dtcmp_rc != DTCMP_SUCCESS) {
-        /* failed to shut down DTCMP */
-        rc = AXL_FAILURE;
-    }
-#endif
 
     int axl_rc = AXL_Finalize();
     if (axl_rc != AXL_SUCCESS) {
