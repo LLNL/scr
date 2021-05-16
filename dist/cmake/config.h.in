@@ -1,4 +1,13 @@
 // System Specific
+#cmakedefine HAVE_BYTESWAP_H
+
+// File Locking
+#define KVTREE_FILE_LOCK_USE_@KVTREE_FILE_LOCK@
+
+#cmakedefine HAVE_LIBCPPR
+#cmakedefine HAVE_DATAWARP
+#cmakedefine HAVE_BBAPI
+#cmakedefine HAVE_BBAPI_FALLBACK
 
 // Optional Libs
 #cmakedefine HAVE_LIBYOGRT
