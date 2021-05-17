@@ -28,20 +28,18 @@ The SCR build uses the CMake FindMPI module to link with MPI.
 This module looks for the standard :code:`mpicc` compiler wrapper,
 which must be in your :code:`PATH`.
 
-The quick version of building SCR with CMake is:
+To download and build SCR with CMake:
 
 .. code-block:: bash
 
-  git clone git@github.com:llnl/scr.git
-  cd scr
-  git checkout v3.0rc1
+  wget https://github.com/LLNL/scr/releases/download/v3.0rc1/scr-top-v3.0rc1.tgz
+  tar -zxf scr-top-v3.0rc1.tgz
+  cd scr-top-v3.0rc1
 
-  ./bootstrap.sh
-
-  mkdir build
+  mkdir build install
   cd build
   cmake -DCMAKE_INSTALL_PREFIX=../install ..
-  make install
+  make -j install
 
 There are a number of CMake options to configure the build.
 For more details, see Section :ref:`sec-build-cmake`.
