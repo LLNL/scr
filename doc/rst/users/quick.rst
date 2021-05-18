@@ -16,7 +16,7 @@ Building SCR
 
 SCR has a number of dependencies.
 To simplify the install process,
-one can use our :code:`bootstrap.sh` script with CMake or use Spack.
+one can use a release tarball with CMake or use Spack.
 For full details on building SCR,
 please see Section :ref:`sec-library`.
 
@@ -70,21 +70,24 @@ Building the SCR :code:`test_api` Example
 
 In this quick start guide, we use the :code:`test_api.c` program.
 
-If you installed SCR with CMake,
-:code:`test_api.c` was already compiled as part of the make install step above.
-You just need to change into the :code:`examples` subdirectory
-within the current CMake :code:`build` directory:
+If you install SCR with CMake,
+:code:`test_api.c` is compiled as part of the make install step.
+You can find it in the :code:`examples` subdirectory
+within the CMake :code:`build` directory:
 
 .. code-block:: bash
 
   cd examples
 
-Then skip to the next section to run :code:`test_api.c`.
+If you still have this direcotry,
+then skip ahead to the next section to run :code:`test_api.c`.
 
-If you installed SCR with Spack,
-you will find example programs in the :code:`<install>/share/scr/examples` directory,
+Alternatively, you will find source files for example programs
+in the :code:`<install>/share/scr/examples` directory,
 where :code:`<install>` is the path in which SCR was installed.
-You can find Spack's SCR install directory using the following command:
+
+If you install SCR with Spack,
+you can identify the SCR install directory with the following command:
 
 .. code-block:: bash
 

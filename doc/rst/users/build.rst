@@ -12,27 +12,19 @@ corresponding SCR functionality is disabled.
 
 Required:
 
+* C and C++ compilers
 * CMake, Version 2.8+
-* Compilers (C, C++, and Fortran)
 * MPI 3.0+
-* pdsh (https://github.com/chaos/pdsh)
-* DTCMP (https://github.com/llnl/dtcmp)
-* LWGRP (https://github.com/llnl/lwgrp)
-* AXL (https://github.com/ECP-VeloC/AXL)
-* er (https://github.com/ECP-VeloC/er)
-* KVTree (https://github.com/ECP-VeloC/KVTree)
-* rankstr (https://github.com/ECP-VeloC/rankstr)
-* redset (https://github.com/ECP-VeloC/redset)
-* shuffile (https://github.com/ECP-VeloC/shuffile)
-* spath (https://github.com/ECP-VeloC/spath)
 
 Optional:
 
+* Fortran compiler (for Fortran bindings)
+* pdsh (for scalable restart and scavenge) (https://github.com/chaos/pdsh)
 * libyogrt (for time remaining in a job allocation) (https://github.com/llnl/libyogrt)
 * MySQL (for logging SCR activities)
 
 To simplify the install process,
-one can use the SCR :code:`bootstrap.sh` script with CMake or use Spack.
+one can use CMake to build a release tarball or use Spack.
 
 The CMake and Spack sections below assume that one is installing SCR on a system with
 existing compilers, a resource manager (like SLURM or LSF), and an MPI environment.
