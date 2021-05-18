@@ -456,8 +456,10 @@ ADD_LIBRARY(scr_o OBJECT
 # Install header files
 LIST(APPEND libscr_install_headers
     scr/src/scr.h
-    scr/src/scrf.h
 )
+IF(ENABLE_FORTRAN)
+    LIST(APPEND libscr_install_headers scr/src/scrf.h)
+ENDIF(ENABLE_FORTRAN)
 INSTALL(FILES ${libscr_install_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 IF(BUILD_SHARED_LIBS)

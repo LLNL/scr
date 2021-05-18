@@ -8,8 +8,10 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
 # Install header files
 LIST(APPEND libscr_install_headers
 	scr.h
-	scrf.h
 )
+IF(ENABLE_FORTRAN)
+    LIST(APPEND libscr_install_headers scrf.h)
+ENDIF(ENABLE_FORTRAN)
 INSTALL(FILES ${libscr_install_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 ## CLI should build without MPI dependence
