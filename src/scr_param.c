@@ -525,7 +525,7 @@ int scr_param_finalize()
 }
 
 /* sets (top level) a parameter to a new value, returning the subkey hash */
-kvtree* scr_param_set(char* name, const char* value)
+kvtree* scr_param_set(const char* name, const char* value)
 {
   /* cannot set parameters that are used by scripts */
   if (kvtree_get(scr_no_app_hash, name)) {
@@ -544,7 +544,7 @@ kvtree* scr_param_set(char* name, const char* value)
 /* sets a parameter to a new value, returning the hash
  * hash_value should be the return from scr_param_get_hash() if the top level
  * value needs to be preserved */
-kvtree* scr_param_set_hash(char* name, kvtree* hash_value)
+kvtree* scr_param_set_hash(const char* name, kvtree* hash_value)
 {
   /* cannot set parameters that are used by scripts */
   if (kvtree_get(scr_no_app_hash, name)) {
@@ -557,7 +557,7 @@ kvtree* scr_param_set_hash(char* name, kvtree* hash_value)
 }
 
 /* unsets a parameter, returning 0 if the parameter did not exist */
-int scr_param_unset(char* name)
+int scr_param_unset(const char* name)
 {
   /* cannot set parameters that are used by scripts */
   if (kvtree_get(scr_no_app_hash, name)) {
