@@ -438,9 +438,6 @@ int scr_param_init(void)
     /* safe to call scr_param_get after this */
     scr_param_initialized = 1;
 
-    /* names we cannot read from the environment */
-    kvtree_set(scr_no_user_hash, "SCR_CNTL_BASE", kvtree_new());
-
     /* allocate hash object to store values from user config file,
      * if specified */
     char* user_file = user_config_path();
