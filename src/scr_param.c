@@ -566,5 +566,6 @@ int scr_param_unset(const char* name)
     );
   }
 
-  return kvtree_unset(scr_app_hash, name) == KVTREE_SUCCESS ? SCR_SUCCESS : SCR_FAILURE;
+  int rc = kvtree_unset(scr_app_hash, name);
+  return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
 }
