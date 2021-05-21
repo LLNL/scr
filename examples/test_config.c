@@ -159,8 +159,11 @@ int main (int argc, char* argv[])
 
   SCR_Config("STORE=/dev/shm GROUP=NODE COUNT=1");
   tests_passed &= test_cfg("STORE=/dev/shm COUNT", "1");
-  tests_passed &= test_cfg("STORE", "/dev/shm");
   tests_passed &= test_cfg("STORE=/dev/shm GROUP", "NODE");
+
+  /* STORE has been set with both /dev/shm/foo and /dev/shm at this point,
+   * so a query should print an error and return NULL */
+  tests_passed &= test_cfg("STORE", NULL);
 
   /* delete values */
   SCR_Config("STORE=");
