@@ -68,8 +68,6 @@ LIST(APPEND libscr_srcs
 	axl_mpi.c
 )
 
-# Add vendor specific code based on SCR_ASYNC_API
-
 # SCR Library
 ADD_LIBRARY(scr_o OBJECT ${libscr_srcs})
 
