@@ -66,14 +66,13 @@ To build SCR from a release tarball:
   cmake -DCMAKE_INSTALL_PREFIX=../install ..
   make -j install
 
-Some useful CMake command line options are:
+Some common CMake command line options:
 
 * :code:`-DCMAKE_INSTALL_PREFIX=[path]`: Place to install the SCR library
 * :code:`-DCMAKE_BUILD_TYPE=[Debug/Release]`: Build with debugging or optimizations, defaults to :code:`Release`
 * :code:`-DBUILD_SHARED_LIBS=[ON/OFF]`: Whether to build shared libraries, defaults to :code:`ON`
 
 * :code:`-DSCR_RESOURCE_MANAGER=[SLURM/APRUN/PMIX/LSF/NONE]` : Resource manager for job allocations, defaults to :code:`SLURM`
-* :code:`-DSCR_ASYNC_API=[INTEL_CPPR/CRAY_DW/IBM_BBAPI/NONE]` : Vendor support for file transfers, defaults to :code:`NONE`
 
 * :code:`-DSCR_CNTL_BASE=[path]` : Path to SCR Control directory, defaults to :code:`/dev/shm`
 * :code:`-DSCR_CACHE_BASE=[path]` : Path to SCR Cache directory, defaults to :code:`/dev/shm`
@@ -95,6 +94,10 @@ One can disable portions of the SCR build if they are not needed:
 * :code:`-DENABLE_FORTRAN=[ON/OFF]` : Whether to build library for Fortran bindings, defaults to :code:`ON`
 * :code:`-DENABLE_EXAMPLES=[ON/OFF]` : Whether to build programs in :code:`examples` directory, defaults to :code:`ON`
 * :code:`-DENABLE_TESTS=[ON/OFF]` : Whether to support :code:`make check` tests, defaults to :code:`ON`
+
+* :code:`-DENABLE_IBM_BBAPI[ON/OFF]` : Whether to enable IBM Burst Buffer support for file transfers, defaults to :code:`ON`
+* :code:`-DENABLE_CRAY_DW[ON/OFF]` : Whether to enable Cray DataWarp support for file transfers, defaults to :code:`OFF`
+* :code:`-DENABLE_INTEL_CPPR[ON/OFF]` : Whether to enable Intel CPPR support for file transfers, defaults to :code:`OFF`
 
 * :code:`-DENABLE_PDSH=[ON/OFF]` : Whether to use pdsh, defalts to :code:`ON`
 * :code:`-DBUILD_PDSH=[OFF/ON]`: CMake can automatically download and build the PDSH dependency, defaults to :code:`OFF`
