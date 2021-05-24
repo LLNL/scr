@@ -238,7 +238,7 @@ int main (int argc, char* argv[])
     SCR_Config("SCR_PREFIX=.");
     tests_passed &= test_cfg("SCR_COPY_TYPE", NULL, __LINE__);
     scr_param_finalize();
-    SCR_Config("SCR_CONF_FILE="); /* undo setting SCR_PREFIX */
+    SCR_Config("SCR_PREFIX="); /* undo setting SCR_PREFIX */
     unsetenv("SCR_CONF_FILE");
     scr_param_finalize();
 
