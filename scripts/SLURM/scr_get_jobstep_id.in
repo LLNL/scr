@@ -10,11 +10,13 @@
 # is for some other srun command and not the one we are looking for. 
 # This script returns the job step id on success and -1 on failure.
 
-my $pid=$ARGV[0];
+my $pid=$ARGV[0]; # unused
 my $user=`scr_env -u`;
 chomp($user);
+die "Could not determine user ID" if $user eq "";
 my $jobid=`scr_env -j`;
 chomp($jobid);
+die "Could not determine job ID" if $jobid eq "";
 # get job steps for this user and job, order by decreasing job step
 # so first one should be the one we are looking for
 # -h means print no header, so just the data in this order:
@@ -27,23 +29,17 @@ my $currjobid=-1; # the return value will be -1 if not found
 
 
 foreach my $line (@output){
+  $line=~ s/^\s+//;
   my @fields = split /\s+/, $line;
-  #print "@fields[0]\n";
+  #print ("fields ",join(",",@fields),"\n");
   my @jobidparts=split /\./, $fields[0];
-  #print "@jobidparts\n";
+  #print ("jobidparts: ", join(",",@jobidparts),"\n");
   # the first item is the job step id
   # if it is JOBID.0, then it is the allocation ID and we don't want that
   # if it's not 0, then assume it's the one we're looking for
-  if ($jobidparts[1] ne "0" ){
-     my $checkPIDcmd="ps h -p $pid";
-     my $psOutput=`$checkPIDcmd`;
-     $psOutput=~ s/^\s+//;
-     my @psparts= split /\s+/, $psOutput;
-     if($psparts[0] eq $pid){
+  if ($jobidparts[1] ne "0" and $jobidparts[1] ne "batch"){
         $currjobid=$fields[0];
         last;
-     }
-    
   }
 }
 

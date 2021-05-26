@@ -224,7 +224,7 @@ while [ 1 ] ; do
      echo "$bindir/scr_get_jobstep_id $srun_pid";
      jobstepid=`$bindir/scr_get_jobstep_id $srun_pid`;
      # then start the watchdog  if we got a valid job step id
-     if [ $jobstepid != "-1" ]; then
+     if [ "x$jobstepid" != "x" ] && [ $jobstepid != "-1" ]; then
          $bindir/scr_watchdog --dir $prefix --jobStepId $jobstepid &
          watchdog_pid=$!;
          echo "$prog: Started watchdog process with PID $watchdog_pid."
@@ -282,9 +282,11 @@ if [ $? -ne 0 ] ; then
 fi
 
 # kill the watchdog process if it is running
-if [ $use_scr_watchdog -eq 1 ] && [ $watchdog_pid -ne -1 ]; then
-  echo "$kill -n KILL $watchdog_pid";
-  kill -n KILL $watchdog_pid;
+if [ $use_scr_watchdog -eq 1 ] && [ $watchdog_pid -ne -1 ] &&
+	kill -0 >/dev/null 2>&1 $watchdog_pid ; then
+  kill_cmd="kill -n KILL $watchdog_pid"
+  echo "Killing watchdog using '$kill_cmd'"
+  $kill_cmd
 fi
 
 # make a record of end time

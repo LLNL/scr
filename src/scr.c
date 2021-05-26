@@ -2735,11 +2735,23 @@ const char* SCR_Config(const char* config_string)
     if (toplevel_value == NULL) {
       /* user is trying to query for the value of a simple key/value pair,
        * given a parameter name like "SCR_PREFIX" */
-      const char* value = scr_param_get(toplevel_key);
-      if (value != NULL) {
-        /* found a setting for this parameter, strdup and return it */
-        retval = strdup(value);
+      kvtree* toplevel_hash = (kvtree*) scr_param_get_hash(toplevel_key);
+      if (kvtree_size(toplevel_hash) <= 1) {
+        /* the value string is well defined if we have at most one value */
+        const char* value = scr_param_get(toplevel_key);
+        if (value != NULL) {
+          /* found a setting for this parameter, strdup and return it */
+          retval = strdup(value);
+        }
+      } else {
+        /* this key has multiple values set, so it's not clear which to return */
+        if (scr_my_rank_world == 0) {
+          scr_err("Multiple values are set for '%s', so query return value is ill-defined @ %s:%d",
+            toplevel_key, __FILE__, __LINE__
+          );
+        }
       }
+      kvtree_delete(&toplevel_hash);
     } else {
       /* user is trying to query the subvalue of a two-level parameter
        * given an input like "CKPT=0 TYPE" with
