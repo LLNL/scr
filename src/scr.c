@@ -738,18 +738,22 @@ static int scr_get_params()
   tmp = (kvtree*) scr_param_get_hash(SCR_CONFIG_KEY_STOREDESC);
   if (tmp != NULL) {
     kvtree_set(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, tmp);
-  } else {
-    /* TODO: consider requiring user to specify config file for this */
+  }
 
+  /* ensure we have a store descriptor for the default cache directory */
+  tmp = kvtree_get_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cache_base);
+  if (tmp == NULL) {
     /* create a store descriptor for the cache directory */
     tmp = kvtree_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cache_base);
     kvtree_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, scr_cache_size);
+  }
 
-    /* also create one for control directory if cntl != cache */
-    if (strcmp(scr_cntl_base, scr_cache_base) != 0) {
-      tmp = kvtree_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cntl_base);
-      kvtree_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, 0);
-    }
+  /* ensure we have a store descriptor for the default control directory */
+  tmp = kvtree_get_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cntl_base);
+  if (tmp == NULL) {
+    /* create a store descriptor for the control directory */
+    tmp = kvtree_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cntl_base);
+    kvtree_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, 0);
   }
 
   /* select copy method */
