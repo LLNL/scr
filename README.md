@@ -6,7 +6,10 @@ bandwidth for checkpointing and restarting large-scale jobs. With SCR,
 jobs run more efficiently, recompute less work upon a failure, and reduce
 load on critical shared resources such as the parallel file system.
 
-Detailed usage is provided at [SCR.ReadTheDocs.io](http://scr.readthedocs.io/en/latest/).
+Detailed usage is provided at [SCR.ReadTheDocs.io](https://scr.readthedocs.io/en/latest/).
+
+For new users, the [Quick Start guide](https://scr.readthedocs.io/en/latest/users/quick.html)
+shows one how to build and run an example using SCR.
 
 [![User Docs Status](https://readthedocs.org/projects/scr/badge/?version=latest)](https://scr.readthedocs.io/en/latest/?badge=latest)
 
@@ -17,13 +20,30 @@ Please refer to both our [code of conduct](CODE_OF_CONDUCT.md) and our [contribu
 
 ## Developers
 
-Developer documentation is provided at [SCR-dev.ReadTheDocs.io](http://scr-dev.readthedocs.io/en/latest/).
+Developer documentation is provided at [SCR-dev.ReadTheDocs.io](https://scr-dev.readthedocs.io/en/latest/).
 
 [![Developer Docs Status](https://readthedocs.org/projects/scr-dev/badge/?version=latest)](https://scr-dev.readthedocs.io/en/latest/?badge=latest)
 
 SCR uses components from [ECP-VeloC](https://github.com/ECP-VeloC),
 which have [user](https://github.com/ECP-VeloC/component-user-docs)
 and [developer](https://github.com/ECP-VeloC/component-dev-docs) docs.
+
+For a development build of SCR and its dependencies,
+one can use the bootstrap.sh script:
+
+    git clone git@github.com:llnl/scr.git
+    cd scr
+
+    ./bootstrap.sh --dev --debug
+
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=../install ..
+    make install
+
+One can then run a test program:
+
+    cd examples
+    srun -n4 -N4 ./test_api
 
 ## Authors
 
