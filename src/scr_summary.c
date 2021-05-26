@@ -314,7 +314,7 @@ static int scr_summary_read_v5(const spath* dir, kvtree* summary_hash)
   }
 
   /* read in the summary hash file */
-  if (kvtree_read_path(summary_path, summary_hash) != KVTREE_SUCCESS) {
+  if (kvtree_read_path_locked(summary_path, summary_hash) != KVTREE_SUCCESS) {
     scr_err("Reading summary file %s @ %s:%d",
       summary_file, __FILE__, __LINE__
     );
@@ -484,7 +484,7 @@ int scr_summary_write(const spath* dir, const scr_dataset* dataset, int all_comp
   kvtree_util_set_int(rank2file_hash, SCR_SUMMARY_6_KEY_RANKS, scr_ranks_world);
 
   /* write the hash to a file */
-  kvtree_write_path(summary_path, summary_hash);
+  kvtree_write_path_locked(summary_path, summary_hash);
 
   /* free the hash object */
   kvtree_delete(&summary_hash);

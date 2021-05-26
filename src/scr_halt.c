@@ -107,7 +107,7 @@ int scr_halt_sync_and_decrement(const spath* file_path, kvtree* hash, int dec_co
   }
 
   /* acquire a file lock before read/modify/write */
-  int ret = scr_file_lock_read(file, fd);
+  int ret = scr_file_lock_write(file, fd);
   if (ret != SCR_SUCCESS) {
     scr_close(file,fd);
     rc = ret;

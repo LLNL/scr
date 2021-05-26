@@ -78,6 +78,12 @@ int kvtree_read_path(const spath* path, kvtree* tree);
 /* convenience to write kvtree to an spath */
 int kvtree_write_path(const spath* path, const kvtree* tree);
 
+/* convenience to read kvtree from an spath with a file read lock */
+int kvtree_read_path_locked(const spath* path, kvtree* tree);
+
+/* convenience to write kvtree to an spath with a file write lock */
+int kvtree_write_path_locked(const spath* path, const kvtree* tree);
+
 /* given a string defining SCR_PREFIX value as given by user
  * return spath of fully qualified path, user should free */
 spath* scr_get_prefix(const char* prefix);
