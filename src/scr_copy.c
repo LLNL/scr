@@ -62,7 +62,6 @@ struct arglist {
   char* prefix;           /* prefix directory */
   unsigned long buf_size; /* number of bytes to copy file data to file system */
   int crc_flag;           /* whether to compute crc32 during copy */
-  int partner_flag;       /* whether to copy data for partner */
 };
 
 int process_args(int argc, char **argv, struct arglist* args)
@@ -74,7 +73,6 @@ int process_args(int argc, char **argv, struct arglist* args)
     {"prefix",     required_argument, NULL, 'd'},
     {"buf",        required_argument, NULL, 'b'},
     {"crc",        no_argument,       NULL, 'r'},
-    {"partner",    no_argument,       NULL, 'p'},
     {0, 0, 0, 0}
   };
 
@@ -84,7 +82,6 @@ int process_args(int argc, char **argv, struct arglist* args)
   args->prefix         = NULL;
   args->buf_size       = SCR_FILE_BUF_SIZE;
   args->crc_flag       = SCR_CRC_ON_FLUSH;
-  args->partner_flag   = 0;
 
   /* loop through and process all options */
   int c, id;
@@ -92,7 +89,7 @@ int process_args(int argc, char **argv, struct arglist* args)
   do {
     /* read in our next option */
     int option_index = 0;
-    c = getopt_long(argc, argv, "c:i:d:b:rph", long_options, &option_index);
+    c = getopt_long(argc, argv, "c:i:d:b:rh", long_options, &option_index);
     switch (c) {
       case 'c':
         /* control directory */
@@ -126,10 +123,6 @@ int process_args(int argc, char **argv, struct arglist* args)
       case 'r':
         /* compute and record crc32 during copy */
         args->crc_flag = 1;
-        break;
-      case 'p':
-        /* copy out partner files */
-        args->partner_flag = 1;
         break;
       case 'h':
         /* print help message and exit */
