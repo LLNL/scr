@@ -2486,11 +2486,6 @@ int SCR_Finalize()
 /* sets or gets a configuration option */
 const char* SCR_Config(const char* config_string)
 {
-  /* manage state transition */
-  if (scr_state != SCR_STATE_UNINIT) {
-    scr_state_transition_error(scr_state, "SCR_Config()", __FILE__, __LINE__);
-  }
-
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return NULL;
@@ -2776,7 +2771,13 @@ const char* SCR_Config(const char* config_string)
       kvtree_delete(&toplevel_hash);
     }
   } else {
-    /* user wants to set or unset a parameter */
+    /* user wants to set or unset a parameter,
+     * only allow changing parameters before SCR_Init */
+    if (scr_state != SCR_STATE_UNINIT) {
+      scr_state_transition_error(scr_state, "SCR_Config()", __FILE__, __LINE__);
+    }
+
+    /* determine whether we have a simple key/value pair or a two-level param */
     if (value_hash == NULL) {
       /* dealing with a simple key/value parameter pair */
       if (toplevel_value) {
@@ -2827,11 +2828,6 @@ const char* SCR_Config(const char* config_string)
 
 const char* SCR_Configf(const char* format, ...)
 {
-  /* manage state transition */
-  if (scr_state != SCR_STATE_UNINIT) {
-    scr_state_transition_error(scr_state, "SCR_Configf()", __FILE__, __LINE__);
-  }
-
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return NULL;
