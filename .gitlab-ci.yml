@@ -513,27 +513,27 @@ spack-scr-lassen:
     - shell
   before_script:
     - pwd
-    - |+
-        cat > fixcompiler.py <<EOF
-        import os, sys, yaml
-        xlf = os.popen('which xlf').read().strip()
-        xlfr = os.popen('which xlf_r').read().strip()
-        cfile = sys.argv[1]
+    # - |+
+    #     cat > fixcompiler.py <<EOF
+    #     import os, sys, yaml
+    #     xlf = os.popen('which xlf').read().strip()
+    #     xlfr = os.popen('which xlf_r').read().strip()
+    #     cfile = sys.argv[1]
         
-        with open(cfile, 'r') as f:
-            compilers = yaml.safe_load(f)
-            for elem in compilers['compilers']:
-                for k, v in elem.items():
-                    if ('xl@' in v['spec']):
-                        v['paths']['fc'] = 'xlf'
-                    elif ('xl_r@' in v['spec']):
-                        v['paths']['fc'] = 'xlf_r'
+    #     with open(cfile, 'r') as f:
+    #         compilers = yaml.safe_load(f)
+    #         for elem in compilers['compilers']:
+    #             for k, v in elem.items():
+    #                 if ('xl@' in v['spec']):
+    #                     v['paths']['fc'] = 'xlf'
+    #                 elif ('xl_r@' in v['spec']):
+    #                     v['paths']['fc'] = 'xlf_r'
         
-        with open(cfile, 'w') as f:
-           f.write(yaml.dump(compilers))
+    #     with open(cfile, 'w') as f:
+    #        f.write(yaml.dump(compilers))
            
-        EOF
-    - cat fixcompiler.py
+    #     EOF
+    # - cat fixcompiler.py
   script:
     - mkdir -p lassen
     - cd lassen
@@ -549,10 +549,10 @@ spack-scr-lassen:
     - cd spack
     - . share/spack/setup-env.sh
     - spack compiler find --scope site
-    - mv ../../fixcompiler.py .
-    - cat fixcompiler.py
-    - EDITOR="python fixcompiler.py" spack config --scope site edit compilers
-    - spack install --keep-stage scr@develop%xl_r resource_manager=LSF fflags="-qextname" ^spectrum-mpi
+    # - mv ../../fixcompiler.py .
+    # - cat fixcompiler.py
+    # - EDITOR="python fixcompiler.py" spack config --scope site edit compilers
+    - spack install --keep-stage scr@develop resource_manager=LSF ^spectrum-mpi
     - spack cd -i scr
     - cd share/scr/examples
     - export MPIF77=`which mpif77`
