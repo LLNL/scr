@@ -1,87 +1,120 @@
-#! /usr/bin/env python
+#! /usr/env python
 
-# SCR Pre Run
+import os
+import sys, subprocess
+from scr_scavenge import SCR_Scavenge
 
-import os, sys, subprocess
-from datetime import datetime
+# SCR_Env class holds the configuration
+#   this class could be passed to other methods:
+#     SCR_Scavenge(scr_env)
+#   then the scavenge function runs using this env
 
-# for verbose, print func():linenum -> event
-def tracefunction(frame,event,arg):
-  print(str(frame.f_code.co_name)+'():'+str(frame.f_lineno)+' -> '+str(event)+'\n')
+# the init takes any global constants:
+#   scr_env = SCR_Env(bindir='')
+# the init discovers the env from the environment variables
+#   init sets -> conf [ 'user', 'env', 'jobid', 'nodes' ]
+#     'env' values: 'SLURM', 'LSF', ..., 'unknown'
 
-val = os.environ.get('SCR_ENABLE')
-if val is None or val == '0':
-  sys.exit(0)
-val = os.environ.get('SCR_DEBUG')
-if val is not None and int(val) > 0:
-  sys.settrace(tracefunction)
+# def set_prefix(self,prefix):
+#   the prefix should be explicitly set
 
-start_time = datetime.now()
+# def set_downnodes(self):
+#   set down node list, requires node list to already be set
 
-###
-bindir="@X_BINDIR@"
-###
+# def get_runnode_count(self):
+#   returns the number of nodes used in the last run
+#     could set a member value instead of returning a number
 
-prog="scr_prerun"
 
-def print_usage():
-  print(f'Usage: {prog} [-p prefix_dir]')
-  sys.exit(1)
+class SCR_Env:
+  # init initializes vars from the environment 
+  # where there is system variation we use methods
+  def __init__(self,bindir=''):
+    # the get env methods set a flag, e.g., conf['env'] = 'SLURM'
+    self.conf = {}
+    self.conf['BINDIR'] = bindir
+    # replaces: my $scr_nodes_file = "@X_BINDIR@/scr_nodes_file"
+    self.conf['nodes_file'] = bindir+'/scr_nodes_file'
+    val = os.environ.get('USER')
+    if val is not None:
+      self.conf['user'] = val
+    else:
+      sys.exit(1)
+    val = self.getjobid()
+    if val is not None:
+      self.conf['jobid'] = val
+    else:
+      print('defjobid')
+    val = self.getnodelist()
+    if val is not None:
+      self.conf['nodes'] = val
+    else:
+      sys.exit(1)
 
-# process command line options
-pardir=bindir+'/scr_prefix'
+  # get job id, setting environment flag here
+  def getjobid(self):
+    val = os.environ.get('SLURM_JOBID')
+    if val is not None:
+      self.conf['env'] = 'SLURM'
+      return val
+    val = os.environ.get('LSB_JOBID')
+    if val is not None:
+      self.conf['env'] = 'LSF'
+      return val
+    self.conf['env'] = 'unknown'
+    return None
 
-val = False
-for i in range(1,len(sys.argv)):
-  if val==True:
-    val=False
-    pardir=sys.argv[i]
-  elif sys.argv[i]=='-p':
-    val=True
-  elif sys.argv[i].startswith('-p') and len(sys.argv[i])>2:
-    pardir=sys.argv[i][2:]
-  else:
-    print_usage()
+  # get node list
+  def getnodelist(self):
+    if self.conf['env'] == 'SLURM':
+      val = os.environ.get('SLURM_NODELIST')
+      if val is not None:
+        return val
+    elif self.conf['env'] == 'LSF':
+      val = os.environ.get('LSB_DJOB_HOSTFILE')
+      if val is not None:
+        with open(val,'r') as hostfile:
+          # make a list from the set -> make a set from the list -> file.readlines().rstrip('\n')
+          hosts = list(set([line.rstrip('\n') for line in hostfile.readlines()]))
+          # compress host list ###
+          return hosts
+      val = os.environ.get('LSB_HOSTS')
+      if val is not None:
+        # compress hostlist ###
+        return val
+    return None
 
-# check that we have the parallel file system prefix directory
-#if pardir=="":
+  # set the prefix
+  def set_prefix(self,prefix):
+    self.conf['prefix'] = prefix
 
-print(f'{prog}: Started: {start_time}')
+  # set down node list, requires node list to already be set
+  def set_downnodes(self):
+    # TODO: any way to get list of down nodes in LSF?
+    if self.conf['env'] == 'LSF':
+      #sys.exit(1)
+      return
+    argv = ['sinfo','-ho','%N','-t','down','-n',self.conf['nodes']]
+    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+    out, err = runproc.communicate()
+    if runproc.returncode!=0:
+      #print('0')
+      print(err)
+      sys.exit(1)
+    self.conf['down'] = out # parse out
 
-ret=0
+  # list the number of nodes used in the last run
+  def get_runnode_count(self):
+    argv = [self.conf['nodes_file'],'--dir',self.conf['prefix']]
+    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+    out, err = runproc.communicate()
+    if runproc.returncode!=0:
+      print('0') # print(err)
+      sys.exit(1)
+    return out
 
-# check that we have all the runtime dependences we need
-# CALL
-#python $bindir/scr_test_runtime
-# if return != 0 then print $prog: exit code: 1, exit(1)
-
-# TODO: It would be nice to clear the cache and control directories
-# here in preparation for the run.  However, a simple rm -rf is too
-# dangerous, since it's too easy to accidentally specify the wrong
-# base directory.
-#
-# For now, we just keep this script around as a place holder.
-
-# clear any existing flush or nodes files
-# NOTE: we *do not* clear the halt file, since the user may have
-# requested the job to halt
-argv = ['rm','-f',pardir+'/.scr/flush.scr']
-runproc = subprocess.Popen(args=argv)
-out = runproc.communicate()
-#rm -f ${pardir}/.scr/flush.scr
-argv[2]=pardir+'/.scr/nodes.scr'
-runproc = subprocess.Popen(args=argv)
-out = runproc.communicate()
-#rm -f ${pardir}/.scr/nodes.scr
-
-# report timing info
-end_time = datetime.now()
-run_secs = end_time-start_time
-print(f'{prog}: Ended: {end_time}')
-print(f'{prog}: secs: {run_secs.seconds}')
-
-# report exit code and exit
-print(f'{prog}: exit code: {ret}')
-# (this exit code was never changed in original scripts/common/scr_prerun.in)
-sys.exit(ret)
-
+if __name__ == '__main__':
+  scr_env = SCR_Env()
+  scr_env.set_downnodes()
+  for key in scr_env.conf:
+    print(f'scr_env.conf[{key}] = \'{scr_env.conf[key]}\'')
