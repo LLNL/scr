@@ -5,18 +5,10 @@ import sys, subprocess
 from scr_scavenge import SCR_Scavenge
 
 # SCR_Env class holds the configuration
-#   this class could be passed to other methods:
-#     SCR_Scavenge(scr_env)
-#   then the scavenge function runs using this env
-
-# the init takes any global constants:
-#   scr_env = SCR_Env(bindir='')
-# the init discovers the env from the environment variables
-#   init sets -> conf [ 'user', 'env', 'jobid', 'nodes' ]
-#     'env' values: 'SLURM', 'LSF', ..., 'unknown'
+#   we could pass the configuration to use (SLURM/LSF/ ...)
 
 # def set_prefix(self,prefix):
-#   the prefix should be explicitly set
+#   the prefix should be explicitly set (?)
 
 # def set_downnodes(self):
 #   set down node list, requires node list to already be set
@@ -28,48 +20,39 @@ from scr_scavenge import SCR_Scavenge
 
 class SCR_Env:
   # init initializes vars from the environment 
-  # where there is system variation we use methods
-  def __init__(self,bindir=''):
-    # the get env methods set a flag, e.g., conf['env'] = 'SLURM'
-    self.conf = {}
-    self.conf['BINDIR'] = bindir
+  def __init__(self,env='SLURM'):
+    self.conf = {'env':env}
     # replaces: my $scr_nodes_file = "@X_BINDIR@/scr_nodes_file"
-    self.conf['nodes_file'] = bindir+'/scr_nodes_file'
+    self.conf['nodes_file'] = '@X_BINDIR@/scr_nodes_file'
     val = os.environ.get('USER')
     if val is not None:
       self.conf['user'] = val
     else:
-      sys.exit(1)
+      self.conf['user'] = None
     val = self.getjobid()
     if val is not None:
       self.conf['jobid'] = val
     else:
-      print('defjobid')
+      self.conf['jobid'] = None
     val = self.getnodelist()
     if val is not None:
       self.conf['nodes'] = val
     else:
-      sys.exit(1)
+      self.conf['nodes'] = None
 
   # get job id, setting environment flag here
   def getjobid(self):
-    val = os.environ.get('SLURM_JOBID')
-    if val is not None:
-      self.conf['env'] = 'SLURM'
+    if self.conf['env'] == 'SLURM':
+      val = os.environ.get('SLURM_JOBID')
       return val
     val = os.environ.get('LSB_JOBID')
-    if val is not None:
-      self.conf['env'] = 'LSF'
-      return val
-    self.conf['env'] = 'unknown'
-    return None
+    return val
 
   # get node list
   def getnodelist(self):
     if self.conf['env'] == 'SLURM':
       val = os.environ.get('SLURM_NODELIST')
-      if val is not None:
-        return val
+      return val
     elif self.conf['env'] == 'LSF':
       val = os.environ.get('LSB_DJOB_HOSTFILE')
       if val is not None:
@@ -79,9 +62,7 @@ class SCR_Env:
           # compress host list ###
           return hosts
       val = os.environ.get('LSB_HOSTS')
-      if val is not None:
-        # compress hostlist ###
-        return val
+      return val
     return None
 
   # set the prefix
@@ -92,7 +73,6 @@ class SCR_Env:
   def set_downnodes(self):
     # TODO: any way to get list of down nodes in LSF?
     if self.conf['env'] == 'LSF':
-      #sys.exit(1)
       return
     argv = ['sinfo','-ho','%N','-t','down','-n',self.conf['nodes']]
     runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
@@ -114,7 +94,7 @@ class SCR_Env:
     return out
 
 if __name__ == '__main__':
-  scr_env = SCR_Env()
+  scr_env = SCR_Env('SLURM')
   scr_env.set_downnodes()
   for key in scr_env.conf:
-    print(f'scr_env.conf[{key}] = \'{scr_env.conf[key]}\'')
+    print(scr_env.conf[{key}]+' = \''+scr_env.conf[key]+'\'')

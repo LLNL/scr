@@ -7,7 +7,7 @@ from datetime import datetime
 
 # print usage and exit
 def print_usage(prog):
-  print(f'Usage: {prog} [-p prefix_dir]')
+  print('Usage: '+prog+' [-p prefix_dir]')
   sys.exit(1)
 
 # for verbose, print func():linenum -> event
@@ -47,7 +47,7 @@ for i in range(1,len(sys.argv)):
 if pardir=="":
   print_usage(prog)
 
-print(f'{prog}: Started: {start_time}')
+print(prog+': Started: +'str(start_time))
 
 # this value is never used
 ret=0
@@ -85,11 +85,11 @@ out = runproc.communicate()
 # report timing info
 end_time = datetime.now()
 run_secs = end_time-start_time
-print(f'{prog}: Ended: {end_time}')
-print(f'{prog}: secs: {run_secs.seconds}')
+print(prog+': Ended: '+str(end_time))
+print(prog+': secs: '+str(run_secs.seconds))
 
 # report exit code and exit
-print(f'{prog}: exit code: {ret}')
+print(prog+': exit code: '+str(ret))
 # (this exit code was never changed in original scripts/common/scr_prerun.in)
 sys.exit(ret)
 

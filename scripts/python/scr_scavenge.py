@@ -38,7 +38,7 @@ start_time = datetime.now()
 
 def print_usage():
   print('')
-  print('  Usage:  $prog [--jobset <nodeset>] [--up <nodeset> | --down <nodeset>] --id <id> --from <dir> --to <dir>\n')
+  print('  Usage:  '+prog+' [--jobset <nodeset>] [--up <nodeset> | --down <nodeset>] --id <id> --from <dir> --to <dir>\n')
   sys.exit(1)
 
 # tag output files with jobid
@@ -156,7 +156,7 @@ runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=sub
 out,err = runproc.communicate()
 if runproc.returncode!=0:
   print(err)
-  print(f'scr_log_event returned {runproc.returncode}')
+  print('scr_log_event returned '+str(runproc.returncode))
   #sys.exit(1)
 
 # gather files via pdsh
@@ -167,10 +167,10 @@ runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=sub
 out,err = runproc.communicate()
 if runproc.returncode!=0:
   print(err)
-  print(f'scr_copy returned {runproc.returncode}')
+  print('scr_copy returned '+str(runproc.returncode))
   #sys.exit(1)
 
-print(f'{prog}: {str(datetime.now())}')
+print(prog+': '+str(datetime.now()))
 
 ##### this top comand (where output redirected to file) was commented out ?
 # Does not work with "$cmd" for some reason using -Rexec
@@ -188,15 +188,15 @@ runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=sub
 out,err = runproc.communicate()
 if runproc.returncode!=0:
   print(err)
-  print(f'pdsh returned {runproc.returncode}')
+  print('pdsh returned '+str(runproc.returncode))
   #sys.exit(1)
 # print pdsh output to screen
 if verbose==True:
   if len(out)>0:
-    print(f'pdsh: stdout: cat {output}')
+    print('pdsh: stdout: cat '+output)
     print(out)
   if len(err)>0:
-    print(f'pdsh: stderr: cat {error}')
+    print('pdsh: stderr: cat '+error)
     print(err)
 
 # TODO: if we knew the total bytes, we could register a transfer here in 

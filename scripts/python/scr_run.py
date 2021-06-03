@@ -1,11 +1,25 @@
 #! /usr/bin/env python
 
 import datetime, os, sys
+import scr_common
+from scr_env import SCR_Env
+
+### This is the compile-time constants ###
+### this should happen somewhere else ###
+import compileconsts
+compileconsts.compileconsts(vals)
 
 ### This is common to several files ###
-# for verbose, print func():linenum -> event
-def tracefunction(frame,event,arg):
-  print(str(frame.f_code.co_name)+'():'+str(frame.f_lineno)+' -> '+str(event)+'\n')
+
+val = os.environ.get('SCR_ENABLE')
+if val is not None and val=='0':
+  argv = [launcher]
+  for arg in launcher_args:
+    argv.append(arg)
+    break # would be run_cmd or restart_cmd, same cmd ?
+  runproc = subprocess.Popen(args=argv)
+  runproc.communicate()
+  sys.exit(runproc.returncode)
 
 launcher='srun'
 prog='scr_'+launcher
@@ -13,9 +27,13 @@ prog='scr_'+launcher
 libdir='@X_LIBDIR@'
 bindir='@X_BINDIR@'
 
-if len(sys.argv)==1:
+def printusage():
   print('USAGE:')
-  print('scr_'+launcher+' ['+launcher+' args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] ['+launcher+' args]')
+  # from original parsing it looks like all launcher args are combined
+  # (no matter whether they appear in the front or at the end)
+  # the original usage printing looks like you could define different launcher args
+  # (or define launcher args for only initial / restart and other without args, etc.)
+  print('scr_'+launcher+' ['+launcher+' args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>]') # ['+launcher+' args]')
   print('<run_command>: The command to run when no restart file is present')
   print('<restart_command>: The command to run when a restart file is present')
   print('')
@@ -30,79 +48,74 @@ if len(sys.argv)==1:
   print('then the restart command will be appended to the '+launcher+' arguments when a restart file is present.')
   sys.exit(0)
 
+# can check for min required length based on the required args (rather than no args)
+if len(sys.argv)==1:
+  printusage()
+
 # capture restart and run commands if specified
-launcher_args= {}
-def getargkey(arg):
-  if arg=='--restart-cmd' or arg=='-rs':
-    return 'restart_cmd'
-  if arg=='--run-cmd' or arg=='-rc':
-    return 'run_cmd'
-  return ''
-
-val=''
-for i in range(1,len(sys.argv)):
-  if val=='':
-    if '=' in sys.argv[i]:
-      vals=sys.argv[i].split('=')
-      val = getargkey(vals[0])
-      launcher_args[val]=vals[1]
+# parse argv takes sys.argv[1:] (starting past script name), returns command line options
+def parseargv(argv):
+  run_cmd = ''
+  restart_cmd=''
+  launcher_args = []
+  skip=0
+  for i in range(len(argv)):
+    if skip>0:
+      skip-=1
+      continue
+    if argv[i]=='restart-cmd' or argv[i]=='-rs':
+      if i+1==len(argv):
+        printusage()
+      restart_cmd=argv[i+1]
+      skip+=1
+    elif argv[i]=='run-cmd' or argv[i]=='-rc':
+      if i+1==len(argv):
+        printusage()
+      run_cmd=argv[i+1]
+      skip+=1
+    elif argv[i].startswith('--restart-cmd=') or argv[i].startswith('rs='):
+      restart_cmd=argv[i].split('=')[1]
+    elif argv[i].startswith('--run-cmd=') or argv[i].startswith('-rc='):
+      run_cmd=argv[i].split('=')[1]
     else:
-      val=getargkey(sys.argv[i])
-  else:
-    launcher_args[val]=sys.argv[i]
+      launcher_args.append(argv[i])
+  return run_cmd, restart_cmd, launcher_args
 
-val = os.environ.get('SCR_ENABLE')
-if val is not None and val=='0':
-  argv = [launcher]
-  for arg in launcher_args:
-    argv.append(arg)
-  arg.append(run_cmd)
-  runproc = subprocess.Popen(args=argv)
-  runproc.communicate()
-  sys.exit(runproc.returncode)
+run_cmd, restart_cmd, launcher_args = parseargv(sys.argv[1:])
 
 # turn on verbosity
 val = os.environ.get('SCR_DEBUG')
 if val is not None and int(val)>0:
-  sys.settrace(tracefunction)
+  sys.settrace(scr_common.tracefunction)
 
 # make a record of start time
 timestamp=datetime.now()
 print(prog+': Started: '+str(timestamp))
 
 # check that we have runtime dependencies
-argv = [bindir+'/scr_test_runtime']
-runproc = subprocess.Popen(args=argv)
-runproc.communicate()
-if runproc.returncode!=0:
-  print(prog+': exit code: '+str(runproc.returncode))
+if scr_common.scr_test_runtime()!=0:
+  print(prog+': exit code: 1')
   sys.exit(1)
 
 # TODO: if not in job allocation, bail out
 
-argv=[bindir+'/scr_env','--jobid']
-runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-out, err = runproc.communicate()
-jobid=out #.rstrip()
+scr_env = SCR_Env('SLURM')
+jobid = scr_env.getjobid()
 
 # TODO: check that we have a valid jobid and bail if not
 
 # get the nodeset of this job
 nodelist = os.environ.get('SCR_NODELIST')
 if nodelist is None:
-  argv=[bindir+'/scr_env','--nodes']
-  runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-  out, err = runproc.communicate()  
-  if runproc.returncode==0:
-    nodelist=out
-  else:
+  nodelist = scr_env.getnodelist()
+  if nodelist is None:
     print(prog+': ERROR: Could not identify nodeset')
     sys.exit(1)
-
-os.environ['SCR_NODELIST'] = nodelist
+  os.environ['SCR_NODELIST'] = nodelist
 
 # get prefix directory
 prefix=bindir+'/scr_prefix'
+scr_env.set_prefix(prefix)
 
 use_scr_watchdog=os.environ.get('SCR_WATCHDOG')
 if use_scr_watchdog is None or use_scr_watchdog!='1':
@@ -254,35 +267,42 @@ while True:
           launch_cmd="$launcher_args $my_restart_cmd"
       fi
   fi
-
+'''
+{{{}}}
+'''
   # launch the job, make sure we include the script node and exclude down nodes
-  start_secs='date +%s'
+  start_secs=datetime.now()
+  
   $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
-
-  if [ $use_scr_watchdog -eq 0 ]; then
-     $launcher $exclude $launch_cmd
-  else
-    echo "$prog: Attempting to start watchdog process."
-     # need to get job step id of the srun command
-     $launcher $exclude $launch_cmd &
-     srun_pid=$!;
-     sleep 10; # sleep a bit to wait for the job to show up in squeue
-     echo "$bindir/scr_get_jobstep_id $srun_pid";
-     jobstepid='$bindir/scr_get_jobstep_id $srun_pid';
-     # then start the watchdog  if we got a valid job step id
-     if [ "x$jobstepid" != "x" ] && [ $jobstepid != "-1" ]; then
-         $bindir/scr_watchdog --dir $prefix --jobStepId $jobstepid &
-         watchdog_pid=$!;
-         echo "$prog: Started watchdog process with PID $watchdog_pid."
-     else
-        echo "$prog: ERROR: Unable to start scr_watchdog because couldn't get job step id."
-        watchdog_pid=-1;
-     fi
-     wait $srun_pid;
+  if use_scr_watchdog == '0':
+    argv=[launcher,exclude]
+    ###
+    argv = argv.extend(launch_cmd)
+    runproc = subprocess.Popen(args=argv)
+    # $launcher $exclude $launch_cmd
+    runproc.communicate()
+  else:
+    print(prog+': Attempting to start watchdog process.')
+    # need to get job step id of the srun command
+    $launcher $exclude $launch_cmd &
+    srun_pid=$!;
+    sleep 10; # sleep a bit to wait for the job to show up in squeue
+    echo "$bindir/scr_get_jobstep_id $srun_pid";
+    jobstepid='$bindir/scr_get_jobstep_id $srun_pid';
+    # then start the watchdog  if we got a valid job step id
+    if [ "x$jobstepid" != "x" ] && [ $jobstepid != "-1" ]; then
+      $bindir/scr_watchdog --dir $prefix --jobStepId $jobstepid &
+      watchdog_pid=$!;
+      print(prog+': Started watchdog process with PID '+watchdog_pid+'.')
+    else
+      print(prog+': ERROR: Unable to start scr_watchdog because couldn\'t get job step id.')
+      watchdog_pid=-1;
+    fi
+    wait $srun_pid;
   fi
 
-  end_secs='date +%s'
-  run_secs=$(($end_secs - $start_secs))
+  end_secs=datetime.now()
+  run_secs=end_secs - start_secs
 
   # check for and log any down nodes
   $bindir/scr_list_down_nodes $keep_down --log --reason --secs $run_secs
@@ -291,13 +311,12 @@ while True:
   $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_END" -N "run=$attempts" -S $end_secs -L $run_secs
 
   # any retry attempts left?
-  if [ $runs -gt -1 ] ; then
-    runs=$(($runs - 1))
-    if [ $runs -le 0 ] ; then
-      echo "$prog: \$SCR_RUNS exhausted, ending run."
-      break
-    fi
-  fi
+  if runs > 1:
+    runs-=1
+  else:
+    runs = os.environ.get('SCR_RUNS')
+    print(prog+': '+runs+' exhausted, ending run.')
+    break
 
   # is there a halt condition instructing us to stop?
   $bindir/scr_retries_halt --dir $prefix;
@@ -318,23 +337,23 @@ while True:
 done
 
 # make a record of time postrun is started
-timestamp='date'
-echo "$prog: postrun: $timestamp"
+timestamp=datetime.now()
+print(prog+': postrun: '+str(timestamp))
 
 # scavenge files from cache to parallel file system
 $bindir/scr_postrun -p $prefix
 if [ $? -ne 0 ] ; then
-  echo "$prog: ERROR: Command failed: scr_postrun -p $prefix"
+  print(prog+': ERROR: Command failed: scr_postrun -p '+prefix)
 fi
 
 # kill the watchdog process if it is running
 if [ $use_scr_watchdog -eq 1 ] && [ $watchdog_pid -ne -1 ] &&
 	kill -0 >/dev/null 2>&1 $watchdog_pid ; then
   kill_cmd="kill -n KILL $watchdog_pid"
-  echo "Killing watchdog using '$kill_cmd'"
+  print('Killing watchdog using '+kill_cmd)
   $kill_cmd
 fi
 
 # make a record of end time
-timestamp='date'
-echo "$prog: Ended: $timestamp"
+timestamp=datetime.now()
+print(prog+': Ended: '+str(timestamp))

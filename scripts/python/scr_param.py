@@ -1,21 +1,19 @@
 #! /usr/bin/env python
 
-# SCR Param
+# scr_param.py
+# class SCR Param
 
 import os, re
 
-#####
 sysconf = "@SCR_CONFIG_FILE@"
 
 class SCR_Param():
   def __init__(self):
-    self.prog = None
-    self.userconf = None
-    self.sysconf = None
-    self.compile = None
-    self.no_user = None
-  def new(): # new in init ..? ^^
     self.prog = 'scr_param'
+    self.userconf = {}
+    self.sysconf = {}
+    self.compile = {}
+    self.no_user = {}
     # get current working dir
     # use value in $SCR_PREFIX if set
     prefix = os.environ.get('SCR_PREFIX')
@@ -23,32 +21,42 @@ class SCR_Param():
       prefix = os.getcwd()
     else:
       # tack on current working dir if needed # don't resolve symlinks # don't worry about missing parts, the calling script calling might create it
+      # replace ~ and . symbols from front of path
       if prefix[0]=='~':
         prefix = '$HOME'+prefix[1:]
       elif prefix[0]=='.':
         prefix = os.getcwd()+prefix[1:]
+      # expand any environment vars in path
       prefix = os.path.expandvars(prefix)
     # define user config file
     # use SCR_CONF_FILE if set
     usrfile = os.environ.get('SCR_CONF_FILE')
+    # if not set look in the prefix directory
     if usrfile is None:
-      #  } elsif (defined $prefix) { # otherwise, look in the prefix directory
       usrfile = prefix+'/.scrconf'
-
     # read in the app configuration file, if specified
     appfile = prefix+'/.scr/app.conf'
     if os.path.isfile(appfile) and os.access(appfile,'R_OK'):
-      self.appconf = read_config_file(appfile)
+      self.appconf = self.read_config_file(appfile)
 
     # read in the user configuration file, if specified
     if os.path.isfile(usrfile) and os.access(usrfile,'R_OK'):
-      self.usrconf = read_config_file(usrfile)
+      self.usrconf = self.read_config_file(usrfile)
 
     # read in the system configuration file
     if os.path.isfile(sysconf) and os.access(sysconf,'R_OK'):
-      self.sysconf = read_config_file(sysconf)
-{
+      self.sysconf = self.read_config_file(sysconf)
     # set our compile time constants
+    self.compile["CNTLDIR"] = "@SCR_CNTL_BASE@"
+    self.compile["CACHEDIR"] = "@SCR_CACHE_BASE@"
+    self.compile["SCR_CNTL_BASE"] = "@SCR_CNTL_BASE@"
+    self.compile["SCR_CACHE_BASE"] = "@SCR_CACHE_BASE@"
+    self.compile["SCR_CACHE_SIZE"] = "1"
+    self.cache_base = self.get('SCR_CACHE_BASE')
+    self.cache_size = self.get('SCR_CACHE_SIZE')
+    if 'CACHE' not in self.userconf:
+      self.userconf['CACHE'] = (self.cache_base,self.cache_size)
+'''
   $self->{compile} = {};
   $self->{compile}{"CNTLDIR"}{"@SCR_CNTL_BASE@"} = {};
   $self->{compile}{"CACHEDIR"}{"@SCR_CACHE_BASE@"} = {};
@@ -59,7 +67,6 @@ class SCR_Param():
   # set our restricted parameters,
   # these can't be set via env vars or user conf file
   $self->{no_user} = {};
-
   # NOTE: At this point we could scan the environment and user config file
   # for restricted parameters to print a warning.  However, in this case
   # printing the extra messages from a perl script whose output is used by
@@ -78,4 +85,86 @@ class SCR_Param():
   }
 
   return bless $self, $type;
-}
+'''
+  def read_config_file(self,filename):
+    h = {}
+    with open (filename,'r') as infile:
+      for line in infile.readlines():
+        line=line.rstrip('\n')
+        line = re.sub('^\s*','',line) # strip any leading whitespace from line
+        line = re.sub('\s*$','',line) # strip any trailing whitespace from line
+        line = re.sub('=',' ',line) # replace '=' with spaces
+        parts = line.split(' ')
+        key = ''
+        for part in parts:
+          if len(part)==0: # input had double-spaces
+            continue
+          if key=='':
+            if part[0]=='#': # comment line
+              break
+            key=part
+            continue
+  def get(self,key):
+    val = os.environ.get(key)
+
+    # if param is set in environment, return that value
+    if key not in self.no_user and val is not None:
+      val = os.path.expandvars(val)
+      return val
+
+    # otherwise, check whether we have it defined in our user config file
+    if key not in self.no_user and key in self.usrconf:
+      return self.usrconf[key]
+
+    # if param was set by the code, return that value
+    if key in self.appconf:
+      return self.appconf[key]
+
+    # otherwise, check whether we have it defined in our system config file
+    if key in self.sysconf:
+      return self.sysconf[key]
+
+    # otherwise, check whether its a compile time constant
+    if key in self.compile:
+      return self.compile[key]
+
+    return None
+
+  # (the gethash seems unnecessary ... ?)
+
+  # convert byte string like 2kb, 1.5m, 200GB, 1.4T to integer value
+  dev abtoull(self,stringval):
+    number = ''
+    units = ''
+    tokens = re.match('(\d*)(\.?)(\d*)(\D+)',stringval).groups()
+    if len(tokens)>1:
+      number = ''.join(tokens[:-1])
+      units = tokens[-1].lower()
+    else:
+      number = stringval
+    factor = None
+    if units!='':
+      if units=='b':
+        factor=1
+      elif units=='kb' or units=='k':
+        factor=1024
+      elif units=='mb' or units=='m':
+        factor=1024*1024
+      elif units=='gb' or units=='g':
+        factor=1024*1024*1024
+      elif units=='tb' or units=='t':
+        factor=1024*1024*1024*1024
+      elif units=='pb' or units=='p':
+        factor=1024*1024*1024*1024*1024
+      elif units=='eb' or units=='e':
+        factor=1024*1024*1024*1024*1024*1024
+      else:
+        pass # TODO: print error? unknown unit string
+    val = float(number)
+    if factor is not None:
+      val*=factor
+    elif units!='':
+      val = 0.0 # got a units string but couldn't parse it
+    val = int(val)
+    return val
+
