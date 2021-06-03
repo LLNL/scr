@@ -42,14 +42,14 @@ def print_usage():
   sys.exit(1)
 
 # tag output files with jobid
-jobid = bindir+'/scr_env --jobid`
+jobid = bindir+'/scr_env --jobid'
 #if ($? != 0) {
 #  print "$prog: ERROR: Could not determine jobid.\n";
 #  exit 1;
 #}
 
 # read node set of job
-jobset = bindir+'/scr_env --nodes`
+jobset = bindir+'/scr_env --nodes'
 #if ($? != 0) {
 #  print "$prog: ERROR: Could not determine nodeset.\n";
 #  exit 1;
@@ -101,7 +101,6 @@ for i in range(1,len(sys.argv):
       if opt=='verbose':
         sys.settrace(tracefunction)
         verbose=True
-      else:
         opt=''
   else: #if opt != '':
     conf[opt]=sys.argv[i]
@@ -151,7 +150,8 @@ cmd = ''
 
 # log the start of the scavenge operation
 argv = [bindir+'/scr_log_event','-i',jobid,'-p',prefixdir,'-T','SCAVENGE_START','-D',dset,'-S',str(start_time)] # start time string val... ############
-#`$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_START' -D $dset -S $start_time`;
+#'$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_START' -D $dset -S 
+$start_time';
 runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
 out,err = runproc.communicate()
 if runproc.returncode!=0:
@@ -160,7 +160,7 @@ if runproc.returncode!=0:
   #sys.exit(1)
 
 # gather files via pdsh
-#### need to expand %h #########
+#### need to fix %h #########
 argv = ['srun','-n','1','-N','1','-w','%h',bindir+'/scr_copy','--cntldir',cntldir,'--id',dset,'--prefix',prefixdir,'--buf',buf_size,crc_flag,downnodes_spaced]
 #$cmd = "srun -n 1 -N 1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced";
 runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
@@ -175,11 +175,15 @@ print(f'{prog}: {str(datetime.now())}')
 ##### this top comand (where output redirected to file) was commented out ?
 # Does not work with "$cmd" for some reason using -Rexec
 #print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' \"$cmd\" >$output 2>$error\n";
-#             `$pdsh -Rexec-f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
+#             '$pdsh -Rexec-f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error';
 #### need to expand %h ######
 argv = [pdsh,'-Rexec','-f','256','-S','-w',upnodes,'srun','-n1','-N1','-w',%h,bindir+'/scr_copy','--cntldir',cntldir,'--id',dset,'--prefix',prefixdir,'--buf',buf_size,crc_flag,downnodes_spaced]
-#print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced";
-#             `$pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced`;
+#print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h 
+$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf 
+$buf_size $crc_flag $downnodes_spaced";
+#             '$pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h 
+$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf 
+$buf_size $crc_flag $downnodes_spaced';
 runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
 out,err = runproc.communicate()
 if runproc.returncode!=0:
@@ -195,12 +199,14 @@ if verbose==True:
     print(f'pdsh: stderr: cat {error}')
     print(err)
 
-# TODO: if we knew the total bytes, we could register a transfer here in addition to an event
+# TODO: if we knew the total bytes, we could register a transfer here in 
+addition to an event
 # get a timestamp for logging timing values
 end_time = datetime.now()
 diff_time = end_time - start_time
 argv = [bindir+'/scr_log_event','-i',jobid,'-p',prefixdir,'-T','SCAVENGE_END','-D',dset,'-S',str(start_time),'-L',str(diff_time)] ##### need string ( time )
-#`$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_END' -D $dset -S $start_time -L $diff_time`;
+#'$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_END' -D $dset -S 
+$start_time -L $diff_time';
 runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
 runproc.communicate()
 sys.exit(0)
