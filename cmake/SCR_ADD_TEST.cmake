@@ -2,18 +2,18 @@ FUNCTION(SCR_ADD_TEST name args outputs)
 
   SET(s_nodes "1")
   IF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
-    SET(test_param mpirun -np ${s_nodes})
+    SET(test_param "mpirun -np ${s_nodes}")
   ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
-    SET(test_param srun -t 5 -N ${s_nodes}) 
+    SET(test_param "srun -t 5 -N ${s_nodes}") 
   ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
-    SET(test_param jsrun --nrs ${s_nodes} -r 1) 
+    SET(test_param "jsrun --nrs ${s_nodes} -r 1") 
   ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
 	# Serial Tests
-	ADD_TEST(NAME serial_${name}_start COMMAND ${test_param} run_test.sh ./${name} start ${args})
+	ADD_TEST(NAME serial_${name}_start COMMAND run_test.sh ${test_param} ./${name} start ${args})
 	SET_PROPERTY(TEST serial_${name}_start APPEND PROPERTY ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/test.conf")
 
-	ADD_TEST(NAME serial_${name}_restart COMMAND ${test_param} run_test.sh ./${name} restart ${args})
+	ADD_TEST(NAME serial_${name}_restart COMMAND run_test.sh ${test_param} ./${name} restart ${args})
 	SET_PROPERTY(TEST serial_${name}_restart APPEND PROPERTY ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/test.conf")
 	SET_PROPERTY(TEST serial_${name}_restart APPEND PROPERTY DEPENDS serial_${name}_start)
 
@@ -29,17 +29,17 @@ FUNCTION(SCR_ADD_TEST name args outputs)
 	# Parallel Tests
 	SET(p_nodes "4")
 	IF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
-		SET(test_param mpirun -np ${p_nodes})
+		SET(test_param "mpirun -np ${p_nodes}")
 	ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
-		SET(test_param srun -t 5 -N ${p_nodes} -n ${p_nodes})
+		SET(test_param "srun -t 5 -N ${p_nodes} -n ${p_nodes}")
 	ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
-		SET(test_param jsrun --nrs ${p_nodes} -r 1)
+		SET(test_param "jsrun --nrs ${p_nodes} -r 1")
 	ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
-	ADD_TEST(NAME parallel_${name}_start COMMAND ${test_param} run_test.sh ./${name} start ${args})
+	ADD_TEST(NAME parallel_${name}_start COMMAND run_test.sh ${test_param} ./${name} start ${args})
 	SET_PROPERTY(TEST parallel_${name}_start APPEND PROPERTY ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/test.conf")
 
-	ADD_TEST(NAME parallel_${name}_restart COMMAND ${test_param} run_test.sh ./${name} restart ${args})
+	ADD_TEST(NAME parallel_${name}_restart COMMAND run_test.sh ${test_param} ./${name} restart ${args})
 	SET_PROPERTY(TEST parallel_${name}_restart APPEND PROPERTY ENVIRONMENT "SCR_CONF_FILE=${CMAKE_CURRENT_SOURCE_DIR}/test.conf")
 	SET_PROPERTY(TEST parallel_${name}_restart APPEND PROPERTY DEPENDS parallel_${name}_start)
 
