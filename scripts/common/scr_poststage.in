@@ -20,7 +20,7 @@
 BINDIR="@X_BINDIR@"
 
 # The dir path to your SCR PREFIX
-PREFIX="/p/gpfs1/`whoami`"
+PREFIX=""
 
 # Path to where you want the scr_poststage log
 LOGFILE=$PREFIX/scr_poststage.log
@@ -42,11 +42,16 @@ function do_poststage {
 	echo "Current index before finalizing:" >> $LOGFILE
 	scr_index -l -p $PREFIX >> $LOGFILE
 
-	echo "--- Processing output files ---" >> $LOGFILE
+        # If we fail to finalize any dataset, set this to the ID of that dataset.
+        # We later then only attempt to finalize checkpoints up to the first
+        # failed output dataset ID.
 	FAILED_ID=0
+
+	echo "--- Processing output datasets ---" >> $LOGFILE
 	for ID in $(scr_flush_file --dir $PREFIX --list-output) ; do
+                # Get name of this dataset id
 		DSET="$(scr_flush_file --dir $PREFIX --name $ID)"
-		echo "Looking at dataset $ID ($DSET)" >> $LOGFILE
+		echo "Looking at output dataset $ID ($DSET)" >> $LOGFILE
 
 		if ! scr_flush_file --dir $PREFIX --need-flush $ID &>> $LOGFILE ; then
 			echo "Output dataset $ID ($DSET) is already flushed, skip it" >> $LOGFILE
@@ -56,62 +61,62 @@ function do_poststage {
 
 		echo "Finalizing transfer for dataset $ID ($DSET)" >> $LOGFILE
 		if ! scr_flush_file -r -s $ID --dir $PREFIX &>> $LOGFILE ; then
-			echo "Error: Can't resume output dataset $ID" >> $LOGFILE
+			echo "Error: Can't resume output dataset $ID ($DSET)" >> $LOGFILE
 			FAILED_ID=$ID
 			break
 		fi
 
-		echo "Writing summary for dataset $ID" >> $LOGFILE
+		echo "Writing summary for dataset $ID ($DSET)" >> $LOGFILE
 		if ! scr_flush_file -s $ID -S --dir $PREFIX &>> $LOGFILE ; then
-			echo "ERROR: Can't write summary for output dataset $ID" >> $LOGFILE
+			echo "ERROR: Can't write summary for output dataset $ID ($DSET)" >> $LOGFILE
 			FAILED_ID=$ID
 			break
 		fi
 
-		echo "Adding dataset $DSET to index" >> $LOGFILE
+		echo "Adding dataset $ID ($DSET) to index" >> $LOGFILE
 		if ! scr_index -p $PREFIX --add=$DSET &>> $LOGFILE ; then
-			echo "Couldn't add output dataset $DSET to index" >> $LOGFILE
+			echo "Couldn't add output dataset $ID ($DSET) to index" >> $LOGFILE
 			FAILED_ID=$ID
 			break
 		fi
 	done
 
-	echo "--- Processing checkpoints ---" >> $LOGFILE
 	# Finalize each checkpoint listed in the flush file.  If there are any
 	# failed output files (FAILED_ID > 0) then only finalize checkpoints
 	# up to the last good output file.  If there are no failures
 	# (FAILED_ID = 0) then all checkpoints are iterated over.
+	echo "--- Processing checkpoints ---" >> $LOGFILE
 	for ID in $(scr_flush_file --dir $PREFIX --before $FAILED_ID --list-ckpt) ; do
+                # Get name of this dataset id
 		DSET="$(scr_flush_file --dir $PREFIX --name $ID)"
-
-		echo "Looking at dataset $ID ($DSET)" >> $LOGFILE
+		echo "Looking at checkpoint dataset $ID ($DSET)" >> $LOGFILE
 
 		if ! scr_flush_file --dir $PREFIX --need-flush $ID &>> $LOGFILE ; then
 			# Dataset is already flushed, skip it
 			continue
 		fi
 
-		echo "Finalizing transfer for dataset $ID ($DSET)" >> $LOGFILE
+		echo "Finalizing transfer for checkpoint dataset $ID ($DSET)" >> $LOGFILE
 		if ! scr_flush_file -r -s $ID --dir $PREFIX &>> $LOGFILE ; then
-			echo "Error: Can't resume dataset $ID" >> $LOGFILE
+			echo "Error: Can't resume checkpoint dataset $ID ($DSET)" >> $LOGFILE
 			continue
 		fi
 
-		echo "Writing summary for dataset $ID" >> $LOGFILE
+		echo "Writing summary for checkpoint dataset $ID ($DSET)" >> $LOGFILE
 		if ! scr_flush_file -s $ID -S --dir $PREFIX &>> $LOGFILE ; then
-			echo "ERROR: Can't write summary for dataset $ID" >> $LOGFILE
+			echo "ERROR: Can't write summary for checkpoint dataset $ID ($DSET)" >> $LOGFILE
 			continue
 		fi
 
-		echo "Adding dataset $DSET to index" >> $LOGFILE
+		echo "Adding checkpoint dataset $ID ($DSET) to index" >> $LOGFILE
 		if ! scr_index -p $PREFIX --add=$DSET &>> $LOGFILE ; then
-			echo "Couldn't add dataset $DSET to index" >> $LOGFILE
+			echo "Couldn't add checkpoint dataset $ID ($DSET) to index" >> $LOGFILE
 			continue
 		fi
 
-		echo "Setting current dataset to $DSET" >> $LOGFILE
+		echo "Setting current checkpoint dataset to $ID ($DSET)" >> $LOGFILE
 		if ! scr_index -p $PREFIX --current=$DSET &>> $LOGFILE ; then
-			echo "Couldn't set current dataset to $DSET" >> $LOGFILE
+			echo "Couldn't set current checkpoint dataset to $ID ($DSET)" >> $LOGFILE
 			continue
 		fi
 	done
@@ -120,9 +125,9 @@ function do_poststage {
 	scr_index -l -p $PREFIX &>> $LOGFILE
 }
 
+# Make sure only one poststage is running this script at a time.
+# Wait forever for the lock.
 LOCKFILE="$PREFIX/lockfile"
-# Make sure only one poststage is running this script at a time.  Wait forever
-# for the lock.
 (
 	flock -n 9 || exit 1
 	do_poststage

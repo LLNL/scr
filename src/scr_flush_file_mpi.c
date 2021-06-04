@@ -143,10 +143,9 @@ int scr_flush_file_location_test(int id, const char* location)
 /* removes a location for the specified dataset id from the flush file */
 int scr_flush_file_location_unset(int id, const char* location)
 {
-  char* scr_flush_path;
   /* only rank 0 updates the file */
   if (scr_my_rank_world == 0) {
-    scr_flush_path = spath_strdup(scr_flush_file);
+    char* scr_flush_path = spath_strdup(scr_flush_file);
     scr_flush_file_location_unset_with_path(id, location, scr_flush_path);
     scr_free(&scr_flush_path);
   }

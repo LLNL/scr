@@ -1,14 +1,11 @@
-#include <kvtree.h>
-#include <spath.h>
+#include "kvtree.h"
+#include "spath.h"
 #include "scr_globals.h"
 #include "scr_index_api.h"
 #include "scr_dataset.h"
 
-/*
- * Remove a particular dataset from the flush file.
- */
-void
-scr_flush_file_dataset_remove_with_path(int id, spath* flush_file)
+/* Remove a particular dataset from the flush file. */
+void scr_flush_file_dataset_remove_with_path(int id, const spath* flush_file)
 {
     kvtree* hash = kvtree_new();
     kvtree_read_path(flush_file, hash);
@@ -23,9 +20,10 @@ scr_flush_file_dataset_remove_with_path(int id, spath* flush_file)
     kvtree_delete(&hash);
 }
 
-void
-scr_flush_file_location_unset_with_path(int id, const char* location,
-  char* flush_file_path)
+void scr_flush_file_location_unset_with_path(
+  int id,
+  const char* location,
+  const char* flush_file_path)
 {
   kvtree* hash = kvtree_new();
   kvtree_read_file(flush_file_path, hash);
@@ -45,7 +43,7 @@ scr_flush_file_location_unset_with_path(int id, const char* location,
 int scr_flush_summary_file(
   const scr_dataset* dataset,
   int complete,
-  char* summary_file)
+  const char* summary_file)
 {
   int rc = SCR_SUCCESS;
 
@@ -91,4 +89,3 @@ int scr_flush_summary_file(
 
   return rc;
 }
-
