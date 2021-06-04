@@ -2,7 +2,7 @@
 The builddist script creates an SCR release tarball.
 
 ```bash
-    ./builddist v3.0rc1
+    ./builddist develop
 ```
 
 This tarball is added as a binary attachment to the corresponding SCR release page.

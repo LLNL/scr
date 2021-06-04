@@ -40,12 +40,6 @@ IF(ENABLE_IBM_BBAPI)
     ENDIF(BBAPI_FOUND)
 ENDIF(ENABLE_IBM_BBAPI)
 
-# PTHREADS
-FIND_PACKAGE(Threads REQUIRED)
-IF(CMAKE_USE_PTHREADS_INIT)
-        LIST(APPEND SCR_EXTERNAL_LIBS "-lpthread")
-ENDIF()
-
 INCLUDE(GNUInstallDirs)
 ## Use X_ variable names for CLI scripts
 ## could use CMAKE_INSTALL_FULL_ names instead
@@ -341,7 +335,7 @@ ADD_LIBRARY(scr_base STATIC
     ${cliscr_noMPI_srcs}
     ${libaxl_srcs}
 )
-TARGET_LINK_LIBRARIES(scr_base ${SCR_EXTERNAL_SERIAL_LIBS} ${SCR_EXTERNAL_LIBS})
+TARGET_LINK_LIBRARIES(scr_base ${SCR_EXTERNAL_SERIAL_LIBS})
 
 # Individual binaries generated from a single .c file
 #    scr_inspect_cache
