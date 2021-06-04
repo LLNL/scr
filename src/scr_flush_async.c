@@ -325,11 +325,14 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   /* TODO: gather list of files to leader of store descriptor,
    * use communicator of leaders for AXL, then bcast result back */
 
-  /* define path to AXL state file for this rank */
-  spath* state_file_spath = spath_dup(dataset_path);
-  spath_append_strf(state_file_spath, "rank_%d.state_file", scr_my_rank_world);
-  char* state_file = spath_strdup(state_file_spath);
-  spath_delete(&state_file_spath);
+  /* if poststage is active, define path to AXL state file for this rank */
+  char* state_file = NULL;
+  if (scr_flush_poststage) {
+    spath* state_file_spath = spath_dup(dataset_path);
+    spath_append_strf(state_file_spath, "rank_%d.state_file", scr_my_rank_world);
+    state_file = spath_strdup(state_file_spath);
+    spath_delete(&state_file_spath);
+  }
 
   /* start writing files via AXL */
   int rc = SCR_SUCCESS;

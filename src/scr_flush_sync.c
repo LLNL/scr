@@ -59,11 +59,14 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
   }
   MPI_Barrier(scr_comm_world);
 
-  /* define path to AXL state file for this rank */
-  spath* state_file_path = spath_dup(dataset_path);
-  spath_append_strf(state_file_path, "rank_%d.state_file", scr_my_rank_world);
-  char* state_file = spath_strdup(state_file_path);
-  spath_delete(&state_file_path);
+  /* if poststage is active, define path to AXL state file for this rank */
+  char* state_file = NULL;
+  if (scr_flush_poststage) {
+    spath* state_file_path = spath_dup(dataset_path);
+    spath_append_strf(state_file_path, "rank_%d.state_file", scr_my_rank_world);
+    state_file = spath_strdup(state_file_path);
+    spath_delete(&state_file_path);
+  }
 
   /* define path for rank2file map */
   spath_append_str(dataset_path, "rank2file");
