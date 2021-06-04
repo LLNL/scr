@@ -9,7 +9,6 @@ LIST(APPEND example_files
 	test_ckpt.F
 	test_ckpt.F90
 	test_config.c
-	scr.moab
 	README.md
 )
 INSTALL(FILES ${example_files} DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/examples)
