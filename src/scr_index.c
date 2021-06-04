@@ -271,7 +271,7 @@ int scr_summary_read(const spath* dir, kvtree* hash)
   }
 
   /* now attempt to read the file contents into the hash */
-  if (kvtree_read_file(summary_file, hash) != KVTREE_SUCCESS) {
+  if (kvtree_read_with_lock(summary_file, hash) != KVTREE_SUCCESS) {
     rc = SCR_FAILURE;
     goto cleanup;
   }
@@ -338,7 +338,7 @@ static int kvtree_write_scatter_file(const spath* meta_path, const char* filenam
     kvtree_set_kv_int(entries, "RANKS", count);
 
     /* write hash to file rank2file part */
-    if (kvtree_write_path(rank2file_path, entries) != KVTREE_SUCCESS) {
+    if (kvtree_write_path_locked(rank2file_path, entries) != KVTREE_SUCCESS) {
       rc = SCR_FAILURE;
       elem = NULL;
     }
@@ -367,7 +367,7 @@ static int kvtree_write_scatter_file(const spath* meta_path, const char* filenam
   /* write out rank2file map */
   spath* files_path = spath_dup(meta_path);
   spath_append_str(files_path, filename);
-  if (kvtree_write_path(files_path, files_hash) != KVTREE_SUCCESS) {
+  if (kvtree_write_path_locked(files_path, files_hash) != KVTREE_SUCCESS) {
     rc = SCR_FAILURE;
   }
   spath_delete(&files_path);
@@ -397,7 +397,7 @@ int scr_summary_write(const spath* prefix, const spath* dir, kvtree* hash)
   /* write summary file */
   spath* summary_path = spath_dup(meta_path);
   spath_append_str(summary_path, SCR_SUMMARY_FILENAME);
-  if (kvtree_write_path(summary_path, hash) != KVTREE_SUCCESS) {
+  if (kvtree_write_path_locked(summary_path, hash) != KVTREE_SUCCESS) {
     rc = SCR_FAILURE;
   }
   spath_delete(&summary_path);
@@ -953,7 +953,7 @@ int scr_scan_flush(const spath* path_prefix, int dset_id, kvtree* scan)
   spath_append_str(flush_path, "flush.scr");
   const char* flush_file = spath_strdup(flush_path);
 
-  if (kvtree_read_file(flush_file, flush) == KVTREE_SUCCESS) {
+  if (kvtree_read_with_lock(flush_file, flush) == KVTREE_SUCCESS) {
     /* copy dataset kvtree from flush file data */
     kvtree* dataset = kvtree_new();
     kvtree* hash = kvtree_get_kv_int(flush, SCR_FLUSH_KEY_DATASET, dset_id);

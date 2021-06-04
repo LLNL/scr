@@ -197,7 +197,7 @@ int scr_index_write(const spath* dir, kvtree* index)
   }
 
   /* write out the file */
-  int kvtree_rc = kvtree_write_path(path_index, index);
+  int kvtree_rc = kvtree_write_path_locked(path_index, index);
   int rc = (kvtree_rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
 
   /* free path */

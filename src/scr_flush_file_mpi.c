@@ -29,7 +29,7 @@ int scr_flush_file_need_flush(int id)
   if (scr_my_rank_world == 0) {
     /* read the flush file */
     kvtree* hash = kvtree_new();
-    kvtree_read_path(scr_flush_file, hash);
+    kvtree_read_path_locked(scr_flush_file, hash);
 
     /* if we have the dataset in cache, but not on the parallel file system,
      * then it needs to be flushed */
@@ -60,7 +60,7 @@ int scr_flush_file_is_flushing(int id)
   if (scr_my_rank_world == 0) {
     /* read flush file into hash */
     kvtree* hash = kvtree_new();
-    kvtree_read_path(scr_flush_file, hash);
+    kvtree_read_path_locked(scr_flush_file, hash);
 
     /* attempt to look up the FLUSHING state for this checkpoint */
     kvtree* dset_hash = kvtree_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
@@ -86,13 +86,13 @@ int scr_flush_file_dataset_remove(int id)
   if (scr_my_rank_world == 0) {
     /* read the flush file into hash */
     kvtree* hash = kvtree_new();
-    kvtree_read_path(scr_flush_file, hash);
+    kvtree_read_path_locked(scr_flush_file, hash);
 
     /* delete this dataset id from the flush file */
     kvtree_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
 
     /* write the hash back to the flush file */
-    kvtree_write_path(scr_flush_file, hash);
+    kvtree_write_path_locked(scr_flush_file, hash);
 
     /* delete the hash */
     kvtree_delete(&hash);
@@ -107,14 +107,14 @@ int scr_flush_file_location_set(int id, const char* location)
   if (scr_my_rank_world == 0) {
     /* read the flush file into hash */
     kvtree* hash = kvtree_new();
-    kvtree_read_path(scr_flush_file, hash);
+    kvtree_read_path_locked(scr_flush_file, hash);
 
     /* set the location for this dataset */
     kvtree* dset_hash = kvtree_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
     kvtree_set_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
 
     /* write the hash back to the flush file */
-    kvtree_write_path(scr_flush_file, hash);
+    kvtree_write_path_locked(scr_flush_file, hash);
 
     /* delete the hash */
     kvtree_delete(&hash);
@@ -130,7 +130,7 @@ int scr_flush_file_location_test(int id, const char* location)
   if (scr_my_rank_world == 0) {
     /* read the flush file into hash */
     kvtree* hash = kvtree_new();
-    kvtree_read_path(scr_flush_file, hash);
+    kvtree_read_path_locked(scr_flush_file, hash);
 
     /* check the location for this dataset */
     kvtree* dset_hash = kvtree_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
@@ -157,14 +157,14 @@ int scr_flush_file_location_unset(int id, const char* location)
   if (scr_my_rank_world == 0) {
     /* read the flush file into hash */
     kvtree* hash = kvtree_new();
-    kvtree_read_path(scr_flush_file, hash);
+    kvtree_read_path_locked(scr_flush_file, hash);
 
     /* unset the location for this dataset */
     kvtree* dset_hash = kvtree_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
     kvtree_unset_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
 
     /* write the hash back to the flush file */
-    kvtree_write_path(scr_flush_file, hash);
+    kvtree_write_path_locked(scr_flush_file, hash);
 
     /* delete the hash */
     kvtree_delete(&hash);
@@ -180,7 +180,7 @@ int scr_flush_file_new_entry(int id, const char* name, const scr_dataset* datase
   if (scr_my_rank_world == 0) {
     /* read the flush file into hash */
     kvtree* hash = kvtree_new();
-    kvtree_read_path(scr_flush_file, hash);
+    kvtree_read_path_locked(scr_flush_file, hash);
 
     /* set the name, location, and flags for this dataset */
     kvtree* dset_hash = kvtree_set_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
@@ -200,7 +200,7 @@ int scr_flush_file_new_entry(int id, const char* name, const scr_dataset* datase
     kvtree_set(dset_hash, SCR_FLUSH_KEY_DSETDESC, dataset_copy);
 
     /* write the hash back to the flush file */
-    kvtree_write_path(scr_flush_file, hash);
+    kvtree_write_path_locked(scr_flush_file, hash);
 
     /* delete the hash */
     kvtree_delete(&hash);

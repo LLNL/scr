@@ -2124,7 +2124,7 @@ int SCR_Init()
   if (scr_my_rank_world == 0) {
     kvtree* nodes_hash = kvtree_new();
     kvtree_util_set_int(nodes_hash, SCR_NODES_KEY_NODES, num_nodes);
-    kvtree_write_path(scr_nodes_file, nodes_hash);
+    kvtree_write_path_locked(scr_nodes_file, nodes_hash);
     kvtree_delete(&nodes_hash);
   }
 

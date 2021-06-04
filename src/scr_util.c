@@ -361,6 +361,22 @@ int kvtree_write_path(const spath* path, const kvtree* tree)
   return rc;
 }
 
+int kvtree_read_path_locked(const spath* path, kvtree* tree)
+{
+  char* file = spath_strdup(path);
+  int rc = kvtree_read_with_lock(file, tree);
+  scr_free(&file);
+  return rc;
+}
+
+int kvtree_write_path_locked(const spath* path, const kvtree* tree)
+{
+  char* file = spath_strdup(path);
+  int rc = kvtree_write_with_lock(file, tree);
+  scr_free(&file);
+  return rc;
+}
+
 /* given a string defining SCR_PREFIX value as given by user
  * return spath of fully qualified path, user should free */
 spath* scr_get_prefix(const char* str)

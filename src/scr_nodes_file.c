@@ -114,7 +114,7 @@ int main (int argc, char *argv[])
   kvtree* hash = kvtree_new();
 
   /* read in our nodes file */
-  if (kvtree_read_file(file_str, hash) != KVTREE_SUCCESS) {
+  if (kvtree_read_with_lock(file_str, hash) != KVTREE_SUCCESS) {
     /* failed to read the nodes file */
     goto cleanup;
   }

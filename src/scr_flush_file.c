@@ -220,7 +220,7 @@ int main (int argc, char *argv[])
   kvtree* hash = kvtree_new();
 
   /* read in our flush file */
-  if (kvtree_read_file(file, hash) != KVTREE_SUCCESS) {
+  if (kvtree_read_with_lock(file, hash) != KVTREE_SUCCESS) {
     /* failed to read the flush file */
     scr_err("%s: Failed to read flush file '%s' @ %s:%d", PROG, file, __FILE__,
       __LINE__
