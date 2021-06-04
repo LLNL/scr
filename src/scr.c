@@ -1870,6 +1870,12 @@ int SCR_Init()
         AXL_KEY_CONFIG_COPY_METADATA, __FILE__, __LINE__
       );
     }
+    if (kvtree_util_set_int(axl_config, AXL_KEY_CONFIG_RANK,
+                            scr_my_rank_world) != KVTREE_SUCCESS) {
+      scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
+        AXL_KEY_CONFIG_RANK, __FILE__, __LINE__
+      );
+    }
 
     if (AXL_Config(axl_config) == NULL) {
       scr_abort(-1, "Failed to configure AXL @ %s:%d",
