@@ -26,6 +26,10 @@ if [ "$restart" = "restart" -a $RC -eq 0 ]; then
     RC=$?
 fi
 
+# delete files from compute nodes
 $launch ./test_cleanup.sh
+
+# delete files in prefix directory
+rm -rf .scr/
 
 exit $RC
