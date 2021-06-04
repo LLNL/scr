@@ -4,7 +4,7 @@
 # Common functions shared across scripts
 
 import inspect
-import scr_test_runtime
+import scr_list_dir, scr_prerun, scr_test_runtime
 
 # for verbose, prints:
 # filename:function:linenum -> event
@@ -18,3 +18,9 @@ def tracefunction(frame,event,arg):
 
 def scr_test_runtime():
   return scr_test_runtime.scr_test_runtime()
+
+def scr_list_dir(args,scr_env):
+  return scr_list_dir.scr_list_dir(args,scr_env)  
+
+def scr_prerun(args):
+  return scr_prerun.scr_prerun(args)

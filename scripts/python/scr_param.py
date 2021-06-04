@@ -131,6 +131,9 @@ class SCR_Param():
     return None
 
   # (the gethash seems unnecessary ... ?)
+  def get_hash(self,key):
+    val = self.get(key)
+    return val
 
   # convert byte string like 2kb, 1.5m, 200GB, 1.4T to integer value
   dev abtoull(self,stringval):

@@ -11,14 +11,8 @@
 # scripts
 
 from scr_param import SCR_Param
-param = new SCR_Param()
 
-# TODO: read cache directory from config file
-prog = "scr_list_dir"
-
-bindir = "@X_BINDIR@"
-
-def print_usage():
+def print_usage(prog):
   print('')
   print('Usage:  '+prog+' [options] <control | cache>')
   print('')
@@ -27,95 +21,89 @@ def print_usage():
   print('    -j, --jobid    Specify jobid.')
   print('    -b, --base     List base portion of cache/control directory')
   print('')
-  sys.exit(1)
 
-# read in command line arguments
-conf = {}
-conf[user]   = None
-conf[jobid]  = None
-conf[base]   = None
-rc = GetOptions (
-   "user|u=s"  => \$conf{user},
-   "jobid|j=i" => \$conf{jobid},
-   "base|b"    => \$conf{base},
-);
-if (not $rc) {
-  print_usage();
-}
+# returns 1 for error, 0 (or string) for success
+def scr_list_dir(args,scr_env=None):
+  param = SCR_Param()
+  # TODO: read cache directory from config file
+  prog = "scr_list_dir"
+  bindir = "@X_BINDIR@"
 
-# should have exactly one argument
-if (@ARGV != 1) {
-  print_usage();
-}
+  # read in command line arguments
+  conf = {}
+  skip=False
+  runcmd=''
+  for i in range(len(args)):
+    if skip==True:
+      skip=False
+    elif args[i]=='control' or args[i]=='cache':
+      runcmd=args[i]
+    elif '=' in args[i]:
+      vals = args[i].split('=')
+      if vals[0]=='--user' or vals[0]=='-u':
+        conf['user']=vals[1]
+      elif vals[0]=='--jobid' or vals[0]=='j':
+        conf['jobid']=vals[1]
+      elif vals[0]=='--base' or vals[0]=='b':
+        conf['base']=vals[1]
+    elif i<len(args)-1:
+      if args[i]=='--user' or args[i]=='-u':
+        conf['user']=args[i+1]
+        skip=True
+      elif args[i]=='--jobid' or args[i]=='-j':
+        conf['jobid']=args[i+1]
+        skip=True
+      elif args[i]=='--base' or args[i]=='-b':
+        conf['base']=args[i+1]
+        skip=True
 
-# check that user specified "control" or "cache"
-my $dir = shift @ARGV;
-if ($dir ne "control" and $dir ne "cache") {
-  print_usage();
-}
+  # check that user specified "control" or "cache"
+  if runcmd='':
+    print_usage(prog)
+    return 1
 
-# get the base directory
-my @bases = ();
-if ($dir eq "cache") {
-  # lookup cache base
-  my $cachedesc = $param->get_hash("CACHE");
-  if (defined $cachedesc) {
-    foreach my $index (keys %$cachedesc) {
-      push @bases, $index;
-    }
-  }
-} else {
-  # lookup cntl base
-  push @bases, $param->get("SCR_CNTL_BASE");
-}
-if (@bases == 0) {
-  print "INVALID\n";
-  exit 1;
-}
+  # get the base directory
+  bases = []
+  if runcmd=='cache':
+    # lookup cache base
+    cachedesc = param.get_hash('CACHE')
+    if cachedesc is not None:
+      #for i 
+      #foreach my $index (keys %$cachedesc) {
+      #  push @bases, $index;
+      pass
+    else:
+      # lookup cntl base
+      bases = param.get('SCR_CNTL_BASE')
+  if len(bases)==0:
+    print('INVALID')
+    return 1
 
-# get the user/job directory
-my $suffix = undef;
-if (not defined $conf{base}) {
-  # if not specified, read username from environment
-  if (not defined $conf{user}) {
-    my $username = `$bindir/scr_env --user`;
-    if ($? == 0) {
-      chomp $username;
-      $conf{user} = $username;
-    }
-  }
+  # get the user/job directory
+  suffix = ''
+  if 'base' not in conf:
+    # if not specified, read username from environment
+    if 'user' not in conf:
+      conf['user'] = scr_env.conf['user']
+    # if not specified, read jobid from environment
+    if 'jobid' not in conf:
+      conf['jobid'] = scr_env.conf['jobid']
+    # check that the required environment variables are set
+    if conf['user'] is None or conf['jobid'] is None:
+      # something is missing, print invalid dir and exit with error
+      print('INVALID')
+      return 1
+    suffix = conf['user']+'/scr.'+conf['jobid']
 
-  # if not specified, read jobid from environment
-  if (not defined $conf{jobid}) {
-    my $jobid = `$bindir/scr_env --jobid`;
-    if ($? == 0) {
-      chomp $jobid;
-      $conf{jobid} = $jobid;
-    }
-  }
+  # ok, all values are here, print out the directory name and exit with success
+  dirs = []
+  for base in bases:
+    if suffix!='':
+      dirs.append(base+'/'+suffix)
+    else:
+      dirs.append(base)
+  dirs = ' '.join(dirs)
+  return dirs
 
-  # check that the required environment variables are set
-  if (not defined $conf{user} or
-      not defined $conf{jobid})
-  {
-    # something is missnig, print invalid dir and exit with error
-    print "INVALID\n";
-    exit 1;
-  }
-
-  $suffix = "$conf{user}/scr.$conf{jobid}";
-}
-
-# ok, all values are here, print out the directory name and exit with success
-my @dirs = ();
-foreach my $base (@bases) {
-  if (defined $suffix) {
-    push @dirs, "$base/$suffix";
-  } else {
-    push @dirs, "$base";
-  }
-}
-if (@dirs > 0) {
-  print join(" ", @dirs), "\n";
-}
-exit 0;
+if __name__ == '__main__':
+  scr_list_dir(['control'],SCR_Env('SLURM'))

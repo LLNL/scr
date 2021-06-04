@@ -48,12 +48,8 @@ def printusage():
   print('then the restart command will be appended to the '+launcher+' arguments when a restart file is present.')
   sys.exit(0)
 
-# can check for min required length based on the required args (rather than no args)
-if len(sys.argv)==1:
-  printusage()
-
 # capture restart and run commands if specified
-# parse argv takes sys.argv[1:] (starting past script name), returns command line options
+# parse argv takes sys.argv[2:] (starting past script+launcher names), returns command line options
 def parseargv(argv):
   run_cmd = ''
   restart_cmd=''
@@ -63,17 +59,17 @@ def parseargv(argv):
     if skip>0:
       skip-=1
       continue
-    if argv[i]=='restart-cmd' or argv[i]=='-rs':
+    if argv[i]=='--restart-cmd' or argv[i]=='-rs':
       if i+1==len(argv):
         printusage()
       restart_cmd=argv[i+1]
       skip+=1
-    elif argv[i]=='run-cmd' or argv[i]=='-rc':
+    elif argv[i]=='--run-cmd' or argv[i]=='-rc':
       if i+1==len(argv):
         printusage()
       run_cmd=argv[i+1]
       skip+=1
-    elif argv[i].startswith('--restart-cmd=') or argv[i].startswith('rs='):
+    elif argv[i].startswith('--restart-cmd=') or argv[i].startswith('-rs='):
       restart_cmd=argv[i].split('=')[1]
     elif argv[i].startswith('--run-cmd=') or argv[i].startswith('-rc='):
       run_cmd=argv[i].split('=')[1]
@@ -81,7 +77,14 @@ def parseargv(argv):
       launcher_args.append(argv[i])
   return run_cmd, restart_cmd, launcher_args
 
-run_cmd, restart_cmd, launcher_args = parseargv(sys.argv[1:])
+run_cmd=''
+restart_cmd=''
+launcher_args=[]
+
+if len(sys.argv)<2:
+  printusage()
+elif len(sys.argv)>2:
+  run_cmd, restart_cmd, launcher_args = parseargv(sys.argv[2:])
 
 # turn on verbosity
 val = os.environ.get('SCR_DEBUG')
@@ -99,7 +102,7 @@ if scr_common.scr_test_runtime()!=0:
 
 # TODO: if not in job allocation, bail out
 
-scr_env = SCR_Env('SLURM')
+scr_env = SCR_Env('SLURM') ### dynamically get the environment ###
 jobid = scr_env.getjobid()
 
 # TODO: check that we have a valid jobid and bail if not
@@ -122,32 +125,25 @@ if use_scr_watchdog is None or use_scr_watchdog!='1':
   use_scr_watchdog='0'
 
 # get the control directory
-argv=[bindir+'/scr_list_dir control']
-runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, 
-stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-cntldir = runproc.communicate()[0]
-if runproc.returncode!=0:
-  print(prog+': ERROR: Invalid control directory '+cntldir+'.')
+cntldir = scr_common.scr_list_dir('control',src_env)
+if type(cntldir) is not str:
+  print(prog+': ERROR: Invalid control directory '+str(cntldir)+'.')
   sys.exit(1)
 
 # NOP srun to force every node to run prolog to delete files from cache
 # TODO: remove this if admins find a better place to clear cache
-argv=['srun','/bin/hostname','>','/dev/null']
-runproc = subprocess.Popen(args=argv)
-runproc.communicate()
+argv=['srun','/bin/hostname'] # ,'>','/dev/null']
+runproc = subprocess.Popen(args=argv,stdin=None,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+out,err = runproc.communicate() # we capture out/err, just ignore it
 
 # make a record of time prerun is started
 timestamp=datetime.now()
 print(prog+': prerun: '+str(timestamp))
 
-argv=[bindir+'/scr_prerun','-p',prefix]
-runproc = subprocess.Popen(args=argv)
-runproc.communicate()
-if runproc.returncode!=0:
+if scr_common.scr_prerun(prefix)!=0:
   print(prog+': ERROR: Command failed: scr_prerun -p '+prefix)
   sys.exit(1)
 
-# bash does this way better . . .
 val = os.environ.get('SLURM_JOBID')
 argv=['scontrol','--oneliner','show','job',val]
 runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, 

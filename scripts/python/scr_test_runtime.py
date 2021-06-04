@@ -9,7 +9,7 @@ prog = "scr_test_runtime"
 
 # Checks for pdsh and dshbak
 # returns 0 if OK, returns 1 if a command not found
-def scr_test_runtime:
+def scr_test_runtime():
   pdsh = "@PDSH_EXE@"
   dshbak = "@DSHBAK_EXE@"
   #pdsh = 'pdsh'
