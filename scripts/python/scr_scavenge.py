@@ -2,6 +2,7 @@
 
 import os, sys
 import numpy as np
+from datetime import datetime
 
 # scavenge checkpoint files from cache to PFS
 # check for pdsh / (clustershell) errors in case any nodes should be retried

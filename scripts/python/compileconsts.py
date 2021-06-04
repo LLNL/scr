@@ -29,9 +29,9 @@ for filename in filenames:
   with open(filename,'w') as outfile:
     for line in lines:
       if incomment==True:
-        if line.endswith('\'\'\''):
+        if line.endswith('\'\'\'\n'):
           incomment=False
-      elif line.beginswith('\'\'\''):
+      elif line.startswith('\'\'\''):
         incomment=True
       elif line[0]!='\n' and line[0]!='#':
         for key in vals:

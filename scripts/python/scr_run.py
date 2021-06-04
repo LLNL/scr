@@ -1,8 +1,11 @@
 #! /usr/bin/env python
 
-import datetime, os, sys
+from datetime import datetime
+import os, psutil, signal, sys, time
 import scr_common
+from multiprocessing import Process
 from scr_env import SCR_Env
+from scr_param import SCR_Param
 
 ### This is the compile-time constants ###
 ### this should happen somewhere else ###
@@ -10,16 +13,6 @@ import compileconsts
 compileconsts.compileconsts(vals)
 
 ### This is common to several files ###
-
-val = os.environ.get('SCR_ENABLE')
-if val is not None and val=='0':
-  argv = [launcher]
-  for arg in launcher_args:
-    argv.append(arg)
-    break # would be run_cmd or restart_cmd, same cmd ?
-  runproc = subprocess.Popen(args=argv)
-  runproc.communicate()
-  sys.exit(runproc.returncode)
 
 launcher='srun'
 prog='scr_'+launcher
@@ -56,19 +49,19 @@ def parseargv(argv):
   launcher_args = []
   skip=0
   for i in range(len(argv)):
-    if skip>0:
-      skip-=1
+    if skip!=0:
+      skip=0
       continue
-    if argv[i]=='--restart-cmd' or argv[i]=='-rs':
+    elif argv[i]=='--restart-cmd' or argv[i]=='-rs':
       if i+1==len(argv):
         printusage()
       restart_cmd=argv[i+1]
-      skip+=1
+      skip=1
     elif argv[i]=='--run-cmd' or argv[i]=='-rc':
       if i+1==len(argv):
         printusage()
       run_cmd=argv[i+1]
-      skip+=1
+      skip=1
     elif argv[i].startswith('--restart-cmd=') or argv[i].startswith('-rs='):
       restart_cmd=argv[i].split('=')[1]
     elif argv[i].startswith('--run-cmd=') or argv[i].startswith('-rc='):
@@ -85,6 +78,14 @@ if len(sys.argv)<2:
   printusage()
 elif len(sys.argv)>2:
   run_cmd, restart_cmd, launcher_args = parseargv(sys.argv[2:])
+
+val = os.environ.get('SCR_ENABLE')
+if val is not None and val=='0':
+  argv = [launcher]
+  argv.extend(launcher_args)
+  runproc = subprocess.Popen(args=argv)
+  runproc.communicate()
+  sys.exit(runproc.returncode)
 
 # turn on verbosity
 val = os.environ.get('SCR_DEBUG')
@@ -177,6 +178,9 @@ if runs is None:
 else:
   runs=int(runs)
 
+# need to reference the watchdog process outside of this loop
+watchdog = None
+
 while True:
   # once we mark a node as bad, leave it as bad (even if it comes back healthy)
   # TODO: This hacks around the problem of accidentally deleting a checkpoint set during distribute
@@ -241,7 +245,7 @@ while True:
     # num_left='$bindir/scr_glob_hosts --count --minus $SCR_NODELIST:$down_nodes'
     num_left = int(runproc.communicate()[0])
     if num_left is None or num_left < num_needed:
-      print(prog+': (Nodes remaining='+num_left+') < (Nodes needed='+num_needed+'), ending run."
+      print(prog+': (Nodes remaining='+num_left+') < (Nodes needed='+num_needed+'), ending run.')
       break
 
     # all checks pass, exclude the down nodes and continue
@@ -252,10 +256,17 @@ while True:
   timestamp=datetime.now()
   print(prog+': RUN '+str(attempts)+': '+str(timestamp))
 
-  launch_cmd=launcher_args.extend(run_cmd)
+  launch_cmd=launcher_args
+  launch_cmd.extend(run_cmd)
 '''
 {{{}}}
 '''
+  if os.path.isfile(restart_cmd) and os.access(restart_cmd,os.X_OK):
+    restart_name=launcher+' '+' '.join(launcher_args)+' '+bindir+'/scr_have_restart'
+    if os.path.isfile(restart_name) and os.acess(restart_name,os.X_OK):
+      my_restart_cmd='echo '+restart_cmd+' '+bindir+'/scr_have_restart'
+      launch_cmd=' '.join(launcher_args)+' '+myrestart_cmd
+####
   if [ ${restart_cmd:+x} ]; then
       restart_name='$launcher $launcher_args $bindir/scr_have_restart'
       if [ ${restart_name:+x} ]; then
@@ -268,43 +279,47 @@ while True:
 '''
   # launch the job, make sure we include the script node and exclude down nodes
   start_secs=datetime.now()
-  
+
   $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
   if use_scr_watchdog == '0':
-    argv=[launcher,exclude]
-    ###
-    argv = argv.extend(launch_cmd)
+    argv=[launcher]
+    argv.extend(exclude)
+    argv.extend(launch_cmd)
     runproc = subprocess.Popen(args=argv)
     # $launcher $exclude $launch_cmd
     runproc.communicate()
   else:
     print(prog+': Attempting to start watchdog process.')
     # need to get job step id of the srun command
-    $launcher $exclude $launch_cmd &
-    srun_pid=$!;
-    sleep 10; # sleep a bit to wait for the job to show up in squeue
-    echo "$bindir/scr_get_jobstep_id $srun_pid";
-    jobstepid='$bindir/scr_get_jobstep_id $srun_pid';
+    argv=[launcher]
+    argv.extend(exclude)
+    argv.extend(launch_cmd)
+    runproc = subprocess.Popen(args=argv)
+    # $launcher $exclude $launch_cmd &
+	srun_pid = runproc.pid
+    #srun_pid=$!;
+    time.sleep(10)
+    #sleep 10; # sleep a bit to wait for the job to show up in squeue
+    jobstepid = scr_common.scr_get_jobstep_id(scr_env,srun_pid)
     # then start the watchdog  if we got a valid job step id
-    if [ "x$jobstepid" != "x" ] && [ $jobstepid != "-1" ]; then
-      $bindir/scr_watchdog --dir $prefix --jobStepId $jobstepid &
-      watchdog_pid=$!;
-      print(prog+': Started watchdog process with PID '+watchdog_pid+'.')
-    else
+    if jobstepid!='' and jobstepid!='-1':
+      watchdog = Process(target=scr_common.scr_watchdog,args=('--dir',prefix,'--jobStepId',jobstepid))
+      watchdog.start()
+      print(prog+': Started watchdog process with PID '+str(watchdog.pid)+'.')
+    else:
       print(prog+': ERROR: Unable to start scr_watchdog because couldn\'t get job step id.')
-      watchdog_pid=-1;
-    fi
-    wait $srun_pid;
-  fi
+    out = runproc.communicate()
 
   end_secs=datetime.now()
   run_secs=end_secs - start_secs
 
   # check for and log any down nodes
-  $bindir/scr_list_down_nodes $keep_down --log --reason --secs $run_secs
-
+  scr_common.scr_list_down_nodes([keep_down,'--log','--reason','--secs',str(run_secs.seconds)],scr_env)
   # log stats on the latest run attempt
-  $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_END" -N "run=$attempts" -S $end_secs -L $run_secs
+  argv=[bindir+'/scr_log_event','-i',jobid,'-p',prefix,'-T','RUN_END','-N','run='+str(attempts),'-S',end_secs,'-L',str(run_secs.seconds)]
+  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+  runproc.communicate()
+  #$bindir/scr_log_event -i $jobid -p $prefix -T "RUN_END" -N "run=$attempts" -S $end_secs -L $run_secs
 
   # any retry attempts left?
   if runs > 1:
@@ -314,41 +329,41 @@ while True:
     print(prog+': '+runs+' exhausted, ending run.')
     break
 
+'''
+{}{}{}
+'''
   # is there a halt condition instructing us to stop?
-  $bindir/scr_retries_halt --dir $prefix;
-  if [ $? == 0 ] ; then
-    echo "$prog: Halt condition detected, ending run."
+  argv=[bindir+'/scr_retries_halt','--dir',prefix]
+  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+  runproc.communicate()
+  #$bindir/scr_retries_halt --dir $prefix;
+  if runproc.returncode==0:
+    print(prog+': Halt condition detected, ending run.')
     break
-  fi
 
   # give nodes a chance to clean up
-  sleep 60
+  time.sleep(60)
 
   # check for halt condition again after sleep
-  $bindir/scr_retries_halt --dir $prefix;
-  if [ $? == 0 ] ; then
-    echo "$prog: Halt condition detected, ending run."
+  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+  runproc.communicate()
+  #$bindir/scr_retries_halt --dir $prefix;
+  if runproc.returncode==0:
+    print(prog+': Halt condition detected, ending run.')
     break
-  fi
-done
 
 # make a record of time postrun is started
 timestamp=datetime.now()
 print(prog+': postrun: '+str(timestamp))
 
 # scavenge files from cache to parallel file system
-$bindir/scr_postrun -p $prefix
-if [ $? -ne 0 ] ; then
+if scr_common.scr_postrun(['-p',prefix]) != 0:
   print(prog+': ERROR: Command failed: scr_postrun -p '+prefix)
-fi
 
 # kill the watchdog process if it is running
-if [ $use_scr_watchdog -eq 1 ] && [ $watchdog_pid -ne -1 ] &&
-	kill -0 >/dev/null 2>&1 $watchdog_pid ; then
-  kill_cmd="kill -n KILL $watchdog_pid"
-  print('Killing watchdog using '+kill_cmd)
-  $kill_cmd
-fi
+if watchdog is not None and watchdog.is_alive():
+  print('Killing watchdog using kill -SIGKILL '+str(watchdog.pid))
+  psutil.Process(watchdog.pid).send_signal(signal.SIGKILL)
 
 # make a record of end time
 timestamp=datetime.now()

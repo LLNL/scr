@@ -4,6 +4,7 @@
 # class SCR Param
 
 import os, re
+import scr_common
 
 sysconf = "@SCR_CONFIG_FILE@"
 
@@ -16,18 +17,7 @@ class SCR_Param():
     self.no_user = {}
     # get current working dir
     # use value in $SCR_PREFIX if set
-    prefix = os.environ.get('SCR_PREFIX')
-    if val is None:
-      prefix = os.getcwd()
-    else:
-      # tack on current working dir if needed # don't resolve symlinks # don't worry about missing parts, the calling script calling might create it
-      # replace ~ and . symbols from front of path
-      if prefix[0]=='~':
-        prefix = '$HOME'+prefix[1:]
-      elif prefix[0]=='.':
-        prefix = os.getcwd()+prefix[1:]
-      # expand any environment vars in path
-      prefix = os.path.expandvars(prefix)
+    prefix = scr_common.scr_prefix()
     # define user config file
     # use SCR_CONF_FILE if set
     usrfile = os.environ.get('SCR_CONF_FILE')
