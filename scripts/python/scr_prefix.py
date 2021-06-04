@@ -8,7 +8,7 @@ import os
 
 def scr_prefix():
   prefix = os.environ.get('SCR_PREFIX')
-  if val is None:
+  if prefix is None:
     prefix = os.getcwd()
   else:
     # tack on current working dir if needed

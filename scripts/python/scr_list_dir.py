@@ -58,7 +58,7 @@ def scr_list_dir(args,scr_env=None):
         skip=True
 
   # check that user specified "control" or "cache"
-  if runcmd='':
+  if runcmd=='':
     print_usage(prog)
     return 1
 

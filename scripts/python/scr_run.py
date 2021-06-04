@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 from datetime import datetime
-import os, psutil, signal, sys, time
+import os, signal, sys, time
 import scr_common
 from multiprocessing import Process
 from scr_env import SCR_Env
@@ -155,6 +155,7 @@ runproc = subprocess.Popen(args=argv, bufsize=1, stdin=runproc,
 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, 
 universal_newlines=True)
 out,err = runproc.communicate()
+
 argv=['date','-d',out,'+%s']
 runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, 
 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, 
@@ -163,7 +164,7 @@ out,err = runproc.communicate()
 os.environ['SCR_END_TIME'] = out
 
 #export SCR_END_TIME=$(date -d $(scontrol --oneliner show job $SLURM_JOBID | 
-perl -n -e 'm/EndTime=(\S*)/ and print $1') +%s)
+#perl -n -e 'm/EndTime=(\S*)/ and print $1') +%s)
 
 # enter the run loop
 down_nodes=''
@@ -258,15 +259,15 @@ while True:
 
   launch_cmd=launcher_args
   launch_cmd.extend(run_cmd)
-'''
-{{{}}}
-'''
+  '''
+  {{{}}}
+  '''
   if os.path.isfile(restart_cmd) and os.access(restart_cmd,os.X_OK):
     restart_name=launcher+' '+' '.join(launcher_args)+' '+bindir+'/scr_have_restart'
     if os.path.isfile(restart_name) and os.acess(restart_name,os.X_OK):
       my_restart_cmd='echo '+restart_cmd+' '+bindir+'/scr_have_restart'
       launch_cmd=' '.join(launcher_args)+' '+myrestart_cmd
-####
+  '''
   if [ ${restart_cmd:+x} ]; then
       restart_name='$launcher $launcher_args $bindir/scr_have_restart'
       if [ ${restart_name:+x} ]; then
@@ -274,13 +275,16 @@ while True:
           launch_cmd="$launcher_args $my_restart_cmd"
       fi
   fi
-'''
-{{{}}}
-'''
+  #' ' '
+  {{{}}}
+  '''
   # launch the job, make sure we include the script node and exclude down nodes
   start_secs=datetime.now()
 
-  $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
+  argv=[bindir+'/scr_log_event','-i',jobid,'-p',prefix,'-T','RUN_START','-N','run='+str(attempts),'-S',str(start_secs.time.second)]
+  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+  runproc.communicate()
+  # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
   if use_scr_watchdog == '0':
     argv=[launcher]
     argv.extend(exclude)
@@ -296,7 +300,7 @@ while True:
     argv.extend(launch_cmd)
     runproc = subprocess.Popen(args=argv)
     # $launcher $exclude $launch_cmd &
-	srun_pid = runproc.pid
+    srun_pid = runproc.pid
     #srun_pid=$!;
     time.sleep(10)
     #sleep 10; # sleep a bit to wait for the job to show up in squeue
@@ -329,9 +333,9 @@ while True:
     print(prog+': '+runs+' exhausted, ending run.')
     break
 
-'''
-{}{}{}
-'''
+  '''
+  {}{}{}
+  '''
   # is there a halt condition instructing us to stop?
   argv=[bindir+'/scr_retries_halt','--dir',prefix]
   runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
@@ -363,7 +367,7 @@ if scr_common.scr_postrun(['-p',prefix]) != 0:
 # kill the watchdog process if it is running
 if watchdog is not None and watchdog.is_alive():
   print('Killing watchdog using kill -SIGKILL '+str(watchdog.pid))
-  psutil.Process(watchdog.pid).send_signal(signal.SIGKILL)
+  os.kill(watchdog.pid, signal.SIGKILL)
 
 # make a record of end time
 timestamp=datetime.now()

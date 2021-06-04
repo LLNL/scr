@@ -12,6 +12,8 @@ import scr_common
 def print_usage(prog):
   print('Usage: '+prog+' [-p prefix_dir]')
 def in_attempted_list():
+  return
+'''
   for i in ${ATTEMPTED[@]} ; do
     if [ "$1" == "$i" ] ; then
       # found the item
@@ -19,8 +21,10 @@ def in_attempted_list():
     fi
   done
   return 1
-
+'''
 def in_succeeded_list():
+  return
+'''
   for i in ${SUCCEEDED[@]} ; do
     if [ "$1" == "$i" ] ; then
       # found the item
@@ -28,7 +32,7 @@ def in_succeeded_list():
     fi
   done
   return 1
-
+'''
 def scr_postrun(argv):
   # if SCR is disabled, immediately exit
   val = os.environ.get('SCR_ENABLE')
@@ -52,9 +56,10 @@ def scr_postrun(argv):
 
   # pass prefix via command line
   pardir=scr_common.scr_prefix()
+  return
 '''
 {}{}{}
-'''
+# ' ''
 OPTIND=1
 while getopts "p:" flag ; do
   case $flag in
@@ -262,3 +267,5 @@ echo "$prog: secs: $run_secs"
 # print the exit code and exit
 echo "$prog: exit code: $ret"
 exit $ret
+'''
+

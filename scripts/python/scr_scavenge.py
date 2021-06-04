@@ -3,6 +3,7 @@
 import os, sys
 import numpy as np
 from datetime import datetime
+from scr_param import SCR_Param
 
 # scavenge checkpoint files from cache to PFS
 # check for pdsh / (clustershell) errors in case any nodes should be retried
@@ -23,7 +24,7 @@ pdsh = "@PDSH_EXE@"
 # for now just hardcode the values
 
 # lookup buffer size and crc flag via scr_param
-param = new scr_param();
+param = SCR_Param();
 
 buf_size = os.environ.get('SCR_FILE_BUF_SIZE')
 if buf_size is None:
@@ -58,7 +59,7 @@ jobset = bindir+'/scr_env --nodes'
 
 # read in command line arguments
 conf = {}
-conf[nodeset_job] = $jobset
+#conf[nodeset_job] = $jobset
 #conf{nodeset_up}   = undef;
 #conf{nodeset_down} = undef;
 #conf{dataset_id}   = undef;
@@ -83,7 +84,7 @@ def getoptkey(opt):
     return 'verbose'
   return None
 
-for i in range(1,len(sys.argv):
+for i in range(1,len(sys.argv)):
   if opt == '':
     if '=' in sys.argv[i]:
       vals = sys.argv[i].split('=')
@@ -151,8 +152,7 @@ cmd = ''
 
 # log the start of the scavenge operation
 argv = [bindir+'/scr_log_event','-i',jobid,'-p',prefixdir,'-T','SCAVENGE_START','-D',dset,'-S',str(start_time)] # start time string val... ############
-#'$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_START' -D $dset -S 
-$start_time';
+#'$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_START' -D $dset -S $start_time';
 runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
 out,err = runproc.communicate()
 if runproc.returncode!=0:
@@ -178,13 +178,11 @@ print(prog+': '+str(datetime.now()))
 #print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' \"$cmd\" >$output 2>$error\n";
 #             '$pdsh -Rexec-f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error';
 #### need to expand %h ######
-argv = [pdsh,'-Rexec','-f','256','-S','-w',upnodes,'srun','-n1','-N1','-w',%h,bindir+'/scr_copy','--cntldir',cntldir,'--id',dset,'--prefix',prefixdir,'--buf',buf_size,crc_flag,downnodes_spaced]
+argv = [pdsh,'-Rexec','-f','256','-S','-w',upnodes,'srun','-n1','-N1','-w','%h',bindir+'/scr_copy','--cntldir',cntldir,'--id',dset,'--prefix',prefixdir,'--buf',buf_size,crc_flag,downnodes_spaced]
 #print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h 
-$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf 
-$buf_size $crc_flag $downnodes_spaced";
+#$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced";
 #             '$pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h 
-$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf 
-$buf_size $crc_flag $downnodes_spaced';
+#$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced';
 runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
 out,err = runproc.communicate()
 if runproc.returncode!=0:
@@ -200,14 +198,12 @@ if verbose==True:
     print('pdsh: stderr: cat '+error)
     print(err)
 
-# TODO: if we knew the total bytes, we could register a transfer here in 
-addition to an event
+# TODO: if we knew the total bytes, we could register a transfer here in addition to an event
 # get a timestamp for logging timing values
 end_time = datetime.now()
 diff_time = end_time - start_time
 argv = [bindir+'/scr_log_event','-i',jobid,'-p',prefixdir,'-T','SCAVENGE_END','-D',dset,'-S',str(start_time),'-L',str(diff_time)] ##### need string ( time )
-#'$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_END' -D $dset -S 
-$start_time -L $diff_time';
+#'$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_END' -D $dset -S $start_time -L $diff_time';
 runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
 runproc.communicate()
 sys.exit(0)

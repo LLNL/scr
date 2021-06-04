@@ -11,10 +11,11 @@ sysconf = "@SCR_CONFIG_FILE@"
 class SCR_Param():
   def __init__(self):
     self.prog = 'scr_param'
-    self.userconf = {}
+    self.usrconf = {}
     self.sysconf = {}
     self.compile = {}
     self.no_user = {}
+    self.appconf = {}
     # get current working dir
     # use value in $SCR_PREFIX if set
     prefix = scr_common.scr_prefix()
@@ -44,9 +45,9 @@ class SCR_Param():
     self.compile["SCR_CACHE_SIZE"] = "1"
     self.cache_base = self.get('SCR_CACHE_BASE')
     self.cache_size = self.get('SCR_CACHE_SIZE')
-    if 'CACHE' not in self.userconf:
-      self.userconf['CACHE'] = (self.cache_base,self.cache_size)
-'''
+    if 'CACHE' not in self.usrconf:
+      self.usrconf['CACHE'] = (self.cache_base,self.cache_size)
+  '''
   $self->{compile} = {};
   $self->{compile}{"CNTLDIR"}{"@SCR_CNTL_BASE@"} = {};
   $self->{compile}{"CACHEDIR"}{"@SCR_CACHE_BASE@"} = {};
@@ -75,7 +76,7 @@ class SCR_Param():
   }
 
   return bless $self, $type;
-'''
+  '''
   def read_config_file(self,filename):
     h = {}
     with open (filename,'r') as infile:
@@ -126,7 +127,7 @@ class SCR_Param():
     return val
 
   # convert byte string like 2kb, 1.5m, 200GB, 1.4T to integer value
-  dev abtoull(self,stringval):
+  def abtoull(self,stringval):
     number = ''
     units = ''
     tokens = re.match('(\d*)(\.?)(\d*)(\D+)',stringval).groups()

@@ -20,8 +20,8 @@ def scr_prerun(args):
     sys.settrace(scr_common.tracefunction)
 
   start_time = datetime.now()
-  bindir="@X_BINDIR@"
-  prog="scr_prerun"
+  bindir='@X_BINDIR@'
+  prog='scr_prerun'
 
   # process command line options
   pardir=bindir+'/scr_prefix'
@@ -34,8 +34,7 @@ def scr_prerun(args):
   else:
     print_usage(prog)
     return 1
-
-  print(prog+': Started: +'str(start_time))
+  print(prog+': Started: '+str(start_time))
 
   # check that we have all the runtime dependences we need
   if scr_common.scr_test_runtime() != 0:

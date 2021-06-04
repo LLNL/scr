@@ -28,7 +28,7 @@ def scr_kill_jobstep(argv):
         break
     elif '=' in argv[i]:
       vals = argv[i].split('=')
-      if vals[0]=='--jobStepId' or vals[0]=='-j:
+      if vals[0]=='--jobStepId' or vals[0]=='-j':
         jobid=vals[1]
         break
     print_usage(prog)

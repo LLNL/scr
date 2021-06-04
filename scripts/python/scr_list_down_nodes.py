@@ -22,7 +22,7 @@ def print_usage(prog):
   print('    -l, --log')
   print('          Add entry to SCR log for each down node')
   print('    -s, --secs=N')
-  print('          Specify the job's runtime seconds for SCR log')
+  print('          Specify the job\'s runtime seconds for SCR log')
 
 def scr_list_down_nodes(argv,scr_env=None):
   prog = 'scr_list_down_nodes'
@@ -72,7 +72,7 @@ def scr_list_down_nodes(argv,scr_env=None):
     elif argv[i]=='--help' or argv[i]=='-h':
       print_usage(prog)
       return 1
-    elif nodeset='':
+    elif nodeset=='':
       nodeset=argv[i]
 
   # get prefix directory
@@ -246,7 +246,7 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   newly_failed_nodes = {}
   # print any failed nodes to stdout and exit with non-zero
-  if len(failed_nodes)>0):
+  if len(failed_nodes)>0:
     # initialize our list of newly failed nodes to be all failed nodes
     for node in failed_nodes:
       newly_failed_nodes[node] = 1

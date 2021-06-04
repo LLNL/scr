@@ -16,7 +16,7 @@ import re, subprocess
 
 def scr_get_jobstep_id(scr_env,srun_pid):
   prog = 'scr_get_jobstep_id'
-  my $pid=$ARGV[0]; # unused
+  #my $pid=$ARGV[0]; # unused
   user = scr_env.conf['user']
   if user is None:
     print(prog+': ERROR: Could not determine user ID')
@@ -42,7 +42,8 @@ def scr_get_jobstep_id(scr_env,srun_pid):
     fields = re.split('\s+',line)
     # my @fields = split /\s+/, $line;
     #print ("fields ",join(",",@fields),"\n");
-    my @jobidparts=split /\./, $fields[0];
+    #my @jobidparts=split /\./, $fields[0];
+    jobidparts = fields[0].split('.')
     #print ("jobidparts: ", join(",",@jobidparts),"\n");
     # the first item is the job step id
     # if it is JOBID.0, then it is the allocation ID and we don't want that
