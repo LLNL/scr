@@ -111,6 +111,36 @@ int AXL_Create_comm (
     return id;
 }
 
+int AXL_Add_comm (
+  int id,           /**< [IN]  - transfer hander ID returned from AXL_Create */
+  int num,          /**< [IN]  - number of files in src and dst file lists */
+  const char** src, /**< [IN]  - list of source paths of length num */
+  const char** dst, /**< [IN]  - list of destination paths of length num */
+  MPI_Comm comm)    /**< [IN]  - communicator used for coordination and flow control */
+{
+    /* assume we'll succeed */
+    int rc = AXL_SUCCESS;
+
+    /* add files to transfer list */
+    int i;
+    for (i = 0; i < num; i++) {
+      const char* src_file  = src[i];
+      const char* dest_file = dst[i];
+      if (AXL_Add(id, src_file, dest_file) != AXL_SUCCESS) {
+        /* remember that we failed to add a file */
+        rc = AXL_FAILURE;
+      }
+    }
+
+    /* return same value on all ranks */
+    if (! axl_alltrue(rc == AXL_SUCCESS, comm)) {
+        /* someone failed, so everyone fails */
+        rc = AXL_FAILURE;
+    }
+
+    return rc;
+}
+
 int AXL_Dispatch_comm (
     int id,        /**< [IN]  - transfer hander ID returned from AXL_Create */
     MPI_Comm comm) /**< [IN]  - communicator used for coordination and flow control */

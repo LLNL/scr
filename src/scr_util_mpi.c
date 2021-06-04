@@ -336,50 +336,60 @@ int scr_axl(
   /* define a transfer handle */
   int id = AXL_Create_comm(type, name, state_file, comm);
   if (id < 0) {
-    scr_err("Failed to create AXL transfer handle @ %s:%d",
-      __FILE__, __LINE__
-    );
+    if (scr_my_rank_world == 0) {
+      scr_err("Failed to create AXL transfer handle @ %s:%d",
+        __FILE__, __LINE__
+      );
+    }
 
     /* if we fail to create, bail out now */
     return SCR_FAILURE;
   }
 
   /* add files to transfer list */
-  int i;
-  for (i = 0; i < num_files; i++) {
-    const char* src_file  = src_filelist[i];
-    const char* dest_file = dest_filelist[i];
-    if (AXL_Add(id, src_file, dest_file) != AXL_SUCCESS) {
-      scr_err("Failed to add file to AXL transfer handle %d: %s --> %s @ %s:%d",
-        id, src_file, dest_file, __FILE__, __LINE__
+  int rc_axl = AXL_Add_comm(id, num_files, src_filelist, dest_filelist, comm);
+  if (rc_axl != AXL_SUCCESS) {
+    /* failed to add files */
+    if (scr_my_rank_world == 0) {
+      scr_err("Failed to add files to AXL transfer handle %d @ %s:%d",
+        id, __FILE__, __LINE__
       );
-      rc = SCR_FAILURE;
     }
+
+    /* have everyone free their transfer handle */
+    AXL_Free_comm(id, comm);
+    return SCR_FAILURE;
   }
 
   /* kick off the transfer */
   if (AXL_Dispatch_comm(id, comm) != AXL_SUCCESS) {
-    scr_err("Failed to dispatch AXL transfer handle %d @ %s:%d",
-      id, __FILE__, __LINE__
-    );
+    if (scr_my_rank_world == 0) {
+      scr_err("Failed to dispatch AXL transfer handle %d @ %s:%d",
+        id, __FILE__, __LINE__
+      );
+    }
     rc = SCR_FAILURE;
   }
 
   /* wait for transfer to complete */
-  int rc_axl = AXL_Wait_comm(id, comm);
+  rc_axl = AXL_Wait_comm(id, comm);
   if (rc_axl != AXL_SUCCESS) {
     /* transfer failed */
-    scr_err("Failed to wait on AXL transfer handle %d @ %s:%d",
-      id, __FILE__, __LINE__
-    );
+    if (scr_my_rank_world == 0) {
+      scr_err("Failed to wait on AXL transfer handle %d @ %s:%d",
+        id, __FILE__, __LINE__
+      );
+    }
     rc = SCR_FAILURE;
   }
 
   /* release the handle */
   if (AXL_Free_comm(id, comm) != AXL_SUCCESS) {
-    scr_err("Failed to free AXL transfer handle %d @ %s:%d",
-      id, __FILE__, __LINE__
-    );
+    if (scr_my_rank_world == 0) {
+      scr_err("Failed to free AXL transfer handle %d @ %s:%d",
+        id, __FILE__, __LINE__
+      );
+    }
     rc = SCR_FAILURE;
   }
 

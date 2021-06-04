@@ -37,6 +37,14 @@ int AXL_Create_comm (
   MPI_Comm comm     /**< [IN]  - communicator used for coordination and flow control */
 );
 
+int AXL_Add_comm (
+  int id,           /**< [IN]  - transfer hander ID returned from AXL_Create */
+  int num,          /**< [IN]  - number of files in src and dst file lists */
+  const char** src, /**< [IN]  - list of source paths of length num */
+  const char** dst, /**< [IN]  - list of destination paths of length num */
+  MPI_Comm comm     /**< [IN]  - communicator used for coordination and flow control */
+);
+
 int AXL_Dispatch_comm (
   int id,       /**< [IN]  - transfer hander ID returned from AXL_Create */
   MPI_Comm comm /**< [IN]  - communicator used for coordination and flow control */
