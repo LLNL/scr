@@ -15,9 +15,10 @@ echo "Running $test $@ restart=$restart"
 $test "$@"
 RC=$?
 
-if [ "$restart" = "restart" ]; then
+if [ "$restart" = "restart" -a $RC -eq 0 ]; then
     echo "Restarting"
     $test "$@"
+    RC=$?
 fi
 
 ./test_cleanup.sh
