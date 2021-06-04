@@ -1,6 +1,11 @@
 #!/bin/bash
 
 if [  "$1" != "" ]; then
+    launch=$1
+    shift
+fi
+
+if [  "$1" != "" ]; then
     test=$1
     shift
 fi
@@ -10,17 +15,17 @@ if [ "$1" != "" ]; then
     shift
 fi
 
-echo "Running $test $@ restart=$restart"
+echo "Running $launch $test $@ restart=$restart"
 
-$test "$@"
+$launch $test "$@"
 RC=$?
 
 if [ "$restart" = "restart" -a $RC -eq 0 ]; then
     echo "Restarting"
-    $test "$@"
+    $launch $test "$@"
     RC=$?
 fi
 
-./test_cleanup.sh
+$launch ./test_cleanup.sh
 
 exit $RC
