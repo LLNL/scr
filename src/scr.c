@@ -938,8 +938,7 @@ static int scr_get_params()
   }
 
   /* Specify whether our flush will be finalized in poststage (currently
-   * only supported with BBAPI).
-   */
+   * only supported with BBAPI). */
   if ((value = scr_param_get("SCR_FLUSH_POSTSTAGE")) != NULL) {
     scr_flush_poststage = atoi(value);
   }
@@ -2334,7 +2333,10 @@ int SCR_Finalize()
     scr_halt(SCR_FINALIZE_CALLED);
   }
 
+  /* When using poststage, we may finalize flushes after the job completes
+   * rather than waiting on it here.  In that case, we'll set this flag to 1 */
   int poststage = 0;
+
   /* handle any async flush */
   if (scr_flush_async_in_progress) {
     /* there's an async flush ongoing, see which dataset is being flushed */
@@ -2359,8 +2361,7 @@ int SCR_Finalize()
          *
          * So don't wait for the flush to finish here - it's going to continue
          * transferring "in the background" and will be dealt with using the
-         * scr_poststage script later on.
-         */
+         * scr_poststage script later on. */
         poststage = 1; /* skip finalizing this dataset */
         flush_rc = SCR_SUCCESS;
       } else {
@@ -2381,20 +2382,24 @@ int SCR_Finalize()
 
   /* flush checkpoint set if we need to */
   if (scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
-    int flush_rc;
-
+    /* have a checkpoint dataset that needs to be flushed */
     if (scr_my_rank_world == 0) {
       scr_dbg(2, "Begin flushing checkpoints that haven't started @ %s:%d", __FILE__, __LINE__);
     }
 
+    int flush_rc;
     if (poststage) {
+      /* we'll finalize this flush in poststage */
       if (scr_flush_file_is_flushing(scr_ckpt_dset_id)) {
+        /* checkpoint is already flushing, so nothing else to do */
         flush_rc = SCR_SUCCESS;
       } else {
+        /* Initiate the flush now, but finish in the poststage.
+         * Start as an async flush, even if we're otherwise using sync flush. */
         flush_rc = scr_flush_async_start(scr_cindex, scr_ckpt_dset_id);
       }
     } else {
-      /* Normal case */
+      /* Flush checkpoint synchronously (wait for it to finish now). */
       flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
     }
 

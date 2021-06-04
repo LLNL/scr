@@ -25,7 +25,7 @@
 #include "spath.h"
 #include "kvtree.h"
 #include "kvtree_util.h"
-#include <axl.h>
+#include "axl.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,118 +45,112 @@
 #error "globals.h accessed from tools"
 #endif
 
-/*
- * Given a path to a prefix directory, the contents of the flush file,
+/* Given a path to a prefix directory, the contents of the flush file,
  * an id, and the path to the flush_file, generate the summary.scr file and
  * update flush.scr to show that we're no longer flushing.
  *
- * Returns 0 on success.  Returns 1 if there's no corresponding dataset_id
- * in the flush file.
- */
-int write_summary_file(char* prefix, kvtree* flush_file, int dataset_id,
+ * Returns 0 on success.  Returns 1 if there's no
+ * corresponding dataset_id in the flush file. */
+int write_summary_file(
+  char* prefix,
+  kvtree* flush_file,
+  int dataset_id,
   spath* flush_file_spath)
 {
-  /* define metadata directory for dataset */
-  char* summary_file = NULL;
-  int rc;
-  kvtree* flush_key_dataset;
-  kvtree* summary;
-
-  flush_key_dataset = kvtree_get_kv_int(flush_file, SCR_FLUSH_KEY_DATASET, dataset_id);
-  if (flush_key_dataset == NULL) {
-    scr_err("No flush file entry for dataset %d\n", dataset_id);
+  /* get dataset descriptor for summary file */
+  kvtree* flush_key_dataset = kvtree_get_kv_int(flush_file, SCR_FLUSH_KEY_DATASET, dataset_id);
+  kvtree* summary = kvtree_get(flush_key_dataset, SCR_FLUSH_KEY_DSETDESC);
+  if (summary == NULL) {
+    scr_err("%s: No flush file entry for dataset %d @ %s:%d", PROG, dataset_id, __FILE__, __LINE__);
     return 1; /* No entry for this dataset */
   }
 
-  summary = kvtree_get(flush_key_dataset, SCR_FLUSH_KEY_DSETDESC);
-
-  spath* summary_file_spath;
-  summary_file_spath = spath_from_strf("%s/.scr/scr.dataset.%d/summary.scr", prefix, dataset_id);
-  summary_file = spath_strdup(summary_file_spath);
+  /* define path to summary file for this dataset */
+  spath* summary_file_spath = spath_from_strf("%s/.scr/scr.dataset.%d/summary.scr", prefix, dataset_id);
+  char* summary_file = spath_strdup(summary_file_spath);
   spath_delete(&summary_file_spath);
 
-  rc = scr_flush_summary_file(summary, 1, summary_file);
+  /* write summary file out and indicate that dataset is complete */
+  int rc = scr_flush_summary_file(summary, 1, summary_file);
+
   scr_free(&summary_file);
 
-  /* All done flushing */
+  /* All done flushing, remove flushing marker from flush file */
   scr_flush_file_dataset_remove_with_path(dataset_id, flush_file_spath);
 
+  rc = (rc == SCR_SUCCESS) ? 0 : 1;
   return rc;
 }
 
-/*
- * Given a path to a state_file, resume and finalize all transfers for all
- * files in the state_file.
- */
+/* Given a path to a state_file, resume and finalize all transfers for all
+ * files in the state_file.  Returns 0 on success, 1 on error. */
 int resume_transfer(char* state_file_path)
 {
-  int id;
-  int rc;
+  int rc = 0;
+
   AXL_Init();
 
-  id = AXL_Create(AXL_XFER_STATE_FILE, "scr", state_file_path);
+  int id = AXL_Create(AXL_XFER_STATE_FILE, "scr", state_file_path);
   if (id < 0) {
-    scr_err("Error: AXL_Create() = %d @ %s:%d", id, __FILE__, __LINE__);
-    rc = id;
+    scr_err("%s: AXL_Create() = %d @ %s:%d", PROG, id, __FILE__, __LINE__);
+    rc = 1;
     goto end;
   }
 
-  rc = AXL_Resume(id);
-  if (rc != AXL_SUCCESS) {
-    scr_err("Error: AXL_Resume(%d) = %d @ %s:%d", id, rc, __FILE__, __LINE__);
+  int axl_rc = AXL_Resume(id);
+  if (axl_rc != AXL_SUCCESS) {
+    scr_err("%s: AXL_Resume(%d) = %d @ %s:%d", PROG, id, rc, __FILE__, __LINE__);
+    rc = 1;
     goto end;
   }
 
-  rc = AXL_Wait(id);
-  if (rc != AXL_SUCCESS) {
-    scr_err("Error: AXL_Wait(%d), = %d @ %s:%d", id, rc, __FILE__, __LINE__);
+  axl_rc = AXL_Wait(id);
+  if (axl_rc != AXL_SUCCESS) {
+    scr_err("%s: AXL_Wait(%d) = %d @ %s:%d", PROG, id, rc, __FILE__, __LINE__);
+    rc = 1;
     goto end;
   }
 
-  rc = AXL_Free(id);
-  if (rc != AXL_SUCCESS) {
-    scr_err("Error: AXL_Free(%d), = %d @ %s:%d", id, rc, __FILE__, __LINE__);
+  axl_rc = AXL_Free(id);
+  if (axl_rc != AXL_SUCCESS) {
+    scr_err("%s: AXL_Free(%d) = %d @ %s:%d", PROG, id, rc, __FILE__, __LINE__);
+    rc = 1;
     goto end;
   }
 
-  rc = AXL_Finalize();
-  if (rc != AXL_SUCCESS) {
-    scr_err("Error: AXL_Finalize(), = %d @ %s:%d", id, rc, __FILE__, __LINE__);
+  axl_rc = AXL_Finalize();
+  if (axl_rc != AXL_SUCCESS) {
+    scr_err("%s: AXL_Finalize() = %d @ %s:%d", PROG, rc, __FILE__, __LINE__);
   }
+
 end:
   return rc;
 }
 
-/*
- * Resume and wait for any previous transfers to complete, and finalize them.
+/* Resume and wait for any previous transfers to complete, and finalize them.
  *
  * This only resumes/waits for the AXL transfers to complete.  It does not
  * update SCR's flush file nor write the summary file.
  *
- * Returns 0 on success, non-zero otherwise.
- */
+ * Returns 0 on success, non-zero otherwise. */
 int resume_transfers(char* prefix, int dataset_id)
 {
-  char* rank2file_path = NULL;
-  int rc;
-  int ranks;
-  unsigned long i;
-  char* state_file;
-  kvtree* ranks_tree;
-  kvtree* rank_subtree;
-
-  ranks_tree = kvtree_new();
-
-  spath* rank2file_path_spath;
-  rank2file_path_spath = spath_from_strf("%s/.scr/scr.dataset.%d/rank2file", prefix, dataset_id);
-  rank2file_path = spath_strdup(rank2file_path_spath);
+  /* define path to top-level rank2file map file */
+  spath* rank2file_path_spath = spath_from_strf("%s/.scr/scr.dataset.%d/rank2file", prefix, dataset_id);
+  char* rank2file_path = spath_strdup(rank2file_path_spath);
   spath_delete(&rank2file_path_spath);
 
-  rc = kvtree_read_scatter_single(rank2file_path, ranks_tree);
-  if (rc) {
-    scr_err("Error: kvtree_read_scatter_single(%s) = %d\n", rank2file_path, rc);
-    return rc;
+  /* read the rank2file map file */
+  kvtree* ranks_tree = kvtree_new();
+  int rc = kvtree_read_scatter_single(rank2file_path, ranks_tree);
+  if (rc != KVTREE_SUCCESS) {
+    scr_err("%s: kvtree_read_scatter_single(%s) = %d @ %s:%d",
+      PROG, rank2file_path, rc, __FILE__, __LINE__);
+    return 1;
   }
+
+  /* assume we'll succeed */
+  rc = 0;
 
   /*
    * 'ranks_tree' is a kvtree that looks like:
@@ -171,8 +165,8 @@ int resume_transfers(char* prefix, int dataset_id)
    *      FILE
    *        ckpt.1/rank_74.ckpt
    */
-  ranks = kvtree_size(ranks_tree);
-
+  unsigned long i;
+  int ranks = kvtree_size(ranks_tree);
   for (i = 0; i < ranks; i++) {
    /*
     * Verify there's a dataset entry for each rank.  Some ranks may not have
@@ -193,27 +187,27 @@ int resume_transfers(char* prefix, int dataset_id)
     *     timestep.11/rank_15.2.ckpt
     *...
     */
-    rank_subtree =  kvtree_getf(ranks_tree, "%lu", i);
-    if (!rank_subtree) {
-      scr_err("Couldn't get RANK subtree, rc = %d\n", rc);
+    kvtree* rank_subtree = kvtree_getf(ranks_tree, "%lu", i);
+    if (rank_subtree == NULL) {
+      scr_err("%s: Couldn't get RANK subtree for rank = %d @ %s:%d", PROG, i, __FILE__, __LINE__);
+      rc = 1;
       goto out;
     }
 
-    spath* state_file_spath;
-    state_file_spath = spath_from_strf("%s/.scr/scr.dataset.%d/rank_%d.state_file",
+    spath* state_file_spath = spath_from_strf("%s/.scr/scr.dataset.%d/rank_%d.state_file",
         prefix, dataset_id, i);
-    state_file = spath_strdup(state_file_spath);
+    char* state_file = spath_strdup(state_file_spath);
     spath_delete(&state_file_spath);
 
     rc = resume_transfer(state_file);
-    free(state_file);
+    scr_free(&state_file);
     if (rc != 0) {
       break;
     }
   }
 
 out:
-  free(rank2file_path);
+  scr_free(&rank2file_path);
   kvtree_delete(&ranks_tree);
 
   return rc;
@@ -250,8 +244,7 @@ struct arglist {
   int name;       /* dataset name (label) */
   int summary;    /* Generate a summary file for a dataset.  This is useful
                    * when you've manually transferred the dataset files
-                   * outside of SCR, and need to tell SCR that they're complete.
-                   */
+                   * outside of SCR, and need to tell SCR that they're complete. */
   int resume;     /* Resume a previous or ongoing transfer */
 };
 
@@ -412,8 +405,8 @@ int main (int argc, char *argv[])
   /* read in our flush file */
   if (kvtree_read_path(file_path, hash) != KVTREE_SUCCESS) {
     /* failed to read the flush file */
-    scr_err("%s: Failed to read flush file '%s' @ %s:%d", PROG, file_path, __FILE__,
-      __LINE__
+    scr_err("%s: Failed to read flush file '%s' @ %s:%d",
+      PROG, file_path, __FILE__, __LINE__
     );
     goto cleanup;
   }
@@ -560,7 +553,7 @@ int main (int argc, char *argv[])
     }
     rc = write_summary_file(args.dir, hash, args.name, file_path);
     if (rc != 0) {
-      scr_err("Couldn't write summary file, rc = %d\n", rc);
+      scr_err("%s: Couldn't write summary file, rc = %d @ %s:%d", PROG, rc, __FILE__, __LINE__);
       goto cleanup;
     }
   }

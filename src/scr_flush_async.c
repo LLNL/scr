@@ -46,7 +46,7 @@ Asynchronous flush functions
 
 static int scr_axl_start(
   const char* name,
-  char* state_file,
+  const char* state_file,
   int num_files,
   const char** src_filelist,
   const char** dst_filelist,
@@ -270,17 +270,18 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   char* dataset_path_str = scr_flush_dataset_metadir(dataset);
   spath* dataset_path = spath_from_str(dataset_path_str);
   spath_reduce(dataset_path);
-  char* path = spath_strdup(dataset_path);
   scr_free(&dataset_path_str);
 
   /* create dataset directory */
   if (scr_my_rank_world == 0) {
+    char* path = spath_strdup(dataset_path);
     mode_t mode_dir = scr_getmode(1, 1, 1);
     if (scr_mkdir(path, mode_dir) != SCR_SUCCESS) {
       scr_abort(-1, "Failed to create dataset subdirectory %s @ %s:%d",
         path, __FILE__, __LINE__
       );
     }
+    scr_free(&path);
   }
   MPI_Barrier(scr_comm_world);
 
@@ -324,18 +325,14 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   /* TODO: gather list of files to leader of store descriptor,
    * use communicator of leaders for AXL, then bcast result back */
 
-  /* start writing files via AXL */
-  int rc = SCR_SUCCESS;
-  char* state_file = NULL;
-  spath* state_file_spath;
-
-  state_file_spath = spath_from_strf("%s/rank_%d.state_file", path, scr_my_rank_world);
-  state_file = spath_strdup(state_file_spath);
+  /* define path to AXL state file for this rank */
+  spath* state_file_spath = spath_dup(dataset_path);
+  spath_append_strf(state_file_spath, "rank_%d.state_file", scr_my_rank_world);
+  char* state_file = spath_strdup(state_file_spath);
   spath_delete(&state_file_spath);
 
-  /* Free out dataset path */
-  scr_free(&path);
-
+  /* start writing files via AXL */
+  int rc = SCR_SUCCESS;
   if (scr_axl_start(dset_name, state_file, numfiles, (const char**) src_filelist, (const char**) dst_filelist,
     xfer_type, scr_comm_world) != SCR_SUCCESS)
   {
@@ -344,6 +341,8 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
     rc = SCR_FAILURE;
     scr_flush_async_flushed = SCR_FAILURE;
   }
+
+  /* free the path to the state file */
   scr_free(&state_file);
 
   /* free our file list */
