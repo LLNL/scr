@@ -46,6 +46,7 @@ Asynchronous flush functions
 
 static int scr_axl_start(
   const char* name,
+  const char* state_file,
   int num_files,
   const char** src_filelist,
   const char** dst_filelist,
@@ -55,7 +56,7 @@ static int scr_axl_start(
   int rc = SCR_SUCCESS;
 
   /* define a transfer handle */
-  int id = AXL_Create_comm(xfer_type, name, NULL, comm);
+  int id = AXL_Create_comm(xfer_type, name, state_file, comm);
   if (id < 0) {
     scr_err("Failed to create AXL transfer handle @ %s:%d",
       __FILE__, __LINE__
@@ -324,9 +325,18 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   /* TODO: gather list of files to leader of store descriptor,
    * use communicator of leaders for AXL, then bcast result back */
 
+  /* if poststage is active, define path to AXL state file for this rank */
+  char* state_file = NULL;
+  if (scr_flush_poststage) {
+    spath* state_file_spath = spath_dup(dataset_path);
+    spath_append_strf(state_file_spath, "rank_%d.state_file", scr_my_rank_world);
+    state_file = spath_strdup(state_file_spath);
+    spath_delete(&state_file_spath);
+  }
+
   /* start writing files via AXL */
   int rc = SCR_SUCCESS;
-  if (scr_axl_start(dset_name, numfiles, (const char**) src_filelist, (const char**) dst_filelist,
+  if (scr_axl_start(dset_name, state_file, numfiles, (const char**) src_filelist, (const char**) dst_filelist,
     xfer_type, scr_comm_world) != SCR_SUCCESS)
   {
     /* failed to initiate AXL transfer */
@@ -334,6 +344,9 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
     rc = SCR_FAILURE;
     scr_flush_async_flushed = SCR_FAILURE;
   }
+
+  /* free the path to the state file */
+  scr_free(&state_file);
 
   /* free our file list */
   scr_flush_list_free(numfiles, &src_filelist, &dst_filelist);

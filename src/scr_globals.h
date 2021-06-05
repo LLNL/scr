@@ -197,6 +197,8 @@ extern int scr_flush_async_in_progress; /* tracks whether an async flush is curr
 extern int scr_flush_async_dataset_id;  /* tracks the id of the checkpoint being flushed */
 extern double scr_flush_async_bytes;    /* records the total number of bytes to be flushed */
 
+extern int scr_flush_poststage; /* whether to use scr_poststage.sh to finalize transfers */
+
 extern int scr_crc_on_copy;   /* whether to enable crc32 checks during scr_swap_files() */
 extern int scr_crc_on_flush;  /* whether to enable crc32 checks during flush and fetch */
 extern int scr_crc_on_delete; /* whether to enable crc32 checks when deleting checkpoints */

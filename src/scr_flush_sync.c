@@ -59,6 +59,15 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
   }
   MPI_Barrier(scr_comm_world);
 
+  /* if poststage is active, define path to AXL state file for this rank */
+  char* state_file = NULL;
+  if (scr_flush_poststage) {
+    spath* state_file_path = spath_dup(dataset_path);
+    spath_append_strf(state_file_path, "rank_%d.state_file", scr_my_rank_world);
+    state_file = spath_strdup(state_file_path);
+    spath_delete(&state_file_path);
+  }
+
   /* define path for rank2file map */
   spath_append_str(dataset_path, "rank2file");
   const char* rank2file = spath_strdup(dataset_path);
@@ -114,7 +123,7 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
      * use communicator of leaders for AXL, then bcast result back */
 
     /* write files (via AXL) */
-    if (scr_axl(dset_name, numfiles, (const char**) src_filelist, (const char **) dst_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
+    if (scr_axl(dset_name, state_file, numfiles, (const char**) src_filelist, (const char **) dst_filelist, xfer_type, scr_comm_world) != SCR_SUCCESS) {
       success = 0;
     }
   } else {
@@ -130,6 +139,7 @@ static int scr_flush_sync_data(scr_cache_index* cindex, int id, kvtree* file_lis
 
   /* free path and file name */
   scr_free(&rank2file);
+  scr_free(&state_file);
   spath_delete(&dataset_path);
 
   /* free our file list */

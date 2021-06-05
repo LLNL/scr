@@ -17,10 +17,15 @@
 #include "scr_io.h"
 #include "scr_err.h"
 #include "scr_util.h"
+#include "scr_dataset.h"
+#include "scr_cache_index.h"
+#include "scr_flush_sync.h"
+#include "scr_flush_nompi.h"
 
 #include "spath.h"
 #include "kvtree.h"
 #include "kvtree_util.h"
+#include "axl.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +45,174 @@
 #error "globals.h accessed from tools"
 #endif
 
+/* Given a path to a prefix directory, the contents of the flush file,
+ * an id, and the path to the flush_file, generate the summary.scr file and
+ * update flush.scr to show that we're no longer flushing.
+ *
+ * Returns 0 on success.  Returns 1 if there's no
+ * corresponding dataset_id in the flush file. */
+int write_summary_file(
+  char* prefix,
+  kvtree* flush_file,
+  int dataset_id,
+  spath* flush_file_spath)
+{
+  /* get dataset descriptor for summary file */
+  kvtree* flush_key_dataset = kvtree_get_kv_int(flush_file, SCR_FLUSH_KEY_DATASET, dataset_id);
+  kvtree* summary = kvtree_get(flush_key_dataset, SCR_FLUSH_KEY_DSETDESC);
+  if (summary == NULL) {
+    scr_err("%s: No flush file entry for dataset %d @ %s:%d", PROG, dataset_id, __FILE__, __LINE__);
+    return 1; /* No entry for this dataset */
+  }
+
+  /* define path to summary file for this dataset */
+  spath* summary_file_spath = spath_from_strf("%s/.scr/scr.dataset.%d/summary.scr", prefix, dataset_id);
+  char* summary_file = spath_strdup(summary_file_spath);
+  spath_delete(&summary_file_spath);
+
+  /* write summary file out and indicate that dataset is complete */
+  int rc = scr_flush_summary_file(summary, 1, summary_file);
+
+  scr_free(&summary_file);
+
+  /* All done flushing, remove flushing marker from flush file */
+  scr_flush_file_dataset_remove_with_path(dataset_id, flush_file_spath);
+
+  rc = (rc == SCR_SUCCESS) ? 0 : 1;
+  return rc;
+}
+
+/* Given a path to a state_file, resume and finalize all transfers for all
+ * files in the state_file.  Returns 0 on success, 1 on error. */
+int resume_transfer(char* state_file_path)
+{
+  int rc = 0;
+
+  AXL_Init();
+
+  int id = AXL_Create(AXL_XFER_STATE_FILE, "scr", state_file_path);
+  if (id < 0) {
+    scr_err("%s: AXL_Create() = %d @ %s:%d", PROG, id, __FILE__, __LINE__);
+    rc = 1;
+    goto end;
+  }
+
+  int axl_rc = AXL_Resume(id);
+  if (axl_rc != AXL_SUCCESS) {
+    scr_err("%s: AXL_Resume(%d) = %d @ %s:%d", PROG, id, rc, __FILE__, __LINE__);
+    rc = 1;
+    goto end;
+  }
+
+  axl_rc = AXL_Wait(id);
+  if (axl_rc != AXL_SUCCESS) {
+    scr_err("%s: AXL_Wait(%d) = %d @ %s:%d", PROG, id, rc, __FILE__, __LINE__);
+    rc = 1;
+    goto end;
+  }
+
+  axl_rc = AXL_Free(id);
+  if (axl_rc != AXL_SUCCESS) {
+    scr_err("%s: AXL_Free(%d) = %d @ %s:%d", PROG, id, rc, __FILE__, __LINE__);
+    rc = 1;
+    goto end;
+  }
+
+  axl_rc = AXL_Finalize();
+  if (axl_rc != AXL_SUCCESS) {
+    scr_err("%s: AXL_Finalize() = %d @ %s:%d", PROG, rc, __FILE__, __LINE__);
+  }
+
+end:
+  return rc;
+}
+
+/* Resume and wait for any previous transfers to complete, and finalize them.
+ *
+ * This only resumes/waits for the AXL transfers to complete.  It does not
+ * update SCR's flush file nor write the summary file.
+ *
+ * Returns 0 on success, non-zero otherwise. */
+int resume_transfers(char* prefix, int dataset_id)
+{
+  /* define path to top-level rank2file map file */
+  spath* rank2file_path_spath = spath_from_strf("%s/.scr/scr.dataset.%d/rank2file", prefix, dataset_id);
+  char* rank2file_path = spath_strdup(rank2file_path_spath);
+  spath_delete(&rank2file_path_spath);
+
+  /* read the rank2file map file */
+  kvtree* ranks_tree = kvtree_new();
+  int rc = kvtree_read_scatter_single(rank2file_path, ranks_tree);
+  if (rc != KVTREE_SUCCESS) {
+    scr_err("%s: kvtree_read_scatter_single(%s) = %d @ %s:%d",
+      PROG, rank2file_path, rc, __FILE__, __LINE__);
+    return 1;
+  }
+
+  /* assume we'll succeed */
+  rc = 0;
+
+  /*
+   * 'ranks_tree' is a kvtree that looks like:
+   *
+   *    79
+   *      FILE
+   *        ckpt.1/rank_79.ckpt
+   *    73
+   *      FILE
+   *        ckpt.1/rank_73.ckpt
+   *    74
+   *      FILE
+   *        ckpt.1/rank_74.ckpt
+   */
+  unsigned long i;
+  int ranks = kvtree_size(ranks_tree);
+  for (i = 0; i < ranks; i++) {
+   /*
+    * Verify there's a dataset entry for each rank.  Some ranks may not have
+    * a checkpoint, and that's totally valid (like 12 below), but we should
+    * sanity check for at least the existence of an entry.  Note that we
+    * "resume" even those entries without any checkpoints since they will
+    * still have a state_file (with no src/dst files) that  we need to get rid
+    * of.
+    *
+    * 13
+    *   FILE
+    *     timestep.11/rank_13.0.ckpt
+    * 12
+    * 15
+    *   FILE
+    *     timestep.11/rank_15.0.ckpt
+    *     timestep.11/rank_15.1.ckpt
+    *     timestep.11/rank_15.2.ckpt
+    *...
+    */
+    kvtree* rank_subtree = kvtree_getf(ranks_tree, "%lu", i);
+    if (rank_subtree == NULL) {
+      scr_err("%s: Couldn't get RANK subtree for rank = %d @ %s:%d", PROG, i, __FILE__, __LINE__);
+      rc = 1;
+      goto out;
+    }
+
+    spath* state_file_spath = spath_from_strf("%s/.scr/scr.dataset.%d/rank_%d.state_file",
+        prefix, dataset_id, i);
+    char* state_file = spath_strdup(state_file_spath);
+    spath_delete(&state_file_spath);
+
+    rc = resume_transfer(state_file);
+    scr_free(&state_file);
+    if (rc != 0) {
+      break;
+    }
+  }
+
+out:
+  scr_free(&rank2file_path);
+  kvtree_delete(&ranks_tree);
+
+  return rc;
+}
+
 int print_usage()
 {
   printf("\n");
@@ -54,6 +227,8 @@ int print_usage()
   printf("  --need-flush <id>  Exit with 0 if checkpoint needs to be flushed, 1 otherwise\n");
   printf("  --location <id>    Print location of specified id\n");
   printf("  --name <id>        Print name of specified id\n");
+  printf("  --resume -r        Resume/finalize a previous or ongoing transfer\n");
+  printf("  --summary -S       Manually mark a transfer as complete and generate summary.scr\n");
   printf("\n");
   exit(1);
 }
@@ -67,6 +242,10 @@ struct arglist {
   int latest;     /* return the id of the latest (most recent) dataset in cache */
   int location;   /* return the location of dataset with specified id in cache */
   int name;       /* dataset name (label) */
+  int summary;    /* Generate a summary file for a dataset.  This is useful
+                   * when you've manually transferred the dataset files
+                   * outside of SCR, and need to tell SCR that they're complete. */
+  int resume;     /* Resume a previous or ongoing transfer */
 };
 
 int process_args(int argc, char **argv, struct arglist* args)
@@ -85,6 +264,8 @@ int process_args(int argc, char **argv, struct arglist* args)
     {"location",    required_argument, NULL, 'L'},
     {"name",        required_argument, NULL, 's'},
     {"help",        no_argument,       NULL, 'h'},
+    {"summary",     no_argument,       NULL, 'S'},
+    {"resume",      no_argument,       NULL, 'r'},
     {0, 0, 0, 0}
   };
 
@@ -97,13 +278,15 @@ int process_args(int argc, char **argv, struct arglist* args)
   args->latest     = 0;
   args->location   = -1;
   args->name       = -1;
+  args->summary    = 0;
+  args->resume     = 0;
 
   /* loop through and process all options */
   int c;
   do {
     /* read in our next option */
     int option_index = 0;
-    c = getopt_long(argc, argv, "d:on:lL:h", long_options, &option_index);
+    c = getopt_long(argc, argv, "d:on:lL:hrSs:", long_options, &option_index);
     switch (c) {
       case 'd':
         /* directory containing flush file */
@@ -146,6 +329,10 @@ int process_args(int argc, char **argv, struct arglist* args)
         args->location = tmp_dset;
         ++opCount;
         break;
+      case 'r':
+        args->resume = 1;
+        ++opCount;
+        break;
       case 's':
         /* dataset name */
         tmp_dset = atoi(optarg);
@@ -153,6 +340,10 @@ int process_args(int argc, char **argv, struct arglist* args)
           return 0;
         }
         args->name = tmp_dset;
+        ++opCount;
+        break;
+      case 'S':
+        args->summary = 1;
         ++opCount;
         break;
       case 'h':
@@ -179,7 +370,7 @@ int process_args(int argc, char **argv, struct arglist* args)
     );
     return 0;
   }
-  if (opCount > 1){
+  if (opCount > 2){
     scr_err("%s: Must specify only a single operation per invocation, e.g. not both --location and --needflush'",
       PROG
     );
@@ -204,14 +395,6 @@ int main (int argc, char *argv[])
   spath_append_str(file_path, ".scr");
   spath_append_str(file_path, "flush.scr");
   spath_reduce(file_path);
-  char* file = spath_strdup(file_path);
-  spath_delete(&file_path);
-  if (file == NULL) {
-    scr_err("%s: Failed to allocate storage to store nodes file name @ %s:%d",
-      PROG, __FILE__, __LINE__
-    );
-    return 1;
-  }
 
   /* assume we'll fail */
   int rc = 1;
@@ -220,10 +403,10 @@ int main (int argc, char *argv[])
   kvtree* hash = kvtree_new();
 
   /* read in our flush file */
-  if (kvtree_read_file(file, hash) != KVTREE_SUCCESS) {
+  if (kvtree_read_path(file_path, hash) != KVTREE_SUCCESS) {
     /* failed to read the flush file */
-    scr_err("%s: Failed to read flush file '%s' @ %s:%d", PROG, file, __FILE__,
-      __LINE__
+    scr_err("%s: Failed to read flush file '%s' @ %s:%d",
+      PROG, file_path, __FILE__, __LINE__
     );
     goto cleanup;
   }
@@ -351,6 +534,30 @@ int main (int argc, char *argv[])
     goto cleanup;
   }
 
+  if (args.resume) {
+     if (args.name == -1) {
+      scr_err("-r requires you to specify dataset ID with '-s <id>'.");
+      goto cleanup;
+    }
+
+    rc = resume_transfers(args.dir, args.name);
+    if (rc != 0) {
+      goto cleanup;
+    }
+  }
+
+  if (args.summary) {
+    if (args.name == -1) {
+      scr_err("-S requires you to specify dataset ID with '-s <id>'.");
+      goto cleanup;
+    }
+    rc = write_summary_file(args.dir, hash, args.name, file_path);
+    if (rc != 0) {
+      scr_err("%s: Couldn't write summary file, rc = %d @ %s:%d", PROG, rc, __FILE__, __LINE__);
+      goto cleanup;
+    }
+  }
+
   /* check whether we should report name for dataset */
   if (args.name != -1) {
     /* first check whether we have the requested dataset */
@@ -395,9 +602,6 @@ int main (int argc, char *argv[])
 cleanup:
   /* delete the hash holding the flush file data */
   kvtree_delete(&hash);
-
-  /* free off our file name storage */
-  scr_free(&file);
 
   /* return appropriate exit code */
   return rc;

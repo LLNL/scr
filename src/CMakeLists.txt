@@ -22,6 +22,7 @@ LIST(APPEND cliscr_noMPI_srcs
 	scr_env.c
 	scr_err_serial.c
 	scr_filemap.c
+	scr_flush_nompi.c
 	scr_halt.c
 	scr_index_api.c
 	scr_io.c
@@ -49,6 +50,7 @@ LIST(APPEND libscr_srcs
 	scr_filemap.c
 	scr_flush.c
 	scr_flush_file_mpi.c
+	scr_flush_nompi.c
 	scr_flush_sync.c
 	scr_flush_async.c
 	scr_globals.c

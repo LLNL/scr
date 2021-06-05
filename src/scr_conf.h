@@ -222,6 +222,11 @@
 #define SCR_FLUSH_ASYNC (0)
 #endif
 
+/* Finalize async transfers in scr_poststage rather than in SCR_Finalize() */
+#ifndef SCR_FLUSH_POSTSTAGE
+#define SCR_FLUSH_POSTSTAGE (0)
+#endif
+
 /* aggregrate bandwidth limit to impose during asynchronous flushes */
 #ifndef SCR_FLUSH_ASYNC_BW
 #define SCR_FLUSH_ASYNC_BW (200*1024*1024)

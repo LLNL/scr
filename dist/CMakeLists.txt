@@ -226,6 +226,7 @@ LIST(APPEND cliscr_noMPI_srcs
     scr/src/scr_rebuild_xor.c
     scr/src/scr_rebuild_partner.c
     scr/src/scr_rebuild_rs.c
+    scr/src/scr_flush_nompi.c
 )
 
 LIST(APPEND libscr_srcs
@@ -260,6 +261,7 @@ LIST(APPEND libscr_srcs
     scr/src/scr_util.c
     scr/src/scr_util_mpi.c
     scr/src/axl_mpi.c
+    scr/src/scr_flush_nompi.c
 )
 
 ADD_LIBRARY(scr_o OBJECT
@@ -331,6 +333,7 @@ ADD_LIBRARY(scr_base STATIC
     ${libspath_noMPI_srcs}
     ${redset_noMPI_srcs}
     ${cliscr_noMPI_srcs}
+    ${libaxl_srcs}
 )
 TARGET_LINK_LIBRARIES(scr_base ${SCR_EXTERNAL_SERIAL_LIBS})
 

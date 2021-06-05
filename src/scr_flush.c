@@ -15,6 +15,7 @@
 #include "kvtree.h"
 #include "kvtree_util.h"
 #include "dtcmp.h"
+#include "scr_flush_nompi.h"
 
 /*
 =========================================
@@ -324,44 +325,7 @@ static int scr_flush_summary(
     spath_append_str(summary_path, "summary.scr");
     char* summary_file = spath_strdup(summary_path);
 
-    /* create file and write header */
-    mode_t mode = scr_getmode(1, 1, 0);
-    int fd = scr_open(summary_file, O_WRONLY | O_CREAT | O_TRUNC, mode);
-    if (fd < 0) {
-      scr_err("Opening hash file for write: %s @ %s:%d",
-        summary_file, __FILE__, __LINE__
-      );
-      rc = SCR_FAILURE;
-    }
-
-    /* write data to file */
-    if (fd >= 0) {
-      /* create an empty hash to build our summary info */
-      kvtree* summary_hash = kvtree_new();
-
-      /* write the summary file version number */
-      kvtree_util_set_int(summary_hash, SCR_SUMMARY_KEY_VERSION, SCR_SUMMARY_FILE_VERSION_6);
-
-      /* mark whether the flush is complete in the summary file */
-      kvtree_util_set_int(summary_hash, SCR_SUMMARY_6_KEY_COMPLETE, complete);
-
-      /* write the dataset descriptor */
-      kvtree* dataset_hash = kvtree_new();
-      kvtree_merge(dataset_hash, dataset);
-      kvtree_set(summary_hash, SCR_SUMMARY_6_KEY_DATASET, dataset_hash);
-
-      /* write the hash to a file */
-      ssize_t write_rc = kvtree_write_fd(summary_file, fd, summary_hash);
-      if (write_rc < 0) {
-        rc = SCR_FAILURE;
-      }
-
-      /* free the hash object */
-      kvtree_delete(&summary_hash);
-
-      /* close the file */
-      scr_close(summary_file, fd);
-    }
+    rc = scr_flush_summary_file(dataset, complete, summary_file);
 
     /* free the path and string of the summary file */
     scr_free(&summary_file);
