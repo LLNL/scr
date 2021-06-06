@@ -188,9 +188,9 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
     time_start = MPI_Wtime();
   }
 
-  /* if we are flushing something asynchronously, wait on it */
-  if (scr_flush_async_in_progress) {
-    scr_flush_async_wait(cindex);
+  /* if we are flushing anything asynchronously, wait on it */
+  if (scr_flush_async_in_progress()) {
+    scr_flush_async_waitall(cindex);
 
     /* the flush we just waited on could be the requested dataset,
      * so perhaps we're already done */
@@ -265,7 +265,7 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
     /* log messages about flush */
     if (flushed == SCR_SUCCESS) {
       /* the flush worked, print a debug message */
-      scr_dbg(1, "scr_flush_sync: Flush of dataset succeeded %d `%s'", id, dset_name);
+      scr_dbg(1, "scr_flush_sync: Flush succeeded for dataset %d `%s'", id, dset_name);
 
       /* log details of flush */
       if (scr_log_enable) {
@@ -273,7 +273,7 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
       }
     } else {
       /* the flush failed, this is more serious so print an error message */
-      scr_err("scr_flush_sync: Flush of dataset failed %d `%s'", id, dset_name);
+      scr_err("scr_flush_sync: Flush failed for dataset %d `%s'", id, dset_name);
 
       /* log details of flush */
       if (scr_log_enable) {
