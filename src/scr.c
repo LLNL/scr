@@ -134,6 +134,105 @@ static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_
   return d;
 }
 
+/* returns 1 if dataset id can be finalized in poststage, 0 otherwise */
+static int scr_flush_can_poststage(int id)
+{
+  int poststage = 0;
+
+  /* currently only BBAPI can support poststage */
+  const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, id);
+  const char* type = storedesc->xfer;
+  if (strcmp(type, "BBAPI") == 0) {
+    poststage = 1;
+  }
+
+  return poststage;
+}
+
+static int scr_flush_finalize(void)
+{
+  /* When using poststage, we can finalize flushes
+   * after the job completes rather than waiting on them here. */
+  int poststage = scr_flush_poststage;
+
+  /* check each outstanding async flush, if any */
+  if (poststage && scr_flush_async_in_progress()) {
+    /* Got at least one outstanding async flush.
+     * Check whether all async flushes can be handled in poststage.
+     * Iterate over all dataset ids still being flushed.
+     * If any can not be completed in poststage, disable all poststage. */
+
+    /* get ordered list of ids being flushed */
+    int flush_num = 0;
+    int* flush_ids = NULL;
+    scr_flush_async_get_list(scr_cindex, &flush_num, &flush_ids);
+
+    /* check that all flushes are using something we can complete in poststage */
+    int i;
+    for (i = 0; i < flush_num; i++) {
+      int id = flush_ids[i];
+      if (! scr_flush_can_poststage(id)) {
+        poststage = 0;
+      }
+    }
+
+    /* free list of flush ids */
+    scr_free(&flush_ids);
+  }
+
+  /* check latest checkpoint if it still needs to be flushed */
+  if (poststage && scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
+    /* latest checkpoint needs to be flushed,
+     * check whether we can also handle this checkpoint with poststage */
+    if (scr_flush_can_poststage(scr_ckpt_dset_id)) {
+      /* can finalize this flush in poststage */
+      if (! scr_flush_file_is_flushing(scr_ckpt_dset_id)) {
+        /* Initiate the flush now, but finish in the poststage.
+         * Start as an async flush, even if we're otherwise using sync flush. */
+        int flush_rc = scr_flush_async_start(scr_cindex, scr_ckpt_dset_id);
+        if (flush_rc != SCR_SUCCESS) {
+          scr_err("Flush of dataset %d failed @ %s:%d",
+            scr_ckpt_dset_id, __FILE__, __LINE__
+          );
+        }
+      }
+    } else {
+      /* cannot use poststage, so disable */
+      poststage = 0;
+    }
+  }
+
+  /* if we're not using postage, wait on all flushes now */
+  if (! poststage) {
+    /* wait on all async flushes to complete */
+    if (scr_flush_async_in_progress()) {
+      /* if any flush cannot use poststage, wait on them all to finish now */
+      int flush_rc = scr_flush_async_waitall(scr_cindex);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_err("Flush of datasets failed @ %s:%d",
+          __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* Flush checkpoint synchronously (wait for it to finish now). */
+    if (scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
+      int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_err("Flush of dataset %d failed @ %s:%d",
+          scr_ckpt_dset_id, __FILE__, __LINE__
+        );
+      }
+    }
+  }
+
+  if (scr_flush_async) {
+    scr_flush_async_finalize();
+  }
+
+  return SCR_SUCCESS;
+}
+
 /*
 =========================================
 Halt logic
@@ -281,57 +380,8 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
   /* halt job if we need to, and flush latest checkpoint if needed */
   if (need_to_halt && halt_exit) {
-    /* handle any async flush */
-    if (scr_flush_async_in_progress) {
-      /* there's an async flush ongoing, see which dataset is being flushed */
-      int flush_rc;
-      if (scr_flush_async_dataset_id == scr_dataset_id) {
-#ifdef HAVE_LIBCPPR
-        /* if we have CPPR, async flush is faster than sync flush, so let it finish */
-        flush_rc = scr_flush_async_wait(scr_cindex);
-#else
-        /* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
-        /* else wait */
-        /* get the TYPE of the store for checkpoint */
-        /* neither strdup nor free */
-        const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, scr_dataset_id);
-        const char* type = storedesc->xfer;
-        if (strcmp(type, "DATAWARP") == 0) {
-          /* wait for datawarp flushes to finish */
-          flush_rc = scr_flush_async_wait(scr_cindex);
-        } else {
-          /* kill the async flush, we'll get this with a sync flush instead */
-          scr_flush_async_stop();
-        }
-#endif
-      } else {
-        /* the async flush is flushing a different dataset, so wait for it */
-        flush_rc = scr_flush_async_wait(scr_cindex);
-      }
-      if (flush_rc != SCR_SUCCESS) {
-        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-          scr_flush_async_dataset_id, __FILE__, __LINE__
-        );
-      }
-    }
-
-    /* flush files if needed */
-    if (scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
-      if (scr_my_rank_world == 0) {
-        scr_dbg(2, "sync flush due to need to halt @ %s:%d", __FILE__, __LINE__);
-      }
-      int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
-      if (flush_rc != SCR_SUCCESS) {
-        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-          scr_ckpt_dset_id, __FILE__, __LINE__
-        );
-      }
-    }
-
-    /* give our async flush method a chance to shut down */
-    if (scr_flush_async) {
-      scr_flush_async_finalize();
-    }
+    /* flush any pending datasets and shut down flush methods */
+    scr_flush_finalize();
 
     /* sync up tasks before exiting (don't want tasks to exit so early that
      * runtime kills others after timeout) */
@@ -413,29 +463,10 @@ static int scr_check_flush(scr_cache_index* map)
   if (need_flush) {
     /* need to flush, determine whether to use async or sync flush */
     if (scr_flush_async) {
-      if (scr_my_rank_world == 0) {
-        scr_dbg(2, "async flush attempt @ %s:%d", __FILE__, __LINE__);
-      }
-
-      /* check that we don't start an async flush if one is already in progress */
-      if (scr_flush_async_in_progress) {
-        /* we need to flush the current dataset, however, another flush is ongoing,
-         * so wait for this other flush to complete before starting the next one */
-        int flush_rc = scr_flush_async_wait(scr_cindex);
-        if (flush_rc != SCR_SUCCESS) {
-          scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-            scr_flush_async_dataset_id, __FILE__, __LINE__
-          );
-        }
-      }
-
       /* start an async flush on the current dataset id */
       scr_flush_async_start(scr_cindex, scr_dataset_id);
     } else {
       /* synchronously flush the current dataset */
-      if (scr_my_rank_world == 0) {
-        scr_dbg(2, "sync flush attempt @ %s:%d", __FILE__, __LINE__);
-      }
       int flush_rc = scr_flush_sync(scr_cindex, scr_dataset_id);
       if (flush_rc != SCR_SUCCESS) {
         scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
@@ -1276,18 +1307,38 @@ static int scr_start_output(const char* name, int flags)
     }
   }
 
-  /* if we still don't have room and we're flushing, the dataset we need to delete
-   * must be flushing, so wait for it to finish */
+  /* if we still don't have room and we're flushing,
+   * the dataset we need to delete must be flushing, so wait for it to finish */
   if (nckpts_base >= size && flushing != -1) {
-    /* TODO: we could increase the transfer bandwidth to reduce our wait time */
+    /* in case there are ongoing flush operations from other cache
+     * base locations, finalize datasets in order up to our target id
+     * so that we don't mess up our current pointer */
 
-    /* wait for this dataset to complete its flush */
-    int flush_rc = scr_flush_async_wait(scr_cindex);
-    if (flush_rc != SCR_SUCCESS) {
-      scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-        scr_flush_async_dataset_id, __FILE__, __LINE__
-      );
+    /* get full list of ids for ongoing flushes */
+    int flush_num = 0;
+    int* flush_ids = NULL;
+    scr_flush_async_get_list(scr_cindex, &flush_num, &flush_ids);
+
+    /* wait for each dataset up to and including the one we need
+     * to complete */
+    for (i = 0; i < flush_num; i++) {
+      /* wait for this dataset to complete its flush */
+      int id = flush_ids[i];
+      int flush_rc = scr_flush_async_wait(scr_cindex, id);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+          id, __FILE__, __LINE__
+        );
+      }
+
+      /* can break once the target id is done */
+      if (id == flushing) {
+        break;
+      }
     }
+
+    /* free list of flush ids */
+    scr_free(&flush_ids);
 
     /* now dataset is no longer flushing, we can delete it and continue on */
     scr_cache_delete(scr_cindex, flushing);
@@ -1673,22 +1724,9 @@ static int scr_complete_output(int valid)
   }
 
   /* if we have an async flush ongoing, take this chance to check whether it's completed */
-  if (scr_flush_async_in_progress) {
+  if (scr_flush_async_in_progress()) {
     /* got an outstanding async flush, let's check it */
-    if (scr_flush_async_test(scr_cindex, scr_flush_async_dataset_id) == SCR_SUCCESS) {
-      /* async flush has finished, go ahead and complete it */
-      int flush_rc = scr_flush_async_complete(scr_cindex, scr_flush_async_dataset_id);
-      if (flush_rc != SCR_SUCCESS) {
-        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-          scr_flush_async_dataset_id, __FILE__, __LINE__
-        );
-      }
-    } else {
-      /* not done yet, just print a progress message to the screen */
-      if (scr_my_rank_world == 0) {
-        scr_dbg(1, "Flush of dataset %d is ongoing", scr_flush_async_dataset_id);
-      }
-    }
+    scr_flush_async_progall(scr_cindex);
   }
 
   /* done with dataset */
@@ -2337,86 +2375,8 @@ int SCR_Finalize()
     scr_halt(SCR_FINALIZE_CALLED);
   }
 
-  /* When using poststage, we may finalize flushes after the job completes
-   * rather than waiting on it here.  In that case, we'll set this flag to 1 */
-  int poststage = 0;
-
-  /* handle any async flush */
-  if (scr_flush_async_in_progress) {
-    /* there's an async flush ongoing, see which dataset is being flushed */
-    int flush_rc;
-    if (scr_flush_async_dataset_id == scr_dataset_id) {
-#ifdef HAVE_LIBCPPR
-      /* if we have CPPR, async flush is faster than sync flush, so let it finish */
-      flush_rc = scr_flush_async_wait(scr_cindex);
-#else
-      /* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
-      /* else wait */
-      /* get the TYPE of the store for checkpoint */
-      /* neither strdup nor free */
-      const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, scr_dataset_id);
-      const char* type = storedesc->xfer;
-      if (strcmp(type, "DATAWARP") == 0) {
-        /* wait for datawarp flushes to finish */
-        flush_rc = scr_flush_async_wait(scr_cindex);
-      } else if (strcmp(type, "BBAPI") == 0 && scr_flush_poststage) {
-        /* Special case: We're using BBAPI poststage, meaning we will finalize
-         * the flush after the job ends using the scr_poststage script.
-         *
-         * So don't wait for the flush to finish here - it's going to continue
-         * transferring "in the background" and will be dealt with using the
-         * scr_poststage script later on. */
-        poststage = 1; /* skip finalizing this dataset */
-        flush_rc = SCR_SUCCESS;
-      } else {
-        /* kill the async flush, we'll get this with a sync flush instead */
-        scr_flush_async_stop();
-      }
-#endif
-    } else {
-      /* the async flush is flushing a different checkpoint, so wait for it */
-      flush_rc = scr_flush_async_wait(scr_cindex);
-    }
-    if (flush_rc != SCR_SUCCESS) {
-      scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-        scr_flush_async_dataset_id, __FILE__, __LINE__
-      );
-    }
-  }
-
-  /* flush checkpoint set if we need to */
-  if (scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
-    /* have a checkpoint dataset that needs to be flushed */
-    if (scr_my_rank_world == 0) {
-      scr_dbg(2, "Begin flushing checkpoints that haven't started @ %s:%d", __FILE__, __LINE__);
-    }
-
-    int flush_rc;
-    if (poststage) {
-      /* we'll finalize this flush in poststage */
-      if (scr_flush_file_is_flushing(scr_ckpt_dset_id)) {
-        /* checkpoint is already flushing, so nothing else to do */
-        flush_rc = SCR_SUCCESS;
-      } else {
-        /* Initiate the flush now, but finish in the poststage.
-         * Start as an async flush, even if we're otherwise using sync flush. */
-        flush_rc = scr_flush_async_start(scr_cindex, scr_ckpt_dset_id);
-      }
-    } else {
-      /* Flush checkpoint synchronously (wait for it to finish now). */
-      flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
-    }
-
-    if (flush_rc != SCR_SUCCESS) {
-      scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-          scr_ckpt_dset_id, __FILE__, __LINE__
-          );
-    }
-  }
-
-  if(scr_flush_async){
-    scr_flush_async_finalize();
-  }
+  /* flush any pending datasets and shut down flush methods */
+  scr_flush_finalize();
 
   /* free off the memory allocated for our descriptors */
   scr_reddescs_free();
