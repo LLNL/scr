@@ -309,8 +309,11 @@ int scr_storedescs_index_from_child_path(const char* path)
     return index;
   }
 
-  /* search through the scr_storedescs looking for a match */
+  /* search through the scr_storedescs looking for a match,
+   * match on the longest path we can find, in case we have
+   * a situation like "/dev/shm", and "/dev/shm/dir1" */
   int i;
+  int maxlen = 0;
   for (i = 0; i < scr_nstoredescs; i++) {
     /* get length of path for this descriptor */
     int pathlen = strlen(scr_storedescs[i].name);
@@ -319,9 +322,12 @@ int scr_storedescs_index_from_child_path(const char* path)
     if (scr_storedescs[i].enabled &&
         strncmp(path, scr_storedescs[i].name, pathlen) == 0)
     {
-      /* found a match, record its index, and break */
-      index = i;
-      break;
+      /* found a match, record its index,
+       * keep searching in case we find a longer (better) match */
+      if (maxlen < pathlen) {
+        index = i;
+        maxlen = pathlen;
+      }
     }
   }
 
