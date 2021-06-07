@@ -10,6 +10,7 @@
 # rather than having it duplicated over a number of different
 # scripts
 
+import scr_const
 from scr_param import SCR_Param
 
 def print_usage(prog):
@@ -27,7 +28,7 @@ def scr_list_dir(args,scr_env=None):
   param = SCR_Param()
   # TODO: read cache directory from config file
   prog = "scr_list_dir"
-  bindir = "@X_BINDIR@"
+  bindir = scr_const.X_BINDIR
 
   # read in command line arguments
   conf = {}
@@ -105,5 +106,5 @@ def scr_list_dir(args,scr_env=None):
   dirs = ' '.join(dirs)
   return dirs
 
-if __name__ == '__main__':
-  scr_list_dir(['control'],SCR_Env('SLURM'))
+#if __name__ == '__main__':
+#  scr_list_dir(['control'],SCR_Env('SLURM'))

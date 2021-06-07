@@ -2,15 +2,9 @@ Python equivalents of perl/bash scripts in ../{common,SLURM,LSF}
 
 (Initial / tentative stage)
 
-Leaving defined vars, e.g., '@X_LIBDIR@', as they are where they appear for now.
-(Including these in strings as if they were valid text)
-The sample compile.py would go through python files and replace occurrences of these vars.
+scr_common.py can contain definitions for shorter common methods
+
+can put constants (e.g., @X_LIBDIR@) in scr_const.py
 
 Beginning by looking at SLURM+LSF
 
-Some external execs should be replaced by calls to Python methods
-The scr_run currently looks much better in bash.
-
-Classes / collecting values+methods will come as scripts more complete
-
-Verbose tracing function, and program exec function could be made common

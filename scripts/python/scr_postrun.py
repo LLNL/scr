@@ -5,9 +5,10 @@
 # Run this script after the final run in a job allocation
 # to scavenge files from cache to parallel file system.
 
+import scr_const
 from datetime import datetime
-import scr_common
-
+from scr_common import tracefunction
+from scr_prefix import scr_prefix
 
 def print_usage(prog):
   print('Usage: '+prog+' [-p prefix_dir]')
@@ -43,19 +44,19 @@ def scr_postrun(argv):
   verbose=''
   val = os.environ.get('SCR_DEBUG')
   if val is not None and int(val)>0:
-    sys.settrace(scr_common.tracefunction)
+    sys.settrace(tracefunction)
     verbose='--verbose'
 
   # record the start time for timing purposes
   start_time=datetime.now()
   start_secs=start_time.time().second
 
-  bindir='@X_BINDIR@'
+  bindir=scr_const.X_BINDIR
 
   prog='scr_postrun'
 
   # pass prefix via command line
-  pardir=scr_common.scr_prefix()
+  pardir=scr_prefix()
   return
 '''
 {}{}{}

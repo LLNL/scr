@@ -3,16 +3,15 @@
 #scr_test_runtime.py
 
 import subprocess, sys
-
-bindir = "@X_BINDIR@"
-prog = "scr_test_runtime"
+import scr_const
 
 # Checks for pdsh and dshbak
 # returns 0 if OK, returns 1 if a command not found
 def scr_test_runtime():
-  pdsh = "@PDSH_EXE@"
-  dshbak = "@DSHBAK_EXE@"
-  #pdsh = 'pdsh'
+  bindir = scr_const.X_BINDIR
+  prog = 'scr_test_runtime'
+  pdsh = scr_const.PDSH_EXE
+  dshbak = scr_const.DSHBAK_EXE
   # assume we won't find any problem
   rc = 0
 

@@ -5,6 +5,8 @@
 # This script uses the scancel command to kill the job step with the 
 # job step id supplied on the command line
 
+import scr_const
+
 def print_usage(prog):
   print('')
   print('  Usage:  $prog -j <jobstepid>')
@@ -14,7 +16,7 @@ def print_usage(prog):
 
 def scr_kill_jobstep(argv):
   prog = 'scr_kill_jobstep'
-  bindir = '@X_BINDIR@'
+  bindir = scr_const.X_BINDIR
 
   killCmd = 'scancel'
 

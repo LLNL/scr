@@ -7,9 +7,10 @@
 # activity has occurred since the last time it checked. If too much time
 # passes without activity, it kills the job
 
-import time, scr_common
+import time, scr_const
 from datetime import datetime
 from scr_param import SCR_Param
+from scr_kill_jobstep import scr_kill_jobstep
 
 def print_usage(prog):
   print('')
@@ -17,7 +18,7 @@ def print_usage(prog):
   print('')
 
 def scr_watchdog(argv):
-  bindir = '@X_BINDIR@'
+  bindir = scr_const.X_BINDIR
   prog = 'scr_watchdog'
   scr_flush_file = 'scr_flush_file'
 
@@ -118,5 +119,5 @@ def scr_watchdog(argv):
       timeToSleep = int(timeout)
 
   print('Killing simulation using '+killCmd)
-  scr_common.scr_kill_jobstep(killCmd)
+  scr_kill_jobstep(killCmd)
   return 0

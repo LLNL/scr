@@ -3,10 +3,10 @@
 # scr_param.py
 # class SCR Param
 
-import os, re
-import scr_common
+import os, re, scr_const
+from scr_prefix import scr_prefix
 
-sysconf = "@SCR_CONFIG_FILE@"
+sysconf = scr_const.SCR_CONFIG_FILE
 
 class SCR_Param():
   def __init__(self):
@@ -18,7 +18,7 @@ class SCR_Param():
     self.appconf = {}
     # get current working dir
     # use value in $SCR_PREFIX if set
-    prefix = scr_common.scr_prefix()
+    prefix = scr_prefix()
     # define user config file
     # use SCR_CONF_FILE if set
     usrfile = os.environ.get('SCR_CONF_FILE')
@@ -38,11 +38,11 @@ class SCR_Param():
     if os.path.isfile(sysconf) and os.access(sysconf,'R_OK'):
       self.sysconf = self.read_config_file(sysconf)
     # set our compile time constants
-    self.compile["CNTLDIR"] = "@SCR_CNTL_BASE@"
-    self.compile["CACHEDIR"] = "@SCR_CACHE_BASE@"
-    self.compile["SCR_CNTL_BASE"] = "@SCR_CNTL_BASE@"
-    self.compile["SCR_CACHE_BASE"] = "@SCR_CACHE_BASE@"
-    self.compile["SCR_CACHE_SIZE"] = "1"
+    self.compile["CNTLDIR"] = scr_const.SCR_CNTL_BASE
+    self.compile["CACHEDIR"] = scr_const.SCR_CACHE_BASE
+    self.compile["SCR_CNTL_BASE"] = scr_const.SCR_CNTL_BASE
+    self.compile["SCR_CACHE_BASE"] = scr_const.SCR_CACHE_BASE
+    self.compile["SCR_CACHE_SIZE"] = scr_const.SCR_CACHE_SIZE
     self.cache_base = self.get('SCR_CACHE_BASE')
     self.cache_size = self.get('SCR_CACHE_SIZE')
     if 'CACHE' not in self.usrconf:

@@ -1,24 +1,24 @@
 #! /usr/bin/env python
 
 from datetime import datetime
-import os, signal, sys, time
-import scr_common
+import os, signal, sys, time, scr_const
+from scr_common import tracefunction
+from scr_test_runtime import scr_test_runtime
+from scr_list_dir import scr_list_dir
+from scr_prerun import scr_prerun
+from scr_get_jobstep_id import scr_get_jobstep_id
+from scr_watchdog import scr_watchdog
+from scr_list_down_nodes import scr_list_down_nodes
+from scr_postrun import scr_postrun
 from multiprocessing import Process
 from scr_env import SCR_Env
 from scr_param import SCR_Param
 
-### This is the compile-time constants ###
-### this should happen somewhere else ###
-import compileconsts
-compileconsts.compileconsts(vals)
-
-### This is common to several files ###
-
 launcher='srun'
 prog='scr_'+launcher
 
-libdir='@X_LIBDIR@'
-bindir='@X_BINDIR@'
+libdir=scr_const.X_LIBDIR
+bindir=scr_const.X_BINDIR
 
 def printusage():
   print('USAGE:')
@@ -90,14 +90,14 @@ if val is not None and val=='0':
 # turn on verbosity
 val = os.environ.get('SCR_DEBUG')
 if val is not None and int(val)>0:
-  sys.settrace(scr_common.tracefunction)
+  sys.settrace(tracefunction)
 
 # make a record of start time
 timestamp=datetime.now()
 print(prog+': Started: '+str(timestamp))
 
 # check that we have runtime dependencies
-if scr_common.scr_test_runtime()!=0:
+if scr_test_runtime()!=0:
   print(prog+': exit code: 1')
   sys.exit(1)
 
@@ -126,7 +126,7 @@ if use_scr_watchdog is None or use_scr_watchdog!='1':
   use_scr_watchdog='0'
 
 # get the control directory
-cntldir = scr_common.scr_list_dir('control',src_env)
+cntldir = scr_list_dir('control',src_env)
 if type(cntldir) is not str:
   print(prog+': ERROR: Invalid control directory '+str(cntldir)+'.')
   sys.exit(1)
@@ -141,7 +141,7 @@ out,err = runproc.communicate() # we capture out/err, just ignore it
 timestamp=datetime.now()
 print(prog+': prerun: '+str(timestamp))
 
-if scr_common.scr_prerun(prefix)!=0:
+if scr_prerun(prefix)!=0:
   print(prog+': ERROR: Command failed: scr_prerun -p '+prefix)
   sys.exit(1)
 
@@ -304,10 +304,10 @@ while True:
     #srun_pid=$!;
     time.sleep(10)
     #sleep 10; # sleep a bit to wait for the job to show up in squeue
-    jobstepid = scr_common.scr_get_jobstep_id(scr_env,srun_pid)
+    jobstepid = scr_get_jobstep_id(scr_env,srun_pid)
     # then start the watchdog  if we got a valid job step id
     if jobstepid!='' and jobstepid!='-1':
-      watchdog = Process(target=scr_common.scr_watchdog,args=('--dir',prefix,'--jobStepId',jobstepid))
+      watchdog = Process(target=scr_watchdog,args=('--dir',prefix,'--jobStepId',jobstepid))
       watchdog.start()
       print(prog+': Started watchdog process with PID '+str(watchdog.pid)+'.')
     else:
@@ -318,7 +318,7 @@ while True:
   run_secs=end_secs - start_secs
 
   # check for and log any down nodes
-  scr_common.scr_list_down_nodes([keep_down,'--log','--reason','--secs',str(run_secs.seconds)],scr_env)
+  scr_list_down_nodes([keep_down,'--log','--reason','--secs',str(run_secs.seconds)],scr_env)
   # log stats on the latest run attempt
   argv=[bindir+'/scr_log_event','-i',jobid,'-p',prefix,'-T','RUN_END','-N','run='+str(attempts),'-S',end_secs,'-L',str(run_secs.seconds)]
   runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
@@ -361,7 +361,7 @@ timestamp=datetime.now()
 print(prog+': postrun: '+str(timestamp))
 
 # scavenge files from cache to parallel file system
-if scr_common.scr_postrun(['-p',prefix]) != 0:
+if scr_postrun(['-p',prefix]) != 0:
   print(prog+': ERROR: Command failed: scr_postrun -p '+prefix)
 
 # kill the watchdog process if it is running

@@ -2,9 +2,10 @@
 
 # SCR Pre Run
 
-import os, sys, subprocess
+import os, sys, subprocess, scr_const
 from datetime import datetime
-import scr_common
+from scr_common import tracefunction
+from scr_test_runtime import scr_test_runtime
 
 # print usage and exit
 def print_usage(prog):
@@ -17,10 +18,10 @@ def scr_prerun(args):
   val = os.environ.get('SCR_DEBUG')
   # enable verbosity
   if val is not None and int(val) > 0:
-    sys.settrace(scr_common.tracefunction)
+    sys.settrace(tracefunction)
 
   start_time = datetime.now()
-  bindir='@X_BINDIR@'
+  bindir=scr_const.X_BINDIR
   prog='scr_prerun'
 
   # process command line options
@@ -37,7 +38,7 @@ def scr_prerun(args):
   print(prog+': Started: '+str(start_time))
 
   # check that we have all the runtime dependences we need
-  if scr_common.scr_test_runtime() != 0:
+  if scr_test_runtime() != 0:
     print(prog+': exit code: 1')
     return 1
 

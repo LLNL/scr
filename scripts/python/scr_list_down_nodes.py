@@ -2,9 +2,10 @@
 
 # scr_list_down_nodes.py
 
+import scr_const
 from datetime import datetime
 from scr_param import SCR_Param
-import scr_common
+from scr_list_dir import scr_list_dir
 
 def print_usage(prog):
   print('  '+prog+' -- tests and lists nodes that are not available for SCR')
@@ -28,9 +29,9 @@ def scr_list_down_nodes(argv,scr_env=None):
   prog = 'scr_list_down_nodes'
   ping = 'ping'
 
-  bindir = '@X_BINDIR@'
-  pdsh   = '@PDSH_EXE@'
-  dshbak = '@DSHBAK_EXE@'
+  bindir = scr_const.X_BINDIR
+  pdsh   = scr_const.PDSH_EXE
+  dshbak = scr_const.DSHBAK_EXE
 
   start_time = datetime.now()
 
@@ -165,7 +166,7 @@ def scr_list_down_nodes(argv,scr_env=None):
   # check that control and cache directories on each node work and are of proper size
   # get the control directory the job will use
   cntldir_vals = []
-  cntldir_string = scr_common.scr_list_dir('--base control',src_env)
+  cntldir_string = scr_list_dir('--base control',src_env)
   # cntldir_string = `$bindir/scr_list_dir --base control`;
   if type(cntldir_string) is str:
     dirs = cntldir_string.split(' ')
@@ -186,7 +187,7 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   # get the cache directory the job will use
   cachedir_vals = []
-  cachedir_string = scr_common_scr_list_dir('--base cache',src_env) #`$bindir/scr_list_dir --base cache`;
+  cachedir_string = scr_list_dir('--base cache',src_env) #`$bindir/scr_list_dir --base cache`;
   if type(cachedir_string) is str:
     dirs = cachedir_string.split(' ')
     cachedirs = param.get_hash('CACHEDIR')

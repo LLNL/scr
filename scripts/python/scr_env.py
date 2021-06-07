@@ -1,8 +1,7 @@
 #! /usr/env python
 
-import os
-import sys, subprocess
-from scr_scavenge import SCR_Scavenge
+import os, sys, subprocess
+import scr_const
 
 # SCR_Env class holds the configuration
 #   we could pass the configuration to use (SLURM/LSF/ ...)
@@ -23,7 +22,7 @@ class SCR_Env:
   def __init__(self,env='SLURM'):
     self.conf = {'env':env}
     # replaces: my $scr_nodes_file = "@X_BINDIR@/scr_nodes_file"
-    self.conf['nodes_file'] = '@X_BINDIR@/scr_nodes_file'
+    self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'
     val = os.environ.get('USER')
     if val is not None:
       self.conf['user'] = val
