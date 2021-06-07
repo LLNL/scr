@@ -29,20 +29,20 @@ if [ "$1" == "develop" ] ; then
         "rankstr"  "ecp-veloc"  "master"
         "scr"      "llnl"       "develop"
     )
-elif [ "$1" == "v3.0rc1" ] ; then
-    # to build the scr-v3.0rc1 release
-    ORGS=(
-        "lwgrp"    "llnl"      "v1.0.3"
-        "dtcmp"    "llnl"      "v1.1.2"
-        "kvtree"   "ecp-veloc" "v1.1.1"
-        "axl"      "ecp-veloc" "v0.4.0"
-        "spath"    "ecp-veloc" "v0.0.2"
-        "shuffile" "ecp-veloc" "v0.0.4"
-        "redset"   "ecp-veloc" "v0.0.5"
-        "er"       "ecp-veloc" "v0.0.4"
-        "rankstr"  "ecp-veloc" "v0.0.3"
-        "scr"      "llnl"      "v3.0rc1"
-    )
+#elif [ "$1" == "v3.0rc1" ] ; then
+#    # to build the scr-v3.0rc1 release
+#    ORGS=(
+#        "lwgrp"    "llnl"      "v1.0.3"
+#        "dtcmp"    "llnl"      "v1.1.2"
+#        "kvtree"   "ecp-veloc" "v1.1.1"
+#        "axl"      "ecp-veloc" "v0.4.0"
+#        "spath"    "ecp-veloc" "v0.0.2"
+#        "shuffile" "ecp-veloc" "v0.0.4"
+#        "redset"   "ecp-veloc" "v0.0.5"
+#        "er"       "ecp-veloc" "v0.0.4"
+#        "rankstr"  "ecp-veloc" "v0.0.3"
+#        "scr"      "llnl"      "v3.0rc1"
+#    )
 else
     echo "Error: unknown tag: $1"
     echo ""

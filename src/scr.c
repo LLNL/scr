@@ -318,7 +318,7 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
     /* flush files if needed */
     if (scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
       if (scr_my_rank_world == 0) {
-	scr_dbg(2, "sync flush due to need to halt @ %s:%d", __FILE__, __LINE__);
+        scr_dbg(2, "sync flush due to need to halt @ %s:%d", __FILE__, __LINE__);
       }
       int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
       if (flush_rc != SCR_SUCCESS) {
@@ -414,7 +414,7 @@ static int scr_check_flush(scr_cache_index* map)
     /* need to flush, determine whether to use async or sync flush */
     if (scr_flush_async) {
       if (scr_my_rank_world == 0) {
-        scr_dbg(2, "async flush attempt @ %s:%d", __FILE__, __LINE__);;
+        scr_dbg(2, "async flush attempt @ %s:%d", __FILE__, __LINE__);
       }
 
       /* check that we don't start an async flush if one is already in progress */
@@ -935,6 +935,12 @@ static int scr_get_params()
   /* specify whether to use asynchronous flush */
   if ((value = scr_param_get("SCR_FLUSH_ASYNC")) != NULL) {
     scr_flush_async = atoi(value);
+  }
+
+  /* Specify whether our flush will be finalized in poststage (currently
+   * only supported with BBAPI). */
+  if ((value = scr_param_get("SCR_FLUSH_POSTSTAGE")) != NULL) {
+    scr_flush_poststage = atoi(value);
   }
 
   /* bandwidth limit imposed during async flush (in bytes/sec) */
@@ -1864,6 +1870,12 @@ int SCR_Init()
         AXL_KEY_CONFIG_COPY_METADATA, __FILE__, __LINE__
       );
     }
+    if (kvtree_util_set_int(axl_config, AXL_KEY_CONFIG_RANK,
+                            scr_my_rank_world) != KVTREE_SUCCESS) {
+      scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
+        AXL_KEY_CONFIG_RANK, __FILE__, __LINE__
+      );
+    }
 
     if (AXL_Config(axl_config) == NULL) {
       scr_abort(-1, "Failed to configure AXL @ %s:%d",
@@ -2327,6 +2339,10 @@ int SCR_Finalize()
     scr_halt(SCR_FINALIZE_CALLED);
   }
 
+  /* When using poststage, we may finalize flushes after the job completes
+   * rather than waiting on it here.  In that case, we'll set this flag to 1 */
+  int poststage = 0;
+
   /* handle any async flush */
   if (scr_flush_async_in_progress) {
     /* there's an async flush ongoing, see which dataset is being flushed */
@@ -2345,6 +2361,15 @@ int SCR_Finalize()
       if (strcmp(type, "DATAWARP") == 0) {
         /* wait for datawarp flushes to finish */
         flush_rc = scr_flush_async_wait(scr_cindex);
+      } else if (strcmp(type, "BBAPI") == 0 && scr_flush_poststage) {
+        /* Special case: We're using BBAPI poststage, meaning we will finalize
+         * the flush after the job ends using the scr_poststage script.
+         *
+         * So don't wait for the flush to finish here - it's going to continue
+         * transferring "in the background" and will be dealt with using the
+         * scr_poststage script later on. */
+        poststage = 1; /* skip finalizing this dataset */
+        flush_rc = SCR_SUCCESS;
       } else {
         /* kill the async flush, we'll get this with a sync flush instead */
         scr_flush_async_stop();
@@ -2363,14 +2388,31 @@ int SCR_Finalize()
 
   /* flush checkpoint set if we need to */
   if (scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
+    /* have a checkpoint dataset that needs to be flushed */
     if (scr_my_rank_world == 0) {
-      scr_dbg(2, "Sync flush in SCR_Finalize @ %s:%d", __FILE__, __LINE__);
+      scr_dbg(2, "Begin flushing checkpoints that haven't started @ %s:%d", __FILE__, __LINE__);
     }
-    int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
+
+    int flush_rc;
+    if (poststage) {
+      /* we'll finalize this flush in poststage */
+      if (scr_flush_file_is_flushing(scr_ckpt_dset_id)) {
+        /* checkpoint is already flushing, so nothing else to do */
+        flush_rc = SCR_SUCCESS;
+      } else {
+        /* Initiate the flush now, but finish in the poststage.
+         * Start as an async flush, even if we're otherwise using sync flush. */
+        flush_rc = scr_flush_async_start(scr_cindex, scr_ckpt_dset_id);
+      }
+    } else {
+      /* Flush checkpoint synchronously (wait for it to finish now). */
+      flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
+    }
+
     if (flush_rc != SCR_SUCCESS) {
       scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-        scr_ckpt_dset_id, __FILE__, __LINE__
-      );
+          scr_ckpt_dset_id, __FILE__, __LINE__
+          );
     }
   }
 
@@ -2424,8 +2466,8 @@ int SCR_Finalize()
   int axl_rc = AXL_Finalize_comm(scr_comm_world);
   if (axl_rc != AXL_SUCCESS) {
     scr_abort(-1, "Failed to finalize AXL library @ %s:%d",
-      __FILE__, __LINE__
-    );
+        __FILE__, __LINE__
+        );
   }
 
   /* shut down the ER library */
