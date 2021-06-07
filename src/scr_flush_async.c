@@ -192,6 +192,9 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
 {
   /* if we don't need a flush, return right away with success */
   if (! scr_flush_file_need_flush(id)) {
+    /* NOTE: If we don't actually need to flush, e.g., because it has already been flushed,
+     * then we don't add an entry for the dataset to scr_flush_async_list in this case.
+     * One may get an error if later calling scr_flush_async_test/wait for this same id. */
     return SCR_SUCCESS;
   }
 

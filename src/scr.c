@@ -434,15 +434,15 @@ Utility functions
 =========================================
 */
 
-/* check whether a flush is needed, and execute flush if so */
-static int scr_check_flush(scr_cache_index* map)
+/* flush the specified dataset id if needed */
+static int scr_check_flush_id(scr_cache_index* cindex, int id)
 {
   /* assume we don't have to flush */
   int need_flush = 0;
 
   /* get info for current dataset */
   scr_dataset* dataset = scr_dataset_new();
-  scr_cache_index_get_dataset(map, scr_dataset_id, dataset);
+  scr_cache_index_get_dataset(cindex, id, dataset);
 
   /* if this is output we have to flush */
   int is_output = scr_dataset_is_output(dataset);
@@ -452,10 +452,16 @@ static int scr_check_flush(scr_cache_index* map)
 
   /* check whether user has flush enabled */
   if (scr_flush > 0) {
+    /* TODO: get checkpoint id for dataset */
     /* if this is a checkpoint, then every scr_flush checkpoints, flush the checkpoint set */
     int is_ckpt = scr_dataset_is_ckpt(dataset);
-    if (is_ckpt && scr_checkpoint_id > 0 && scr_checkpoint_id % scr_flush == 0) {
-      need_flush = 1;
+    if (is_ckpt) {
+      /* get checkpoint id for dataset */
+      int ckpt_id = 0;
+      scr_dataset_get_ckpt(dataset, &ckpt_id);
+      if (ckpt_id > 0 && ckpt_id % scr_flush == 0) {
+        need_flush = 1;
+      }
     }
   }
 
@@ -464,13 +470,13 @@ static int scr_check_flush(scr_cache_index* map)
     /* need to flush, determine whether to use async or sync flush */
     if (scr_flush_async) {
       /* start an async flush on the current dataset id */
-      scr_flush_async_start(scr_cindex, scr_dataset_id);
+      scr_flush_async_start(cindex, id);
     } else {
       /* synchronously flush the current dataset */
-      int flush_rc = scr_flush_sync(scr_cindex, scr_dataset_id);
+      int flush_rc = scr_flush_sync(cindex, id);
       if (flush_rc != SCR_SUCCESS) {
         scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-          scr_dataset_id, __FILE__, __LINE__
+          id, __FILE__, __LINE__
         );
       }
     }
@@ -478,6 +484,59 @@ static int scr_check_flush(scr_cache_index* map)
 
   /* free the dataset info */
   scr_dataset_delete(&dataset);
+
+  return SCR_SUCCESS;
+}
+
+/* check whether a flush is needed, and execute flush if so */
+static int scr_check_flush(scr_cache_index* cindex)
+{
+  int rc= scr_check_flush_id(cindex, scr_dataset_id);
+  return rc;
+}
+
+/* on restart, check each cached dataset to see whether it should be flushed,
+ * to be called after scr_cache_rebuild and scr_flush_file_rebuild */
+int scr_flush_restart(const scr_cache_index* cindex)
+{
+  /* get ordered list of dataset ids in cache */
+  int ndsets;
+  int* dsets;
+  scr_cache_index_list_datasets(cindex, &ndsets, &dsets);
+
+  /* iterate over ordered list of datasets in cache,
+   * flush each dataset if needed */
+  int i;
+  for (i = 0; i < ndsets; i++) {
+    int id = dsets[i];
+
+    /* check whether we need to flush data */
+    if (scr_flush_on_restart) {
+      /* TODO: We could be more efficient here.
+       * This may flush some checkpoints that aren't needed.
+       * For example, if we have two checkpoints in cache, we really
+       * only need to flush the most recent one.  We could also
+       * avoid flushing a pure-output dataset that comes after the most
+       * recent checkpoint since in theory it'll be overwritten anyway. */
+
+      /* Application wants the latest checkpoint flushed to be able
+       * to read it during restart, so force a sync flush.
+       * We flush everything with sync here to maintain
+       * proper ordering of the current marker. */
+      int flush_rc = scr_flush_sync(cindex, id);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+          id, __FILE__, __LINE__
+        );
+      }
+    } else {
+      /* otherwise, flush only if we need to flush */
+      scr_check_flush_id(cindex, id);
+    }
+  }
+
+  /* free allocated list of checkpoint ids */
+  scr_free(&dsets);
 
   return SCR_SUCCESS;
 }
@@ -2244,19 +2303,9 @@ int SCR_Init()
        * if the rebuild failed, we'll delete the flush file after purging the cache below */
       scr_flush_file_rebuild(scr_cindex);
 
-      /* check whether we need to flush data */
-      if (scr_flush_on_restart) {
-        /* always flush on restart if scr_flush_on_restart is set */
-        int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
-        if (flush_rc != SCR_SUCCESS) {
-          scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-            scr_ckpt_dset_id, __FILE__, __LINE__
-          );
-        }
-      } else {
-        /* otherwise, flush only if we need to flush */
-        scr_check_flush(scr_cindex);
-      }
+      /* iterate over all datasets in cache and
+       * check whether each needs to be flushed */
+      scr_flush_restart(scr_cindex);
     }
   }
 
