@@ -270,13 +270,14 @@ def scr_list_down_nodes(argv,scr_env=None):
         runproc.communicate()
         #`$bindir/scr_log_event -i $jobid -p $prefix -T 'NODE_FAIL' -N '$node: $reason{$node}' -S $start_time $duration`;
     # now output info to the user
+    ret=''
     if 'reason' in conf:
       # list each node and the reason each is down
       for node in failed_nodes:
-        print(node+': '+reason[node])
+        ret = node+': '+reason[node]+'\n'
     else:
       # simply print the list of down node in range syntax
-      print(','.join(failed_nodes)+'.')
-    return 1
+      ret = ','.join(failed_nodes)+'.'
+    return ret
   # otherwise, don't print anything and exit with 0
   return 0

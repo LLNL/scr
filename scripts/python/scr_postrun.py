@@ -5,36 +5,19 @@
 # Run this script after the final run in a job allocation
 # to scavenge files from cache to parallel file system.
 
-import scr_const
+import os, scr_const
 from datetime import datetime
-from scr_common import tracefunction
+from scr_common import tracefunction, getconf
 from scr_prefix import scr_prefix
+from scr_scavenge import scr_scavenge
+from scr_list_down_nodes import scr_list_down_nodes
+from scr_glob_hosts import scr_glob_hosts
+from scr_list_dir import scr_list_dir
 
 def print_usage(prog):
   print('Usage: '+prog+' [-p prefix_dir]')
-def in_attempted_list():
-  return
-'''
-  for i in ${ATTEMPTED[@]} ; do
-    if [ "$1" == "$i" ] ; then
-      # found the item
-      return 0
-    fi
-  done
-  return 1
-'''
-def in_succeeded_list():
-  return
-'''
-  for i in ${SUCCEEDED[@]} ; do
-    if [ "$1" == "$i" ] ; then
-      # found the item
-      return 0
-    fi
-  done
-  return 1
-'''
-def scr_postrun(argv):
+
+def scr_postrun(argv,scr_env=None):
   # if SCR is disabled, immediately exit
   val = os.environ.get('SCR_ENABLE')
   if val is not None and val=='0':
@@ -57,216 +40,229 @@ def scr_postrun(argv):
 
   # pass prefix via command line
   pardir=scr_prefix()
-  return
-'''
-{}{}{}
-# ' ''
-OPTIND=1
-while getopts "p:" flag ; do
-  case $flag in
-    p) pardir=$OPTARG;;  # parallel file system prefix
-    *) print_usage;;
-  esac
-done
+  conf = scr_common.getconf(argv,keyvals={'-p':'prefix'})
+  if conf is None:
+    print_usage(prog)
+    return 1
+  if 'prefix' in conf:
+    pardir=conf['prefix']
 
-# check that we have the parallel file system prefix
-if [ "$pardir" == "" ] ; then
-  print_usage
-fi
+  # check that we have the parallel file system prefix
+  if pardir=='':
+    print_usage(prog)
+    return 1
 
-# all parameters checked out, start normal output
-echo "$prog: Started: $start_time"
+  # all parameters checked out, start normal output
+  print(prog+': Started: '+str(start_time))
 
-# get our nodeset for this job
-if [ -z "$SCR_NODELIST" ] ; then
-  nodelist_env=`$bindir/scr_env --nodes`
-  if [ $? -eq 0 ] ; then
-    SCR_NODELIST=$nodelist_env
-  fi
-fi
-if [ -z "$SCR_NODELIST" ] ; then
-  echo "$prog: ERROR: Could not identify nodeset"
-  exit 1
-fi
-export SCR_NODELIST
+  # get our nodeset for this job
+  nodelist_env = os.environ.get('SCR_NODELIST')
+  if nodelist_env is None:
+    if scr_env is None:
+      scr_env = SCR_Env('SLURM') ## set environment
+    nodelist_env = scr_env.getnodelist()
+    if nodelist_env is None:
+      print(prog+': ERROR: Could not identify nodeset')
+      return 1
+    os.environ['SCR_NODELIST'] = nodelist_env
+  SCR_NODELIST = os.environ.get('SCR_NODELIST')
+  # identify what nodes are still up
+  upnodes=nodelist_env
+  downnodes = scr_list_down_nodes(upnodes)
+  if type(downnodes) is int:
+    if downnodes==1: # returned error
+      return 1 # probably should return error
+    # else: returned 0, no error and no down nodes
+  else: # returned a list of down nodes
+    upnodes = scr_glob_hosts(['--minus',upnodes+':'+downnodes])
+  print(prog+': UPNODES:   '+upnodes)
 
-# identify what nodes are still up
-UPNODES=$SCR_NODELIST
-DOWNNODES=`$bindir/scr_list_down_nodes $SCR_NODELIST`
-if [ "$DOWNNODES" ]; then
-  UPNODES=`$bindir/scr_glob_hosts --minus $SCR_NODELIST:$DOWNNODES`
-fi
-echo "$prog: UPNODES:   $UPNODES"
+  # if there is at least one remaining up node, attempt to scavenge
+  ret=1
+  if upnodes!='':
+    cntldir=scr_list_dir(['control'])
+    # TODO: check that we have a control directory
 
-# if there is at least one remaining up node, attempt to scavenge
-ret=1
-if [ "$UPNODES" != "" ] ; then
-  # get the SCR control directory
-  cntldir=`$bindir/scr_list_dir control`;
-  # TODO: check that we have a control directory
+    # TODODSET: avoid scavenging things unless it's in this list
+    # get list of possible datasets
+    #  dataset_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
+    #  if [ $? -eq 0 ] ; then
+    #  else
+    #    echo "$prog: Failed to inspect cache or cannot scavenge any datasets"
+    #  fi
 
-  # TODODSET: avoid scavenging things unless it's in this list
-  # get list of possible datasets
-#  dataset_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
-#  if [ $? -eq 0 ] ; then
-#  else
-#    echo "$prog: Failed to inspect cache or cannot scavenge any datasets"
-#  fi
+    # array to track which datasets we tried to get
+    attempted = []
 
-  # array to track which datasets we tried to get
-  declare -a ATTEMPTED
+    # array to track datasets we got
+    succeeded = []
 
-  # array to track datasets we got
-  declare -a SUCCEEDED
-
-  # scavenge all output sets in ascending order,
-  # track the id of the first one we fail to get
-  echo "$prog: Looking for output sets"
-  failed_dataset=0
-  output_list=`$bindir/scr_flush_file --dir $pardir --list-output`
-  if [ $? -eq 0 ] ; then
-    for d in $output_list ; do
-      # determine whether this dataset needs to be flushed
-      $bindir/scr_flush_file --dir $pardir --need-flush $d
-      if [ $? -eq 0 ] ; then
-        echo "$prog: Attempting to scavenge dataset $d"
+    # scavenge all output sets in ascending order,
+    # track the id of the first one we fail to get
+    print(prog+': Looking for output sets')
+    failed_dataset=0
+    argv = [bindir+'/scr_flush_file','--dir',pardir,'--list-output']
+    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+    output_list = runproc.communicate()[0]
+    if runproc.returncode!=0:
+      echo "$prog: Found no output set to scavenge"
+    else:
+      argv.append('') # make len(argv) == 5
+      #### Need the format of the scr_flush_file output ####
+      #### This is just looping over characters ####
+      for d in output_list:
+        # determine whether this dataset needs to be flushed
+        argv[3]='--need-flush'
+        argv[4]=d
+        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+        runproc.communicate()
+        if runproc.returncode!=0:
+          # dataset has already been flushed, go to the next one
+          echo "$prog: Dataset $d has already been flushed"
+          continue
+        print(prog+': Attempting to scavenge dataset '+d)
 
         # add $d to ATTEMPTED list
-        ATTEMPTED=("${ATTEMPTED[@]}" "$d")
+        attempted.append(d)
 
         # get dataset name
-        dsetname=`$bindir/scr_flush_file --dir $pardir --name $d`
-        if [ $? -eq 0 ] ; then
-          # build full path to dataset directory
-          datadir=$pardir/.scr/scr.dataset.$d
-          mkdir -p $datadir
-
-          # Gather files from cache to parallel file system
-          echo "$prog: Scavenging files from cache for $dsetname to $datadir"
-          echo $prog: $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $pardir --jobset $SCR_NODELIST --up $UPNODES
-          $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $pardir --jobset $SCR_NODELIST --up $UPNODES
-          echo "$prog: Done scavenging files from cache for $dsetname to $datadir"
-
-          # check that gathered set is complete,
-          # if not, don't update current marker
-          update_current=1
-          echo "$prog: Checking that dataset is complete"
-          echo "$bindir/scr_index --prefix $pardir --build $d"
-          $bindir/scr_index --prefix $pardir --build $d
-          if [ $? -ne 0 ] ; then
-            # failed to get dataset, stop trying for later sets
-            failed_dataset=$d
-            break
-          else
-            # remember that we scavenged this dataset in case we try again below
-            SUCCEEDED=("${SUCCEEDED[@]}" "$d")
-            echo "$prog: Scavenged dataset $dsetname successfully"
-          fi
-        else
+        argv[3]='--name'
+        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+        dsetname = runproc.communicate()[0]
+        if runproc.returncode!=0:
           # got a dataset to flush, but failed to get name
           echo "$prog: Failed to read name of dataset $d"
           failed_dataset=$d
           break
-        fi
-      else
-        # dataset has already been flushed, go to the next one
-        echo "$prog: Dataset $d has already been flushed"
-      fi
-    done
-  else
-    echo "$prog: Found no output set to scavenge"
-  fi
+        # build full path to dataset directory
+        datadir=pardir+'/.scr/scr.dataset.'+d
+        os.makedirs(datadir,exist_ok=True)
 
-  # check whether we have a dataset set to flush
-  echo "$prog: Looking for most recent checkpoint"
-  ckpt_list=`$bindir/scr_flush_file --dir $pardir --list-ckpt --before $failed_dataset`
-  if [ $? -eq 0 ] ; then
-    for d in $ckpt_list ; do
-      in_attempted_list $d
-      if [ $? -eq 0 ] ; then
-        in_succeeded_list $d
-        if [ $? -eq 0 ] ; then
-          # already got this one above, update current, and finish
-          dsetname=`$bindir/scr_flush_file --dir $pardir --name $d`
-          if [ $? -eq 0 ] ; then
-            echo "$prog: Already scavenged checkpoint dataset $d"
-            echo "$prog: Updating current marker in index to $dsetname"
-            $bindir/scr_index --prefix $pardir --current $dsetname
-            ret=0
-            break
-          fi
-        else
-          # already tried and failed, skip this dataset
-          echo "$prog: Skipping checkpoint dataset $d, since already failed to scavenge"
-          continue
-        fi
-      fi
+        # Gather files from cache to parallel file system
+        print(prog+': Scavenging files from cache for '+dsetname+' to '+datadir)
+        print(prog+': '+bindir+'/scr_scavenge '+verbose+' --id '+d+' --from '+cntldir+' --to '+pardir+' --jobset '+SCR_NODELIST+' --up 'upnodes)
+        scavenge_argv = ['--id',d,'--from',cntldir,'--to',pardir,'--jobset',SCR_NODELIST,'--up',upnodes]
+        if verbose!='':
+          scavenge_argv.append(verbose)
+        if scr_scavenge(scavenge_argv,scr_env)!=1:
+          print(prog+': Done scavenging files from cache for '+dsetname+' to '+datadir)
+        else:
+          print(prog+': ERROR: Scavenge files from cache for '+dsetname+' to '+datadir)
 
-      # we have a dataset, check whether it still needs to be flushed
+        # check that gathered set is complete,
+        # if not, don't update current marker
+        update_current=1
+        print(prog+': Checking that dataset is complete')
+        print(bindir+'/scr_index --prefix '+pardir+' --build '+d)
+        index_argv = [bindir+'/scr_index','--prefix',pardir,'--build',d]
+        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+        runproc.communicate()
+        if runproc.returncode!=0:
+          # failed to get dataset, stop trying for later sets
+          failed_dataset=d
+          break
+        # remember that we scavenged this dataset in case we try again below
+        succeeded.append(d)
+        print(prog+': Scavenged dataset '+dsetname+' successfully')
 
-      $bindir/scr_flush_file --dir $pardir --need-flush $d
-      if [ $? -eq 0 ] ; then
-        echo "$prog: Attempting to scavenge checkpoint dataset $d"
+    # check whether we have a dataset set to flush
+    print(prog+': Looking for most recent checkpoint')
+    argv = [bindir+'/scr_flush_file','--dir',pardir,'--list-ckpt','--before',failed_dataset]
+    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+    ckpt_list = runproc.communicate()[0]
+    if runproc.returncode!=0:
+      print(prog+': Found no checkpoint to scavenge')
+    else:
+      argv = [bindir+'/scr_flush_file','--dir',pardir,'--name','']
+      for d in ckpt_list:
+        if d in attempted:
+          if d in succeeded:
+            # already got this one above, update current, and finish
+            argv[4] = d
+            runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+            dsetname = runproc.communicate()[0]
+            if runproc.returncode==0:
+              print(prog+': Already scavenged checkpoint dataset '+d)
+              print(prog+': Updating current marker in index to '+dsetname)
+              index_argv = [bindir+'/scr_index','--prefix',pardir,'--current',dsetname]
+              runproc = subprocess.Popen(args=index_argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+              runproc.communicate()
+              ret=0
+              break
+          else:
+            # already tried and failed, skip this dataset
+            print(prog+': Skipping checkpoint dataset '+d+', since already failed to scavenge')
+            continue
+
+        # we have a dataset, check whether it still needs to be flushed
+
+        argv[3]='--need-flush'
+        argv[4]=d
+        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+        runproc.communicate()
+        if runproc.returncode!=0:
+          # found a dataset that has already been flushed, we can quit
+          print(prog+': Checkpoint dataset '+d+' has already been flushed')
+          ret=0
+          break
+        print(prog+': Attempting to scavenge checkpoint dataset '+d)
 
         # get dataset name
-        dsetname=`$bindir/scr_flush_file --dir $pardir --name $d`
-        if [ $? -eq 0 ] ; then
-          # build full path to dataset directory
-          datadir=$pardir/.scr/scr.dataset.$d
-          mkdir -p $datadir
-
-          # Gather files from cache to parallel file system
-          echo "$prog: Scavenging files from cache for checkpoint $dsetname to $datadir"
-          echo $prog: $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $pardir --jobset $SCR_NODELIST --up $UPNODES
-          $bindir/scr_scavenge $verbose --id $d --from $cntldir --to $pardir --jobset $SCR_NODELIST --up $UPNODES
-          echo "$prog: Done scavenging files from cache for $dsetname to $datadir"
-
-          # check that gathered set is complete,
-          # if not, don't update current marker
-          update_current=1
-          echo "$prog: Checking that dataset is complete"
-          echo "$bindir/scr_index --prefix $pardir --build $d"
-          $bindir/scr_index --prefix $pardir --build $d
-          if [ $? -ne 0 ] ; then
-            # incomplete dataset, don't update current marker
-            update_current=0
-          fi
-
-          # if the set is complete, update the current marker
-          if [ "$update_current" == "1" ] ; then
-            # make the new current
-            echo "$prog: Updating current marker in index to $dsetname"
-            $bindir/scr_index --prefix $pardir --current $dsetname
-
-            # just completed scavenging this dataset, so quit
-            ret=0
-            break;
-          fi
-        else
+        argv[3]='--name'
+        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+        dsetname = runproc.communicate()[0]
+        if runproc.returncode!=0:
           # got a dataset to flush, but failed to get name
-          echo "$prog: Failed to read name of checkpoint dataset $d"
-        fi
-      else
-        # found a dataset that has already been flushed, we can quit
-        echo "$prog: Checkpoint dataset $d has already been flushed"
-        ret=0
-        break;
-      fi
-    done
-  else
-    echo "$prog: Found no checkpoint to scavenge"
-  fi
-fi
+          print(prog+': Failed to read name of checkpoint dataset '+d)
+          continue
+        # build full path to dataset directory
+        datadir=pardir+'/.scr/scr.dataset.'+d
+        os.makedirs(datadir,exist_ok=True)
 
-# print the timing info
-end_time=`date`
-end_secs=`date +%s`
-run_secs=$(($end_secs - $start_secs))
-echo "$prog: Ended: $end_time"
-echo "$prog: secs: $run_secs"
+        # Gather files from cache to parallel file system
+        print(prog+': Scavenging files from cache for checkpoint $dsetname to '+datadir)
+        print(prog+': '+bindir+'/scr_scavenge '+verbose+' --id '+d+' --from '+cntldir+' --to '+pardir+' --jobset '+SCR_NODELIST+' --up '+upnodes)
+        scavenge_argv = ['--id',d,'--from',cntldir,'--to',pardir,'--jobset',SCR_NODELIST,'--up',upnodes]
+        if verbose!='':
+          scavenge_argv.append(verbose)
+        if scr_scavenge(scavenge_argv,scr_env)!=1:
+          print(prog+': Done scavenging files from cache for '+dsetname+' to '+datadir)
+        else:
+          print(prog+': ERROR: Scavenge files from cache for '+dsetname+' to '+datadir)
 
-# print the exit code and exit
-echo "$prog: exit code: $ret"
-exit $ret
-'''
+        # check that gathered set is complete,
+        # if not, don't update current marker
+        update_current=1
+        print(prog+': Checking that dataset is complete')
+        print(bindir+'/scr_index --prefix '+pardir+' --build '+d)
+        argv = [bindir+'/scr_index','--prefix',pardir,'--build',d]
+        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+        runproc.communicate()
+        if runproc.returncode!=0:
+          # incomplete dataset, don't update current marker
+          update_current=0
+
+        # if the set is complete, update the current marker
+        if update_current == 1:
+          # make the new current
+          print(prog+': Updating current marker in index to '+dsetname)
+          argv[3]='--current'
+          argv[4]=dsetname
+          runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+          runproc.communicate()
+
+          # just completed scavenging this dataset, so quit
+          ret=0
+          break
+
+  # print the timing info
+  end_time=datetime.now()
+  end_secs=end_time.time().second
+  run_secs=end_secs - start_secs
+  print(prog+': Ended: '+str(end_time))
+  print(prog+': secs: '+str(run_secs))
+
+  # print the exit code and exit
+  print(prog+': exit code: '+str(ret))
+  return ret
 

@@ -3,6 +3,7 @@
 # scr_get_jobstep_id.py
 
 import re, subprocess
+from scr_env import SCR_Env
 
 # This script attempts to get the job step id for the last srun command that 
 # was launched. The argument to this script is the PID of the srun command.
@@ -14,9 +15,11 @@ import re, subprocess
 # is for some other srun command and not the one we are looking for. 
 # This script returns the job step id on success and -1 on failure.
 
-def scr_get_jobstep_id(scr_env,srun_pid):
+def scr_get_jobstep_id(srun_pid,scr_env=None):
   prog = 'scr_get_jobstep_id'
   #my $pid=$ARGV[0]; # unused
+  if scr_env is None:
+    scr_env = SCR_Env('SLURM')
   user = scr_env.conf['user']
   if user is None:
     print(prog+': ERROR: Could not determine user ID')

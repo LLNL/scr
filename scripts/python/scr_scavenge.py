@@ -6,29 +6,14 @@ from datetime import datetime
 from scr_param import SCR_Param
 from scr_env import SCR_Env
 import scr_const
-from scr_common import tracefunction
+from scr_common import tracefunction, getconf
 
 # scavenge checkpoint files from cache to PFS
 # check for pdsh / (clustershell) errors in case any nodes should be retried
 
 # Usage: $prog [--jobset <nodeset>] [--up <nodeset> | --down <nodeset>] --id <id> --from <dir> --to <dir>
 
-def getoptkey(opt):
-  if opt=='-j' or opt=='jobset':
-    return 'nodeset_job'
-  if opt=='-u' or opt=='--up':
-    return 'nodeset_up'
-  if opt=='-d' or opt=='--down':
-    return 'nodeset_down'
-  if opt=='-i' or opt=='--id':
-    return 'dataset_id'
-  if opt=='-f' or opt=='--from':
-    return 'dir_from'
-  if opt=='-t' or opt=='--to':
-    return 'dir_to'
-  if opt=='-v' or opt=='--verbose':
-    return 'verbose'
-  return None
+
 
 def print_usage(prog):
   print('')
@@ -75,49 +60,16 @@ def scr_scavenge(argv,scr_env=None):
     return 1
 
   # read in command line arguments
-  conf = {}
-  #conf[nodeset_job] = $jobset
-  #conf{nodeset_up}   = undef;
-  #conf{nodeset_down} = undef;
-  #conf{dataset_id}   = undef;
-  #conf{dir_from}     = undef;
-  #conf{dir_to}       = undef;
-  #conf{verbose}      = 0;
-
-  skip=False
-  for i in range(1,len(argv)):
-    if skip==True:
-      skip=False
-    elif '=' in argv[i]:
-        vals = argv[i].split('=')
-        vals[0] = getoptkey(vals[0])
-        if vals[0] is None:
-          print_usage(prog)
-          return 1
-        if vals[0]=='verbose':
-          sys.settrace(tracefunction)
-          verbose=True
-        else:
-          conf[vals[0]]=vals[1]
-      else:
-        opt=getoptkey(argv[i])
-        if opt is None or i+1==len(agv):
-          print_usage()
-          return 1
-        if opt=='verbose':
-          sys.settrace(tracefunction)
-          verbose=True
-          opt=''
-        else:
-          conf[opt]=argv[i+1]
-          skip=True
-    else: #if opt != '':
-      conf[opt]=sys.argv[i]
-      opt=''
+  conf = getconf(argv,keyvals={'-j':'nodeset_job','--jobset':'nodeset_job','-u':'nodeset_up','--up':'nodeset_up','-d':'nodeset_down','--down':'nodeset_down','-i':'id','--id':'id','-f':'dir_from','--from':'dir_from','-t':'dir_to','--to':'dir_to'},togglevals={'-v':'verbose','--verbose':'verbose'})
+  if conf is None:
+    print_usage(prog)
+    return 1
+  if 'verbose' in conf:
+    sys.settrace(tracefunction)
 
   # check that we have a nodeset for the job and directories to read from / write to
   if 'nodeset_job' not in conf or 'dataset_id' not in conf or 'dir_from' not in conf or 'dir_to' not in conf:
-    print_usage()
+    print_usage(prog)
     return 1
 
   # get directories

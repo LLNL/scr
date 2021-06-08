@@ -12,6 +12,7 @@
 
 import scr_const
 from scr_param import SCR_Param
+from scr_common import getconf
 
 def print_usage(prog):
   print('')
@@ -24,45 +25,24 @@ def print_usage(prog):
   print('')
 
 # returns 1 for error, 0 (or string) for success
-def scr_list_dir(args,scr_env=None):
+def scr_list_dir(argv,scr_env=None):
   param = SCR_Param()
   # TODO: read cache directory from config file
   prog = "scr_list_dir"
   bindir = scr_const.X_BINDIR
 
   # read in command line arguments
-  conf = {}
-  skip=False
-  runcmd=''
-  for i in range(len(args)):
-    if skip==True:
-      skip=False
-    elif args[i]=='control' or args[i]=='cache':
-      runcmd=args[i]
-    elif '=' in args[i]:
-      vals = args[i].split('=')
-      if vals[0]=='--user' or vals[0]=='-u':
-        conf['user']=vals[1]
-      elif vals[0]=='--jobid' or vals[0]=='j':
-        conf['jobid']=vals[1]
-      elif vals[0]=='--base' or vals[0]=='b':
-        conf['base']=vals[1]
-    elif i<len(args)-1:
-      if args[i]=='--user' or args[i]=='-u':
-        conf['user']=args[i+1]
-        skip=True
-      elif args[i]=='--jobid' or args[i]=='-j':
-        conf['jobid']=args[i+1]
-        skip=True
-      elif args[i]=='--base' or args[i]=='-b':
-        conf['base']=args[i+1]
-        skip=True
-
-  # check that user specified "control" or "cache"
-  if runcmd=='':
+  conf = getconf(argv,keyvals={'-u':'user','--user':'user','-j':'jobid','--jobid':'jobid','-b':'base','--base':'base','control':'runcmd','cache':'runcmd'})
+  if conf is None:
     print_usage(prog)
     return 1
 
+  # check that user specified "control" or "cache"
+  if 'runcmd' not in conf:
+    print_usage(prog)
+    return 1
+
+  runcmd = conf['runcmd']
   # get the base directory
   bases = []
   if runcmd=='cache':
