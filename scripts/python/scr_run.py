@@ -42,7 +42,7 @@ def printusage():
   sys.exit(0)
 
 # capture restart and run commands if specified
-# parse argv takes sys.argv[2:] (starting past script+launcher names), returns command line options
+# parse argv takes argv, returns command line options
 def parseargv(argv):
   run_cmd = ''
   restart_cmd=''
@@ -70,15 +70,13 @@ def parseargv(argv):
       launcher_args.append(argv[i])
   return run_cmd, restart_cmd, launcher_args
 
-def scr_run():
+def scr_run(argv):
   run_cmd=''
   restart_cmd=''
   launcher_args=[]
 
-  if len(sys.argv)<2:
-    printusage()
-  elif len(sys.argv)>2:
-    run_cmd, restart_cmd, launcher_args = parseargv(sys.argv[2:])
+  if len(argv)>0:
+    run_cmd, restart_cmd, launcher_args = parseargv(argv)
 
   val = os.environ.get('SCR_ENABLE')
   if val is not None and val=='0':
@@ -358,4 +356,4 @@ def scr_run():
   print(prog+': Ended: '+str(timestamp))
 
 if __name__=='__main___':
-  scr_run()
+  scr_run(sys.argv[2:])
