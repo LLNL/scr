@@ -104,7 +104,7 @@ def scr_run():
 
   # TODO: if not in job allocation, bail out
 
-  scr_env = SCR_Env('SLURM') ### dynamically get the environment ###
+  scr_env = SCR_Env()
   jobid = scr_env.getjobid()
 
   # TODO: check that we have a valid jobid and bail if not
@@ -291,7 +291,7 @@ def scr_run():
       #srun_pid=$!;
       time.sleep(10)
       #sleep 10; # sleep a bit to wait for the job to show up in squeue
-      jobstepid = scr_get_jobstep_id(scr_env,srun_pid)
+      jobstepid = scr_get_jobstep_id(srun_pid,scr_env)
       # then start the watchdog  if we got a valid job step id
       if jobstepid!='' and jobstepid!='-1':
         watchdog = Process(target=scr_watchdog,args=('--dir',prefix,'--jobStepId',jobstepid))

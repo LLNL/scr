@@ -19,7 +19,7 @@ def scr_get_jobstep_id(srun_pid,scr_env=None):
   prog = 'scr_get_jobstep_id'
   #my $pid=$ARGV[0]; # unused
   if scr_env is None:
-    scr_env = SCR_Env('SLURM')
+    scr_env = SCR_Env()
   user = scr_env.conf['user']
   if user is None:
     print(prog+': ERROR: Could not determine user ID')

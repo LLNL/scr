@@ -55,11 +55,12 @@ def scr_postrun(argv,scr_env=None):
   # all parameters checked out, start normal output
   print(prog+': Started: '+str(start_time))
 
+  # ensure scr_env is set
+  if scr_env is None:
+    scr_env = SCR_Env()
   # get our nodeset for this job
   nodelist_env = os.environ.get('SCR_NODELIST')
   if nodelist_env is None:
-    if scr_env is None:
-      scr_env = SCR_Env('SLURM') ## set environment
     nodelist_env = scr_env.getnodelist()
     if nodelist_env is None:
       print(prog+': ERROR: Could not identify nodeset')
@@ -68,7 +69,7 @@ def scr_postrun(argv,scr_env=None):
   SCR_NODELIST = os.environ.get('SCR_NODELIST')
   # identify what nodes are still up
   upnodes=nodelist_env
-  downnodes = scr_list_down_nodes(upnodes)
+  downnodes = scr_list_down_nodes(upnodes,scr_env)
   if type(downnodes) is int:
     if downnodes==1: # returned error
       return 1 # probably should return error
@@ -80,7 +81,7 @@ def scr_postrun(argv,scr_env=None):
   # if there is at least one remaining up node, attempt to scavenge
   ret=1
   if upnodes!='':
-    cntldir=scr_list_dir(['control'])
+    cntldir=scr_list_dir(['control'],scr_env)
     # TODO: check that we have a control directory
 
     # TODODSET: avoid scavenging things unless it's in this list

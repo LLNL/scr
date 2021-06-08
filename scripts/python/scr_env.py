@@ -19,7 +19,9 @@ import scr_const
 
 class SCR_Env:
   # init initializes vars from the environment 
-  def __init__(self,env='SLURM'):
+  def __init__(self,env=None):
+    if env is None:
+      env = scr_const.SCR_RESOURCE_MANAGER
     self.conf = {'env':env}
     # replaces: my $scr_nodes_file = "@X_BINDIR@/scr_nodes_file"
     self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'

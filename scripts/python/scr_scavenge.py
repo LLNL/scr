@@ -47,7 +47,7 @@ def scr_scavenge(argv,scr_env=None):
 
   # tag output files with jobid
   if scr_env is None:
-    scr_env = SCR_Env('SLURM') ### set environment
+    scr_env = SCR_Env()
   jobid = scr_env.getjobid()
   if jobid is None:
     print(prog'+: ERROR: Could not determine jobid.')

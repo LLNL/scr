@@ -81,7 +81,7 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   # get jobid
   if scr_env is None:
-    scr_env = SCR_Env('SLURM') ### dynamically get the environment ###
+    scr_env = SCR_Env()
   jobid = scr_env.getjobid()
 
   # check that we have a nodeset before going any further

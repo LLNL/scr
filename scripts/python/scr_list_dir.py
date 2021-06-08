@@ -60,6 +60,9 @@ def scr_list_dir(argv,scr_env=None):
     print('INVALID')
     return 1
 
+  # ensure scr_env is set
+  if scr_env is None:
+    scr_env = SCR_Env()
   # get the user/job directory
   suffix = ''
   if 'base' not in conf:
@@ -86,5 +89,3 @@ def scr_list_dir(argv,scr_env=None):
   dirs = ' '.join(dirs)
   return dirs
 
-#if __name__ == '__main__':
-#  scr_list_dir(['control'],SCR_Env('SLURM'))
