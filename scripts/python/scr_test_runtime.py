@@ -17,7 +17,7 @@ def scr_test_runtime():
 
   # check that we have pdsh
   argv=['which',pdsh]
-  runproc = subprocess.Popen(args=argv)
+  runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
   runproc.communicate()
   if runproc.returncode!=0:
     print(prog+': ERROR: \'which '+pdsh+'\' failed')
@@ -26,7 +26,7 @@ def scr_test_runtime():
 
   # check that we have dshbak
   argv[1]=dshbak
-  runproc = subprocess.Popen(args=argv)
+  runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
   runproc.communicate()
   if runproc.returncode!=0:
     print(prog+': ERROR: \'which '+dshbak+'\' failed')

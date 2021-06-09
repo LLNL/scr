@@ -90,12 +90,11 @@ class SCR_Env:
     runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
     out, err = runproc.communicate()
     if runproc.returncode!=0:
-      print('0') # print(err)
-      sys.exit(1)
-    return out
+      return 0 # print(err)
+    return int(out)
 
 if __name__ == '__main__':
   scr_env = SCR_Env('SLURM')
   scr_env.set_downnodes()
   for key in scr_env.conf:
-    print(scr_env.conf[{key}]+' = \''+scr_env.conf[key]+'\'')
+    print('scr_env.conf['+key+'] = \''+scr_env.conf[key]+'\'')

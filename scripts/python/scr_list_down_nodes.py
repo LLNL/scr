@@ -6,6 +6,7 @@ import scr_const
 from datetime import datetime
 from scr_param import SCR_Param
 from scr_list_dir import scr_list_dir
+import scr_hostlist
 
 def print_usage(prog):
   print('  '+prog+' -- tests and lists nodes that are not available for SCR')
@@ -92,7 +93,7 @@ def scr_list_down_nodes(argv,scr_env=None):
       return 1
 
   # get list of nodes from nodeset
-  nodes = [nodeset] #########                 scr_hostlist::expand($nodeset);
+  nodes = scr_hostlist.expand(nodeset)
 
   # this hash defines all nodes available in our allocation
   allocation = {}
@@ -109,7 +110,7 @@ def scr_list_down_nodes(argv,scr_env=None):
   scr_env.set_downnodes() # <- attempt to set down nodes
   resmgr_down = '' if 'down' not in src_env.conf else scr_env.conf['down']
   if resmgr_down!='':
-    resmgr_nodes = [resmgr_nodes] ## scr_hostlist::expand($resmgr_down);
+    resmgr_nodes = scr_hostlist.expand(resmgr_nodes)
     for node in resmgr_nodes:
       if node in available:
         del available[node]
@@ -140,7 +141,7 @@ def scr_list_down_nodes(argv,scr_env=None):
   # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
   exclude = param.get('SCR_EXCLUDE_NODES')
   if exclude is not None:
-    exclude_nodes = [exclude] ######### scr_hostlist::expand($exclude);
+    exclude_nodes = scr_hostlist.expand(exclude)
     for node in exclude_nodes:
       if node in allocation:
         if node in available:
@@ -150,7 +151,7 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   # mark any nodes specified on the command line
   if 'nodeset_down' in conf:
-    exclude_nodes = [nodeset_down] ######### scr_hostlist::expand($conf{nodeset_down});
+    exclude_nodes = scr_hostlist.expand(conf['nodeset_down'])
     for node in exclude_nodes:
       if node in allocation:
         if node in available:
@@ -208,7 +209,7 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   # only run this against set of nodes known to be responding
   still_up = available.keys()
-  upnodes = (',').join(still_up) ###### scr_hostlist::compress(@still_up);
+  upnodes = scr_hostlist.compress(still_up)
 
   # run scr_check_node on each node specifying control and cache directories to check
   if len(still_up) > 0:
@@ -234,7 +235,7 @@ def scr_list_down_nodes(argv,scr_env=None):
       elif action==3:
         action=0
         if 'PASS' not in result:
-          exclude_nodes = [nodeset] ##### scr_hostlist::expand($nodeset);
+          exclude_nodes = scr_hostlist.expand(nodeset);
           for node in exclude_nodes:
             if node in allocation:
               if node in available:
@@ -254,7 +255,7 @@ def scr_list_down_nodes(argv,scr_env=None):
 
     # remove any nodes that user already knew to be down
     if 'nodeset_down' in conf:
-      exclude_nodes = [nodeset_down] #### scr_hostlist::expand($conf{nodeset_down});
+      exclude_nodes = scr_hostlist.expand(conf['nodeset_down'])
       for node in exclude_nodes:
         if node in newly_failed_nodes:
           del newly_failed_nodes[node]

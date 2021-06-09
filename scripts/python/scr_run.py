@@ -13,6 +13,7 @@ from scr_postrun import scr_postrun
 from multiprocessing import Process
 from scr_env import SCR_Env
 from scr_param import SCR_Param
+from scr_glob_hosts import scr_glob_hosts
 
 launcher='srun'
 prog='scr_'+launcher
@@ -82,7 +83,7 @@ def scr_run(argv):
   if val is not None and val=='0':
     argv = [launcher]
     argv.extend(launcher_args)
-    runproc = subprocess.Popen(args=argv)
+    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
     runproc.communicate()
     sys.exit(runproc.returncode)
 
@@ -146,20 +147,14 @@ def scr_run(argv):
 
   val = os.environ.get('SLURM_JOBID')
   argv=['scontrol','--oneliner','show','job',val]
-  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, 
-  stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, 
-  universal_newlines=True)
+  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
   argv=['perl','-n','-e','m/EndTime=(\S*)/ and print $1']
-  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=runproc, 
-  stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, 
-  universal_newlines=True)
-  out,err = runproc.communicate()
+  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=runproc, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+  out = runproc.communicate()[0]
 
   argv=['date','-d',out,'+%s']
-  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, 
-  stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, 
-  universal_newlines=True)
-  out,err = runproc.communicate()
+  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+  out = runproc.communicate()[0]
   os.environ['SCR_END_TIME'] = out
 
   #export SCR_END_TIME=$(date -d $(scontrol --oneliner show job $SLURM_JOBID | 
@@ -200,16 +195,10 @@ def scr_run(argv):
 
     # are there enough nodes to continue?
     exclude=''
-    argv=[bindir+'/scr_list_down_nodes',free_flag,keep_down]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    #  down_nodes=bindir+'/scr_list_down_nodes '+free_flag+' '+keep_down
-    down_nodes = runproc.communicate()[0]
-    if down_nodes!='':
+    down_nodes = scr_list_down_nodes([free_flag,keep_down],src_env)
+    if type(down_nodes) is str and down_nodes!='':
       # print the reason for the down nodes, and log them
-      argv=[bindir+'/scr_list_down_nodes',free_flag,keep_down,'--log','--reason','--secs','0']
-      runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-      # $bindir/scr_list_down_nodes $free_flag $keep_down --log --reason --secs 0
-      runproc.communicate()
+      scr_list_down_nodes([free_flag,keep_down,'--log','--reason','--secs','0'],scr_env)
 
       # if this is the first run, we hit down nodes right off the bat, make a record of them
       if attempts==0:
@@ -225,26 +214,18 @@ def scr_run(argv):
       num_needed = os.environ.get('SCR_MIN_NODES')
       if num_needed is None:
         # try to lookup the number of nodes used in the last run
-        argv=[bindir+'/scr_env','--prefix',prefix,'--runnodes']
-        runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+        num_needed_env = scr_env.get_runnode_count()
         # num_needed_env='$bindir/scr_env --prefix $prefix --runnodes'
-        num_needed_env = int(runproc.communicate()[0])
-        if runproc.returncode==0:
-          if num_needed_env>0:
-            # if the command worked, and the number is something larger than 0, go with that
-            num_needed=num_needed_env
+        if num_needed_env>0:
+          # if the command worked, and the number is something larger than 0, go with that
+          num_needed=num_needed_env
       if num_needed is None:
-        argv=[bindir+'/scr_glob_hosts','--count','--hosts',nodelist]
-        runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-        # num_needed='$bindir/scr_glob_hosts --count --hosts $SCR_NODELIST'
-        num_needed = int(runproc.communicate()[0])
+        num_needed = scr_glob_hosts(['--count','--hosts',nodelist])
 
       # check that we have enough nodes left to run the job after excluding all down nodes
-      argv=[bindir+'/scr_glob_hosts','--count','--minus',nodelist+':'+down_nodes]
-      runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+      num_left = scr_glob_hosts(['--count','--minus',nodelist+':'+down_nodes])
       # num_left='$bindir/scr_glob_hosts --count --minus $SCR_NODELIST:$down_nodes'
-      num_left = int(runproc.communicate()[0])
-      if num_left is None or num_left < num_needed:
+      if num_left < num_needed:
         print(prog+': (Nodes remaining='+num_left+') < (Nodes needed='+num_needed+'), ending run.')
         break
 
@@ -274,7 +255,7 @@ def scr_run(argv):
       argv=[launcher]
       argv.extend(exclude)
       argv.extend(launch_cmd)
-      runproc = subprocess.Popen(args=argv)
+      runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
       # $launcher $exclude $launch_cmd
       runproc.communicate()
     else:
@@ -283,7 +264,7 @@ def scr_run(argv):
       argv=[launcher]
       argv.extend(exclude)
       argv.extend(launch_cmd)
-      runproc = subprocess.Popen(args=argv)
+      runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
       # $launcher $exclude $launch_cmd &
       srun_pid = runproc.pid
       #srun_pid=$!;
@@ -297,7 +278,7 @@ def scr_run(argv):
         print(prog+': Started watchdog process with PID '+str(watchdog.pid)+'.')
       else:
         print(prog+': ERROR: Unable to start scr_watchdog because couldn\'t get job step id.')
-      out = runproc.communicate()
+      runproc.communicate()
 
     end_secs=datetime.now()
     run_secs=end_secs - start_secs

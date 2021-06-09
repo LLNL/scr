@@ -44,9 +44,7 @@ def scr_prerun(args):
 
   # create the .scr subdirectory in the prefix directory
   #mkdir -p ${pardir}/.scr
-  argv = ['mkdir','-p',pardir+'/.scr']
-  runproc = subprocess.Popen(args=argv)
-  out = runproc.communicate()
+  os.makedirs(pardir+'/.scr',exist_ok=True)
 
   # TODO: It would be nice to clear the cache and control directories
   # here in preparation for the run.  However, a simple rm -rf is too
@@ -58,14 +56,15 @@ def scr_prerun(args):
   # clear any existing flush or nodes files
   # NOTE: we *do not* clear the halt file, since the user may have
   # requested the job to halt
-  argv = ['rm','-f',pardir+'/.scr/flush.scr']
-  runproc = subprocess.Popen(args=argv)
-  out = runproc.communicate()
-  #rm -f ${pardir}/.scr/flush.scr
-  argv[2]=pardir+'/.scr/nodes.scr'
-  runproc = subprocess.Popen(args=argv)
-  out = runproc.communicate()
-  #rm -f ${pardir}/.scr/nodes.scr
+  # remove files: ${pardir}/.scr/{flush.scr,nodes.scr}
+  try:
+    os.remove(pardir+'/.scr/flush.scr')
+  except: # error on doesn't exist / etc ...
+    pass
+  try:
+    os.remove(pardir+'/.scr/nodes.scr')
+  except:
+    pass
 
   # report timing info
   end_time = datetime.now()
