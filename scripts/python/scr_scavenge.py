@@ -13,8 +13,6 @@ from scr_common import tracefunction, getconf
 
 # Usage: $prog [--jobset <nodeset>] [--up <nodeset> | --down <nodeset>] --id <id> --from <dir> --to <dir>
 
-
-
 def print_usage(prog):
   print('')
   print('  Usage:  '+prog+' [--jobset <nodeset>] [--up <nodeset> | --down <nodeset>] --id <id> --from <dir> --to <dir>\n')
@@ -167,3 +165,8 @@ def scr_scavenge(argv,scr_env=None):
   runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
   runproc.communicate()
   return 0
+
+if __name__=='__main__':
+  ret = scr_scavenge(sys.argv[2:])
+  print('scr_scavenge returned '+str(ret))
+

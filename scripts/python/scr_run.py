@@ -2,7 +2,7 @@
 
 from datetime import datetime
 import os, signal, sys, time, scr_const
-from scr_common import tracefunction
+from scr_common import tracefunction, getconf
 from scr_test_runtime import scr_test_runtime
 from scr_list_dir import scr_list_dir
 from scr_prerun import scr_prerun
@@ -15,13 +15,7 @@ from scr_env import SCR_Env
 from scr_param import SCR_Param
 from scr_glob_hosts import scr_glob_hosts
 
-launcher='srun'
-prog='scr_'+launcher
-
-libdir=scr_const.X_LIBDIR
-bindir=scr_const.X_BINDIR
-
-def printusage():
+def print_usage(launcher):
   print('USAGE:')
   # from original parsing it looks like all launcher args are combined
   # (no matter whether they appear in the front or at the end)
@@ -42,42 +36,29 @@ def printusage():
   print('then the restart command will be appended to the '+launcher+' arguments when a restart file is present.')
   sys.exit(0)
 
-# capture restart and run commands if specified
-# parse argv takes argv, returns command line options
-def parseargv(argv):
-  run_cmd = ''
-  restart_cmd=''
-  launcher_args = []
-  skip=0
-  for i in range(len(argv)):
-    if skip!=0:
-      skip=0
-      continue
-    elif argv[i]=='--restart-cmd' or argv[i]=='-rs':
-      if i+1==len(argv):
-        printusage()
-      restart_cmd=argv[i+1]
-      skip=1
-    elif argv[i]=='--run-cmd' or argv[i]=='-rc':
-      if i+1==len(argv):
-        printusage()
-      run_cmd=argv[i+1]
-      skip=1
-    elif argv[i].startswith('--restart-cmd=') or argv[i].startswith('-rs='):
-      restart_cmd=argv[i].split('=')[1]
-    elif argv[i].startswith('--run-cmd=') or argv[i].startswith('-rc='):
-      run_cmd=argv[i].split('=')[1]
-    else:
-      launcher_args.append(argv[i])
-  return run_cmd, restart_cmd, launcher_args
-
 def scr_run(argv):
+  launcher='srun'
+  prog='scr_'+launcher
+
+  libdir=scr_const.X_LIBDIR
+  bindir=scr_const.X_BINDIR
   run_cmd=''
   restart_cmd=''
   launcher_args=[]
 
-  if len(argv)>0:
-    run_cmd, restart_cmd, launcher_args = parseargv(argv)
+  conf = getconf(argv,keyvals={'-rc':'run_cmd','--run-cmd':'run_cmd','-rs':'restart_cmd','--restart-cmd':'restart_cmd'},togglevals={'-h':'help','--help':'help'},strict=False)
+  if 'help' in conf:
+    print_usage(launcher)
+    return 0
+  run_cmd = ''
+  restart_cmd = ''
+  launcher_args = ''
+  if 'run_cmd' in conf:
+    run_cmd = conf['run_cmd']
+  if 'restart_cmd' in conf:
+    restart_cmd = conf['restart_cmd']
+  if 'argv' in conf:
+    launcher_args = ' '.join(conf['argv'])
 
   val = os.environ.get('SCR_ENABLE')
   if val is not None and val=='0':
@@ -270,7 +251,7 @@ def scr_run(argv):
       #srun_pid=$!;
       time.sleep(10)
       #sleep 10; # sleep a bit to wait for the job to show up in squeue
-      jobstepid = scr_get_jobstep_id(srun_pid,scr_env)
+      jobstepid = scr_get_jobstep_id(scr_env)
       # then start the watchdog  if we got a valid job step id
       if jobstepid!='' and jobstepid!='-1':
         watchdog = Process(target=scr_watchdog,args=('--dir',prefix,'--jobStepId',jobstepid))
@@ -338,3 +319,4 @@ def scr_run(argv):
 
 if __name__=='__main___':
   scr_run(sys.argv[2:])
+

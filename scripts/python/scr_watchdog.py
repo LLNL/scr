@@ -7,10 +7,11 @@
 # activity has occurred since the last time it checked. If too much time
 # passes without activity, it kills the job
 
-import time, scr_const
+import time, scr_const, sys
 from datetime import datetime
 from scr_param import SCR_Param
 from scr_kill_jobstep import scr_kill_jobstep
+from scr_common import getconf
 
 def print_usage(prog):
   print('')
@@ -44,35 +45,10 @@ def scr_watchdog(argv):
   start_time = datetime.now()
 
   # read in command line arguments
-  conf = {}
-  skip=False
-  for i in range(len(argv)):
-    if skip==True:
-      skip=False
-    elif argv[i]=='--dir' or argv[i]=='-d':
-      if i+1==len(argv):
-        print_usage(prog)
-        return 1
-      skip=True
-      conf['prefixdir']=argv[i+1]
-    elif argv[i]=='--jobStepId' or argv[i]=='j':
-      if i+1==len(argv):
-        print_usage(prog)
-        return 1
-      skip=True
-      conf['jobstepid']=argv[i+1]
-    elif '=' in argv[i]:
-      vals = argv[i].split('=')
-      if vals[0]=='--dir' or vals[0]=='-d':
-        conf['prefixdir'] = vals[1]
-      elif vals[0]=='jobStepId' or vals[0]=='j':
-        conf['jobstepid']=vals[1]
-      else:
-        print_usage(prog)
-        return 1
-    else:
-      print_usage(prog)
-      return 1
+  conf = getconf(argv,{'-d':'prefixdir','--dir':'prefixdir','-j':'jobstepid','--jobStepId':'jobstepid'})
+  if conf is None:
+    print_usage(prog)
+    return 1
 
   # check that we have a  dir and apid
   if 'jobstepid' not in conf or 'prefixdir' not in conf:
@@ -121,3 +97,9 @@ def scr_watchdog(argv):
   print('Killing simulation using '+killCmd)
   scr_kill_jobstep(killCmd)
   return 0
+
+
+if __name__=='__main__':
+  ret = scr_watchdog(sys.argv[2:])
+  print('scr_watchdog returned '+str(ret))
+

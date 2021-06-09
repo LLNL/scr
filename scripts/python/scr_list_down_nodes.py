@@ -2,10 +2,12 @@
 
 # scr_list_down_nodes.py
 
+import sys
 import scr_const
 from datetime import datetime
 from scr_param import SCR_Param
 from scr_list_dir import scr_list_dir
+from scr_common import getconf
 import scr_hostlist
 
 def print_usage(prog):
@@ -38,44 +40,15 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   param = SCR_Param()
 
-  conf = {}
+  conf = getconf(argv,keyvals={'-d':'down','--down':'down','-s':'runtime_secs','--secs':'runtime_secs'},togglevals={'-r':'reason','--reason':'reason','-f':'free','--free':'free','-l':'log_nodes','--log':'log_nodes','-h':'help','--help':'help'},strict=False)
 
-  skip=False
+  if 'help' in conf:
+    print_usage(prog)
+    return 0
+  
   nodeset = ''
-  for i in range(len(argv)):
-    if skip==False:
-      skip=True
-    elif argv[i]=='--reason' or argv[i]=='-r':
-      conf['reason']=True
-    elif argv[i]=='--free' or argv[i]=='-f':
-      conf['free']=True
-    elif argv[i]=='--down' or argv[i]=='-d':
-      if i+1==len(argv):
-        print_usage(prog)
-        return 1
-      conf['down']=argv[i+1]
-      skip=True
-    elif argv[i]=='--log' or argv[i]=='-l':
-      conf['log_nodes']=True
-    elif argv[i]=='--secs' or argv[i]=='-s':
-      if i+1==len(argv):
-        print_usage(prog)
-        return 1
-      conf['runtime_secs']=argv[i+1]
-    elif '=' in argv[i]:
-      vals = argv[i].split('=')
-      if vals[0]=='--down' or vals[0]=='-d':
-        conf['down']=vals[1]
-      elif vals[0]=='--secs' or vals[0]=='-s':
-        conf['runtime_secs']=vals[1]
-      else:
-        print_usage(prog)
-        return 1
-    elif argv[i]=='--help' or argv[i]=='-h':
-      print_usage(prog)
-      return 1
-    elif nodeset=='':
-      nodeset=argv[i]
+  if 'argv' in conf:
+    nodeset = ' '.join(conf['argv'])
 
   # get prefix directory
   prefix = bindir+'/scr_prefix'
@@ -282,3 +255,8 @@ def scr_list_down_nodes(argv,scr_env=None):
     return ret
   # otherwise, don't print anything and exit with 0
   return 0
+
+if __name__=='__main__':
+  ret = scr_list_down_nodes(sys.argv[2:])
+  print('scr_list_down_nodes returned '+str(ret))
+

@@ -34,3 +34,8 @@ def scr_test_runtime():
     rc = 1
 
   return rc
+
+if __name__=='__main__':
+  ret = scr_test_runtime()
+  print('scr_test_runtime returned '+str(ret))
+

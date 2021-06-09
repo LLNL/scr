@@ -162,3 +162,6 @@ class SCR_Param():
     val = int(val)
     return val
 
+if __name__=='__main__':
+  print('We can put a test here for the scr_param class')
+  print('(or do something different)')

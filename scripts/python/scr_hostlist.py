@@ -301,3 +301,6 @@ def intersect(set1,set2):
   ret = expand(listvals)
   return ret
 
+if __name__=='__main__':
+  print('We could put some test here')
+

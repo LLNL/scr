@@ -15,7 +15,7 @@ from scr_env import SCR_Env
 # is for some other srun command and not the one we are looking for. 
 # This script returns the job step id on success and -1 on failure.
 
-def scr_get_jobstep_id(srun_pid,scr_env=None):
+def scr_get_jobstep_id(scr_env=None):
   prog = 'scr_get_jobstep_id'
   #my $pid=$ARGV[0]; # unused
   if scr_env is None:
@@ -52,6 +52,11 @@ def scr_get_jobstep_id(srun_pid,scr_env=None):
     # if it is JOBID.0, then it is the allocation ID and we don't want that
     # if it's not 0, then assume it's the one we're looking for
     if jobidparts[1]!='0' and jobidparts[1]!='batch':
-        currjobid=fields[0]
-        break
+      currjobid=fields[0]
+      break
   return currjobid
+
+if __name__=='__main__':
+  ret = scr_get_jobstep_id()
+  print('scr_get_jobstep_id returned '+str(ret))
+

@@ -5,7 +5,9 @@
 # This script uses the scancel command to kill the job step with the 
 # job step id supplied on the command line
 
+import sys
 import scr_const
+from scr_common import getconf
 
 def print_usage(prog):
   print('')
@@ -21,24 +23,14 @@ def scr_kill_jobstep(argv):
   killCmd = 'scancel'
 
   # read in the command line options
-  jobid=None
-  argv = argv.split(' ')
-  for i in range(len(argv)):
-    if argv[i]=='--jobStepId' or argv[i]=='-j':
-      if i+1<len(argv):
-        jobid=argv[i+1]
-        break
-    elif '=' in argv[i]:
-      vals = argv[i].split('=')
-      if vals[0]=='--jobStepId' or vals[0]=='-j':
-        jobid=vals[1]
-        break
+  conf = getconf(argv,{'-j':'jobid','--jobStepId':'jobid'})
+  if conf is None:
     print_usage(prog)
     return 1
-  if jobid==None:
+  if 'jobid' not in conf:
     print('You must specify the job step id to kill.')
-    print_usage(prog)
     return 1
+  jobid=conf['jobid']
 
   cmd = killCmd+' '+jobid
   print(cmd)
@@ -46,3 +38,7 @@ def scr_kill_jobstep(argv):
   runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
   out = runproc.communicate()[0]
   return runproc.returncode
+
+if __name__=='__main__':
+  ret = scr_kill_jobstep(sys.argv[2:])
+  print('scr_kill_jobstep returned '+str(ret))

@@ -11,7 +11,7 @@ from scr_test_runtime import scr_test_runtime
 def print_usage(prog):
   print('Usage: '+prog+' [-p prefix_dir]')
 
-def scr_prerun(args):
+def scr_prerun(argv):
   val = os.environ.get('SCR_ENABLE')
   if val is None or val == '0':
     return 0 # doesn't stop run when called from scr_run
@@ -27,12 +27,25 @@ def scr_prerun(args):
   # process command line options
   pardir=bindir+'/scr_prefix'
 
-  if len(args)==1:
-    pardir = args[0]
+  if len(argv)==1:
+    if '=' in argv:
+      vals = argv.split('=')
+      if vals[0]=='-p':
+        pardir=vals[1]
+      else:
+        print_usage(prog)
+        return 1
+    else:
+      pardir=argv[0]
   elif len(args)==2 and args[0]=='-p':
     pardir = args[1]
     #pardir = os.environ.get('OPTARG') ### not sure what this was getting ###
   else:
+    print_usage(prog)
+    return 1
+
+  # this could happen with argv= ['-p=]
+  if pardir=='':
     print_usage(prog)
     return 1
   print(prog+': Started: '+str(start_time))
@@ -75,3 +88,8 @@ def scr_prerun(args):
   # report exit code and exit
   print(prog+': exit code: 0')
   return 0
+
+if __name__=='__main__':
+  ret = scr_prerun(sys.argv[2:])
+  print('scr_prerun returned '+str(ret))
+

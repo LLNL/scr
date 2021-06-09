@@ -98,3 +98,4 @@ if __name__ == '__main__':
   scr_env.set_downnodes()
   for key in scr_env.conf:
     print('scr_env.conf['+key+'] = \''+scr_env.conf[key]+'\'')
+

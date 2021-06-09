@@ -2,6 +2,7 @@
 
 #scr_glob_hosts.py
 
+import sys
 from scr_common import getconf
 import scr_hostlist
 
@@ -69,4 +70,8 @@ def scr_glob_hosts(argv):
     return len(hostset)
   # return a csv string representation of the nodelist
   return scr_hostlist.compress(hostset)
+
+if __name__=='__main__':
+  ret = scr_glob_hosts(sys.argv[2:])
+  print('scr_glob_hosts returned '+str(ret))
 

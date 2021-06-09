@@ -22,3 +22,8 @@ def scr_prefix():
     # expand any environment vars in path
     prefix = os.path.expandvars(prefix)
   return prefix
+
+if __name__=='__main__':
+  ret = scr_prefix()
+  print('scr_prefix returned '+str(ret))
+

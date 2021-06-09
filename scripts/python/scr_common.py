@@ -16,8 +16,9 @@ def tracefunction(frame,event,arg):
       print(str(frame.f_code.co_name)+'():'+str(frame.f_lineno)+' -> '+str(event))
 
 # Parses argv, returns a dictionary of the configuration options
-# keyvals.keys is the key in argv to set keyvals[key] in the conf to argv option, (togglevals are for flag options set to True)
+# keyvals.keys is the key in argv to set keyvals[key] in the conf to argv option, (togglevals is for flag options to be set to True)
 # if strict is True then it will return None if an invalid option is passed in
+# if strict is False then any unused arguments will be appended to conf['argv'] = []
 def getconf(argv,keyvals,togglevals=None,strict=True):
   conf = {}
   skip=False
@@ -26,32 +27,29 @@ def getconf(argv,keyvals,togglevals=None,strict=True):
       skip=False
     elif '=' in argv[i]:
       vals = argv[i].split('=')
-      for key in keyvals:
-        if vals[0]==key:
-          conf[vals[0]] = vals[1]
-          break
-      if vals[0] not in conf and togglevals is not None:
-        for key in togglevals:
-          if key==vals[0]:
-            conf[vals[0]] = vals[1]
-            break
-      if strict == True and vals[0] not in conf:
+      if vals[0] in keyvals:
+        conf[keyvals[vals[0]]] = vals[1]
+      elif togglevals is not None and vals[0] in togglevals:
+        conf[togglevals[vals[0]]] = vals[1]
+      elif strict == True:
         return None
+      else:
+        if 'argv' not in conf:
+          conf['argv'] = []
+        conf['argv'].append(argv[i])
     else:
-      for key in keyvals:
-        if key==argv[i]:
-          if i+1==len(argv):
-            return None
-          conf[argv[i]]=argv[i+1]
-          skip=True
-          break
-      if skip==False:
-        if togglevals is not None:
-          for key in togglevals:
-            if key==argv[i]:
-              conf[argv[i]]=1
-              break
-        if strict == True and argv[i] not in conf:
+      if argv[i] in keyvals:
+        if i+1==len(argv):
           return None
+        conf[keyvals[argv[i]]]=argv[i+1]
+        skip=True
+      elif togglevals is not None and argv[i] in togglevals:
+        conf[togglevals[argv[i]]]=1
+      elif strict == True:
+        return None
+      else:
+        if 'argv' not in conf:
+          conf['argv'] = []
+        conf['argv'].append(argv[i])
   return conf
-  
+

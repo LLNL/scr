@@ -10,6 +10,7 @@
 # rather than having it duplicated over a number of different
 # scripts
 
+import sys
 import scr_const
 from scr_param import SCR_Param
 from scr_common import getconf
@@ -88,4 +89,8 @@ def scr_list_dir(argv,scr_env=None):
       dirs.append(base)
   dirs = ' '.join(dirs)
   return dirs
+
+if __name__=='__main__':
+  ret = scr_list_dir(sys.argv[2:])
+  print('scr_list_dir returned '+str(ret))
 

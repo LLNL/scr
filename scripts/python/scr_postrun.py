@@ -5,7 +5,7 @@
 # Run this script after the final run in a job allocation
 # to scavenge files from cache to parallel file system.
 
-import os, scr_const
+import os, scr_const, sys
 from datetime import datetime
 from scr_common import tracefunction, getconf
 from scr_prefix import scr_prefix
@@ -40,7 +40,7 @@ def scr_postrun(argv,scr_env=None):
 
   # pass prefix via command line
   pardir=scr_prefix()
-  conf = scr_common.getconf(argv,keyvals={'-p':'prefix'})
+  conf = getconf(argv,keyvals={'-p':'prefix'})
   if conf is None:
     print_usage(prog)
     return 1
@@ -266,4 +266,8 @@ def scr_postrun(argv,scr_env=None):
   # print the exit code and exit
   print(prog+': exit code: '+str(ret))
   return ret
+
+if __name__=='__main__':
+  ret = scr_postrun(sys.argv[2:])
+  print('scr_postrun returned '+str(ret))
 
