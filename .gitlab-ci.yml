@@ -42,7 +42,7 @@ buildjob-catalyst:
     - export WORK_DIR=${WORK_DIR_BASE}/catalyst
     - mkdir -p ${WORK_DIR}
     - cd ${WORK_DIR}
-    - mkdir install
+    - mkdir -p install
     - uname -a
     - pwd
     - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
@@ -53,9 +53,9 @@ buildjob-catalyst:
     - echo "Working dir " `pwd`
     # The build directory needs to be called build because the testing scripts pick up the name,
     # so make sure the build directory is called "build" even though its in /dev/shm
-    - mkdir ${TMP_DIR_BASE}/build
+    - mkdir -p ${TMP_DIR_BASE}/build
     - ln -s ${TMP_DIR_BASE}/build build-tmp
-    - mkdir ${TMP_DIR_BASE}/deps
+    - mkdir -p ${TMP_DIR_BASE}/deps
     - ln -s ${TMP_DIR_BASE}/deps deps
     - ${SRC_DIR}/bootstrap.sh
     - cd build
@@ -65,7 +65,7 @@ buildjob-catalyst:
     # Move build from /dev/shm to work directory.
     - cd ${WORK_DIR}
     - mv build build-shm
-    - mkdir build && cd build
+    - mkdir -p  build && cd build
     - (cd ../build-shm; tar cf - .) | tar xvf -
 
   #artifacts:
@@ -228,7 +228,7 @@ buildjob-quartz:
     - export WORK_DIR=${WORK_DIR_BASE}/quartz
     - mkdir -p ${WORK_DIR}
     - cd ${WORK_DIR}
-    - mkdir install
+    - mkdir -p install
     - uname -a
     - pwd
     - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
@@ -239,9 +239,9 @@ buildjob-quartz:
     - echo "Working dir " `pwd`
     # The build directory needs to be called build because the testing scripts pick up the name,
     # so make sure the build directory is called "build" even though its in /dev/shm
-    - mkdir ${TMP_DIR_BASE}/build
+    - mkdir -p ${TMP_DIR_BASE}/build
     - ln -s ${TMP_DIR_BASE}/build build-tmp
-    - mkdir ${TMP_DIR_BASE}/deps
+    - mkdir -p ${TMP_DIR_BASE}/deps
     - ln -s ${TMP_DIR_BASE}/deps deps
     - ${SRC_DIR}/bootstrap.sh
     - cd build
@@ -251,7 +251,7 @@ buildjob-quartz:
     # Move build from /dev/shm to work directory.
     - cd ${WORK_DIR}
     - mv build build-shm
-    - mkdir build && cd build
+    - mkdir -p build && cd build
     - (cd ../build-shm; tar cf - .) | tar xvf -
 
   #artifacts:
@@ -414,7 +414,7 @@ buildjob-lassen:
     - export WORK_DIR=${WORK_DIR_BASE}/lassen
     - mkdir -p ${WORK_DIR}
     - cd ${WORK_DIR}
-    - mkdir install
+    - mkdir -p install
     - uname -a
     - pwd
     - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
@@ -425,9 +425,9 @@ buildjob-lassen:
     - echo "Working dir " `pwd`
     # The build directory needs to be called build because the testing scripts pick up the name,
     # so make sure the build directory is called "build" even though its in /dev/shm
-    - mkdir ${TMP_DIR_BASE}/build
+    - mkdir -p ${TMP_DIR_BASE}/build
     - ln -s ${TMP_DIR_BASE}/build build-tmp
-    - mkdir ${TMP_DIR_BASE}/deps
+    - mkdir -p ${TMP_DIR_BASE}/deps
     - ln -s ${TMP_DIR_BASE}/deps deps
     - export CC=xlc_r
     - export CXX=xlc++_r
@@ -442,7 +442,7 @@ buildjob-lassen:
     # Move build from /dev/shm to work directory.
     - cd ${WORK_DIR}
     - mv build build-shm
-    - mkdir build && cd build
+    - mkdir -p build && cd build
     - (cd ../build-shm; tar cf - .) | tar xvf -
   #artifacts:
   #  paths:
