@@ -57,7 +57,7 @@ buildjob-catalyst:
     - ln -s ${TMP_DIR_BASE}/build build-tmp
     - mkdir -p ${TMP_DIR_BASE}/deps
     - ln -s ${TMP_DIR_BASE}/deps deps
-    - ${SRC_DIR}/bootstrap.sh
+    - ${SRC_DIR}/bootstrap.sh --dev
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${WORK_DIR}/install -DCMAKE_PREFIX_PATH=${WORK_DIR}/install ${SRC_DIR}
     - make
@@ -243,7 +243,7 @@ buildjob-quartz:
     - ln -s ${TMP_DIR_BASE}/build build-tmp
     - mkdir -p ${TMP_DIR_BASE}/deps
     - ln -s ${TMP_DIR_BASE}/deps deps
-    - ${SRC_DIR}/bootstrap.sh
+    - ${SRC_DIR}/bootstrap.sh --dev
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${WORK_DIR}/install -DCMAKE_PREFIX_PATH=${WORK_DIR}/install ${SRC_DIR}
     - make
@@ -434,7 +434,7 @@ buildjob-lassen:
     - export F77=xlf_r
     - export F90=xlf90_r
     - export FFLAGS=-qextname
-    - ${SRC_DIR}/bootstrap.sh
+    - ${SRC_DIR}/bootstrap.sh --dev
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${WORK_DIR}/install -DCMAKE_PREFIX_PATH=${WORK_DIR}/install -DSCR_RESOURCE_MANAGER=LSF ${SRC_DIR}
     - make
