@@ -3,7 +3,7 @@
 # scr_common.py
 # Defines for common functions shared across scripts
 
-import inspect
+import inspect, os
 
 # for verbose, prints:
 # filename:function:linenum -> event
@@ -52,4 +52,28 @@ def getconf(argv,keyvals,togglevals=None,strict=True):
           conf['argv'] = []
         conf['argv'].append(argv[i])
   return conf
+
+# interpolate variables will expand environment variables in a string
+# if the string begins with '~' or '.', these are first replaced by $HOME or $PWD
+def interpolate_variables(varstr):
+  # replace ~ and . symbols from front of path
+  if varstr[0]=='~':
+    varstr='$HOME'+varstr[1:]
+  elif varstr[0]=='.':
+    varstr=os.getcwd()+prefix[1:]
+  return os.path.expandvars(varstr)
+
+# method to return the scr prefix (as originally in scr_param.pm.in)
+def scr_prefix():
+  prefix = os.environ.get('SCR_PREFIX')
+  if prefix is None:
+    return os.getcwd()
+  # tack on current working dir if needed
+  # don't resolve symlinks
+  # don't worry about missing parts, the calling script calling might create it
+  return interpolate_variables(prefix)
+
+if __name__=='__main__':
+  ret = scr_prefix()
+  print('scr_prefix returned '+str(ret))
 

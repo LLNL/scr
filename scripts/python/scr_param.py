@@ -4,18 +4,12 @@
 # class SCR Param
 
 import os, re, scr_const
-from scr_prefix import scr_prefix
-
-sysconf = scr_const.SCR_CONFIG_FILE
+from scr_common import interpolate_variables, scr_prefix
 
 class SCR_Param():
   def __init__(self):
+    sysconf = scr_const.SCR_CONFIG_FILE
     self.prog = 'scr_param'
-    self.usrconf = {}
-    self.sysconf = {}
-    self.compile = {}
-    self.no_user = {}
-    self.appconf = {}
     # get current working dir
     # use value in $SCR_PREFIX if set
     prefix = scr_prefix()
@@ -27,104 +21,141 @@ class SCR_Param():
       usrfile = prefix+'/.scrconf'
     # read in the app configuration file, if specified
     appfile = prefix+'/.scr/app.conf'
+
+    self.appconf = {}
     if os.path.isfile(appfile) and os.access(appfile,'R_OK'):
       self.appconf = self.read_config_file(appfile)
 
+    self.usrconf = {}
     # read in the user configuration file, if specified
     if os.path.isfile(usrfile) and os.access(usrfile,'R_OK'):
       self.usrconf = self.read_config_file(usrfile)
 
+    self.sysconf = {}
     # read in the system configuration file
     if os.path.isfile(sysconf) and os.access(sysconf,'R_OK'):
       self.sysconf = self.read_config_file(sysconf)
+
+    self.compile = {}
     # set our compile time constants
-    self.compile["CNTLDIR"] = scr_const.SCR_CNTL_BASE
-    self.compile["CACHEDIR"] = scr_const.SCR_CACHE_BASE
-    self.compile["SCR_CNTL_BASE"] = scr_const.SCR_CNTL_BASE
-    self.compile["SCR_CACHE_BASE"] = scr_const.SCR_CACHE_BASE
-    self.compile["SCR_CACHE_SIZE"] = scr_const.SCR_CACHE_SIZE
-    self.cache_base = self.get('SCR_CACHE_BASE')
-    self.cache_size = self.get('SCR_CACHE_SIZE')
-    if 'CACHE' not in self.usrconf:
-      self.usrconf['CACHE'] = (self.cache_base,self.cache_size)
-  '''
-  $self->{compile} = {};
-  $self->{compile}{"CNTLDIR"}{"@SCR_CNTL_BASE@"} = {};
-  $self->{compile}{"CACHEDIR"}{"@SCR_CACHE_BASE@"} = {};
-  $self->{compile}{"SCR_CNTL_BASE"}{"@SCR_CNTL_BASE@"} = {};
-  $self->{compile}{"SCR_CACHE_BASE"}{"@SCR_CACHE_BASE@"} = {};
-  $self->{compile}{"SCR_CACHE_SIZE"}{"1"} = {};
+    self.compile['CNTLDIR'][scr_const.SCR_CNTL_BASE] = {}
+    self.compile['CACHEDIR'][scr_const.SCR_CACHE_BASE] = {}
+    self.compile['SCR_CNTL_BASE'][scr_const.SCR_CNTL_BASE] = {}
+    self.compile['SCR_CACHE_BASE'][scr_const.SCR_CACHE_BASE] = {}
+    self.compile['SCR_CACHE_SIZE'][scr_const.SCR_CACHE_SIZE] = {}
 
-  # set our restricted parameters,
-  # these can't be set via env vars or user conf file
-  $self->{no_user} = {};
-  # NOTE: At this point we could scan the environment and user config file
-  # for restricted parameters to print a warning.  However, in this case
-  # printing the extra messages from a perl script whose output is used by
-  # other scripts as input may do more harm than good.  Printing the
-  # warning in the library should be sufficient.
+    # set our restricted parameters,
+    # these can't be set via env vars or user conf file
+    self.no_user = {}
 
-  # if CACHE_BASE and CACHE_SIZE are set and the user didn't set CACHEDESC,
-  # create a single CACHEDESC in the user hash
-  my $cache_base = get($self, "SCR_CACHE_BASE");
-  my $cache_size = get($self, "SCR_CACHE_SIZE");
-  if (not defined $self->{usrconf}{"CACHE"} and
-      defined $cache_base and
-      defined $cache_size)
-  {
-    $self->{usrconf}{"CACHE"}{$cache_base}{"SIZE"}{$cache_size} = {};
-  }
+    # NOTE: At this point we could scan the environment and user config file
+    # for restricted parameters to print a warning.  However, in this case
+    # printing the extra messages from a perl script whose output is used by
+    # other scripts as input may do more harm than good.  Printing the
+    # warning in the library should be sufficient.
 
-  return bless $self, $type;
-  '''
+    # if CACHE_BASE and CACHE_SIZE are set and the user didn't set CACHEDESC,
+    # create a single CACHEDESC in the user hash
+    self.cache_base = get('SCR_CACHE_BASE')
+    self.cache_size = get('SCR_CACHE_SIZE')
+    if 'CACHE' not in self.usrconf and self.cache_base is not None and self.cache_size is not None:
+      self.usrconf['CACHE'] = {}
+      self.usrconf['CACHE']['SIZE'] = {}
+      self.usrconf['CACHE']['SIZE'][self.cache_size] = {}
+
   def read_config_file(self,filename):
+    if not os.access(filename,'R_OK'):
+      print(self.prog+': ERROR: Could not open file: '+filename)
+      return {}
     h = {}
     with open (filename,'r') as infile:
       for line in infile.readlines():
-        line=line.rstrip('\n')
+        line=line.rstrip()
         line = re.sub('^\s*','',line) # strip any leading whitespace from line
         line = re.sub('\s*$','',line) # strip any trailing whitespace from line
         line = re.sub('=',' ',line) # replace '=' with spaces
         parts = line.split(' ')
         key = ''
-        for part in parts:
+        top_key = ''
+        top_value = ''
+        lastpart = len(parts)-1
+        first=True # need the next top_key
+        for i, part in enumerate(parts):
           if len(part)==0: # input had double-spaces
             continue
-          if key=='':
-            if part[0]=='#': # comment line
-              break
-            key=part
-            continue
-  def get(self,key):
-    val = os.environ.get(key)
+          if part[0]=='#':
+            break
+          # read in the value (should have at least one more item in the list)
+          if first==True:
+            if i==lastpart:
+              print(self.prog+': ERROR: Invalid key=value pair detected in '+filename+'.')
+              sys.exit(1) # return {}
+            key=part.upper()
+            first=False
+          else:
+            value = interpolate_variables(part)
+            if top_key!='':
+              if key not in h[top_key][top_value]:
+                h[top_key][top_value][key] = {}
+              h[top_key][top_value][key][value] = {}
+            else:
+              top_key=key
+              top_value=value
+              if top_key not in h:
+                h[top_key] = {}
+              if top_value not in h[top_key]:
+                h[top_key][top_value] = {}
+            first=True
+    return h
+
+  def get(self,name):
+    val = os.environ.get(name)
 
     # if param is set in environment, return that value
-    if key not in self.no_user and val is not None:
-      val = os.path.expandvars(val)
-      return val
+    if name not in self.no_user and val is not None:
+      return interpolate_variables(val)
 
     # otherwise, check whether we have it defined in our user config file
-    if key not in self.no_user and key in self.usrconf:
-      return self.usrconf[key]
+    if name not in self.no_user and name in self.usrconf:
+      return self.usrconf[name][0]
 
     # if param was set by the code, return that value
-    if key in self.appconf:
-      return self.appconf[key]
+    if name in self.appconf:
+      return self.appconf[name][0]
 
     # otherwise, check whether we have it defined in our system config file
-    if key in self.sysconf:
-      return self.sysconf[key]
+    if name in self.sysconf:
+      return self.sysconf[name][0]
 
     # otherwise, check whether its a compile time constant
-    if key in self.compile:
-      return self.compile[key]
+    if name in self.compile:
+      return self.compile[name][0]
 
     return None
 
-  # (the gethash seems unnecessary ... ?)
-  def get_hash(self,key):
-    val = self.get(key)
-    return val
+  def get_hash(self,name):
+    val = os.environ.get(name)
+
+    # if param is set in environment, return that value
+    if name not in self.no_user and val is not None:
+      h = {}
+      name = interpolate_variables(val)
+      h[name] = {}
+      return h
+
+    # otherwise, check whether we have it defined in our user config file
+    if name not in self.no_user and name in self.usrconf:
+      return self.usrconf[name].copy()
+
+    # otherwise, check whether we have it defined in our system config file
+    if name in self.sysconf:
+      return self.sysconf[name].copy()
+
+    # otherwise, check whether its a compile time constant
+    if name in self.compile:
+      return self.compile[name].copy()
+
+    return None
 
   # convert byte string like 2kb, 1.5m, 200GB, 1.4T to integer value
   def abtoull(self,stringval):

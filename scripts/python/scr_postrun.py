@@ -7,8 +7,7 @@
 
 import os, scr_const, sys
 from datetime import datetime
-from scr_common import tracefunction, getconf
-from scr_prefix import scr_prefix
+from scr_common import tracefunction, getconf, scr_prefix
 from scr_scavenge import scr_scavenge
 from scr_list_down_nodes import scr_list_down_nodes
 from scr_glob_hosts import scr_glob_hosts
