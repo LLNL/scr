@@ -318,5 +318,5 @@ def scr_run(argv):
   print(prog+': Ended: '+str(timestamp))
 
 if __name__=='__main___':
-  scr_run(sys.argv[2:])
+  scr_run(sys.argv[1:])
 

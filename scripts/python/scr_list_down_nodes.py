@@ -257,6 +257,6 @@ def scr_list_down_nodes(argv,scr_env=None):
   return 0
 
 if __name__=='__main__':
-  ret = scr_list_down_nodes(sys.argv[2:])
+  ret = scr_list_down_nodes(sys.argv[1:])
   print('scr_list_down_nodes returned '+str(ret))
 

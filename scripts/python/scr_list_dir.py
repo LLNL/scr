@@ -91,6 +91,6 @@ def scr_list_dir(argv,scr_env=None):
   return dirs
 
 if __name__=='__main__':
-  ret = scr_list_dir(sys.argv[2:])
+  ret = scr_list_dir(sys.argv[1:])
   print('scr_list_dir returned '+str(ret))
 

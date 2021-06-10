@@ -100,6 +100,6 @@ def scr_watchdog(argv):
 
 
 if __name__=='__main__':
-  ret = scr_watchdog(sys.argv[2:])
+  ret = scr_watchdog(sys.argv[1:])
   print('scr_watchdog returned '+str(ret))
 

@@ -268,6 +268,6 @@ def scr_postrun(argv,scr_env=None):
   return ret
 
 if __name__=='__main__':
-  ret = scr_postrun(sys.argv[2:])
+  ret = scr_postrun(sys.argv[1:])
   print('scr_postrun returned '+str(ret))
 

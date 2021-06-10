@@ -90,6 +90,6 @@ def scr_prerun(argv):
   return 0
 
 if __name__=='__main__':
-  ret = scr_prerun(sys.argv[2:])
+  ret = scr_prerun(sys.argv[1:])
   print('scr_prerun returned '+str(ret))
 

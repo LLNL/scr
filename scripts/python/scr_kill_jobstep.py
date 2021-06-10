@@ -40,5 +40,5 @@ def scr_kill_jobstep(argv):
   return runproc.returncode
 
 if __name__=='__main__':
-  ret = scr_kill_jobstep(sys.argv[2:])
+  ret = scr_kill_jobstep(sys.argv[1:])
   print('scr_kill_jobstep returned '+str(ret))
