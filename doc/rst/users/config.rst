@@ -438,3 +438,66 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_WATCHDOG_TIMEOUT_PFS`
      - N/A
      - Set to the expected time (seconds) for checkpoint writes to the parallel file system (see :ref:`sec-hang`).
+
+.. _sec-config-common:
+
+Common configurations
+---------------------
+
+Applications achieve the highest performance when only
+a single process (MPI rank) accesses each file.
+This mode is termed file-per-process.
+In that situation, SCR can keep files in cache locations that include node-local storage.
+
+SCR also supports applications that require shared access to files,
+where more than one process (MPI rank) writes to or reads from a given file.
+This mode is termed shared access.
+To support shared access to a file,
+SCR locates files in global storage like the parallel file system.
+ 
+There are three common SCR configurations depending on the needs of the application.
+ 
+write file-per-process, read file-per-process
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this mode, an application uses file-per-process mode
+both while writing its dataset during checkpoint/output
+and while reading its dataset during restart.
+SCR can use cache including node-local storage for both operations.
+To congiure SCR for this mode::
+
+  SCR_CACHE_BYPASS=0
+
+One must set :code:`SCR_CACHE_BYPASS=0` to instruct SCR to use cache.
+
+write file-per-process, read with shared access
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is somewhat common for an application to write datasets using file-per-process
+mode but then require shared access mode to read its checkpoint files during restart.
+For example, there might be a top-level file that all processes read.
+In this case, SCR can be configured to use cache like node-local storage while writing,
+but it must be configured to move files to the prefix directory for restarts::
+
+  SCR_CACHE_BYPASS=0
+  SCR_GLOBAL_RESTART=1
+
+Setting :code:`SCR_GLOBAL_RESTART=1` instructs SCR to rebuild any cached datasets
+during :code:`SCR_Init` and then flush them to the prefix directory to read during
+the restart phase.
+
+write with shared access
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If an application requires shared access mode while writing its dataset,
+SCR must be configured to locate files on a global file system.
+In this case, it is best to use the global file system both
+for writing datasets during checkpoint/output and for reading files during restart::
+
+  SCR_CACHE_BYPASS=1
+
+Setting :code:`SCR_CACHE_BYPASS=1` instructs SCR to locate files
+within the prefix directory for both checkpoint/output and restart phases.
+Because this configuration is the most portable across different systems and applications,
+it is set as the default mode of SCR.
+As such, it is not required that one explicitly set :code:`SCR_CACHE_BYPASS=1`.
