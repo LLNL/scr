@@ -13,6 +13,7 @@ from scr_scavenge import scr_scavenge
 from scr_list_down_nodes import scr_list_down_nodes
 from scr_glob_hosts import scr_glob_hosts
 from scr_list_dir import scr_list_dir
+from scr_env import SCR_Env
 
 def print_usage(prog):
   print('Usage: '+prog+' [-p prefix_dir]')
@@ -106,7 +107,7 @@ def scr_postrun(argv,scr_env=None):
     runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
     output_list = runproc.communicate()[0]
     if runproc.returncode!=0:
-      echo "$prog: Found no output set to scavenge"
+      print(prog+': Found no output set to scavenge')
     else:
       argv.append('') # make len(argv) == 5
       #### Need the format of the scr_flush_file output ####
@@ -119,7 +120,7 @@ def scr_postrun(argv,scr_env=None):
         runproc.communicate()
         if runproc.returncode!=0:
           # dataset has already been flushed, go to the next one
-          echo "$prog: Dataset $d has already been flushed"
+          print(prog+': Dataset '+d+' has already been flushed')
           continue
         print(prog+': Attempting to scavenge dataset '+d)
 
@@ -132,8 +133,8 @@ def scr_postrun(argv,scr_env=None):
         dsetname = runproc.communicate()[0]
         if runproc.returncode!=0:
           # got a dataset to flush, but failed to get name
-          echo "$prog: Failed to read name of dataset $d"
-          failed_dataset=$d
+          print(prog+': Failed to read name of dataset '+d)
+          failed_dataset=d
           break
         # build full path to dataset directory
         datadir=pardir+'/.scr/scr.dataset.'+d
@@ -141,7 +142,7 @@ def scr_postrun(argv,scr_env=None):
 
         # Gather files from cache to parallel file system
         print(prog+': Scavenging files from cache for '+dsetname+' to '+datadir)
-        print(prog+': '+bindir+'/scr_scavenge '+verbose+' --id '+d+' --from '+cntldir+' --to '+pardir+' --jobset '+SCR_NODELIST+' --up 'upnodes)
+        print(prog+': '+bindir+'/scr_scavenge '+verbose+' --id '+d+' --from '+cntldir+' --to '+pardir+' --jobset '+SCR_NODELIST+' --up '+upnodes)
         scavenge_argv = ['--id',d,'--from',cntldir,'--to',pardir,'--jobset',SCR_NODELIST,'--up',upnodes]
         if verbose!='':
           scavenge_argv.append(verbose)

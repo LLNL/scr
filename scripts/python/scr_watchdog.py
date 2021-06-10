@@ -52,7 +52,7 @@ def scr_watchdog(argv):
 
   # check that we have a  dir and apid
   if 'jobstepid' not in conf or 'prefixdir' not in conf:
-    print_usage()
+    print_usage(prog)
     return 1
   if timeout is None or timeout_pfs is None:
     print('Necessary environment variables not set: SCR_HANG_TIMEOUT and SCR_HANG_TIMEOUT_PFS')

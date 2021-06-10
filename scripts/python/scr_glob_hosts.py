@@ -21,10 +21,11 @@ def print_usage(prog):
   
 def scr_glob_hosts(argv):
   prog = 'scr_glob_hosts'
-  conf = getconf(argv,{'-c':'count','--count':'count','-n':'nth','--nth':'nth','-h':'hosts','--hosts':'hosts','-m':'minus','--minus':'minus','-i':'intersection','--intersection':'intersection','-C':'compress','--compress':'compress'})
+  conf = getconf(argv,{'-n':'nth','--nth':'nth','-h':'hosts','--hosts':'hosts','-m':'minus','--minus':'minus','-i':'intersection','--intersection':'intersection','-C':'compress','--compress':'compress'},togglevals={'-c':'count','--count':'count'})
   if conf is None:
     print_usage(prog)
     return 1
+  print(conf)
   hostset = []
   if 'hosts' in conf:
     hostset = scr_hostlist.expand(conf['hosts'])
@@ -50,7 +51,10 @@ def scr_glob_hosts(argv):
     # if the argument is a csv then the compress function has no effect
     # this python implementation can just return the parameter . . .
     # (to act as 'printing' it then exiting)
-    return conf['compress'] # returns the csv string
+    # return conf['compress'] # returns the csv string
+    # if we compress the range (?)
+    hostset = scr_hostlist.expand(conf['compress'])
+    return scr_hostlist.compress_range(hostset)
   else: #if not valid
     print_usage(prog)
     return 1

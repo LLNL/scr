@@ -1,12 +1,12 @@
 #! /usr/bin/env python
 
 import os, sys
-import numpy as np
 from datetime import datetime
 from scr_param import SCR_Param
 from scr_env import SCR_Env
 import scr_const
 from scr_common import tracefunction, getconf
+import scr_hostlist
 
 # scavenge checkpoint files from cache to PFS
 # check for pdsh / (clustershell) errors in case any nodes should be retried
@@ -48,7 +48,7 @@ def scr_scavenge(argv,scr_env=None):
     scr_env = SCR_Env()
   jobid = scr_env.getjobid()
   if jobid is None:
-    print(prog'+: ERROR: Could not determine jobid.')
+    print(prog+': ERROR: Could not determine jobid.')
     return 1
 
   # read node set of job
@@ -75,27 +75,22 @@ def scr_scavenge(argv,scr_env=None):
   prefixdir = conf['dir_to']
 
   # get nodesets
-  #jobnodes  = scr_hostlist::expand($conf{nodeset_job});
-  jobnodes = ['rhea2','rhea3','rhea4']
+  jobnodes  = scr_hostlist.expand(conf['nodeset_job'])
   upnodes = []
   downnodes = []
   if 'nodeset_down' in conf:
-    downnodes.append('rhea2')
-    #@downnodes = scr_hostlist::expand($conf{nodeset_down});
-    upnodes = np.setdiff1d(jobnodes,downnodes)
-    #@upnodes   = scr_hostlist::diff(\@jobnodes, \@downnodes);
+    downnodes = scr_hostlist.expand(conf['nodeset_down'])
+    upnodes   = scr_hostlist.diff(jobnodes, downnodes)
   elif 'nodeset_up' in conf:
-    upnodes.append('rhea2')
-    #@upnodes   = scr_hostlist::expand($conf{nodeset_up});
-    downnodes = np.setdiff1d(jobnodes,upnodes)
-    #@downnodes = scr_hostlist::diff(\@jobnodes, \@upnodes);
+    upnodes   = scr_hostlist.expand(conf['nodeset_up'])
+    downnodes = scr_hostlist.diff(jobnodes, upnodes)
   else:
     upnodes = jobnodes
 
   ##############################
   # format up and down node sets for pdsh command
   #################
-  #my $upnodes = scr_hostlist::compress(@upnodes);
+  upnodes = scr_hostlist.compress(upnodes)
   downnodes_spaced = ' '.join(downnodes)
 
   # add dataset id option if one was specified (this is required from above)

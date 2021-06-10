@@ -33,7 +33,7 @@ def scr_list_dir(argv,scr_env=None):
   bindir = scr_const.X_BINDIR
 
   # read in command line arguments
-  conf = getconf(argv,keyvals={'-u':'user','--user':'user','-j':'jobid','--jobid':'jobid','-b':'base','--base':'base','control':'runcmd','cache':'runcmd'})
+  conf = getconf(argv,keyvals={'-u':'user','--user':'user','-j':'jobid','--jobid':'jobid','-b':'base','--base':'base'},togglevals={'control':'runcmd','cache':'runcmd'})
   if conf is None:
     print_usage(prog)
     return 1

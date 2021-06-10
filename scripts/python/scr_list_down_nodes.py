@@ -8,6 +8,7 @@ from datetime import datetime
 from scr_param import SCR_Param
 from scr_list_dir import scr_list_dir
 from scr_common import getconf
+from scr_env import SCR_Env
 import scr_hostlist
 
 def print_usage(prog):
