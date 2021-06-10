@@ -38,10 +38,15 @@ class SCR_Param():
 
     self.compile = {}
     # set our compile time constants
+    self.compile['CNTLDIR'] = {}
     self.compile['CNTLDIR'][scr_const.SCR_CNTL_BASE] = {}
+    self.compile['CACHEDIR'] = {}
     self.compile['CACHEDIR'][scr_const.SCR_CACHE_BASE] = {}
+    self.compile['SCR_CNTL_BASE'] = {}
     self.compile['SCR_CNTL_BASE'][scr_const.SCR_CNTL_BASE] = {}
+    self.compile['SCR_CACHE_BASE'] = {}
     self.compile['SCR_CACHE_BASE'][scr_const.SCR_CACHE_BASE] = {}
+    self.compile['SCR_CACHE_SIZE'] = {}
     self.compile['SCR_CACHE_SIZE'][scr_const.SCR_CACHE_SIZE] = {}
 
     # set our restricted parameters,
@@ -56,8 +61,8 @@ class SCR_Param():
 
     # if CACHE_BASE and CACHE_SIZE are set and the user didn't set CACHEDESC,
     # create a single CACHEDESC in the user hash
-    self.cache_base = get('SCR_CACHE_BASE')
-    self.cache_size = get('SCR_CACHE_SIZE')
+    self.cache_base = self.get('SCR_CACHE_BASE')
+    self.cache_size = self.get('SCR_CACHE_SIZE')
     if 'CACHE' not in self.usrconf and self.cache_base is not None and self.cache_size is not None:
       self.usrconf['CACHE'] = {}
       self.usrconf['CACHE']['SIZE'] = {}
@@ -117,19 +122,19 @@ class SCR_Param():
 
     # otherwise, check whether we have it defined in our user config file
     if name not in self.no_user and name in self.usrconf:
-      return self.usrconf[name][0]
+      return list(self.usrconf[name].keys())[0]
 
     # if param was set by the code, return that value
     if name in self.appconf:
-      return self.appconf[name][0]
+      return list(self.appconf[name].keys())[0]
 
     # otherwise, check whether we have it defined in our system config file
     if name in self.sysconf:
-      return self.sysconf[name][0]
+      return list(self.sysconf[name].keys())[0]
 
     # otherwise, check whether its a compile time constant
     if name in self.compile:
-      return self.compile[name][0]
+      return list(self.compile[name].keys())[0]
 
     return None
 
@@ -194,5 +199,7 @@ class SCR_Param():
     return val
 
 if __name__=='__main__':
-  print('We can put a test here for the scr_param class')
-  print('(or do something different)')
+  scr_param = SCR_Param()
+  for key in scr_param.compile:
+    print('scr_param.compile['+key+'] = '+str(scr_param.compile[key]))
+
