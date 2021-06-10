@@ -51,6 +51,8 @@ The SCR commands are typically invoked from the job batch script.
 They are used to prepare the cache before a job starts,
 automate the process of restarting a job,
 and copy datasets from cache to the parallel file system upon a failure.
+Though one gains the most benefit when using both,
+one may use the SCR library without the SCR commands.
 
 .. [Vaidya] "A Case for Two-Level Recovery Schemes", Nitin H. Vaidya, IEEE Transactions on Computers, 1998, http://doi.ieeecomputersociety.org/10.1109/12.689645.
 
