@@ -73,23 +73,13 @@ def scr_inspect(argv,scr_env=None):
   pwd = os.getcwd()
   output = pwd+'/.scr/'+prog+'.pdsh.o.'+jobid
   error  = pwd+'/.scr/'+prog+'.pdsh.e.'+jobid
-  try:
-    os.remove(output)
-  except:
-    pass
-  try:
-    os.remove(error)
-  except:
-    pass
 
   # run scr_inspect_cache via pdsh
   filemap = cntldir+'/filemap.scrinfo'
-  cmd = bindir+'/scr_inspect_cache '+filemap
+  cmd = bindir+'/scr_inspect_cache' # +filemap
 
-  argv = [pdsh,'-f','256','-S','-w',upnodes,cmd]
+  argv = [pdsh,'-f','256','-S','-w',upnodes,cmd,filemap]
   runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-  with
-  `$pdsh -f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
   out = runproc.communicate()
   with open(output,'w') as outfile:
     outfile.write(out[0])
@@ -108,20 +98,18 @@ def scr_inspect(argv,scr_env=None):
       line=line.rstrip()
       search = re.search(r'DSET=(\d+) RANK=(\d+) TYPE=(\w+) GROUPS=(\d+) GROUP_ID=(\d+) GROUP_SIZE=(\d+) GROUP_RANK=(\d+)',line)
       if search is not None:
-        dset = search.group(1)
-        rank = search.group(2)
+        dset = int(search.group(1))
+        rank = int(search.group(2))
         atype = search.group(3)
-        ngroups = search.group(4)
-        group_id = search.group(5)
-        group_size = search.group(6)
-        group_rank = search.group(7)
+        ngroups = int(search.group(4))
+        group_id = int(search.group(5))
+        group_size = int(search.group(6))
+        group_rank = int(search.group(7))
         if dset not in groups:
           groups[dset] = {}
-        if 'ids' not in groups[dset]:
           groups[dset]['ids'] = {}
         if group_id not in groups[dset]['ids']:
           groups[dset]['ids'][group_id] = {}
-        if 'ranks' not in groups[dset]['ids'][group_id]:
           groups[dset]['ids'][group_id]['ranks'] = {}
         groups[dset]['ids'][group_id]['ranks'][group_rank] = 1
         groups[dset]['ids'][group_id]['size'] = group_size
