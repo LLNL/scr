@@ -227,14 +227,36 @@ Computationally, :code:`XOR` is more expensive than :code:`Partner`,
 but it requires less storage space.
 Whereas :code:`Partner` must store two full checkpoint files,
 :code:`XOR` stores one full checkpoint file plus one XOR parity segment,
-where the segment size is roughly :math:`1/(N-1)` times the size of a checkpoint file for a set of size N.
+where the segment size is roughly :math:`1/(N-1)` times the size of a checkpoint file for a set of size :math:`N`.
 Similarly, :code:`RS` is computationally more expensive than :code:`XOR`,
 but it tolerates up to a configurable :code:`k` number of failures per set.
 The :code:`RS` encoding data scales as :math:`k/(N-k)`
-times the size of a checkpoint file for a set of size N.
+times the size of a checkpoint file for a set of size :math:`N`.
+The set size :math:`N` can be adjusted with the :code:`SCR_SET_SIZE` parameter.
+The number of failures :math:`k` can be adjusted with the :code:`SCR_SET_FAILURES` parameter.
 Larger sets require less storage,
 but they also increase the probability that a given set will suffer multiple failures simultaneously.
 Larger sets may also increase the cost of recovering files in the event of a failure.
+
+.. list-table:: Summary of redundancy schemes assuming each process writes :math:`B` bytes and is grouped with other processes into a set of size :math:`N`
+   :widths: 10 10 20
+   :header-rows: 1
+
+   * - Scheme
+     - Storage requirements
+     - Maximum failures per set
+   * - :code:`Single`
+     - :math:`B`
+     - :math:`0`
+   * - :code:`Partner`
+     - :math:`B * 2`
+     - :math:`1+`
+   * - :code:`XOR`
+     - :math:`B * N / (N - 1)`
+     - :math:`1`
+   * - :code:`RS`
+     - :math:`B * N / (N - k)`
+     - :math:`k` where :math:`1 <= k < N`
 
 .. [Patterson] "A Case for Redundant Arrays of Inexpensive Disks (RAID)", D. Patterson, G. Gibson, and R. Katz, Proc. of 1988 ACM SIGMOD Conf. on Management of Data, 1988, http://web.mit.edu/6.033/2015/wwwdocs/papers/Patterson88.pdf.
 
