@@ -445,26 +445,32 @@ Common configurations
 ---------------------
 
 Applications achieve the highest performance when only
-a single process (MPI rank) accesses each file.
-This mode is termed file-per-process.
-In that situation, SCR can keep files in cache locations that include node-local storage.
+a single process accesses each file within a dataset.
+This mode is termed *file-per-process*.
+In that situation, SCR can keep files in cache locations
+that might include node-local storage.
 
 SCR also supports applications that require shared access to files,
-where more than one process (MPI rank) writes to or reads from a given file.
-This mode is termed shared access.
+where more than one process writes to or reads from a given file.
+This mode is termed *shared access*.
 To support shared access to a file,
 SCR locates files in global storage like the parallel file system.
  
-There are three common SCR configurations depending on the needs of the application.
- 
+Regardless of the type of file access,
+one can only use cache when there is sufficient capacity
+to store the application files and associated SCR redundancy data.
+
+There are several common SCR configurations depending on the needs of the application.
+
 write file-per-process, read file-per-process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In this mode, an application uses file-per-process mode
 both while writing its dataset during checkpoint/output
 and while reading its dataset during restart.
+So long as there is sufficient cache capacity,
 SCR can use cache including node-local storage for both operations.
-To congiure SCR for this mode::
+To configure SCR for this mode::
 
   SCR_CACHE_BYPASS=0
 
@@ -498,6 +504,7 @@ for writing datasets during checkpoint/output and for reading files during resta
 
 Setting :code:`SCR_CACHE_BYPASS=1` instructs SCR to locate files
 within the prefix directory for both checkpoint/output and restart phases.
-Because this configuration is the most portable across different systems and applications,
-it is set as the default mode of SCR.
-As such, it is not required that one explicitly set :code:`SCR_CACHE_BYPASS=1`.
+Because cache bypass mode is the most portable across different systems and applications,
+it is enabled by default.
+Cache bypass mode must also be used when the cache capacity
+is insufficient to store the application files and SCR redundancy data.
