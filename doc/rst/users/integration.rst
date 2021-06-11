@@ -7,6 +7,8 @@ This section provides details on how to integrate the SCR API into an applicatio
 There are three steps to consider: Init/Finalize, Checkpoint, and Restart.
 It is recommended to restart using the SCR Restart API, but it is not required.
 Sections below describe each case.
+Additionally, there is a section describing how to configure SCR
+based on application settings.
 
 Using the SCR API
 -----------------
@@ -494,6 +496,35 @@ If restarting without SCR and if :code:`SCR_Current` is not called,
 the value of the :code:`SCR_FLUSH` counter will not be preserved between restarts.
 The counter will be reset to its upper limit with each restart.
 Thus each restart may introduce some offset in a sequence of periodic SCR flushes.
+
+Configure SCR for application settings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Applications often provide their users with command line options
+or configuration files whose settings need to affect how SCR behaves.
+For this, one can call :code:`SCR_Config` to configure SCR before calling :code:`SCR_Init`.
+
+For example, it is common for applications to provide an :code:`--output <dir>` option
+that sets the directory in which datasets are written.
+One typically must set :code:`SCR_PREFIX` to that same path::
+
+  SCR_Configf("SCR_PREFIX=%s", dir);
+
+Many applications provide at least two restart modes:
+one in which the application restarts from its most recent checkpoint,
+and one in which the user names a specific checkpoint.
+To restart from the most recent checkpoint,
+one can just rely on the normal SCR behavior,
+since SCR restarts from the most recent checkpoint by default.
+In the case that a specific checkpoint is named,
+one can set :code:`SCR_CURRENT` to the appropriate dataset name::
+
+  SCR_Configf("SCR_CURRENT=%s", ckptname);
+
+Some applications provide users with options that determine
+file access patterns and the size of output datasets.
+For those, it may be useful to call :code:`SCR_Config` to set parameters such as
+:code:`SCR_CACHE_BYPASS`, :code:`SCR_GLOBAL_RESTART`, and :code:`SCR_CACHE_SIZE`.
 
 Building with the SCR library
 -----------------------------
