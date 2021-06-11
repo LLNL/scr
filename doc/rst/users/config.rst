@@ -320,9 +320,11 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_SET_SIZE`
      - 8
      - Specify the minimum number of processes to include in an redundancy set.
-       Increasing this value may decrease the amount of storage required to cache the dataset.
-       However, higher values may have an increased likelihood of encountering a catastrophic error.
-       Higher values may also require more time to reconstruct lost files from redundancy data.
+       So long as there are sufficient failure groups, each redundancy set will be at least the minimum size.
+       If not, redundancy sets will be as large as possible, but they may be smaller than the minimum size.
+       Increasing this value can decrease the amount of storage required to cache the dataset.
+       However, a higher value can require more time to rebuild lost files,
+       and it increases the likelihood of encountering a catastrophic failure.
    * - :code:`SCR_SET_FAILURES`
      - 2
      - Specify the number of failures to tolerate in each set while using the RS scheme.
@@ -504,7 +506,9 @@ for writing datasets during checkpoint/output and for reading files during resta
 
 Setting :code:`SCR_CACHE_BYPASS=1` instructs SCR to locate files
 within the prefix directory for both checkpoint/output and restart phases.
-Because cache bypass mode is the most portable across different systems and applications,
-it is enabled by default.
+
 Cache bypass mode must also be used when the cache capacity
 is insufficient to store the application files and SCR redundancy data.
+
+Because cache bypass mode is the most portable across different systems and applications,
+it is enabled by default.
