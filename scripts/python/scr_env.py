@@ -1,10 +1,9 @@
 #! /usr/env python
 
 import os, sys, subprocess
-import scr_const
+import scr_const, scr_hostlist
 
 # SCR_Env class holds the configuration
-#   we could pass the configuration to use (SLURM/LSF/ ...)
 
 # def set_prefix(self,prefix):
 #   the prefix should be explicitly set (?)
@@ -16,54 +15,121 @@ import scr_const
 #   returns the number of nodes used in the last run
 #     could set a member value instead of returning a number
 
+'''
+SCR_RESOURCE_MANAGER =
+SLURM ; APRUN (cray_xt) ; PMIX ; LSF
+'''
 
 class SCR_Env:
-  # init initializes vars from the environment 
+  # init initializes vars from the environment
   def __init__(self,env=None):
     if env is None:
       env = scr_const.SCR_RESOURCE_MANAGER
-    self.conf = {'env':env}
-    # replaces: my $scr_nodes_file = "@X_BINDIR@/scr_nodes_file"
+    self.conf = {}
+    self.conf['env'] = env
     self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'
-    val = os.environ.get('USER')
-    if val is not None:
-      self.conf['user'] = val
-    else:
-      self.conf['user'] = None
-    val = self.getjobid()
-    if val is not None:
-      self.conf['jobid'] = val
-    else:
-      self.conf['jobid'] = None
-    val = self.getnodelist()
-    if val is not None:
-      self.conf['nodes'] = val
-    else:
-      self.conf['nodes'] = None
+    self.conf['user'] = os.environ.get('USER')
+    self.conf['jobid'] = self.getjobid()
+    self.conf['nodes'] = self.getnodelist()
 
   # get job id, setting environment flag here
   def getjobid(self):
+    val=None
     if self.conf['env'] == 'SLURM':
       val = os.environ.get('SLURM_JOBID')
+    elif self.conf['env'] == 'APRUN':
+      val = os.environ.get('PBS_JOBID')
+    elif self.conf['env'] == 'LSF':
+      val = os.environ.get(LSB_JOBID)
+    elif self.conf['env'] == 'PMIX:
+      # CALL SCR_ENV_HELPER FOR PMIX
+      pass
+    if val is not None:
       return val
-    val = os.environ.get('LSB_JOBID')
-    return val
+    # failed to read jobid from environment,
+    # assume user is running in test mode
+    return 'defjobid'
 
   # get node list
-  def getnodelist(self):
+  def get_job_nodes(self):
     if self.conf['env'] == 'SLURM':
-      val = os.environ.get('SLURM_NODELIST')
-      return val
+      return os.environ.get('SLURM_NODELIST')
     elif self.conf['env'] == 'LSF':
       val = os.environ.get('LSB_DJOB_HOSTFILE')
       if val is not None:
         with open(val,'r') as hostfile:
           # make a list from the set -> make a set from the list -> file.readlines().rstrip('\n')
-          hosts = list(set([line.rstrip('\n') for line in hostfile.readlines()]))
-          # compress host list ###
-          return hosts
+          # get a list of lines without newlines and skip the first line
+          lines = [line.rstrip() for line in infile.readlines()]hostfile.readlines()[1:]
+          # get a set of unique hostnames, convert list to set and back
+          hosts_unique = list(set(lines))
+          hostlist = scr_hostlist.compress(hosts_unique)
+          return hostlist
       val = os.environ.get('LSB_HOSTS')
-      return val
+      if val is not None:
+        # perl code called scr_hostlist.compress
+        # that method takes a list though, not a string
+        return val
+    elif self.conf['env'] == 'APRUN':
+      val = os.environ.get('PBS_NUM_NODES')
+      if val is not None:
+        argv = ['aprun','-n',val,'-N','1','cat','/proc/cray_xt/nid'] # $nidfile
+        runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
+        out = runproc.communicate()[0]
+        nodearray = out.split('\n')
+        if len(nodearray)>0:
+          if nodearray[-1].startswith('Application'):
+            nodearray=nodearray[:-1]
+          shortnodes = scr_hostlist.compress(nodearray)
+          return shortnodes
+    elif self.conf['env'] == 'PMIX':
+      val = os.environ.get('PMIX_NODELIST')
+      if val is not None:
+        node_list = val.split(',')
+        nodeset = scr_hostlist.compress(node_list)
+        return nodeset
+    return None
+
+  def get_downnodes(self):
+    if self.conf['env'] == 'SLURM':
+      val = os.environ.get('SLURM_NODELIST')
+      if val is not None:
+        argv = ['sinfo','-ho','%N','-t','down','-n',val]
+        runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
+        down = runproc.communicate()[0]
+        if runproc.returncode == 0:
+          return down.rstrip()
+    elif self.conf['env'] == 'LSF':
+      val = os.environ.get('LSB_HOSTS')
+      if val is not None:
+        # TODO : any way to get list of down nodes in LSF?
+        pass
+    elif self.conf['env'] == 'APRUN':
+      downnodes = []
+      snodes = self.get_job_nodes()
+      if snodes is not None:
+        snodes = scr_hostlist.expand(snodes)
+        argv = ['xtprocadmin', '-n', ''] # $xtprocadmin
+        for node in nodes:
+          argv[2] = node
+          runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
+          out = runproc[0].communicate()[0]
+          #if runproc.returncode==0:
+          resarray = out.split('\n')
+          answerarray = resarray[1].split(' ')
+          answer = answerarray[4]
+          if 'down' in answer:
+            downnodes.append(node)
+        if len(downnodes)>0:
+          return scr_hostlist.compress(downnodes)
+    elif self.conf['env'] == 'PMIX':
+      # if the resource manager knows any nodes to be down out of the job's
+      # nodeset, print this list in 'atlas[30-33,35,45-53]' form
+      # if there are none, print nothing, not even a newline
+      # CALL SCR_ENV_HELPER FOR PMIX - THIS IS A TODO AS PMIX DOESN'T SUPPORT IT YET
+      #if (0) {
+      #  my $nodeset = ""; #get nodeset with pmixhelper
+      pass
     return None
 
   # set the prefix
@@ -86,12 +152,19 @@ class SCR_Env:
 
   # list the number of nodes used in the last run
   def get_runnode_count(self):
-    argv = [self.conf['nodes_file'],'--dir',self.conf['prefix']]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    out, err = runproc.communicate()
-    if runproc.returncode!=0:
-      return 0 # print(err)
-    return int(out)
+    if self.conf['env'] == 'SLURM' or self.conf['env'] == 'LSF' or self.conf['env'] == 'PMIX':
+      argv = [self.conf['nodes_file'],'--dir',self.conf['prefix']]
+      runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+      out = runproc.communicate()[0]
+      if runproc.returncode==0:
+        return int(out)
+    elif self.conf['env'] == 'APRUN':
+      argv = ['aprun','-n','1',self.conf['nodes_file'],'--dir',self.conf['prefix']]
+      runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+      out = runproc.communicate()[0]
+      if runproc.returncode == 0:
+        return int(out)
+    return 0 # print(err)
 
 if __name__ == '__main__':
   scr_env = SCR_Env('SLURM')

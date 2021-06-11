@@ -61,7 +61,7 @@ def scr_postrun(argv,scr_env=None):
   # get our nodeset for this job
   nodelist_env = os.environ.get('SCR_NODELIST')
   if nodelist_env is None:
-    nodelist_env = scr_env.getnodelist()
+    nodelist_env = scr_env.get_job_nodes()
     if nodelist_env is None:
       print(prog+': ERROR: Could not identify nodeset')
       return 1
