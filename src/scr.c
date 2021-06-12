@@ -1663,6 +1663,7 @@ static int scr_complete_output(int valid)
     rc = SCR_FAILURE;
   }
   scr_cache_index_set_dataset(scr_cindex, scr_dataset_id, dataset);
+  scr_cache_index_write(scr_cindex_file, scr_cindex);
 
   /* write out info to filemap */
   scr_cache_set_map(scr_cindex, scr_dataset_id, scr_map);
