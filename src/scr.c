@@ -497,7 +497,7 @@ static int scr_check_flush(scr_cache_index* cindex)
 
 /* on restart, check each cached dataset to see whether it should be flushed,
  * to be called after scr_cache_rebuild and scr_flush_file_rebuild */
-int scr_flush_restart(const scr_cache_index* cindex)
+int scr_flush_restart(scr_cache_index* cindex)
 {
   /* get ordered list of dataset ids in cache */
   int ndsets;
