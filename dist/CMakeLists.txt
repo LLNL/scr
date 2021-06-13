@@ -210,6 +210,8 @@ LIST(APPEND liber_srcs
 )
 
 LIST(APPEND cliscr_noMPI_srcs
+    scr/src/scr_cache_index.c
+    scr/src/scr_cache_index_serial.c
     scr/src/scr_config.c
     scr/src/scr_config_serial.c
     scr/src/scr_dataset.c
@@ -234,6 +236,7 @@ LIST(APPEND libscr_srcs
     scr/src/scr_cache.c
     scr/src/scr_cache_rebuild.c
     scr/src/scr_cache_index.c
+    scr/src/scr_cache_index_mpi.c
     scr/src/scr_config.c
     scr/src/scr_config_mpi.c
     scr/src/scr_dataset.c

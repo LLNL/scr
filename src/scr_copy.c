@@ -22,6 +22,7 @@
 #include "scr_meta.h"
 #include "scr_filemap.h"
 #include "scr_dataset.h"
+#include "scr_cache_index.h"
 
 #include "spath.h"
 #include "kvtree.h"
@@ -501,15 +502,23 @@ int main (int argc, char *argv[])
     return 1;
   }
 
-#if 0
   /* read cindex file to get metadata for dataset */
   scr_cache_index* scr_cindex = scr_cache_index_new();
   spath* scr_cindex_file = spath_from_str(args.cntldir);
   spath_append_str(scr_cindex_file, "cindex.scrinfo");
   scr_cache_index_read(scr_cindex_file, scr_cindex);
   spath_delete(&scr_cindex_file);
-  scr_cache_index_delete(&scr_cindex);
-#endif
+
+  /* lookup path to given dataset id from cache index */
+  char* cachedir = NULL;
+  if (scr_cache_index_get_dir(scr_cindex, args.id, &cachedir) != SCR_SUCCESS) {
+    /* failed to lookup cache path for this dataset, so we can bail early */
+    printf("scr_copy: %s: Failed to find cache directory for dataset id %d\n",
+      hostname, args.id
+    );
+    scr_cache_index_delete(&scr_cindex);
+    return 1;
+  }
 
 #if 0
   kvtree_elem* rank_elem = scr_filemap_first_rank_by_dataset(map, args.id);
@@ -534,9 +543,8 @@ int main (int argc, char *argv[])
   spath_append_strf(path_scr, "scr.dataset.%d", args.id);
   spath_reduce(path_scr);
 
-  /* define th path to the dataset directory in cache */
-  spath* cache_path = spath_from_str(args.cntldir);
-  spath_append_strf(cache_path, "scr.dataset.%d", args.id);
+  /* define the path to the dataset directory in cache */
+  spath* cache_path = spath_from_str(cachedir);
   spath_append_str(cache_path, ".scr");
   spath_reduce(cache_path);
   char* cache_str = spath_strdup(cache_path);
@@ -660,6 +668,8 @@ int main (int argc, char *argv[])
 
   /* free the prefix directory path */
   spath_delete(&path_prefix);
+
+  scr_cache_index_delete(&scr_cindex);
 
   /* print our return code and exit */
   printf("scr_copy: %s: Return code: %d\n", hostname, rc);
