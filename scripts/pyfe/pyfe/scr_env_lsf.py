@@ -9,12 +9,12 @@ from scr_env_base import SCR_Env_Base
 
 class SCR_Env_LSF(SCR_Env_Base):
   # init initializes vars from the environment
-  def __init__(self,env=None):
+  def __init__(self):
     super(SCR_Env_LSF, self).__init__(env='LSF')
 
   # get job id, setting environment flag here
   def getjobid(self):
-    val = os.environ.get(LSB_JOBID)
+    val = os.environ.get('LSB_JOBID')
     if val is not None:
       return val
     # failed to read jobid from environment,

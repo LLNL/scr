@@ -5,7 +5,7 @@
 
 import os, sys, subprocess
 import scr_const, scr_hostlist
-from SCR_Env_Base import SCR_Env_Base
+from scr_env_base import SCR_Env_Base
 
 class SCR_Env_PMIX(SCR_Env_Base):
   # init initializes vars from the environment

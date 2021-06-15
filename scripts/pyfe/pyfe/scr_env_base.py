@@ -2,17 +2,13 @@
 
 # scr_env_base
 # SCR_Env_Base is the super class of the specific environment classes
-# the SCR_Env_Base constructor takes an env argument
-# env can be: 'SLURM', 'LSF', 'APRUN', 'PMIX', None
-# if env is None we check scr_const.SCR_RESOURCE_MANAGER
-# returns appropriate environment class according to env value
+# the SCR_Env_Base itself is missing its environment type (unknown)
 # common methods shared between subclasses can be used from here
-# (the __init__ is currently shared, all environments will use the super init)
+# (the __init__ here is currently shared, all environments will use the super init)
 # default functionality is given in the base class which subclasses may or may not override
 
 import os, sys, subprocess
 import scr_const, scr_hostlist
-import scr_env_slurm, scr_env_lsf, scr_env_aprun, scr_env_pmix
 
 # def set_prefix(self,prefix):
 #   the prefix should be explicitly set (?)
@@ -25,19 +21,6 @@ import scr_env_slurm, scr_env_lsf, scr_env_aprun, scr_env_pmix
 #     could set a member value instead of returning a number
 
 class SCR_Env_Base(object):
-  def __new__(cls,env=None):
-    if env is None:
-      env = scr_const.SCR_RESOURCE_MANAGER
-    if env=='SLURM':
-      return scr_env_slurm.SCR_Env_SLURM()
-    elif env=='APRUN':
-      return scr_env_aprun.SCR_Env_APRUN()
-    elif env=='PMIX':
-      return scr_env_pmix.SCR_Env_PMIX()
-    elif env=='LSF':
-      return scr_env_lsf.SCR_Env_LSF()
-    return super(SCR_Env_Base, cls).__new__(cls)
-
   def __init__(self,env=None):
     self.conf = {}
     self.conf['env'] = env
@@ -70,3 +53,12 @@ class SCR_Env_Base(object):
   def get_runnode_count(self):
     return 0 # print(err)
 
+if __name__ == '__main__':
+  scr_env = SCR_Env('SLURM')
+  scr_env.set_downnodes()
+  for key in scr_env.conf:
+    if scr_env.conf[key] == None:
+      print('scr_env.conf['+key+'] = None')
+    else:
+      print('scr_env.conf['+key+'] = \''+scr_env.conf[key]+'\'')
+  print(type(scr_env))

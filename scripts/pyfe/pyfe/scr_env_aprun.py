@@ -10,7 +10,7 @@ from scr_env_base import SCR_Env_Base
 class SCR_Env_APRUN(SCR_Env_Base):
   # init initializes vars from the environment
   def __init__(self,env=None):
-    super(SCR_Env_APRUN, self).__init(env='APRUN')
+    super(SCR_Env_APRUN, self).__init__(env='APRUN')
 
   # get job id, setting environment flag here
   def getjobid(self):
