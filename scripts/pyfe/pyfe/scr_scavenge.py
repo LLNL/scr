@@ -5,6 +5,7 @@ from datetime import datetime
 from scr_param import SCR_Param
 from scr_env import SCR_Env
 import scr_const
+import scr_common
 from scr_common import tracefunction, getconf
 import scr_hostlist
 
@@ -104,13 +105,10 @@ def scr_scavenge(argv,scr_env=None):
   cmd = ''
 
   # log the start of the scavenge operation
-  argv = [bindir+'/scr_log_event','-i',jobid,'-p',prefixdir,'-T','SCAVENGE_START','-D',dset,'-S',str(start_time)] # start time string val... ############
-  #'$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_START' -D $dset -S $start_time';
-  runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
-  out,err = runproc.communicate()
-  if runproc.returncode!=0:
+  returncode = scr_common.log(bindir=bindir,prefix=prefixdir,jobid=jobid,event_type='SCAVENGE_START',event_dset=dset,event_start=str(start_time))
+  if returncode != 0:
     print(err)
-    print('scr_log_event returned '+str(runproc.returncode))
+    print('scr_log_event returned '+str(returncode))
     return 1
 
   # gather files via pdsh
@@ -155,10 +153,7 @@ def scr_scavenge(argv,scr_env=None):
   # get a timestamp for logging timing values
   end_time = datetime.now()
   diff_time = end_time - start_time
-  argv = [bindir+'/scr_log_event','-i',jobid,'-p',prefixdir,'-T','SCAVENGE_END','-D',dset,'-S',str(start_time),'-L',str(diff_time)] ##### need string ( time )
-  #'$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_END' -D $dset -S $start_time -L $diff_time';
-  runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
-  runproc.communicate()
+  scr_common.log(bindir=bindir,prefix=prefixdir,jobid=jobid,event_type='SCAVENGE_END',event_dset=dset,event_start=str(start_time),event_secs=str(diff_time))
   return 0
 
 if __name__=='__main__':

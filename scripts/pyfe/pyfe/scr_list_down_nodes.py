@@ -8,6 +8,7 @@ from datetime import datetime
 from scr_param import SCR_Param
 from scr_list_dir import scr_list_dir
 from scr_common import getconf
+import scr_common
 from scr_env import SCR_Env
 import scr_hostlist
 
@@ -237,12 +238,10 @@ def scr_list_down_nodes(argv,scr_env=None):
     # log each newly failed node, along with the reason
     if 'log_nodes' in conf:
       for node in newly_failed_nodes.keys():
-        duration = ''
+        duration = None
         if 'runtime_secs' in conf:
-          duration = '-D '+conf['runtime_secs']
-        argv=[bindir+'/scr_log_event','-i',jobid,'-p',prefix,'-T','NODE_FAIL','-N',node+': '+reason[node],'-S',start_time,duration]
-        runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-        runproc.communicate()
+          duration = conf['runtime_secs']
+        scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='NODE_FAIL',event_note=node+': '+reason[node],event_start=start_time,event_secs=duration)
         #`$bindir/scr_log_event -i $jobid -p $prefix -T 'NODE_FAIL' -N '$node: $reason{$node}' -S $start_time $duration`;
     # now output info to the user
     ret=''

@@ -3,7 +3,8 @@
 # scr_common.py
 # Defines for common functions shared across scripts
 
-import inspect, os
+import inspect, os, subprocess
+import scr_const
 
 # for verbose, prints:
 # filename:function:linenum -> event
@@ -72,6 +73,37 @@ def scr_prefix():
   # don't resolve symlinks
   # don't worry about missing parts, the calling script calling might create it
   return interpolate_variables(prefix)
+
+def log(bindir=None,prefix=None,username=None,jobname=None,jobid=None,start=None,event_type=None,event_note=None,event_dset=None,event_name=None,event_start=None,event_secs=None):
+  if prefix is None:
+    prefix = scr_prefix()
+    #print('log: prefix is required')
+  if bindir is None:
+    bindir = scr_const.X_BINDIR
+  argv = [bindir+'/scr_log_event','-p',prefix]
+  if username is not None:
+    argv.extend(['-u',username])
+  if jobname is not None:
+    argv.extend(['-j',jobname])
+  if jobid is not None:
+    argv.extend(['-i',jobid])
+  if start is not None:
+    argv.extend(['-s',start])
+  if event_type is not None:
+    argv.extend(['-T',event_type])
+  if event_note is not None:
+    argv.extend(['-N',event_note])
+  if event_dset is not None:
+    argv.extend(['-D',event_dset])
+  if event_name is not None:
+    argv.extend(['-n',event_name])
+  if event_start is not None:
+    argv.extend(['-S',event_start])
+  if event_secs is not None:
+    argv.extend(['-L',event_secs])
+  runproc = subprocess.Popen(args=argv,bufsize=1,stdin=None,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+  runproc.communicate()
+  return runproc.returncode
 
 if __name__=='__main__':
   ret = scr_prefix()

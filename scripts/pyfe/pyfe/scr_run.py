@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import os, signal, sys, time, scr_const
+import scr_common
 from scr_common import tracefunction, getconf
 from scr_test_runtime import scr_test_runtime
 from scr_list_dir import scr_list_dir
@@ -228,9 +229,7 @@ def scr_run(argv):
     # launch the job, make sure we include the script node and exclude down nodes
     start_secs=datetime.now()
 
-    argv=[bindir+'/scr_log_event','-i',jobid,'-p',prefix,'-T','RUN_START','-N','run='+str(attempts),'-S',str(start_secs.time.second)]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    runproc.communicate()
+    scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='RUN_START',event_note='run='+str(attempts),event_start=str(start_secs.time.second))
     # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
     if use_scr_watchdog == '0':
       argv=[launcher]
@@ -267,9 +266,7 @@ def scr_run(argv):
     # check for and log any down nodes
     scr_list_down_nodes([keep_down,'--log','--reason','--secs',str(run_secs.seconds)],scr_env)
     # log stats on the latest run attempt
-    argv=[bindir+'/scr_log_event','-i',jobid,'-p',prefix,'-T','RUN_END','-N','run='+str(attempts),'-S',end_secs,'-L',str(run_secs.seconds)]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    runproc.communicate()
+    scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='RUN_END',event_note='run='+str(attempts),event_start=str(end_secs),event_secs=str(run_secs.seconds))
     #$bindir/scr_log_event -i $jobid -p $prefix -T "RUN_END" -N "run=$attempts" -S $end_secs -L $run_secs
 
     # any retry attempts left?
