@@ -560,7 +560,24 @@ spack-scr-lassen:
     - export MPIF90=`which mpif90`
     - export F90FLAGS="-qextname"
     - make
-  
+
+TESTING-script-lassen:
+  stage: test
+  when: manual
+  tags:
+    - lassen
+    - batch
+    - lsf
+  variables:
+    LLNL_LSF_SCHEDULER_PARAMETERS: '-nnodes 4 -W 10 /bin/bash'
+  dependencies:
+    - spack-scr-lassen
+  script:
+    - cd ${WORK_DIR_BASE}
+    - git clone --depth 1 ${SRC_DIR} scr-test
+    - cd scr-test
+    - csh TESTING.csh
+
 testpython-lassen:
   stage: test
   when: manual
