@@ -32,11 +32,29 @@ typedef int SCR_Fint;
 # define FORT_CALL
 #endif
 
-/* IBM's xl compiler does not by default add underscores */
-#ifdef __ibmxl__
-# define FORT_NAME(a) a
-#else
+#ifndef USE_FORTRAN_TRAILING_UNDERSCORES
+/* IBM's xl compiler does not by default add underscores,
+ * all others add underscores */
+/* This tests the C compiler but technically the Fortran compiler is what
+ * matters, so combining IBM xlf with GNU gcc is not going to work */
+# if defined(__ibmxl__)
+#  define USE_FORTRAN_TRAILING_UNDERSCORES 0
+# elif defined(__INTEL_COMPILER)
+#  define USE_FORTRAN_TRAILING_UNDERSCORES 1
+# elif defined(_CRAYC) /* _CRAYFTN */
+#  define USE_FORTRAN_TRAILING_UNDERSCORES 1
+# elif defined(__PGI)
+#  define USE_FORTRAN_TRAILING_UNDERSCORES 1
+# elif defined(__GNUC__) /* __GFORTRAN__ */
+/* keep this last since some compilers claims to be GCC */
+#  define USE_FORTRAN_TRAILING_UNDERSCORES 1
+# endif
+#endif
+
+#if USE_FORTRAN_TRAILING_UNDERSCORES
 # define FORT_NAME(a) a ## _
+#else
+# define FORT_NAME(a) a
 #endif
 
 #ifdef USE_FORT_MIXED_STR_LEN
