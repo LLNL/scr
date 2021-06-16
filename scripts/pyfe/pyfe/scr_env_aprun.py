@@ -6,6 +6,7 @@
 import os, sys, subprocess
 import scr_const, scr_hostlist
 from scr_env_base import SCR_Env_Base
+from scr_common import runproc
 
 class SCR_Env_APRUN(SCR_Env_Base):
   # init initializes vars from the environment
@@ -26,14 +27,16 @@ class SCR_Env_APRUN(SCR_Env_Base):
     val = os.environ.get('PBS_NUM_NODES')
     if val is not None:
       argv = ['aprun','-n',val,'-N','1','cat','/proc/cray_xt/nid'] # $nidfile
-      runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-      out = runproc.communicate()[0]
+      out = runproc(argv=argv,getstdout=True)[0]
       nodearray = out.split('\n')
       if len(nodearray)>0:
-        if nodearray[-1].startswith('Application'):
+        if nodearray[-1]=='\n':
           nodearray=nodearray[:-1]
-        shortnodes = scr_hostlist.compress(nodearray)
-        return shortnodes
+        if len(nodearray)>0:
+          if nodearray[-1].startswith('Application'):
+            nodearray=nodearray[:-1]
+          shortnodes = scr_hostlist.compress(nodearray)
+          return shortnodes
     return None
 
   def get_downnodes(self):
@@ -44,9 +47,8 @@ class SCR_Env_APRUN(SCR_Env_Base):
       argv = ['xtprocadmin', '-n', ''] # $xtprocadmin
       for node in nodes:
         argv[2] = node
-        runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-        out = runproc[0].communicate()[0]
-        #if runproc.returncode==0:
+        out, returncode = runproc(argv=argv, getstdout=True)
+        #if returncode==0:
         resarray = out.split('\n')
         answerarray = resarray[1].split(' ')
         answer = answerarray[4]
@@ -65,8 +67,7 @@ class SCR_Env_APRUN(SCR_Env_Base):
   # list the number of nodes used in the last run
   def get_runnode_count(self):
     argv = ['aprun','-n','1',self.conf['nodes_file'],'--dir',self.conf['prefix']]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    out = runproc.communicate()[0]
+    out, returncode = runproc(argv=argv,getstdout=True)
     if runproc.returncode == 0:
       return int(out)
     return 0 # print(err)

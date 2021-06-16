@@ -105,6 +105,53 @@ def log(bindir=None,prefix=None,username=None,jobname=None,jobid=None,start=None
   runproc.communicate()
   return runproc.returncode
 
+def runproc(argv,wait=True,getstdout=False,getstderr=False):
+  if len(argv)<1:
+    return None, None
+  try:
+    runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+    if wait==False:
+      return runproc.pid, None
+    if getstdout==True and getstderr=True:
+      output = runproc.communicate()
+      return output, runproc.returncode
+    if getstdout==True:
+      output = runproc.communicate()[0]
+      return output, runproc.returncode
+    if getstderr==True:
+      output = runproc.communicate()[1]
+      return output, runproc.returncode
+    runproc.communicate()
+    return None, runproc.returncode
+  except:
+    return None, None
+
+def pipeproc(argvs,wait=True,getstdout=False,getstderr=False):
+  if len(argvs)<1:
+    return None, None
+  if len(argvs)==1:
+    return runproc(argvs[0],wait,getstdout,getstderr)
+  try:
+    nextprog = subprocess.Popen(argvs[0],bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+    for i in range(1,len(argvs)):
+      pipeprog = subprocess.Popen(argvs[i],bufsize=1,stdin=nextprog,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+      nextprog = pipeprog
+    if wait==False:
+      return nextprog.pid, None
+    if getstdout==True and getstderr==True:
+      output = nextprog.communicate()
+      return output, nextprog.returncode
+    if getstdout==True:
+      output = nextprog.communicate()[0]
+      return output, nextprog.returncode
+    if getstderr==True:
+      output = nextprog.communicate()[1]
+      return output, nextprog.returncode
+    nextprog.communicate()
+    return None, nextprog.returncode
+  except:
+    return None, None
+
 if __name__=='__main__':
   ret = scr_prefix()
   print('scr_prefix returned '+str(ret))

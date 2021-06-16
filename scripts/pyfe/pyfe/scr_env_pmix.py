@@ -6,6 +6,7 @@
 import os, sys, subprocess
 import scr_const, scr_hostlist
 from scr_env_base import SCR_Env_Base
+from scr_common import runproc
 
 class SCR_Env_PMIX(SCR_Env_Base):
   # init initializes vars from the environment
@@ -44,9 +45,8 @@ class SCR_Env_PMIX(SCR_Env_Base):
   # list the number of nodes used in the last run
   def get_runnode_count(self):
     argv = [self.conf['nodes_file'],'--dir',self.conf['prefix']]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    out = runproc.communicate()[0]
-    if runproc.returncode==0:
+    out, returncode = runproc(argv=argv,getstdout=True)
+    if returncode==0:
       return int(out)
     return 0 # print(err)
 

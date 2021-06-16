@@ -6,6 +6,7 @@
 import os, sys, subprocess
 import scr_const, scr_hostlist
 from scr_env_base import SCR_Env_Base
+from scr_common import runproc
 
 # SCR_Env class holds the configuration
 
@@ -31,9 +32,8 @@ class SCR_Env_SLURM(SCR_Env_Base):
     val = os.environ.get('SLURM_NODELIST')
     if val is not None:
       argv = ['sinfo','-ho','%N','-t','down','-n',val]
-      runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-      down = runproc.communicate()[0]
-      if runproc.returncode == 0:
+      down, returncode = runproc(argv=argv,getstdout=True)
+      if returncode == 0:
         return down.rstrip()
     return None
 
@@ -43,20 +43,18 @@ class SCR_Env_SLURM(SCR_Env_Base):
       self.conf['down'] = ''
       return
     argv = ['sinfo','-ho','%N','-t','down','-n',','.join(self.conf['nodes'])]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    out, err = runproc.communicate()
-    if runproc.returncode!=0:
+    out, returncode = runproc(argv=argv)
+    if returncode!=0:
       #print('0')
-      print(err)
+      print(out[1])
       sys.exit(1)
-    self.conf['down'] = out # parse out
+    self.conf['down'] = out[0] # parse out
 
   # list the number of nodes used in the last run
   def get_runnode_count(self):
     argv = [self.conf['nodes_file'],'--dir',self.conf['prefix']]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    out = runproc.communicate()[0]
-    if runproc.returncode==0:
+    out, returncode = runproc(argv=argv,getstdout=True)
+    if returncode==0:
       return int(out)
     return 0 # print(err)
 

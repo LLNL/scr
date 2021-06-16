@@ -6,7 +6,7 @@ from scr_param import SCR_Param
 from scr_env import SCR_Env
 import scr_const
 import scr_common
-from scr_common import tracefunction, getconf
+from scr_common import tracefunction, getconf, runproc
 import scr_hostlist
 
 # scavenge checkpoint files from cache to PFS
@@ -115,11 +115,10 @@ def scr_scavenge(argv,scr_env=None):
   #### need to fix %h #########
   argv = ['srun','-n','1','-N','1','-w','%h',bindir+'/scr_copy','--cntldir',cntldir,'--id',dset,'--prefix',prefixdir,'--buf',buf_size,crc_flag,downnodes_spaced]
   #$cmd = "srun -n 1 -N 1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced";
-  runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
-  out,err = runproc.communicate()
-  if runproc.returncode!=0:
+  err, returncode = runproc(argv=argv,getstderr=True)
+  if returncode!=0:
     print(err)
-    print('scr_copy returned '+str(runproc.returncode))
+    print('scr_copy returned '+str(returncode))
     return 1
 
   print(prog+': '+str(datetime.now()))
@@ -134,20 +133,19 @@ def scr_scavenge(argv,scr_env=None):
   #$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced";
   #             '$pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h 
   #$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced';
-  runproc = subprocess.Popen(args=argv,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,universal_newlines=True)
-  out,err = runproc.communicate()
-  if runproc.returncode!=0:
-    print(err)
-    print('pdsh returned '+str(runproc.returncode))
+  out, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
+  if returncode!=0:
+    print(out[1])
+    print('pdsh returned '+str(returncode))
     #sys.exit(1)
   # print pdsh output to screen
   if verbose==True:
-    if len(out)>0:
+    if len(out[0])>0:
       print('pdsh: stdout: cat '+output)
-      print(out)
-    if len(err)>0:
+      print(out[0])
+    if len(out[1])>0:
       print('pdsh: stderr: cat '+error)
-      print(err)
+      print(out[1])
 
   # TODO: if we knew the total bytes, we could register a transfer here in addition to an event
   # get a timestamp for logging timing values

@@ -2,6 +2,7 @@
 
 # scr_get_jobstep_id.py
 
+from scr_common import runproc
 import re, subprocess
 from scr_env import SCR_Env
 
@@ -34,13 +35,12 @@ def scr_get_jobstep_id(scr_env=None):
   # STEPID         NAME PARTITION     USER      TIME NODELIST
   argv = ['squeue','-h','-s','-u',user,'-j',jobid,'-S','\"-i\"']
   # my $cmd="squeue -h -s -u $user -j $jobid -S \"-i\"";
-  runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-  output = runproc.communicate()[0]
+  output = runproc(argv=argv,getstdout=True)[0]
 
   currjobid='-1' # the return value will be -1 if not found
 
   for line in output:
-    line = re.sub('^(\s+)','',line)
+    line = re.sub('^(\s+)','',line.rstrip())
     # $line=~ s/^\s+//;
     fields = re.split('\s+',line)
     # my @fields = split /\s+/, $line;

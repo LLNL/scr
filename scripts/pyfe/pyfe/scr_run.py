@@ -3,7 +3,7 @@
 from datetime import datetime
 import os, signal, sys, time, scr_const
 import scr_common
-from scr_common import tracefunction, getconf
+from scr_common import tracefunction, getconf, runproc
 from scr_test_runtime import scr_test_runtime
 from scr_list_dir import scr_list_dir
 from scr_prerun import scr_prerun
@@ -65,9 +65,8 @@ def scr_run(argv):
   if val is not None and val=='0':
     argv = [launcher]
     argv.extend(launcher_args)
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    runproc.communicate()
-    sys.exit(runproc.returncode)
+    returncode = runproc(argv=argv)
+    sys.exit(returncode)
 
   # turn on verbosity
   val = os.environ.get('SCR_DEBUG')
@@ -116,8 +115,8 @@ def scr_run(argv):
   # NOP srun to force every node to run prolog to delete files from cache
   # TODO: remove this if admins find a better place to clear cache
   argv=['srun','/bin/hostname'] # ,'>','/dev/null']
-  runproc = subprocess.Popen(args=argv,stdin=None,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
-  out,err = runproc.communicate() # we capture out/err, just ignore it
+
+  runproc(argv=argv)
 
   # make a record of time prerun is started
   timestamp=datetime.now()
@@ -128,15 +127,11 @@ def scr_run(argv):
     sys.exit(1)
 
   val = os.environ.get('SLURM_JOBID')
-  argv=['scontrol','--oneliner','show','job',val]
-  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-  argv=['perl','-n','-e','m/EndTime=(\S*)/ and print $1']
-  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=runproc, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-  out = runproc.communicate()[0]
+  argv=[ ['scontrol','--oneliner','show','job',val], ['perl','-n','-e','m/EndTime=(\S*)/ and print $1'] ]
+  pipeproc(argvs=argv)
 
   argv=['date','-d',out,'+%s']
-  runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-  out = runproc.communicate()[0]
+  out = runproc(argv=argv,getstdout=True)[0]
   os.environ['SCR_END_TIME'] = out
 
   #export SCR_END_TIME=$(date -d $(scontrol --oneliner show job $SLURM_JOBID | 
@@ -235,15 +230,16 @@ def scr_run(argv):
       argv=[launcher]
       argv.extend(exclude)
       argv.extend(launch_cmd)
-      runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+      runproc(argv=argv)
       # $launcher $exclude $launch_cmd
-      runproc.communicate()
     else:
       print(prog+': Attempting to start watchdog process.')
       # need to get job step id of the srun command
       argv=[launcher]
       argv.extend(exclude)
       argv.extend(launch_cmd)
+      ############################# TODO
+      ####### Mixing Popen, should be Process ... ?
       runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
       # $launcher $exclude $launch_cmd &
       srun_pid = runproc.pid
@@ -279,10 +275,9 @@ def scr_run(argv):
 
     # is there a halt condition instructing us to stop?
     argv=[bindir+'/scr_retries_halt','--dir',prefix]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    runproc.communicate()
+    returncode = runproc(argv=argv)[1]
     #$bindir/scr_retries_halt --dir $prefix;
-    if runproc.returncode==0:
+    if returncode==0:
       print(prog+': Halt condition detected, ending run.')
       break
 
@@ -290,10 +285,9 @@ def scr_run(argv):
     time.sleep(60)
 
     # check for halt condition again after sleep
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    runproc.communicate()
+    returncode = runproc(argv=argv)[1]
     #$bindir/scr_retries_halt --dir $prefix;
-    if runproc.returncode==0:
+    if returncode==0:
       print(prog+': Halt condition detected, ending run.')
       break
 

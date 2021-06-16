@@ -7,7 +7,7 @@
 
 import sys
 import scr_const
-from scr_common import getconf
+from scr_common import getconf, runproc
 
 def print_usage(prog):
   print('')
@@ -35,9 +35,8 @@ def scr_kill_jobstep(argv):
   cmd = killCmd+' '+jobid
   print(cmd)
   argv = [killCmd,jobid]
-  runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-  out = runproc.communicate()[0]
-  return runproc.returncode
+  returncode = runproc(argv=argv)[1]
+  return returncode
 
 if __name__=='__main__':
   ret = scr_kill_jobstep(sys.argv[1:])

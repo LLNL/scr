@@ -9,7 +9,7 @@
 # requires: pdsh
 
 import os, re, subprocess, sys
-from scr_common import getconf
+from scr_common import getconf, runproc
 from scr_env import SCR_Env
 import scr_const, scr_hostlist
 
@@ -79,8 +79,7 @@ def scr_inspect(argv,scr_env=None):
   cmd = bindir+'/scr_inspect_cache' # +filemap
 
   argv = [pdsh,'-f','256','-S','-w',upnodes,cmd,filemap]
-  runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-  out = runproc.communicate()
+  out = runproc(argv=argv,getstdout=True,getstderr=True)[0]
   with open(output,'w') as outfile:
     outfile.write(out[0])
   with open(error,'w') as errfile:

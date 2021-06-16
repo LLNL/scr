@@ -24,13 +24,13 @@
 import subprocess, sys
 import scr_const
 from datetime import datetime
+from scr_common import runproc
 
 def do_poststage(bindir,prefix,logfile):
   logfile.write(str(datetime.now())+' Begin post_stage\n')
   logfile.write('Current index before finalizing:\n')
   argv = [bindir+'/scr_index','-l','-p',prefix]
-  runproc = subprocess.Popen(argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=False)
-  out = runproc.communicate()[0]
+  out = runproc(argv=argv,getstdout=True)[0]
   logfile.write(out)
 
   # If we fail to finalize any dataset, set this to the ID of that dataset.
@@ -40,8 +40,7 @@ def do_poststage(bindir,prefix,logfile):
   
   logfile.write('--- Processing output datasets ---\n')
   argv = [bindir+'/scr_flush_file','--dir',prefix,'--list-output']
-  runproc = subprocess.Popen(argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=False)
-  out = runproc.communicate()
+  out = runproc(argv=argv,getstdout=True,getstderr=True)[0]
   if len(out[1])>0:
     logfile.write(out[1])
   for cid in out[0].split('\n'):
@@ -49,57 +48,52 @@ def do_poststage(bindir,prefix,logfile):
       continue
     # Get name of this dataset id
     argv = [bindir+'/scr_flush_file','--dir',prefix,'--name',cid]
-    runproc = subprocess.Popen(argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=False)
-    dset = runproc.communicate()[0]
+    dset = runproc(argv=argv,getstdout=True)[0]
     logfile.write('Looking at output dataset '+str(cid)+' ('+str(dset)+')\n')
 
     argv = [bindir+'/scr_flush_file','--dir',prefix,'--need-flush',cid]
-    runproc = subprocess.Popen(argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=False)
-    tempout = runproc.communicate()
+    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)[0]
     if len(tempout[1])>0:
       logfile.write(tempout[1])
     if len(tempout[0])>0:
       logfile.write(tempout[0])
-    if runproc.returncode==0:
+    if returncode==0:
       logfile.write('Output dataset '+str(cid)+' ('+str(dset)+') is already flushed, skip it\n')
       # Dataset is already flushed, skip it
       continue
 
     logfile.write('Finalizing transfer for dataset '+str(cid)+' ('+str(dset)+')\n')
     argv = [bindir+'/scr_flush_file','-r','-s',cid,'--dir',prefix]
-    runproc = subprocess.Popen(argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=False)
-    tempout = runproc.communicate()
+    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if len(tempout[1])>0:
       logfile.write(tempout[1])
     if len(tempout[0])>0:
       logfile.write(tempout[0])
-    if runproc.returncode==0:
+    if returncode==0:
       logfile.write('Error: Can\'t resume output dataset '+str(cid)+' ('+str(dset)+')\n')
       failed_id = cid
       break
 
     logfile.write('Writing summary for dataset '+str(cid)+' ('+str(dset)+')\n')
     argv = [bindir+'/scr_flush_file','-s',cid,'-S','--dir',prefix]
-    runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-    tempout = runproc.communicate()
+    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if len(tempout[1])>0:
       logfile.write(tempout[1])
     if len(tempout[0])>0:
       logfile.write(tempout[0])
-    if runproc.returncode==0:
+    if returncode==0:
       logfile.write('ERROR: can\'t write summary for output dataset '+str(cid)+' ('+str(dset)+')\n')
       failed_id = cid
       break
 
     logfile.write('Adding dataset '+str(cid)+' ('+str(dset)+') to index\n')
     argv = [bindir+'/scr_index','-p',prefix,'--add='+str(dset)]
-    runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-    tempout = runproc.communicate()
+    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if len(tempout[1])>0:
       logfile.write(tempout[1])
     if len(tempout[0])>0:
       logfile.write(tempout[0])
-    if runproc.returncode==0:
+    if returncode==0:
       logfile.write('Couldn\'t add output dataset '+str(cid)+' ('+str(dset)+') to index\n')
       failed_id = cid
       break
@@ -110,84 +104,76 @@ def do_poststage(bindir,prefix,logfile):
 	# (FAILED_ID = 0) then all checkpoints are iterated over.
   logfile.write('--- Processing checkpoints ---\n')
   argv = [bindir+'/scr_flush_file','--dir',prefix,'--before',str(failed_id),'--list-ckpt']
-  runproc = subprocess.Popen(argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=False)
-  out = runproc.communicate()
-  for cid in out[0].split('\n'):
+  out = runproc(argv=argv,getstdout=True)[0]
+  for cid in out.split('\n'):
     if len(cid)==0:
       continue
     # Get name of this dataset id
     argv = [bindir+'/scr_flush_file','--dir',prefix,'--name',cid]
-    runproc = subprocess.Popen(argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=False)
-    dset = runproc.communicate()[0]
+    dset = runproc(argv=argv,getstdout=True)[0]
     logfile.write('Looking at checkpoint dataset '+str(cid)+' ('+str(dset)+')\n')
 
     argv = [bindir+'/scr_flush_file','--dir',prefix,'--need-flush',cid]
-    runproc = subprocess.Popen(argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=False)
-    tempout = runproc.communicate()
+    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if len(tempout[1])>0:
       logfile.write(tempout[1])
     if len(tempout[0])>0:
       logfile.write(tempout[0])
-    if runproc.returncode==0:
+    if returncode==0:
       # Dataset is already flushed, skip it
       continue
 
     logfile.write('Finalizing transfer for checkpoint dataset '+str(cid)+' ('+str(dset)+')\n')
     argv = [bindir+'/scr_flush_file','-r','-s',cid,'--dir',prefix]
-    runproc = subprocess.Popen(argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=False)
-    tempout = runproc.communicate()
+    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if len(tempout[1])>0:
       logfile.write(tempout[1])
     if len(tempout[0])>0:
       logfile.write(tempout[0])
-    if runproc.returncode==0:
+    if returncode==0:
       logfile.write('Error: Can\'t resume checkpoint dataset '+str(cid)+' ('+str(dset)+')\n')
       continue
 
     logfile.write('Writing summary for checkpoint dataset '+str(cid)+' ('+str(dset)+')\n')
     argv = [bindir+'/scr_flush_file','-s',cid,'-S','--dir',prefix]
-    runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-    tempout = runproc.communicate()
+    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if len(tempout[1])>0:
       logfile.write(tempout[1])
     if len(tempout[0])>0:
       logfile.write(tempout[0])
-    if runproc.returncode==0:
+    if returncode==0:
       logfile.write('ERROR: can\'t write summary for checkpoint dataset '+str(cid)+' ('+str(dset)+')\n')
       continue
 
     logfile.write('Adding checkpoint dataset '+str(cid)+' ('+str(dset)+') to index\n')
     argv = [bindir+'/scr_index','-p',prefix,'--add='+str(dset)]
-    runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-    tempout = runproc.communicate()
+    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if len(tempout[1])>0:
       logfile.write(tempout[1])
     if len(tempout[0])>0:
       logfile.write(tempout[0])
-    if runproc.returncode==0:
+    if returncode==0:
       logfile.write('Couldn\'t add checkpoint dataset '+str(cid)+' ('+str(dset)+') to index\n')
       continue
 
     logfile.write('Setting current checkpoint dataset to '+str(cid)+' ('+str(dset)+')\n')
     argv = [bindir+'/scr_index','-p',prefix,'--current='+str(dset)]
-    runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-    tempout = runproc.communicate()
+    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if len(tempout[1])>0:
       logfile.write(tempout[1])
     if len(tempout[0])>0:
       logfile.write(tempout[0])
-    if runproc.returncode==0:
+    if returncode==0:
       logfile.write('Couldn\'t set current checkpoint dataset to '+str(cid)+' ('+str(dset)+')\n')
 
   logfile.write('All done, index now:\n')
   argv = [bindir+'/scr_index','-l','-p',prefix]
-  runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True, universal_newlines = False)
-  out = runproc.communicate()
+  out, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
   if len(out[1])>0:
     logfile.write(out[1])
   if len(out[0])>0:
     logfile.write(out[0])
-  if runproc.returncode==0:
+  if returncode==0:
     logfile.write('Couldn\'t add checkpoint dataset '+str(cid)+' ('+str(dset)+') to index\n')
 
 def scr_poststage(myprefix):

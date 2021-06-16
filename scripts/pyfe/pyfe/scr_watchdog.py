@@ -11,7 +11,7 @@ import time, scr_const, sys
 from datetime import datetime
 from scr_param import SCR_Param
 from scr_kill_jobstep import scr_kill_jobstep
-from scr_common import getconf
+from scr_common import getconf, runproc
 
 def print_usage(prog):
   print('')
@@ -80,8 +80,7 @@ def scr_watchdog(argv):
     latestLoc = ''
     if latest!='':
       argv = [getLatestLocCmd,latest]
-      runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-      latestLoc = runproc.communicate()[0]
+      latestLoc = runproc(argv=argv,getstdout=True)[0]
     #print "latestLoc was $latestLoc\n";
     if latest == lastCheckpoint:
       if latestLoc == lastCheckpointLoc:

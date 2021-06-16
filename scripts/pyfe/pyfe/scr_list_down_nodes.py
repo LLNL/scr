@@ -7,7 +7,7 @@ import scr_const
 from datetime import datetime
 from scr_param import SCR_Param
 from scr_list_dir import scr_list_dir
-from scr_common import getconf
+from scr_common import getconf, runproc, pipeproc
 import scr_common
 from scr_env import SCR_Env
 import scr_hostlist
@@ -101,13 +101,11 @@ def scr_list_down_nodes(argv,scr_env=None):
     # that ping succeeds, because non-root users cannot
     # set the ping interval below 0.2 seconds.
     argv=[ping,'-c','1','-w','1',node]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    out = runproc.communicate()
+    returncode = runproc(argv=argv)[1]
     # `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
-    if runproc.returncode!=0:
-      runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-      out = runproc.communicate()
-      if runproc.returncode!=0:
+    if returncode!=0:
+      returncode = runproc(argv=argv)[1]
+      if returncode!=0:
         if node in available:
           del available[node]
         unavailable[node] = 1
@@ -188,16 +186,17 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   # run scr_check_node on each node specifying control and cache directories to check
   if len(still_up) > 0:
-    argv=[pdsh,'-Rexec','-f','256','-w',upnodes,'srun','-n','1','-N','1','-w','%h',bindir+'/scr_check_node',free_flag,cntldir_flag,cachedir_flag]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    argv=[dshbak,'-c']
-    runproc2 = subprocess.Popen(args=argv, bufsize=1, stdin=runproc, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    output = runproc2.communicate()
+    argv = []
+    argv.append([pdsh,'-Rexec','-f','256','-w',upnodes,'srun','-n','1','-N','1','-w','%h',bindir+'/scr_check_node',free_flag,cntldir_flag,cachedir_flag])
+    argv.append([dshbak,'-c'])
+    output = pipeproc(argvs=argv,getstdout=True)[0]
     #output = `$pdsh -Rexec -f 256 -w '$upnodes' srun -n 1 -N 1 -w %h $bindir/scr_check_node $free_flag $cntldir_flag $cachedir_flag | $dshbak -c`;
     action=0 # tracking action to use range iterator and follow original line <- shift flow
     nodeset = ''
     line = ''
-    for result in lines:
+    for result in output.split('\n'):
+      if len(result)<1:
+        continue
       if action==0:
         if result.startswith('---'):
           action=1

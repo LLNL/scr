@@ -7,7 +7,7 @@
 
 import os, scr_const, sys
 from datetime import datetime
-from scr_common import tracefunction, getconf, scr_prefix
+from scr_common import tracefunction, getconf, scr_prefix, runproc
 from scr_scavenge import scr_scavenge
 from scr_list_down_nodes import scr_list_down_nodes
 from scr_glob_hosts import scr_glob_hosts
@@ -103,9 +103,8 @@ def scr_postrun(argv,scr_env=None):
     print(prog+': Looking for output sets')
     failed_dataset=0
     argv = [bindir+'/scr_flush_file','--dir',pardir,'--list-output']
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    output_list = runproc.communicate()[0]
-    if runproc.returncode!=0:
+    output_list, returncode = runproc(argv=argv,getstdout=True)
+    if returncode!=0:
       print(prog+': Found no output set to scavenge')
     else:
       argv.append('') # make len(argv) == 5
@@ -115,9 +114,8 @@ def scr_postrun(argv,scr_env=None):
         # determine whether this dataset needs to be flushed
         argv[3]='--need-flush'
         argv[4]=d
-        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-        runproc.communicate()
-        if runproc.returncode!=0:
+        returncode = runproc(argv=argv)[1]
+        if returncode!=0:
           # dataset has already been flushed, go to the next one
           print(prog+': Dataset '+d+' has already been flushed')
           continue
@@ -128,9 +126,8 @@ def scr_postrun(argv,scr_env=None):
 
         # get dataset name
         argv[3]='--name'
-        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-        dsetname = runproc.communicate()[0]
-        if runproc.returncode!=0:
+        dsetname, returncode = runproc(argv=argv,getstdout=True)
+        if returncode!=0:
           # got a dataset to flush, but failed to get name
           print(prog+': Failed to read name of dataset '+d)
           failed_dataset=d
@@ -156,9 +153,8 @@ def scr_postrun(argv,scr_env=None):
         print(prog+': Checking that dataset is complete')
         print(bindir+'/scr_index --prefix '+pardir+' --build '+d)
         index_argv = [bindir+'/scr_index','--prefix',pardir,'--build',d]
-        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-        runproc.communicate()
-        if runproc.returncode!=0:
+        returncode = runproc(argv=argv)[1]
+        if returncode!=0:
           # failed to get dataset, stop trying for later sets
           failed_dataset=d
           break
@@ -169,9 +165,8 @@ def scr_postrun(argv,scr_env=None):
     # check whether we have a dataset set to flush
     print(prog+': Looking for most recent checkpoint')
     argv = [bindir+'/scr_flush_file','--dir',pardir,'--list-ckpt','--before',failed_dataset]
-    runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    ckpt_list = runproc.communicate()[0]
-    if runproc.returncode!=0:
+    ckpt_list, returncode = runproc(argv=argv,getstdout=True)
+    if returncode!=0:
       print(prog+': Found no checkpoint to scavenge')
     else:
       argv = [bindir+'/scr_flush_file','--dir',pardir,'--name','']
@@ -180,14 +175,12 @@ def scr_postrun(argv,scr_env=None):
           if d in succeeded:
             # already got this one above, update current, and finish
             argv[4] = d
-            runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-            dsetname = runproc.communicate()[0]
-            if runproc.returncode==0:
+            dsetname, returncode = runproc(argv=argv)
+            if returncode==0:
               print(prog+': Already scavenged checkpoint dataset '+d)
               print(prog+': Updating current marker in index to '+dsetname)
               index_argv = [bindir+'/scr_index','--prefix',pardir,'--current',dsetname]
-              runproc = subprocess.Popen(args=index_argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-              runproc.communicate()
+              runproc(argv=index_argv)
               ret=0
               break
           else:
@@ -199,9 +192,8 @@ def scr_postrun(argv,scr_env=None):
 
         argv[3]='--need-flush'
         argv[4]=d
-        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-        runproc.communicate()
-        if runproc.returncode!=0:
+        returncode = runproc(argv=argv)[1]
+        if returncode!=0:
           # found a dataset that has already been flushed, we can quit
           print(prog+': Checkpoint dataset '+d+' has already been flushed')
           ret=0
@@ -210,9 +202,8 @@ def scr_postrun(argv,scr_env=None):
 
         # get dataset name
         argv[3]='--name'
-        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-        dsetname = runproc.communicate()[0]
-        if runproc.returncode!=0:
+        dsetname, returncode = runproc(argv=argv,getstdout=True)
+        if returncode!=0:
           # got a dataset to flush, but failed to get name
           print(prog+': Failed to read name of checkpoint dataset '+d)
           continue
@@ -237,9 +228,8 @@ def scr_postrun(argv,scr_env=None):
         print(prog+': Checking that dataset is complete')
         print(bindir+'/scr_index --prefix '+pardir+' --build '+d)
         argv = [bindir+'/scr_index','--prefix',pardir,'--build',d]
-        runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-        runproc.communicate()
-        if runproc.returncode!=0:
+        returncode = runproc(argv=argv)[1]
+        if returncode!=0:
           # incomplete dataset, don't update current marker
           update_current=0
 
@@ -249,8 +239,7 @@ def scr_postrun(argv,scr_env=None):
           print(prog+': Updating current marker in index to '+dsetname)
           argv[3]='--current'
           argv[4]=dsetname
-          runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-          runproc.communicate()
+          runproc(argv=argv)
 
           # just completed scavenging this dataset, so quit
           ret=0
