@@ -576,7 +576,7 @@ TESTING-script-lassen:
     - cd ${WORK_DIR_BASE}
     - git clone --depth 1 ${SRC_DIR} scr-test
     - cd scr-test
-    - csh TESTING.csh
+    - csh examples/TESTING.csh
 
 testpython-lassen:
   stage: test
