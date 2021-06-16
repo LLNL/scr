@@ -4,7 +4,7 @@
 
 import sys
 import scr_const
-from datetime import datetime
+from time import time
 from scr_param import SCR_Param
 from scr_list_dir import scr_list_dir
 from scr_common import getconf, runproc, pipeproc
@@ -38,7 +38,7 @@ def scr_list_down_nodes(argv,scr_env=None):
   pdsh   = scr_const.PDSH_EXE
   dshbak = scr_const.DSHBAK_EXE
 
-  start_time = datetime.now()
+  start_time = str(int(time())) # epoch seconds as int to remove decimal, as string to be a parameter
 
   param = SCR_Param()
 

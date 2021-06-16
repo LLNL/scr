@@ -4,6 +4,7 @@
 
 import os, sys, subprocess, scr_const
 from datetime import datetime
+from time import time
 from scr_common import tracefunction
 from scr_test_runtime import scr_test_runtime
 
@@ -21,6 +22,7 @@ def scr_prerun(argv):
     sys.settrace(tracefunction)
 
   start_time = datetime.now()
+  start_secs = int(time())
   bindir=scr_const.X_BINDIR
   prog='scr_prerun'
 
@@ -81,9 +83,9 @@ def scr_prerun(argv):
 
   # report timing info
   end_time = datetime.now()
-  run_secs = end_time-start_time
+  run_secs = int(time())-start_time
   print(prog+': Ended: '+str(end_time))
-  print(prog+': secs: '+str(run_secs.seconds))
+  print(prog+': secs: '+str(run_secs))
 
   # report exit code and exit
   print(prog+': exit code: 0')

@@ -74,6 +74,63 @@ def scr_prefix():
   # don't worry about missing parts, the calling script calling might create it
   return interpolate_variables(prefix)
 
+# calls subprocessPopen using argv for program+arguments
+# returns a pair of values, the first is the output, the second is the return code
+# specify wait=False to return without getting the return value
+# if wait is false None, None is returned.
+# could return the pid, this requires the shell argument of subprocess.Popen to be false
+# then return runproc.pid
+# the first return value (output) -> specify getstdout to get the stdout, getstderr to get stderr
+# specifying both getstdout and getstderr=True returns a list where [0] is stdout and [1] is stderr
+def runproc(argv,wait=True,getstdout=False,getstderr=False):
+  if len(argv)<1:
+    return None, None
+  try:
+    runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+    if wait==False:
+      return None, None
+    if getstdout==True and getstderr=True:
+      output = runproc.communicate()
+      return output, runproc.returncode
+    if getstdout==True:
+      output = runproc.communicate()[0]
+      return output, runproc.returncode
+    if getstderr==True:
+      output = runproc.communicate()[1]
+      return output, runproc.returncode
+    runproc.communicate()
+    return None, runproc.returncode
+  except:
+    return None, None
+
+# pipeproc works as runproc above, except argvs is a list of argv lists
+# the first subprocess is opened and from there the stdout will be the stdin of subsequent processes
+def pipeproc(argvs,wait=True,getstdout=False,getstderr=False):
+  if len(argvs)<1:
+    return None, None
+  if len(argvs)==1:
+    return runproc(argvs[0],wait,getstdout,getstderr)
+  try:
+    nextprog = subprocess.Popen(argvs[0],bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+    for i in range(1,len(argvs)):
+      pipeprog = subprocess.Popen(argvs[i],bufsize=1,stdin=nextprog,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+      nextprog = pipeprog
+    if wait==False:
+      return nextprog.pid, None
+    if getstdout==True and getstderr==True:
+      output = nextprog.communicate()
+      return output, nextprog.returncode
+    if getstdout==True:
+      output = nextprog.communicate()[0]
+      return output, nextprog.returncode
+    if getstderr==True:
+      output = nextprog.communicate()[1]
+      return output, nextprog.returncode
+    nextprog.communicate()
+    return None, nextprog.returncode
+  except:
+    return None, None
+
 def log(bindir=None,prefix=None,username=None,jobname=None,jobid=None,start=None,event_type=None,event_note=None,event_dset=None,event_name=None,event_start=None,event_secs=None):
   if prefix is None:
     prefix = scr_prefix()
@@ -101,56 +158,8 @@ def log(bindir=None,prefix=None,username=None,jobname=None,jobid=None,start=None
     argv.extend(['-S',event_start])
   if event_secs is not None:
     argv.extend(['-L',event_secs])
-  runproc = subprocess.Popen(args=argv,bufsize=1,stdin=None,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
-  runproc.communicate()
-  return runproc.returncode
-
-def runproc(argv,wait=True,getstdout=False,getstderr=False):
-  if len(argv)<1:
-    return None, None
-  try:
-    runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    if wait==False:
-      return runproc.pid, None
-    if getstdout==True and getstderr=True:
-      output = runproc.communicate()
-      return output, runproc.returncode
-    if getstdout==True:
-      output = runproc.communicate()[0]
-      return output, runproc.returncode
-    if getstderr==True:
-      output = runproc.communicate()[1]
-      return output, runproc.returncode
-    runproc.communicate()
-    return None, runproc.returncode
-  except:
-    return None, None
-
-def pipeproc(argvs,wait=True,getstdout=False,getstderr=False):
-  if len(argvs)<1:
-    return None, None
-  if len(argvs)==1:
-    return runproc(argvs[0],wait,getstdout,getstderr)
-  try:
-    nextprog = subprocess.Popen(argvs[0],bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    for i in range(1,len(argvs)):
-      pipeprog = subprocess.Popen(argvs[i],bufsize=1,stdin=nextprog,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-      nextprog = pipeprog
-    if wait==False:
-      return nextprog.pid, None
-    if getstdout==True and getstderr==True:
-      output = nextprog.communicate()
-      return output, nextprog.returncode
-    if getstdout==True:
-      output = nextprog.communicate()[0]
-      return output, nextprog.returncode
-    if getstderr==True:
-      output = nextprog.communicate()[1]
-      return output, nextprog.returncode
-    nextprog.communicate()
-    return None, nextprog.returncode
-  except:
-    return None, None
+  returncode = runproc(argv=argv)[1]
+  return returncode
 
 if __name__=='__main__':
   ret = scr_prefix()

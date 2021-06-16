@@ -8,7 +8,7 @@
 # passes without activity, it kills the job
 
 import time, scr_const, sys
-from datetime import datetime
+#from datetime import datetime
 from scr_param import SCR_Param
 from scr_kill_jobstep import scr_kill_jobstep
 from scr_common import getconf, runproc
@@ -42,7 +42,7 @@ def scr_watchdog(argv):
   # TODO: What to do if timeouts are not set? die? should we set default values?
   # for now die with error message
 
-  start_time = datetime.now()
+  # start_time = datetime.now() ## this is not used?
 
   # read in command line arguments
   conf = getconf(argv,{'-d':'prefixdir','--dir':'prefixdir','-j':'jobstepid','--jobStepId':'jobstepid'})

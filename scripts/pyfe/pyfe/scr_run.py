@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 from datetime import datetime
+from time import time
 import os, signal, sys, time, scr_const
 import scr_common
 from scr_common import tracefunction, getconf, runproc
@@ -75,6 +76,7 @@ def scr_run(argv):
 
   # make a record of start time
   timestamp=datetime.now()
+  start_secs = int(secs)
   print(prog+': Started: '+str(timestamp))
 
   # check that we have runtime dependencies
@@ -179,7 +181,7 @@ def scr_run(argv):
 
       # if this is the first run, we hit down nodes right off the bat, make a record of them
       if attempts==0:
-        start_secs=datetime.now()
+        start_secs=int(time())
         print('SCR: Failed node detected: JOBID='+jobid+' ATTEMPT=0 TIME='+str(start_secs)+' NNODES=-1 RUNTIME=0 FAILED='+down_nodes)
 
       # determine how many nodes are needed:
@@ -222,9 +224,9 @@ def scr_run(argv):
         my_restart_cmd='echo '+restart_cmd+' '+bindir+'/scr_have_restart'
         launch_cmd=' '.join(launcher_args)+' '+myrestart_cmd
     # launch the job, make sure we include the script node and exclude down nodes
-    start_secs=datetime.now()
+    start_secs=int(time())
 
-    scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='RUN_START',event_note='run='+str(attempts),event_start=str(start_secs.time.second))
+    scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='RUN_START',event_note='run='+str(attempts),event_start=str(start_secs))
     # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
     if use_scr_watchdog == '0':
       argv=[launcher]
@@ -256,13 +258,13 @@ def scr_run(argv):
         print(prog+': ERROR: Unable to start scr_watchdog because couldn\'t get job step id.')
       runproc.communicate()
 
-    end_secs=datetime.now()
+    end_secs=int(time())
     run_secs=end_secs - start_secs
 
     # check for and log any down nodes
-    scr_list_down_nodes([keep_down,'--log','--reason','--secs',str(run_secs.seconds)],scr_env)
+    scr_list_down_nodes([keep_down,'--log','--reason','--secs',str(run_secs)],scr_env)
     # log stats on the latest run attempt
-    scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='RUN_END',event_note='run='+str(attempts),event_start=str(end_secs),event_secs=str(run_secs.seconds))
+    scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='RUN_END',event_note='run='+str(attempts),event_start=str(end_secs),event_secs=str(run_secs))
     #$bindir/scr_log_event -i $jobid -p $prefix -T "RUN_END" -N "run=$attempts" -S $end_secs -L $run_secs
 
     # any retry attempts left?

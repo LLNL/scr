@@ -2,6 +2,7 @@
 
 import os, sys
 from datetime import datetime
+from time import time
 from scr_param import SCR_Param
 from scr_env import SCR_Env
 import scr_const
@@ -42,7 +43,7 @@ def scr_scavenge(argv,scr_env=None):
   elif crc_flag == '0':
     crc_flag = ''
 
-  start_time = datetime.now()
+  start_time = int(time())
 
   # tag output files with jobid
   if scr_env is None:
@@ -149,7 +150,7 @@ def scr_scavenge(argv,scr_env=None):
 
   # TODO: if we knew the total bytes, we could register a transfer here in addition to an event
   # get a timestamp for logging timing values
-  end_time = datetime.now()
+  end_time = int(time())
   diff_time = end_time - start_time
   scr_common.log(bindir=bindir,prefix=prefixdir,jobid=jobid,event_type='SCAVENGE_END',event_dset=dset,event_start=str(start_time),event_secs=str(diff_time))
   return 0

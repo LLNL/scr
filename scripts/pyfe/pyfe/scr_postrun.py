@@ -7,6 +7,7 @@
 
 import os, scr_const, sys
 from datetime import datetime
+from time import time
 from scr_common import tracefunction, getconf, scr_prefix, runproc
 from scr_scavenge import scr_scavenge
 from scr_list_down_nodes import scr_list_down_nodes
@@ -32,7 +33,7 @@ def scr_postrun(argv,scr_env=None):
 
   # record the start time for timing purposes
   start_time=datetime.now()
-  start_secs=start_time.time().second
+  start_secs=int(time())
 
   bindir=scr_const.X_BINDIR
 
@@ -53,7 +54,7 @@ def scr_postrun(argv,scr_env=None):
     return 1
 
   # all parameters checked out, start normal output
-  print(prog+': Started: '+str(start_time))
+  print(prog+': Started: '+str(datetime.now()))
 
   # ensure scr_env is set
   if scr_env is None:
@@ -247,7 +248,7 @@ def scr_postrun(argv,scr_env=None):
 
   # print the timing info
   end_time=datetime.now()
-  end_secs=end_time.time().second
+  end_secs=int(time())
   run_secs=end_secs - start_secs
   print(prog+': Ended: '+str(end_time))
   print(prog+': secs: '+str(run_secs))
