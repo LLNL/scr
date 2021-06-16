@@ -16,6 +16,8 @@ INSTALL(FILES ${libscr_install_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 ## CLI should build without MPI dependence
 LIST(APPEND cliscr_noMPI_srcs
+	scr_cache_index.c
+	scr_cache_index_serial.c
 	scr_config.c
 	scr_config_serial.c
 	scr_dataset.c
@@ -40,6 +42,7 @@ LIST(APPEND libscr_srcs
 	scr_cache.c
 	scr_cache_rebuild.c
 	scr_cache_index.c
+	scr_cache_index_mpi.c
 	scr_config.c
 	scr_config_mpi.c
 	scr_dataset.c

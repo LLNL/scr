@@ -320,9 +320,11 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_SET_SIZE`
      - 8
      - Specify the minimum number of processes to include in an redundancy set.
-       Increasing this value may decrease the amount of storage required to cache the dataset.
-       However, higher values may have an increased likelihood of encountering a catastrophic error.
-       Higher values may also require more time to reconstruct lost files from redundancy data.
+       So long as there are sufficient failure groups, each redundancy set will be at least the minimum size.
+       If not, redundancy sets will be as large as possible, but they may be smaller than the minimum size.
+       Increasing this value can decrease the amount of storage required to cache the dataset.
+       However, a higher value can require more time to rebuild lost files,
+       and it increases the likelihood of encountering a catastrophic failure.
    * - :code:`SCR_SET_FAILURES`
      - 2
      - Specify the number of failures to tolerate in each set while using the RS scheme.
@@ -438,3 +440,75 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_WATCHDOG_TIMEOUT_PFS`
      - N/A
      - Set to the expected time (seconds) for checkpoint writes to the parallel file system (see :ref:`sec-hang`).
+
+.. _sec-config-common:
+
+Common configurations
+---------------------
+
+Applications achieve the highest performance when only
+a single process accesses each file within a dataset.
+This mode is termed *file-per-process*.
+In that situation, SCR can keep files in cache locations
+that might include node-local storage.
+
+SCR also supports applications that require shared access to files,
+where more than one process writes to or reads from a given file.
+This mode is termed *shared access*.
+To support shared access to a file,
+SCR locates files in global storage like the parallel file system.
+ 
+Regardless of the type of file access,
+one can only use cache when there is sufficient capacity
+to store the application files and associated SCR redundancy data.
+
+There are several common SCR configurations depending on the needs of the application.
+
+write file-per-process, read file-per-process
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this mode, an application uses file-per-process mode
+both while writing its dataset during checkpoint/output
+and while reading its dataset during restart.
+So long as there is sufficient cache capacity,
+SCR can use cache including node-local storage for both operations.
+To configure SCR for this mode::
+
+  SCR_CACHE_BYPASS=0
+
+One must set :code:`SCR_CACHE_BYPASS=0` to instruct SCR to use cache.
+
+write file-per-process, read with shared access
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is somewhat common for an application to write datasets using file-per-process
+mode but then require shared access mode to read its checkpoint files during restart.
+For example, there might be a top-level file that all processes read.
+In this case, SCR can be configured to use cache like node-local storage while writing,
+but it must be configured to move files to the prefix directory for restarts::
+
+  SCR_CACHE_BYPASS=0
+  SCR_GLOBAL_RESTART=1
+
+Setting :code:`SCR_GLOBAL_RESTART=1` instructs SCR to rebuild any cached datasets
+during :code:`SCR_Init` and then flush them to the prefix directory to read during
+the restart phase.
+
+write with shared access
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If an application requires shared access mode while writing its dataset,
+SCR must be configured to locate files on a global file system.
+In this case, it is best to use the global file system both
+for writing datasets during checkpoint/output and for reading files during restart::
+
+  SCR_CACHE_BYPASS=1
+
+Setting :code:`SCR_CACHE_BYPASS=1` instructs SCR to locate files
+within the prefix directory for both checkpoint/output and restart phases.
+
+Cache bypass mode must also be used when the cache capacity
+is insufficient to store the application files and SCR redundancy data.
+
+Because cache bypass mode is the most portable across different systems and applications,
+it is enabled by default.

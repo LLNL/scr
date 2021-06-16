@@ -12,11 +12,14 @@
 set -x 
 
 # optional builds
+clone_ssh=0   # whether to clone with https (0) or ssh (1)
 build_debug=0 # whether to build optimized (0) or debug "-g -O0" (1)
 build_dev=0   # whether to checkout fixed version tags (0) or use latest (1)
 
 while [ $# -ge 1 ]; do
     case "$1" in
+      "--ssh" )
+        clone_ssh=1 ;;
       "--debug" )
         build_debug=1 ;;
       "--dev" )
@@ -50,13 +53,20 @@ if [ ! -f ${pdsh}.tar.gz ] ; then
   wget https://github.com/chaos/pdsh/releases/download/${pdsh}/${pdsh}.tar.gz
 fi
 
-repos=(https://github.com/ECP-VeloC/KVTree.git
-    https://github.com/ECP-VeloC/AXL.git
-    https://github.com/ECP-VeloC/spath.git
-    https://github.com/ECP-VeloC/rankstr.git
-    https://github.com/ECP-VeloC/redset.git
-    https://github.com/ECP-VeloC/shuffile.git
-    https://github.com/ECP-VeloC/er.git
+if [ $clone_ssh -eq 0 ] ; then
+  # clone with https
+  url_prefix="https://github.com/"
+else
+  # clone with ssh (requires user to have their ssh keys registered on github)
+  url_prefix="git@github.com:"
+fi
+repos=(${url_prefix}ECP-VeloC/KVTree.git
+    ${url_prefix}ECP-VeloC/AXL.git
+    ${url_prefix}ECP-VeloC/spath.git
+    ${url_prefix}ECP-VeloC/rankstr.git
+    ${url_prefix}ECP-VeloC/redset.git
+    ${url_prefix}ECP-VeloC/shuffile.git
+    ${url_prefix}ECP-VeloC/er.git
 )
 
 for i in "${repos[@]}" ; do
@@ -150,7 +160,7 @@ cd rankstr
     git checkout v0.0.3
   fi
   mkdir -p build && cd build
-  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON ..
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ..
   make -j `nproc`
   make install
   #make test
@@ -161,7 +171,7 @@ cd redset
     git checkout v0.0.5
   fi
   mkdir -p build && cd build
-  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DMPI=ON ..
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR ..
   make -j `nproc`
   make install
 cd ../..
@@ -171,7 +181,7 @@ cd shuffile
     git checkout v0.0.4
   fi
   mkdir -p build && cd build
-  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DMPI=ON ..
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR ..
   make -j `nproc`
   make install
 cd ../..
@@ -181,7 +191,7 @@ cd er
     git checkout v0.0.4
   fi
   mkdir -p build && cd build
-  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DWITH_REDSET_PREFIX=$INSTALL_DIR -DWITH_SHUFFILE_PREFIX=$INSTALL_DIR -DMPI=ON ..
+  cmake -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DWITH_KVTREE_PREFIX=$INSTALL_DIR -DWITH_REDSET_PREFIX=$INSTALL_DIR -DWITH_SHUFFILE_PREFIX=$INSTALL_DIR ..
   make -j `nproc`
   make install
 cd ../..

@@ -190,12 +190,9 @@ extern int   scr_drop_after_current; /* auto-drop datasets from index that come 
 extern int scr_prefix_size;  /* max number of checkpoints to keep in prefix directory */
 extern int scr_prefix_purge; /* whether to delete all datasets listed in index file during SCR_Init */
 
-extern int scr_flush_async;             /* whether to use asynchronous flush */
-extern double scr_flush_async_bw;       /* bandwidth limit imposed during async flush */
-extern double scr_flush_async_percent;  /* runtime limit imposed during async flush */
-extern int scr_flush_async_in_progress; /* tracks whether an async flush is currently underway */
-extern int scr_flush_async_dataset_id;  /* tracks the id of the checkpoint being flushed */
-extern double scr_flush_async_bytes;    /* records the total number of bytes to be flushed */
+extern int scr_flush_async;            /* whether to use asynchronous flush */
+extern double scr_flush_async_bw;      /* bandwidth limit imposed during async flush */
+extern double scr_flush_async_percent; /* runtime limit imposed during async flush */
 
 extern int scr_flush_poststage; /* whether to use scr_poststage.sh to finalize transfers */
 

@@ -2,9 +2,9 @@
 
 The Scalable Checkpoint / Restart (SCR) library enables MPI applications
 to utilize distributed storage on Linux clusters to attain high file I/O
-bandwidth for checkpointing and restarting large-scale jobs. With SCR,
-jobs run more efficiently, recompute less work upon a failure, and reduce
-load on critical shared resources such as the parallel file system.
+bandwidth for checkpointing, restarting, and output in large-scale jobs.
+With SCR, jobs run more efficiently, recompute less work upon a failure,
+and reduce load on critical shared resources such as the parallel file system.
 
 Detailed usage is provided at [SCR.ReadTheDocs.io](https://scr.readthedocs.io/en/latest/).
 
@@ -15,7 +15,8 @@ shows one how to build and run an example using SCR.
 
 ## Contribute
 
-As an open source project, we welcome contributions via pull requests, as well as questions, feature requests, or bug reports via issues.
+As an open source project, we welcome contributions via pull requests,
+as well as questions, feature requests, or bug reports via issues.
 Please refer to both our [code of conduct](CODE_OF_CONDUCT.md) and our [contributing guidelines](CONTRIBUTING.md).
 
 ## Developers
@@ -25,13 +26,13 @@ Developer documentation is provided at [SCR-dev.ReadTheDocs.io](https://scr-dev.
 [![Developer Docs Status](https://readthedocs.org/projects/scr-dev/badge/?version=latest)](https://scr-dev.readthedocs.io/en/latest/?badge=latest)
 
 SCR uses components from [ECP-VeloC](https://github.com/ECP-VeloC),
-which have [user](https://github.com/ECP-VeloC/component-user-docs)
+which have their own [user](https://github.com/ECP-VeloC/component-user-docs)
 and [developer](https://github.com/ECP-VeloC/component-dev-docs) docs.
 
 For a development build of SCR and its dependencies,
 one can use the bootstrap.sh script:
 
-    git clone git@github.com:llnl/scr.git
+    git clone https://github.com/LLNL/scr.git
     cd scr
 
     ./bootstrap.sh --dev --debug
