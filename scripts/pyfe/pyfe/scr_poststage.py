@@ -52,7 +52,7 @@ def do_poststage(bindir,prefix,logfile):
     logfile.write('Looking at output dataset '+str(cid)+' ('+str(dset)+')\n')
 
     argv = [bindir+'/scr_flush_file','--dir',prefix,'--need-flush',cid]
-    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)[0]
+    tempout, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if len(tempout[1])>0:
       logfile.write(tempout[1])
     if len(tempout[0])>0:

@@ -175,7 +175,7 @@ def scr_postrun(argv,scr_env=None):
           if d in succeeded:
             # already got this one above, update current, and finish
             argv[4] = d
-            dsetname, returncode = runproc(argv=argv)
+            dsetname, returncode = runproc(argv=argv,getstdout=True)
             if returncode==0:
               print(prog+': Already scavenged checkpoint dataset '+d)
               print(prog+': Updating current marker in index to '+dsetname)

@@ -65,7 +65,7 @@ def scr_run(argv):
   if val is not None and val=='0':
     argv = [launcher]
     argv.extend(launcher_args)
-    returncode = runproc(argv=argv)
+    returncode = runproc(argv=argv)[1]
     sys.exit(returncode)
 
   # turn on verbosity
@@ -238,17 +238,17 @@ def scr_run(argv):
       argv=[launcher]
       argv.extend(exclude)
       argv.extend(launch_cmd)
-      ############################# TODO
-      ####### Mixing Popen, should be Process ... ?
+      # need to first launch this process then wait for it below
       runproc = subprocess.Popen(args=argv, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
       # $launcher $exclude $launch_cmd &
-      srun_pid = runproc.pid
+      #srun_pid = runproc.pid # don't need this
       #srun_pid=$!;
       time.sleep(10)
       #sleep 10; # sleep a bit to wait for the job to show up in squeue
       jobstepid = scr_get_jobstep_id(scr_env)
       # then start the watchdog  if we got a valid job step id
       if jobstepid!='' and jobstepid!='-1':
+        # Launching a new process to execute the python method
         watchdog = Process(target=scr_watchdog,args=('--dir',prefix,'--jobStepId',jobstepid))
         watchdog.start()
         print(prog+': Started watchdog process with PID '+str(watchdog.pid)+'.')

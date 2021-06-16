@@ -43,7 +43,7 @@ class SCR_Env_SLURM(SCR_Env_Base):
       self.conf['down'] = ''
       return
     argv = ['sinfo','-ho','%N','-t','down','-n',','.join(self.conf['nodes'])]
-    out, returncode = runproc(argv=argv)
+    out, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if returncode!=0:
       #print('0')
       print(out[1])
