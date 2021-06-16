@@ -574,9 +574,9 @@ TESTING-script-lassen:
     - spack-scr-lassen
   script:
     - cd ${WORK_DIR_BASE}
-    - git clone --depth 1 ${SRC_DIR} scr-test
+    - git clone file://${SRC_DIR} scr-test
     - cd scr-test
-    - csh examples/TESTING.csh
+    - csh testing/TESTING.csh
 
 testpython-lassen:
   stage: test
