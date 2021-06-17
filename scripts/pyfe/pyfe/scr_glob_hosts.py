@@ -2,80 +2,64 @@
 
 #scr_glob_hosts.py
 
-import sys
-from scr_common import getconf
+import argparse
 import scr_hostlist
 
-def print_usage(prog):
-  print('')
-  print('  Usage:  '+prog+' [options]')
-  print('')
-  print('  Options:')
-  print('    -c, --count                 Print the number of hosts.')
-  print('    -n, --nth <num>             Output the Nth host (1=lo, -1=hi).')
-  print('    -h, --hosts <hosts>         Use this hostlist.')
-  print('    -m, --minus <s1:s2>         Elements of s1 not in s2.')
-  print('    -i, --intersection <s1:s2>  Intersection of s1 and s2 hosts.')
-  print('    -C, --compress <csv hosts>  Compress the csv hostlist')
-  print('')
-  
-def scr_glob_hosts(argv):
-  prog = 'scr_glob_hosts'
-  conf = getconf(argv,{'-n':'nth','--nth':'nth','-h':'hosts','--hosts':'hosts','-m':'minus','--minus':'minus','-i':'intersection','--intersection':'intersection','-C':'compress','--compress':'compress'},togglevals={'-c':'count','--count':'count'})
-  if conf is None:
-    print_usage(prog)
-    return 1
-  print(conf)
+def scr_glob_hosts(count=False,nth=None,hosts=None,minus=None,intersection=None,compress=None):
   hostset = []
-  if 'hosts' in conf:
-    hostset = scr_hostlist.expand(conf['hosts'])
-  elif 'minus' in conf:
-    if ':' in conf['minus']:
-      pieces = conf['minus'].split(':')
-      set1 = scr_hostlist.expand(pieces[0])
-      set2 = scr_hostlist.expand(pieces[1])
-      hostset = scr_hostlist.diff(set1,set2)
-    else:
-      print_usage(prog)
-      return 1
-  elif 'intersection' in conf:
-    if ':' in conf['intersection']:
-      pieces = conf['intersection'].split(':')
-      set1 = scr_hostlist.expand(pieces[0])
-      set2 = scr_hostlist.expand(pieces[1])
-      hostset = scr_hostlist.intersect(set1,set2)
-    else:
-      print_usage(prog)
-      return 1
-  elif 'compress' in conf:
+  if hosts is not None:
+    hostset = scr_hostlist.expand(hosts)
+  elif minus is not None and ':' in minus:
+    pieces = minus.split(':')
+    set1 = scr_hostlist.expand(pieces[0])
+    set2 = scr_hostlist.expand(pieces[1])
+    hostset = scr_hostlist.diff(set1,set2)
+  elif intersection is not None and ':' in intersection:
+    pieces = intersection.split(':')
+    set1 = scr_hostlist.expand(pieces[0])
+    set2 = scr_hostlist.expand(pieces[1])
+    hostset = scr_hostlist.intersect(set1,set2)
+  elif compress is not None:
     # if the argument is a csv then the compress function has no effect
     # this python implementation can just return the parameter . . .
     # (to act as 'printing' it then exiting)
     # return conf['compress'] # returns the csv string
     # if we compress the range (?)
-    hostset = scr_hostlist.expand(conf['compress'])
+    hostset = scr_hostlist.expand(compress)
     return scr_hostlist.compress_range(hostset)
   else: #if not valid
-    print_usage(prog)
-    return 1
+    return None
   # ok, got our resulting nodeset, now print stuff to the screen
-  if 'nth' in conf:
+  if nth is not None:
     # print out the nth node of the nodelist
-    n = int(conf['nth'])
+    n = int(nth)
     if n > len(hostset) or n < -len(hostset):
-      print(prog+': ERROR: Host index ('+str(n)+') is out of range for the specified host list.')
-      return 1
+      print('scr_glob_hosts: ERROR: Host index ('+str(n)+') is out of range for the specified host list.')
+      return None
     if n>0: # an initial n=0 or n=1 both return the same thing
       n-=1
     # return the nth element
     return hostset[n]
   # return the number of nodes (length) in the nodelist
-  if 'count' in conf:
+  if count:
     return len(hostset)
   # return a csv string representation of the nodelist
   return scr_hostlist.compress(hostset)
 
 if __name__=='__main__':
-  ret = scr_glob_hosts(sys.argv[1:])
-  print('scr_glob_hosts returned '+str(ret))
+  parser = argparse.ArgumentParser(add_help=False,argument_default=argparse.SUPPRESS,prog='scr_glob_hosts')
+  # default=None, required=True, nargs='+'
+  parser.add_argument('--help', action='store_true', help='Print this help message.')
+  parser.add_argument('-c', '--count', action='store_true', default=False, help='Print the number of hosts.')
+  parser.add_argument('-n', '--nth', metavar='<num>', type=int, default=None, help='Output the Nth host (1=lo, -1=hi).')
+  parser.add_argument('-h', '--hosts', metavar='<hosts>', type=str, default=None, help='Use this hostlist.')
+  parser.add_argument('-m', '--minus', metavar='<s1:s2>', type=str, default=None, help='Elements of s1 not in s2.')
+  parser.add_argument('-i', '--intersection', metavar='<s1:s2>', type=str, default=None, help='Intersection of s1 and s2 hosts.')
+  parser.add_argument('-C', '--compress', metavar='<csv host>', type=str, default=None, help='Compress the csv hostlist.')
+  args = vars(parser.parse_args())
+  if ('help' in args) or (args['hosts'] is None and args['minus'] is None and args['intersection'] is None and args['compress'] is None) or (args['minus'] is not None and ':' not in args['minus']) or (args['intersection'] is not None and ':' not in args['intersection']):
+    parser.print_help()
+  else:
+    ret = scr_glob_hosts(count=args['count'],nth=args['nth'],hosts=args['hosts'],minus=args['minus'],intersection=args['intersection'],compress=args['compress'])
+    print('scr_glob_hosts returned '+str(ret))
 

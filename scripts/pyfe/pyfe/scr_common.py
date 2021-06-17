@@ -89,7 +89,7 @@ def runproc(argv,wait=True,getstdout=False,getstderr=False):
     runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
     if wait==False:
       return None, None
-    if getstdout==True and getstderr=True:
+    if getstdout==True and getstderr==True:
       output = runproc.communicate()
       return output, runproc.returncode
     if getstdout==True:

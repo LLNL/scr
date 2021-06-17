@@ -39,10 +39,8 @@ if __name__ == '__main__':
   #scr_env = SCR_Env(env='APRUN')
   scr_env = SCR_Env()
   scr_env.set_downnodes()
-  for key in scr_env.conf:
-    if scr_env.conf[key] == None:
-      print('scr_env.conf['+key+'] = None')
-    else:
-      print('scr_env.conf['+key+'] = \''+scr_env.conf[key]+'\'')
   print(type(scr_env))
+  for key in scr_env.conf:
+    # conf values could be None, need str cast
+    print('scr_env.conf['+key+'] = \''+str(scr_env.conf[key])+'\'')
 
