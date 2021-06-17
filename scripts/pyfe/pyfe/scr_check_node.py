@@ -7,53 +7,32 @@
 #   cache directory is available and of proper size
 # print PASS if good, and FAIL if not
 
-import os, sys
-from scr_common import getconf
+import argparse, os
 
-def print_usage(prog):
-  print('')
-  print('  '+prog+' -- checks that the current node is healthy')
-  print('')
-  print('  Usage:  scr_check_node [--cntl <dir>] [--cache <dir>]')
-  print('')
-  print('  Options:')
-  print('    --free             Check that free capacity of drive meets limit,')
-  print('                         checks total capactiy of drive otherwise.')
-  print('    --cntl <dir>       Specify the SCR control directory.')
-  print('    --cache <dir>      Specify the SCR cache directory.')
-  print('')
-
-def scr_check_node(argv):
-  prog = 'scr_check_node'
-  conf = getconf(argv,{'--cntl':'cntl_list','--cache':'cache_list'},{'--free':'free'})
-  if conf is None:
-    print_usage(prog)
-    return 0
-
+def scr_check_node(free=False,cntl_list=None,cache_list=None):
   types = ['cntl','cache']
   # split up our lists of control directories / cache directories
+  checkdict = {}
   for atype in types:
-    if (atype == 'cntl' and 'cntl_list' in conf) or (atype == 'cache' and 'cache_list' in conf):
-      conf[atype] = {}
+    if (atype == 'cntl' and cntl_list is not None) or (atype == 'cache' and cache_list is not None):
+      checkdict[atype] = {}
       dirs = []
       if atype=='cntl':
-        dirs = conf['cntl_list'].split(',')
+        dirs = cntl_list.split(',')
       else:
-        dirs = conf['cache_list'].split(',')
+        dirs = cache_list.split(',')
       for adir in dirs:
         if ':' in adir:
           parts = adir.split(':')
-          conf[atype][parts[0]] = {}
-          conf[atype][parts[0]]['bytes'] = parts[1]
+          checkdict[atype][parts[0]] = {}
+          checkdict[atype][parts[0]]['bytes'] = parts[1]
         else:
-          conf[atype][adir] = {}
-          conf[atype][adir]['bytes'] = None
+          checkdict[atype][adir] = {}
+          checkdict[atype][adir]['bytes'] = None
 
   # check that we can access the directory
-  for atype in types:
-    if atype not in conf:
-      continue
-    dirs = conf[atype].keys()
+  for atype in checkdict:
+    dirs = checkdict[atype].keys()
     # check that we can access the directory
     # (perl code ran an ls)
     # the docs suggest not to ask if access available, but to just try to access:
@@ -62,30 +41,34 @@ def scr_check_node(argv):
     # if a size is defined, check that the total size is enough
     for adir in dirs:
       try:
-        if conf[atype][adir]['bytes'] is not None:
+        if checkdict[atype][adir]['bytes'] is not None:
           # TODO: need to know which unit df is using
           # convert expected size from bytes to kilobytes
-          kb = int(conf[atype][adir]['bytes']) // 1024
+          kb = int(checkdict[atype][adir]['bytes']) // 1024
 
           # check total drive capacity, unless --free was given, then check free space on drive
           df_arg_pos = 2
-          if 'free' in conf:
+          if 'free' in checkdict:
             df_arg_pos = 4
 
           # ok, now get drive capacity
           statvfs = os.statvfs(adir)
-          if 'free' in conf: # compare with usable free
+          if 'free' in checkdict: # compare with usable free
             df_kb = statvfs.f_frsize * statvfs.f_bavail // 1024
             if df_kb < kb:
-              print('FAIL: Insufficient space in directory: '+adir+', expected '+str(kb)+' KB, found '+str(df_kb)+' KB')
+              print('scr_check_node: FAIL: Insufficient space in directory: '+adir+', expected '+str(kb)+' KB, found '+str(df_kb)+' KB')
               return 1
           else: # compare with total
             df_kb = statvfs.f_frsize * statvfs.f_blocks // 1024
             if df_kb < kb:
-              print('FAIL: Insufficient space in directory: '+adir+', expected '+str(kb)+' KB, found '+str(df_kb)+' KB')
+              print('scr_check_node: FAIL: Insufficient space in directory: '+adir+', expected '+str(kb)+' KB, found '+str(df_kb)+' KB')
               return 1
-      except: # PermissionError:
-        print('FAIL: Could not access directory: '+adir)
+      except PermissionError:
+        print('scr_check_node: FAIL: Could not access directory: '+adir)
+        return 1
+      except Exception as e:
+        print(e)
+        print('scr_check_node: FAIL: Error accessing directory: '+adir)
         return 1
 
     # attempt to write to directory
@@ -94,17 +77,30 @@ def scr_check_node(argv):
       try:
         with open(testfile,'w') as outfile:
           pass
-      except: # PermissionError or (other error)
-        #if sys.exc_info()[0] == PermissionError:
-        print('FAIL: Could not touch test file: '+testfile)
+      except Exception as e: # PermissionError or (other error)
+        print(e)
+        print('scr_check_node: FAIL: Could not touch test file: '+testfile)
         return 1
       try:
         os.remove(testfile)
-      except:
-        print('FAIL: Could not rm test file: '+testfile)
+      except Exception as e:
+        print(e)
+        print('scr_check_node: FAIL: Could not rm test file: '+testfile)
         return 1
   return 0
 
 if __name__=='__main__':
-  ret = scr_check_node(sys.argv[1:])
-  print('scr_check_node returned '+str(ret))
+  parser = argparse.ArgumentParser(add_help=False,argument_default=argparse.SUPPRESS,prog='scr_check_node',description='Checks that the current node is healthy')
+  # default=None, required=True, nargs='+'
+  parser.add_argument('-h', '--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('--free', action='store_true', default=False, help='Check that free capacity of drive meets limit, checks total capacity of drive otherwise.')
+  parser.add_argument('--cntl', metavar='<dir>', type=str, default=None, help='Specify the SCR control directory.')
+  parser.add_argument('--cache', metavar='<dir>', type=str, default=None, help='Specify the SCR cache directory.')
+  args = vars(parser.parse_args())
+  if 'help' in args:
+    parser.print_help()
+  else:
+    ret = scr_check_node(free=args['free'],cntl_list=args['cntl'],cache_list=args['cache'])
+    if ret==0:
+      print('scr_check_node completed without error.')
+

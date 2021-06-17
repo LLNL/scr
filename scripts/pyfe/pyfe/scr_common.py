@@ -3,8 +3,9 @@
 # scr_common.py
 # Defines for common functions shared across scripts
 
-import inspect, os, subprocess
+import argparse, inspect, os, sys
 import scr_const
+from subprocess import Popen, PIPE
 
 # for verbose, prints:
 # filename:function:linenum -> event
@@ -15,44 +16,6 @@ def tracefunction(frame,event,arg):
       print(inspect.getfile(frame).split('/')[-1]+':'+str(frame.f_code.co_name)+'():'+str(frame.f_lineno)+' -> '+str(event))
   except:
       print(str(frame.f_code.co_name)+'():'+str(frame.f_lineno)+' -> '+str(event))
-
-# Parses argv, returns a dictionary of the configuration options
-# keyvals.keys is the key in argv to set keyvals[key] in the conf to argv option, (togglevals is for flag options to be set to True)
-# if strict is True then it will return None if an invalid option is passed in
-# if strict is False then any unused arguments will be appended to conf['argv'] = []
-def getconf(argv,keyvals,togglevals=None,strict=True):
-  conf = {}
-  skip=False
-  for i in range(len(argv)):
-    if skip==True:
-      skip=False
-    elif '=' in argv[i]:
-      vals = argv[i].split('=')
-      if vals[0] in keyvals:
-        conf[keyvals[vals[0]]] = vals[1]
-      elif togglevals is not None and vals[0] in togglevals:
-        conf[togglevals[vals[0]]] = vals[1]
-      elif strict == True:
-        return None
-      else:
-        if 'argv' not in conf:
-          conf['argv'] = []
-        conf['argv'].append(argv[i])
-    else:
-      if argv[i] in keyvals:
-        if i+1==len(argv):
-          return None
-        conf[keyvals[argv[i]]]=argv[i+1]
-        skip=True
-      elif togglevals is not None and argv[i] in togglevals:
-        conf[togglevals[argv[i]]]=1
-      elif strict == True:
-        return None
-      else:
-        if 'argv' not in conf:
-          conf['argv'] = []
-        conf['argv'].append(argv[i])
-  return conf
 
 # interpolate variables will expand environment variables in a string
 # if the string begins with '~' or '.', these are first replaced by $HOME or $PWD
@@ -74,21 +37,25 @@ def scr_prefix():
   # don't worry about missing parts, the calling script calling might create it
   return interpolate_variables(prefix)
 
+#####
+'''
+The default shell used by subprocess is /bin/sh. If you’re using other shells, like tch or csh, you can define them in the executable argument.
+'''
+###
+
 # calls subprocessPopen using argv for program+arguments
-# returns a pair of values, the first is the output, the second is the return code
-# specify wait=False to return without getting the return value
-# if wait is false None, None is returned.
-# could return the pid, this requires the shell argument of subprocess.Popen to be false
-# then return runproc.pid
-# the first return value (output) -> specify getstdout to get the stdout, getstderr to get stderr
+# return value is always a pair, [0] is output or None, [1] is returncode or pid
+# specify wait=False to return the pid (don't wait for a returncode / output)
+# to return the pid requires the shell argument of subprocess.Popen to be false (default)
+# for the first return value (output) -> specify getstdout to get the stdout, getstderr to get stderr
 # specifying both getstdout and getstderr=True returns a list where [0] is stdout and [1] is stderr
 def runproc(argv,wait=True,getstdout=False,getstderr=False):
   if len(argv)<1:
     return None, None
   try:
-    runproc = subprocess.Popen(argv,bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+    runproc = Popen(argv, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     if wait==False:
-      return None, None
+      return None, runproc.pid
     if getstdout==True and getstderr==True:
       output = runproc.communicate()
       return output, runproc.returncode
@@ -100,20 +67,23 @@ def runproc(argv,wait=True,getstdout=False,getstderr=False):
       return output, runproc.returncode
     runproc.communicate()
     return None, runproc.returncode
-  except:
+  except Exception as e:
+    print('runproc: ERROR: '+str(e))
     return None, None
 
 # pipeproc works as runproc above, except argvs is a list of argv lists
-# the first subprocess is opened and from there the stdout will be the stdin of subsequent processes
+# the first subprocess is opened and from there stdout is chained to stdin
+# values returned (returncode/pid/stdout/stderr) will be from the final process
 def pipeproc(argvs,wait=True,getstdout=False,getstderr=False):
   if len(argvs)<1:
     return None, None
   if len(argvs)==1:
     return runproc(argvs[0],wait,getstdout,getstderr)
   try:
-    nextprog = subprocess.Popen(argvs[0],bufsize=1,stdin=None,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+    nextprog = Popen(argvs[0], bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     for i in range(1,len(argvs)):
-      pipeprog = subprocess.Popen(argvs[i],bufsize=1,stdin=nextprog,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+      pipeprog = Popen(argvs[i], stdin=nextprog.stdout, stdout=PIPE, stderr=PIPE, bufsize=1, universal_newlines=True)
+      nextprog.stdout.close()
       nextprog = pipeprog
     if wait==False:
       return nextprog.pid, None
@@ -126,12 +96,12 @@ def pipeproc(argvs,wait=True,getstdout=False,getstderr=False):
     if getstderr==True:
       output = nextprog.communicate()[1]
       return output, nextprog.returncode
-    nextprog.communicate()
     return None, nextprog.returncode
-  except:
+  except Exception as e:
+    print('pipeproc: ERROR: '+str(e))
     return None, None
 
-def log(bindir=None,prefix=None,username=None,jobname=None,jobid=None,start=None,event_type=None,event_note=None,event_dset=None,event_name=None,event_start=None,event_secs=None):
+def log(bindir=None, prefix=None, username=None, jobname=None, jobid=None, start=None, event_type=None, event_note=None, event_dset=None, event_name=None, event_start=None, event_secs=None):
   if prefix is None:
     prefix = scr_prefix()
     #print('log: prefix is required')
@@ -162,6 +132,92 @@ def log(bindir=None,prefix=None,username=None,jobname=None,jobid=None,start=None
   return returncode
 
 if __name__=='__main__':
-  ret = scr_prefix()
-  print('scr_prefix returned '+str(ret))
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_common')
+  parser.add_argument('-h', '--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('--interpolate', metavar='<variable>', type=str, help='Interpolate a variable string.')
+  parser.add_argument('--prefix', action='store_true', help='Print the SCR prefix.')
+  parser.add_argument('--runproc', nargs=argparse.REMAINDER, help='Launch process with arguments')
+  parser.add_argument('--pipeproc', nargs=argparse.REMAINDER, help='Launch processes and pipe output to other processes. (separate processes with a colon)')
+  parser.add_argument('--log', nargs='+', metavar='<option=value>', help='Create a log entry, available options: bindir, prefix, username, jobname, jobid, start, event_type, event_note, event_dset, event_name, event_start, event_secs')
+  args = vars(parser.parse_args())
+  if 'help' in args:
+    parser.print_help()
+    sys.exit(1)
+  if 'interpolate' in args:
+    print('interpolate_variables('+args['interpolate']+')')
+    print('  -> '+str(interpolate_variables(args['interpolate'])))
+  if 'prefix' in args:
+    print('scr_prefix()')
+    print('  -> '+str(scr_prefix()))
+  if 'runproc' in args:
+    print('runproc('+' '.join(args['runproc'])+')')
+    out, returncode = runproc(argv=args['runproc'],getstdout=True,getstderr=True)
+    print('  process returned with code '+str(returncode))
+    print('  stdout:')
+    print(out[0])
+    print('  stderr:')
+    print(out[1])
+  if 'pipeproc' in args:
+    printstr = 'pipeproc( '
+    argvs = []
+    argvs.append([])
+    i=0
+    for arg in args['pipeproc']:
+      if arg==':':
+        i+=1
+        argvs.append([])
+        printstr+='| '
+      else:
+        argvs[i].append(arg)
+        printstr+=arg+' '
+    print(printstr+')')
+    out, returncode = pipeproc(argvs=argvs,getstdout=True,getstderr=True)
+    print('  final process returned with code '+str(returncode))
+    if out is not None:
+      print('  stdout:')
+      print(out[0])
+      print('  stderr:')
+      print(out[1])
+  if 'log' in args:
+    bindir,prefix,username,jobname = None,None,None,None
+    jobid,start,event_type,event_note = None,None,None,None
+    event_dset,event_name,event_start,event_secs = None,None,None,None
+    printstr='log('
+    for keyvalpair in args['log']:
+      if '=' not in keyvalpair:
+        continue
+      vals = keyvalpair.split('=')
+      if vals[0]=='bindir':
+        bindir=vals[1]
+      elif vals[0]=='prefix':
+        prefix=vals[1]
+      elif vals[0]=='username':
+        username=vals[1]
+      elif vals[0]=='jobname':
+        jobname=vals[1]
+      elif vals[0]=='jobid':
+        jobid=vals[1]
+      elif vals[0]=='start':
+        start=vals[1]
+      elif vals[0]=='event_type':
+        event_type=vals[1]
+      elif vals[0]=='event_note':
+        event_note=vals[1]
+      elif vals[0]=='event_dset':
+        event_dset=vals[1]
+      elif vals[0]=='event_name':
+        event_name=vals[1]
+      elif vals[0]=='event_start':
+        event_start=vals[1]
+      elif vals[0]=='event_secs':
+        event_secs=vals[1]
+      else:
+        continue
+      printstr+=keyvalpair+', '
+    if printstr[-1]=='(':
+      print('Nothing to log, see \'--help\' for available value pairs.')
+      sys.exit(1)
+    print(printstr[:-2]+')')
+    returncode = log(bindir=bindir, prefix=prefix, username=username, jobname=jobname, jobid=jobid, start=start, event_type=event_type, event_note=event_note, event_dset=event_dset, event_name=event_name, event_start=event_start, event_secs=event_secs)
+    print('  process returned with code '+str(returncode))
 

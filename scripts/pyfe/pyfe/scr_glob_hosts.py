@@ -47,19 +47,21 @@ def scr_glob_hosts(count=False,nth=None,hosts=None,minus=None,intersection=None,
   return scr_hostlist.compress(hostset)
 
 if __name__=='__main__':
-  parser = argparse.ArgumentParser(add_help=False,argument_default=argparse.SUPPRESS,prog='scr_glob_hosts')
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_glob_hosts')
   # default=None, required=True, nargs='+'
-  parser.add_argument('--help', action='store_true', help='Print this help message.')
+  parser.add_argument('--help', action='store_true', help='Show this help message and exit.')
   parser.add_argument('-c', '--count', action='store_true', default=False, help='Print the number of hosts.')
   parser.add_argument('-n', '--nth', metavar='<num>', type=int, default=None, help='Output the Nth host (1=lo, -1=hi).')
-  parser.add_argument('-h', '--hosts', metavar='<hosts>', type=str, default=None, help='Use this hostlist.')
-  parser.add_argument('-m', '--minus', metavar='<s1:s2>', type=str, default=None, help='Elements of s1 not in s2.')
-  parser.add_argument('-i', '--intersection', metavar='<s1:s2>', type=str, default=None, help='Intersection of s1 and s2 hosts.')
-  parser.add_argument('-C', '--compress', metavar='<csv host>', type=str, default=None, help='Compress the csv hostlist.')
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument('-h', '--hosts', metavar='<hosts>', type=str, default=None, help='Use this hostlist.')
+  group.add_argument('-m', '--minus', metavar='<s1:s2>', type=str, default=None, help='Elements of s1 not in s2.')
+  group.add_argument('-i', '--intersection', metavar='<s1:s2>', type=str, default=None, help='Intersection of s1 and s2 hosts.')
+  group.add_argument('-C', '--compress', metavar='<csv host>', type=str, default=None, help='Compress the csv hostlist.')
   args = vars(parser.parse_args())
   if ('help' in args) or (args['hosts'] is None and args['minus'] is None and args['intersection'] is None and args['compress'] is None) or (args['minus'] is not None and ':' not in args['minus']) or (args['intersection'] is not None and ':' not in args['intersection']):
     parser.print_help()
   else:
     ret = scr_glob_hosts(count=args['count'],nth=args['nth'],hosts=args['hosts'],minus=args['minus'],intersection=args['intersection'],compress=args['compress'])
-    print('scr_glob_hosts returned '+str(ret))
+    if ret is not None:
+      print(str(ret))
 

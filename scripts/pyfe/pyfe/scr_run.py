@@ -129,8 +129,12 @@ def scr_run(argv):
     sys.exit(1)
 
   val = os.environ.get('SLURM_JOBID')
-  argv=[ ['scontrol','--oneliner','show','job',val], ['perl','-n','-e','m/EndTime=(\S*)/ and print $1'] ]
-  pipeproc(argvs=argv)
+  endtime = ''
+  if val is not None:
+    argv=[ ['scontrol','--oneliner','show','job',val], ['perl','-n','-e','m/EndTime=(\S*)/ and print $1'] ]
+    endtime = pipeproc(argvs=argv,getstdout=True)[0]
+  else:
+    print(prog+': WARNING: Unable to get end time.')
 
   argv=['date','-d',out,'+%s']
   out = runproc(argv=argv,getstdout=True)[0]
