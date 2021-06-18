@@ -3,7 +3,7 @@
 # scr_env_slurm.py
 # SCR_Env_SLURM is a subclass of SCR_Env_Base
 
-import os, sys, subprocess
+import os
 import scr_const, scr_hostlist
 from scr_env_base import SCR_Env_Base
 from scr_common import runproc
@@ -45,10 +45,10 @@ class SCR_Env_SLURM(SCR_Env_Base):
     argv = ['sinfo','-ho','%N','-t','down','-n',','.join(self.conf['nodes'])]
     out, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
     if returncode!=0:
-      #print('0')
+      print('SCR_Env_SLURM.set_downnodes(): ERROR: sinfo returned '+str(returncode))
       print(out[1])
-      sys.exit(1)
-    self.conf['down'] = out[0] # parse out
+    else:
+      self.conf['down'] = out[0] # parse out
 
   # list the number of nodes used in the last run
   def get_runnode_count(self):

@@ -3,7 +3,7 @@
 # scr_env_aprun.py
 # SCR_Env_APRUN is a subclass of SCR_Env_Base
 
-import os, sys, subprocess
+import os, subprocess
 import scr_const, scr_hostlist
 from scr_env_base import SCR_Env_Base
 from scr_common import runproc

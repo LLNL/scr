@@ -3,7 +3,7 @@
 # scr_env_lsf.py
 # SCR_Env_LSF is a subclass of SCR_Env_Base
 
-import os, sys, subprocess
+import os
 import scr_const, scr_hostlist
 from scr_env_base import SCR_Env_Base
 from scr_common import runproc

@@ -41,6 +41,5 @@ if __name__ == '__main__':
   scr_env.set_downnodes()
   print(type(scr_env))
   for key in scr_env.conf:
-    # conf values could be None, need str cast
     print('scr_env.conf['+key+'] = \''+str(scr_env.conf[key])+'\'')
 

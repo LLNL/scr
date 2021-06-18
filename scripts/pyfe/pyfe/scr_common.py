@@ -20,10 +20,12 @@ def tracefunction(frame,event,arg):
 # interpolate variables will expand environment variables in a string
 # if the string begins with '~' or '.', these are first replaced by $HOME or $PWD
 def interpolate_variables(varstr):
+  if varstr is None or len(varstr)==0:
+    return ''
   # replace ~ and . symbols from front of path
   if varstr[0]=='~':
     varstr='$HOME'+varstr[1:]
-  elif varstr[0]=='.':
+  elif not varstr.startswith('..') and varstr[0]=='.':
     varstr=os.getcwd()+prefix[1:]
   return os.path.expandvars(varstr)
 

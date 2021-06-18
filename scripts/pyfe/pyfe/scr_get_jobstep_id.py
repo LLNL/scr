@@ -3,7 +3,7 @@
 # scr_get_jobstep_id.py
 
 from scr_common import runproc
-import re, subprocess
+import re
 from scr_env import SCR_Env
 
 # This script attempts to get the job step id for the last srun command that 
@@ -24,11 +24,11 @@ def scr_get_jobstep_id(scr_env=None):
   user = scr_env.conf['user']
   if user is None:
     print(prog+': ERROR: Could not determine user ID')
-    return '-1'
+    return None
   jobid = scr_env.conf['jobid']
   if jobid is None:
     print(prog+': ERROR: Could not determine job ID')
-    return '-1'
+    return None
   # get job steps for this user and job, order by decreasing job step
   # so first one should be the one we are looking for
   # -h means print no header, so just the data in this order:
@@ -58,5 +58,6 @@ def scr_get_jobstep_id(scr_env=None):
 
 if __name__=='__main__':
   ret = scr_get_jobstep_id()
-  print('scr_get_jobstep_id returned '+str(ret))
+  if ret is not None:
+    print('scr_get_jobstep_id: '+str(ret))
 

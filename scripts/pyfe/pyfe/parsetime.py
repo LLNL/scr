@@ -42,6 +42,7 @@ def numdays(current,future):
   return future-current
 
 # returns a time delta from datetime
+# completely invalid input will end up becoming about +24 hours
 def parsetime(timestr,prog='parsetime.py'):
   weekdays = {'mon':0,'tue':1,'wed':2,'thu':3,'fri':4,'sat':5,'sun':6}
   months = {'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}
@@ -49,9 +50,9 @@ def parsetime(timestr,prog='parsetime.py'):
   # if the time would otherwise be in the past we can advance to next week
   now = datetime.now()
   # the future time, based off of now
+  shouldbeinpast = False
   jumpweek = False
   ispm = False
-  isam = False
   isduration = False
   second = now.second
   minute = now.minute
@@ -65,7 +66,6 @@ def parsetime(timestr,prog='parsetime.py'):
     ispm=True
     timestr = ' '.join(timestr.split('pm'))
   elif 'am' in timestr:
-    isam=True
     timestr = ' '.join(timestr.split('am'))
   if timestr.find('+')>=0:
     posi = timestr.find('+')
@@ -83,6 +83,13 @@ def parsetime(timestr,prog='parsetime.py'):
         hour = int(part)
         minute = 0
       second = 0
+    elif part=='noon': # 12pm
+      hour = 12
+      minute = 0
+      second = 0
+    elif 'yester' in part: # yesterday
+      plusdays=-1
+      shouldbeinpast=True
     elif 'tom' in part: # tomorrow
       plusdays=1
     elif 'tod' in part: # today
@@ -156,6 +163,8 @@ def parsetime(timestr,prog='parsetime.py'):
   # (if hour/min/sec not specified this can still end up being slightly in the past, e.g., ~1 minute in the past)
   if month <= now.month and year <= now.year:
     while day < now.day or (day == now.day and (hour < now.hour or (hour == now.hour and minute < now.minute))):
+      if shouldbeinpast:
+        break
       # the day of the week was specified, move to next week
       if jumpweek==True:
         day+=7

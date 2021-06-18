@@ -12,7 +12,7 @@
 # Author:  Adam Moody (moody20@llnl.gov)
 # modified by Christopher Holguin <christopher.a.holguin@intel.com>
 
-import re
+import argparse, re, sys
 
 # numbersfromrange is a helper function, allows leading zeroes
 # returns a list of string representations of numbers
@@ -302,5 +302,44 @@ def intersect(set1,set2):
   return ret
 
 if __name__=='__main__':
-  print('We could put some test here')
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_hostlist', epilog='(use a colon to separate sets when using diff or intersect)')
+  parser.add_argument('-h', '--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('--numbersfromrange', metavar='<numberlist>', type=str, help='Expands a number list/range using numbers, commas, and hyphens.')
+  parser.add_argument('--rangefromnumbers', metavar='<numberlist>', type=str, help='Compresses a number list/range using numbers, commas, and hyphens.')
+  parser.add_argument('--expand', metavar='<numberlist>', type=str, help='Returns a list from a given hostname string.')
+  parser.add_argument('--compress_range', metavar='host', nargs='+', help='Returns a compressed string given a list of hostnames')
+  parser.add_argument('--compress', metavar='host', nargs='+', help='Returns the hosts as a comma separated string')
+  parser.add_argument('--diff', metavar='<set1:set2>', type=str, help='Returns elements of set1 not in set2.')
+  parser.add_argument('--intersect', metavar='<set1:set2>', type=str, help='Returns elements of set1 that are in set2.')
+  args = vars(parser.parse_args())
+  if 'help' in args:
+    parser.print_help()
+    sys.exit(0)
+  if 'numbersfromrange' in args:
+    print('numbersfromrange('+args['numbersfromrange']+')')
+    print('  -> '+str(numbersfromrange(args['numbersfromrange'])))
+  if 'rangefromnumbers' in args:
+    print('rangefromnumbers('+args['rangefromnumbers']+')')
+    print('  -> '+str(rangefromnumbers(args['rangefromnumbers'])))
+  if 'expand' in args:
+    print('expand('+args['expand']+')')
+    print('  -> '+str(expand(args['expand'])))
+  if 'compress_range' in args:
+    print('compress_range('+str(args['compress_range'])+')')
+    print('  -> '+str(compress_range(args['compress_range'])))
+  if 'compress' in args:
+    print('compress('+str(args['compress'])+')')
+    print('  -> '+str(compress(args['compress'])))
+  if 'diff' in args and ':' in args['diff']:
+    parts = args['diff'].split(':')
+    parts[0] = parts[0].split(',')
+    parts[1] = parts[1].split(',')
+    print('diff('+str(parts[0])+':'+str(parts[1])+')')
+    print('  -> '+str(diff(parts[0],parts[1])))
+  if 'intersect' in args and ':' in args['intersect']:
+    parts = args['intersect'].split(':')
+    parts[0] = parts[0].split(',')
+    parts[1] = parts[1].split(',')
+    print('intersect('+str(parts[0])+':'+str(parts[1])+')')
+    print('  -> '+str(intersect(parts[0],parts[1])))
 

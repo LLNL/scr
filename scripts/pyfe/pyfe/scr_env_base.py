@@ -7,7 +7,7 @@
 # (the __init__ here is currently shared, all environments will use the super init)
 # default functionality is given in the base class which subclasses may or may not override
 
-import os, sys, subprocess
+import os
 import scr_const, scr_hostlist
 
 # def set_prefix(self,prefix):
