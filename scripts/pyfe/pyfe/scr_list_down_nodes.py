@@ -2,35 +2,17 @@
 
 # scr_list_down_nodes.py
 
-import sys
+import argparse
 import scr_const
 from time import time
 from scr_param import SCR_Param
 from scr_list_dir import scr_list_dir
-from scr_common import getconf, runproc, pipeproc
+from scr_common import runproc, pipeproc
 import scr_common
 from scr_env import SCR_Env
 import scr_hostlist
 
-def print_usage(prog):
-  print('  '+prog+' -- tests and lists nodes that are not available for SCR')
-  print('')
-  print('  Usage:  '+prog+' [options] [nodeset]')
-  print('')
-  print('  Options:')
-  print('    -r, --reason')
-  print('          Print reason node is down')
-  print('    -f, --free')
-  print('          Test required drive space based on free amount, rather than capacity')
-  print('    -d, --down=NODESET')
-  print('          Force nodes to be down without testing')
-  print('')
-  print('    -l, --log')
-  print('          Add entry to SCR log for each down node')
-  print('    -s, --secs=N')
-  print('          Specify the job\'s runtime seconds for SCR log')
-
-def scr_list_down_nodes(argv,scr_env=None):
+def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
   prog = 'scr_list_down_nodes'
   ping = 'ping'
 
@@ -42,15 +24,18 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   param = SCR_Param()
 
-  conf = getconf(argv,keyvals={'-d':'down','--down':'down','-s':'runtime_secs','--secs':'runtime_secs'},togglevals={'-r':'reason','--reason':'reason','-f':'free','--free':'free','-l':'log_nodes','--log':'log_nodes','-h':'help','--help':'help'},strict=False)
+  # check that we have a nodeset before going any further
+  if nodeset is not None:
+    if type(nodeset) is not str:
+      nodeset = ','.join(nodeset)
+  else:
+    nodeset=scr_env.conf['nodes']
+    if nodeset is None:
+      print(prog+': ERROR: Nodeset must be specified or script must be run from within a job allocation.')
+      return 1
 
-  if 'help' in conf:
-    print_usage(prog)
-    return 0
-  
-  nodeset = ''
-  if 'argv' in conf:
-    nodeset = ' '.join(conf['argv'])
+  # get list of nodes from nodeset
+  nodes = scr_hostlist.expand(nodeset)
 
   # get prefix directory
   prefix = bindir+'/scr_prefix'
@@ -59,16 +44,6 @@ def scr_list_down_nodes(argv,scr_env=None):
   if scr_env is None:
     scr_env = SCR_Env()
   jobid = scr_env.getjobid()
-
-  # check that we have a nodeset before going any further
-  if nodeset=='':
-    nodeset=scr_env.conf['nodes']
-    if nodeset is None:
-      print(prog+': ERROR: Nodeset must be specified or script must be run from within a job allocation.')
-      return 1
-
-  # get list of nodes from nodeset
-  nodes = scr_hostlist.expand(nodeset)
 
   # this hash defines all nodes available in our allocation
   allocation = {}
@@ -83,8 +58,10 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   # mark the set of nodes the resource manager thinks is down
   scr_env.set_downnodes() # <- attempt to set down nodes
-  resmgr_down = '' if 'down' not in src_env.conf else scr_env.conf['down']
-  if resmgr_down!='':
+  resmgr_down = ''
+  if 'down' in scr_env.conf:
+    resmgr_down = scr_env.conf['down']
+  if resmgr_down is not None and resmgr_down!='':
     resmgr_nodes = scr_hostlist.expand(resmgr_nodes)
     for node in resmgr_nodes:
       if node in available:
@@ -123,8 +100,8 @@ def scr_list_down_nodes(argv,scr_env=None):
         reason[node] = 'User excluded via SCR_EXCLUDE_NODES'
 
   # mark any nodes specified on the command line
-  if 'nodeset_down' in conf:
-    exclude_nodes = scr_hostlist.expand(conf['nodeset_down'])
+  if nodeset_down is not None:
+    exclude_nodes = scr_hostlist.expand(nodeset_down)
     for node in exclude_nodes:
       if node in allocation:
         if node in available:
@@ -135,12 +112,14 @@ def scr_list_down_nodes(argv,scr_env=None):
   # TODO: read exclude list from a file, as well?
 
   # specify whether to check total or free capacity in directories
-  free_flag = '--free' if 'free' in conf else ''
+  free_flag = ''
+  if free:
+    free_flag = '--free'
 
   # check that control and cache directories on each node work and are of proper size
   # get the control directory the job will use
   cntldir_vals = []
-  cntldir_string = scr_list_dir('--base control',src_env)
+  cntldir_string = scr_list_dir('--base control',scr_env)
   # cntldir_string = `$bindir/scr_list_dir --base control`;
   if type(cntldir_string) is str:
     dirs = cntldir_string.split(' ')
@@ -161,7 +140,7 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   # get the cache directory the job will use
   cachedir_vals = []
-  cachedir_string = scr_list_dir('--base cache',src_env) #`$bindir/scr_list_dir --base cache`;
+  cachedir_string = scr_list_dir('--base cache',scr_env) #`$bindir/scr_list_dir --base cache`;
   if type(cachedir_string) is str:
     dirs = cachedir_string.split(' ')
     cachedirs = param.get_hash('CACHEDIR')
@@ -177,8 +156,7 @@ def scr_list_down_nodes(argv,scr_env=None):
 
   cachedir_flag = ''
   if len(cachedir_vals) > 0:
-    pass
-    #cachedir_flag = "--cache " . join(",", @cachedir_vals);
+    cachedir_flag = '--cache ' + ' '.join(cachedir_vals)
 
   # only run this against set of nodes known to be responding
   still_up = available.keys()
@@ -196,8 +174,8 @@ def scr_list_down_nodes(argv,scr_env=None):
     line = ''
     for result in output.split('\n'):
       if len(result)<1:
-        continue
-      if action==0:
+        pass
+      elif action==0:
         if result.startswith('---'):
           action=1
       elif action==1:
@@ -228,23 +206,23 @@ def scr_list_down_nodes(argv,scr_env=None):
       newly_failed_nodes[node] = 1
 
     # remove any nodes that user already knew to be down
-    if 'nodeset_down' in conf:
-      exclude_nodes = scr_hostlist.expand(conf['nodeset_down'])
+    if nodeset_down is not None:
+      exclude_nodes = scr_hostlist.expand(nodeset_down)
       for node in exclude_nodes:
         if node in newly_failed_nodes:
           del newly_failed_nodes[node]
 
     # log each newly failed node, along with the reason
-    if 'log_nodes' in conf:
+    if log_nodes:
       for node in newly_failed_nodes.keys():
         duration = None
-        if 'runtime_secs' in conf:
-          duration = conf['runtime_secs']
+        if runtime_secs is not None:
+          duration = runtime_secs
         scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='NODE_FAIL',event_note=node+': '+reason[node],event_start=start_time,event_secs=duration)
         #`$bindir/scr_log_event -i $jobid -p $prefix -T 'NODE_FAIL' -N '$node: $reason{$node}' -S $start_time $duration`;
     # now output info to the user
     ret=''
-    if 'reason' in conf:
+    if reason:
       # list each node and the reason each is down
       for node in failed_nodes:
         ret = node+': '+reason[node]+'\n'
@@ -256,6 +234,22 @@ def scr_list_down_nodes(argv,scr_env=None):
   return 0
 
 if __name__=='__main__':
-  ret = scr_list_down_nodes(sys.argv[1:])
-  print('scr_list_down_nodes returned '+str(ret))
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_list_down_nodes')
+  parser.add_argument('--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('-r','--reason', action='store_true', default=False, help='Print reason node is down.')
+  parser.add_argument('-f','--free', action='store_true', default=False, help='Test required drive space based on free amount, rather than capacity.')
+  parser.add_argument('-d','--down', metavar='<nodeset>', type=str, default=None, help='Force nodes to be down without testing.')
+  parser.add_argument('-l','--log', action='store_true', default=False, help='Add entry to SCR log for each down node.')
+  parser.add_argument('-s','--secs', metavar='N', type=str, default=None, help='Specify the job\'s runtime seconds for SCR log.')
+  parser.add_argument('[nodeset]', nargs='*', default=None, help='Specify the set of nodes to check.')
+  args = vars(parser.parse_args())
+  print(args)
+  if 'help' in args:
+    parser.print_help()
+  else:
+    ret = scr_list_down_nodes(reason=args['reason'], free=args['free'], nodeset_down=args['down'], log_nodes=args['log'], runtime_secs=args['secs'], nodeset=args['[nodeset]'])
+    if ret==0:
+      print('No down nodes found.')
+    else:
+      print('scr_list_down_nodes returned '+str(ret))
 

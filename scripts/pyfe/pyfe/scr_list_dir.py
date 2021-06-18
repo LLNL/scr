@@ -10,40 +10,21 @@
 # rather than having it duplicated over a number of different
 # scripts
 
-import sys
+import argparse
 import scr_const
 from scr_param import SCR_Param
-from scr_common import getconf
-
-def print_usage(prog):
-  print('')
-  print('Usage:  '+prog+' [options] <control | cache>')
-  print('')
-  print('  Options:')
-  print('    -u, --user     Specify username.')
-  print('    -j, --jobid    Specify jobid.')
-  print('    -b, --base     List base portion of cache/control directory')
-  print('')
 
 # returns 1 for error, 0 (or string) for success
-def scr_list_dir(argv,scr_env=None):
+def scr_list_dir(user=None,jobid=None,base=None,runcmd=None,scr_env=None):
   param = SCR_Param()
   # TODO: read cache directory from config file
   prog = "scr_list_dir"
   bindir = scr_const.X_BINDIR
 
-  # read in command line arguments
-  conf = getconf(argv,keyvals={'-u':'user','--user':'user','-j':'jobid','--jobid':'jobid','-b':'base','--base':'base'},togglevals={'control':'runcmd','cache':'runcmd'})
-  if conf is None:
-    print_usage(prog)
-    return 1
-
   # check that user specified "control" or "cache"
-  if 'runcmd' not in conf:
-    print_usage(prog)
+  if runcmd is None:
     return 1
 
-  runcmd = conf['runcmd']
   # get the base directory
   bases = []
   if runcmd=='cache':
@@ -66,19 +47,19 @@ def scr_list_dir(argv,scr_env=None):
     scr_env = SCR_Env()
   # get the user/job directory
   suffix = ''
-  if 'base' not in conf:
+  if base is None:
     # if not specified, read username from environment
-    if 'user' not in conf:
-      conf['user'] = scr_env.conf['user']
+    if user is None:
+      user = scr_env.conf['user']
     # if not specified, read jobid from environment
-    if 'jobid' not in conf:
-      conf['jobid'] = scr_env.conf['jobid']
+    if jobid is None:
+      jobid = scr_env.conf['jobid']
     # check that the required environment variables are set
-    if conf['user'] is None or conf['jobid'] is None:
+    if user is None or jobid is None:
       # something is missing, print invalid dir and exit with error
       print('INVALID')
       return 1
-    suffix = conf['user']+'/scr.'+conf['jobid']
+    suffix = user+'/scr.'+jobid
 
   # ok, all values are here, print out the directory name and exit with success
   dirs = []
@@ -91,6 +72,19 @@ def scr_list_dir(argv,scr_env=None):
   return dirs
 
 if __name__=='__main__':
-  ret = scr_list_dir(sys.argv[1:])
-  print('scr_list_dir returned '+str(ret))
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_list_dir')
+  parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('-u','--user', default=None, metavar='<user>', type=str, help='Specify username.')
+  parser.add_argument('-j','--jobid', default=None, metavar='<id>', type=str, help='Specify jobid.')
+  parser.add_argument('-b','--base', default=None, metavar='<base>', type=str, help='List base portion of cache/control directory')
+  parser.add_argument('control/cache', choices=['control','cache'], metavar='<control | cache>', nargs='?', default=None, help='Specify the directory to list.')
+  args = vars(parser.parse_args())
+  if 'help' in args:
+    parser.print_help()
+  elif args['control/cache'] is None:
+    print('Control or cache must be specified.')
+  else:
+    ret = scr_list_dir(user=args['user'],jobid=args['jobid'],base=args['base'],runcmd=args['control/cache'])
+    if ret != 1:
+      print(str(ret))
 

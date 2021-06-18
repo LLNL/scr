@@ -2,17 +2,13 @@
 
 # SCR Pre Run
 
-import os, sys, subprocess, scr_const
+import argparse, os, sys, subprocess, scr_const
 from datetime import datetime
 from time import time
-from scr_common import tracefunction
+from scr_common import tracefunction, scr_prefix
 from scr_test_runtime import scr_test_runtime
 
-# print usage and exit
-def print_usage(prog):
-  print('Usage: '+prog+' [-p prefix_dir]')
-
-def scr_prerun(argv):
+def scr_prerun(prefix=None):
   val = os.environ.get('SCR_ENABLE')
   if val is None or val == '0':
     return 0 # doesn't stop run when called from scr_run
@@ -27,29 +23,13 @@ def scr_prerun(argv):
   prog='scr_prerun'
 
   # process command line options
-  pardir=bindir+'/scr_prefix'
-
-  if len(argv)==1:
-    if '=' in argv:
-      vals = argv.split('=')
-      if vals[0]=='-p':
-        pardir=vals[1]
-      else:
-        print_usage(prog)
-        return 1
-    else:
-      pardir=argv[0]
-  elif len(args)==2 and args[0]=='-p':
-    pardir = args[1]
-    #pardir = os.environ.get('OPTARG') ### not sure what this was getting ###
+  pardir=''
+  #pardir = os.environ.get('OPTARG') ### not sure what this was getting ###
+  if prefix is not None:
+    pardir=prefix
   else:
-    print_usage(prog)
-    return 1
+    pardir=scr_prefix()
 
-  # this could happen with argv= ['-p=]
-  if pardir=='':
-    print_usage(prog)
-    return 1
   print(prog+': Started: '+str(start_time))
 
   # check that we have all the runtime dependences we need
@@ -92,6 +72,14 @@ def scr_prerun(argv):
   return 0
 
 if __name__=='__main__':
-  ret = scr_prerun(sys.argv[1:])
-  print('scr_prerun returned '+str(ret))
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_prerun')
+  parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('-p','--prefix', metavar='<dir>', type=str, default=None, help='Specify the prefix directory.')
+  args = vars(parser.parse_args())
+  if 'help' in args:
+    parser.print_help()
+  #elif args['prefix'] is None:
+  #  print('The prefix directory must be specified.')
+  else:
+    ret = scr_prerun(args['prefix'])
 

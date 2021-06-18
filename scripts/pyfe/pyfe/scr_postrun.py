@@ -5,20 +5,17 @@
 # Run this script after the final run in a job allocation
 # to scavenge files from cache to parallel file system.
 
-import os, scr_const, sys
+import argparse, os, scr_const, sys
 from datetime import datetime
 from time import time
-from scr_common import tracefunction, getconf, scr_prefix, runproc
+from scr_common import tracefunction, scr_prefix, runproc
 from scr_scavenge import scr_scavenge
 from scr_list_down_nodes import scr_list_down_nodes
 from scr_glob_hosts import scr_glob_hosts
 from scr_list_dir import scr_list_dir
 from scr_env import SCR_Env
 
-def print_usage(prog):
-  print('Usage: '+prog+' [-p prefix_dir]')
-
-def scr_postrun(argv,scr_env=None):
+def scr_postrun(prefix_dir=None,scr_env=None):
   # if SCR is disabled, immediately exit
   val = os.environ.get('SCR_ENABLE')
   if val is not None and val=='0':
@@ -40,17 +37,13 @@ def scr_postrun(argv,scr_env=None):
   prog='scr_postrun'
 
   # pass prefix via command line
-  pardir=scr_prefix()
-  conf = getconf(argv,keyvals={'-p':'prefix'})
-  if conf is None:
-    print_usage(prog)
-    return 1
-  if 'prefix' in conf:
-    pardir=conf['prefix']
+  if prefix_dir is not None:
+    pardir=prefix_dir
+  else:
+    pardir=scr_prefix()
 
   # check that we have the parallel file system prefix
   if pardir=='':
-    print_usage(prog)
     return 1
 
   # all parameters checked out, start normal output
@@ -258,6 +251,12 @@ def scr_postrun(argv,scr_env=None):
   return ret
 
 if __name__=='__main__':
-  ret = scr_postrun(sys.argv[1:])
-  print('scr_postrun returned '+str(ret))
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_postrun')
+  parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('-p','--prefix', metavar='<dir>', type=str, default=None, help='Specify the prefix directory.')
+  args = vars(parser.parse_args())
+  if 'help' in args:
+    parser.print_help()
+  else:
+    scr_postrun(prefix_dir=args['prefix'])
 

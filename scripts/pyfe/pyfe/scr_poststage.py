@@ -21,7 +21,7 @@
 # e.g., python3 scr_poststage.py /tmp
 # or scr_poststage('/tmp')
 
-import subprocess, sys
+import argparse, subprocess
 import scr_const
 from datetime import datetime
 from scr_common import runproc
@@ -176,11 +176,13 @@ def do_poststage(bindir,prefix,logfile):
   if returncode==0:
     logfile.write('Couldn\'t add checkpoint dataset '+str(cid)+' ('+str(dset)+') to index\n')
 
-def scr_poststage(myprefix):
+def scr_poststage(prefix=None):
+  if prefix is None:
+    return
+
   # The full path to the dir containing the SCR binaries (scr_index and scr_flush_file)
   bindir=scr_const.X_BINDIR
 
-  prefix=myprefix
   # Path to where you want the scr_poststage log
   logfile=prefix+'/scr_poststage.log'
   try:
@@ -190,9 +192,14 @@ def scr_poststage(myprefix):
     pass
 
 if __name__=='__main__':
-  if len(sys.argv)!=2:
-    print('USAGE')
-    print('scr_poststage <prefix>')
-    sys.exit(0)
-  scr_poststage(sys.argv[1])
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_poststage')
+  parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('-p','--prefix', metavar='<dir>', type=str, default=None, help='Specify the prefix directory.')
+  args = vars(parser.parse_args())
+  if 'help' in args:
+    parser.print_help()
+  elif args['prefix'] is None:
+    print('The prefix directory must be specified.')
+  else:
+    scr_poststage(prefix=args['prefix'])
 
