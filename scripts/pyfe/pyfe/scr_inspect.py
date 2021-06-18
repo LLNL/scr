@@ -8,17 +8,12 @@
 
 # requires: pdsh
 
-import os, re, subprocess, sys
-from scr_common import getconf, runproc
+import argparse, os, re, subprocess
+from scr_common import runproc
 from scr_env import SCR_Env
 import scr_const, scr_hostlist
 
-def print_usage(prog):
-  print('')
-  print('  Usage:  '+prog+' [--up <nodeset>] --from <cntldir>')
-  print('')
-
-def scr_inspect(argv,scr_env=None):
+def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_env=None):
   bindir = scr_const.X_BINDIR
   prog = 'scr_inspect'
 
@@ -39,28 +34,23 @@ def scr_inspect(argv,scr_env=None):
     print(prog+': ERROR: Could not determine nodeset.')
     return 1
 
-  # read in command line arguments
-  conf = getconf(argv,{'-j':'nodeset_job','--jobset':'nodeset_job','-u':'nodeset_up','--up':'nodeset_up','-d':'nodeset_down','--down':'nodeset_down','-f':'dir_from','--from':'dir_from'},{'-v':'verbose','--verbose':'verbose'})
-  if conf is None:
-    print_usage(prog)
-    return 1
-
-  if 'dir_from' not in conf:
+  # can't get directories
+  if cntldir is None:
     print(prog+': ERROR: Control directory must be specified.')
     return 1
 
-  # get directories
-  cntldir = conf['dir_from']
-
   # get nodesets
-  jobnodes  = scr_hostlist.expand(conf['nodeset_job'])
+  if jobnodes is None:
+    print(prog+': ERROR: Job nodes must be specified.')
+    return 1
+  jobnodes  = scr_hostlist.expand(jobnodes)
   upnodes   = []
   downnodes = []
-  if 'nodeset_down' in conf:
-    downnodes = scr_hostlist.expand(conf['nodeset_down'])
+  if down is not None:
+    downnodes = scr_hostlist.expand(down)
     upnodes   = scr_hostlist.diff(jobnodes, downnodes)
-  elif 'nodeset_up' in conf:
-    upnodes   = scr_hostlist.expand(conf['nodeset_up'])
+  elif up is not None:
+    upnodes   = scr_hostlist.expand(up)
     downnodes = scr_hostlist.diff(jobnodes, upnodes)
   else:
     upnodes = jobnodes
@@ -166,8 +156,21 @@ def scr_inspect(argv,scr_env=None):
   # return the list the datasets we have a shot of recovering
   return possible_dsets
 
-
 if __name__=='__main__':
-  ret = scr_inspect(sys.argv[1:])
-  print('scr_inspect returned '+str(ret))
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_inspect', epilog='The jobid and job node set must be able to be obtained from the environment.')
+  parser.add_argument('-h', '--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('-j', '--jobset', default=None, metavar='<nodeset>', type=str, help='Job nodes.')  
+  parser.add_argument('-u', '--up', default=None, metavar='<nodeset>', type=str, help='Up nodes.')
+  parser.add_argument('-d', '--down', default=None, metavar='<nodeset>', type=str, help='Down nodes.')
+  parser.add_argument('-f', '--from', default=None, metavar='<ctrl dir>', type=str, help='Control directory.')
+  parser.add_argument('-v', '--verbose', default=False, action='store_true', help='Verbose output.')
+  args = vars(parser.parse_args())
+  if 'help' in args:
+    parser.print_help()
+  elif args['jobset'] is None or args['from'] is None:
+    parser.print_help()
+    print('Job nodes and control directory must be specified.')
+  else:
+    ret = scr_inspect(jobnodes=args['jobset'], up=args['up'], down=args['down'], cntldir=args['from'], verbose=args['verbose'])
+    print('scr_inspect returned '+str(ret))
 
