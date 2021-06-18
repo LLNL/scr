@@ -81,5 +81,5 @@ if __name__=='__main__':
   #elif args['prefix'] is None:
   #  print('The prefix directory must be specified.')
   else:
-    ret = scr_prerun(args['prefix'])
+    ret = scr_prerun(prefix=args['prefix'])
 

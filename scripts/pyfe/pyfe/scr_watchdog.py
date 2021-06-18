@@ -7,18 +7,17 @@
 # activity has occurred since the last time it checked. If too much time
 # passes without activity, it kills the job
 
-import time, scr_const, sys
+import argparse, time, scr_const
 #from datetime import datetime
 from scr_param import SCR_Param
 from scr_kill_jobstep import scr_kill_jobstep
-from scr_common import getconf, runproc
+from scr_common import runproc
 
-def print_usage(prog):
-  print('')
-  print('  Usage:  '+prog+' [--dir <prefixDir>] [--jobStepId <jobStepId>')
-  print('')
+def scr_watchdog(prefix=None,jobstepid=None):
+  # check that we have a  dir and apid
+  if prefix is None or jobstepid is None:
+    return 1
 
-def scr_watchdog(argv):
   bindir = scr_const.X_BINDIR
   prog = 'scr_watchdog'
   scr_flush_file = 'scr_flush_file'
@@ -44,22 +43,9 @@ def scr_watchdog(argv):
 
   # start_time = datetime.now() ## this is not used?
 
-  # read in command line arguments
-  conf = getconf(argv,{'-d':'prefixdir','--dir':'prefixdir','-j':'jobstepid','--jobStepId':'jobstepid'})
-  if conf is None:
-    print_usage(prog)
-    return 1
-
-  # check that we have a  dir and apid
-  if 'jobstepid' not in conf or 'prefixdir' not in conf:
-    print_usage(prog)
-    return 1
   if timeout is None or timeout_pfs is None:
     print('Necessary environment variables not set: SCR_HANG_TIMEOUT and SCR_HANG_TIMEOUT_PFS')
     return 1
-
-  prefix    = conf['prefixdir']
-  jobstepid = conf['jobstepid']
 
   # loop periodically checking the flush file for activity
   lastCheckpoint    = ''
@@ -97,8 +83,16 @@ def scr_watchdog(argv):
   scr_kill_jobstep(killCmd)
   return 0
 
-
 if __name__=='__main__':
-  ret = scr_watchdog(sys.argv[1:])
-  print('scr_watchdog returned '+str(ret))
-
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_watchdog')
+  parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('-d','--dir', metavar='<prefixDir>', type=str, default=None, help='Specify the prefix directory.')
+  parser.add_argument('-j','--jobStepId', metavar='<jobStepId>', type=str, default=None, help='Specify the jobstep id.')
+  args = vars(parser.parse_args())
+  if 'help' in args:
+    parser.print_help()
+  elif args['dir'] is None or args['jobStepId'] is None:
+    print('Prefix directory and job step id must be specified.')
+  else:
+    ret = scr_watchdog(prefix=args['prefix'],jobstepid=args['jobStepId'])
+    print('scr_watchdog returned '+str(ret))

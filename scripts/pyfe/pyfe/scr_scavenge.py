@@ -1,27 +1,25 @@
 #! /usr/bin/env python
 
-import os, sys
+import argparse, os, sys
 from datetime import datetime
 from time import time
 from scr_param import SCR_Param
 from scr_env import SCR_Env
 import scr_const
 import scr_common
-from scr_common import tracefunction, getconf, runproc
+from scr_common import tracefunction, runproc
 import scr_hostlist
 
 # scavenge checkpoint files from cache to PFS
 # check for pdsh / (clustershell) errors in case any nodes should be retried
 
-# Usage: $prog [--jobset <nodeset>] [--up <nodeset> | --down <nodeset>] --id <id> --from <dir> --to <dir>
+def scr_scavenge(nodeset_job=None,nodeset_up=None,nodeset_down=None,dataset_id=None,cntldir=None,prefixdir=None,verbose=False,scr_env=None):
+  # check that we have a nodeset for the job and directories to read from / write to
+  if nodeset_job is None or dataset_id is None or cntldir is None or prefixdir is None:
+    return 1
 
-def print_usage(prog):
-  print('')
-  print('  Usage:  '+prog+' [--jobset <nodeset>] [--up <nodeset> | --down <nodeset>] --id <id> --from <dir> --to <dir>\n')
-
-def scr_scavenge(argv,scr_env=None):
-  # the verbose flag is used at the bottom of this method
-  verbose = False
+  if verbose:
+    sys.settrace(tracefunction)
 
   bindir = scr_const.X_BINDIR
   prog = 'scr_scavenge'
@@ -31,7 +29,7 @@ def scr_scavenge(argv,scr_env=None):
   # for now just hardcode the values
 
   # lookup buffer size and crc flag via scr_param
-  param = SCR_Param();
+  param = SCR_Param()
 
   buf_size = os.environ.get('SCR_FILE_BUF_SIZE')
   if buf_size is None:
@@ -59,32 +57,15 @@ def scr_scavenge(argv,scr_env=None):
     print(prog+': ERROR: Could not determine nodeset.')
     return 1
 
-  # read in command line arguments
-  conf = getconf(argv,keyvals={'-j':'nodeset_job','--jobset':'nodeset_job','-u':'nodeset_up','--up':'nodeset_up','-d':'nodeset_down','--down':'nodeset_down','-i':'id','--id':'id','-f':'dir_from','--from':'dir_from','-t':'dir_to','--to':'dir_to'},togglevals={'-v':'verbose','--verbose':'verbose'})
-  if conf is None:
-    print_usage(prog)
-    return 1
-  if 'verbose' in conf:
-    sys.settrace(tracefunction)
-
-  # check that we have a nodeset for the job and directories to read from / write to
-  if 'nodeset_job' not in conf or 'dataset_id' not in conf or 'dir_from' not in conf or 'dir_to' not in conf:
-    print_usage(prog)
-    return 1
-
-  # get directories
-  cntldir   = conf['dir_from']
-  prefixdir = conf['dir_to']
-
   # get nodesets
-  jobnodes  = scr_hostlist.expand(conf['nodeset_job'])
+  jobnodes  = scr_hostlist.expand(nodeset_job)
   upnodes = []
   downnodes = []
-  if 'nodeset_down' in conf:
-    downnodes = scr_hostlist.expand(conf['nodeset_down'])
+  if nodeset_down is not None:
+    downnodes = scr_hostlist.expand(nodeset_down)
     upnodes   = scr_hostlist.diff(jobnodes, downnodes)
-  elif 'nodeset_up' in conf:
-    upnodes   = scr_hostlist.expand(conf['nodeset_up'])
+  elif nodeset_up is not None:
+    upnodes   = scr_hostlist.expand(nodeset_up)
     downnodes = scr_hostlist.diff(jobnodes, upnodes)
   else:
     upnodes = jobnodes
@@ -95,18 +76,14 @@ def scr_scavenge(argv,scr_env=None):
   upnodes = scr_hostlist.compress(upnodes)
   downnodes_spaced = ' '.join(downnodes)
 
-  # add dataset id option if one was specified (this is required from above)
-  # set the dataset flag
-  dset = conf['dataset_id']
-
   # build the output filenames
-  output = prefixdir+'/.scr/scr.dataset.$dset/$prog.pdsh.o.'+jobid #jobid needs to be set above #########
-  error  = prefixdir+'/.scr/scr.dataset.$dset/$prog.pdsh.e.'+jobid
+  output = prefixdir+'/.scr/scr.dataset.$dataset_id/$prog.pdsh.o.'+jobid #jobid needs to be set above #########
+  error  = prefixdir+'/.scr/scr.dataset.$dataset_id/$prog.pdsh.e.'+jobid
 
   cmd = ''
 
   # log the start of the scavenge operation
-  returncode = scr_common.log(bindir=bindir,prefix=prefixdir,jobid=jobid,event_type='SCAVENGE_START',event_dset=dset,event_start=str(start_time))
+  returncode = scr_common.log(bindir=bindir,prefix=prefixdir,jobid=jobid,event_type='SCAVENGE_START',event_dset=dataset_id,event_start=str(start_time))
   if returncode != 0:
     print(err)
     print('scr_log_event returned '+str(returncode))
@@ -114,8 +91,8 @@ def scr_scavenge(argv,scr_env=None):
 
   # gather files via pdsh
   #### need to fix %h #########
-  argv = ['srun','-n','1','-N','1','-w','%h',bindir+'/scr_copy','--cntldir',cntldir,'--id',dset,'--prefix',prefixdir,'--buf',buf_size,crc_flag,downnodes_spaced]
-  #$cmd = "srun -n 1 -N 1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced";
+  argv = ['srun','-n','1','-N','1','-w','%h',bindir+'/scr_copy','--cntldir',cntldir,'--id',dataset_id,'--prefix',prefixdir,'--buf',buf_size,crc_flag,downnodes_spaced]
+  #$cmd = "srun -n 1 -N 1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dataset_id --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced";
   err, returncode = runproc(argv=argv,getstderr=True)
   if returncode!=0:
     print(err)
@@ -140,7 +117,7 @@ def scr_scavenge(argv,scr_env=None):
     print('pdsh returned '+str(returncode))
     #sys.exit(1)
   # print pdsh output to screen
-  if verbose==True:
+  if verbose:
     if len(out[0])>0:
       print('pdsh: stdout: cat '+output)
       print(out[0])
@@ -156,6 +133,21 @@ def scr_scavenge(argv,scr_env=None):
   return 0
 
 if __name__=='__main__':
-  ret = scr_scavenge(sys.argv[1:])
-  print('scr_scavenge returned '+str(ret))
-
+  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_scavenge')
+  parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('-v','--verbose', action='store_true', default=False, help='Verbose output.')
+  parser.add_argument('-j','--jobset', metavar='<nodeset>', type=str, default=None, help='Specify the nodeset.')
+  parser.add_argument('-u','--up', metavar='<nodeset>', type=str, default=None, help='Specify up nodes.')
+  parser.add_argument('-d','--down', metavar='<nodeset>', type=str, default=None, help='Specify down nodes.')
+  parser.add_argument('-i','--id', metavar='<id>', type=str, default=None, help='Specify the dataset id.')
+  parser.add_argument('-f','--from', metavar='<dir>', type=str, default=None, help='The control directory.')
+  parser.add_argument('-t','--to', metavar='<dir>', type=str, default=None, help='The prefix directory.')
+  args = vars(parser.parse_args())
+  if 'help' in args:
+    parser.print_help()
+  elif args['jobset'] is None or args['id'] is None or args['from'] is None or args['to'] is None:
+    parser.print_help()
+    print('Required arguments: --jobset --id --from --to')
+  else:
+    ret = scr_scavenge(nodeset_job=args['jobset'], nodeset_up=args['up'], nodeset_down=args['down'], dataset_id=args['id'], cntldir=args['from'], prefixdir=args['to'], verbose=args['verbose'], scr_env=None)
+    print('scr_scavenge returned '+str(ret))
