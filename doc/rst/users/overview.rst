@@ -159,8 +159,8 @@ Example of SCR files and directories
 
 .. _sec-redundancy:
 
-Scalable checkpoint
--------------------
+Redundancy schemes
+------------------
 
 In practice, it is common for multiple processes to fail at the same time,
 but most often this happens because those processes depend on a single, failed component.
@@ -175,25 +175,24 @@ For instance, if a common directory must be created before each process writes a
 a single process can create the directory and then notify the others.
 We refer to a set of processes that share a storage device as a *storage group*.
 
-Users and system administrators can pass information about failure and 
-storage groups to SCR in descriptors defined in configuration files 
-(see :ref:`sec-descriptors`).
+SCR defines default failure and storage groups, and if needed,
+additional groups can be defined in configuration files (see :ref:`sec-descriptors`).
 Given this knowledge of failure and storage groups,
 the SCR library implements four redundancy schemes
 which trade off performance, storage space, and reliability:
 
-* :code:`Single` - each checkpoint file is written to storage accessible to the local process
-* :code:`Partner` - each checkpoint file is written to storage accessible to the local process,
+* :code:`Single` - each dataset file is written to storage accessible to the local process
+* :code:`Partner` - each dataset file is written to storage accessible to the local process,
   and a full copy of each file is written to storage accessible to a partner process from another failure group
-* :code:`XOR` - each checkpoint file is written to storage accessible to the local process,
-  XOR parity data are computed from checkpoints of a set of processes from different failure groups,
-  and the parity data are stored among the set.
-* :code:`RS` - each checkpoint file is written to storage accessible to the local process,
-  and Reed-Solomon encoding data are computed from checkpoints of a set of processes from different failure groups,
-  and the encoding data are stored among the set.
+* :code:`XOR` - each dataset file is written to storage accessible to the local process,
+  XOR parity data are computed from dataset files of a set of processes from different failure groups,
+  and the parity data are stored among the set
+* :code:`RS` - each dataset file is written to storage accessible to the local process,
+  and Reed-Solomon encoding data are computed from dataset files of a set of processes from different failure groups,
+  and the encoding data are stored among the set
 
-With :code:`Single`, SCR writes each checkpoint file in storage accessible to the local process.
-It requires sufficient space to store the maximum checkpoint file size.
+With :code:`Single`, SCR writes each dataset file in storage accessible to the local process.
+It requires sufficient space to store the maximum dataset file size.
 This scheme is fast, but it cannot withstand failures that disable the storage device.
 For instance, when using node-local storage,
 this scheme cannot withstand failures that disable the node,
@@ -201,8 +200,8 @@ such as when a node loses power or its network connection.
 However, it can withstand failures that kill the application processes
 but leave the node intact, such as application bugs and file I/O errors.
 
-With :code:`Partner`, SCR writes checkpoint files to storage accessible to the local process,
-and it also copies each checkpoint file to storage accessible to a partner process from another failure group.
+With :code:`Partner`, SCR writes dataset files to storage accessible to the local process,
+and it also copies each dataset file to storage accessible to a partner process from another failure group.
 This scheme is slower than :code:`Single`, and it requires twice the storage space.
 However, it is capable of withstanding failures that disable a storage device.
 In fact, it can withstand failures of multiple devices,
@@ -211,7 +210,7 @@ so long as a device and the corresponding partner device that holds the copy do 
 With :code:`XOR`, SCR defines sets of processes
 where members within a set are selected from different failure groups.
 The processes within a set collectively compute XOR parity data which is
-stored in files along side the application checkpoint files.
+stored in files along side the application dataset files.
 This algorithm is based on the work found in [Gropp]_,
 which in turn was inspired by RAID5 [Patterson]_.
 This scheme can withstand multiple failures so long as two processes from the
@@ -220,18 +219,18 @@ same set do not fail simultaneously.
 With :code:`RS`, like :code:`XOR`, SCR defines sets of processes
 where members within a set are selected from different failure groups.
 The processes within a set collectively compute Reed-Solomon encoding data which is
-stored in files along side the application checkpoint files.
+stored in files along side the application dataset files.
 One may configure this scheme with the number of failures to tolerate within each set.
 
 Computationally, :code:`XOR` is more expensive than :code:`Partner`,
 but it requires less storage space.
-Whereas :code:`Partner` must store two full checkpoint files,
-:code:`XOR` stores one full checkpoint file plus one XOR parity segment,
-where the segment size is roughly :math:`1/(N-1)` times the size of a checkpoint file for a set of size :math:`N`.
+Whereas :code:`Partner` must store two full dataset files,
+:code:`XOR` stores one full dataset file plus one XOR parity segment,
+where the segment size is roughly :math:`1/(N-1)` times the size of a dataset file for a set of size :math:`N`.
 Similarly, :code:`RS` is computationally more expensive than :code:`XOR`,
 but it tolerates up to a configurable :code:`k` number of failures per set.
 The :code:`RS` encoding data scales as :math:`k/(N-k)`
-times the size of a checkpoint file for a set of size :math:`N`.
+times the size of a dataset file for a set of size :math:`N`.
 The set size :math:`N` can be adjusted with the :code:`SCR_SET_SIZE` parameter.
 The number of failures :math:`k` can be adjusted with the :code:`SCR_SET_FAILURES` parameter.
 Larger sets require less storage,
@@ -242,8 +241,8 @@ Larger sets may also increase the cost of recovering files in the event of a fai
    :widths: 10 10 20
    :header-rows: 1
 
-   * - Scheme
-     - Storage requirements
+   * - Redundancy scheme
+     - Storage requirements per process
      - Maximum failures per set
    * - :code:`Single`
      - :math:`B`
@@ -268,13 +267,14 @@ Scalable restart
 ----------------
 
 So long as a failure does not violate the redundancy scheme,
-a job can restart within the same resource allocation using the cached checkpoint files.
+a job can restart within the same resource allocation using a cached checkpoint.
 This saves the cost of writing checkpoint files out to the parallel file
 system only to read them back during the restart.
 In addition, SCR provides support for the use of spare nodes.
 A job can allocate more nodes than it needs
 and use the extra nodes to fill in for any failed nodes during a restart.
-SCR includes a set of scripts which encode much of the restart logic (see :ref:`sec-scripts`).
+The process of restarting a job from a cached checkpoint is referred to as a *scalable restart*.
+SCR includes a set of scripts which encode much of the scalable restart logic (see :ref:`sec-scripts`).
 
 Upon encountering a failure,
 SCR relies on the MPI library, the resource manager, or some other external service
@@ -296,7 +296,7 @@ the process mapping of the restarted run.
 By default, SCR inspects the cache for existing checkpoints when a job starts.
 It attempts to rebuild all datasets in cache,
 and then it attempts to restart the job from the most recent checkpoint.
-If a checkpoint fails to rebuild, SCR deletes it from cache.
+If a dataset fails to rebuild, SCR deletes it from cache.
 To disable restarting from cache, set the :code:`SCR_DISTRIBUTE` parameter to 0.
 When disabled, SCR deletes all files from cache and restarts from a checkpoint on the parallel file system.
 
@@ -315,10 +315,10 @@ and successfully restarts within the allocation after a node fails.
 Catastrophic failures
 ---------------------
 
-There are some failures from which the SCR library cannot recover.
-In such cases, the application is forced to fall back to the
-latest checkpoint successfully written to the parallel file system.
-Such catastrophic failures include the following:
+There are some failures from which the SCR library cannot recover a cached checkpoint.
+In such cases, SCR falls back to the most recent checkpoint written to the parallel file system.
+Such failures are called *catastrophic failures*,
+and they include the following examples:
 
 * **Multiple node failure which violates the redundancy scheme.**
   If multiple nodes fail in a pattern which violates the cache redundancy scheme,
@@ -340,6 +340,7 @@ Such catastrophic failures include the following:
   the scavenge logic may also fail when it attempts to copy files to the parallel file system.
 
 There are other catastrophic failure cases not listed here.
+
 Checkpoints must be written to the parallel file system with some moderate
 frequency so as not to lose too much work in the event of a catastrophic failure.
 Section :ref:`sec-fetch_flush_drain` provides details on how to configure SCR to make occasional
