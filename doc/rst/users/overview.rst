@@ -232,26 +232,26 @@ The processes within a set collectively compute XOR parity data which are
 stored in files along side the application dataset files.
 This algorithm is based on the work found in [Gropp]_,
 which in turn was inspired by RAID5 [Patterson]_.
-This scheme can withstand multiple failures so long as two processes from the
-same set do not fail simultaneously.
+The :code:`XOR` scheme can withstand multiple failures so long as
+two processes from the same set do not fail simultaneously.
+
+Computationally, :code:`XOR` is more expensive than :code:`Partner`, but it requires less storage space.
+Whereas :code:`Partner` must store two full dataset files,
+:code:`XOR` stores one full dataset file plus one XOR parity segment,
+where the segment size is roughly :math:`1/(N-1)` times the size of
+a dataset file for a set of size :math:`N`.
+Although :code:`XOR` requires more computation,
+it can be be faster than :code:`Partner` when storage bandwidth
+is a performance bottleneck since :code:`XOR` writes less data.
 
 With :code:`RS`, like :code:`XOR`, SCR defines sets of processes
 where members within a set are selected from different failure groups.
 The processes within a set collectively compute Reed-Solomon encoding data which are
 stored in files along side the application dataset files.
-One may configure this scheme with the number of failures to tolerate within each set.
-
-Computationally, :code:`XOR` is more expensive than :code:`Partner`,
-but it requires less storage space.
-Whereas :code:`Partner` must store two full dataset files,
-:code:`XOR` stores one full dataset file plus one XOR parity segment,
-where the segment size is roughly :math:`1/(N-1)` times the size of
-a dataset file for a set of size :math:`N`.
-
-Similarly, :code:`RS` is computationally more expensive than :code:`XOR`,
-but it tolerates up to a configurable :math:`k` number of failures per set.
+The :code:`RS` scheme can require more computation and storage space than :code:`XOR`,
+but it can tolerate up to a configurable number of :math:`k` failures per set, where :math:`1 <= k < N`.
 The :code:`RS` encoding data scales as :math:`k/(N-k)`
-times the size of a dataset file for a set of size :math:`N`.
+times the size of a dataset file for a given value :math:`k` and a set of size :math:`N`.
 
 The set size :math:`N` can be adjusted with the :code:`SCR_SET_SIZE` parameter.
 The number of failures :math:`k` can be adjusted with the :code:`SCR_SET_FAILURES` parameter.
