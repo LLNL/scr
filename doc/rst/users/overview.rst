@@ -38,8 +38,8 @@ that contributes to such a sequence.
 
 Furthermore, the term job has different definitions in
 the context of resource managers and MPI applications.
-For example, a job in SLURM corresponds to what refer to as an "allocation",
-and a job in MPI corresponds to what we refer to as a "run".
+For example, a SLURM job corresponds to what we refer to as an "allocation",
+and an MPI job corresponds to what we refer to as a "run".
 We define those terms to help distinguish between those different meanings.
 However, we may also use the term job when the context is clear.
 
