@@ -249,16 +249,18 @@ where members within a set are selected from different failure groups.
 The processes within a set collectively compute Reed-Solomon encoding data which are
 stored in files along side the application dataset files.
 The :code:`RS` scheme can require more computation and storage space than :code:`XOR`,
-but it can tolerate up to a configurable number of :math:`k` failures per set, where :math:`1 <= k < N`.
+but it can tolerate up to a configurable number of :math:`k` failures per set,
+where :math:`1 <= k < N`.
 The :code:`RS` encoding data scales as :math:`k/(N-k)`
 times the size of a dataset file for a given value :math:`k` and a set of size :math:`N`.
+By default, :code:`RS` can recover up to :math:`k = 2` failures per set.
 
-The set size :math:`N` can be adjusted with the :code:`SCR_SET_SIZE` parameter.
-The number of failures :math:`k` can be adjusted with the :code:`SCR_SET_FAILURES` parameter.
-Larger sets require less storage,
+For both :code:`XOR` and :code:`RS`, larger sets require less storage,
 but they also increase the probability that a given set
 will suffer multiple failures simultaneously.
 Larger sets may also increase the cost of recovering files in the event of a failure.
+The set size :math:`N` can be adjusted with the :code:`SCR_SET_SIZE` parameter.
+The number of failures :math:`k` can be adjusted with the :code:`SCR_SET_FAILURES` parameter.
 
 .. list-table:: Summary of redundancy schemes assuming each process writes :math:`B` bytes and is grouped with other processes into a set of size :math:`N`
    :widths: 10 10 20
