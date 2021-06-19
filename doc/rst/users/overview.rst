@@ -17,7 +17,8 @@ or it may be interrupted due to time limits imposed by the resource manager.
 To make forward progress despite such interruptions,
 an application saves checkpoints during its earlier executions that
 are used to restart the application in later executions.
-We refer to this sequence of dependent executions of an application as an *SCR job* or simply a *job*.
+We refer to this sequence of dependent executions
+and its checkpoint history as an *SCR job* or simply a *job*.
 
 Each execution requires resources that have been granted by the resource manager.
 We use the term *allocation* to refer to an assigned set of compute resources
@@ -40,7 +41,7 @@ Furthermore, the term job has different definitions in
 the context of resource managers and MPI applications.
 For example, a SLURM job corresponds to what we refer to as an "allocation",
 and an MPI job corresponds to what we refer to as a "run".
-We define those terms to help distinguish between those different meanings.
+We define the terms allocation and run to help distinguish between those different meanings.
 However, we may also use the term job when the context is clear.
 
 Group, store, and redundancy descriptors
@@ -85,7 +86,8 @@ and the frequency with which it should be applied.
 Redundancy descriptors reference both store and group descriptors.
 
 The library defines a default redundancy descriptor.
-It assumes that processes on the same node are likely to fail at the same time (compute node failure).
+It assumes that processes on the same node are likely to fail at the same time
+(compute node failure).
 It also assumes that datasets can be cached in :code:`/dev/shm`,
 which is assumed to be storage local to each compute node.
 It applies an :code:`XOR` redundancy scheme using a group size of 8.
@@ -101,7 +103,8 @@ There are three fundamental types of directories: control, cache, and prefix dir
 For a detailed illustration of how these files and directories are arranged,
 see the example presented in :ref:`sec-directories_example`.
 
-The *control directory* is where SCR writes files to store its internal state about the current run.
+The *control directory* is where SCR writes files to store its
+internal state about the current run.
 This directory is expected to be stored in node-local storage.
 SCR writes multiple, small files in the control directory,
 and it accesses these files frequently.
@@ -152,7 +155,8 @@ The prefix directory should be accessible from all compute nodes,
 and the user must ensure that the prefix directory is unique for each job.
 For each dataset stored in the prefix directory,
 SCR creates and manages a *dataset directory*.
-The dataset directory holds all SCR redundancy files and meta data associated with a particular dataset.
+The dataset directory holds all SCR redundancy files and
+meta data associated with a particular dataset.
 SCR maintains an index file within the prefix directory,
 which records information about each dataset stored there.
 
@@ -189,19 +193,20 @@ We refer to a set of processes that share a storage device as a *storage group*.
 
 SCR defines default failure and storage groups, and if needed,
 additional groups can be defined in configuration files (see :ref:`sec-descriptors`).
-Given this knowledge of failure and storage groups,
+Given definitions of failure and storage groups,
 the SCR library implements four redundancy schemes
 which trade off performance, storage space, and reliability:
 
-* :code:`Single` - each dataset file is written to storage accessible to the local process
-* :code:`Partner` - each dataset file is written to storage accessible to the local process,
-  and a full copy of each file is written to storage accessible to a partner process from another failure group
-* :code:`XOR` - each dataset file is written to storage accessible to the local process,
-  XOR parity data are computed from dataset files of a set of processes from different failure groups,
-  and the parity data are stored among the set
-* :code:`RS` - each dataset file is written to storage accessible to the local process,
-  and Reed-Solomon encoding data are computed from dataset files of a set of processes from different failure groups,
-  and the encoding data are stored among the set
+* :code:`Single` - Each dataset file is written to storage accessible to the local process.
+* :code:`Partner` - Each dataset file is written to storage accessible to the local process,
+  and a full copy of each file is written to storage accessible to a partner process from
+  another failure group.
+* :code:`XOR` - Each dataset file is written to storage accessible to the local process,
+  XOR parity data are computed from dataset files of a set of processes from different
+  failure groups, and the parity data are stored among the set.
+* :code:`RS` - Each dataset file is written to storage accessible to the local process,
+  and Reed-Solomon encoding data are computed from dataset files of a set of processes
+  from different failure groups, and the encoding data are stored among the set.
 
 With :code:`Single`, SCR writes each dataset file in storage accessible to the local process.
 It requires sufficient space to store the maximum dataset file size.
@@ -213,15 +218,17 @@ However, it can withstand failures that kill the application processes
 but leave the node intact, such as application bugs and file I/O errors.
 
 With :code:`Partner`, SCR writes dataset files to storage accessible to the local process,
-and it also copies each dataset file to storage accessible to a partner process from another failure group.
+and it also copies each dataset file to storage accessible to a partner process
+from another failure group.
 This scheme is slower than :code:`Single`, and it requires twice the storage space.
 However, it is capable of withstanding failures that disable a storage device.
 In fact, it can withstand failures of multiple devices,
-so long as a device and the corresponding partner device that holds the copy do not fail simultaneously.
+so long as a device and the corresponding partner device that holds the copy
+do not fail simultaneously.
 
 With :code:`XOR`, SCR defines sets of processes
 where members within a set are selected from different failure groups.
-The processes within a set collectively compute XOR parity data which is
+The processes within a set collectively compute XOR parity data which are
 stored in files along side the application dataset files.
 This algorithm is based on the work found in [Gropp]_,
 which in turn was inspired by RAID5 [Patterson]_.
@@ -230,7 +237,7 @@ same set do not fail simultaneously.
 
 With :code:`RS`, like :code:`XOR`, SCR defines sets of processes
 where members within a set are selected from different failure groups.
-The processes within a set collectively compute Reed-Solomon encoding data which is
+The processes within a set collectively compute Reed-Solomon encoding data which are
 stored in files along side the application dataset files.
 One may configure this scheme with the number of failures to tolerate within each set.
 
@@ -238,15 +245,19 @@ Computationally, :code:`XOR` is more expensive than :code:`Partner`,
 but it requires less storage space.
 Whereas :code:`Partner` must store two full dataset files,
 :code:`XOR` stores one full dataset file plus one XOR parity segment,
-where the segment size is roughly :math:`1/(N-1)` times the size of a dataset file for a set of size :math:`N`.
+where the segment size is roughly :math:`1/(N-1)` times the size of
+a dataset file for a set of size :math:`N`.
+
 Similarly, :code:`RS` is computationally more expensive than :code:`XOR`,
-but it tolerates up to a configurable :code:`k` number of failures per set.
+but it tolerates up to a configurable :math:`k` number of failures per set.
 The :code:`RS` encoding data scales as :math:`k/(N-k)`
 times the size of a dataset file for a set of size :math:`N`.
+
 The set size :math:`N` can be adjusted with the :code:`SCR_SET_SIZE` parameter.
 The number of failures :math:`k` can be adjusted with the :code:`SCR_SET_FAILURES` parameter.
 Larger sets require less storage,
-but they also increase the probability that a given set will suffer multiple failures simultaneously.
+but they also increase the probability that a given set
+will suffer multiple failures simultaneously.
 Larger sets may also increase the cost of recovering files in the event of a failure.
 
 .. list-table:: Summary of redundancy schemes assuming each process writes :math:`B` bytes and is grouped with other processes into a set of size :math:`N`
@@ -397,19 +408,19 @@ it will attempt to fetch the next most recent checkpoint if one is available.
 
 To disable the fetch operation, set the :code:`SCR_FETCH` parameter to 0.
 If an application disables the fetch feature,
-the application is responsible for reading its checkpoint set directly from
+the application is responsible for reading its checkpoint directly from
 the parallel file system upon a restart.
 In this case, the application should call :code:`SCR_Current` to notify SCR
 which checkpoint it loaded.
 This enables SCR to set its internal state to maintain proper ordering in the checkpoint sequence.
 
 To withstand catastrophic failures,
-it is necessary to write checkpoint sets out to the parallel file system with some moderate frequency.
+it is necessary to write checkpoints out to the parallel file system with some moderate frequency.
 In the current implementation,
-the SCR library writes a checkpoint set out to the parallel file system after every 10 checkpoints.
+the SCR library writes a checkpoint out to the parallel file system after every 10 checkpoints.
 This frequency can be configured by setting the :code:`SCR_FLUSH` parameter.
 When this parameter is set, SCR decrements a counter with each successful checkpoint.
-When the counter hits 0, SCR writes the current checkpoint set out to the file system and resets the counter
+When the counter hits 0, SCR writes the current checkpoint out to the file system and resets the counter
 to the value specified in :code:`SCR_FLUSH`.
 SCR preserves this counter between scalable restarts,
 and when used in conjunction with :code:`SCR_FETCH` or :code:`SCR_Current`,
@@ -417,9 +428,9 @@ it also preserves this counter between fetch and flush operations
 such that it is possible to maintain periodic checkpoint writes across runs.
 Set :code:`SCR_FLUSH` to 0 to disable periodic writes in SCR.
 If an application disables the periodic flush feature,
-the application is responsible for writing occasional checkpoint sets to the parallel file system.
+the application is responsible for writing occasional checkpoints to the parallel file system.
 
 .. By default, SCR computes and stores a CRC32 checksum value for each checkpoint file during a flush.
    It then uses the checksum to verify the integrity of each file as it is read back into cache during a fetch.
-   If data corruption is detected, SCR falls back to fetch an earlier checkpoint set.
+   If data corruption is detected, SCR falls back to fetch an earlier checkpoint.
    To disable this checksum feature, set the :code:`SCR_CRC_ON_FLUSH` parameter to 0.
