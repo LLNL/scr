@@ -10,26 +10,38 @@ Terms defined here are used throughout the documentation.
 Jobs, allocations, and runs
 ---------------------------
 
-A large-scale simulation often must be restarted multiple times in order to run to completion.
+A long-running application often must be restarted
+multiple times in order to execute to completion.
 It may be interrupted due to a failure,
-or it may be interrupted due to time limits imposed by the resource scheduler.
+or it may be interrupted due to time limits imposed by the resource manager.
+To make forward progress despite such interruptions,
+an application saves checkpoints during its earlier executions that
+are used to restart the application in later executions.
+We refer to this sequence of dependent executions of an application as an *SCR job* or simply a *job*.
+
+Each execution requires resources that have been granted by the resource manager.
 We use the term *allocation* to refer to an assigned set of compute resources
 that are available to the user for a period of time.
 A resource manager typically assigns an identifier label to each resource allocation,
 which we refer to as the *allocation id*.
 SCR embeds the allocation id in some directory and file names.
 
-Within an allocation, a user may execute a simulation one or more times.
+Within an allocation, a user may execute an application one or more times.
 We call each execution a *run*.
 For MPI applications, each run corresponds to a single invocation
 of :code:`mpirun` or its equivalent.
 
-Finally, multiple allocations may be required to complete a given simulation.
-We refer to this series of one or more allocations as a *job*.
+Note that the term job has different meanings depending on its context.
+In addition to referring to a sequence of dependent runs,
+we sometimes use the term job to refer to an individual allocation or run
+that contributes to such a sequence.
 
-To summarize,
-one or more runs occur within an allocation,
-and one or more allocations occur within a job.
+Furthermore, the term job has different definitions in
+the context of resource managers and MPI applications.
+For example, a job in SLURM corresponds to what refer to as an "allocation",
+and an job in MPI corresponds to what we refer to as a "run".
+We define those terms to help distinguish between those different meanings.
+However, we may also use the term job when the context is clear.
 
 Group, store, and redundancy descriptors
 ----------------------------------------
@@ -293,7 +305,7 @@ on the same node that it ran on in the previous run.
 SCR distributes cached files among processes according to
 the process mapping of the restarted run.
 
-By default, SCR inspects the cache for existing checkpoints when a job starts.
+By default, SCR inspects the cache for existing checkpoints when a run starts.
 It attempts to rebuild all datasets in cache,
 and then it attempts to restart the job from the most recent checkpoint.
 If a dataset fails to rebuild, SCR deletes it from cache.
