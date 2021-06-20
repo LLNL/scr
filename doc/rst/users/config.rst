@@ -19,8 +19,25 @@ taking the first value it finds.
 * System configuration file,
 * Compile-time constants.
 
+A convenient method to set an SCR parameter is through an environment variable, e.g.,::
+
+  export SCR_CACHE_SIZE=2
+
+In cases where SCR parameters need to be set based
+on the run time configuration of the application,
+the application can call :code:`SCR_Config`, e.g.,::
+
+  SCR_Config("SCR_CACHE_SIZE=2");
+
+Section :ref:`sec-integration-config` lists common use cases for :code:`SCR_Config`.
+
+SCR also offers two configuration files:
+a user configuration file and a system configuration file.
+The user configuration file is useful for parameters that may need to vary by job,
+while the system configuration file is useful for parameters that apply to all jobs.
+
 To find a user configuration file,
-SCR looks for a file named :code:`.scrconf` in the prefix directory (note the leading dot).
+SCR looks for a file named :code:`.scrconf` in the prefix directory.
 Alternatively, one may specify the name and location of the user configuration file
 by setting the :code:`SCR_CONF_FILE` environment variable at run time, e.g.,::
 
@@ -28,7 +45,7 @@ by setting the :code:`SCR_CONF_FILE` environment variable at run time, e.g.,::
 
 The location of the system configuration file is hard-coded into SCR at build time.
 This defaults to :code:`/etc/scr/scr.conf`.
-One may set this using the :code:`SCR_CONFIG_FILE` option with cmake, e.g.,::
+One may choose a different path using the :code:`SCR_CONFIG_FILE` CMake option, e.g.,::
 
   cmake -DSCR_CONFIG_FILE=/path/to/scr.conf ...
 
@@ -44,13 +61,159 @@ For example, a configuration file may contain something like the following::
   # set SCR to flush every 20 checkpoints
   SCR_FLUSH=20
 
-One can include environment variable expressions in SCR configuration parameters.
+One can include environment variable expressions in the value of SCR configuration parameters.
 SCR interpolates the value of the environment variable at run time before setting the parameter.
-This is especially useful for some parameters like storage paths,
-which may only be defined within the job environment, e.g.,::
+This is useful for some parameters like storage paths,
+which may only be defined within the allocation environment, e.g.,::
 
-  # set cache directory based on user and jobid
-  SCR_CACHE_BASE=/dev/shm/$USER/scr.$SLURM_JOBID
+  # SLURM system that creates a /dev/shm directory for each job
+  SCR_CNTL_BASE=/dev/shm/$SLURM_JOBID
+  SCR_CACHE_BASE=/dev/shm/$SLURM_JOBID
+
+.. _sec-config-common:
+
+Common configurations
+---------------------
+
+This section describes some common configuration values.
+These parameters can be set using any of the methods described above.
+
+Enable debug messages
+^^^^^^^^^^^^^^^^^^^^^
+
+SCR can print informational messages about its operations, timing, and bandwidth::
+
+  SCR_DEBUG=1
+
+This setting is recommended during development and debugging.
+
+Specify the job output directory
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, SCR uses the current working directory as its prefix directory.
+If one needs to specify a different path, set :code:`SCR_PREFIX`::
+
+  SCR_PREFIX=/job/output/dir
+
+It is common to set :code:`SCR_PREFIX` to be the top-level output directory
+of the application.
+
+Specify which checkpoint to load
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, SCR attempts to load the most recent checkpoint.
+If one wants to specify a particular checkpoint,
+one can name which checkpoint to load by setting :code:`SCR_CURRENT`::
+
+  SCR_CURRENT=ckptname
+
+The value for the name must match the string that was given as the dataset name
+during the call to :code:`SCR_Start_output` in which the checkpoint was created.
+
+File-per-process vs shared access
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Applications achieve the highest performance when only
+a single process accesses each file within a dataset.
+This mode is termed *file-per-process*.
+In that situation, SCR can keep files in cache locations
+that might include node-local storage.
+
+SCR also supports applications that require shared access to files,
+where more than one process writes to or reads from a given file.
+This mode is termed *shared access*.
+To support shared access to a file,
+SCR locates files in global storage like the parallel file system.
+ 
+Regardless of the type of file access,
+one can only use cache when there is sufficient capacity
+to store the application files and associated SCR redundancy data.
+
+There are several common SCR configurations depending on the needs of the application.
+
+Write file-per-process, read file-per-process
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this mode, an application uses file-per-process mode
+both while writing its dataset during checkpoint/output
+and while reading its dataset during restart.
+So long as there is sufficient cache capacity,
+SCR can use cache including node-local storage for both operations.
+To configure SCR for this mode::
+
+  SCR_CACHE_BYPASS=0
+
+One must set :code:`SCR_CACHE_BYPASS=0` to instruct SCR to use cache.
+
+Write file-per-process, read with shared access
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is somewhat common for an application to write datasets using file-per-process
+mode but then require shared access mode to read its checkpoint files during restart.
+For example, there might be a top-level file that all processes read.
+In this case, SCR can be configured to use cache like node-local storage while writing,
+but it must be configured to move files to the prefix directory for restarts::
+
+  SCR_CACHE_BYPASS=0
+  SCR_GLOBAL_RESTART=1
+
+Setting :code:`SCR_GLOBAL_RESTART=1` instructs SCR to rebuild any cached datasets
+during :code:`SCR_Init` and then flush them to the prefix directory to read during
+the restart phase.
+
+Write with shared access
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If an application requires shared access mode while writing its dataset,
+SCR must be configured to locate files on a global file system.
+In this case, it is best to use the global file system both
+for writing datasets during checkpoint/output and for reading files during restart::
+
+  SCR_CACHE_BYPASS=1
+
+Setting :code:`SCR_CACHE_BYPASS=1` instructs SCR to locate files
+within the prefix directory for both checkpoint/output and restart phases.
+
+Cache bypass mode must also be used when the cache capacity
+is insufficient to store the application files and SCR redundancy data.
+
+Because cache bypass mode is the most portable across different systems and applications,
+it is enabled by default.
+
+Change checkpoint flush frequency
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, SCR flushes any dataset marked as :code:`SCR_FLAG_OUTPUT`,
+and it flushes every 10th checkpoint.
+To flush non-output checkpoint datasets at a different rate,
+one can set :code:`SCR_FLUSH`.
+For example, to flush every checkpoint::
+
+  SCR_FLUSH=1
+
+Increase cache size
+^^^^^^^^^^^^^^^^^^^
+
+When using cache, SCR stores at most one dataset by default.
+One can increase this limit with :code:`SCR_CACHE_SIZE`,
+e.g., to cache up to two datasets::
+
+  SCR_CACHE_SIZE=2
+
+Change redundancy schemes
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, SCR uses the :code:`XOR` redundancy scheme to withstand node failures.
+One can change the scheme using the :code:`SCR_COPY_TYPE` parameter.
+For example, to use Reed-Solomon to withstand up to two failures per set::
+
+  SCR_COPY_TYPE=RS
+
+In particular, on stable systems where one is using SCR primarily for
+its asynchronous flush capability more than for its fault tolerance,
+it may be best to use :code:`SINGLE`::
+
+  SCR_COPY_TYPE=SINGLE
 
 .. _sec-descriptors:
 
@@ -59,14 +222,28 @@ Group, store, and checkpoint descriptors
 
 SCR must have information about process groups,
 storage devices, and redundancy schemes.
-The defaults provide reasonable settings for Linux clusters,
-but one can define custom settings via group, store,
-and checkpoint descriptors in configuration files.
+SCR defines defaults that are sufficient in most cases.
 
 SCR must know which processes are likely to fail at the same time (failure groups)
 and which processes access a common storage device (storage groups).
 By default, SCR creates a group of all processes in the job called :code:`WORLD`
 and another group of all processes on the same compute node called :code:`NODE`.
+
+In addition to groups,
+SCR must know about the storage devices available on a system.
+SCR requires that all processes be able to access the prefix directory,
+and it assumes that :code:`/dev/shm` is storage local to each compute node.
+
+By default, SCR bypasses cache and writes files directly to the prefix directory.
+Cache can be enabled by setting :code:`SCR_CACHE_BYPASS=0`.
+When enabled, SCR defines a default checkpoint descriptor that
+caches datasets in :code:`/dev/shm` and protects against
+compute node failure with the :code:`XOR` redundancy scheme.
+
+The above defaults provide reasonable settings for Linux clusters.
+If necessary, one can define custom settings via group, store,
+and checkpoint descriptors in configuration files.
+
 If more groups are needed, they can be defined in configuration files
 with entries like the following::
 
@@ -85,19 +262,18 @@ since these group definitions often apply to all jobs on the system.
 The remaining values on the line specify a set of group name / value pairs.
 The group name is the string to be referenced by store and checkpoint descriptors.
 The value can be an arbitrary character string.
-The only requirement is that for a given group name,
-nodes that form a group must provide identical strings for the value.
+All nodes that specify the same value are placed in the same group.
+Each unique value defines a distinct group.
 
-In the above example, there are four compute nodes: host1, host2, host3, and host4.
+In the above example, there are four compute nodes:
+:code:`host1`, :code:`host2`, :code:`host3`, and :code:`host4`.
 There are two groups defined: :code:`POWER` and :code:`SWITCH`.
-Nodes host1 and host2 belong to the same :code:`POWER` group, as do nodes host3 and host4.
-For the :code:`SWITCH` group, nodes host1 and host3 belong to the same group,
-as do nodes host2 and host4.
+Nodes :code:`host1` and :code:`host2` belong to one :code:`POWER` group (:code:`psu1`),
+and nodes :code:`host3` and :code:`host4` belong to another (:code:`psu2`).
+For the :code:`SWITCH` group,
+nodes :code:`host1` and :code:`host3` belong to one group (:code:`0`),
+and nodes :code:`host2` and :code:`host4` belong to another (:code:`1`).
 
-In addition to groups,
-SCR must know about the storage devices available on a system.
-SCR requires that all processes be able to access the prefix directory,
-and it assumes that :code:`/dev/shm` is storage local to each compute node.
 Additional storage can be described in configuration files
 with entries like the following::
 
@@ -117,10 +293,11 @@ device via the specified directory prefix.
 The remaining values on the line specify properties of the storage class.
 The :code:`GROUP` key specifies the group of processes that share a device.
 Its value must specify a group name.
-The :code:`COUNT` key specifies the maximum number of checkpoints
+The :code:`GROUP` key is optional, and it defaults to :code:`NODE` if not specified.
+The :code:`COUNT` key specifies the maximum number of datasets
 that can be kept in the associated storage.
 The user should be careful to set this appropriately
-depending on the storage capacity and the application checkpoint size.
+depending on the storage capacity and the application dataset size.
 The :code:`COUNT` key is optional, and it defaults to the value
 of the :code:`SCR_CACHE_SIZE` parameter if not specified.
 The :code:`ENABLED` key enables (1) or disables (0) the store descriptor.
@@ -128,7 +305,8 @@ This key is optional, and it defaults to 1 if not specified.
 The :code:`MKDIR` key specifies whether the device supports the
 creation of directories (1) or not (0).
 This key is optional, and it defaults to 1 if not specified.
-The :code:`FLUSH` key specifies the transfer type to use to flush datasets.
+The :code:`FLUSH` key specifies the transfer type to use when
+flushing datasets from that storage location.
 This key is optional, and it defaults to the value of the :code:`SCR_FLUSH_TYPE` if not specified.
 
 In the above example, there are four storage devices specified:
@@ -140,11 +318,10 @@ The storage at :code:`/p/lscratcha` specifies the :code:`WORLD` group,
 which means that all processes in the job can access the device.
 In other words, it is a globally accessible file system.
 
-Finally, SCR must be configured with redundancy schemes.
-By default, SCR uses cache bypass mode and writes all datasets to the parallel file system.
-To specify something different, one must set various SCR configuration parameters
-to define checkpoint and output descriptors.
-Example descriptors in a configuration file look like the following::
+One can define checkpoint descriptors in a configuration file.
+This is especially useful when more than one checkpoint descriptor
+is needed in a single job.
+Example checkpoint descriptor entries look like the following::
 
   # instruct SCR to use the CKPT descriptors from the config file
   SCR_COPY_TYPE=FILE
@@ -163,13 +340,13 @@ Example descriptors in a configuration file look like the following::
   CKPT=2 INTERVAL=8 GROUP=SWITCH STORE=/ssd     TYPE=PARTNER BYPASS=1
 
 First, one must set the :code:`SCR_COPY_TYPE` parameter to :code:`FILE`.
-Otherwise, SCR uses an implied checkpoint descriptor that is defined using various SCR parameters
-including :code:`SCR_GROUP`, :code:`SCR_CACHE_BASE`,
+Otherwise, SCR uses an implied checkpoint descriptor that is defined
+using various SCR parameters including :code:`SCR_GROUP`, :code:`SCR_CACHE_BASE`,
 :code:`SCR_COPY_TYPE`, and :code:`SCR_SET_SIZE`.
 
 To store datasets in cache,
-one must set :code:`SCR_CACHE_BYPASS=0` to disable bypass mode, which is enabled by default.
-Otherwise all datasets will be written directly to the parallel file system.
+one must set :code:`SCR_CACHE_BYPASS=0` to disable bypass mode.
+When bypass is enabled, all datasets are written directly to the parallel file system.
 
 Checkpoint descriptor entries are identified by a leading :code:`CKPT` key.
 The values of the :code:`CKPT` keys must be numbered sequentially starting from 0.
@@ -180,7 +357,7 @@ divides the internal SCR checkpoint iteration number.
 It is necessary that one descriptor has an interval of 1.
 This key is optional, and it defaults to 1 if not specified.
 The :code:`GROUP` key lists the failure group,
-i.e., the name of the group of processes likely to fail.
+i.e., the name of the group of processes that are likely to fail at the same time.
 This key is optional, and it defaults to the value of the
 :code:`SCR_GROUP` parameter if not specified.
 The :code:`STORE` key specifies the directory in which to cache the checkpoint.
@@ -211,10 +388,10 @@ that the application flags with :code:`SCR_FLAG_OUTPUT`.
 The :code:`OUTPUT` key is optional, and it defaults to 0.
 If there is no descriptor with the :code:`OUTPUT` key defined
 and if the dataset is also a checkpoint,
-SCR will choose the checkpoint descriptor according to the normal policy.
+SCR chooses the checkpoint descriptor according to the normal policy.
 Otherwise, if there is no descriptor with the :code:`OUTPUT` key defined
 and if the dataset is not a checkpoint,
-SCR will use the checkpoint descriptor having interval of 1.
+SCR uses the checkpoint descriptor having an interval of 1.
 
 If one does not explicitly define a checkpoint descriptor,
 the default SCR descriptor can be defined in pseudocode as::
@@ -332,7 +509,7 @@ The table in this section specifies the full set of SCR configuration parameters
        redundancy storage and encoding costs.
    * - :code:`SCR_PREFIX`
      - $PWD
-     - Specify the prefix directory on the parallel file system where checkpoints should be read from and written to.
+     - Specify the prefix directory on the parallel file system where datasets should be read from and written to.
    * - :code:`SCR_PREFIX_SIZE`
      - 0
      - Specify number of checkpoints to keep in the prefix directory.
@@ -362,7 +539,7 @@ The table in this section specifies the full set of SCR configuration parameters
      - Set to 1 to enable asynchronous flush methods (if supported).
    * - :code:`SCR_FLUSH_POSTSTAGE`
      - 0
-     - Set to 1 to finalize async flushes using the scr_poststage script,
+     - Set to 1 to finalize asynchronous flushes using the scr_poststage script,
        rather than in SCR_Finalize().  This can be used to start a checkpoint
        flush near the end of your job, and have it run "in the background" after
        your job finishes.  This is currently only supported by the IBM Burst
@@ -440,75 +617,3 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_WATCHDOG_TIMEOUT_PFS`
      - N/A
      - Set to the expected time (seconds) for checkpoint writes to the parallel file system (see :ref:`sec-hang`).
-
-.. _sec-config-common:
-
-Common configurations
----------------------
-
-Applications achieve the highest performance when only
-a single process accesses each file within a dataset.
-This mode is termed *file-per-process*.
-In that situation, SCR can keep files in cache locations
-that might include node-local storage.
-
-SCR also supports applications that require shared access to files,
-where more than one process writes to or reads from a given file.
-This mode is termed *shared access*.
-To support shared access to a file,
-SCR locates files in global storage like the parallel file system.
- 
-Regardless of the type of file access,
-one can only use cache when there is sufficient capacity
-to store the application files and associated SCR redundancy data.
-
-There are several common SCR configurations depending on the needs of the application.
-
-write file-per-process, read file-per-process
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In this mode, an application uses file-per-process mode
-both while writing its dataset during checkpoint/output
-and while reading its dataset during restart.
-So long as there is sufficient cache capacity,
-SCR can use cache including node-local storage for both operations.
-To configure SCR for this mode::
-
-  SCR_CACHE_BYPASS=0
-
-One must set :code:`SCR_CACHE_BYPASS=0` to instruct SCR to use cache.
-
-write file-per-process, read with shared access
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-It is somewhat common for an application to write datasets using file-per-process
-mode but then require shared access mode to read its checkpoint files during restart.
-For example, there might be a top-level file that all processes read.
-In this case, SCR can be configured to use cache like node-local storage while writing,
-but it must be configured to move files to the prefix directory for restarts::
-
-  SCR_CACHE_BYPASS=0
-  SCR_GLOBAL_RESTART=1
-
-Setting :code:`SCR_GLOBAL_RESTART=1` instructs SCR to rebuild any cached datasets
-during :code:`SCR_Init` and then flush them to the prefix directory to read during
-the restart phase.
-
-write with shared access
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-If an application requires shared access mode while writing its dataset,
-SCR must be configured to locate files on a global file system.
-In this case, it is best to use the global file system both
-for writing datasets during checkpoint/output and for reading files during restart::
-
-  SCR_CACHE_BYPASS=1
-
-Setting :code:`SCR_CACHE_BYPASS=1` instructs SCR to locate files
-within the prefix directory for both checkpoint/output and restart phases.
-
-Cache bypass mode must also be used when the cache capacity
-is insufficient to store the application files and SCR redundancy data.
-
-Because cache bypass mode is the most portable across different systems and applications,
-it is enabled by default.

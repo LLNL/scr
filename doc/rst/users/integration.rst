@@ -497,6 +497,8 @@ the value of the :code:`SCR_FLUSH` counter will not be preserved between restart
 The counter will be reset to its upper limit with each restart.
 Thus each restart may introduce some offset in a sequence of periodic SCR flushes.
 
+.. _sec-integration-config:
+
 Configure SCR for application settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
