@@ -191,6 +191,47 @@ For example, to flush every checkpoint::
 
   SCR_FLUSH=1
 
+Change cache location
+^^^^^^^^^^^^^^^^^^^^^
+
+By default, SCR uses :code:`/dev/shm` as its cache base.
+One can use a different cache location
+by setting :code:`SCR_CACHE_BASE`.
+For example, one might target a path
+that points to a node-local SSD::
+
+  SCR_CACHE_BASE=/ssd
+
+This parameter is useful in runs that use a single cache location.
+When using multiple cache directories within a single run,
+one can define store and checkpoint descriptors as described later.
+
+Change control and cache location
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+At times, one may need to set both the control and cache directories.
+For example, some sites configure SLURM
+to create a path to temporary storage for each allocation::
+
+  SCR_CNTL_BASE=/tmp/$SLURM_JOBID
+  SCR_CACHE_BASE=/tmp/$SLURM_JOBID
+
+Another use case is when one needs to run multiple, independent
+SCR jobs within a single allocation.
+This is somewhat common in automated testing frameworks
+that run many different test cases in parallel within
+a single resource allocation.
+To support this, one can configure each run
+to use its own control and cache directories::
+
+  # for test case 1
+  SCR_CNTL_BASE=/dev/shm/test1
+  SCR_CACHE_BASE=/dev/shm/test1
+
+  # for test case 2
+  SCR_CNTL_BASE=/dev/shm/test2
+  SCR_CACHE_BASE=/dev/shm/test2
+
 Increase cache size
 ^^^^^^^^^^^^^^^^^^^
 
@@ -203,17 +244,34 @@ e.g., to cache up to two datasets::
 Change redundancy schemes
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default, SCR uses the :code:`XOR` redundancy scheme to withstand node failures.
+By default, SCR uses the :code:`XOR` redundancy scheme
+to withstand node failures.
 One can change the scheme using the :code:`SCR_COPY_TYPE` parameter.
 For example, to use Reed-Solomon to withstand up to two failures per set::
 
   SCR_COPY_TYPE=RS
 
 In particular, on stable systems where one is using SCR primarily for
-its asynchronous flush capability more than for its fault tolerance,
+its asynchronous flush capability rather than for its fault tolerance,
 it may be best to use :code:`SINGLE`::
 
   SCR_COPY_TYPE=SINGLE
+
+Enable asynchronous flush
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, SCR flushes datasets synchronously.
+In this mode, the SCR API call that initiates the flush
+does not return until the flush completes.
+One can configure SCR to use asynchronous flushes instead,
+in which case the flush is started during one SCR API call,
+and it may be finalized in a later SCR API call.
+To enable asynchronous flushes,
+one should both set :code:`SCR_FLUSH_ASYNC=1`
+and specify a flush type like :code:`PTHREAD`::
+
+  SCR_FLUSH_ASYNC=1
+  SCR_FLUSH_TYPE=PTHREAD
 
 .. _sec-descriptors:
 
@@ -224,21 +282,16 @@ SCR must have information about process groups,
 storage devices, and redundancy schemes.
 SCR defines defaults that are sufficient in most cases.
 
-SCR must know which processes are likely to fail at the same time (failure groups)
-and which processes access a common storage device (storage groups).
 By default, SCR creates a group of all processes in the job called :code:`WORLD`
 and another group of all processes on the same compute node called :code:`NODE`.
 
-In addition to groups,
-SCR must know about the storage devices available on a system.
+For storage,
 SCR requires that all processes be able to access the prefix directory,
 and it assumes that :code:`/dev/shm` is storage local to each compute node.
 
-By default, SCR bypasses cache and writes files directly to the prefix directory.
-Cache can be enabled by setting :code:`SCR_CACHE_BYPASS=0`.
-When enabled, SCR defines a default checkpoint descriptor that
+SCR defines a default checkpoint descriptor that
 caches datasets in :code:`/dev/shm` and protects against
-compute node failure with the :code:`XOR` redundancy scheme.
+compute node failure using the :code:`XOR` redundancy scheme.
 
 The above defaults provide reasonable settings for Linux clusters.
 If necessary, one can define custom settings via group, store,
