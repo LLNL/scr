@@ -34,7 +34,9 @@ class SCR_Env_SLURM(SCR_Env_Base):
       argv = ['sinfo','-ho','%N','-t','down','-n',val]
       down, returncode = runproc(argv=argv,getstdout=True)
       if returncode == 0:
-        return down.rstrip()
+        down = down.strip()
+        self.conf['down'] = down
+        return down
     return None
 
   # set down node list, requires node list to already be set
@@ -48,7 +50,7 @@ class SCR_Env_SLURM(SCR_Env_Base):
       print('SCR_Env_SLURM.set_downnodes(): ERROR: sinfo returned '+str(returncode))
       print(out[1])
     else:
-      self.conf['down'] = out[0] # parse out
+      self.conf['down'] = out[0].strip()
 
   # list the number of nodes used in the last run
   def get_runnode_count(self):
@@ -57,4 +59,3 @@ class SCR_Env_SLURM(SCR_Env_Base):
     if returncode==0:
       return int(out)
     return 0 # print(err)
-

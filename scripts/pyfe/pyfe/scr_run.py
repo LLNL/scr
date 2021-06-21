@@ -26,9 +26,9 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
 
   val = os.environ.get('SCR_ENABLE')
   if val is not None and val=='0':
-    argv = [launcher]
-    argv.extend(launcher_args)
-    returncode = runproc(argv=argv)[1]
+    launcher = [launcher]
+    launcher.extend(launcher_args)
+    returncode = runproc(argv=launcher)[1]
     sys.exit(returncode)
 
   #launcher_args = ' '.join(launcher_args)
@@ -41,7 +41,7 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
   # make a record of start time
   timestamp=datetime.now()
   start_secs = int(secs)
-  print(prog+': Started: '+str(timestamp))
+  print(prog+': Started: '+str(timestamp)+' ('+str(start_secs)+')')
 
   # check that we have runtime dependencies
   if scr_test_runtime()!=0:
@@ -84,7 +84,7 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
   # TODO: remove this if admins find a better place to clear cache
   argv=['srun','/bin/hostname'] # ,'>','/dev/null']
 
-  runproc(argv=argv,wait=False)
+  runproc(argv=argv)
 
   # make a record of time prerun is started
   timestamp=datetime.now()
@@ -94,20 +94,18 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
     print(prog+': ERROR: Command failed: scr_prerun -p '+prefix)
     sys.exit(1)
 
+  #export SCR_END_TIME=$(date -d $(scontrol --oneliner show job $SLURM_JOBID | perl -n -e 'm/EndTime=(\S*)/ and print $1') +%s)
   val = os.environ.get('SLURM_JOBID')
   endtime = ''
   if val is not None:
-    argv=[ ['scontrol','--oneliner','show','job',val], ['perl','-n','-e','m/EndTime=(\S*)/ and print $1'] ]
+    argv=[ ['scontrol','--oneliner','show','job',val], ['perl','-n','-e','\'m/EndTime=(\S*)/ and print $1\''] ]
     endtime = pipeproc(argvs=argv,getstdout=True)[0]
+    argv = ['date','-d',endtime]
+    endtime = runprov(argv=argv,getstdout=True)[0]
   else:
-    print(prog+': WARNING: Unable to get end time.')
+    print(prog+': WARNING: Unable to get end time.') # shouldn't happen
 
-  argv=['date','-d',out,'+%s']
-  out = runproc(argv=argv,getstdout=True)[0]
-  os.environ['SCR_END_TIME'] = out
-
-  #export SCR_END_TIME=$(date -d $(scontrol --oneliner show job $SLURM_JOBID | 
-  #perl -n -e 'm/EndTime=(\S*)/ and print $1') +%s)
+  os.environ['SCR_END_TIME'] = endtime
 
   # enter the run loop
   down_nodes=''
@@ -116,9 +114,10 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
   if runs is None:
     runs = os.environ.get('SCR_RETRIES')
     if runs is None:
-      runs=1
+      runs=0
     else:
-      runs=int(runs)+1
+      runs=int(runs)
+    runs+=1
   else:
     runs=int(runs)
 
@@ -132,6 +131,7 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
     #       A better way would be to remember the last set used, or to provide a utility to run on *all*
     #       nodes to distribute files (also useful for defragging the machine) -- for now this works.
 
+    keep_down = down_nodes
     # if this is our first run, check that the free space on the drive meets requirement
     # (make sure data from job of previous user was cleaned up ok)
     # otherwise, we'll just check the total capacity
@@ -144,7 +144,7 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
     down_nodes = scr_list_down_nodes(free=free_flag,nodeset_down=down_nodes,scr_env=scr_env)
     if type(down_nodes) is str and down_nodes!='':
       # print the reason for the down nodes, and log them
-      scr_list_down_nodes(reason=True,free=free_flag,nodeset_down=down_nodes,log_nodes=True,runtime_secs='0',scr_env=scr_env)
+      scr_list_down_nodes(reason=True, free=free_flag, nodeset_down=down_nodes, log_nodes=True, runtime_secs='0', scr_env=scr_env)
 
       # if this is the first run, we hit down nodes right off the bat, make a record of them
       if attempts==0:
@@ -158,7 +158,7 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
       # to start, assume we need all nodes in the allocation
       # if SCR_MIN_NODES is set, use that
       num_needed = os.environ.get('SCR_MIN_NODES')
-      if num_needed is None:
+      if num_needed is None or int(num_needed) <= 0:
         # try to lookup the number of nodes used in the last run
         num_needed = scr_env.get_runnode_count()
         # num_needed_env='$bindir/scr_env --prefix $prefix --runnodes'
@@ -174,26 +174,30 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
         break
 
       # all checks pass, exclude the down nodes and continue
-      exclude='--exclude '+down_nodes
+      exclude=['--exclude', down_nodes]
 
     # make a record of when each run is started
     attempts+=1
     timestamp=datetime.now()
     print(prog+': RUN '+str(attempts)+': '+str(timestamp))
 
-    launch_cmd=run_cmd
-    launch_cmd.extend(launcher_args)
+    launch_cmd=launcher_args.copy()
     if restart_cmd!='' and os.path.isfile(restart_cmd) and os.access(restart_cmd,os.X_OK):
       restart_name=launcher+' '+' '.join(launcher_args)+' '+bindir+'/scr_have_restart'
       if os.path.isfile(restart_name) and os.acess(restart_name,os.X_OK):
         my_restart_cmd='echo '+restart_cmd+' '+bindir+'/scr_have_restart'
-        launch_cmd=' '.join(launcher_args)+' '+myrestart_cmd
+        my_restart_cmd = re.sub('SCR_CKPT_NAME',restart_name,my_restart_cmd)
+        launch_cmd.append(my_restart_cmd)
+      else:
+        launch_cmd.append(run_cmd)
+    else:
+      launch_cmd.append(run_cmd)
     # launch the job, make sure we include the script node and exclude down nodes
     start_secs=int(time())
 
-    scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='RUN_START',event_note='run='+str(attempts),event_start=str(start_secs))
+    scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_START', event_note='run='+str(attempts), event_start=str(start_secs))
     # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
-    if use_scr_watchdog == '0':
+    if use_scr_watchdog == False:
       argv=[launcher]
       argv.extend(exclude)
       argv.extend(launch_cmd)
@@ -205,16 +209,16 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
       argv=[launcher]
       argv.extend(exclude)
       argv.extend(launch_cmd)
-      # need to first launch this process then wait for it below
-      runproc = subprocess.Popen(args=argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      srun_pid = runproc(argv=argv, wait=False)[1]
       # $launcher $exclude $launch_cmd &
-      #srun_pid = runproc.pid # don't need this
+      #srun_pid = runproc.pid
       #srun_pid=$!;
       time.sleep(10)
       #sleep 10; # sleep a bit to wait for the job to show up in squeue
-      jobstepid = scr_get_jobstep_id(scr_env)
+      print(bindir+'/scr_get_jobstep_id '+str(srun_pid))
+      jobstepid = scr_get_jobstep_id(scr_env) # the pid was unused in there
       # then start the watchdog  if we got a valid job step id
-      if jobstepid!='' and jobstepid!='-1':
+      if jobstepid is not None:
         # Launching a new process to execute the python method
         watchdog = Process(target=scr_watchdog,args=('--dir',prefix,'--jobStepId',jobstepid))
         watchdog.start()
@@ -227,18 +231,18 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
     run_secs=end_secs - start_secs
 
     # check for and log any down nodes
-    scr_list_down_nodes([keep_down,'--log','--reason','--secs',str(run_secs)],scr_env)
+    scr_list_down_nodes(reason=True, nodeset_down=keep_down, log_nodes=True, runtime_secs=str(run_secs), scr_env=scr_env)
     # log stats on the latest run attempt
-    scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='RUN_END',event_note='run='+str(attempts),event_start=str(end_secs),event_secs=str(run_secs))
+    scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_END', event_note='run='+str(attempts), event_start=str(end_secs), event_secs=str(run_secs))
     #$bindir/scr_log_event -i $jobid -p $prefix -T "RUN_END" -N "run=$attempts" -S $end_secs -L $run_secs
 
     # any retry attempts left?
     if runs > 1:
       runs-=1
-    else:
-      runs = os.environ.get('SCR_RUNS')
-      print(prog+': '+runs+' exhausted, ending run.')
-      break
+      if runs <= 0:
+        runs = os.environ.get('SCR_RUNS')
+        print(prog+': '+runs+' exhausted, ending run.')
+        break
 
     # is there a halt condition instructing us to stop?
     argv=[bindir+'/scr_retries_halt','--dir',prefix]
@@ -263,7 +267,7 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
   print(prog+': postrun: '+str(timestamp))
 
   # scavenge files from cache to parallel file system
-  if scr_postrun(['-p',prefix],scr_env) != 0:
+  if scr_postrun(prefix=prefix,scr_env=scr_env) != 0:
     print(prog+': ERROR: Command failed: scr_postrun -p '+prefix)
 
   # kill the watchdog process if it is running

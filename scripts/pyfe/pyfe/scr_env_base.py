@@ -9,6 +9,7 @@
 
 import os
 import scr_const, scr_hostlist
+from scr_common import scr_prefix
 
 # def set_prefix(self,prefix):
 #   the prefix should be explicitly set (?)
@@ -24,6 +25,7 @@ class SCR_Env_Base(object):
   def __init__(self,env=None):
     self.conf = {}
     self.conf['env'] = env
+    self.conf['prefix'] = scr_prefix()
     self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'
     self.conf['user'] = os.environ.get('USER')
     self.conf['jobid'] = self.getjobid()

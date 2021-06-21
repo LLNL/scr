@@ -7,13 +7,12 @@ import scr_const
 from time import time
 from scr_param import SCR_Param
 from scr_list_dir import scr_list_dir
-from scr_common import runproc, pipeproc
+from scr_common import runproc, pipeproc, scr_prefix
 import scr_common
 from scr_env import SCR_Env
 import scr_hostlist
 
 def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
-  prog = 'scr_list_down_nodes'
   ping = 'ping'
 
   bindir = scr_const.X_BINDIR
@@ -31,14 +30,14 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
   else:
     nodeset=scr_env.conf['nodes']
     if nodeset is None:
-      print(prog+': ERROR: Nodeset must be specified or script must be run from within a job allocation.')
+      print('scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.')
       return 1
 
   # get list of nodes from nodeset
   nodes = scr_hostlist.expand(nodeset)
 
   # get prefix directory
-  prefix = bindir+'/scr_prefix'
+  prefix = scr_prefix()
 
   # get jobid
   if scr_env is None:
@@ -49,24 +48,21 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
   allocation = {}
   available = {}
   for node in nodes:
-    allocation[node] = 1
-    available[node] = 1
+    allocation[node] = True
+    available[node] = True
 
   # hashes to define all unavailable (down or excluded) nodes and reason
   unavailable = {}
   reason = {}
 
   # mark the set of nodes the resource manager thinks is down
-  scr_env.set_downnodes() # <- attempt to set down nodes
-  resmgr_down = ''
-  if 'down' in scr_env.conf:
-    resmgr_down = scr_env.conf['down']
+  resmgr_down = scr_env.get_downnodes()
   if resmgr_down is not None and resmgr_down!='':
     resmgr_nodes = scr_hostlist.expand(resmgr_nodes)
     for node in resmgr_nodes:
       if node in available:
         del available[node]
-      unavailable[node] = 1
+      unavailable[node] = True
       reason[node] = "Reported down by resource manager"
 
   # mark the set of nodes we can't ping
@@ -85,7 +81,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
       if returncode!=0:
         if node in available:
           del available[node]
-        unavailable[node] = 1
+        unavailable[node] = True
         reason[node] = 'Failed to ping'
 
   # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
@@ -96,7 +92,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
       if node in allocation:
         if node in available:
           del available[node]
-        unavailable[node] = 1
+        unavailable[node] = True
         reason[node] = 'User excluded via SCR_EXCLUDE_NODES'
 
   # mark any nodes specified on the command line
@@ -106,67 +102,79 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
       if node in allocation:
         if node in available:
           del available[node]
-        unavailable[node] = 1
+        unavailable[node] = True
         reason[node] = 'Specified on command line'
 
   # TODO: read exclude list from a file, as well?
 
   # specify whether to check total or free capacity in directories
-  free_flag = ''
-  if free:
-    free_flag = '--free'
+  #if free: free_flag = '--free'
 
   # check that control and cache directories on each node work and are of proper size
   # get the control directory the job will use
   cntldir_vals = []
-  cntldir_string = scr_list_dir('--base control',scr_env)
+  cntldir_string = scr_list_dir(base=True,runcmd='control',scr_env=scr_env)
   # cntldir_string = `$bindir/scr_list_dir --base control`;
-  if type(cntldir_string) is str:
+  if cntldir_string != 1:
     dirs = cntldir_string.split(' ')
     cntldirs = param.get_hash('CNTLDIR')
     for base in dirs:
+      if len(base)<1:
+        continue
       val = base
       if cntldirs is not None and base in cntldirs and 'BYTES' in cntldirs[base]:
-        size = cntldirs[base]['BYTES'].keys()[0] #(keys %{$$cntldirs{$base}{"BYTES"}})[0];
+        size = list(cntldirs[base]['BYTES'].keys())[0] #(keys %{$$cntldirs{$base}{"BYTES"}})[0];
         #if (defined $size) {
-        #  $size = $param->abtoull($size);
-        #  $val = "$base:$size";
+        if size is not None:
+          size = param.abtoull(size)
+          #  $size = $param->abtoull($size);
+          val += ':'+str(size)
+          #  $val = "$base:$size";
       cntldir_vals.append(val)
 
   cntldir_flag = ''
   if len(cntldir_vals)>0:
-    pass
-    #cntldir_flag = "--cntl " . join(",", @cntldir_vals);
+    cntldir_flag = '--cntl ' + ','.join(cntldir_vals)
 
   # get the cache directory the job will use
   cachedir_vals = []
-  cachedir_string = scr_list_dir('--base cache',scr_env) #`$bindir/scr_list_dir --base cache`;
-  if type(cachedir_string) is str:
+  cachedir_string = scr_list_dir(base=True,runcmd='cache',scr_env=scr_env) #`$bindir/scr_list_dir --base cache`;
+  if cachedir_string != 1:
     dirs = cachedir_string.split(' ')
     cachedirs = param.get_hash('CACHEDIR')
     for base in dirs:
+      if len(base)<1:
+        continue
       val = base
       if cachedirs is not None and base in cachedirs and 'BYTES' in cachedirs[base]:
-        size = cachedirs[base]['BYTES'].keys()[0]
+        size = list(cachedirs[base]['BYTES'].keys())[0]
         #my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
         #if (defined $size) {
-        #  $size = $param->abtoull($size);
-        #  $val = "$base:$size";
+        if size is not None:
+          size = param.abtoull(size)
+          #  $size = $param->abtoull($size);
+          val += ':'+str(size)
+          #  $val = "$base:$size";
       cachedir_vals.append(val)
 
   cachedir_flag = ''
   if len(cachedir_vals) > 0:
-    cachedir_flag = '--cache ' + ' '.join(cachedir_vals)
+    cachedir_flag = '--cache ' + ','.join(cachedir_vals)
 
   # only run this against set of nodes known to be responding
-  still_up = available.keys()
+  still_up = list(available.keys())
   upnodes = scr_hostlist.compress(still_up)
 
   # run scr_check_node on each node specifying control and cache directories to check
+  ################### This is calling a script, scr_check_node, from pdsh.
+  ###################### think this is going to need the python pdsh equivalent
   if len(still_up) > 0:
-    argv = []
-    argv.append([pdsh,'-Rexec','-f','256','-w',upnodes,'srun','-n','1','-N','1','-w','%h',bindir+'/scr_check_node',free_flag,cntldir_flag,cachedir_flag])
-    argv.append([dshbak,'-c'])
+    #argv = [pdsh,'-Rexec','-f','256','-w',upnodes,'srun','-n','1','-N','1','-w','%h',bindir+'/scr_check_node']
+    argv = [pdsh,'-Rexec','-f','256','-w',upnodes,'srun','-n','1','-N','1','-w','%h','python3',bindir+'/scr_check_node.py']
+    if free:
+      argv.append('--free')
+    argv.extend([cntldir_flag,cachedir_flag])
+    argv = [ argv , [dshbak,'-c'] ]
     output = pipeproc(argvs=argv,getstdout=True)[0]
     #output = `$pdsh -Rexec -f 256 -w '$upnodes' srun -n 1 -N 1 -w %h $bindir/scr_check_node $free_flag $cntldir_flag $cachedir_flag | $dshbak -c`;
     action=0 # tracking action to use range iterator and follow original line <- shift flow
@@ -192,7 +200,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
             if node in allocation:
               if node in available:
                 del available[node]
-              unavailable[node] = 1
+              unavailable[node] = True
               reason[node] = result
 
   # take union of all these sets
@@ -203,7 +211,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
   if len(failed_nodes)>0:
     # initialize our list of newly failed nodes to be all failed nodes
     for node in failed_nodes:
-      newly_failed_nodes[node] = 1
+      newly_failed_nodes[node] = True
 
     # remove any nodes that user already knew to be down
     if nodeset_down is not None:
@@ -226,9 +234,11 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
       # list each node and the reason each is down
       for node in failed_nodes:
         ret = node+': '+reason[node]+'\n'
+	  if len(ret)>1:
+        ret = ret[:-1] # take off the trailing newline
     else:
       # simply print the list of down node in range syntax
-      ret = ','.join(failed_nodes)+'.'
+      ret = scr_hostlist.compress(failed_nodes)
     return ret
   # otherwise, don't print anything and exit with 0
   return 0
@@ -241,7 +251,7 @@ if __name__=='__main__':
   parser.add_argument('-d','--down', metavar='<nodeset>', type=str, default=None, help='Force nodes to be down without testing.')
   parser.add_argument('-l','--log', action='store_true', default=False, help='Add entry to SCR log for each down node.')
   parser.add_argument('-s','--secs', metavar='N', type=str, default=None, help='Specify the job\'s runtime seconds for SCR log.')
-  parser.add_argument('[nodeset]', nargs='*', default=None, help='Specify the set of nodes to check.')
+  parser.add_argument('[nodeset]', nargs='*', default=None, help='Specify the complete set of nodes to check within.')
   args = vars(parser.parse_args())
   print(args)
   if 'help' in args:

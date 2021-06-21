@@ -15,10 +15,9 @@ import scr_const
 from scr_param import SCR_Param
 
 # returns 1 for error, 0 (or string) for success
-def scr_list_dir(user=None,jobid=None,base=None,runcmd=None,scr_env=None):
+def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
   param = SCR_Param()
   # TODO: read cache directory from config file
-  prog = "scr_list_dir"
   bindir = scr_const.X_BINDIR
 
   # check that user specified "control" or "cache"
@@ -46,7 +45,7 @@ def scr_list_dir(user=None,jobid=None,base=None,runcmd=None,scr_env=None):
     scr_env = SCR_Env()
   # get the user/job directory
   suffix = ''
-  if base is None:
+  if base is False:
     # if not specified, read username from environment
     if user is None:
       user = scr_env.conf['user']
@@ -62,11 +61,11 @@ def scr_list_dir(user=None,jobid=None,base=None,runcmd=None,scr_env=None):
 
   # ok, all values are here, print out the directory name and exit with success
   dirs = []
-  for base in bases:
+  for abase in bases:
     if suffix!='':
-      dirs.append(base+'/'+suffix)
+      dirs.append(abase+'/'+suffix)
     else:
-      dirs.append(base)
+      dirs.append(abase)
   dirs = ' '.join(dirs)
   return dirs
 
@@ -75,7 +74,7 @@ if __name__=='__main__':
   parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
   parser.add_argument('-u','--user', default=None, metavar='<user>', type=str, help='Specify username.')
   parser.add_argument('-j','--jobid', default=None, metavar='<id>', type=str, help='Specify jobid.')
-  parser.add_argument('-b','--base', default=None, metavar='<base>', type=str, help='List base portion of cache/control directory')
+  parser.add_argument('-b','--base', action='store_true', default=False, help='List base portion of cache/control directory')
   parser.add_argument('control/cache', choices=['control','cache'], metavar='<control | cache>', nargs='?', default=None, help='Specify the directory to list.')
   args = vars(parser.parse_args())
   if 'help' in args:

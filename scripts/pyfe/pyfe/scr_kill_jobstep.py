@@ -16,11 +16,11 @@ def scr_kill_jobstep(bindir=None,jobid=None):
   killCmd = 'scancel'
 
   if jobid is None:
+    print('You must specify the job step id to kill.')
     return 1
 
-  cmd = killCmd+' '+str(jobid)
-  print(cmd)
-  argv = [killCmd,jobid]
+  print(killCmd+' '+str(jobid))
+  argv = [killCmd,str(jobid)]
   returncode = runproc(argv=argv)[1]
   return returncode
 

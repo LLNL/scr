@@ -17,17 +17,16 @@ from scr_env import SCR_Env
 # This script returns the job step id on success and -1 on failure.
 
 def scr_get_jobstep_id(scr_env=None):
-  prog = 'scr_get_jobstep_id'
   #my $pid=$ARGV[0]; # unused
   if scr_env is None:
     scr_env = SCR_Env()
   user = scr_env.conf['user']
   if user is None:
-    print(prog+': ERROR: Could not determine user ID')
+    print('scr_get_jobstep_id: ERROR: Could not determine user ID')
     return None
-  jobid = scr_env.conf['jobid']
+  jobid = scr_env.getjobid()
   if jobid is None:
-    print(prog+': ERROR: Could not determine job ID')
+    print('scr_get_jobstep_id: ERROR: Could not determine job ID')
     return None
   # get job steps for this user and job, order by decreasing job step
   # so first one should be the one we are looking for
@@ -35,12 +34,13 @@ def scr_get_jobstep_id(scr_env=None):
   # STEPID         NAME PARTITION     USER      TIME NODELIST
   argv = ['squeue','-h','-s','-u',user,'-j',jobid,'-S','\"-i\"']
   # my $cmd="squeue -h -s -u $user -j $jobid -S \"-i\"";
-  output = runproc(argv=argv,getstdout=True)[0]
+  output = runproc(argv=argv,getstdout=True)[0].split('\n')
 
-  currjobid='-1' # the return value will be -1 if not found
+  currjobid=None
 
   for line in output:
-    line = re.sub('^(\s+)','',line.rstrip())
+    line = line.strip()
+    #line = re.sub('^(\s+)','',line)
     # $line=~ s/^\s+//;
     fields = re.split('\s+',line)
     # my @fields = split /\s+/, $line;
