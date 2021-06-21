@@ -26,7 +26,10 @@ import scr_const
 from datetime import datetime
 from scr_common import runproc
 
-def do_poststage(bindir,prefix,logfile):
+# do_poststage is called from scr_poststage below
+# not intended to be directly called
+# can hardcode the bindir and logfile in scr_poststage
+def do_poststage(bindir=None,prefix=None,logfile=None):
   logfile.write(str(datetime.now())+' Begin post_stage\n')
   logfile.write('Current index before finalizing:\n')
   argv = [bindir+'/scr_index','-l','-p',prefix]
@@ -41,8 +44,7 @@ def do_poststage(bindir,prefix,logfile):
   logfile.write('--- Processing output datasets ---\n')
   argv = [bindir+'/scr_flush_file','--dir',prefix,'--list-output']
   out = runproc(argv=argv,getstdout=True,getstderr=True)[0]
-  if len(out[1])>0:
-    logfile.write(out[1])
+  logfile.write(out[1])
   for cid in out[0].split('\n'):
     if len(cid)==0:
       continue
@@ -195,11 +197,13 @@ if __name__=='__main__':
   parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_poststage')
   parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
   parser.add_argument('-p','--prefix', metavar='<dir>', type=str, default=None, help='Specify the prefix directory.')
+  parser.add_argument('rest', nargs=argparse.REMAINDER)
   args = vars(parser.parse_args())
   if 'help' in args:
     parser.print_help()
-  elif args['prefix'] is None:
+  elif args['prefix'] is None and args['rest'] is None:
     print('The prefix directory must be specified.')
+  elif args['prefix'] is None:
+    scr_poststage(prefix=args['rest'][0])
   else:
     scr_poststage(prefix=args['prefix'])
-

@@ -10,7 +10,6 @@ from scr_common import runproc
 # returns 0 if OK, returns 1 if a command not found
 def scr_test_runtime():
   bindir = scr_const.X_BINDIR
-  prog = 'scr_test_runtime'
   pdsh = scr_const.PDSH_EXE
   dshbak = scr_const.DSHBAK_EXE
   # assume we won't find any problem
@@ -20,16 +19,16 @@ def scr_test_runtime():
   argv=['which',pdsh]
   returncode = runproc(argv=argv)[1]
   if returncode!=0:
-    print(prog+': ERROR: \'which '+pdsh+'\' failed')
-    print(prog+': ERROR: Problem using pdsh, see README for help')
+    print('scr_test_runtime: ERROR: \'which '+pdsh+'\' failed')
+    print('scr_test_runtime: ERROR: Problem using pdsh, see README for help')
     rc = 1
 
   # check that we have dshbak
   argv[1]=dshbak
   returncode = runproc(argv=argv)[1]
   if returncode!=0:
-    print(prog+': ERROR: \'which '+dshbak+'\' failed')
-    print(prog+': ERROR: Problem using dshbak, see README for help')
+    print('scr_test_runtime: ERROR: \'which '+dshbak+'\' failed')
+    print('scr_test_runtime: ERROR: Problem using dshbak, see README for help')
     rc = 1
 
   return rc

@@ -9,7 +9,6 @@ from scr_common import interpolate_variables, scr_prefix
 class SCR_Param():
   def __init__(self):
     sysconf = scr_const.SCR_CONFIG_FILE
-    self.prog = 'scr_param'
     # get current working dir
     # use value in $SCR_PREFIX if set
     prefix = scr_prefix()
@@ -22,19 +21,16 @@ class SCR_Param():
     # read in the app configuration file, if specified
     appfile = prefix+'/.scr/app.conf'
 
-    self.appconf = {}
-    if os.path.isfile(appfile) and os.access(appfile,'R_OK'):
-      self.appconf = self.read_config_file(appfile)
+    #if os.path.isfile(appfile) and os.access(appfile,'R_OK'):
+    # better to just try than to check for permission
+    # the read_config_file method has a try catch block
+    self.appconf = self.read_config_file(appfile)
 
-    self.usrconf = {}
     # read in the user configuration file, if specified
-    if os.path.isfile(usrfile) and os.access(usrfile,'R_OK'):
-      self.usrconf = self.read_config_file(usrfile)
+    self.usrconf = self.read_config_file(usrfile)
 
-    self.sysconf = {}
     # read in the system configuration file
-    if os.path.isfile(sysconf) and os.access(sysconf,'R_OK'):
-      self.sysconf = self.read_config_file(sysconf)
+    self.sysconf = self.read_config_file(sysconf)
 
     self.compile = {}
     # set our compile time constants
@@ -65,52 +61,54 @@ class SCR_Param():
     self.cache_size = self.get('SCR_CACHE_SIZE')
     if 'CACHE' not in self.usrconf and self.cache_base is not None and self.cache_size is not None:
       self.usrconf['CACHE'] = {}
-      self.usrconf['CACHE']['SIZE'] = {}
-      self.usrconf['CACHE']['SIZE'][self.cache_size] = {}
+      self.usrconf['CACHE'][self.cache_base] = {}
+      self.usrconf['CACHE'][self.cache_base]['SIZE'] = {}
+      self.usrconf['CACHE'][self.cache_base]['SIZE'][self.cache_size] = {}
 
   def read_config_file(self,filename):
     if not os.access(filename,'R_OK'):
-      print(self.prog+': ERROR: Could not open file: '+filename)
-      return {}
     h = {}
-    with open (filename,'r') as infile:
-      for line in infile.readlines():
-        line=line.rstrip()
-        line = re.sub('^\s*','',line) # strip any leading whitespace from line
-        line = re.sub('\s*$','',line) # strip any trailing whitespace from line
-        line = re.sub('=',' ',line) # replace '=' with spaces
-        parts = line.split(' ')
-        key = ''
-        top_key = ''
-        top_value = ''
-        lastpart = len(parts)-1
-        first=True # need the next top_key
-        for i, part in enumerate(parts):
-          if len(part)==0: # input had double-spaces
-            continue
-          if part[0]=='#':
-            break
-          # read in the value (should have at least one more item in the list)
-          if first==True:
-            if i==lastpart:
-              print(self.prog+': ERROR: Invalid key=value pair detected in '+filename+'.')
-              sys.exit(1) # return {}
-            key=part.upper()
-            first=False
-          else:
-            value = interpolate_variables(part)
-            if top_key!='':
-              if key not in h[top_key][top_value]:
-                h[top_key][top_value][key] = {}
-              h[top_key][top_value][key][value] = {}
+    try:
+      with open (filename,'r') as infile:
+        for line in infile.readlines():
+          line=line.strip()
+          line = re.sub('=',' ',line) # replace '=' with spaces
+          parts = line.split(' ')
+          key = ''
+          top_key = ''
+          top_value = ''
+          lastpart = len(parts)-1
+          first=True # need the next top_key
+          for i, part in enumerate(parts):
+            if len(part)==0: # input had double-spaces
+              continue
+            if part[0]=='#':
+              break
+            # read in the value (should have at least one more item in the list)
+            if first==True:
+              if i==lastpart:
+                print('scr_param: ERROR: Invalid key=value pair detected in '+filename+'.')
+                return {}
+              key=part.upper()
+              first=False
             else:
-              top_key=key
-              top_value=value
-              if top_key not in h:
-                h[top_key] = {}
-              if top_value not in h[top_key]:
-                h[top_key][top_value] = {}
-            first=True
+              value = interpolate_variables(part)
+              if top_key!='':
+                if key not in h[top_key][top_value]:
+                  h[top_key][top_value][key] = {}
+                h[top_key][top_value][key][value] = {}
+              else:
+                top_key=key
+                top_value=value
+                if top_key not in h:
+                  h[top_key] = {}
+                if top_value not in h[top_key]:
+                  h[top_key][top_value] = {}
+              first=True
+    except Exception e:
+      # print(e)
+      # print('scr_param: ERROR: Could not open file: '+filename)
+      return {}
     return h
 
   def get(self,name):

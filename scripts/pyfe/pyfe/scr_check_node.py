@@ -22,6 +22,8 @@ def scr_check_node(free=False,cntl_list=None,cache_list=None):
       else:
         dirs = cache_list.split(',')
       for adir in dirs:
+        if adir[-1] == '/':
+          adir = adir[:-1]
         if ':' in adir:
           parts = adir.split(':')
           checkdict[atype][parts[0]] = {}
@@ -47,28 +49,19 @@ def scr_check_node(free=False,cntl_list=None,cache_list=None):
           kb = int(checkdict[atype][adir]['bytes']) // 1024
 
           # check total drive capacity, unless --free was given, then check free space on drive
-          df_arg_pos = 2
-          if 'free' in checkdict:
-            df_arg_pos = 4
-
           # ok, now get drive capacity
           statvfs = os.statvfs(adir)
-          if 'free' in checkdict: # compare with usable free
+          df_kb=0
+          if free: # compare with usable free
             df_kb = statvfs.f_frsize * statvfs.f_bavail // 1024
-            if df_kb < kb:
-              print('scr_check_node: FAIL: Insufficient space in directory: '+adir+', expected '+str(kb)+' KB, found '+str(df_kb)+' KB')
-              return 1
           else: # compare with total
             df_kb = statvfs.f_frsize * statvfs.f_blocks // 1024
-            if df_kb < kb:
-              print('scr_check_node: FAIL: Insufficient space in directory: '+adir+', expected '+str(kb)+' KB, found '+str(df_kb)+' KB')
-              return 1
-      except PermissionError:
-        print('scr_check_node: FAIL: Could not access directory: '+adir)
-        return 1
+          if df_kb < kb:
+            print('scr_check_node: FAIL: Insufficient space in directory: '+adir+', expected '+str(kb)+' KB, found '+str(df_kb)+' KB')
+            return 1
       except Exception as e:
         print(e)
-        print('scr_check_node: FAIL: Error accessing directory: '+adir)
+        print('scr_check_node: FAIL: Could not access directory: '+adir)
         return 1
 
     # attempt to write to directory
@@ -102,5 +95,5 @@ if __name__=='__main__':
   else:
     ret = scr_check_node(free=args['free'],cntl_list=args['cntl'],cache_list=args['cache'])
     if ret==0:
-      print('scr_check_node completed without error.')
+      print('scr_check_node: PASS')
 

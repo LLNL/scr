@@ -19,8 +19,6 @@ def scr_watchdog(prefix=None,jobstepid=None):
     return 1
 
   bindir = scr_const.X_BINDIR
-  prog = 'scr_watchdog'
-  scr_flush_file = 'scr_flush_file'
 
   # lookup timeout values from environment
   param = SCR_Param()
@@ -32,7 +30,7 @@ def scr_watchdog(prefix=None,jobstepid=None):
   # to the parallel file system
   param_timeout = param.get('SCR_WATCHDOG_TIMEOUT')
   if param_timeout is not None:
-    timeout = param_timeout;
+    timeout = param_timeout
 
   param_timeout_pfs = param.get('SCR_WATCHDOG_TIMEOUT_PFS')
   if param_timeout_pfs is not None:
@@ -54,33 +52,33 @@ def scr_watchdog(prefix=None,jobstepid=None):
   getLatestCmd    = 'scr_flush_file --dir '+prefix+' -l'
   getLatestLocCmd = 'scr_flush_file --dir '+prefix+' -L'
 
-  killCmd = 'scr_kill_jobstep '+jobstepid
-
   timeToSleep = int(timeout)
 
   while True:
     time.sleep(timeToSleep)
     #print "was sleeping, now awake\n";
-    latest = getLatestCmd
+    argv = getLatestCmd.split(' ')
+    latest = runproc(argv=argv,getstdout=True)[0]
     #print "latest was $latest\n";
     latestLoc = ''
     if latest!='':
-      argv = [getLatestLocCmd,latest]
+      argv = getLatestLocCmd.split(' ')
+      argv.extend(latest.split(' ')[0])
       latestLoc = runproc(argv=argv,getstdout=True)[0]
     #print "latestLoc was $latestLoc\n";
     if latest == lastCheckpoint:
       if latestLoc == lastCheckpointLoc:
         #print "time to kill\n";
         break
-    lastCheckpoint = latest;
-    lastCheckpointLoc = latestLoc;
+    lastCheckpoint = latest
+    lastCheckpointLoc = latestLoc
     if latestLoc == 'SYNC_FLUSHING':
       timeToSleep = int(timeout_pfs)
     else:
       timeToSleep = int(timeout)
 
-  print('Killing simulation using '+killCmd)
-  scr_kill_jobstep(killCmd)
+  print('Killing simulation using scr_kill_jobstep --jobStepId '+jobstepid)
+  scr_kill_jobstep(bindir=bindir,jobid=jobstepid)
   return 0
 
 if __name__=='__main__':

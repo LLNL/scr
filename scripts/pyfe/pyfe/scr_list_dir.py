@@ -31,13 +31,12 @@ def scr_list_dir(user=None,jobid=None,base=None,runcmd=None,scr_env=None):
     # lookup cache base
     cachedesc = param.get_hash('CACHE')
     if cachedesc is not None:
-      #for i 
+      bases = list(cachedesc.keys())
       #foreach my $index (keys %$cachedesc) {
       #  push @bases, $index;
-      pass
     else:
       # lookup cntl base
-      bases = param.get('SCR_CNTL_BASE')
+      bases = list(param.get('SCR_CNTL_BASE').keys())
   if len(bases)==0:
     print('INVALID')
     return 1

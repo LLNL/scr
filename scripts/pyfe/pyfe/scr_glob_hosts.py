@@ -10,11 +10,13 @@ def scr_glob_hosts(count=False,nth=None,hosts=None,minus=None,intersection=None,
   if hosts is not None:
     hostset = scr_hostlist.expand(hosts)
   elif minus is not None and ':' in minus:
+    # subtract nodes in set2 from set1
     pieces = minus.split(':')
     set1 = scr_hostlist.expand(pieces[0])
     set2 = scr_hostlist.expand(pieces[1])
     hostset = scr_hostlist.diff(set1,set2)
   elif intersection is not None and ':' in intersection:
+    # take the intersection of two nodesets
     pieces = intersection.split(':')
     set1 = scr_hostlist.expand(pieces[0])
     set2 = scr_hostlist.expand(pieces[1])
@@ -25,8 +27,8 @@ def scr_glob_hosts(count=False,nth=None,hosts=None,minus=None,intersection=None,
     # (to act as 'printing' it then exiting)
     # return conf['compress'] # returns the csv string
     # if we compress the range (?)
-    hostset = scr_hostlist.expand(compress)
-    return scr_hostlist.compress_range(hostset)
+    hostset = compress.split(',') #scr_hostlist.expand(compress)
+    #return scr_hostlist.compress_range(hostset)
   else: #if not valid
     return None
   # ok, got our resulting nodeset, now print stuff to the screen

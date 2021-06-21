@@ -20,21 +20,18 @@ def scr_prerun(prefix=None):
   start_time = datetime.now()
   start_secs = int(time())
   bindir=scr_const.X_BINDIR
-  prog='scr_prerun'
 
-  # process command line options
   pardir=''
-  #pardir = os.environ.get('OPTARG') ### not sure what this was getting ###
   if prefix is not None:
     pardir=prefix
   else:
     pardir=scr_prefix()
 
-  print(prog+': Started: '+str(start_time))
+  print('scr_prerun: Started: '+str(start_time))
 
   # check that we have all the runtime dependences we need
   if scr_test_runtime() != 0:
-    print(prog+': exit code: 1')
+    print('scr_prerun: exit code: 1')
     return 1
 
   # create the .scr subdirectory in the prefix directory
@@ -63,12 +60,12 @@ def scr_prerun(prefix=None):
 
   # report timing info
   end_time = datetime.now()
-  run_secs = int(time())-start_time
-  print(prog+': Ended: '+str(end_time))
-  print(prog+': secs: '+str(run_secs))
+  run_secs = int(time())-start_secs
+  print('scr_prerun: Ended: '+str(end_time))
+  print('scr_prerun: secs: '+str(run_secs))
 
   # report exit code and exit
-  print(prog+': exit code: 0')
+  print('scr_prerun: exit code: 0')
   return 0
 
 if __name__=='__main__':
@@ -78,8 +75,6 @@ if __name__=='__main__':
   args = vars(parser.parse_args())
   if 'help' in args:
     parser.print_help()
-  #elif args['prefix'] is None:
-  #  print('The prefix directory must be specified.')
   else:
     ret = scr_prerun(prefix=args['prefix'])
 
