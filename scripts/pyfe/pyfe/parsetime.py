@@ -35,10 +35,9 @@ def isleapyear(year):
   return False
 
 # get number of days in the future from the timedate.weekday value
-# day 0 to day 5 is 5, day 5 to day 0 is 2
 def numdays(current,future):
   if future<current:
-    return current+7-future
+    return 7-current+future
   return future-current
 
 # returns a time delta from datetime
@@ -159,6 +158,7 @@ def parsetime(timestr,prog='parsetime.py'):
   while hour > 23:
     hour-=24
     plusdays+=1
+  day+=plusdays
   # the time is in the past, bring it to the future
   # (if hour/min/sec not specified this can still end up being slightly in the past, e.g., ~1 minute in the past)
   if month <= now.month and year <= now.year:
@@ -171,7 +171,6 @@ def parsetime(timestr,prog='parsetime.py'):
       # no day was specified, move to tomorrow
       else:
         day+=1
-  day+=plusdays
   maxday = 31
   if month==2:
     if isleapyear(month):
@@ -199,7 +198,9 @@ def parsetime(timestr,prog='parsetime.py'):
     month-=12
     year+=1
   # datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)
-  then =  datetime(year,month,day,hour,minute,second) - datetime.now()
+  then =  datetime(year,month,day,hour,minute,second)
+  print(then)
+  then = then - datetime.now()
   return then
 
 if __name__=='__main__':
