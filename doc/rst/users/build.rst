@@ -61,7 +61,7 @@ To build SCR from a release tarball:
   tar -zxf scr-top-v3.0rc1.tgz
   cd scr-top-v3.0rc1
 
-  mkdir build install
+  mkdir build
   cd build
   cmake -DCMAKE_INSTALL_PREFIX=../install ..
   make -j install
