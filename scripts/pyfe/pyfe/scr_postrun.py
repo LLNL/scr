@@ -13,7 +13,7 @@ from scr_scavenge import scr_scavenge
 from scr_list_down_nodes import scr_list_down_nodes
 from scr_glob_hosts import scr_glob_hosts
 from scr_list_dir import scr_list_dir
-from scr_env import SCR_Env
+from env.scr_env import SCR_Env
 
 def scr_postrun(prefix_dir=None,scr_env=None):
   # if SCR is disabled, immediately exit

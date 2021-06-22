@@ -5,7 +5,7 @@
 
 import os, subprocess
 import scr_const, scr_hostlist
-from scr_env_base import SCR_Env_Base
+from env.scr_env_base import SCR_Env_Base
 from scr_common import runproc
 
 class SCR_Env_APRUN(SCR_Env_Base):

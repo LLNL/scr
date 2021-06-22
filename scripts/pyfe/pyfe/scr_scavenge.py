@@ -4,7 +4,7 @@ import argparse, os, sys
 from datetime import datetime
 from time import time
 from scr_param import SCR_Param
-from scr_env import SCR_Env
+from env.scr_env import SCR_Env
 import scr_const
 import scr_common
 from scr_common import tracefunction, runproc

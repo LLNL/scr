@@ -10,7 +10,7 @@
 
 import argparse, os, re, subprocess
 from scr_common import runproc
-from scr_env import SCR_Env
+from env.scr_env import SCR_Env
 import scr_const, scr_hostlist
 
 def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_env=None):

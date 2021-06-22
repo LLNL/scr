@@ -9,7 +9,7 @@ from scr_param import SCR_Param
 from scr_list_dir import scr_list_dir
 from scr_common import runproc, pipeproc, scr_prefix
 import scr_common
-from scr_env import SCR_Env
+from env.scr_env import SCR_Env
 import scr_hostlist
 
 def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):

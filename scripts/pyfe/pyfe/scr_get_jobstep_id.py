@@ -4,7 +4,7 @@
 
 from scr_common import runproc
 import re
-from scr_env import SCR_Env
+from env.scr_env import SCR_Env
 
 # This script attempts to get the job step id for the last srun command that 
 # was launched. The argument to this script is the PID of the srun command.
@@ -34,7 +34,10 @@ def scr_get_jobstep_id(scr_env=None):
   # STEPID         NAME PARTITION     USER      TIME NODELIST
   argv = ['squeue','-h','-s','-u',user,'-j',jobid,'-S','\"-i\"']
   # my $cmd="squeue -h -s -u $user -j $jobid -S \"-i\"";
-  output = runproc(argv=argv,getstdout=True)[0].split('\n')
+  output, returncode = runproc(argv=argv,getstdout=True)
+  if returncode != 0:
+      return -1
+  output = output.split('\n')
 
   currjobid=None
 

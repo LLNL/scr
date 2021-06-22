@@ -11,11 +11,11 @@
 # (the __init__ is currently shared, all environments will use the super init)
 # default functionality is given in the base class which subclasses may or may not override
 
-from scr_env_slurm import SCR_Env_SLURM
-from scr_env_lsf import SCR_Env_LSF
-from scr_env_aprun import SCR_Env_APRUN
-from scr_env_pmix import SCR_Env_PMIX
-from scr_env_base import SCR_Env_Base
+from env.scr_env_slurm import SCR_Env_SLURM
+from env.scr_env_lsf import SCR_Env_LSF
+from env.scr_env_aprun import SCR_Env_APRUN
+from env.scr_env_pmix import SCR_Env_PMIX
+from env.scr_env_base import SCR_Env_Base
 import scr_const
 
 class SCR_Env:

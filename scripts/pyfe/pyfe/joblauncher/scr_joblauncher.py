@@ -7,8 +7,8 @@
 
 import scr_const
 
-from scr_joblauncher_base import SCR_Joblauncher_Base
-from scr_joblauncher_srun import SCR_Joblauncher_srun
+from joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
+from joblauncher.scr_joblauncher_srun import SCR_Joblauncher_srun
 
 class SCR_Joblauncher:
   def __new__(cls,launcher=None):

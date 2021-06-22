@@ -5,7 +5,7 @@
 
 import os
 import scr_const, scr_hostlist
-from scr_env_base import SCR_Env_Base
+from env.scr_env_base import SCR_Env_Base
 from scr_common import runproc
 
 # SCR_Env class holds the configuration

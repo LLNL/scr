@@ -13,7 +13,7 @@ from scr_watchdog import scr_watchdog
 from scr_list_down_nodes import scr_list_down_nodes
 from scr_postrun import scr_postrun
 from multiprocessing import Process
-from scr_env import SCR_Env
+from env.scr_env import SCR_Env
 from scr_param import SCR_Param
 from scr_glob_hosts import scr_glob_hosts
 
