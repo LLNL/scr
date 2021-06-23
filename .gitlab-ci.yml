@@ -627,7 +627,7 @@ TESTING-script-lassen:
     - cd ${WORK_DIR_BASE}
     - git clone file://${SRC_DIR} scr-test
     - cd scr-test
-    - ./bootstrap.sh
+    - ./bootstrap.sh --dev
     - csh testing/TESTING.csh
 
 testpython-lassen:
