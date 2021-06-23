@@ -1,4 +1,4 @@
-#! /usr/env python
+#! /usr/bin/env python
 
 # scr_env_lsf.py
 # SCR_Env_LSF is a subclass of SCR_Env_Base
@@ -46,16 +46,11 @@ class SCR_Env_LSF(SCR_Env_Base):
       pass
     return None
 
-  # set down node list, requires node list to already be set
-  def set_downnodes(self):
-    # TODO: any way to get list of down nodes in LSF?
-    self.conf['down'] = ''
-
   # list the number of nodes used in the last run
   def get_runnode_count(self):
     argv = [self.conf['nodes_file'],'--dir',self.conf['prefix']]
     out, returncode = runproc(argv=argv,getstdout=True)
     if returncode==0:
-      return int(out)
+      return int(out.rstrip())
     return 0 # print(err)
 

@@ -1,4 +1,4 @@
-#! /usr/env python
+#! /usr/bin/env python
 
 # scr_joblauncher_jsrun.py
 # The SCR_Joblauncher_jsrun class provides interpretation for the jsrun launcher
@@ -13,3 +13,4 @@ class SCR_Joblauncher_jsrun(SCR_Joblauncher_Base):
     self.scr_end_time = [] # LSF/scr_env.in:181
     self.excludeargs = '--exclude_hosts=$down_nodes'
     #super(SCR_Joblauncher_jsrun, self).__init__()
+

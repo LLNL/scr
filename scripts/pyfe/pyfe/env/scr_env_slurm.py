@@ -1,4 +1,4 @@
-#! /usr/env python
+#! /usr/bin/env python
 
 # scr_env_slurm.py
 # SCR_Env_SLURM is a subclass of SCR_Env_Base
@@ -38,19 +38,6 @@ class SCR_Env_SLURM(SCR_Env_Base):
         self.conf['down'] = down
         return down
     return None
-
-  # set down node list, requires node list to already be set
-  def set_downnodes(self):
-    if self.conf['nodes'] is None:
-      self.conf['down'] = ''
-      return
-    argv = ['sinfo','-ho','%N','-t','down','-n',','.join(self.conf['nodes'])]
-    out, returncode = runproc(argv=argv,getstdout=True,getstderr=True)
-    if returncode!=0:
-      print('SCR_Env_SLURM.set_downnodes(): ERROR: sinfo returned '+str(returncode))
-      print(out[1])
-    else:
-      self.conf['down'] = out[0].strip()
 
   # list the number of nodes used in the last run
   def get_runnode_count(self):

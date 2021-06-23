@@ -1,4 +1,4 @@
-#! /usr/env python
+#! /usr/bin/env python
 
 # scr_env.py
 # SCR_Env is class constructor for the specific environment classes

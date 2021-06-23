@@ -1,4 +1,4 @@
-#! /usr/env python
+#! /usr/bin/env python
 
 # scr_joblauncher_mpirun.py
 # The SCR_Joblauncher_mpirun class provides interpretation for the mpirun launcher
@@ -13,3 +13,4 @@ class SCR_Joblauncher_mpirun(SCR_Joblauncher_Base):
     self.scr_end_time = [] # LSF/scr_env.in:181
     self.excludeargs = '--exclude_hosts=$down_nodes'
     #super(SCR_Joblauncher_mpirun, self).__init__()
+

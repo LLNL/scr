@@ -15,7 +15,7 @@ from pyfe.joblauncher.scr_joblauncher_mpirun import SCR_Joblauncher_mpirun
 class SCR_Joblauncher:
   def __new__(cls,launcher=None):
     if launcher is None:
-      launcher = scr_const.SCR_RESOURCE_MANAGER # need to determine which launcher to use
+      launcher = scr_const.SCR_LAUNCHER
     if launcher == 'srun':
       return SCR_Joblauncher_srun()
     if launcher == 'jsrun':

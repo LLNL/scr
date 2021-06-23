@@ -1,4 +1,4 @@
-#! /usr/env python
+#! /usr/bin/env python
 
 # scr_env_base
 # SCR_Env_Base is the super class of the specific environment classes
@@ -10,6 +10,7 @@
 import os
 from pyfe import scr_const, scr_hostlist
 from pyfe.scr_common import scr_prefix
+from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
 
 # def set_prefix(self,prefix):
 #   the prefix should be explicitly set (?)
@@ -23,6 +24,7 @@ from pyfe.scr_common import scr_prefix
 
 class SCR_Env_Base(object):
   def __init__(self,env=None):
+    self.launcher = SCR_Joblauncher(scr_const.SCR_LAUNCHER)
     self.conf = {}
     self.conf['env'] = env
     self.conf['prefix'] = scr_prefix()
