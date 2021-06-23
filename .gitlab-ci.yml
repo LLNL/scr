@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - testdist
     
 default:
   before_script:
@@ -346,6 +347,54 @@ spack-scr-quartz:
     - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
     - make
     
+testdist-quartz:
+  stage: testdist
+  when: manual
+  tags:
+    - quartz
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
+  script:
+    - echo "Running in" `pwd`
+    - cd ${WORK_DIR_BASE}
+    - git clone file://${SRC_DIR} scr-testdist
+    - cd scr-testdist/dist
+    - ./builddist develop
+    - mkdir temp
+    - cd temp
+    - tar -zxf ../scr-top-develop.tgz
+    - cd scr-top-develop
+    - mkdir build
+    - cd build
+    - cmake ..
+    - make -j install
+
+testdist-static-quartz:
+  stage: testdist
+  when: manual
+  tags:
+    - quartz
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
+  script:
+    - echo "Running in" `pwd`
+    - cd ${WORK_DIR_BASE}
+    - git clone file://${SRC_DIR} scr-testdist-static
+    - cd scr-testdist-static/dist
+    - ./builddist develop
+    - mkdir temp
+    - cd temp
+    - tar -zxf ../scr-top-develop.tgz
+    - cd scr-top-develop
+    - mkdir build
+    - cd build
+    - cmake -DBUILD_SHARED_LIBS=OFF ..
+    - make -j install
+
 testpython-quartz:
   stage: test
   when: manual
