@@ -570,12 +570,11 @@ TESTING-script-lassen:
     - lsf
   variables:
     LLNL_LSF_SCHEDULER_PARAMETERS: '-nnodes 4 -W 10 /bin/bash'
-  dependencies:
-    - spack-scr-lassen
   script:
     - cd ${WORK_DIR_BASE}
     - git clone file://${SRC_DIR} scr-test
     - cd scr-test
+    - ./bootstrap.sh
     - csh testing/TESTING.csh
 
 testpython-lassen:
