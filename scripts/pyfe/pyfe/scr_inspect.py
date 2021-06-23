@@ -9,9 +9,9 @@
 # requires: pdsh
 
 import argparse, os, re, subprocess
-from scr_common import runproc
-from env.scr_env import SCR_Env
-import scr_const, scr_hostlist
+from pyfe.scr_common import runproc
+from pyfe.env.scr_env import SCR_Env
+from pyfe import scr_const, scr_hostlist
 
 def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_env=None):
   bindir = scr_const.X_BINDIR
@@ -72,13 +72,13 @@ def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_e
   try:
     with open(output,'w') as outfile:
       outfile.write(out[0])
-  except Exception e:
+  except Exception as e:
     print(e)
     print('scr_inspect: ERROR: Error writing stdout of pdsh')
   try:
     with open(error,'w') as errfile:
       errfile.write(out[1])
-  except Exception e:
+  except Exception as e:
     print(e)
     print('scr_inspect: ERROR: Error writing stderr of pdsh')
 
@@ -112,7 +112,7 @@ def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_e
           groups[dset]['ids'][group_id]['size'] = group_size
           groups[dset]['groups'] = ngroups
           types[dset] = atype
-  except Exception e:
+  except Exception as e:
     print(e)
     print('scr_inspect: ERROR: Unable to read output file \"'+output+'\"')
     return 1

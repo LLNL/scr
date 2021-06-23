@@ -8,8 +8,8 @@
 # default functionality is given in the base class which subclasses may or may not override
 
 import os
-import scr_const, scr_hostlist
-from scr_common import scr_prefix
+from pyfe import scr_const, scr_hostlist
+from pyfe.scr_common import scr_prefix
 
 # def set_prefix(self,prefix):
 #   the prefix should be explicitly set (?)

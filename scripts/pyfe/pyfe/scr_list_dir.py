@@ -11,8 +11,8 @@
 # scripts
 
 import argparse
-import scr_const
-from scr_param import SCR_Param
+from pyfe import scr_const
+from pyfe.scr_param import SCR_Param
 
 # returns 1 for error, 0 (or string) for success
 def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):

@@ -11,12 +11,12 @@
 # (the __init__ is currently shared, all environments will use the super init)
 # default functionality is given in the base class which subclasses may or may not override
 
-from env.scr_env_slurm import SCR_Env_SLURM
-from env.scr_env_lsf import SCR_Env_LSF
-from env.scr_env_aprun import SCR_Env_APRUN
-from env.scr_env_pmix import SCR_Env_PMIX
-from env.scr_env_base import SCR_Env_Base
-import scr_const
+from pyfe.env.scr_env_slurm import SCR_Env_SLURM
+from pyfe.env.scr_env_lsf import SCR_Env_LSF
+from pyfe.env.scr_env_aprun import SCR_Env_APRUN
+from pyfe.env.scr_env_pmix import SCR_Env_PMIX
+from pyfe.env.scr_env_base import SCR_Env_Base
+from pyfe import scr_const
 
 class SCR_Env:
   def __new__(cls,env=None):

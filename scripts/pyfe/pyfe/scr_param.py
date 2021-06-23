@@ -3,8 +3,9 @@
 # scr_param.py
 # class SCR Param
 
-import os, re, scr_const
-from scr_common import interpolate_variables, scr_prefix
+import os, re
+from pyfe import scr_const
+from pyfe.scr_common import interpolate_variables, scr_prefix
 
 class SCR_Param():
   def __init__(self):
@@ -66,7 +67,6 @@ class SCR_Param():
       self.usrconf['CACHE'][self.cache_base]['SIZE'][self.cache_size] = {}
 
   def read_config_file(self,filename):
-    if not os.access(filename,'R_OK'):
     h = {}
     try:
       with open (filename,'r') as infile:
@@ -105,7 +105,8 @@ class SCR_Param():
                 if top_value not in h[top_key]:
                   h[top_key][top_value] = {}
               first=True
-    except Exception e:
+
+    except Exception as e:
       # print(e)
       # print('scr_param: ERROR: Could not open file: '+filename)
       return {}

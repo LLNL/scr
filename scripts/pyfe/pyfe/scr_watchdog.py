@@ -7,11 +7,12 @@
 # activity has occurred since the last time it checked. If too much time
 # passes without activity, it kills the job
 
-import argparse, time, scr_const
+import argparse, time
 #from datetime import datetime
-from scr_param import SCR_Param
-from scr_kill_jobstep import scr_kill_jobstep
-from scr_common import runproc
+from pyfe import scr_const
+from pyfe.scr_param import SCR_Param
+from pyfe.scr_kill_jobstep import scr_kill_jobstep
+from pyfe.scr_common import runproc
 
 def scr_watchdog(prefix=None,jobstepid=None):
   # check that we have a  dir and apid

@@ -3,8 +3,8 @@
 #scr_test_runtime.py
 
 import subprocess, sys
-import scr_const
-from scr_common import runproc
+from pyfe import scr_const
+from pyfe.scr_common import runproc
 
 # Checks for pdsh and dshbak
 # returns 0 if OK, returns 1 if a command not found

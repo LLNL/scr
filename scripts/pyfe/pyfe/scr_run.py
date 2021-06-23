@@ -2,20 +2,20 @@
 
 from datetime import datetime
 from time import time
-import os, signal, sys, time, scr_const
-import scr_common
-from scr_common import tracefunction, runproc, scr_prefix
-from scr_test_runtime import scr_test_runtime
-from scr_list_dir import scr_list_dir
-from scr_prerun import scr_prerun
-from scr_get_jobstep_id import scr_get_jobstep_id
-from scr_watchdog import scr_watchdog
-from scr_list_down_nodes import scr_list_down_nodes
-from scr_postrun import scr_postrun
+import os, signal, sys, time
 from multiprocessing import Process
-from env.scr_env import SCR_Env
-from scr_param import SCR_Param
-from scr_glob_hosts import scr_glob_hosts
+from pyfe import scr_const, scr_common
+from pyfe.scr_common import tracefunction, runproc, scr_prefix
+from pyfe.scr_test_runtime import scr_test_runtime
+from pyfe.scr_list_dir import scr_list_dir
+from pyfe.scr_prerun import scr_prerun
+from pyfe.scr_get_jobstep_id import scr_get_jobstep_id
+from pyfe.scr_watchdog import scr_watchdog
+from pyfe.scr_list_down_nodes import scr_list_down_nodes
+from pyfe.scr_postrun import scr_postrun
+from pyfe.env.scr_env import SCR_Env
+from pyfe.scr_param import SCR_Param
+from pyfe.scr_glob_hosts import scr_glob_hosts
 
 def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
   launcher='srun'
@@ -40,7 +40,7 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
 
   # make a record of start time
   timestamp=datetime.now()
-  start_secs = int(secs)
+  start_secs = int(time.time())
   print(prog+': Started: '+str(timestamp)+' ('+str(start_secs)+')')
 
   # check that we have runtime dependencies

@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='pyfe',
@@ -10,7 +10,7 @@ setup(
     author='LLNL',
     author_email='pao@llnl.gov',
     license='BSD 3-clause + addendum',
-    packages=['pyfe'],
+    packages=find_packages(), #['pyfe'],
     install_requires=[#'mpi4py>=2.0',
                       #'numpy',
                       ],

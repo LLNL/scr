@@ -2,11 +2,12 @@
 
 # SCR Pre Run
 
-import argparse, os, sys, subprocess, scr_const
+import argparse, os, sys, subprocess
 from datetime import datetime
 from time import time
-from scr_common import tracefunction, scr_prefix
-from scr_test_runtime import scr_test_runtime
+from pyfe import scr_const
+from pyfe.scr_common import tracefunction, scr_prefix
+from pyfe.scr_test_runtime import scr_test_runtime
 
 def scr_prerun(prefix=None):
   val = os.environ.get('SCR_ENABLE')
@@ -77,4 +78,5 @@ if __name__=='__main__':
     parser.print_help()
   else:
     ret = scr_prerun(prefix=args['prefix'])
+    print('scr_prerun returned '+str(ret))
 

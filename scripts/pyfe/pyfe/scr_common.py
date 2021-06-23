@@ -4,7 +4,7 @@
 # Defines for common functions shared across scripts
 
 import argparse, inspect, os, sys
-import scr_const
+from pyfe import scr_const
 from subprocess import Popen, PIPE
 
 # for verbose, prints:
@@ -25,8 +25,17 @@ def interpolate_variables(varstr):
   # replace ~ and . symbols from front of path
   if varstr[0]=='~':
     varstr='$HOME'+varstr[1:]
-  elif not varstr.startswith('..') and varstr[0]=='.':
+  elif varstr.startswith('..'):
+    topdir = '/'.join(os.getcwd().split('/')[:-1])
+    varstr = varstr[3:]
+    while varstr.startswith('..'):
+        topdir = '/'.join(topdir.split('/')[:-1])
+        varstr = varstr[3:]
+    varstr = topdir+'/'+varstr
+  elif varstr[0]=='.':
     varstr=os.getcwd()+prefix[1:]
+  if varstr[-1] == '/' and len(varstr) > 1:
+    varstr = varstr[:-1]
   return os.path.expandvars(varstr)
 
 # method to return the scr prefix (as originally in scr_param.pm.in)

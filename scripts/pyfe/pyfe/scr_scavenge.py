@@ -3,12 +3,10 @@
 import argparse, os, sys
 from datetime import datetime
 from time import time
-from scr_param import SCR_Param
-from env.scr_env import SCR_Env
-import scr_const
-import scr_common
-from scr_common import tracefunction, runproc
-import scr_hostlist
+from pyfe import scr_const, scr_common, scr_hostlist
+from pyfe.scr_param import SCR_Param
+from pyfe.env.scr_env import SCR_Env
+from pyfe.scr_common import tracefunction, runproc
 
 # scavenge checkpoint files from cache to PFS
 # check for pdsh / (clustershell) errors in case any nodes should be retried

@@ -4,9 +4,9 @@
 # SCR_Env_APRUN is a subclass of SCR_Env_Base
 
 import os, subprocess
-import scr_const, scr_hostlist
-from env.scr_env_base import SCR_Env_Base
-from scr_common import runproc
+from pyfe import scr_const, scr_hostlist
+from pyfe.env.scr_env_base import SCR_Env_Base
+from pyfe.scr_common import runproc
 
 class SCR_Env_APRUN(SCR_Env_Base):
   # init initializes vars from the environment

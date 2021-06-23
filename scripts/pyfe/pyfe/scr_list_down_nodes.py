@@ -3,14 +3,13 @@
 # scr_list_down_nodes.py
 
 import argparse
-import scr_const
 from time import time
-from scr_param import SCR_Param
-from scr_list_dir import scr_list_dir
-from scr_common import runproc, pipeproc, scr_prefix
-import scr_common
-from env.scr_env import SCR_Env
-import scr_hostlist
+from pyfe import scr_const, scr_hostlist
+from pyfe.scr_param import SCR_Param
+from pyfe.scr_list_dir import scr_list_dir
+from pyfe.scr_common import runproc, pipeproc, scr_prefix
+from pyfe import scr_common
+from pyfe.env.scr_env import SCR_Env
 
 def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
   ping = 'ping'
@@ -29,9 +28,9 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
       nodeset = ','.join(nodeset)
   else:
     nodeset=scr_env.conf['nodes']
-    if nodeset is None:
-      print('scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.')
-      return 1
+  if nodeset is None or len(nodeset)<1:
+    print('scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.')
+    return 1
 
   # get list of nodes from nodeset
   nodes = scr_hostlist.expand(nodeset)
@@ -233,8 +232,8 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
     if reason:
       # list each node and the reason each is down
       for node in failed_nodes:
-        ret = node+': '+reason[node]+'\n'
-	  if len(ret)>1:
+        ret += node+': '+reason[node]+'\n'
+      if len(ret)>1:
         ret = ret[:-1] # take off the trailing newline
     else:
       # simply print the list of down node in range syntax
@@ -253,7 +252,6 @@ if __name__=='__main__':
   parser.add_argument('-s','--secs', metavar='N', type=str, default=None, help='Specify the job\'s runtime seconds for SCR log.')
   parser.add_argument('[nodeset]', nargs='*', default=None, help='Specify the complete set of nodes to check within.')
   args = vars(parser.parse_args())
-  print(args)
   if 'help' in args:
     parser.print_help()
   else:

@@ -3,10 +3,10 @@
 # scr_halt.py
 # (from scripts/SLURM)
 
-from parsetime import parsetime
 import argparse, os, sys
-import scr_const
-from scr_common import runproc
+from pyfe import scr_const
+from pyfe.scr_common import runproc
+from pyfe.parsetime import parsetime
 
 def scr_halt(bindir=None,bash=None,mkdir=None,rm=None,echo=None,umask=None,checkpoints=None, before=None, after=None, immediate=False, seconds=None, dolist=False, unset_checkpoints=False, unset_before=False, unset_after=False, unset_seconds=False, unset_reason=False, remove=False, verbose=False, dirs=None):
   # requires: squeue, scontrol, scancel, umask (shell command)
@@ -152,7 +152,6 @@ if __name__=='__main__':
   parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
   parser.add_argument('dirs', nargs=argparse.REMAINDER, default=None)
   args = vars(parser.parse_args())
-  print(args)
   if 'help' in args:
     parser.print_help()
   else:

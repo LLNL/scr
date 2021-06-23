@@ -22,9 +22,9 @@
 # or scr_poststage('/tmp')
 
 import argparse, subprocess
-import scr_const
 from datetime import datetime
-from scr_common import runproc
+from pyfe import scr_const
+from pyfe.scr_common import runproc
 
 # do_poststage is called from scr_poststage below
 # not intended to be directly called
@@ -201,7 +201,7 @@ if __name__=='__main__':
   args = vars(parser.parse_args())
   if 'help' in args:
     parser.print_help()
-  elif args['prefix'] is None and args['rest'] is None:
+  elif args['prefix'] is None and (args['rest'] is None or len(args['rest'])==0):
     print('The prefix directory must be specified.')
   elif args['prefix'] is None:
     scr_poststage(prefix=args['rest'][0])

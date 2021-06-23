@@ -2,9 +2,9 @@
 
 # scr_get_jobstep_id.py
 
-from scr_common import runproc
+from pyfe.scr_common import runproc
 import re
-from env.scr_env import SCR_Env
+from pyfe.env.scr_env import SCR_Env
 
 # This script attempts to get the job step id for the last srun command that 
 # was launched. The argument to this script is the PID of the srun command.
