@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # vars can be set in this file to serve as compile time constants
 # other scripts can just reference scr_const.SCR_CNTL_BASE (etc) without modification

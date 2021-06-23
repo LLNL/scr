@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # scr_common.py
 # Defines for common functions shared across scripts

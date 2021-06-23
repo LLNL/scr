@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # scr_joblauncher_mpirun.py
 # The SCR_Joblauncher_mpirun class provides interpretation for the mpirun launcher

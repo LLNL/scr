@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # scr_env_slurm.py
 # SCR_Env_SLURM is a subclass of SCR_Env_Base

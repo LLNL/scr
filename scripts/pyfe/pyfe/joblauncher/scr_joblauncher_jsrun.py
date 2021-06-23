@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # scr_joblauncher_jsrun.py
 # The SCR_Joblauncher_jsrun class provides interpretation for the jsrun launcher

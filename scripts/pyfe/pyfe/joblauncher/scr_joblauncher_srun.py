@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # scr_joblauncher_srun.py
 # The SCR_Joblauncher_srun class provides interpretation for the srun launcher

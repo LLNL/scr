@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # scr_env_base
 # SCR_Env_Base is the super class of the specific environment classes

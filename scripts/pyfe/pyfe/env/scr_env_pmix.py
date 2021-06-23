@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # scr_env_pmix.py
 # SCR_Env_PMIX is a subclass if SCR_Env_Base

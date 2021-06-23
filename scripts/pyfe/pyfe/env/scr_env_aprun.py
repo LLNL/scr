@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # scr_env_aprun.py
 # SCR_Env_APRUN is a subclass of SCR_Env_Base
