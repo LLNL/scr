@@ -1,31 +1,47 @@
-# SCR Python interface
-Python programs can use SCR.
+# SCR Python module
+Python programs can call SCR library functions through the ``scr.py`` module.
 
-Given an SCR install at ``<scrdir>``,
-the files in this directory are written to ``<scrdir>/share/scr/python``
-
-## Implementation of the SCR Python interface
-The scr module is implemented in ``scr.py``.
-
+## Implementation of the SCR Python module
 The ``scr.py`` module uses [CFFI](https://cffi.readthedocs.io) to load ``libscr.so``
-and wrap a python interface around the SCR C functions.
+and wrap a Python interface around the SCR C functions.
 During the SCR install process,
 the absolute path to ``libscr.so`` is hardcoded in ``scr.py``.
 
-For SCR developers,
-the ``scr.py.in`` file must be maintained to track any changes to the SCR C API.
+## Installing the SCR Python module
+Given an SCR install at ``<scrdir>``,
+files from this directory are written to ``<scrdir>/share/scr/python``.
 
-## Example using the SCR Python interface
-The ``scrapp.py`` program demonstrates how one uses the scr module to checkpoint
-and restart MPI processes within a python application.
-
-This example can be executed as an MPI program, e.g.,
+After installing SCR,
+one can use ``setup.py`` to install ``scr.py`` into a Python environment:
 ```
-mpirun -np 2 python scrapp.py
+cd <scrdir>/share/scr/python
+python setup.py install
 ```
 
-Before running, one may need to set ``$LD_LIBRARY_PATH`` to point to
-the libraries that ``libscr.so`` depends on.
+Alternatively, one can add ``<scrdir>/share/scr/python`` to ``$PYTHONPATH``
+so that an ``import scr`` statement finds ``scr.py``.
 
-It may also be necessary to add ``<scrdir>/share/scr/python`` to ``$PYTHONPATH``
-so that the ``import scr`` statement can find ``scr.py``.
+## Using the SCR Python module
+For usage, refer to the module docstrings:
+```
+python -c 'import scr; help(scr)'
+```
+
+The scr module expects an active MPI environment, e.g.:
+```
+from mpi4py import MPI
+import scr
+scr.init()
+```
+
+The ``scr_example.py`` program demonstrates how one uses the scr module
+to checkpoint and restart MPI processes within a Python application.
+
+This example is an MPI program, e.g.:
+```
+mpirun -np 2 python scr_example.py
+```
+
+Depending on how the SCR library was built,
+one may also need to set ``$LD_LIBRARY_PATH`` to point to
+libraries that ``libscr.so`` depends on before running.
