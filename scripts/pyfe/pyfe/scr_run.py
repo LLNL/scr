@@ -1,5 +1,11 @@
 #! /usr/bin/env python3
 
+# scr_run.py
+
+# the general launcher for the scripts
+# if called directly the launcher to use (srun/jsrun/mpirun) should be specified as an argument
+# scr_{srun,jsrun,mpirun} scripts call this script with the launcher specified
+
 from datetime import datetime
 from time import time
 import os, signal, sys, time
@@ -17,7 +23,10 @@ from pyfe.env.scr_env import SCR_Env
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_glob_hosts import scr_glob_hosts
 
-def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
+def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
+  if launcher=='':
+    print('Launcher must be specified')
+    return 1
   launcher='srun'
   prog='scr_'+launcher
 
@@ -281,11 +290,10 @@ def scr_run(launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
 
 def print_usage(launcher):
   print('USAGE:')
-  # from original parsing it looks like all launcher args are combined
+  # the original parsing in SLURM/scr_run.in combines all [launcher args]
   # (no matter whether they appear in the front or at the end)
-  # the original usage printing looks like you could define different launcher args
-  # (or define launcher args for only initial / restart and other without args, etc.)
-  print('scr_'+launcher+' ['+launcher+' args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>]') # ['+launcher+' args]')
+  # the usage printing looks like you could define/usr different launcher args
+  print('scr_'+launcher+' ['+launcher+' args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] ['+launcher+' args]')
   print('<run_command>: The command to run when no restart file is present')
   print('<restart_command>: The command to run when a restart file is present')
   print('')
@@ -299,51 +307,70 @@ def print_usage(launcher):
   print('If no run command is specified, but a restart command is specified,')
   print('then the restart command will be appended to the '+launcher+' arguments when a restart file is present.')
 
-if __name__=='__main__':
-  # argparse doesn't handle parsing of mixed positionals
-  # there is a parse_intermixed_args which requires python 3.7 which may work
-  # I'm just going to skip the argparse
+def parseargs(argv,launcher=''):
+  starti = 0
+  if launcher=='':
+    launcher = argv[0]
+    starti=1
+  launcher = argv[0]
   launcher_args = []
-  run_cmd, restart_cmd = '', ''
+  run_cmd = ''
+  restart_cmd = ''
   restart_args = []
+  # position starts at zero to parse args
   position = 0
-  for i in range(1,len(sys.argv)):
-    # just printing help, print the help and exit
-    if sys.argv[i] == '-h' or sys.argv[i] == '--help':
-      print_usage('scr_run')
-      sys.exit(0)
-    # haven't gotten a run command yet
+  for i in range(starti,len(argv)):
+    # pos ->       0                           1                                   2                     3
+    # ['+launcher+' args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] ['+launcher+' args]')
+    # haven't gotten to run command yet
     if position==0:
       # run command is next (or here if we have an '=')
-      if sys.argv[i].startswith('-rc') or sys.argv[i].startswith('--run-cmd'):
-        position+=1
-        if '=' in sys.argv[i]:
-          run_cmd = sys.argv[i].split('=')[1]
-          position+=1
-      # no run command, just a restart command
-      elif sys.argv[i].startswith('-rs') or sys.argv[i].startswith('--restart-cmd'):
-        position=3
-        if '=' in sys.argv[i]:
-          restart_cmd = sys.argv[i].split('=')[1]
-          position+=1
+      if argv[i].startswith('-rc') or argv[i].startswith('--run-cmd'):
+        if '=' in argv[i]:
+          run_cmd = argv[i][argv[i].find('=')+1:] # take after the equals
+        else:
+          position=1
+      # no run command but got to the restart command
+      elif argv[i].startswith('-rs') or argv[i].startswith('--restart-cmd'):
+        if '=' in argv[i]:
+          restart_cmd = argv[i][argv[i].find('=')+1:] # take after the equals
+          position=3 # final args
+        else:
+          position=2
       # these are launcher args before the run command
       else:
-        launcher_args.append(sys.argv[i])
-    # position was 1, this is now our run command
+        launcher_args.append(argv[i])
+    # position is 1, we are expecting the run command
     elif position==1:
-      run_cmd = sys.argv[i]
-      position+=1
-    # we've gotten our run command, next is the restart command
+      run_cmd = argv[i]
+      position=0
+    # expecting the restart command
     elif position==2:
-      position+=1
-      if '=' in sys.argv[i]:
-        restart_cmd = sys.argv[i].split('=')[1]
-        position+=1
-    # get the restart command
+      restart_cmd = argv[i]
+      position=3
+    # final launcher args
     elif position==3:
-      position+=1
-      restart_cmd = sys.argv[i]
-    # these are trailing restart args
-    else:
-      restart_args.append(sys.argv[i])
-  scr_run(launcher_args=launcher_args,run_cmd=run_cmd,restart_cmd=restart_cmd,restart_args=restart_args)
+      if argv[i].startswith('-rc') or argv[i].startswith('--run-cmd'):
+        if '=' in argv[i]:
+          run_cmd = argv[i][argv[i].find('=')+1:] # take after the equals
+          position=0
+        else:
+          position = 1
+      # these are trailing restart args
+      else:
+        restart_args.append(argv[i])
+  return launcher, launcher_args, run_cmd, restart_cmd, restart_args
+
+# argparse doesn't handle parsing of mixed positionals
+# there is a parse_intermixed_args which requires python 3.7 which may work
+# I'm just going to skip the argparse
+if __name__=='__main__':
+  # just printing help, print the help and exit
+  if len(sys.argv)<3 or '-h' in sys.argv[1:] or '--help' in sys.argv[1:]:
+    print_usage('[srun/jsrun/mpirun]')
+  elif not any(arg.startswith('-h') or arg.startswith('--help') or arg.startswith('-rc') or arg.startswith('--run-cmd') or arg.startswith('-rs') or arg.startswith('--restart-cmd') for arg in sys.argv):
+    # then we were called with: scr_run launcher [args]
+    scr_run(launcher=sys.argv[1],launcher_args=sys.argv[2:])
+  else:
+    launcher, launcher_args, run_cmd, restart_cmd, restart_args = parseargs(sys.argv[1:])
+    scr_run(launcher_args=launcher_args,run_cmd=run_cmd,restart_cmd=restart_cmd,restart_args=restart_args)
