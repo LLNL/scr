@@ -11,16 +11,23 @@ from pyfe import scr_const, scr_hostlist
 from pyfe.scr_common import scr_prefix
 
 class SCR_Resourcemgr_Base(object):
-  def __init__(self,resmgr=None):
+  def __init__(self,resmgr='unknown'):
     self.conf = {}
-    self.conf['resmgr'] = 'unknown'
-    if resmgr is not None:
-      self.conf['resmgr'] = resmgr
+    self.conf['resmgr'] = resmgr
     self.conf['prefix'] = scr_prefix()
     self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'
-    self.conf['user'] = os.environ.get('USER')
     self.conf['jobid'] = self.getjobid()
     self.conf['nodes'] = self.get_job_nodes()
+
+  # no arg -> usewatchdog will return True or False for whether or not watchdog is enabled
+  # boolean arg -> default value is to set self.use_watchdog = argument
+  # override this method for a specific resource manager to disable use of scr_watchdog
+  def usewatchdog(self,use_scr_watchdog=None):
+    if use_scr_watchdog is None:
+      if 'use_watchdog' not in self.conf:
+        return False
+      return self.conf['use_watchdog']
+    self.conf['use_watchdog'] = use_scr_watchdog
 
   def getjobid(self):
     # failed to read jobid from environment,

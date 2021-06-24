@@ -12,7 +12,7 @@ from pyfe.scr_test_runtime import scr_test_runtime
 def scr_prerun(prefix=None):
   val = os.environ.get('SCR_ENABLE')
   if val is None or val == '0':
-    return 0 # doesn't stop run when called from scr_run
+    return 0
   val = os.environ.get('SCR_DEBUG')
   # enable verbosity
   if val is not None and int(val) > 0:
@@ -22,11 +22,7 @@ def scr_prerun(prefix=None):
   start_secs = int(time())
   bindir=scr_const.X_BINDIR
 
-  pardir=''
-  if prefix is not None:
-    pardir=prefix
-  else:
-    pardir=scr_prefix()
+  pardir = scr_prefix() if prefix is None else prefix
 
   print('scr_prerun: Started: '+str(start_time))
 
@@ -79,4 +75,3 @@ if __name__=='__main__':
   else:
     ret = scr_prerun(prefix=args['prefix'])
     print('scr_prerun returned '+str(ret))
-

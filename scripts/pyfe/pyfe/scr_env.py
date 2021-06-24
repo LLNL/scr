@@ -8,22 +8,21 @@ from pyfe import scr_const
 from pyfe.scr_common import scr_prefix
 
 class SCR_Env:
-  def __init__(self,env=None):
-    # should this still be set here ?
-    # it could be changed later... not certain this will be needed though
-    #if env is None:
-    #  env = scr_const.SCR_RESOURCE_MANAGER
-    # we can keep a reference to the launcher and resource manager
+  def __init__(self):
+    # we could keep a reference to the launcher and resource manager
     self.launcher = None
     self.resmgr = None
     # initialize the infos
     self.conf = {}
-    #self.conf['env'] = env
     self.conf['prefix'] = scr_prefix()
     self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'
     self.conf['user'] = os.environ.get('USER')
-    #self.conf['jobid'] = self.getjobid()
-    #self.conf['nodes'] = self.get_job_nodes()
+    self.conf['nodes'] = os.environ.get('SCR_NODELIST')
+
+  # set the nodelist (if the environment variable wasn't set)
+  def set_nodelist(self,nodelist):
+    self.conf['nodes'] = nodelist
+    os.environ['SCR_NODELIST'] = nodelist
 
   # set the prefix
   def set_prefix(self,prefix):

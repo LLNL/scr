@@ -5,6 +5,7 @@
 from pyfe.scr_common import runproc
 import re
 from pyfe.scr_env import SCR_Env
+from pyfe.resmgr import SCR_Resourcemgr
 
 # This script attempts to get the job step id for the last srun command that 
 # was launched. The argument to this script is the PID of the srun command.
@@ -20,11 +21,13 @@ def scr_get_jobstep_id(scr_env=None):
   #my $pid=$ARGV[0]; # unused
   if scr_env is None:
     scr_env = SCR_Env()
+  if scr_env.resmgr is None:
+    scr_env.resmgr = SCR_Resourcemgr()
   user = scr_env.conf['user']
   if user is None:
     print('scr_get_jobstep_id: ERROR: Could not determine user ID')
     return None
-  jobid = scr_env.getjobid()
+  jobid = scr_env.resmgr.conf['jobid']
   if jobid is None:
     print('scr_get_jobstep_id: ERROR: Could not determine job ID')
     return None

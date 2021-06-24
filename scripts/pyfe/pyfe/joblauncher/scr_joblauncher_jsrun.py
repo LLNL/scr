@@ -7,10 +7,11 @@ from pyfe.joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
 
 class SCR_Joblauncher_jsrun(SCR_Joblauncher_Base):
   def __init__(self):
-    self.launcher = 'jsrun'
-    self.use_scr_watchdog = 0 # SCR_WATCHDOG not supported on LSF
-    self.nopargv = None
-    self.scr_end_time = [] # LSF/scr_env.in:181
-    self.excludeargs = '--exclude_hosts=$down_nodes'
-    #super(SCR_Joblauncher_jsrun, self).__init__()
+    self.conf = {}
+    self.conf['launcher'] = 'jsrun'
 
+  def prepareforprerun(self):
+    pass
+
+  def get_scr_end_time(self,jobid=None):
+    return None

@@ -11,10 +11,11 @@ import argparse, time
 #from datetime import datetime
 from pyfe import scr_const
 from pyfe.scr_param import SCR_Param
+from pyfe.joblauncher import SCR_Joblauncher
 from pyfe.scr_kill_jobstep import scr_kill_jobstep
 from pyfe.scr_common import runproc
 
-def scr_watchdog(prefix=None,jobstepid=None):
+def scr_watchdog(prefix=None,jobstepid=None,param=None,joblauncher=None):
   # check that we have a  dir and apid
   if prefix is None or jobstepid is None:
     return 1
@@ -22,7 +23,11 @@ def scr_watchdog(prefix=None,jobstepid=None):
   bindir = scr_const.X_BINDIR
 
   # lookup timeout values from environment
-  param = SCR_Param()
+  if param is None:
+    param = SCR_Param()
+  if joblauncher is None:
+    # this requires compile-time constant for joblauncher
+    launcher = SCR_Joblauncher()
   timeout = None
   timeout_pfs = None
 

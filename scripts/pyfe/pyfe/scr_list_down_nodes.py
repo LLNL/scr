@@ -10,8 +10,9 @@ from pyfe.scr_list_dir import scr_list_dir
 from pyfe.scr_common import runproc, pipeproc, scr_prefix
 from pyfe import scr_common
 from pyfe.scr_env import SCR_Env
+from pyfe.resmgr import SCR_Resourcemgr
 
-def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
+def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None,param=None):
   ping = 'ping'
 
   bindir = scr_const.X_BINDIR
@@ -20,28 +21,34 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
 
   start_time = str(int(time())) # epoch seconds as int to remove decimal, as string to be a parameter
 
-  param = SCR_Param()
+  if param is None:
+    param = SCR_Param()
 
   # check that we have a nodeset before going any further
-  if nodeset is not None:
-    if type(nodeset) is not str:
-      nodeset = ','.join(nodeset)
-  else:
-    nodeset=scr_env.conf['nodes']
+  resourcemgr = None
+  jobid = None
+  if scr_env is None:
+    scr_env = SCR_Env()
+  if scr_env.resmgr is None:
+    scr_env.resmgr = SCR_ResourceMgr()
+  resourcemgr = scr_env.resmgr
+  nodeset = resourcemgr.conf['nodes']
   if nodeset is None or len(nodeset)<1:
     print('scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.')
     return 1
+  if type(nodeset) is not str:
+    nodeset = ','.join(nodeset)
 
   # get list of nodes from nodeset
   nodes = scr_hostlist.expand(nodeset)
 
   # get prefix directory
-  prefix = scr_prefix()
+  prefix = scr_env.conf['prefix']
 
   # get jobid
-  if scr_env is None:
-    scr_env = SCR_Env()
-  jobid = scr_env.getjobid()
+  jobid = resourcemgr['jobid']
+  #if jobid == 'defjobid': # job id could not be determined
+  #  print('Could not determine the job id') # the only place this is used here is in the logging below
 
   # this hash defines all nodes available in our allocation
   allocation = {}
@@ -55,7 +62,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
   reason = {}
 
   # mark the set of nodes the resource manager thinks is down
-  resmgr_down = scr_env.get_downnodes()
+  resmgr_down = resourcemgr.get_downnodes()
   if resmgr_down is not None and resmgr_down!='':
     resmgr_nodes = scr_hostlist.expand(resmgr_nodes)
     for node in resmgr_nodes:
@@ -63,6 +70,12 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
         del available[node]
       unavailable[node] = True
       reason[node] = "Reported down by resource manager"
+
+  #######
+  ### If we want to disable ping in certain environments
+  ### we could put a flag in resourcemgr or somewhere
+  ### if resourcemgr.conf['canping'] == True:
+  #######
 
   # mark the set of nodes we can't ping
   failed_ping = {}
@@ -95,7 +108,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
         reason[node] = 'User excluded via SCR_EXCLUDE_NODES'
 
   # mark any nodes specified on the command line
-  if nodeset_down is not None:
+  if nodeset_down is not None and nodeset_down!='':
     exclude_nodes = scr_hostlist.expand(nodeset_down)
     for node in exclude_nodes:
       if node in allocation:
@@ -112,7 +125,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
   # check that control and cache directories on each node work and are of proper size
   # get the control directory the job will use
   cntldir_vals = []
-  cntldir_string = scr_list_dir(base=True,runcmd='control',scr_env=scr_env)
+  cntldir_string = scr_list_dir(base=True,runcmd='control',scr_env=scr_env,param=param)
   # cntldir_string = `$bindir/scr_list_dir --base control`;
   if cntldir_string != 1:
     dirs = cntldir_string.split(' ')
@@ -122,9 +135,9 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
         continue
       val = base
       if cntldirs is not None and base in cntldirs and 'BYTES' in cntldirs[base]:
-        size = list(cntldirs[base]['BYTES'].keys())[0] #(keys %{$$cntldirs{$base}{"BYTES"}})[0];
-        #if (defined $size) {
-        if size is not None:
+        if len(cntldirs[base]['BYTES'].keys())>0:
+          size = list(cntldirs[base]['BYTES'].keys())[0] #(keys %{$$cntldirs{$base}{"BYTES"}})[0];
+          #if (defined $size) {
           size = param.abtoull(size)
           #  $size = $param->abtoull($size);
           val += ':'+str(size)
@@ -146,10 +159,10 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
         continue
       val = base
       if cachedirs is not None and base in cachedirs and 'BYTES' in cachedirs[base]:
-        size = list(cachedirs[base]['BYTES'].keys())[0]
-        #my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
-        #if (defined $size) {
-        if size is not None:
+        if len(cachedirs[base]['BYTES'].keys())>0:
+          size = list(cachedirs[base]['BYTES'].keys())[0]
+          #my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
+          #if (defined $size) {
           size = param.abtoull(size)
           #  $size = $param->abtoull($size);
           val += ':'+str(size)

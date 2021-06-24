@@ -12,11 +12,14 @@
 
 import argparse
 from pyfe import scr_const
+from pyfe.scr_env import SCR_Env
 from pyfe.scr_param import SCR_Param
+from pyfe.resmgr import SCR_Resourcemgr
 
-# returns 1 for error, 0 (or string) for success
-def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
-  param = SCR_Param()
+# returns 1 for error, string for success
+def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None,param=None):
+  if param is None:
+    param = SCR_Param()
   # TODO: read cache directory from config file
   bindir = scr_const.X_BINDIR
 
@@ -43,6 +46,8 @@ def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
   # ensure scr_env is set
   if scr_env is None:
     scr_env = SCR_Env()
+  if scr_env.resmgr is None:
+    scr_env.resmgr = SCR_Resourcemgr()
   # get the user/job directory
   suffix = ''
   if base is False:
@@ -51,7 +56,7 @@ def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
       user = scr_env.conf['user']
     # if not specified, read jobid from environment
     if jobid is None:
-      jobid = scr_env.conf['jobid']
+      jobid = scr_env.resmgr.conf['jobid']
     # check that the required environment variables are set
     if user is None or jobid is None:
       # something is missing, print invalid dir and exit with error
