@@ -29,8 +29,8 @@ def interpolate_variables(varstr):
     topdir = '/'.join(os.getcwd().split('/')[:-1])
     varstr = varstr[3:]
     while varstr.startswith('..'):
-        topdir = '/'.join(topdir.split('/')[:-1])
-        varstr = varstr[3:]
+      topdir = '/'.join(topdir.split('/')[:-1])
+      varstr = varstr[3:]
     varstr = topdir+'/'+varstr
   elif varstr[0]=='.':
     varstr=os.getcwd()+prefix[1:]

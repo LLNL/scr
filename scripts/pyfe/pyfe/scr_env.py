@@ -19,7 +19,7 @@ class SCR_Env:
     self.conf['user'] = os.environ.get('USER')
     self.conf['nodes'] = os.environ.get('SCR_NODELIST')
 
-  # set the nodelist (if the environment variable wasn't set)
+  # set the nodelist (called if the environment variable wasn't set)
   def set_nodelist(self,nodelist):
     self.conf['nodes'] = nodelist
     os.environ['SCR_NODELIST'] = nodelist

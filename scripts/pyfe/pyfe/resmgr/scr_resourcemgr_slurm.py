@@ -3,7 +3,7 @@
 # scr_resourcemgr_slurm.py
 # SCR_Resourcemgr_SLURM is a subclass of SCR_Resourcemgr_Base
 
-import os
+import os, re
 from pyfe import scr_const, scr_hostlist
 from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
 from pyfe.scr_common import runproc
@@ -46,3 +46,38 @@ class SCR_Resourcemgr_SLURM(SCR_Resourcemgr_Base):
     if returncode==0:
       return int(out)
     return 0 # print(err)
+
+  def get_jobstep_id(user='',jobid='',pid=-2):
+    # the slurm get_jobstep_id didn't use the pid parameter
+    # get job steps for this user and job, order by decreasing job step
+    # so first one should be the one we are looking for
+    # -h means print no header, so just the data in this order:
+    # STEPID         NAME PARTITION     USER      TIME NODELIST
+    argv = ['squeue','-h','-s','-u',user,'-j',jobid,'-S','\"-i\"']
+    # my $cmd="squeue -h -s -u $user -j $jobid -S \"-i\"";
+    output, returncode = runproc(argv=argv,getstdout=True)
+    if returncode != 0:
+        return -1
+    output = output.split('\n')
+
+    currjobid=-1
+
+    for line in output:
+      line = line.strip()
+      if len(line)==0:
+        continue
+      #line = re.sub('^(\s+)','',line)
+      # $line=~ s/^\s+//;
+      fields = re.split('\s+',line)
+      # my @fields = split /\s+/, $line;
+      #print ("fields ",join(",",@fields),"\n");
+      #my @jobidparts=split /\./, $fields[0];
+      jobidparts = fields[0].split('.')
+      #print ("jobidparts: ", join(",",@jobidparts),"\n");
+      # the first item is the job step id
+      # if it is JOBID.0, then it is the allocation ID and we don't want that
+      # if it's not 0, then assume it's the one we're looking for
+      if jobidparts[1]!='0' and jobidparts[1]!='batch':
+        currjobid=fields[0]
+        break
+    return currjobid

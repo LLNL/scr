@@ -50,3 +50,16 @@ class SCR_Resourcemgr_PMIX(SCR_Resourcemgr_Base):
       return int(out)
     return 0 # print(err)
 
+  # TODO: cppr/pmix notes - this script is only used when launching the watchdog process.  Have not tested this
+  def get_jobstep_id(user='',jobid='',pid=-2):
+    # get job steps for this user and job, order by decreasing job step
+    # so first one should be the one we are looking for
+    # -h means print no header, so just the data in this order:
+    # STEPID         NAME PARTITION     USER      TIME NODELIST
+
+    #argv = []
+    #output = runproc(argv=argv,getstdout=True)[0].strip()
+    #output = output.split('\n')
+
+    currjobid=-1
+    return currjobid

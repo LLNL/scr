@@ -70,16 +70,22 @@ def scr_check_node(free=False,cntl_list=None,cache_list=None):
       try:
         with open(testfile,'w') as outfile:
           pass
+      except PermissionError:
+        print('scr_check_node: FAIL: Lack permission to write test file: '+testfile)
+        return 1
       except Exception as e: # PermissionError or (other error)
         print(e)
         print('scr_check_node: FAIL: Could not touch test file: '+testfile)
-        return 1
+        # return 1 # for some other error it may be ok ?
       try:
         os.remove(testfile)
+      except PermissionError:
+        print('scr_check_node: FAIL: Lack permission to rm test file: '+testfile)
+        return 1
       except Exception as e:
         print(e)
         print('scr_check_node: FAIL: Could not rm test file: '+testfile)
-        return 1
+        # return 1
   return 0
 
 if __name__=='__main__':

@@ -45,6 +45,9 @@ class SCR_Resourcemgr_Base(object):
   def get_runnode_count(self):
     return 0 # print(err)
 
+  def get_jobstep_id(user='',jobid='',pid=-2):
+    return -1
+
 if __name__=='__main__':
   resmgr = SCR_Resourcemgr_Base()
   print(type(resmgr))
