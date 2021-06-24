@@ -1,4 +1,4 @@
-# Function to configure binaries (file.in -> file) and install into share/scr/python directory
+# Function to fill in configure options (file.in -> file) and install into share/scr/python directory
 FUNCTION(SCR_INSTALL_PYTHON file)
 	CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/${file}.in ${CMAKE_CURRENT_SOURCE_DIR}/${file} @ONLY)
 	SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/${file}.in PROPERTIES GENERATED FALSE)
@@ -9,4 +9,6 @@ ENDFUNCTION(SCR_INSTALL_PYTHON file)
 
 SCR_INSTALL_PYTHON(scr.py)
 
-INSTALL(FILES scrapp.py DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/python)
+INSTALL(FILES setup.py       DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/python)
+INSTALL(FILES scr_example.py DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/python)
+INSTALL(FILES README.md      DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/python)
