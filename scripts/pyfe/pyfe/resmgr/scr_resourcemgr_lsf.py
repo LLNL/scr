@@ -1,17 +1,17 @@
 #! /usr/bin/env python3
 
-# scr_env_lsf.py
-# SCR_Env_LSF is a subclass of SCR_Env_Base
+# scr_resourcemgr_lsf.py
+# SCR_Resourcemgr_LSF is a subclass of SCR_Resourcemgr_Base
 
 import os
 from pyfe import scr_const, scr_hostlist
-from pyfe.env.scr_env_base import SCR_Env_Base
+from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
 from pyfe.scr_common import runproc
 
-class SCR_Env_LSF(SCR_Env_Base):
+class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
   # init initializes vars from the environment
   def __init__(self):
-    super(SCR_Env_LSF, self).__init__(env='LSF')
+    super(SCR_Resourcemgr_LSF, self).__init__(resmgr='LSF')
 
   # get job id, setting environment flag here
   def getjobid(self):

@@ -1,19 +1,19 @@
 #! /usr/bin/env python3
 
-# scr_env_slurm.py
-# SCR_Env_SLURM is a subclass of SCR_Env_Base
+# scr_resourcemgr_slurm.py
+# SCR_Resourcemgr_SLURM is a subclass of SCR_Resourcemgr_Base
 
 import os
 from pyfe import scr_const, scr_hostlist
-from pyfe.env.scr_env_base import SCR_Env_Base
+from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
 from pyfe.scr_common import runproc
 
-# SCR_Env class holds the configuration
+# SCR_Resourcemgr class holds the configuration
 
-class SCR_Env_SLURM(SCR_Env_Base):
+class SCR_Resourcemgr_SLURM(SCR_Resourcemgr_Base):
   # init initializes vars from the environment
   def __init__(self):
-    super(SCR_Env_SLURM, self).__init__(env='SLURM')
+    super(SCR_Resourcemgr_SLURM, self).__init__(resmgr='SLURM')
 
   # get job id, setting environment flag here
   def getjobid(self):

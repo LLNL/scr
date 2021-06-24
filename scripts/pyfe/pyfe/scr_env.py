@@ -36,7 +36,9 @@ if __name__ == '__main__':
       continue
     thing = getattr(scr_env,attr)
     if type(thing) is dict:
+      print('scr_env.'+attr+' = {}')
       for key in thing:
         print('scr_env.'+attr+'['+key+'] = '+str(thing[key]))
     else:
       print('scr_env.'+attr+' = '+str(thing))
+

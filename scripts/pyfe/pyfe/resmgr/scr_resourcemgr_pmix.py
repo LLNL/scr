@@ -1,17 +1,17 @@
 #! /usr/bin/env python3
 
-# scr_env_pmix.py
-# SCR_Env_PMIX is a subclass if SCR_Env_Base
+# scr_resourcemgr_pmix.py
+# SCR_Resourcemgr_PMIX is a subclass if SCR_Resourcemgr_Base
 
 import os
 from pyfe import scr_const, scr_hostlist
-from pyfe.env.scr_env_base import SCR_Env_Base
+from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
 from pyfe.scr_common import runproc
 
-class SCR_Env_PMIX(SCR_Env_Base):
+class SCR_Resourcemgr_PMIX(SCR_Resourcemgr_Base):
   # init initializes vars from the environment
   def __init__(self):
-    super(SCR_Env_PMIX, self).__init__(env='PMIX')
+    super(SCR_Resourcemgr_PMIX, self).__init__(resmgr='PMIX')
 
   # get job id, setting environment flag here
   def getjobid(self):

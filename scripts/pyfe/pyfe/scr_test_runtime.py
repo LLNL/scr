@@ -57,7 +57,4 @@ def scr_test_runtime():
 
 if __name__=='__main__':
   ret = scr_test_runtime()
-  if ret==0:
-    print('scr_test_runtime passed')
-  else:
-    print('scr_test_runtime failed')
+  print('scr_test_runtime '+('passed' if ret==0 else 'failed'))

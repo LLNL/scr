@@ -1,17 +1,17 @@
 #! /usr/bin/env python3
 
-# scr_env_aprun.py
-# SCR_Env_APRUN is a subclass of SCR_Env_Base
+# scr_resourcemgr_aprun.py
+# SCR_Resourcemgr_APRUN is a subclass of SCR_Resourcemgr_Base
 
 import os, subprocess
 from pyfe import scr_const, scr_hostlist
-from pyfe.env.scr_env_base import SCR_Env_Base
+from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
 from pyfe.scr_common import runproc
 
-class SCR_Env_APRUN(SCR_Env_Base):
+class SCR_Resourcemgr_APRUN(SCR_Resourcemgr_Base):
   # init initializes vars from the environment
   def __init__(self,env=None):
-    super(SCR_Env_APRUN, self).__init__(env='APRUN')
+    super(SCR_Resourcemgr_APRUN, self).__init__(resmgr='APRUN')
 
   # get job id, setting environment flag here
   def getjobid(self):
