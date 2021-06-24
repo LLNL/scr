@@ -2,7 +2,7 @@
 
 # scr_mpirun.py
 
-# calls scr_run specifying to use launcher 'jsrun'
+# calls scr_run specifying to use launcher 'mpirun'
 # the launcher object could be created here.
 
 import sys

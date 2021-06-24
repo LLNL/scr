@@ -20,14 +20,16 @@ from pyfe.scr_watchdog import scr_watchdog
 from pyfe.scr_list_down_nodes import scr_list_down_nodes
 from pyfe.scr_postrun import scr_postrun
 from pyfe.env.scr_env import SCR_Env
+from pyfe.joblauncher import SCR_Joblauncher
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_glob_hosts import scr_glob_hosts
 
 def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
   if launcher=='':
-    print('Launcher must be specified')
-    return 1
-  launcher='srun'
+    launcher=scr_const.SCR_LAUNCHER
+    if '@' in launcher:
+      print('Launcher must be specified')
+      return 1
   prog='scr_'+launcher
 
   libdir=scr_const.X_LIBDIR
@@ -50,16 +52,20 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   # make a record of start time
   timestamp=datetime.now()
   start_secs = int(time.time())
-  print(prog+': Started: '+str(timestamp)+' ('+str(start_secs)+')')
+  print(prog+': Started: '+str(timestamp))
 
   # check that we have runtime dependencies
   if scr_test_runtime()!=0:
+    print('scr_test_runtime returned a failure')
     print(prog+': exit code: 1')
     sys.exit(1)
 
   # TODO: if not in job allocation, bail out
 
-  scr_env = SCR_Env()
+  scr_env = SCR_Env() # env contains general environment infos independent of resmgr/launcher
+  resourcemgr = SCR_ResourceMgr() # resource manager (SLURM/LSF/ ...) set by compile constant
+  launcher = SCR_Joblauncher(launcher) # launcher contains attributes unique to launcher (srun/jsrun/ ...)
+  # jobid will come from resource manager.
   jobid = scr_env.getjobid()
 
   # TODO: check that we have a valid jobid and bail if not
@@ -288,12 +294,18 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   timestamp=datetime.now()
   print(prog+': Ended: '+str(timestamp))
 
-def print_usage(launcher):
+def print_usage(launcher=''):
+  available_launchers = '[srun/jsrun/mpirun]'
   print('USAGE:')
   # the original parsing in SLURM/scr_run.in combines all [launcher args]
   # (no matter whether they appear in the front or at the end)
   # the usage printing looks like you could define/usr different launcher args
-  print('scr_'+launcher+' ['+launcher+' args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] ['+launcher+' args]')
+  if launcher=='':
+    launcher=available_launchers
+    print('scr_run <launcher> ['+launcher+' args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] ['+launcher+' args]')
+    print('<launcher>: The job launcher to use, one of '+launcher)
+  else:
+    print('scr_'+launcher+' ['+launcher+' args] [-rc|--run-cmd=<run_command>] [-rs|--restart-cmd=<restart_command>] ['+launcher+' args]')
   print('<run_command>: The command to run when no restart file is present')
   print('<restart_command>: The command to run when a restart file is present')
   print('')
@@ -312,7 +324,6 @@ def parseargs(argv,launcher=''):
   if launcher=='':
     launcher = argv[0]
     starti=1
-  launcher = argv[0]
   launcher_args = []
   run_cmd = ''
   restart_cmd = ''
@@ -367,7 +378,7 @@ def parseargs(argv,launcher=''):
 if __name__=='__main__':
   # just printing help, print the help and exit
   if len(sys.argv)<3 or '-h' in sys.argv[1:] or '--help' in sys.argv[1:]:
-    print_usage('[srun/jsrun/mpirun]')
+    print_usage()
   elif not any(arg.startswith('-h') or arg.startswith('--help') or arg.startswith('-rc') or arg.startswith('--run-cmd') or arg.startswith('-rs') or arg.startswith('--restart-cmd') for arg in sys.argv):
     # then we were called with: scr_run launcher [args]
     scr_run(launcher=sys.argv[1],launcher_args=sys.argv[2:])
