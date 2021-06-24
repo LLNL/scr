@@ -43,6 +43,12 @@ Applications written in C should include :code:`scr.h`,
 and Fortran applications should include :code:`scrf.h`.
 Unless otherwise noted, all functions return :code:`SCR_SUCCESS` if successful.
 
+For Python applications, an `scr.py` Python module wraps the functions of the C interface.
+This module is located in the `share/scr/python` directory of an SCR installation.
+A `README.md` file and an `scr_example.py` program in the same directory
+illustrate how one uses the `scr.py` module.
+Python users should also be familiar with the API documentation in this section.
+
 Startup and Shutdown API
 ------------------------
 

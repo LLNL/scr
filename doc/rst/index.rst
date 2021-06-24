@@ -24,6 +24,8 @@ SCR provides the following capabilities:
 * automated tracking and restart from the most recent checkpoint,
 * automated job relaunch within an allocation after hangs or failures.
 
+SCR provides API bindings for C/C++, Fortran, and Python applications.
+
 SCR originated as a production-level implementation of a multi-level checkpoint system
 of the type analyzed by [Vaidya]_
 SCR caches checkpoints in scalable storage,
