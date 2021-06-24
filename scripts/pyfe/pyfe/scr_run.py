@@ -19,7 +19,7 @@ from pyfe.scr_get_jobstep_id import scr_get_jobstep_id
 from pyfe.scr_watchdog import scr_watchdog
 from pyfe.scr_list_down_nodes import scr_list_down_nodes
 from pyfe.scr_postrun import scr_postrun
-from pyfe.env.scr_env import SCR_Env
+from pyfe.scr_env import SCR_Env
 from pyfe.joblauncher import SCR_Joblauncher
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_glob_hosts import scr_glob_hosts

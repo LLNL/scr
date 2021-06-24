@@ -5,7 +5,7 @@ from datetime import datetime
 from time import time
 from pyfe import scr_const, scr_common, scr_hostlist
 from pyfe.scr_param import SCR_Param
-from pyfe.env.scr_env import SCR_Env
+from pyfe.scr_env import SCR_Env
 from pyfe.scr_common import tracefunction, runproc
 
 # scavenge checkpoint files from cache to PFS
