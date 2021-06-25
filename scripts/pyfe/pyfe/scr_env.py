@@ -9,7 +9,8 @@ from pyfe.scr_common import scr_prefix
 
 class SCR_Env:
   def __init__(self):
-    # we could keep a reference to the launcher and resource manager
+    # we can keep a reference to the other objects
+    self.param = None
     self.launcher = None
     self.resmgr = None
     # initialize the infos

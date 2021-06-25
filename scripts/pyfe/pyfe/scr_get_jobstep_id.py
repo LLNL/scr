@@ -18,7 +18,7 @@ from pyfe.joblauncher import SCR_Joblauncher
 # is for some other srun command and not the one we are looking for. 
 # This script returns the job step id on success and -1 on failure.
 
-def scr_get_jobstep_id(scr_env=None):
+def scr_get_jobstep_id(scr_env=None,pid=-1):
   #my $pid=$ARGV[0]; # unused
   if scr_env is None:
     scr_env = SCR_Env()
@@ -34,7 +34,7 @@ def scr_get_jobstep_id(scr_env=None):
   if jobid is None:
     print('scr_get_jobstep_id: ERROR: Could not determine job ID')
     return None
-  currjobid = scr_env.launcher.get_jobstep_id(user=user,jobid=jobid)
+  currjobid = scr_env.launcher.get_jobstep_id(user=user,pid=pid)
   return currjobid
 
 if __name__=='__main__':

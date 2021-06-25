@@ -11,23 +11,26 @@ import argparse, time
 #from datetime import datetime
 from pyfe import scr_const
 from pyfe.scr_param import SCR_Param
-from pyfe.joblauncher import SCR_Joblauncher
-from pyfe.scr_kill_jobstep import scr_kill_jobstep
+from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+#from pyfe.scr_kill_jobstep import scr_kill_jobstep
 from pyfe.scr_common import runproc
 
-def scr_watchdog(prefix=None,jobstepid=None,param=None,joblauncher=None):
+def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
   # check that we have a  dir and apid
   if prefix is None or jobstepid is None:
     return 1
 
-  bindir = scr_const.X_BINDIR
+  param = None
+  resmgr = None
+  if scr_env is not None:
+    param = scr_env.param
+    resmgr = scr_env.resmgr
 
   # lookup timeout values from environment
   if param is None:
     param = SCR_Param()
-  if joblauncher is None:
-    # this requires compile-time constant for joblauncher
-    launcher = SCR_Joblauncher()
+  if resmgr is None:
+    resmgr = SCR_Resourcemgr()
   timeout = None
   timeout_pfs = None
 
@@ -84,7 +87,7 @@ def scr_watchdog(prefix=None,jobstepid=None,param=None,joblauncher=None):
       timeToSleep = int(timeout)
 
   print('Killing simulation using scr_kill_jobstep --jobStepId '+jobstepid)
-  scr_kill_jobstep(bindir=bindir,jobid=jobstepid)
+  resmgr.scr_kill_jobstep(jobid=jobstepid)
   return 0
 
 if __name__=='__main__':

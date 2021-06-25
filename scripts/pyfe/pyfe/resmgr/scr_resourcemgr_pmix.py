@@ -18,7 +18,7 @@ class SCR_Resourcemgr_PMIX(SCR_Resourcemgr_Base):
     # CALL SCR_ENV_HELPER FOR PMIX
     # failed to read jobid from environment,
     # assume user is running in test mode
-    return 'defjobid'
+    return None
 
   # get node list
   def get_job_nodes(self):
@@ -38,10 +38,6 @@ class SCR_Resourcemgr_PMIX(SCR_Resourcemgr_Base):
     #  my $nodeset = ""; #get nodeset with pmixhelper
     return None
 
-  # set down node list, requires node list to already be set
-  def set_downnodes(self):
-    self.conf['down'] = '' # TODO # parse out
-
   # list the number of nodes used in the last run
   def get_runnode_count(self):
     argv = [self.conf['nodes_file'],'--dir',self.conf['prefix']]
@@ -51,7 +47,7 @@ class SCR_Resourcemgr_PMIX(SCR_Resourcemgr_Base):
     return 0 # print(err)
 
   # TODO: cppr/pmix notes - this script is only used when launching the watchdog process.  Have not tested this
-  def get_jobstep_id(user='',jobid='',pid=-2):
+  def get_jobstep_id(user='',pid=-1):
     # get job steps for this user and job, order by decreasing job step
     # so first one should be the one we are looking for
     # -h means print no header, so just the data in this order:
@@ -63,3 +59,7 @@ class SCR_Resourcemgr_PMIX(SCR_Resourcemgr_Base):
 
     currjobid=-1
     return currjobid
+
+  def scr_kill_jobstep(jobid=-1):
+    print('pmix does not support this')
+    return 1

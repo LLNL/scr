@@ -43,8 +43,6 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     returncode = runproc(argv=launcher)[1]
     sys.exit(returncode)
 
-  #launcher_args = ' '.join(launcher_args)
-
   # turn on verbosity
   val = os.environ.get('SCR_DEBUG')
   if val is not None and int(val)>0:
@@ -67,7 +65,8 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   scr_env = SCR_Env() # env contains general environment infos independent of resmgr/launcher
   resourcemgr = SCR_ResourceMgr() # resource manager (SLURM/LSF/ ...) set by argument or compile constant
   launcher = SCR_Joblauncher(launcher) # launcher contains attributes unique to launcher (srun/jsrun/ ...)
-  # give scr_env a pointer to the resource manager and job launcher for calling other methods
+  # give scr_env a pointer to the objects for calling other methods
+  scr_env.param = param
   scr_env.resmgr = resourcemgr
   scr_env.launcher = launcher
   # jobid will come from resource manager.
@@ -94,7 +93,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     resourcemgr.usewatchdog(True)
 
   # get the control directory
-  cntldir = scr_list_dir(user=scr_env['user'],jobid=resourcemgr['jobid'],runcmd='control',scr_env=scr_env,param=param)
+  cntldir = scr_list_dir(user=scr_env['user'],jobid=resourcemgr['jobid'],runcmd='control',scr_env=scr_env)
   if cntldir == 1:
     print(prog+': ERROR: Could not determine control directory')
     sys.exit(1)
@@ -152,17 +151,23 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       free_flag=True
 
     # are there enough nodes to continue?
-    exclude=[]
-    down_nodes = scr_list_down_nodes(free=free_flag,nodeset_down=down_nodes,scr_env=scr_env,param=param)
+    down_nodes = scr_list_down_nodes(free=free_flag,nodeset_down=down_nodes,scr_env=scr_env)
     # returns 0 for none, 1 for error, or a string
-    if type(down_nodes) is str and down_nodes!='':
+    # could handle error here
+    if type(down_nodes) is int:
+      down_nodes = ''
+    if down_nodes!='':
       # print the reason for the down nodes, and log them
-      scr_list_down_nodes(reason=True, free=free_flag, nodeset_down=down_nodes, log_nodes=True, runtime_secs='0', scr_env=scr_env, param=param)
+      scr_list_down_nodes(reason=True, free=free_flag, nodeset_down=down_nodes, log_nodes=True, runtime_secs='0', scr_env=scr_env)
 
       # if this is the first run, we hit down nodes right off the bat, make a record of them
       if attempts==0:
         start_secs=int(time())
         print('SCR: Failed node detected: JOBID='+jobid+' ATTEMPT=0 TIME='+str(start_secs)+' NNODES=-1 RUNTIME=0 FAILED='+down_nodes)
+
+      ##### Unless this value may change at some point in an allocation
+      ##### This could be moved outside of this loop, this value is not changed within the loop
+      ##### *  num_needed  *
 
       # determine how many nodes are needed:
       #   if SCR_MIN_NODES is set, use that
@@ -177,14 +182,14 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
         # num_needed_env='$bindir/scr_env --prefix $prefix --runnodes'
         # if the command worked, and the number is something larger than 0, go with that
         if num_needed<=0:
-          num_needed = scr_glob_hosts(['--count','--hosts',nodelist])
+          num_needed = scr_glob_hosts(count=True,hosts=nodelist)
           if num_needed is None:
             print(prog+': ERROR: Unable to determine number of nodes needed')
             break
       num_needed = int(num_needed)
 
       # check that we have enough nodes left to run the job after excluding all down nodes
-      num_left = scr_glob_hosts(['--count','--minus',nodelist+':'+down_nodes])
+      num_left = scr_glob_hosts(count=True,minus=nodelist+':'+down_nodes)
       if num_left is None:
         print(prog+': ERROR: Unable to determine number of nodes remaining')
         break
@@ -193,9 +198,6 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       if num_left < num_needed:
         print(prog+': (Nodes remaining='+str(num_left)+') < (Nodes needed='+str(num_needed)+'), ending run.')
         break
-
-      # all checks pass, exclude the down nodes and continue
-      exclude=['--exclude', down_nodes]
 
     # make a record of when each run is started
     attempts+=1
@@ -222,40 +224,37 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_START', event_note='run='+str(attempts), event_start=str(start_secs))
     # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
     if resourcemgr.usewatchdog() == False:
-      argv=[launcher]
-      argv.extend(exclude)
-      argv.extend(launch_cmd)
+      argv=launcher.getlaunchargv(nodesarg=down_nodes,launch_cmd=launch_cmd)
       runproc(argv=argv)
       # $launcher $exclude $launch_cmd
     else:
       print(prog+': Attempting to start watchdog process.')
       # need to get job step id of the srun command
-      argv=[launcher]
-      argv.extend(exclude)
-      argv.extend(launch_cmd)
-      srun_pid = runproc(argv=argv, wait=False)[1]
+      argv=launcher.getlaunchargv(nodesarg=down_nodes,launch_cmd=launch_cmd)
+      launched_process, launcher_pid = runproc(argv=argv, wait=False)
       # $launcher $exclude $launch_cmd &
-      #srun_pid = runproc.pid
-      #srun_pid=$!;
+      #{launcher}run_pid = runproc.pid
+      #{launcher}run_pid=$!;
       time.sleep(10)
       #sleep 10; # sleep a bit to wait for the job to show up in squeue
-      print(bindir+'/scr_get_jobstep_id '+str(srun_pid))
-      jobstepid = scr_get_jobstep_id(scr_env) # the pid was unused in there (at least for slurm/srun)
+      print(bindir+'/scr_get_jobstep_id '+str(launcher_pid))
+      jobstepid = scr_get_jobstep_id(scr_env=scr_env,pid=launcher_pid)
       # then start the watchdog  if we got a valid job step id
       if jobstepid is not None:
         # Launching a new process to execute the python method
-        watchdog = mp.Process(target=scr_watchdog,kwargs={prefix:prefix, jobstepid:jobstepid, param:param, launcher:joblauncher})
+        watchdog = mp.Process(target=scr_watchdog,kwargs={prefix:prefix, jobstepid:jobstepid, scr_env:scr_env})
         watchdog.start()
         print(prog+': Started watchdog process with PID '+str(watchdog.pid)+'.')
       else:
         print(prog+': ERROR: Unable to start scr_watchdog because couldn\'t get job step id.')
-      runproc.check_call()
+      # check_call will wait for the process to finish without trying to get other information from it
+      launched_process.check_call()
 
     end_secs=int(time())
     run_secs=end_secs - start_secs
 
     # check for and log any down nodes
-    scr_list_down_nodes(reason=True, nodeset_down=keep_down, log_nodes=True, runtime_secs=str(run_secs), scr_env=scr_env,param=param)
+    scr_list_down_nodes(reason=True, nodeset_down=keep_down, log_nodes=True, runtime_secs=str(run_secs), scr_env=scr_env)
     # log stats on the latest run attempt
     scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_END', event_note='run='+str(attempts), event_start=str(end_secs), event_secs=str(run_secs))
     #$bindir/scr_log_event -i $jobid -p $prefix -T "RUN_END" -N "run=$attempts" -S $end_secs -L $run_secs

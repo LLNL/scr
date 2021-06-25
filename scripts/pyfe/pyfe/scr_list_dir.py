@@ -17,15 +17,22 @@ from pyfe.scr_param import SCR_Param
 from pyfe.resmgr import SCR_Resourcemgr
 
 # returns 1 for error, string for success
-def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None,param=None):
-  if param is None:
-    param = SCR_Param()
-  # TODO: read cache directory from config file
-  bindir = scr_const.X_BINDIR
-
+def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
   # check that user specified "control" or "cache"
   if runcmd is None:
     return 1
+
+  # TODO: read cache directory from config file
+  bindir = scr_const.X_BINDIR
+
+  # ensure scr_env is set
+  if scr_env is None:
+    scr_env = SCR_Env()
+  if scr_env.resmgr is None:
+    scr_env.resmgr = SCR_Resourcemgr()
+  if scr_env.param is None:
+    param = SCR_Param()
+  param = scr_env.param
 
   # get the base directory
   bases = []
@@ -43,11 +50,6 @@ def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None,param=
     print('INVALID')
     return 1
 
-  # ensure scr_env is set
-  if scr_env is None:
-    scr_env = SCR_Env()
-  if scr_env.resmgr is None:
-    scr_env.resmgr = SCR_Resourcemgr()
   # get the user/job directory
   suffix = ''
   if base is False:

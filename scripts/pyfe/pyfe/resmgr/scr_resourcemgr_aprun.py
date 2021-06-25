@@ -17,11 +17,8 @@ class SCR_Resourcemgr_APRUN(SCR_Resourcemgr_Base):
   # get job id, setting environment flag here
   def getjobid(self):
     val = os.environ.get('PBS_JOBID')
-    if val is not None:
-      return val
-    # failed to read jobid from environment,
-    # assume user is running in test mode
-    return 'defjobid'
+    # val may be None
+    return val
 
   # get node list
   def get_job_nodes(self):
@@ -59,12 +56,6 @@ class SCR_Resourcemgr_APRUN(SCR_Resourcemgr_Base):
         return scr_hostlist.compress(downnodes)
     return None
 
-  # set down node list, requires node list to already be set
-  def set_downnodes(self):
-    if self.conf['nodes'] is None:
-      return
-    self.conf['down'] = '' # TODO # parse out
-
   # list the number of nodes used in the last run
   def get_runnode_count(self):
     argv = ['aprun','-n','1',self.conf['nodes_file'],'--dir',self.conf['prefix']]
@@ -73,7 +64,7 @@ class SCR_Resourcemgr_APRUN(SCR_Resourcemgr_Base):
       return int(out)
     return 0 # print(err)
 
-  def get_jobstep_id(user='',jobid='',pid=-2):
+  def get_jobstep_id(user='',pid=-1):
     output = runproc(argv=['apstat','-avv'],getstdout=True)[0].split('\n')
     # we could use 'head' instead of cat or do a with open ?
     nid = runproc(argv=['cat','/proc/cray_xt/nid'],getstdout=True)[0].strip().split('\n')[0] #just the top line
@@ -85,7 +76,7 @@ class SCR_Resourcemgr_APRUN(SCR_Resourcemgr_Base):
       fields = re.split('\s+',line)
       fields = line.strip().split(' ')
       if fields[0].startswith('Ap'):
-        currApid=fields[2][:-1]
+        currApid=int(fields[2][:-1])
       elif fields[1].startswith('Originator:'):
          #did we find the apid that corresponds to the pid?
          # also check to see if it was launched from this MOM node in case two
@@ -95,3 +86,9 @@ class SCR_Resourcemgr_APRUN(SCR_Resourcemgr_Base):
           break
         currApid=-1
     return currApid
+
+  def scr_kill_jobstep(jobid=-1):
+    if jobid==-1:
+      print('You must specify the job step id to kill.')
+      return 1
+    return runproc(argv=['apkill',str(jobid)])[1]

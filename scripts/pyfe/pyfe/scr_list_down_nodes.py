@@ -12,7 +12,7 @@ from pyfe import scr_common
 from pyfe.scr_env import SCR_Env
 from pyfe.resmgr import SCR_Resourcemgr
 
-def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None,param=None):
+def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
   ping = 'ping'
 
   bindir = scr_const.X_BINDIR
@@ -21,12 +21,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
 
   start_time = str(int(time())) # epoch seconds as int to remove decimal, as string to be a parameter
 
-  if param is None:
-    param = SCR_Param()
-
   # check that we have a nodeset before going any further
-  resourcemgr = None
-  jobid = None
   if scr_env is None:
     scr_env = SCR_Env()
   if scr_env.resmgr is None:
@@ -38,6 +33,10 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
     return 1
   if type(nodeset) is not str:
     nodeset = ','.join(nodeset)
+
+  if scr_env.param is None:
+    scr_env.param = SCR_Param()
+  param = scr_env.param
 
   # get list of nodes from nodeset
   nodes = scr_hostlist.expand(nodeset)

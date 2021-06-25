@@ -30,3 +30,12 @@ class SCR_Joblauncher_srun(SCR_Joblauncher_Base):
     argv = ['date','-d',output.rstrip()]
     output = runproc(argv=argv,getstdout=True)[0]
     return output.rstrip()
+
+  def getlaunchargv(self,nodesarg='',launch_cmd=[]):
+    if len(launch_cmd)==0:
+      return []
+    argv = [self.conf['launcher']]
+    if len(nodesarg)>0:
+      argv.extend(['--exclude',nodesarg])
+    argv.extend(launch_cmd)
+    return argv

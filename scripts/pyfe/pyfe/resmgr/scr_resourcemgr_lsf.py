@@ -16,11 +16,8 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
   # get job id, setting environment flag here
   def getjobid(self):
     val = os.environ.get('LSB_JOBID')
-    if val is not None:
-      return val
-    # failed to read jobid from environment,
-    # assume user is running in test mode
-    return 'defjobid'
+    # val may be None
+    return val
 
   # get node list
   def get_job_nodes(self):
@@ -54,13 +51,16 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
       return int(out.rstrip())
     return 0 # print(err)
 
-  def get_jobstep_id(user='',jobid='',pid=-2):
+  def get_jobstep_id(user='',jpid=-1):
+    # previously weren't able to get jobid
+    if self.conf['jobid'] is None:
+      return -1
     # the slurm get_jobstep_id didn't use the pid parameter
     # get job steps for this user and job, order by decreasing job step
     # so first one should be the one we are looking for
     # -h means print no header, so just the data in this order:
     # STEPID         NAME PARTITION     USER      TIME NODELIST
-    argv = ['squeue','-h','-s','-u',user,'-j',jobid,'-S','\"-i\"']
+    argv = ['squeue','-h','-s','-u',user,'-j',str(self.conf['jobid']),'-S','\"-i\"']
     # my $cmd="squeue -h -s -u $user -j $jobid -S \"-i\"";
     output, returncode = runproc(argv=argv,getstdout=True)
     if returncode != 0:
@@ -94,3 +94,9 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
           currjobid=int(fields[0])
           break
     return currjobid
+
+  def scr_kill_jobstep(jobid=-1):
+    if jobid==-1:
+      print('You must specify the job step id to kill.')
+      return 1
+    return runproc(argv=['scancel',str(jobid)])[1]

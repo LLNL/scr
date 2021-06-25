@@ -14,7 +14,7 @@ class SCR_Resourcemgr_Base(object):
   def __init__(self,resmgr='unknown'):
     self.conf = {}
     self.conf['resmgr'] = resmgr
-    self.conf['prefix'] = scr_prefix()
+    self.conf['use_watchdog'] = False
     self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'
     self.conf['jobid'] = self.getjobid()
     self.conf['nodes'] = self.get_job_nodes()
@@ -24,15 +24,13 @@ class SCR_Resourcemgr_Base(object):
   # override this method for a specific resource manager to disable use of scr_watchdog
   def usewatchdog(self,use_scr_watchdog=None):
     if use_scr_watchdog is None:
-      if 'use_watchdog' not in self.conf:
-        return False
       return self.conf['use_watchdog']
     self.conf['use_watchdog'] = use_scr_watchdog
 
   def getjobid(self):
     # failed to read jobid from environment,
     # assume user is running in test mode
-    return 'defjobid'
+    return None
 
   # get node list
   def get_job_nodes(self):
@@ -48,7 +46,9 @@ class SCR_Resourcemgr_Base(object):
   def get_jobstep_id(user='',jobid='',pid=-2):
     return -1
 
+  def scr_kill_jobstep(jobid=-1):
+    return 1
+
 if __name__=='__main__':
   resmgr = SCR_Resourcemgr_Base()
   print(type(resmgr))
-
