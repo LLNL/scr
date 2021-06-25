@@ -20,8 +20,6 @@ class SCR_Joblauncher_aprun(SCR_Joblauncher_Base):
     argv=['aprun','/bin/hostname'] # ,'>','/dev/null']
     runproc(argv=argv)
 
-  #def get_scr_end_time(self,jobid=None):
-
   def getlaunchargv(self,nodesarg='',launch_cmd=[]):
     # ap run needs to specify nodes to use
     if len(launch_cmd)==0 or len(nodesarg)==0:

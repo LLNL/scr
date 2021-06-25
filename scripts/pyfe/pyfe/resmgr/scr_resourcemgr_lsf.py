@@ -4,6 +4,7 @@
 # SCR_Resourcemgr_LSF is a subclass of SCR_Resourcemgr_Base
 
 import os, re
+from time import time
 from pyfe import scr_const, scr_hostlist
 from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
 from pyfe.scr_common import runproc
@@ -12,6 +13,13 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
   # init initializes vars from the environment
   def __init__(self):
     super(SCR_Resourcemgr_LSF, self).__init__(resmgr='LSF')
+
+  # no watchdog in LSF
+  def usewatchdog(self,use_scr_watchdog=None):
+    if use_scr_watchdog is None:
+      return False
+    if use_scr_watchdog==True:
+      print('ERROR: SCR_WATCHDOG not supported on LSF.')
 
   # get job id, setting environment flag here
   def getjobid(self):
@@ -23,17 +31,22 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
   def get_job_nodes(self):
     val = os.environ.get('LSB_DJOB_HOSTFILE')
     if val is not None:
-      with open(val,'r') as hostfile:
-        # make a list from the set -> make a set from the list -> file.readlines().rstrip('\n')
-        # get a list of lines without newlines and skip the first line
-        lines = [line.rstrip() for line in hostfile.readlines()][1:]
-        # get a set of unique hostnames, convert list to set and back
+      try:
+        with open(val,'r') as hostfile:
+          # make a list from the set -> make a set from the list -> file.readlines().rstrip('\n')
+          # get a list of lines without newlines and skip the first line
+          lines = [line.strip() for line in hostfile.readlines()][1:]
+          # get a set of unique hostnames, convert list to set and back
         hosts_unique = list(set(lines))
         hostlist = scr_hostlist.compress(hosts_unique)
         return hostlist
+      # failed to read file
+      except:
+        pass
     val = os.environ.get('LSB_HOSTS')
-    # perl code called scr_hostlist.compress
-    # that method takes a list though, not a string
+    if val is not None:
+      val = scr_hostlist.compress(val)
+    # or, with jobid: squeue -j <jobid> -ho %N
     return val
 
   def get_downnodes(self):
@@ -100,3 +113,39 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
       print('You must specify the job step id to kill.')
       return 1
     return runproc(argv=['scancel',str(jobid)])[1]
+
+  def get_scr_end_time(self):
+    if self.conf['jobid'] is None:
+      return None
+    curtime = int(time())
+    bjobs, rc = runproc(argv=['bjobs','-o','time_left'],getstdout=True)
+    if rc!=0:
+      return None
+    lines = bjobs.split('\n')
+    for line in lines:
+      line=line.strip()
+      if len(line)==0:
+        continue
+      if line.startswith('-'):
+        # the following is printed if there is no limit
+        #   bjobs -o 'time_left'
+        #   TIME_LEFT
+        #   -
+        # look for the "-", in this case,
+        # return -1 to indicate there is no limit
+        return -1
+      pieces = re.split(r'(^\s*)(\d+):(\d+)\s+',line)
+      # the following is printed if there is a limit
+      #   bjobs -o 'time_left'
+      #   TIME_LEFT
+      #   0:12 L
+      # look for a line like "0:12 L",
+      # avoid matching the "L" since other characters can show up there
+      if len(pieces)<3:
+        continue
+      hours = int(pieces[2])
+      mins = int(pieces[3])
+      secs = curtime + ((hours * 60) + mins) * 60
+      return secs
+    # had a problem executing bjobs command
+    return 0

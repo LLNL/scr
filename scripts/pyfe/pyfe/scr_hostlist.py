@@ -231,6 +231,9 @@ def compress_range(nodelist):
   # holds a number string
   nodedict = {}
   for node in nodelist:
+    node = node.strip()
+    if len(node)==0:
+      continue
     # a correctly formed machine name will create the list:
     # ['', 'rhea', '42', '.llnl', '']
     # or
@@ -263,10 +266,19 @@ def compress_range(nodelist):
   return ret
 
 # Returns a hostlist string given a list of hostnames
-# compress('rhea2','rhea3','rhea4','rhea6') returns "rhea2,rhea3,rhea4,rhea6"
+# ( will also try to ensure a string is a comma separated string )
+# compress(['rhea2','rhea3','rhea4','rhea6']) returns "rhea2,rhea3,rhea4,rhea6"
 def compress(hostlist):
   if hostlist is None or len(hostlist)==0:
     return ''
+  if type(hostlist) is str:
+    # turn any commas (plus space) into just a space
+    hostlist = re.sub('\s*,\s*',' ',hostlist)
+    # collapse all whitespace to single space, then remove any leading/trailing space
+    hostlist = re.sub('\s+',' ',hostlist).strip()
+    # put commas into the spaces
+    hostlist = re.sub('\s',',',hostlist)
+    return hostlist
   return ','.join(hostlist)
 
 # Given references to two lists, subtract elements in list 2 from list 1 and return remainder

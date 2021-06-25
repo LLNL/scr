@@ -49,6 +49,9 @@ class SCR_Resourcemgr_Base(object):
   def scr_kill_jobstep(jobid=-1):
     return 1
 
+  def get_scr_end_time(self):
+    return 0
+
 if __name__=='__main__':
   resmgr = SCR_Resourcemgr_Base()
   print(type(resmgr))

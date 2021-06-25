@@ -13,9 +13,6 @@ class SCR_Joblauncher_Base(object):
   def prepareforprerun(self):
     pass
 
-  def get_scr_end_time(self,jobid=None):
-    return None
-
   def getlaunchargv(self,nodesarg='',launch_cmd=[]):
     # an empty argv will just immediately return
     # could return something like: ['echo','unknown launcher']

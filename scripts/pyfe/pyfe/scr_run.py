@@ -45,7 +45,9 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
   # turn on verbosity
   val = os.environ.get('SCR_DEBUG')
+  verbose = False
   if val is not None and int(val)>0:
+    verbose=True
     sys.settrace(tracefunction)
 
   # make a record of start time
@@ -109,11 +111,14 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     print(prog+': ERROR: Command failed: scr_prerun -p '+prefix)
     sys.exit(1)
 
-  endtime = joblauncher.get_scr_end_time(jobid=resourcemgr.conf['jobid'])
-  if endtime is None or endtime = '':
-    print(prog+': WARNING: Unable to get end time.')
-  else:
-    os.environ['SCR_END_TIME'] = str(endtime)
+  endtime = resourcemgr.get_scr_end_time()
+  if endtime == 0:
+    # no function to get end time for pmix / aprun (crayxt)
+    if verbose==True:
+      print(prog+': WARNING: Unable to get end time.')
+  elif endtime == -1: # no end time / limit
+    pass
+  os.environ['SCR_END_TIME'] = str(endtime)
 
   # enter the run loop
   down_nodes=''

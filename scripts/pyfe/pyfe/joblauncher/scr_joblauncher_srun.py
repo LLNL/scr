@@ -20,17 +20,6 @@ class SCR_Joblauncher_srun(SCR_Joblauncher_Base):
     argv=['srun','/bin/hostname'] # ,'>','/dev/null']
     runproc(argv=argv)
 
-  def get_scr_end_time(self,jobid=None):
-    if jobid is None:
-      return None
-    argv = []
-    argv.append(['scontrol','--oneliner','show','job',jobid])
-    argv.append(['perl','-n','-e','\'m/EndTime=(\\S*)/ and print $1\''])
-    output = pipeproc(argvs=argv,getstdout=True)[0]
-    argv = ['date','-d',output.rstrip()]
-    output = runproc(argv=argv,getstdout=True)[0]
-    return output.rstrip()
-
   def getlaunchargv(self,nodesarg='',launch_cmd=[]):
     if len(launch_cmd)==0:
       return []

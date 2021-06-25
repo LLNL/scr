@@ -90,3 +90,16 @@ class SCR_Resourcemgr_SLURM(SCR_Resourcemgr_Base):
       print('You must specify the job step id to kill.')
       return 1
     return runproc(argv=['scancel',str(jobid)])[1]
+
+  def get_scr_end_time(self):
+    if self.conf['jobid'] is None:
+      return None
+    argv = []
+    argv.append(['scontrol','--oneliner','show','job',jobid])
+    argv.append(['perl','-n','-e','\'m/EndTime=(\\S*)/ and print $1\''])
+    output = pipeproc(argvs=argv,getstdout=True)[0]
+    argv = ['date','-d',output.rstrip()]
+    output = runproc(argv=argv,getstdout=True)[0].strip()
+    if output.isdigit():
+      return int(output)
+    return 0
