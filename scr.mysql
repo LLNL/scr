@@ -2,17 +2,15 @@
 # This feature is considered to be at beta-level support.  The
 # following instructions should work, however, they have not
 # been well tested.  If you find any problems, please notify
-# the SCR developers.  To disable this feature, configure SCR
-# with the --without-mysql flag, or set SCR_LOG_DB_ENABLE=0 at
-# runtime or in the scr.conf file.
+# the SCR developers.
 #
 # To use this feature, one must run a MySQL server on a host
 # accessible to the compute nodes as well as the nodes that run
 # the batch job scripts.  One must also have the libmysqlclient
-# library installed, and SCR should be configured with the
-# --with-mysql flag.
+# library installed.  Both the SCR library and the SCR commands
+# insert records into the database.
 #
-# To set up the database, first set passwords in this file for
+# To set up the database, first define passwords in this file for
 # the "scr" and "scr_insert" users in the "IDENTIFIED BY" fields
 # in the lines below, e.g.,
 #
@@ -28,8 +26,8 @@
 #
 #   mysql -u root -p < scr.mysql
 #
-# The SCR library and the scripts both read and write records to
-# this database.  Thus, the database must be accessible to both
+# The SCR library and the SCR commands both read and write records
+# to this database.  Thus, the database must be accessible to both
 # the compute nodes and the nodes where the batch scripts run.
 #
 #   (There may be a step necessary here to adjust the "users" table
@@ -37,7 +35,7 @@
 #   scr_insert users from the compute nodes and the nodes that run
 #   the batch job script.)
 #
-# After creating the database, one must then specify the hostname,
+# After creating the database, one can then specify the hostname,
 # database name, username, and password in the system scr.conf file.
 # For the time being, only the scr_insert user is used, e.g.,
 #
