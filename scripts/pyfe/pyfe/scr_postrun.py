@@ -15,6 +15,7 @@ from pyfe.scr_list_down_nodes import scr_list_down_nodes
 from pyfe.scr_glob_hosts import scr_glob_hosts
 from pyfe.scr_list_dir import scr_list_dir
 from pyfe.scr_env import SCR_Env
+from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
 
 def scr_postrun(prefix_dir=None,scr_env=None):
   # if SCR is disabled, immediately exit
@@ -51,10 +52,12 @@ def scr_postrun(prefix_dir=None,scr_env=None):
 
   if scr_env is None:
     scr_env = SCR_Env()
+  if scr_env.resmgr is None:
+    scr_env.resmgr = SCR_Resourcemgr()
   # get our nodeset for this job
   nodelist_env = os.environ.get('SCR_NODELIST')
   if nodelist_env is None:
-    nodelist_env = scr_env.get_job_nodes()
+    nodelist_env = scr_env.resmgr.get_job_nodes()
     if nodelist_env is None:
       print('scr_postrun: ERROR: Could not identify nodeset')
       return 1
@@ -160,7 +163,7 @@ def scr_postrun(prefix_dir=None,scr_env=None):
 
     # check whether we have a dataset set to flush
     print('scr_postrun: Looking for most recent checkpoint')
-    argv = [bindir+'/scr_flush_file','--dir',pardir,'--list-ckpt','--before',failed_dataset]
+    argv = [bindir+'/scr_flush_file','--dir',pardir,'--list-ckpt','--before',str(failed_dataset)]
     ckpt_list, returncode = runproc(argv=argv,getstdout=True)
     if returncode!=0:
       print('scr_postrun: Found no checkpoint to scavenge')
