@@ -124,12 +124,14 @@ def scr_halt(bindir=None,bash=None,mkdir=None,rm=None,echo=None,umask=None,check
     # RUN HALT CMD
     output, rc = runproc(halt_cmd,getstdout=True,getstderr=True)
     if rc!=0:
-      print(output[1].strip())
+      if output is not None:
+        print(output[1].strip())
       print('scr_halt: ERROR: Failed to update halt file for '+adir)
       ret = 1
 
     # print output to screen
-    print(output[0].strip())
+    if output is not None:
+      print(output[0].strip())
 
   # TODO: would like to protect against killing a job in the middle of a checkpoint if possible
 
