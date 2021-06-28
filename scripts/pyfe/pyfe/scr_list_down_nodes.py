@@ -25,7 +25,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
   if scr_env is None:
     scr_env = SCR_Env()
   if scr_env.resmgr is None:
-    scr_env.resmgr = SCR_ResourceMgr()
+    scr_env.resmgr = SCR_Resourcemgr()
   resourcemgr = scr_env.resmgr
   nodeset = resourcemgr.conf['nodes']
   if nodeset is None or len(nodeset)<1:
@@ -45,7 +45,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
   prefix = scr_env.conf['prefix']
 
   # get jobid
-  jobid = resourcemgr['jobid']
+  jobid = resourcemgr.conf['jobid']
   #if jobid == 'defjobid': # job id could not be determined
   #  print('Could not determine the job id') # the only place this is used here is in the logging below
 
@@ -124,7 +124,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
   # check that control and cache directories on each node work and are of proper size
   # get the control directory the job will use
   cntldir_vals = []
-  cntldir_string = scr_list_dir(base=True,runcmd='control',scr_env=scr_env,param=param)
+  cntldir_string = scr_list_dir(base=True,runcmd='control',scr_env=scr_env)
   # cntldir_string = `$bindir/scr_list_dir --base control`;
   if cntldir_string != 1:
     dirs = cntldir_string.split(' ')
@@ -268,8 +268,5 @@ if __name__=='__main__':
     parser.print_help()
   else:
     ret = scr_list_down_nodes(reason=args['reason'], free=args['free'], nodeset_down=args['down'], log_nodes=args['log'], runtime_secs=args['secs'], nodeset=args['[nodeset]'])
-    if ret==0:
-      print('No down nodes found.')
-    else:
-      print('scr_list_down_nodes returned '+str(ret))
+    print(str(ret))
 

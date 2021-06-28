@@ -65,7 +65,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
   param = SCR_Param()
   scr_env = SCR_Env() # env contains general environment infos independent of resmgr/launcher
-  resourcemgr = SCR_ResourceMgr() # resource manager (SLURM/LSF/ ...) set by argument or compile constant
+  resourcemgr = SCR_Resourcemgr() # resource manager (SLURM/LSF/ ...) set by argument or compile constant
   launcher = SCR_Joblauncher(launcher) # launcher contains attributes unique to launcher (srun/jsrun/ ...)
   # give scr_env a pointer to the objects for calling other methods
   scr_env.param = param
@@ -95,7 +95,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     resourcemgr.usewatchdog(True)
 
   # get the control directory
-  cntldir = scr_list_dir(user=scr_env['user'],jobid=resourcemgr['jobid'],runcmd='control',scr_env=scr_env)
+  cntldir = scr_list_dir(user=scr_env.conf['user'],jobid=resourcemgr.conf['jobid'],runcmd='control',scr_env=scr_env)
   if cntldir == 1:
     print(prog+': ERROR: Could not determine control directory')
     sys.exit(1)

@@ -43,8 +43,9 @@ def scr_halt(bindir=None,bash=None,mkdir=None,rm=None,echo=None,umask=None,check
     # halt after X checkpoints
     checkpoints_left = None
     if checkpoints is not None:
+      checkpoints = str(checkpoints)
       # TODO: check that a valid value was given
-      halt_conditions = ['-c',+str(checkpoints)]
+      halt_conditions = ['-c',checkpoints]
 
     # halt before time
     if before is not None:
@@ -102,26 +103,33 @@ def scr_halt(bindir=None,bash=None,mkdir=None,rm=None,echo=None,umask=None,check
     if len(halt_conditions)>0:
       # create the halt file with specified conditions
       halt_file_options = ' '.join(halt_conditions)
-      # does a quoted arg allow the single long argument?  ######
-      halt_cmd = [bash,'-c','\"'+mkdir+' -p '+adir+'/.scr; '+bindir+'/scr_halt_cntl -f '+halt_file+' '+halt_file_options+';\"']
-      #    $halt_cmd = "$bash -c \"$mkdir -p $dir/.scr; $bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
+      # can specify a different bash with popen (?)
+      halt_cmd = [bindir+'/scr_halt_cntl', '-f', halt_file]
+      halt_cmd.extend(halt_file_options.split(' '))
+      #halt_cmd = [bash,'-c','\"'+bindir+'/scr_halt_cntl -f '+halt_file+' '+halt_file_options+';\"']
     else:
       # remove the halt file
-      # Can just use the python command for this ?
-      halt_cmd = [bash,' -c \"'+rm+' -f '+halt_file+'\"']
+      #halt_cmd = [bash,' -c \"'+rm+' -f '+halt_file+'\"']
+      try:
+        os.remove(halt_file)
+      except Exception as e:
+        print(e)
+        print('scr_halt: ERROR: Failed to remove the halt file \"'+str(halt_file)+'\"')
+      return 0
 
     # execute the command
-    if verbose:
-      print(' '.join(halt_cmd))
+    #########################
+    #if verbose:
+    print(' '.join(halt_cmd))
     # RUN HALT CMD
-    output, rc = runproc(halt_cmd,getstdout=True)
+    output, rc = runproc(halt_cmd,getstdout=True,getstderr=True)
     if rc!=0:
-      print('')
+      print(output[1].strip())
       print('scr_halt: ERROR: Failed to update halt file for '+adir)
       ret = 1
 
     # print output to screen
-    print(output.strip())
+    print(output[0].strip())
 
   # TODO: would like to protect against killing a job in the middle of a checkpoint if possible
 
@@ -156,5 +164,5 @@ if __name__=='__main__':
     parser.print_help()
   else:
     ret = scr_halt(checkpoints=args['checkpoints'], before=args['before'], after=args['after'], immediate=args['immediate'], seconds=args['seconds'], dolist=args['list'], unset_checkpoints=args['unset_checkpoints'], unset_before=args['unset_before'], unset_after=args['unset_after'], unset_seconds=args['unset_seconds'], unset_reason=args['unset_reason'], remove=args['remove'], verbose=args['verbose'], dirs=args['dirs'])
-    print('scr_halt returned '+str(ret))
+    print(str(ret))
 
