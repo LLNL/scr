@@ -10,7 +10,7 @@ from pyfe.scr_list_dir import scr_list_dir
 from pyfe.scr_common import runproc, pipeproc, scr_prefix
 from pyfe import scr_common
 from pyfe.scr_env import SCR_Env
-from pyfe.resmgr import SCR_Resourcemgr
+from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
 
 def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
   ping = 'ping'

@@ -5,8 +5,8 @@
 from pyfe.scr_common import runproc
 import re
 from pyfe.scr_env import SCR_Env
-from pyfe.resmgr import SCR_Resourcemgr
-from pyfe.joblauncher import SCR_Joblauncher
+from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
 
 # This script attempts to get the job step id for the last srun command that 
 # was launched. The argument to this script is the PID of the srun command.
