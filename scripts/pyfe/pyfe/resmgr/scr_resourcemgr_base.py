@@ -13,6 +13,7 @@ from pyfe.scr_common import scr_prefix
 class SCR_Resourcemgr_Base(object):
   def __init__(self,resmgr='unknown'):
     self.conf = {}
+    self.conf['prefix'] = scr_prefix()
     self.conf['resmgr'] = resmgr
     self.conf['use_watchdog'] = False
     self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'
@@ -34,6 +35,9 @@ class SCR_Resourcemgr_Base(object):
 
   # get node list
   def get_job_nodes(self):
+    return None
+
+  def get_hostfile_minus(downhosts=[]):
     return None
 
   def get_downnodes(self):

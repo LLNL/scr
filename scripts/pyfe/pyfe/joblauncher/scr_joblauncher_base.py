@@ -7,7 +7,7 @@ class SCR_Joblauncher_Base(object):
   def __init__(self):
     self.conf = {}
     self.conf['launcher'] = None
-    pass
+    self.conf['hostfile'] = None
 
   # if a job launcher would like to perform any operations before scr_prerun
   def prepareforprerun(self):
@@ -17,3 +17,4 @@ class SCR_Joblauncher_Base(object):
     # an empty argv will just immediately return
     # could return something like: ['echo','unknown launcher']
     return []
+

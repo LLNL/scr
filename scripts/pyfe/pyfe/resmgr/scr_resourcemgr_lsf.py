@@ -19,7 +19,7 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
     if use_scr_watchdog is None:
       return False
     if use_scr_watchdog==True:
-      print('ERROR: SCR_WATCHDOG not supported on LSF.')
+      print('WARNING: SCR_WATCHDOG not supported on LSF.')
 
   # get job id, setting environment flag here
   def getjobid(self):
@@ -32,11 +32,14 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
     val = os.environ.get('LSB_DJOB_HOSTFILE')
     if val is not None:
       try:
+        lines = []
         with open(val,'r') as hostfile:
           # make a list from the set -> make a set from the list -> file.readlines().rstrip('\n')
           # get a list of lines without newlines and skip the first line
           lines = [line.strip() for line in hostfile.readlines()][1:]
           # get a set of unique hostnames, convert list to set and back
+        if len(lines)==0:
+          raise ValueError('Hostfile empty')
         hosts_unique = list(set(lines))
         hostlist = scr_hostlist.compress(hosts_unique)
         return hostlist
@@ -48,6 +51,32 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
       val = scr_hostlist.compress(val)
     # or, with jobid: squeue -j <jobid> -ho %N
     return val
+
+  def get_hostfile_minus(downhosts=[]):
+    # get the file name and read the file
+    val = os.environ.get('LSB_DJOB_HOSTFILE')
+    if val is None:
+      return None
+    # LSB_HOSTS would be easier, but it gets truncated at some limit
+    # only reliable way to build this list is to process file specified
+    # by LSB_DJOB_HOSTFILE
+    hosts = []
+    try:
+      # got a file, try to read it
+      with open(val,'r') as hostfile:
+        hosts = [line.strip() for line in hostfile.readlines()]
+      if len(hosts)==0:
+        raise ValueError('Hostfile empty')
+    except:
+      return None
+    # build set of unique hostnames, one hostname per line
+    uniquehosts = []
+    for host in hosts:
+      if len(host)==0:
+        continue
+      if host not in uniquehosts and host not in downhosts:
+        uniquehosts.append(host)
+    return uniquehosts
 
   def get_downnodes(self):
     val = os.environ.get('LSB_HOSTS')

@@ -209,20 +209,19 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     timestamp=datetime.now()
     print(prog+': RUN '+str(attempts)+': '+str(timestamp))
 
-    ############
-    #### Need to check the way this command is laid out
-    #############
     launch_cmd=launcher_args.copy()
-    if restart_cmd!='': # and os.path.isfile(restart_cmd) and os.access(restart_cmd,os.X_OK):
-      restart_name=launcher+' '+' '.join(launcher_args)+' '+bindir+'/scr_have_restart'
-      #if os.path.isfile(restart_name) and os.acess(restart_name,os.X_OK):
-      my_restart_cmd='echo '+restart_cmd+' '+bindir+'/scr_have_restart'
-      my_restart_cmd = re.sub('SCR_CKPT_NAME',restart_name,my_restart_cmd)
-      launch_cmd.append(my_restart_cmd)
-      #else:
-      #  launch_cmd.append(run_cmd)
-    else:
-      launch_cmd.append(run_cmd)
+    launch_cmd.append(run_cmd)
+    if restart_cmd!='':
+      argv = [launcher]
+      argv.extend(launcher_args)
+      argv.append(bindir+'/scr_have_restart')
+      restart_name = runproc(argv=argv,getstdout=True)[0]
+      if restart_name is not None and restart_name!='':
+        restart_name=restart_name.strip()
+        my_restart_cmd = re.sub('SCR_CKPT_NAME',restart_name,restart_cmd)
+        launch_cmd = launcher_args.copy()
+        ###### should this be split (' ') ?
+        launch_cmd.extend(my_restart_cmd.split(' '))
     # launch the job, make sure we include the script node and exclude down nodes
     start_secs=int(time())
 

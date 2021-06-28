@@ -7,6 +7,8 @@ import argparse, os
 from pyfe import scr_const
 from pyfe.scr_common import scr_prefix
 from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.scr_param import SCR_Param
+from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
 
 class SCR_Env:
   def __init__(self):
@@ -30,6 +32,20 @@ class SCR_Env:
   def set_prefix(self,prefix):
     self.conf['prefix'] = prefix
 
+def printobject(obj,objname):
+  for attr in dir(obj):
+    if attr.startswith('__'):
+      continue
+    thing = getattr(obj,attr)
+    if thing is not None and (attr == 'resmgr' or attr == 'launcher' or attr == 'param'):
+      printobject(thing,objname+'.'+attr)
+    elif type(thing) is dict:
+      print(objname+'.'+attr+' = {}')
+      for key in thing:
+        print(objname+'.'+attr+'['+key+'] = '+str(thing[key]))
+    else:
+      print(objname+'.'+attr+' = '+str(thing))
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_env')
   parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
@@ -41,17 +57,11 @@ if __name__ == '__main__':
   parser.add_argument('-r','--runnodes', action='store_true', help='List the number of nodes used in the last run.')
   args = vars(parser.parse_args())
   scr_env = SCR_Env()
+  scr_env.resmgr = SCR_Resourcemgr()
+  scr_env.launcher = SCR_Joblauncher()
+  scr_env.param = SCR_Param()
   if len(args)==0:
-    for attr in dir(scr_env):
-      if attr.startswith('__'):
-        continue
-      thing = getattr(scr_env,attr)
-      if type(thing) is dict:
-        print('scr_env.'+attr+' = {}')
-        for key in thing:
-          print('scr_env.'+attr+'['+key+'] = '+str(thing[key]))
-      else:
-        print('scr_env.'+attr+' = '+str(thing))
+    printobject(scr_env,'scr_env')
   elif 'help' in args:
     parser.print_help()
   else:
