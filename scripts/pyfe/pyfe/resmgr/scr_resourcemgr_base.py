@@ -47,7 +47,7 @@ class SCR_Resourcemgr_Base(object):
   def get_runnode_count(self):
     return 0 # print(err)
 
-  def get_jobstep_id(user='',jobid='',pid=-2):
+  def get_jobstep_id(user='',pid=-1):
     return -1
 
   def scr_kill_jobstep(jobid=-1):

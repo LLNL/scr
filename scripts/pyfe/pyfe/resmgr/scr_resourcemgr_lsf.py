@@ -93,7 +93,7 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
       return int(out.rstrip())
     return 0 # print(err)
 
-  def get_jobstep_id(user='',jpid=-1):
+  def get_jobstep_id(user='',pid=-1):
     # previously weren't able to get jobid
     if self.conf['jobid'] is None:
       return -1
