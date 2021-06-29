@@ -12,12 +12,111 @@ from pyfe import scr_common
 from pyfe.scr_env import SCR_Env
 from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
 
-def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
-  ping = 'ping'
+'''
+ methods used by resource managers to test nodes
+ these methods return a hash to track nodes which failed and their reason
+ these methods take a list of nodes which would otherwise be used
+ failing nodes are deleted from the list argument in each of these methods
+'''
+# mark the set of nodes the resource manager thinks is down
+def list_resmgr_down_nodes(nodes=[],resmgr_nodes=None):
+  unavailable = {}
+  if resmgr_nodes is not None:
+    resmgr_nodes = scr_hostlist.expand(resmgr_nodes)
+    for node in resmgr_nodes:
+      if node in nodes:
+        del nodes[node]
+      unavailable[node] = 'Reported down by resource manager'
+  return unavailable
 
+# mark any nodes that fail to respond to (up to 2) ping(s)
+def list_nodes_failed_ping(nodes=[]):
+  ping = 'ping'
+  unavailable = {}
+  # `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
+  argv=[ping,'-c','1','-w','1','']
+  for node in nodes:
+    argv[5] = node
+    returncode = runproc(argv=argv)[1]
+    if returncode!=0:
+      returncode = runproc(argv=argv)[1]
+      if returncode!=0:
+        unavailable[node] = 'Failed to ping'
+  for node in unavailable:
+    if node in nodes:
+      del nodes[node]
+  return unavailable
+
+# mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
+def list_param_excluded_nodes(nodes=[],param=None):
+  unavailable = {}
+  if param is not None:
+    exclude = param.get('SCR_EXCLUDE_NODES')
+    if exclude is not None:
+      exclude_nodes = scr_hostlist.expand($exclude)
+      for node in exclude_nodes:
+        if node in nodes:
+          del nodes[node]
+          unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
+  return unavailable
+
+# mark any nodes specified on the command line
+def list_argument_excluded_nodes(nodes=[],nodeset_down=''):
+  unavailable = {}
+  exclude_nodes = scr_hostlist.expand(nodeset_down)
+  for node in exclude_nodes:
+    if node in nodes:
+      del nodes[node]
+      unavailable[node] = 'Specified on command line'
+  return unavailable
+
+# mark any nodes that don't respond to pdsh echo up
+def list_pdsh_fail_echo(nodes=[]):
+  unavailable = {}
+  pdsh_assumed_down = nodes.copy()
+  if len(nodes)>0:
+    # only run this against set of nodes known to be responding
+    upnodes = scr_hostlist.compress(nodes)
+    pdsh   = scr_const.PDSH_EXE
+    dshbak = scr_const.DSHBAK_EXE
+
+    # run an "echo UP" on each node to check whether it works
+    argv = [ [pdsh,'-f','256','-w',upnodes,'\"echo UP\"'], [dshbak,'-c'] ]
+    output = pipeproc(argvs=argv,getstdout=True)[0]
+    position=0
+    for result in output.split('\n'):
+      if len(result)==0:
+        continue
+      if position==0:
+        if result.startswith('---'):
+          position=1
+      elif position==1:
+        nodeset = result
+        position = 2
+      elif position==2:
+        line=result
+        position=3
+      elif position==3:
+        position=0
+        if 'UP' in result:
+          exclude_nodes = scr_hostlist.expand(nodeset)
+          for excludenode in exclude_nodes:
+            # this node responded, so remove it from the down list
+            if excludenode in pdsh_assumed_down:
+              del pdsh_assumed_down[excludenode]
+
+  # if we still have any nodes assumed down, update our available/unavailable lists
+  for node in pdsh_assumed_down:
+    del nodes[node]
+    unavailable[node] = 'Failed to pdsh echo UP'
+
+  return unavailable
+
+# The main scr_list_down_nodes method.
+# this method takes an scr_env, the contained resource manager will determine which methods above to use
+def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
   bindir = scr_const.X_BINDIR
   pdsh   = scr_const.PDSH_EXE
-  dshbak = scr_const.DSHBAK_EXE
 
   start_time = str(int(time())) # epoch seconds as int to remove decimal, as string to be a parameter
 
@@ -27,10 +126,11 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
   if scr_env.resmgr is None:
     scr_env.resmgr = SCR_Resourcemgr()
   resourcemgr = scr_env.resmgr
-  nodeset = resourcemgr.conf['nodes']
-  if nodeset is None or len(nodeset)<1:
-    print('scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.')
-    return 1
+  if nodeset is None or len(nodeset)==0:
+    nodeset = resourcemgr.conf['nodes']
+    if nodeset is None or len(nodeset)==0:
+      print('scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.')
+      return 1
   if type(nodeset) is not str:
     nodeset = ','.join(nodeset)
 
@@ -49,74 +149,9 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
   #if jobid == 'defjobid': # job id could not be determined
   #  print('Could not determine the job id') # the only place this is used here is in the logging below
 
-  # this hash defines all nodes available in our allocation
-  allocation = {}
-  available = {}
-  for node in nodes:
-    allocation[node] = True
-    available[node] = True
-
-  # hashes to define all unavailable (down or excluded) nodes and reason
-  unavailable = {}
-  reason = {}
-
-  # mark the set of nodes the resource manager thinks is down
-  resmgr_down = resourcemgr.get_downnodes()
-  if resmgr_down is not None and resmgr_down!='':
-    resmgr_nodes = scr_hostlist.expand(resmgr_nodes)
-    for node in resmgr_nodes:
-      if node in available:
-        del available[node]
-      unavailable[node] = True
-      reason[node] = "Reported down by resource manager"
-
-  #######
-  ### If we want to disable ping in certain environments
-  ### we could put a flag in resourcemgr or somewhere
-  ### if resourcemgr.conf['canping'] == True:
-  #######
-
-  # mark the set of nodes we can't ping
-  failed_ping = {}
-  for node in nodes:
-    # ICMP over omnipath can fail due to bad arp
-    # First ping will replenish arp, second succeed
-    # `ping -c2` will be slower in the "normal" case
-    # that ping succeeds, because non-root users cannot
-    # set the ping interval below 0.2 seconds.
-    argv=[ping,'-c','1','-w','1',node]
-    returncode = runproc(argv=argv)[1]
-    # `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
-    if returncode!=0:
-      returncode = runproc(argv=argv)[1]
-      if returncode!=0:
-        if node in available:
-          del available[node]
-        unavailable[node] = True
-        reason[node] = 'Failed to ping'
-
-  # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
-  exclude = param.get('SCR_EXCLUDE_NODES')
-  if exclude is not None:
-    exclude_nodes = scr_hostlist.expand(exclude)
-    for node in exclude_nodes:
-      if node in allocation:
-        if node in available:
-          del available[node]
-        unavailable[node] = True
-        reason[node] = 'User excluded via SCR_EXCLUDE_NODES'
-
-  # mark any nodes specified on the command line
-  if nodeset_down is not None and nodeset_down!='':
-    exclude_nodes = scr_hostlist.expand(nodeset_down)
-    for node in exclude_nodes:
-      if node in allocation:
-        if node in available:
-          del available[node]
-        unavailable[node] = True
-        reason[node] = 'Specified on command line'
-
-  # TODO: read exclude list from a file, as well?
+  # get a hash of all unavailable (down or excluded) nodes and reason
+  # keys are nodes and the values are the reasons
+  unavailable = resourcemgr.list_down_nodes_with_reason(nodes=nodes,param=param,nodeset_down=nodeset_down)
 
   # specify whether to check total or free capacity in directories
   #if free: free_flag = '--free'
@@ -173,13 +208,12 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
     cachedir_flag = '--cache ' + ','.join(cachedir_vals)
 
   # only run this against set of nodes known to be responding
-  still_up = list(available.keys())
-  upnodes = scr_hostlist.compress(still_up)
+  upnodes = scr_hostlist.compress(nodes)
 
   # run scr_check_node on each node specifying control and cache directories to check
   ################### This is calling a script, scr_check_node, from pdsh.
   ###################### think this is going to need the python pdsh equivalent
-  if len(still_up) > 0:
+  if len(nodes) > 0:
     #argv = [pdsh,'-Rexec','-f','256','-w',upnodes,'srun','-n','1','-N','1','-w','%h',bindir+'/scr_check_node']
     argv = [pdsh,'-Rexec','-f','256','-w',upnodes,'srun','-n','1','-N','1','-w','%h','python3',bindir+'/scr_check_node.py']
     if free:
@@ -208,48 +242,31 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down=None, log_nodes=F
         if 'PASS' not in result:
           exclude_nodes = scr_hostlist.expand(nodeset);
           for node in exclude_nodes:
-            if node in allocation:
-              if node in available:
-                del available[node]
-              unavailable[node] = True
-              reason[node] = result
+            if node in nodes:
+              del nodes[node]
+              unavailable[node] = result
 
-  # take union of all these sets
-  failed_nodes = set(unavailable.keys())
-
-  newly_failed_nodes = {}
   # print any failed nodes to stdout and exit with non-zero
-  if len(failed_nodes)>0:
-    # initialize our list of newly failed nodes to be all failed nodes
-    for node in failed_nodes:
-      newly_failed_nodes[node] = True
-
-    # remove any nodes that user already knew to be down
-    if nodeset_down is not None:
-      exclude_nodes = scr_hostlist.expand(nodeset_down)
-      for node in exclude_nodes:
-        if node in newly_failed_nodes:
-          del newly_failed_nodes[node]
-
+  if len(unavailable)>0:
     # log each newly failed node, along with the reason
     if log_nodes:
-      for node in newly_failed_nodes.keys():
+      ########## this can just take the entire list of failed nodes at once rather than iterating through them
+      for node in unavailable:
         duration = None
         if runtime_secs is not None:
           duration = runtime_secs
-        scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='NODE_FAIL',event_note=node+': '+reason[node],event_start=start_time,event_secs=duration)
+        scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='NODE_FAIL',event_note=node+': '+unavailable[node],event_start=start_time,event_secs=duration)
         #`$bindir/scr_log_event -i $jobid -p $prefix -T 'NODE_FAIL' -N '$node: $reason{$node}' -S $start_time $duration`;
     # now output info to the user
     ret=''
     if reason:
       # list each node and the reason each is down
-      for node in failed_nodes:
-        ret += node+': '+reason[node]+'\n'
-      if len(ret)>1:
-        ret = ret[:-1] # take off the trailing newline
+      for node in unavailable:
+        ret += node+': '+unavailable[node]+'\n'
+      ret = ret[:-1] # take off the trailing newline
     else:
       # simply print the list of down node in range syntax
-      ret = scr_hostlist.compress(failed_nodes)
+      ret = scr_hostlist.compress(list(unavailable))
     return ret
   # otherwise, don't print anything and exit with 0
   return 0
@@ -268,5 +285,5 @@ if __name__=='__main__':
     parser.print_help()
   else:
     ret = scr_list_down_nodes(reason=args['reason'], free=args['free'], nodeset_down=args['down'], log_nodes=args['log'], runtime_secs=args['secs'], nodeset=args['[nodeset]'])
-    print(str(ret))
+    print(str(ret),end='')
 

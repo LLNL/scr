@@ -144,7 +144,7 @@ def rangefromnumbers(numstring):
 #   machine[08-10] --> machine08,machine09,machine10
 def expand(nodelist):
   if nodelist is None or len(nodelist)<1:
-    return ''
+    return []
   # list of gathered nodes (string list)
   prefixes = []
   # list of numstrings

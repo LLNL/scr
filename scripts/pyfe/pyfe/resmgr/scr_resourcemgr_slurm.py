@@ -7,6 +7,7 @@ import os, re
 from pyfe import scr_const, scr_hostlist
 from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
 from pyfe.scr_common import runproc
+from pyfe.scr_list_down_nodes import list_resmgr_down_nodes, list_nodes_failed_ping, list_param_excluded_nodes, list_argument_excluded_nodes
 
 # SCR_Resourcemgr class holds the configuration
 
@@ -99,3 +100,18 @@ class SCR_Resourcemgr_SLURM(SCR_Resourcemgr_Base):
     if output.isdigit():
       return int(output)
     return 0
+
+  # return a hash to define all unavailable (down or excluded) nodes and reason
+  def list_down_nodes_with_reason(nodes=[],param=None,nodeset_down=''):
+    unavailable = list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
+    nextunavail = list_nodes_failed_ping(nodes=nodes)
+    unavailable.update(nextunavail)
+    if param is not None:
+      nextunavail = list_param_excluded_nodes(nodes=nodes,param=param)
+      unavailable.update(nextunavail)
+    if nodeset_down != '':
+      nextunavail = list_argument_excluded_nodes(nodes=nodes,nodeset_down=nodeset_down)
+      unavailable.update(nextunavail)
+    # TODO: read exclude list from a file, as well?
+    return unavailable
+
