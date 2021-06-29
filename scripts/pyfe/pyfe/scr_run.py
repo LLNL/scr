@@ -71,13 +71,19 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   scr_env.param = param
   scr_env.resmgr = resourcemgr
   scr_env.launcher = launcher
+  # this may be used by a launcher to store a list of hosts
+  scr_env.launcher.conf['hostfile'] = scr_env.conf['prefix']+'/.scr/hostfile'
   # jobid will come from resource manager.
   jobid = resourcemgr.conf['jobid']
 
   # TODO: check that we have a valid jobid and bail if not
-  if jobid == 'defjobid':
-    print(prog+': ERROR: Could not determine jobid.')
-    sys.exit(1)
+  # pmix always returns None
+  # others return None when it can't be found
+  # previously they returned 'defjobid' with the comment to assume testing
+  if jobid is None: #### pmix always returns none.
+    jobid = 'defjobid'
+    #print(prog+': ERROR: Could not determine jobid.')
+    #sys.exit(1)
 
   # get the nodeset of this job
   nodelist = scr_env.conf['nodes']
@@ -228,13 +234,13 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_START', event_note='run='+str(attempts), event_start=str(start_secs))
     # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
     if resourcemgr.usewatchdog() == False:
-      argv=launcher.getlaunchargv(nodesarg=down_nodes,launch_cmd=launch_cmd)
+      argv=launcher.getlaunchargv(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
       runproc(argv=argv)
       # $launcher $exclude $launch_cmd
     else:
       print(prog+': Attempting to start watchdog process.')
       # need to get job step id of the srun command
-      argv=launcher.getlaunchargv(nodesarg=down_nodes,launch_cmd=launch_cmd)
+      argv=launcher.getlaunchargv(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
       launched_process, launcher_pid = runproc(argv=argv, wait=False)
       # $launcher $exclude $launch_cmd &
       #{launcher}run_pid = runproc.pid

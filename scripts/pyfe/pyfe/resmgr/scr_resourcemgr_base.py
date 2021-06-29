@@ -37,9 +37,6 @@ class SCR_Resourcemgr_Base(object):
   def get_job_nodes(self):
     return None
 
-  def get_hostfile_minus(downhosts=[]):
-    return None
-
   def get_downnodes(self):
     return None
 

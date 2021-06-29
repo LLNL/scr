@@ -18,11 +18,7 @@ class SCR_Resourcemgr_SLURM(SCR_Resourcemgr_Base):
   # get job id, setting environment flag here
   def getjobid(self):
     val = os.environ.get('SLURM_JOBID')
-    if val is not None:
-      return val
-    # failed to read jobid from environment,
-    # assume user is running in test mode
-    return None
+    return val
 
   # get node list
   def get_job_nodes(self):

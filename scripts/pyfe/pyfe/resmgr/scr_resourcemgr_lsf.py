@@ -52,32 +52,6 @@ class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
     # or, with jobid: squeue -j <jobid> -ho %N
     return val
 
-  def get_hostfile_minus(downhosts=[]):
-    # get the file name and read the file
-    val = os.environ.get('LSB_DJOB_HOSTFILE')
-    if val is None:
-      return None
-    # LSB_HOSTS would be easier, but it gets truncated at some limit
-    # only reliable way to build this list is to process file specified
-    # by LSB_DJOB_HOSTFILE
-    hosts = []
-    try:
-      # got a file, try to read it
-      with open(val,'r') as hostfile:
-        hosts = [line.strip() for line in hostfile.readlines()]
-      if len(hosts)==0:
-        raise ValueError('Hostfile empty')
-    except:
-      return None
-    # build set of unique hostnames, one hostname per line
-    uniquehosts = []
-    for host in hosts:
-      if len(host)==0:
-        continue
-      if host not in uniquehosts and host not in downhosts:
-        uniquehosts.append(host)
-    return uniquehosts
-
   def get_downnodes(self):
     val = os.environ.get('LSB_HOSTS')
     if val is not None:
