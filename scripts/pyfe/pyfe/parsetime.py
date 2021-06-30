@@ -4,7 +4,7 @@
 # return a time delta from now to input time
 
 from datetime import datetime
-import sys
+import re, sys
 
 def print_usage(prog):
   print('Time parser')
@@ -42,7 +42,7 @@ def numdays(current,future):
 
 # returns a time delta from datetime
 # completely invalid input will end up becoming about +24 hours
-def parsetime(timestr,prog='parsetime.py'):
+def parsetime(timestr):
   weekdays = {'mon':0,'tue':1,'wed':2,'thu':3,'fri':4,'sat':5,'sun':6}
   months = {'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}
   # track whether the same day was given (it is monday and monday was given)
@@ -63,12 +63,12 @@ def parsetime(timestr,prog='parsetime.py'):
   timestr = timestr.lower()
   if 'pm' in timestr:
     ispm=True
-    timestr = ' '.join(timestr.split('pm'))
+    timestr = re.sub('pm',' ',timestr)
   elif 'am' in timestr:
-    timestr = ' '.join(timestr.split('am'))
+    timestr = re.sub('am',' ',timestr)
+  timestr = re.sub(',',' ',timestr)
   if timestr.find('+')>=0:
-    posi = timestr.find('+')
-    timestr = timestr[:posi]+timestr[posi+1:]
+    timestr = re.sub('+','',timestr)
     isduration = True
   parts = timestr.split(' ')
   for part in parts:
@@ -198,16 +198,15 @@ def parsetime(timestr,prog='parsetime.py'):
     month-=12
     year+=1
   # datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)
-  then =  datetime(year,month,day,hour,minute,second)
-  print(then)
-  then = then - datetime.now()
-  return then
+  # timestamp to convert it to a POSIX timestamp
+  # int cast to remove the trailing decimal
+  return int(datetime(year,month,day,hour,minute,second).timestamp())
 
 if __name__=='__main__':
   now = datetime.now()
-  print(now)
+  #print(now)
   if len(sys.argv)<2:
     print_usage(sys.argv[0])
   else:
-    print(parsetime(' '.join(sys.argv[1:]),sys.argv[0]))
+    print(parsetime(' '.join(sys.argv[1:])))
 
