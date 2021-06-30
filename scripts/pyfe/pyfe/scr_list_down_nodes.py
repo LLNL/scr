@@ -297,25 +297,21 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=Fal
 
   # TODO: read exclude list from a file, as well?
 
-
   # print any failed nodes to stdout and exit with non-zero
   if len(unavailable)>0:
     # log each newly failed node, along with the reason
     if log_nodes:
-      ########## this can just take the entire list of failed nodes at once rather than iterating through them
-      for node in unavailable:
-        duration = None
-        if runtime_secs is not None:
-          duration = runtime_secs
-        scr_common.log(bindir=bindir,prefix=prefix,jobid=jobid,event_type='NODE_FAIL',event_note=node+': '+unavailable[node],event_start=start_time,event_secs=duration)
-        #`$bindir/scr_log_event -i $jobid -p $prefix -T 'NODE_FAIL' -N '$node: $reason{$node}' -S $start_time $duration`;
+      # scr_common.log calls the external program: scr_log_event
+      # the method will also accept a dictionary (instead of a string)
+      # for the event_note argument, this moves the loop closer to the runproc call
+      scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='NODE_FAIL', event_note=unavailable, event_start=start_time, event_secs=runtime_secs)
     # now output info to the user
     ret=''
     if reason:
       # list each node and the reason each is down
       for node in unavailable:
         ret += node+': '+unavailable[node]+'\n'
-      ret = ret[:-1] # take off the trailing newline
+      ret = ret[:-1] ### take off the final trailing newline (?)
     else:
       # simply print the list of down node in range syntax
       ret = scr_hostlist.compress(list(unavailable))

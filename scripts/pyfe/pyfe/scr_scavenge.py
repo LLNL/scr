@@ -78,7 +78,7 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
   error  = prefixdir+'/.scr/scr.dataset.'+dataset_id+'/scr_scavenge.pdsh.e'+jobid
 
   # log the start of the scavenge operation
-  returncode = scr_common.log(bindir=bindir, prefix=prefixdir, jobid=jobid, event_type='SCAVENGE_START', event_dset=dataset_id, event_start=str(start_time))
+  scr_common.log(bindir=bindir, prefix=prefixdir, jobid=jobid, event_type='SCAVENGE_START', event_dset=dataset_id, event_start=str(start_time))
 
   # gather files via pdsh
   print('scr_scavenge: '+str(int(time())))

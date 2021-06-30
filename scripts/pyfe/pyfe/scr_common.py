@@ -113,6 +113,11 @@ def pipeproc(argvs,wait=True,getstdout=False,getstderr=False):
     print('pipeproc: ERROR: '+str(e))
     return None, None
 
+# passes the given arguments to bindir/scr_log_event
+# prefix is required
+# This was called from scr_list_down_nodes in a loop, with event_note changing
+# To handle this, event_note can either be a string or a dictionary
+# if event_note is a dictionary the looped runproc will happen here
 def log(bindir=None, prefix=None, username=None, jobname=None, jobid=None, start=None, event_type=None, event_note=None, event_dset=None, event_name=None, event_start=None, event_secs=None):
   if prefix is None:
     prefix = scr_prefix()
@@ -130,8 +135,6 @@ def log(bindir=None, prefix=None, username=None, jobname=None, jobid=None, start
     argv.extend(['-s',start])
   if event_type is not None:
     argv.extend(['-T',event_type])
-  if event_note is not None:
-    argv.extend(['-N',event_note])
   if event_dset is not None:
     argv.extend(['-D',event_dset])
   if event_name is not None:
@@ -140,8 +143,16 @@ def log(bindir=None, prefix=None, username=None, jobname=None, jobid=None, start
     argv.extend(['-S',event_start])
   if event_secs is not None:
     argv.extend(['-L',event_secs])
-  returncode = runproc(argv=argv)[1]
-  return returncode
+  if type(event_note) is dict:
+    argv.extend(['-N',''])
+    lastarg = len(argv)-1
+    for key in event_note:
+      argv[lastarg] = key+':'+event_note[key]
+      runproc(argv=argv)
+  else:
+    if event_note is not None:
+      argv.extend(['-N',event_note])
+    runproc(argv=argv)
 
 if __name__=='__main__':
   parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_common')
@@ -230,6 +241,5 @@ if __name__=='__main__':
       print('Nothing to log, see \'--help\' for available value pairs.')
       sys.exit(1)
     print(printstr[:-2]+')')
-    returncode = log(bindir=bindir, prefix=prefix, username=username, jobname=jobname, jobid=jobid, start=start, event_type=event_type, event_note=event_note, event_dset=event_dset, event_name=event_name, event_start=event_start, event_secs=event_secs)
-    print('  process returned with code '+str(returncode))
+    log(bindir=bindir, prefix=prefix, username=username, jobname=jobname, jobid=jobid, start=start, event_type=event_type, event_note=event_note, event_dset=event_dset, event_name=event_name, event_start=event_start, event_secs=event_secs)
 
