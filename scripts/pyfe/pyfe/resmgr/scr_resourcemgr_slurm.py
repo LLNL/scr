@@ -7,7 +7,7 @@ import os, re
 from pyfe import scr_const, scr_hostlist
 from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
 from pyfe.scr_common import runproc
-from pyfe.scr_list_down_nodes import list_resmgr_down_nodes, list_nodes_failed_ping, list_param_excluded_nodes, list_argument_excluded_nodes
+from pyfe.scr_list_down_nodes import SCR_List_Down_Nodes
 
 # SCR_Resourcemgr class holds the configuration
 
@@ -44,7 +44,7 @@ class SCR_Resourcemgr_SLURM(SCR_Resourcemgr_Base):
       return int(out)
     return 0 # print(err)
 
-  def get_jobstep_id(user='',pid=-1):
+  def get_jobstep_id(self,user='',pid=-1):
     # we previously weren't able to determine the job id
     if self.conf['jobid'] is None:
       return -1
@@ -82,7 +82,7 @@ class SCR_Resourcemgr_SLURM(SCR_Resourcemgr_Base):
         break
     return currjobid
 
-  def scr_kill_jobstep(jobid=-1):
+  def scr_kill_jobstep(self,jobid=-1):
     if jobid==-1:
       print('You must specify the job step id to kill.')
       return 1
@@ -102,16 +102,16 @@ class SCR_Resourcemgr_SLURM(SCR_Resourcemgr_Base):
     return 0
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(nodes=[],param=None,nodeset_down=''):
-    unavailable = list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
-    nextunavail = list_nodes_failed_ping(nodes=nodes)
+  def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False):
+    unavailable = SCR_List_Down_Nodes.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
+    nextunavail = SCR_List_Down_Nodes.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)
-    if param is not None:
-      nextunavail = list_param_excluded_nodes(nodes=nodes,param=param)
+    if scr_env is not None:
+      nextunavail = SCR_List_Down_Nodes.list_param_excluded_nodes(nodes=nodes,param=scr_env.param)
       unavailable.update(nextunavail)
-    if nodeset_down != '':
-      nextunavail = list_argument_excluded_nodes(nodes=nodes,nodeset_down=nodeset_down)
+      argv = [ '$pdsh','-Rexec','-f','256','-w','$upnodes','srun','-n','1','-N','1','-w','%h' ]
+      #my $output = `$pdsh -Rexec -f 256 -w '$upnodes' srun -n 1 -N 1 -w %h $bindir/scr_check_node $free_flag $cntldir_flag $cachedir_flag | $dshbak -c`;
+      nextunavail = SCR_List_Down_Nodes.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, scr_check_node_argv=argv)
       unavailable.update(nextunavail)
-    # TODO: read exclude list from a file, as well?
     return unavailable
 

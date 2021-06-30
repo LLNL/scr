@@ -9,7 +9,6 @@
 import os
 from pyfe import scr_const, scr_hostlist
 from pyfe.scr_common import scr_prefix, runproc
-from pyfe.scr_list_down_nodes import list_argument_excluded_nodes
 
 class SCR_Resourcemgr_Base(object):
   def __init__(self,resmgr='unknown'):
@@ -55,9 +54,8 @@ class SCR_Resourcemgr_Base(object):
     return 0
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(nodes=[],param=None,nodeset_down=''):
-    unavailable = list_argument_excluded_nodes(nodes=nodes,nodeset_down=nodeset_down)
-    return unavailable
+  def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False):
+    return {}
 
 if __name__=='__main__':
   resmgr = SCR_Resourcemgr_Base()

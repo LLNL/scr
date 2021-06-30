@@ -19,7 +19,7 @@ from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
 # returns 1 for error, string for success
 def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
   # check that user specified "control" or "cache"
-  if runcmd is None:
+  if runcmd != 'control' and runcmd !='cache':
     return 1
 
   # TODO: read cache directory from config file
@@ -43,9 +43,9 @@ def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
       bases = list(cachedesc.keys())
       #foreach my $index (keys %$cachedesc) {
       #  push @bases, $index;
-    else:
-      # lookup cntl base
-      bases = list(param.get('SCR_CNTL_BASE').keys())
+  else:
+    # lookup cntl base
+    bases = list(param.get('SCR_CNTL_BASE').keys())
   if len(bases)==0:
     print('INVALID')
     return 1

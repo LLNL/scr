@@ -170,7 +170,7 @@ class SCR_Param():
       number = ''.join(tokens[:-1])
       units = tokens[-1].lower()
     else:
-      number = stringval
+      return int(stringval) # TODO: print error? unknown unit string
     factor = None
     if units!='':
       if units=='b':
@@ -188,7 +188,7 @@ class SCR_Param():
       elif units=='eb' or units=='e':
         factor=1024*1024*1024*1024*1024*1024
       else:
-        pass # TODO: print error? unknown unit string
+        return int(stringval) # TODO: print error? unknown unit string
     val = float(number)
     if factor is not None:
       val*=factor
