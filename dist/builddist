@@ -5,7 +5,7 @@ print_usage() {
     echo ""
     echo "Tags:"
     echo "  develop - build tarball of latest"
-    echo "  v3.0rc1"
+#    echo "  v3.0rc1"
 }
 
 # check that we got an argument or print usage
@@ -18,15 +18,15 @@ fi
 if [ "$1" == "develop" ] ; then
     # to build from latest branch of all repos
     ORGS=(
-        "lwgrp"    "llnl"       "master"
-        "dtcmp"    "llnl"       "master"
-        "kvtree"   "ecp-veloc"  "master"
-        "axl"      "ecp-veloc"  "master"
-        "spath"    "ecp-veloc"  "master"
-        "shuffile" "ecp-veloc"  "master"
-        "redset"   "ecp-veloc"  "master"
-        "er"       "ecp-veloc"  "master"
-        "rankstr"  "ecp-veloc"  "master"
+        "lwgrp"    "llnl"       "main"
+        "dtcmp"    "llnl"       "main"
+        "kvtree"   "ecp-veloc"  "main"
+        "axl"      "ecp-veloc"  "main"
+        "spath"    "ecp-veloc"  "main"
+        "shuffile" "ecp-veloc"  "main"
+        "redset"   "ecp-veloc"  "main"
+        "er"       "ecp-veloc"  "main"
+        "rankstr"  "ecp-veloc"  "main"
         "scr"      "llnl"       "develop"
     )
 #elif [ "$1" == "v3.0rc1" ] ; then

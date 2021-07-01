@@ -106,7 +106,7 @@ One can disable portions of the SCR build if they are not needed:
 * :code:`-DENABLE_YOGRT=[ON/OFF]` : Whether to use libyogrt, defaults to :code:`ON`
 * :code:`-DWITH_YOGRT_PREFIX:PATH=[path to libyogrt]`
 
-* :code:`-DENABLE_MYSQL=[ON/OFF]` : Whether to use MySQL, defaults to :code:`ON`
+* :code:`-DENABLE_MYSQL=[ON/OFF]` : Whether to use MySQL, defaults to :code:`OFF`
 * :code:`-DWITH_MYSQL_PREFIX=[path to MySQL]`
 
 .. _sec-build-spack:

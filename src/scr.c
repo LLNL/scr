@@ -674,6 +674,9 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_ENABLE")) != NULL) {
     scr_enabled = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_ENABLE=%d", scr_enabled);
+  }
 
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
@@ -685,11 +688,17 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_DEBUG")) != NULL) {
     scr_debug = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_DEBUG=%d", scr_debug);
+  }
 
   /* set scr_prefix_path and scr_prefix */
   value = scr_param_get("SCR_PREFIX");
   scr_prefix_path = scr_get_prefix(value);
   scr_prefix = spath_strdup(scr_prefix_path);
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_PREFIX=%s", scr_prefix);
+  }
 
   /* define the path to the .scr subdir within the prefix dir */
   spath* path_prefix_scr = spath_dup(scr_prefix_path);
@@ -712,39 +721,69 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_LOG_ENABLE")) != NULL) {
     scr_log_enable = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_ENABLE=%d", scr_log_enable);
+  }
 
   /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_LOG_TXT_ENABLE")) != NULL) {
     scr_log_txt_enable = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_TXT_ENABLE=%d", scr_log_txt_enable);
   }
 
   /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_LOG_SYSLOG_ENABLE")) != NULL) {
     scr_log_syslog_enable = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_SYSLOG_ENABLE=%d", scr_log_syslog_enable);
+  }
 
   /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_LOG_DB_ENABLE")) != NULL) {
     scr_log_db_enable = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_ENABLE=%d", scr_log_db_enable);
   }
 
   /* read in the debug level for database log messages */
   if ((value = scr_param_get("SCR_LOG_DB_DEBUG")) != NULL) {
     scr_log_db_debug = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_DEBUG=%d", scr_log_db_debug);
+  }
 
   /* SCR log DB connection parameters */
   if ((value = scr_param_get("SCR_LOG_DB_HOST")) != NULL) {
     scr_log_db_host = strdup(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_HOST=%s", scr_log_db_host);
+  }
+
   if ((value = scr_param_get("SCR_LOG_DB_USER")) != NULL) {
     scr_log_db_user = strdup(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_USER=%s", scr_log_db_user);
+  }
+
   if ((value = scr_param_get("SCR_LOG_DB_PASS")) != NULL) {
     scr_log_db_pass = strdup(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_PASS=%s", scr_log_db_pass);
+  }
+
   if ((value = scr_param_get("SCR_LOG_DB_NAME")) != NULL) {
     scr_log_db_name = strdup(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_NAME=%s", scr_log_db_name);
   }
 
   /* read username from SCR_USER_NAME, if not set, try to read from environment */
@@ -752,6 +791,9 @@ static int scr_get_params()
     scr_username = strdup(value);
   } else {
     scr_username = scr_env_username();
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_USER_NAME=%s", scr_username);
   }
 
   /* check that the username is defined, fatal error if not */
@@ -766,6 +808,9 @@ static int scr_get_params()
     scr_jobid = strdup(value);
   } else {
     scr_jobid = scr_env_jobid();
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_JOB_ID=%s", scr_jobid);
   }
 
   /* check that the jobid is defined, fatal error if not */
@@ -789,12 +834,18 @@ static int scr_get_params()
       );
     }
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_JOB_NAME=%s", scr_jobname);
+  }
 
   /* read cluster name from SCR_CLUSTER_NAME, if not set, try to read from environment */
   if ((value = scr_param_get("SCR_CLUSTER_NAME")) != NULL) {
     scr_clustername = strdup(value);
   } else {
     scr_clustername = scr_env_cluster();
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CLUSTER_NAME=%s", scr_clustername);
   }
 
   /* override default base control directory */
@@ -803,6 +854,9 @@ static int scr_get_params()
   } else {
     scr_cntl_base = spath_strdup_reduce_str(SCR_CNTL_BASE);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CNTL_BASE=%s", scr_cntl_base);
+  }
 
   /* override default base directory for checkpoint cache */
   if ((value = scr_param_get("SCR_CACHE_BASE")) != NULL) {
@@ -810,10 +864,16 @@ static int scr_get_params()
   } else {
     scr_cache_base = spath_strdup_reduce_str(SCR_CACHE_BASE);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CACHE_BASE=%s", scr_cache_base);
+  }
 
   /* set maximum number of checkpoints to keep in cache */
   if ((value = scr_param_get("SCR_CACHE_SIZE")) != NULL) {
     scr_cache_size = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CACHE_SIZE=%d", scr_cache_size);
   }
 
   /* fill in a hash of group descriptors */
@@ -860,15 +920,24 @@ static int scr_get_params()
       scr_copy_type = SCR_COPY_FILE;
     }
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_COPY_TYPE=%d", scr_copy_type);
+  }
 
   /* specify the number of tasks in xor set */
   if ((value = scr_param_get("SCR_SET_SIZE")) != NULL) {
     scr_set_size = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_SET_SIZE=%d", scr_set_size);
+  }
 
   /* specify the number of failures we should tolerate per set */
   if ((value = scr_param_get("SCR_SET_FAILURES")) != NULL) {
     scr_set_failures = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_SET_FAILURES=%d", scr_set_failures);
   }
 
   /* specify the group name to protect failures */
@@ -876,6 +945,9 @@ static int scr_get_params()
     scr_group = strdup(value);
   } else {
     scr_group = strdup(SCR_GROUP);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_GROUP=%s", scr_group);
   }
 
   /* fill in a hash of redundancy descriptors */
@@ -923,16 +995,25 @@ static int scr_get_params()
     /* if BYPASS is set explicitly, we use that */
     scr_cache_bypass = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CACHE_BYPASS=%d", scr_cache_bypass);
+  }
 
   /* if job has fewer than SCR_HALT_SECONDS remaining after completing a checkpoint,
    * halt it */
   if ((value = scr_param_get("SCR_HALT_SECONDS")) != NULL) {
     scr_halt_seconds = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_HALT_SECONDS=%d", scr_halt_seconds);
+  }
 
   /* determine whether we should call exit() upon detecting a halt condition */
   if ((value = scr_param_get("SCR_HALT_EXIT")) != NULL) {
     scr_halt_exit = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_HALT_EXIT=%d", scr_halt_exit);
   }
 
   /* set MPI buffer size (file chunk size) */
@@ -946,41 +1027,65 @@ static int scr_get_params()
       }
     }
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_MPI_BUF_SIZE=%llu", (unsigned long long)scr_mpi_buf_size);
+  }
 
   /* whether to delete all datasets from cache on restart,
    * primarily used for debugging */
   if ((value = scr_param_get("SCR_CACHE_PURGE")) != NULL) {
     scr_purge = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CACHE_PURGE=%d", scr_purge);
+  }
 
   /* whether to distribute files in filemap to ranks */
   if ((value = scr_param_get("SCR_DISTRIBUTE")) != NULL) {
     scr_distribute = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_DISTRIBUTE=%d", scr_distribute);
   }
 
   /* whether to fetch files from the parallel file system */
   if ((value = scr_param_get("SCR_FETCH")) != NULL) {
     scr_fetch = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FETCH=%d", scr_fetch);
+  }
 
   /* specify number of processes to read files simultaneously */
   if ((value = scr_param_get("SCR_FETCH_WIDTH")) != NULL) {
     scr_fetch_width = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FETCH_WIDTH=%d", scr_fetch_width);
   }
 
   /* allow user to specify checkpoint to start with on fetch */
   if ((value = scr_param_get("SCR_CURRENT")) != NULL) {
     scr_fetch_current = strdup(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CURRENT=%s", scr_fetch_current);
+  }
 
   /* specify how often we should flush files */
   if ((value = scr_param_get("SCR_FLUSH")) != NULL) {
     scr_flush = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH=%d", scr_flush);
+  }
 
   /* specify number of processes to write files simultaneously */
   if ((value = scr_param_get("SCR_FLUSH_WIDTH")) != NULL) {
     scr_flush_width = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_WIDTH=%d", scr_flush_width);
   }
 
   /* specify flush transfer type */
@@ -989,15 +1094,24 @@ static int scr_get_params()
   } else {
     scr_flush_type = strdup(SCR_FLUSH_TYPE);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_TYPE=%s", scr_flush_type);
+  }
 
   /* specify whether to always flush latest checkpoint from cache on restart */
   if ((value = scr_param_get("SCR_FLUSH_ON_RESTART")) != NULL) {
     scr_flush_on_restart = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_ON_RESTART=%d", scr_flush_on_restart);
+  }
 
   /* set to 1 if code must be restarted from the parallel file system */
   if ((value = scr_param_get("SCR_GLOBAL_RESTART")) != NULL) {
     scr_global_restart = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_GLOBAL_RESTART=%d", scr_global_restart);
   }
 
   /* set to 1 to auto-drop all datasets that come after dataset named in
@@ -1006,12 +1120,18 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_DROP_AFTER_CURRENT")) != NULL) {
     scr_drop_after_current = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_DROP_AFTER_CURRENT=%d", scr_drop_after_current);
+  }
 
   /* specify window of number of checkpoints to keep in prefix directory,
    * set to positive integer to enable, then older checkpoints will be deleted
    * after a successful flush */
   if ((value = scr_param_get("SCR_PREFIX_SIZE")) != NULL) {
     scr_prefix_size = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_PREFIX_SIZE=%d", scr_prefix_size);
   }
 
   /* Some applications provide options so their users can wipe out all checkpoints
@@ -1021,16 +1141,25 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_PREFIX_PURGE")) != NULL) {
     scr_prefix_purge = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_PREFIX_PURGE=%d ", scr_prefix_purge);
+  }
 
   /* specify whether to use asynchronous flush */
   if ((value = scr_param_get("SCR_FLUSH_ASYNC")) != NULL) {
     scr_flush_async = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_ASYNC=%d", scr_flush_async);
+  }
 
-  /* Specify whether our flush will be finalized in poststage (currently
-   * only supported with BBAPI). */
+ /* Specify whether our flush will be finalized in poststage (currently
+  * only supported with BBAPI). */
   if ((value = scr_param_get("SCR_FLUSH_POSTSTAGE")) != NULL) {
     scr_flush_poststage = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_POSTSTAGE=%d", scr_flush_poststage);
   }
 
   /* bandwidth limit imposed during async flush (in bytes/sec) */
@@ -1048,6 +1177,9 @@ static int scr_get_params()
       );
     }
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_ASYNC_BW=%f", scr_flush_async_bw);
+  }
 
   /* runtime overhead limit imposed during async flush (in percentage) */
   if ((value = scr_param_get("SCR_FLUSH_ASYNC_PERCENT")) != NULL) {
@@ -1058,6 +1190,9 @@ static int scr_get_params()
         __FILE__, __LINE__
       );
     }
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_ASYNC_PERCENT=%f", scr_flush_async_percent);
   }
 
   /* set file copy buffer size (file chunk size) */
@@ -1075,30 +1210,48 @@ static int scr_get_params()
       );
     }
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FILE_BUF_SIZE=%d", scr_file_buf_size);
+  }
 
   /* whether file metadata should also be copied */
   if ((value = scr_param_get("SCR_COPY_METADATA")) != NULL) {
     scr_copy_metadata = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_COPY_METADATA=%d", scr_copy_metadata);
   }
 
   /* whether to have AXL create directories for files during a flush */
   if ((value = scr_param_get("SCR_AXL_MKDIR")) != NULL) {
     scr_axl_mkdir = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_AXL_MKDIR=%d", scr_axl_mkdir);
+  }
 
   /* specify whether to compute CRC when applying redundancy scheme */
   if ((value = scr_param_get("SCR_CRC_ON_COPY")) != NULL) {
     scr_crc_on_copy = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CRC_ON_COPY=%d", scr_crc_on_copy);
   }
 
   /* specify whether to compute CRC on fetch and flush */
   if ((value = scr_param_get("SCR_CRC_ON_FLUSH")) != NULL) {
     scr_crc_on_flush = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CRC_ON_FLUSH=%d", scr_crc_on_flush);
+  }
 
   /* specify whether to compute and check CRC when deleting files from cache */
   if ((value = scr_param_get("SCR_CRC_ON_DELETE")) != NULL) {
     scr_crc_on_delete = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CRC_ON_DELETE=%d" , scr_crc_on_delete);
   }
 
   /* override default checkpoint interval
@@ -1106,10 +1259,16 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_CHECKPOINT_INTERVAL")) != NULL) {
     scr_checkpoint_interval = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CHECKPOINT_INTERVAL=%d", scr_checkpoint_interval);
+  }
 
   /* override default minimum number of seconds between checkpoints */
   if ((value = scr_param_get("SCR_CHECKPOINT_SECONDS")) != NULL) {
     scr_checkpoint_seconds = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CHECKPOINT_SECONDS=%d", scr_checkpoint_seconds); 
   }
 
   /* override default maximum allowed checkpointing overhead */
@@ -1121,6 +1280,22 @@ static int scr_get_params()
         __FILE__, __LINE__
       );
     }
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CHECKPOINT_OVERHEAD=%f", scr_checkpoint_overhead);
+  }
+
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "Group descriptors:");
+    kvtree_print_mode(scr_groupdesc_hash, 4, KVTREE_PRINT_KEYVAL);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "Store descriptors:");
+    kvtree_print_mode(scr_storedesc_hash, 4, KVTREE_PRINT_KEYVAL);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "Redundancy descriptors:");
+    kvtree_print_mode(scr_reddesc_hash, 4, KVTREE_PRINT_KEYVAL);
   }
 
   /* TODO: allow someone to silence this if they are not using scripts? */
