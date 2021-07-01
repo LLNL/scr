@@ -10,7 +10,7 @@ import os
 from pyfe import scr_const, scr_hostlist
 from pyfe.scr_common import scr_prefix, runproc
 
-class SCR_Resourcemgr_Base(object):
+class ResourceManager(object):
   def __init__(self,resmgr='unknown'):
     self.conf = {}
     self.conf['prefix'] = scr_prefix()
@@ -58,5 +58,5 @@ class SCR_Resourcemgr_Base(object):
     return {}
 
 if __name__=='__main__':
-  resmgr = SCR_Resourcemgr_Base()
+  resmgr = ResourceManager()
   print(type(resmgr))

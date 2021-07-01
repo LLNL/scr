@@ -6,14 +6,14 @@
 import os, re
 from time import time
 from pyfe import scr_const, scr_hostlist
-from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
+from pyfe.resmgr import ResourceManager
 from pyfe.scr_common import runproc
 from pyfe.scr_list_down_nodes import SCR_List_Down_Nodes
 
-class SCR_Resourcemgr_LSF(SCR_Resourcemgr_Base):
+class LSF(ResourceManager):
   # init initializes vars from the environment
   def __init__(self):
-    super(SCR_Resourcemgr_LSF, self).__init__(resmgr='LSF')
+    super(LSF, self).__init__(resmgr='LSF')
 
   # no watchdog in LSF
   def usewatchdog(self,use_scr_watchdog=None):

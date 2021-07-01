@@ -21,7 +21,7 @@ from pyfe.scr_list_down_nodes import scr_list_down_nodes
 from pyfe.scr_postrun import scr_postrun
 from pyfe.scr_env import SCR_Env
 from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
-from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.resmgr import AutoResourceManager
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_glob_hosts import scr_glob_hosts
 
@@ -65,7 +65,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
   param = SCR_Param()
   scr_env = SCR_Env() # env contains general environment infos independent of resmgr/launcher
-  resourcemgr = SCR_Resourcemgr() # resource manager (SLURM/LSF/ ...) set by argument or compile constant
+  resourcemgr = AutoResourceManager() # resource manager (SLURM/LSF/ ...) set by argument or compile constant
   launcher = SCR_Joblauncher(launcher) # launcher contains attributes unique to launcher (srun/jsrun/ ...)
   # give scr_env a pointer to the objects for calling other methods
   scr_env.param = param

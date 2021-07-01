@@ -6,14 +6,14 @@
 
 import os, re
 from pyfe import scr_const, scr_hostlist
-from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
+from pyfe.resmgr import ResourceManager
 from pyfe.scr_common import runproc
 from pyfe.scr_list_down_nodes import SCR_List_Down_Nodes
 
-class SCR_Resourcemgr_APRUN(SCR_Resourcemgr_Base):
+class APRUN(ResourceManager):
   # init initializes vars from the environment
   def __init__(self,env=None):
-    super(SCR_Resourcemgr_APRUN, self).__init__(resmgr='APRUN')
+    super(APRUN, self).__init__(resmgr='APRUN')
 
   # get job id, setting environment flag here
   def getjobid(self):

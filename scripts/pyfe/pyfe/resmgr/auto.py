@@ -11,30 +11,27 @@
 
 from pyfe import scr_const
 
-from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
-from pyfe.resmgr.scr_resourcemgr_slurm import SCR_Resourcemgr_SLURM
-from pyfe.resmgr.scr_resourcemgr_lsf import SCR_Resourcemgr_LSF
-from pyfe.resmgr.scr_resourcemgr_aprun import SCR_Resourcemgr_APRUN
-from pyfe.resmgr.scr_resourcemgr_pmix import SCR_Resourcemgr_PMIX
+from pyfe.resmgr import *
 
-class SCR_Resourcemgr:
+class AutoResourceManager:
   def __new__(cls,resmgr=None):
     if resmgr is None:
       resmgr = scr_const.SCR_RESOURCE_MANAGER
+
     if resmgr=='SLURM':
-      return SCR_Resourcemgr_SLURM()
+      return SLURM()
     if resmgr=='LSF':
-      return SCR_Resourcemgr_LSF()
+      return LSF()
     if resmgr=='APRUN':
-      return SCR_Resourcemgr_APRUN()
+      return APRUN()
     if resmgr=='PMIX':
-      return SCR_Resourcemgr_PMIX()
-    return SCR_Resourcemgr_Base()
+      return PMIX()
+    return ResourceManager()
 
 if __name__ == '__main__':
   #resourcemgr = SCR_Resourcemgr()
   #print(type(resourcemgr))
-  resourcemgr = SCR_Resourcemgr(resmgr='SLURM')
+  resourcemgr = AutoResourceManager(resmgr='SLURM')
   print(type(resourcemgr))
   #resourcemgr = SCR_Resourcemgr(resmgr='LSF')
   #print(type(resourcemgr))
