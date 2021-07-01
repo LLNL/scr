@@ -100,3 +100,12 @@ class APRUN(ResourceManager):
       unavailable.update(nextunavail)
     return unavailable
 
+  def get_scavenge_pdsh_cmd(self):
+    argv = ['$pdsh', '-Rexec', '-f', '256', '-S', '-w', '$upnodes', 'aprun', '-n', '1', '-L', '%h', '$bindir/scr_copy', '--cntldir', '$cntldir', '--id', '$dataset_id', '--prefix', '$prefixdir', '--buf', '$buf_size', '$crc_flag']
+    container_flag = scr_env.param.get('SCR_USE_CONTAINERS')
+    if container_flag is not None and container_flag=='0':
+      pass
+    else:
+      argv.append('--containers')
+    argv.append('$downnodes_spaced')
+    return argv

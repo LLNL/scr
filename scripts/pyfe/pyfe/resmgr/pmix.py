@@ -71,3 +71,20 @@ class PMIX(ResourceManager):
       unavailable.update(nextunavail)
     return unavailable
 
+  def get_scavenge_pdsh_cmd(self):
+    argv = ['$pdsh', '-f', '256', '-S', '-w', '$upnodes']
+    cppr_lib = scr_const.CPPR_LDFLAGS
+    if cppr_lib.startswith('-L'):
+      cppr_lib = cppr_lib[2:]
+      argv.append('LD_LIBRARY_PATH=$LD_LIBRARY_PATH:'+cpprlib)
+    cppr_prefix = os.environ.get('CPPR_PREFIX')
+    if cppr_prefix is not None:
+      argv.append('CPPR_PREFIX='+cppr_prefix)
+    argv.extend(['$bindir/scr_copy', '--cntldir', '$cntldir', '--id', '$dataset_id', '--prefix', '$prefixdir', '--buf', '$buf_size', '$crc_flag'])
+    container_flag = scr_env.param.get('SCR_USE_CONTAINERS')
+    if container_flag is not None and container_flag=='0':
+      pass
+    else:
+      argv.append('--containers')
+    argv.append('$downnodes_spaced')
+    return argv

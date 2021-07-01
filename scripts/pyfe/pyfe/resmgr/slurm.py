@@ -107,3 +107,5 @@ class SLURM(ResourceManager):
       unavailable.update(nextunavail)
     return unavailable
 
+  def get_scavenge_pdsh_cmd(self):
+    return ['$pdsh', '-Rexec', '-f', '256', '-S', '-w', '$upnodes', 'srun', '-n1', '-N1', '-w', '%h', '$bindir/scr_copy', '--cntldir', '$cntldir', '--id', '$dataset_id', '--prefix', '$prefixdir', '--buf', '$buf_size', '$crc_flag', '$downnodes_spaced']

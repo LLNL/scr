@@ -81,7 +81,13 @@ def runproc(argv,wait=True,getstdout=False,getstderr=False):
     return None, runproc.returncode
   except Exception as e:
     print('runproc: ERROR: '+str(e))
-    return None, None
+    if getstdout==True and getstderr==True:
+      return ['',str(e)], 1
+    if getstdout==True:
+      return '', 1
+    if getstderr==True:
+      return str(e), 1
+    return None, 1
 
 # pipeproc works as runproc above, except argvs is a list of argv lists
 # the first subprocess is opened and from there stdout is chained to stdin
@@ -111,7 +117,13 @@ def pipeproc(argvs,wait=True,getstdout=False,getstderr=False):
     return None, nextprog.returncode
   except Exception as e:
     print('pipeproc: ERROR: '+str(e))
-    return None, None
+    if getstdout==True and getstderr==True:
+      return ['',str(e)], 1
+    if getstdout==True:
+      return '', 1
+    if getstderr==True:
+      return str(e), 1
+    return None, 1
 
 # passes the given arguments to bindir/scr_log_event
 # prefix is required

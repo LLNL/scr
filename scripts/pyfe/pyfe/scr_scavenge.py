@@ -6,6 +6,7 @@ from time import time
 from pyfe import scr_const, scr_common, scr_hostlist
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_env import SCR_Env
+from pyfe.resmgr import AutoResourceManager
 from pyfe.scr_common import tracefunction, runproc
 
 # scavenge checkpoint files from cache to PFS
@@ -25,8 +26,14 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
   # TODO: need to be able to set these defaults via config settings somehow
   # for now just hardcode the values
 
+  if scr_env is None:
+    scr_env = SCR_Env()
+  if scr_env.param is None:
+    scr_env.param = SCR_Param()
+  if scr_env.resmgr is None:
+    scr_env.resmgr = AutoResourceManager()
   # lookup buffer size and crc flag via scr_param
-  param = SCR_Param()
+  param = scr_env.param
 
   buf_size = os.environ.get('SCR_FILE_BUF_SIZE')
   if buf_size is None:
@@ -41,8 +48,6 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
   start_time = int(time())
 
   # tag output files with jobid
-  if scr_env is None:
-    scr_env = SCR_Env()
   jobid = scr_env.getjobid()
   if jobid is None:
     print('scr_scavenge: ERROR: Could not determine jobid.')
@@ -81,31 +86,63 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
   scr_common.log(bindir=bindir, prefix=prefixdir, jobid=jobid, event_type='SCAVENGE_START', event_dset=dataset_id, event_start=str(start_time))
 
   # gather files via pdsh
+  argv = scr_env.resmgr.get_scavenge_pdsh_cmd()
   print('scr_scavenge: '+str(int(time())))
-  argv = [pdsh,'-Rexec','-f','256','-S','-w',upnodes,'srun','-n1','-N1','-w','%h',bindir+'/scr_copy','--cntldir',cntldir,'--id',dataset_id,'--prefix',prefixdir,'--buf',buf_size]
-  if crc_flag!='':
-    argv.extend([crc_flag])
-  argv.extend([downnodes_spaced])
+  #argv = ['$pdsh','-Rexec','-f','256','-S','-w','$upnodes','srun','-n1','-N1','-w','%h','$bindir/scr_copy','--cntldir','$cntldir','--id','$dataset_id','--prefix','$prefixdir','--buf','$buf_size','$crc_flag','$downnodes_spaced']
+  delargs = []
+  for i,arg in enumerate(argv):
+    if arg[0]!='$':
+      continue
+    if arg=='$pdsh':
+      argv[i] = pdsh
+    elif arg=='$upnodes':
+      argv[i] = upnodes
+    elif arg=='$cntldir':
+      argv[i] = cntldir
+    elif arg=='$dataset_id':
+      argv[i] = dataset_id
+    elif arg=='$prefixdir':
+      argv[i] = prefixdir
+    elif arg=='$buf_size':
+      argv[i] = buf_size
+    elif arg=='$crc_flag':
+      if crc_flag!='':
+        argv[i]=crc_flag
+      else:
+        delargs.append(i)
+    elif arg=='$downnodes_spaced':
+      if downnodes_spaced!='':
+        argv[i]=downnodes_spaced
+      else:
+        delargs.append(i)
+    elif arg.startswith('$bindir'):
+      argv[i] = re.sub('$bindir',bindir,argv[i])
+  # delete unused arguments from the back to avoid index issues
+  for i in range(len(delargs)-1,-1,-1):
+    del argv[delargs[i]]
   print('scr_scavenge: '+' '.join(argv))
   #`$pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced`;
-  runproc(argv=argv,getstdout=True,getstderr=True)
+  consoleout = runproc(argv=argv,getstdout=True,getstderr=True)[0]
 
   # print pdsh output to screen
-  if verbose:
-    try:
+  try:
+    with open(output,'w') as outfile:
+      outfile.write(consoleout[0])
+    if verbose:
       print('scr_scavenge: stdout: cat '+output)
-      with open(output,'r') as infile:
-        for line in infile.readlines():
-          print(line.rstrip())
-    except:
-      pass
-    try:
+      print(consoleout[0])
+  except Exception as e:
+    print(str(e))
+    print('scr_scavenge: ERROR: Unable to write stdout to \"'+output+'\"')
+  try:
+    with open(error,'w') as outfile:
+      outfile.write(consoleout[1])
+    if verbose:
       print('scr_scavenge: stderr: cat '+error)
-      with open(error,'r') as infile:
-        for line in infile.readlines():
-          print(line.rstrip())
-    except:
-      pass
+      print(consoleout[1])
+  except Exception as e:
+    print(str(e))
+    print('scr_scavenge: ERROR: Unable to write stderr to \"'+error+'\"')
 
   # TODO: if we knew the total bytes, we could register a transfer here in addition to an event
   # get a timestamp for logging timing values

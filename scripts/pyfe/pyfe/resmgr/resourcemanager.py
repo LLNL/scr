@@ -52,6 +52,9 @@ class ResourceManager(object):
   def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False):
     return {}
 
+  def get_scavenge_pdsh_cmd(self):
+    return []
+
 if __name__=='__main__':
   resmgr = ResourceManager()
   print(type(resmgr))
