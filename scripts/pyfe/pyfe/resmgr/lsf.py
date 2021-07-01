@@ -60,14 +60,6 @@ class LSF(ResourceManager):
       pass
     return None
 
-  # list the number of nodes used in the last run
-  def get_runnode_count(self):
-    argv = [self.conf['nodes_file'],'--dir',self.conf['prefix']]
-    out, returncode = runproc(argv=argv,getstdout=True)
-    if returncode==0:
-      return int(out.rstrip())
-    return 0 # print(err)
-
   def get_jobstep_id(self,user='',pid=-1):
     # previously weren't able to get jobid
     if self.conf['jobid'] is None:

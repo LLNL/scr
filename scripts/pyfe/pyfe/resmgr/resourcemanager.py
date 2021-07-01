@@ -16,7 +16,6 @@ class ResourceManager(object):
     self.conf['prefix'] = scr_prefix()
     self.conf['resmgr'] = resmgr
     self.conf['use_watchdog'] = False
-    self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'
     self.conf['jobid'] = self.getjobid()
     self.conf['nodes'] = self.get_job_nodes()
 
@@ -39,10 +38,6 @@ class ResourceManager(object):
 
   def get_downnodes(self):
     return None
-
-  # list the number of nodes used in the last run
-  def get_runnode_count(self):
-    return 0 # print(err)
 
   def get_jobstep_id(self,user='',pid=-1):
     return -1

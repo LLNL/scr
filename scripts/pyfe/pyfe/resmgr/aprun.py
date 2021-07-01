@@ -57,14 +57,6 @@ class APRUN(ResourceManager):
         return scr_hostlist.compress(downnodes)
     return None
 
-  # list the number of nodes used in the last run
-  def get_runnode_count(self):
-    argv = ['aprun','-n','1',self.conf['nodes_file'],'--dir',self.conf['prefix']]
-    out, returncode = runproc(argv=argv,getstdout=True)
-    if runproc.returncode == 0:
-      return int(out)
-    return 0 # print(err)
-
   def get_jobstep_id(self,user='',pid=-1):
     output = runproc(argv=['apstat','-avv'],getstdout=True)[0].split('\n')
     # we could use 'head' instead of cat or do a with open ?

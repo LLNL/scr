@@ -189,7 +189,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       num_needed = os.environ.get('SCR_MIN_NODES')
       if num_needed is None or int(num_needed) <= 0:
         # try to lookup the number of nodes used in the last run
-        num_needed = resourcemgr.get_runnode_count()
+        num_needed = scr_env.get_runnode_count()
         # num_needed_env='$bindir/scr_env --prefix $prefix --runnodes'
         # if the command worked, and the number is something larger than 0, go with that
         if num_needed<=0:
