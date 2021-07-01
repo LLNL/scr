@@ -11,7 +11,7 @@
 import argparse, os, re, subprocess
 from pyfe.scr_common import runproc
 from pyfe.scr_env import SCR_Env
-from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.resmgr import AutoResourceManager
 from pyfe import scr_const, scr_hostlist
 
 def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_env=None):
@@ -21,7 +21,7 @@ def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_e
   if scr_env is None:
     scr_env = SCR_Env()
   if scr_env.resmgr is None:
-    scr_env.resmgr = SCR_Resourcemgr()
+    scr_env.resmgr = AutoResourceManager()
 
   # tag output files with jobid
   jobid = scr_enev.getjobid()

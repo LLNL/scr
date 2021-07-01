@@ -6,7 +6,7 @@
 import argparse, os
 from pyfe import scr_const
 from pyfe.scr_common import scr_prefix
-from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.resmgr import AutoResourceManager
 from pyfe.scr_param import SCR_Param
 from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
 
@@ -65,7 +65,7 @@ if __name__ == '__main__':
   parser.add_argument('-r','--runnodes', action='store_true', help='List the number of nodes used in the last run.')
   args = vars(parser.parse_args())
   scr_env = SCR_Env()
-  scr_env.resmgr = SCR_Resourcemgr()
+  scr_env.resmgr = AutoResourceManager()
   scr_env.launcher = SCR_Joblauncher()
   scr_env.param = SCR_Param()
   if len(args)==0:
@@ -73,7 +73,6 @@ if __name__ == '__main__':
   elif 'help' in args:
     parser.print_help()
   else:
-    scr_env.resmgr = SCR_Resourcemgr()
     if 'prefix' in args:
       scr_env.set_prefix(args['prefix'])
     if 'user' in args:

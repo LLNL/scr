@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 
-# scr_resourcemgr_aprun.py
+# aprun.py
 # cray xt
-# SCR_Resourcemgr_APRUN is a subclass of SCR_Resourcemgr_Base
+# APRUN is a subclass of ResourceManager
 
 import os, re
 from pyfe import scr_const, scr_hostlist

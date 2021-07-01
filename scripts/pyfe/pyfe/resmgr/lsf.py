@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-# scr_resourcemgr_lsf.py
-# SCR_Resourcemgr_LSF is a subclass of SCR_Resourcemgr_Base
+# lsf.py
+# LSF is a subclass of ResourceManager
 
 import os, re
 from time import time

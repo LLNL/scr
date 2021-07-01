@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 
-# scr_resourcemgr_base
-# SCR_Resourcemgr_Base is the super class of the specific resource manager classes
-# the SCR_Resourcemgr_Base itself is missing its environment type (unknown)
+# resourcemanager
+# ResourceManager is the super class of the specific resource manager classes
+# the ResourceManager itself is missing its environment type (unknown)
 # common methods shared between subclasses can be used from here
 # (all environments currently also call the super init)
 

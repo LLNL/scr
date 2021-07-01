@@ -10,7 +10,7 @@ from pyfe.scr_list_dir import scr_list_dir
 from pyfe.scr_common import runproc, pipeproc, scr_prefix
 from pyfe import scr_common
 from pyfe.scr_env import SCR_Env
-from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.resmgr import AutoResourceManager
 
 '''
  methods used by resource managers to test nodes
@@ -60,7 +60,7 @@ class SCR_List_Down_Nodes:
     if param is not None:
       exclude = param.get('SCR_EXCLUDE_NODES')
       if exclude is not None:
-        exclude_nodes = scr_hostlist.expand($exclude)
+        exclude_nodes = scr_hostlist.expand(exclude)
         for node in exclude_nodes:
           if node in nodes:
             del nodes[node]
@@ -260,7 +260,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=Fal
   if scr_env is None:
     scr_env = SCR_Env()
   if scr_env.resmgr is None:
-    scr_env.resmgr = SCR_Resourcemgr()
+    scr_env.resmgr = AutoResourceManager()
   resourcemgr = scr_env.resmgr
   if nodeset is None or len(nodeset)==0:
     nodeset = resourcemgr.conf['nodes']

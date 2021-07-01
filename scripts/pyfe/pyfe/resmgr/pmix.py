@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-# scr_resourcemgr_pmix.py
-# SCR_Resourcemgr_PMIX is a subclass if SCR_Resourcemgr_Base
+# pmix.py
+# PMIX is a subclass if ResourceManager
 
 import os
 from pyfe import scr_const, scr_hostlist

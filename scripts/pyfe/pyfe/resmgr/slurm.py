@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-# scr_resourcemgr_slurm.py
-# SCR_Resourcemgr_SLURM is a subclass of SCR_Resourcemgr_Base
+# slurm.py
+# SLURM is a subclass of ResourceManager
 
 import os, re
 from pyfe import scr_const, scr_hostlist
@@ -9,7 +9,7 @@ from pyfe.resmgr import ResourceManager
 from pyfe.scr_common import runproc
 from pyfe.scr_list_down_nodes import SCR_List_Down_Nodes
 
-# SCR_Resourcemgr class holds the configuration
+# AutoResourceManager class holds the configuration
 
 class SLURM(ResourceManager):
   # init initializes vars from the environment

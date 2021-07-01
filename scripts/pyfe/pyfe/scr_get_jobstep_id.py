@@ -5,7 +5,7 @@
 from pyfe.scr_common import runproc
 import re
 from pyfe.scr_env import SCR_Env
-from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.resmgr import AutoResourceManager
 from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
 
 # This script attempts to get the job step id for the last srun command that 
@@ -23,7 +23,7 @@ def scr_get_jobstep_id(scr_env=None,pid=-1):
   if scr_env is None:
     scr_env = SCR_Env()
   if scr_env.resmgr is None:
-    scr_env.resmgr = SCR_Resourcemgr()
+    scr_env.resmgr = AutoResourceManager()
   if scr_env.launcher is None:
     scr_env.launcher = SCR_Joblauncher()
   user = scr_env.conf['user']

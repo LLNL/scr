@@ -15,7 +15,7 @@ from pyfe.scr_list_down_nodes import scr_list_down_nodes
 from pyfe.scr_glob_hosts import scr_glob_hosts
 from pyfe.scr_list_dir import scr_list_dir
 from pyfe.scr_env import SCR_Env
-from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.resmgr import AutoResourceManager
 
 def scr_postrun(prefix_dir=None,scr_env=None):
   # if SCR is disabled, immediately exit
@@ -53,7 +53,7 @@ def scr_postrun(prefix_dir=None,scr_env=None):
   if scr_env is None:
     scr_env = SCR_Env()
   if scr_env.resmgr is None:
-    scr_env.resmgr = SCR_Resourcemgr()
+    scr_env.resmgr = AutoResourceManager()
   # get our nodeset for this job
   nodelist_env = os.environ.get('SCR_NODELIST')
   if nodelist_env is None:

@@ -11,7 +11,7 @@ import argparse, time
 #from datetime import datetime
 from pyfe import scr_const
 from pyfe.scr_param import SCR_Param
-from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.resmgr import AutoResourceManager
 #from pyfe.scr_kill_jobstep import scr_kill_jobstep
 from pyfe.scr_common import runproc
 
@@ -30,7 +30,7 @@ def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
   if param is None:
     param = SCR_Param()
   if resmgr is None:
-    resmgr = SCR_Resourcemgr()
+    resmgr = AutoResourceManager()
   timeout = None
   timeout_pfs = None
 

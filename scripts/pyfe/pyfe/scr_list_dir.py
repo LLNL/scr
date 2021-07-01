@@ -14,7 +14,7 @@ import argparse
 from pyfe import scr_const
 from pyfe.scr_env import SCR_Env
 from pyfe.scr_param import SCR_Param
-from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.resmgr import AutoResourceManager
 
 # returns 1 for error, string for success
 def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
@@ -29,7 +29,7 @@ def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
   if scr_env is None:
     scr_env = SCR_Env()
   if scr_env.resmgr is None:
-    scr_env.resmgr = SCR_Resourcemgr()
+    scr_env.resmgr = AutoResourceManager()
   if scr_env.param is None:
     param = SCR_Param()
   param = scr_env.param
