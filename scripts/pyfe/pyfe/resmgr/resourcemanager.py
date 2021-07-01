@@ -10,13 +10,12 @@ import os
 from pyfe import scr_const, scr_hostlist
 from pyfe.scr_common import scr_prefix, runproc
 
-class SCR_Resourcemgr_Base(object):
+class ResourceManager(object):
   def __init__(self,resmgr='unknown'):
     self.conf = {}
     self.conf['prefix'] = scr_prefix()
     self.conf['resmgr'] = resmgr
     self.conf['use_watchdog'] = False
-    self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'
     self.conf['jobid'] = self.getjobid()
     self.conf['nodes'] = self.get_job_nodes()
 
@@ -40,10 +39,6 @@ class SCR_Resourcemgr_Base(object):
   def get_downnodes(self):
     return None
 
-  # list the number of nodes used in the last run
-  def get_runnode_count(self):
-    return 0 # print(err)
-
   def get_jobstep_id(self,user='',pid=-1):
     return -1
 
@@ -58,5 +53,5 @@ class SCR_Resourcemgr_Base(object):
     return {}
 
 if __name__=='__main__':
-  resmgr = SCR_Resourcemgr_Base()
+  resmgr = ResourceManager()
   print(type(resmgr))

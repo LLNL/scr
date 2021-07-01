@@ -21,7 +21,7 @@ from pyfe.scr_list_down_nodes import scr_list_down_nodes
 from pyfe.scr_postrun import scr_postrun
 from pyfe.scr_env import SCR_Env
 from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
-from pyfe.resmgr.scr_resourcemgr import SCR_Resourcemgr
+from pyfe.resmgr import AutoResourceManager
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_glob_hosts import scr_glob_hosts
 
@@ -65,7 +65,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
   param = SCR_Param()
   scr_env = SCR_Env() # env contains general environment infos independent of resmgr/launcher
-  resourcemgr = SCR_Resourcemgr() # resource manager (SLURM/LSF/ ...) set by argument or compile constant
+  resourcemgr = AutoResourceManager() # resource manager (SLURM/LSF/ ...) set by argument or compile constant
   launcher = SCR_Joblauncher(launcher) # launcher contains attributes unique to launcher (srun/jsrun/ ...)
   # give scr_env a pointer to the objects for calling other methods
   scr_env.param = param
@@ -189,7 +189,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       num_needed = os.environ.get('SCR_MIN_NODES')
       if num_needed is None or int(num_needed) <= 0:
         # try to lookup the number of nodes used in the last run
-        num_needed = resourcemgr.get_runnode_count()
+        num_needed = scr_env.get_runnode_count()
         # num_needed_env='$bindir/scr_env --prefix $prefix --runnodes'
         # if the command worked, and the number is something larger than 0, go with that
         if num_needed<=0:

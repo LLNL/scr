@@ -5,14 +5,14 @@
 
 import os
 from pyfe import scr_const, scr_hostlist
-from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
+from pyfe.resmgr import ResourceManager
 from pyfe.scr_common import runproc
 from pyfe.scr_list_down_nodes import SCR_List_Down_Nodes
 
-class SCR_Resourcemgr_PMIX(SCR_Resourcemgr_Base):
+class PMIX(ResourceManager):
   # init initializes vars from the environment
   def __init__(self):
-    super(SCR_Resourcemgr_PMIX, self).__init__(resmgr='PMIX')
+    super(PMIX, self).__init__(resmgr='PMIX')
 
   # get job id, setting environment flag here
   def getjobid(self):
@@ -38,14 +38,6 @@ class SCR_Resourcemgr_PMIX(SCR_Resourcemgr_Base):
     #if (0) {
     #  my $nodeset = ""; #get nodeset with pmixhelper
     return None
-
-  # list the number of nodes used in the last run
-  def get_runnode_count(self):
-    argv = [self.conf['nodes_file'],'--dir',self.conf['prefix']]
-    out, returncode = runproc(argv=argv,getstdout=True)
-    if returncode==0:
-      return int(out)
-    return 0 # print(err)
 
   # TODO: cppr/pmix notes - this script is only used when launching the watchdog process.  Have not tested this
   def get_jobstep_id(self,user='',pid=-1):

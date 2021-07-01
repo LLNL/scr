@@ -32,6 +32,14 @@ class SCR_Env:
   def set_prefix(self,prefix):
     self.conf['prefix'] = prefix
 
+  # list the number of nodes used in the last run
+  def get_runnode_count(self):
+    argv = [self.conf['nodes_file'], '--dir', self.conf['prefix']]
+    out, returncode = runproc(argv=argv, getstdout=True)
+    if returncode == 0:
+      return int(out)
+    return 0 # print(err)
+
 def printobject(obj,objname):
   for attr in dir(obj):
     if attr.startswith('__'):

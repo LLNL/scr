@@ -6,14 +6,14 @@
 
 import os, re
 from pyfe import scr_const, scr_hostlist
-from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
+from pyfe.resmgr import ResourceManager
 from pyfe.scr_common import runproc
 from pyfe.scr_list_down_nodes import SCR_List_Down_Nodes
 
-class SCR_Resourcemgr_APRUN(SCR_Resourcemgr_Base):
+class APRUN(ResourceManager):
   # init initializes vars from the environment
   def __init__(self,env=None):
-    super(SCR_Resourcemgr_APRUN, self).__init__(resmgr='APRUN')
+    super(APRUN, self).__init__(resmgr='APRUN')
 
   # get job id, setting environment flag here
   def getjobid(self):
@@ -56,14 +56,6 @@ class SCR_Resourcemgr_APRUN(SCR_Resourcemgr_Base):
       if len(downnodes)>0:
         return scr_hostlist.compress(downnodes)
     return None
-
-  # list the number of nodes used in the last run
-  def get_runnode_count(self):
-    argv = ['aprun','-n','1',self.conf['nodes_file'],'--dir',self.conf['prefix']]
-    out, returncode = runproc(argv=argv,getstdout=True)
-    if runproc.returncode == 0:
-      return int(out)
-    return 0 # print(err)
 
   def get_jobstep_id(self,user='',pid=-1):
     output = runproc(argv=['apstat','-avv'],getstdout=True)[0].split('\n')

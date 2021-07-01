@@ -5,16 +5,16 @@
 
 import os, re
 from pyfe import scr_const, scr_hostlist
-from pyfe.resmgr.scr_resourcemgr_base import SCR_Resourcemgr_Base
+from pyfe.resmgr import ResourceManager
 from pyfe.scr_common import runproc
 from pyfe.scr_list_down_nodes import SCR_List_Down_Nodes
 
 # SCR_Resourcemgr class holds the configuration
 
-class SCR_Resourcemgr_SLURM(SCR_Resourcemgr_Base):
+class SLURM(ResourceManager):
   # init initializes vars from the environment
   def __init__(self):
-    super(SCR_Resourcemgr_SLURM, self).__init__(resmgr='SLURM')
+    super(SLURM, self).__init__(resmgr='SLURM')
 
   # get job id, setting environment flag here
   def getjobid(self):
@@ -35,14 +35,6 @@ class SCR_Resourcemgr_SLURM(SCR_Resourcemgr_Base):
         self.conf['down'] = down
         return down
     return None
-
-  # list the number of nodes used in the last run
-  def get_runnode_count(self):
-    argv = [self.conf['nodes_file'],'--dir',self.conf['prefix']]
-    out, returncode = runproc(argv=argv,getstdout=True)
-    if returncode==0:
-      return int(out)
-    return 0 # print(err)
 
   def get_jobstep_id(self,user='',pid=-1):
     # we previously weren't able to determine the job id
