@@ -28,7 +28,7 @@ def scr_glob_hosts(count=False,nth=None,hosts=None,minus=None,intersection=None,
     # return conf['compress'] # returns the csv string
     # if we compress the range (?)
     hostset = compress.split(',') #scr_hostlist.expand(compress)
-    #return scr_hostlist.compress_range(hostset)
+    return scr_hostlist.compress_range(hostset)
   else: #if not valid
     return None
   # ok, got our resulting nodeset, now print stuff to the screen
