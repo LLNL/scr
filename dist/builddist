@@ -94,6 +94,13 @@ for (( i=0; i<${len}; i=$(($i + 3)) )); do
         if [ "$component" == "lwgrp" ] ; then
             sed -i 's@#include "../config/config.h"@@g' lwgrp/src/lwgrp_internal.h
         fi
+
+        # remove doc and test directories for a smaller tarball
+        rm -rf ${component}/doc
+        rm -rf ${component}/doc-dev
+        if [ "$component" != "scr" ] ; then
+          rm -rf ${component}/test
+        fi
     cd ..
 done
 
