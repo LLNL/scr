@@ -12,6 +12,16 @@ from pyfe import scr_common
 from pyfe.scr_env import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 
+# mark any nodes specified on the command line
+def remove_argument_excluded_nodes(nodes=[],nodeset_down=''):
+  #unavailable = {}
+  exclude_nodes = scr_hostlist.expand(nodeset_down)
+  for node in exclude_nodes:
+    if node in nodes:
+      del nodes[node]
+      #unavailable[node] = 'Specified on command line'
+  #return unavailable
+
 # The main scr_list_down_nodes method.
 # this method takes an scr_env, the contained resource manager will determine which methods above to use
 def scr_list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
@@ -57,7 +67,7 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=Fal
 
   # get a hash of all unavailable (down or excluded) nodes and reason
   # keys are nodes and the values are the reasons
-  unavailable = resourcemgr.list_down_nodes_with_reason(nodes=nodes, scr_env=scr_env, nodeset_down=nodeset_down, free=free)
+  unavailable = resourcemgr.list_down_nodes_with_reason(nodes=nodes, scr_env=scr_env, free=free) # nodeset_down=nodeset_down, free=free)
 
   # TODO: read exclude list from a file, as well?
 

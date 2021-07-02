@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
-from pyfe import scr_const
+from pyfe import scr_const, scr_hostlist, scr_list_dir
+from pyfe.scr_common import runproc, pipeproc
 
 '''
  methods used by resource managers to test nodes
@@ -27,7 +28,7 @@ def list_resmgr_down_nodes(nodes=[],resmgr_nodes=None):
 def list_nodes_failed_ping(nodes=[]):
   unavailable = {}
   # `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
-  argv=[SCR_List_Down_Nodes.ping,'-c','1','-w','1','']
+  argv=[ping,'-c','1','-w','1','']
   for node in nodes:
     argv[5] = node
     returncode = runproc(argv=argv)[1]
@@ -53,16 +54,6 @@ def list_param_excluded_nodes(nodes=[],param=None):
           unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
   return unavailable
 
-# mark any nodes specified on the command line
-def remove_argument_excluded_nodes(nodes=[],nodeset_down=''):
-  #unavailable = {}
-  exclude_nodes = scr_hostlist.expand(nodeset_down)
-  for node in exclude_nodes:
-    if node in nodes:
-      del nodes[node]
-      #unavailable[node] = 'Specified on command line'
-  #return unavailable
-
 # mark any nodes that don't respond to pdsh echo up
 def list_pdsh_fail_echo(nodes=[]):
   unavailable = {}
@@ -73,8 +64,8 @@ def list_pdsh_fail_echo(nodes=[]):
 
     # run an "echo UP" on each node to check whether it works
     argv = []
-    argv.append([SCR_List_Down_Nodes.pdsh,'-f','256','-w',upnodes,'\"echo UP\"'])
-    argv.append([SCR_List_Down_Nodes.dshbak,'-c'])
+    argv.append([pdsh,'-f','256','-w',upnodes,'\"echo UP\"'])
+    argv.append([dshbak,'-c'])
     output = pipeproc(argvs=argv,getstdout=True)[0]
     position=0
     for result in output.split('\n'):
@@ -193,17 +184,17 @@ def check_dir_capacity(nodes=[],free=False,scr_env=None,scr_check_node_argv=[]):
   argv = [ [] ]
   for arg in scr_check_node_argv:
     if arg=='$pdsh':
-      argv[0].append(SCR_List_Down_Nodes.pdsh)
+      argv[0].append(pdsh)
     elif arg=='$upnodes':
       argv[0].append(upnodes)
     else:
       argv[0].append(arg)
-  argv[0].extend(['python3', SCR_List_Down_Nodes.bindir+'/scr_check_node.py'])
+  argv[0].extend(['python3', bindir+'/scr_check_node.py'])
   if free:
     argv[0].append('--free')
   argv[0].extend(cntldir_flag)
   argv[0].extend(cachedir_flag)
-  argv.append([SCR_List_Down_Nodes.dshbak,'-c'])
+  argv.append([dshbak,'-c'])
   output = pipeproc(argvs=argv,getstdout=True)[0]
   action=0 # tracking action to use range iterator and follow original line <- shift flow
   nodeset = ''

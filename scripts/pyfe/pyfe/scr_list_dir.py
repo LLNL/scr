@@ -31,7 +31,7 @@ def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
   if scr_env.resmgr is None:
     scr_env.resmgr = AutoResourceManager()
   if scr_env.param is None:
-    param = SCR_Param()
+    scr_env.param = SCR_Param()
   param = scr_env.param
 
   # get the base directory
@@ -39,13 +39,23 @@ def scr_list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None):
   if runcmd=='cache':
     # lookup cache base
     cachedesc = param.get_hash('CACHE')
-    if cachedesc is not None:
+    if type(cachedesc) is dict:
       bases = list(cachedesc.keys())
       #foreach my $index (keys %$cachedesc) {
       #  push @bases, $index;
+    elif cachedesc is not None:
+      bases = [cachedesc]
+    else:
+      bases = []
   else:
     # lookup cntl base
-    bases = list(param.get('SCR_CNTL_BASE').keys())
+    bases = param.get('SCR_CNTL_BASE')
+    if type(bases) is dict:
+      bases = list(bases.keys())
+    elif type(bases) is not None:
+      bases = [bases]
+    else:
+      value = []
   if len(bases)==0:
     print('INVALID')
     return 1
