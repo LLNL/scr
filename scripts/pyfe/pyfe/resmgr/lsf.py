@@ -6,9 +6,8 @@
 import os, re
 from time import time
 from pyfe import scr_const, scr_hostlist
-from pyfe.resmgr import ResourceManager
 from pyfe.scr_common import runproc
-from pyfe.scr_list_down_nodes import SCR_List_Down_Nodes
+from pyfe.resmgr import nodetests, ResourceManager
 
 class LSF(ResourceManager):
   # init initializes vars from the environment
@@ -148,11 +147,11 @@ class LSF(ResourceManager):
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False):
-    unavailable = SCR_List_Down_Nodes.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
-    nextunavail = SCR_List_Down_Nodes.list_pdsh_fail_echo(nodes=nodes)
+    unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
+    nextunavail = nodetests.list_pdsh_fail_echo(nodes=nodes)
     unavailable.update(nextunavail)
     if scr_env is not None:
-      nextunavail = SCR_List_Down_Nodes.list_param_excluded_nodes(nodes=nodes,param=scr_env.param)
+      nextunavail = nodetests.list_param_excluded_nodes(nodes=nodes,param=scr_env.param)
       unavailable.update(nextunavail)
     return unavailable
 

@@ -5,9 +5,8 @@
 
 import os, re
 from pyfe import scr_const, scr_hostlist
-from pyfe.resmgr import ResourceManager
 from pyfe.scr_common import runproc
-from pyfe.scr_list_down_nodes import SCR_List_Down_Nodes
+from pyfe.resmgr import nodetests, ResourceManager
 
 # AutoResourceManager class holds the configuration
 

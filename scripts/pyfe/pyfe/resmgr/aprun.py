@@ -6,9 +6,8 @@
 
 import os, re
 from pyfe import scr_const, scr_hostlist
-from pyfe.resmgr import ResourceManager
 from pyfe.scr_common import runproc
-from pyfe.scr_list_down_nodes import SCR_List_Down_Nodes
+from pyfe.resmgr import nodetests, ResourceManager
 
 class APRUN(ResourceManager):
   # init initializes vars from the environment
@@ -88,15 +87,15 @@ class APRUN(ResourceManager):
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False):
-    unavailable = SCR_List_Down_Nodes.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
-    nextunavail = SCR_List_Down_Nodes.list_nodes_failed_ping(nodes=nodes)
+    unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
+    nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)
     if scr_env is not None:
-      nextunavail = SCR_List_Down_Nodes.list_param_excluded_nodes(nodes=nodes,param=scr_env.param)
+      nextunavail = nodetests.list_param_excluded_nodes(nodes=nodes,param=scr_env.param)
       unavailable.update(nextunavail)
       argv = [ '$pdsh','-Rexec','-f','256','-w','$upnodes','aprun','-n','1','-L','%h' ]
       #my $output = `$pdsh -Rexec -f 256 -w '$upnodes' aprun -n 1 -L %h $bindir/scr_check_node $free_flag $cntldir_flag $cachedir_flag | $dshbak -c`;
-      nextunavail = SCR_List_Down_Nodes.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, scr_check_node_argv=argv)
+      nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, scr_check_node_argv=argv)
       unavailable.update(nextunavail)
     return unavailable
 
