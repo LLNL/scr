@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 from .resourcemanager import ResourceManager
 from .auto import AutoResourceManager
 from .slurm import SLURM
