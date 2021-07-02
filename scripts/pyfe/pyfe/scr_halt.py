@@ -47,14 +47,14 @@ def scr_halt(bindir=None,bash=None,mkdir=None,rm=None,echo=None,umask=None,check
 
     # halt before time
     if before is not None:
-      secs = parsetime(before).seconds
+      secs = parsetime(before)
       #  print "$prog: Exit before: " . localtime($secs) . "\n";
       halt_conditions.append('-b')
       halt_conditions.append(str(secs))
 
     # halt after time
     if after is not None:
-      secs = parsetime(after).seconds
+      secs = parsetime(after)
       #  print "$prog: Exit after: " . localtime($secs) . "\n";
       halt_conditions.append('-a')
       halt_conditions.append(str(secs))
