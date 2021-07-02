@@ -8,7 +8,7 @@ from pyfe import scr_const
 from pyfe.scr_common import scr_prefix
 from pyfe.resmgr import AutoResourceManager
 from pyfe.scr_param import SCR_Param
-from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
+from pyfe.joblauncher import AutoJobLauncher
 
 class SCR_Env:
   def __init__(self):
@@ -66,7 +66,7 @@ if __name__ == '__main__':
   args = vars(parser.parse_args())
   scr_env = SCR_Env()
   scr_env.resmgr = AutoResourceManager()
-  scr_env.launcher = SCR_Joblauncher()
+  scr_env.launcher = AutoJobLauncher()
   scr_env.param = SCR_Param()
   if len(args)==0:
     printobject(scr_env,'scr_env')
