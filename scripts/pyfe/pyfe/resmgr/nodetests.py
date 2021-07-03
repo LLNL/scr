@@ -12,7 +12,7 @@ from pyfe.scr_common import runproc, pipeproc
 ping = 'ping'
 bindir = scr_const.X_BINDIR
 pdsh   = scr_const.PDSH_EXE
-
+dshbak = scr_const.DSHBAK_EXE
 # mark the set of nodes the resource manager thinks is down
 def list_resmgr_down_nodes(nodes=[],resmgr_nodes=None):
   unavailable = {}
@@ -20,7 +20,7 @@ def list_resmgr_down_nodes(nodes=[],resmgr_nodes=None):
     resmgr_nodes = scr_hostlist.expand(resmgr_nodes)
     for node in resmgr_nodes:
       if node in nodes:
-        del nodes[node]
+        nodes.remove(node)
       unavailable[node] = 'Reported down by resource manager'
   return unavailable
 
@@ -38,7 +38,7 @@ def list_nodes_failed_ping(nodes=[]):
         unavailable[node] = 'Failed to ping'
   for node in unavailable:
     if node in nodes:
-      del nodes[node]
+      nodes.remove(node)
   return unavailable
 
 # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
@@ -50,7 +50,7 @@ def list_param_excluded_nodes(nodes=[],param=None):
       exclude_nodes = scr_hostlist.expand(exclude)
       for node in exclude_nodes:
         if node in nodes:
-          del nodes[node]
+          nodes.remove(node)
           unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
   return unavailable
 
@@ -87,11 +87,11 @@ def list_pdsh_fail_echo(nodes=[]):
           for excludenode in exclude_nodes:
             # this node responded, so remove it from the down list
             if excludenode in pdsh_assumed_down:
-              del pdsh_assumed_down[excludenode]
+              pdsh_assumed_down.remove(excludenode)
 
   # if we still have any nodes assumed down, update our available/unavailable lists
   for node in pdsh_assumed_down:
-    del nodes[node]
+    nodes.remove(node)
     unavailable[node] = 'Failed to pdsh echo UP'
 
   return unavailable
@@ -215,6 +215,6 @@ def check_dir_capacity(nodes=[],free=False,scr_env=None,scr_check_node_argv=[],c
         exclude_nodes = scr_hostlist.expand(nodeset);
         for node in exclude_nodes:
           if node in nodes:
-            del nodes[node]
+            nodes.remove(node)
             unavailable[node] = result
   return unavailable

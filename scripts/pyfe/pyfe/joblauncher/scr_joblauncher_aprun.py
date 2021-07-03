@@ -21,7 +21,7 @@ class SCR_Joblauncher_aprun(SCR_Joblauncher_Base):
 
   def getlaunchargv(self,up_nodes='',down_nodes='',launcher_args=[]):
     # ap run needs to specify nodes to use
-    if len(launch_cmd)==0 or len(up_nodes)==0:
+    if len(launcher_args)==0 or len(up_nodes)==0:
       return []
     argv = [ self.conf['launcher'] ]
     argv.extend([ '-L', up_nodes ])

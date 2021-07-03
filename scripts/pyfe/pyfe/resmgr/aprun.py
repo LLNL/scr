@@ -86,7 +86,7 @@ class APRUN(ResourceManager):
     return runproc(argv=['apkill',str(jobid)])[1]
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False,cntldir_string=None,cachedir_string=None)
+  def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False,cntldir_string=None,cachedir_string=None):
     unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
     nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)

@@ -56,8 +56,10 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
   # read node set of job
   jobset = scr_env.conf['nodes']
   if jobset is None:
-    print('scr_scavenge: ERROR: Could not determine nodeset.')
-    return 1
+    jobset = scr_env.resmgr['nodes']
+    if jobset is None:
+      print('scr_scavenge: ERROR: Could not determine nodeset.')
+      return 1
 
   # get nodesets
   jobnodes  = scr_hostlist.expand(nodeset_job)

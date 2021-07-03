@@ -7,8 +7,7 @@
 # scr_{srun,jsrun,mpirun} scripts call this script with the launcher specified
 
 from datetime import datetime
-from time import time
-import os, signal, sys, time
+import os, signal, sys, time # need to use both time.time() and time.sleep()
 import multiprocessing as mp
 from pyfe import scr_const, scr_common
 from pyfe.scr_common import tracefunction, runproc, scr_prefix
@@ -88,8 +87,10 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   # get the nodeset of this job
   nodelist = scr_env.conf['nodes']
   if nodelist is None:
-    print(prog+': ERROR: Could not identify nodeset')
-    sys.exit(1)
+    nodelist = scr_env.resmgr.conf['nodes']
+    if nodelist is None:
+      print(prog+': ERROR: Could not identify nodeset')
+      sys.exit(1)
 
   # get prefix directory
   prefix=scr_env.conf['prefix']
@@ -107,7 +108,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     sys.exit(1)
 
   # run a NOP with srun, other launchers could do any preamble work here
-  joblauncher.prepareforprerun()
+  launcher.prepareforprerun()
 
   # make a record of time prerun is started
   timestamp=datetime.now()
@@ -173,7 +174,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
       # if this is the first run, we hit down nodes right off the bat, make a record of them
       if attempts==0:
-        start_secs=int(time())
+        start_secs=int(time.time())
         print('SCR: Failed node detected: JOBID='+jobid+' ATTEMPT=0 TIME='+str(start_secs)+' NNODES=-1 RUNTIME=0 FAILED='+down_nodes)
 
       ##### Unless this value may change at some point in an allocation
@@ -229,7 +230,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
         ###### should this be split (' ') ?
         launch_cmd.extend(my_restart_cmd.split(' '))
     # launch the job, make sure we include the script node and exclude down nodes
-    start_secs=int(time())
+    start_secs=int(time.time())
 
     scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_START', event_note='run='+str(attempts), event_start=str(start_secs))
     # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
@@ -260,7 +261,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       # check_call will wait for the process to finish without trying to get other information from it
       launched_process.check_call()
 
-    end_secs=int(time())
+    end_secs=int(time.time())
     run_secs=end_secs - start_secs
 
     # check for and log any down nodes
@@ -300,7 +301,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   print(prog+': postrun: '+str(timestamp))
 
   # scavenge files from cache to parallel file system
-  if scr_postrun(prefix=prefix,scr_env=scr_env) != 0:
+  if scr_postrun(prefix_dir=prefix,scr_env=scr_env) != 0:
     print(prog+': ERROR: Command failed: scr_postrun -p '+prefix)
 
   # kill the watchdog process if it is running

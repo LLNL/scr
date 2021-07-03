@@ -20,7 +20,7 @@ def remove_argument_excluded_nodes(nodes=[],nodeset_down=None):
   exclude_nodes = scr_hostlist.expand(nodeset_down)
   for node in exclude_nodes:
     if node in nodes:
-      del nodes[node]
+      nodes.remove(node)
       #unavailable[node] = 'Specified on command line'
   #return unavailable
 

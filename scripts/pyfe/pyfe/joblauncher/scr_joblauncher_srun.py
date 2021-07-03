@@ -20,7 +20,7 @@ class SCR_Joblauncher_srun(SCR_Joblauncher_Base):
     runproc(argv=argv)
 
   def getlaunchargv(self,up_nodes='',down_nodes='',launcher_args=[]):
-    if len(launch_cmd)==0:
+    if len(launcher_args)==0:
       return []
     argv = [self.conf['launcher']]
     if len(down_nodes)>0:
