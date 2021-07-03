@@ -13,7 +13,9 @@ from pyfe.scr_env import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 
 # mark any nodes specified on the command line
-def remove_argument_excluded_nodes(nodes=[],nodeset_down=''):
+def remove_argument_excluded_nodes(nodes=[],nodeset_down=None):
+  if nodeset_down is None:
+    return
   #unavailable = {}
   exclude_nodes = scr_hostlist.expand(nodeset_down)
   for node in exclude_nodes:
@@ -65,9 +67,13 @@ def scr_list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=Fal
   #unavailable = list_argument_excluded_nodes(nodes=nodes,nodeset_down=nodeset_down)
   remove_argument_excluded_nodes(nodes=nodes,nodeset_down=nodeset_down)
 
+  # get strings here for the resmgr/nodetests.py
+  cntldir_string = scr_list_dir(base=True,runcmd='control',scr_env=scr_env)
+  cachedir_string = scr_list_dir(base=True,runcmd='cache',scr_env=scr_env)
+
   # get a hash of all unavailable (down or excluded) nodes and reason
   # keys are nodes and the values are the reasons
-  unavailable = resourcemgr.list_down_nodes_with_reason(nodes=nodes, scr_env=scr_env, free=free) # nodeset_down=nodeset_down, free=free)
+  unavailable = resourcemgr.list_down_nodes_with_reason(nodes=nodes, scr_env=scr_env, free=free, cntldir_string=cntldir_string, cachedir_string=cachedir_string)
 
   # TODO: read exclude list from a file, as well?
 

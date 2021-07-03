@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-from pyfe import scr_const, scr_hostlist, scr_list_dir
+from pyfe import scr_const, scr_hostlist
 from pyfe.scr_common import runproc, pipeproc
 
 '''
@@ -100,7 +100,7 @@ def list_pdsh_fail_echo(nodes=[]):
 #### Their difference was in the scr_check_node_argv
 #### Only the SLURM had the line size = param.abtoull(size)
 #### The abtoull will just return the int of the string if it isn't in the ab format
-def check_dir_capacity(nodes=[],free=False,scr_env=None,scr_check_node_argv=[]):
+def check_dir_capacity(nodes=[],free=False,scr_env=None,scr_check_node_argv=[],cntldir_string=None,cachedir_string=None):
   if scr_check_node_argv == [] or nodes==[]:
     return {}
   unavailable = {}
@@ -115,9 +115,8 @@ def check_dir_capacity(nodes=[],free=False,scr_env=None,scr_check_node_argv=[]):
   # check that control and cache directories on each node work and are of proper size
   # get the control directory the job will use
   cntldir_vals = []
-  cntldir_string = scr_list_dir(base=True,runcmd='control',scr_env=scr_env)
   # cntldir_string = `$bindir/scr_list_dir --base control`;
-  if cntldir_string != 1:
+  if type(cntldir_string) is str and len(cntldir_string) != 0:
     dirs = cntldir_string.split(' ')
     cntldirs = param.get_hash('CNTLDIR')
     for base in dirs:
@@ -140,7 +139,6 @@ def check_dir_capacity(nodes=[],free=False,scr_env=None,scr_check_node_argv=[]):
 
   # get the cache directory the job will use
   cachedir_vals = []
-  cachedir_string = scr_list_dir(base=True,runcmd='cache',scr_env=scr_env)
   #`$bindir/scr_list_dir --base cache`;
   if type(cachedir_string) is str and len(cachedir_string) != 0:
     dirs = cachedir_string.split(' ')

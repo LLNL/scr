@@ -57,7 +57,7 @@ class PMIX(ResourceManager):
     return 1
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False):
+  def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False,cntldir_string=None,cachedir_string=None)
     unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
     nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)
@@ -66,7 +66,7 @@ class PMIX(ResourceManager):
       unavailable.update(nextunavail)
       argv = [ '$pdsh','-f','256','-w','$upnodes' ]
       #my $output = `$pdsh -f 256 -w '$upnodes' "$bindir/scr_check_node $free_flag $cntldir_flag $cachedir_flag" | $dshbak -c`;
-      nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, scr_check_node_argv=argv)
+      nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, scr_check_node_argv=argv,cntldir_string=cntldir_string,cachedir_string=cachedir_string)
       unavailable.update(nextunavail)
     return unavailable
 
