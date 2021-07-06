@@ -17,6 +17,9 @@ SCR_LAUNCHER = '@LAUNCHER@'
 ### PMIX constants
 CPPR_LDFLAGS = '@CPPR_LDFLAGS@'
 HAVE_LIBCPPR = '@HAVE_LIBCPPR@'
+### Could have a compile time/configurable constant here
+### This could explicitly disable attempt to use clustershell
+USE_CLUSTERSHELL = '@USE_CLUSTERSHELL@'
 
 if __name__=='__main__':
   print('SCR_CNTL_BASE = \"'+SCR_CNTL_BASE+'\"')
