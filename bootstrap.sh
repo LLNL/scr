@@ -15,6 +15,7 @@ set -x
 clone_ssh=0   # whether to clone with https (0) or ssh (1)
 build_debug=0 # whether to build optimized (0) or debug "-g -O0" (1)
 build_dev=0   # whether to checkout fixed version tags (0) or use latest (1)
+build_clean=0 # whether to keep deps directory (0) or delete and recreate (1)
 
 while [ $# -ge 1 ]; do
   case "$1" in
@@ -24,6 +25,8 @@ while [ $# -ge 1 ]; do
       build_debug=1 ;;
     "--dev" )
       build_dev=1 ;;
+    "--clean" )
+      build_clean=1 ;;
     *)
       echo "USAGE ERROR: unknown option $1"
       exit 1 ;;
@@ -32,10 +35,15 @@ while [ $# -ge 1 ]; do
 done
 
 ROOT="$(pwd)"
+INSTALL_DIR=$ROOT/install
+
+if [ $build_clean -eq 1 ] ; then
+  rm -rf deps
+  rm -rf install
+fi
 
 mkdir -p deps
 mkdir -p install
-INSTALL_DIR=$ROOT/install
 
 cd deps
 
