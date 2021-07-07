@@ -7,6 +7,7 @@
 # to scavenge files from cache to parallel file system.
 
 import argparse
+from pyfe import postrun
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 
@@ -20,5 +21,5 @@ if __name__=='__main__':
   else:
     scr_env = SCR_Env()
     scr_env.resmgr = AutoResourceManager()
-    ret = scr_postrun(prefix_dir=args['prefix'])
+    ret = postrun(prefix_dir=args['prefix'])
     print(str(ret))

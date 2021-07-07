@@ -21,7 +21,7 @@ def remove_argument_excluded_nodes(nodes=[],nodeset_down=None):
 
 # The main scr_list_down_nodes method.
 # this method takes an scr_env, the contained resource manager will determine which methods above to use
-def scr_list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
+def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
   if scr_env is None or scr_env.resmgr is None or scr_env.param is None:
     return 1
   bindir = scr_const.X_BINDIR

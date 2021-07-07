@@ -9,14 +9,12 @@
 from datetime import datetime
 import os, signal, sys, time # need to use both time.time() and time.sleep()
 import multiprocessing as mp
-from pyfe import scr_const, scr_common, list_dir
+from pyfe import scr_const, scr_common, list_dir, postrun, list_down_nodes
 from pyfe.scr_common import tracefunction, runproc, scr_prefix
 from pyfe.scr_test_runtime import scr_test_runtime
 from pyfe.scr_prerun import scr_prerun
 from pyfe.scr_get_jobstep_id import scr_get_jobstep_id
 from pyfe.scr_watchdog import scr_watchdog
-from pyfe.list_down_nodes import list_down_nodes
-from pyfe.scr_postrun import scr_postrun
 from pyfe.scr_environment import SCR_Env
 from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
 from pyfe.resmgr import AutoResourceManager

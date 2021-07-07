@@ -13,7 +13,7 @@
 
 # returns 1 for error, string for success
 
-import argparse
+import argparse, sys
 from pyfe import scr_const, list_dir
 from pyfe.scr_environment import SCR_Env
 from pyfe.scr_param import SCR_Param
@@ -29,10 +29,10 @@ if __name__=='__main__':
   args = vars(parser.parse_args())
   if 'help' in args:
     parser.print_help()
-    return 0
+    sys.exit(0)
   elif args['control/cache'] is None:
     print('Control or cache must be specified.')
-    return 1
+    sys.exit(1)
   else:
     # TODO: read cache directory from config file
     bindir = scr_const.X_BINDIR
@@ -41,4 +41,8 @@ if __name__=='__main__':
     scr_env.resmgr = AutoResourceManager()
     scr_env.param = SCR_Param()
     ret = list_dir(user=args['user'], jobid=args['jobid'], base=args['base'], runcmd=args['control/cache'], scr_env=scr_env, bindir=bindir)
+    if type(ret) is int:
+      sys.exit(ret)
     print(str(ret))
+    sys.exit(0)
+

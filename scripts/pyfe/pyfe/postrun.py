@@ -14,7 +14,7 @@ from pyfe.scr_scavenge import scr_scavenge
 from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_glob_hosts import scr_glob_hosts
 
-def scr_postrun(prefix_dir=None,scr_env=None):
+def postrun(prefix_dir=None,scr_env=None):
   if scr_env is None or scr_env.resmgr is None:
     return 1
   # if SCR is disabled, immediately exit
