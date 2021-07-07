@@ -3,6 +3,16 @@ Python equivalents of perl/bash scripts in scr/scripts/*
 ========================================================
 
 | *(Initial / tentative stage)*  
+|  
+| An scr_const.py.in is in the SLURM and LSF folders  
+| If a test is made for another resource manager, copy scr_const.py into that folder as scr_const.py.in  
+| For testing, copy the scr/scripts/pyfe/CMakelists.txt to scr/scripts  
+| Then running the make install will put a filled in scr_const.py in scr/install/bin/  
+| Copy that file to scr/scripts/pyfe/pyfe/  
+| Then there are 2 tentative testings scripts in scr/scripts/pyfe:  
+| lsftest.sh and slurmtest.sh  
+| These were copied from scr/testing/TESTING.sh  
+| Get an allocation for 4 nodes then run the script while in scr/scripts/pyfe/  
 |   
 | **Using the setup.py in this directory, we can do:**  
 | ``$ python3 -m venv venv``  

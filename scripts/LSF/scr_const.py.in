@@ -1,0 +1,34 @@
+#! /usr/bin/env python3
+
+# vars can be set in this file to serve as compile time constants
+# other scripts can just reference scr_const.SCR_CNTL_BASE (etc) without modification
+
+SCR_CNTL_BASE = '/dev/shm'
+SCR_CACHE_BASE = '/dev/shm'
+SCR_CACHE_SIZE = '1' # ''
+SCR_CONFIG_FILE = '/etc/scr/scr.conf'
+X_DATADIR = '/g/g16/phelps15/scr/install/share'
+X_BINDIR = '/g/g16/phelps15/scr/install/bin'
+X_LIBDIR = '/g/g16/phelps15/scr/install/lib64'
+PDSH_EXE = '/usr/bin/pdsh'
+DSHBAK_EXE = '/usr/bin/dshbak'
+SCR_RESOURCE_MANAGER = 'LSF'
+SCR_LAUNCHER = ''
+### PMIX constants
+CPPR_LDFLAGS = ''
+HAVE_LIBCPPR = ''
+### Could have a compile time/configurable constant here
+### This could explicitly disable attempt to use clustershell
+USE_CLUSTERSHELL = ''
+
+if __name__=='__main__':
+  print('SCR_CNTL_BASE = \"'+SCR_CNTL_BASE+'\"')
+  print('SCR_CACHE_BASE = \"'+SCR_CACHE_BASE+'\"')
+  print('SCR_CACHE_SIZE = \"'+SCR_CACHE_SIZE+'\"')
+  print('SCR_CONFIG_FILE = \"'+SCR_CONFIG_FILE+'\"')
+  print('X_BINDIR = \"'+X_BINDIR+'\"')
+  print('X_LIBDIR = \"'+X_LIBDIR+'\"')
+  print('PDSH_EXE = \"'+PDSH_EXE+'\"')
+  print('DSHBAK_EXE = \"'+DSHBAK_EXE+'\"')
+  print('SCR_RESOURCE_MANAGER = \"'+SCR_RESOURCE_MANAGER+'\"')
+  print('SCR_LAUNCHER = \"'+SCR_LAUNCHER+'\"')
