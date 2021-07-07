@@ -12,6 +12,7 @@ ENDFUNCTION(SCR_INSTALL_BIN file)
 
 # Common Binaries
 ADD_SUBDIRECTORY(common)
+ADD_SUBDIRECTORY(pyfe)
 
 # Tests
 ADD_SUBDIRECTORY(test)
