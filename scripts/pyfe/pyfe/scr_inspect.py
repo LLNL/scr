@@ -10,7 +10,7 @@
 
 import argparse, os, re, subprocess
 from pyfe.scr_common import runproc
-from pyfe.scr_env import SCR_Env
+from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 from pyfe import scr_const, scr_hostlist
 

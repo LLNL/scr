@@ -100,14 +100,12 @@ def list_pdsh_fail_echo(nodes=[]):
 #### Their difference was in the scr_check_node_argv
 #### Only the SLURM had the line size = param.abtoull(size)
 #### The abtoull will just return the int of the string if it isn't in the ab format
-def check_dir_capacity(nodes=[],free=False,scr_env=None,scr_check_node_argv=[],cntldir_string=None,cachedir_string=None):
+def check_dir_capacity(nodes=[], free=False, scr_env=None, scr_check_node_argv=[], cntldir_string=None, cachedir_string=None):
   if scr_check_node_argv == [] or nodes==[]:
     return {}
+  if scr_env is None or scr_env.param is None:
+    return {}
   unavailable = {}
-  if scr_env is None:
-    scr_env = SCR_Env()
-  if scr_env.param is None:
-    scr_env.param = SCR_Param()
   param = scr_env.param
   # specify whether to check total or free capacity in directories
   #if free: free_flag = '--free'

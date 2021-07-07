@@ -9,16 +9,15 @@
 from datetime import datetime
 import os, signal, sys, time # need to use both time.time() and time.sleep()
 import multiprocessing as mp
-from pyfe import scr_const, scr_common
+from pyfe import scr_const, scr_common, list_dir
 from pyfe.scr_common import tracefunction, runproc, scr_prefix
 from pyfe.scr_test_runtime import scr_test_runtime
-from pyfe.scr_list_dir import scr_list_dir
 from pyfe.scr_prerun import scr_prerun
 from pyfe.scr_get_jobstep_id import scr_get_jobstep_id
 from pyfe.scr_watchdog import scr_watchdog
-from pyfe.scr_list_down_nodes import scr_list_down_nodes
+from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_postrun import scr_postrun
-from pyfe.scr_env import SCR_Env
+from pyfe.scr_environment import SCR_Env
 from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
 from pyfe.resmgr import AutoResourceManager
 from pyfe.scr_param import SCR_Param
@@ -102,7 +101,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     resourcemgr.usewatchdog(True)
 
   # get the control directory
-  cntldir = scr_list_dir(user=scr_env.conf['user'],jobid=resourcemgr.conf['jobid'],runcmd='control',scr_env=scr_env)
+  cntldir = list_dir(user=scr_env.conf['user'], jobid=resourcemgr.conf['jobid'], runcmd='control', scr_env=scr_env, bindir=bindir)
   if cntldir == 1:
     print(prog+': ERROR: Could not determine control directory')
     sys.exit(1)
@@ -163,14 +162,14 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       free_flag=True
 
     # are there enough nodes to continue?
-    down_nodes = scr_list_down_nodes(free=free_flag,nodeset_down=down_nodes,scr_env=scr_env)
+    down_nodes = list_down_nodes(free=free_flag,nodeset_down=down_nodes,scr_env=scr_env)
     # returns 0 for none, 1 for error, or a string
     # could handle error here
     if type(down_nodes) is int:
       down_nodes = ''
     if down_nodes!='':
       # print the reason for the down nodes, and log them
-      scr_list_down_nodes(reason=True, free=free_flag, nodeset_down=down_nodes, log_nodes=True, runtime_secs='0', scr_env=scr_env)
+      list_down_nodes(reason=True, free=free_flag, nodeset_down=down_nodes, log_nodes=True, runtime_secs='0', scr_env=scr_env)
 
       # if this is the first run, we hit down nodes right off the bat, make a record of them
       if attempts==0:
@@ -265,7 +264,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     run_secs=end_secs - start_secs
 
     # check for and log any down nodes
-    scr_list_down_nodes(reason=True, nodeset_down=keep_down, log_nodes=True, runtime_secs=str(run_secs), scr_env=scr_env)
+    list_down_nodes(reason=True, nodeset_down=keep_down, log_nodes=True, runtime_secs=str(run_secs), scr_env=scr_env)
     # log stats on the latest run attempt
     scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_END', event_note='run='+str(attempts), event_start=str(end_secs), event_secs=str(run_secs))
     #$bindir/scr_log_event -i $jobid -p $prefix -T "RUN_END" -N "run=$attempts" -S $end_secs -L $run_secs

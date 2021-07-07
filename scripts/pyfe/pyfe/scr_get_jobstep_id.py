@@ -4,7 +4,7 @@
 
 from pyfe.scr_common import runproc
 import re
-from pyfe.scr_env import SCR_Env
+from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
 

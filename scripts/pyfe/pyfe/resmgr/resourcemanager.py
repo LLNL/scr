@@ -49,7 +49,7 @@ class ResourceManager(object):
     return 0
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False,cntldir_string=None,cachedir_string=None):
+  def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
     return {}
 
   def get_scavenge_pdsh_cmd(self):

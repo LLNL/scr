@@ -93,12 +93,12 @@ class SLURM(ResourceManager):
     return 0
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,nodes=[],scr_env=None,free=False,cntldir_string=None,cachedir_string=None):
+  def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
     unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
     nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)
     if scr_env is not None:
-      nextunavail = nodetests.list_param_excluded_nodes(nodes=nodes,param=scr_env.param)
+      nextunavail = nodetests.list_param_excluded_nodes(nodes=nodes, param=scr_env.param)
       unavailable.update(nextunavail)
       argv = [ '$pdsh','-Rexec','-f','256','-w','$upnodes','srun','-n','1','-N','1','-w','%h' ]
       #my $output = `$pdsh -Rexec -f 256 -w '$upnodes' srun -n 1 -N 1 -w %h $bindir/scr_check_node $free_flag $cntldir_flag $cachedir_flag | $dshbak -c`;
