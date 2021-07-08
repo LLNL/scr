@@ -5,7 +5,7 @@
 
 import os
 import sys
-import argparse
+from pyfe import argparse
 
 # add pyfe directory to PYTHONPATH
 topdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

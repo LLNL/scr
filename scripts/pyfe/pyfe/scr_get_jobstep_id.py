@@ -2,8 +2,6 @@
 
 # scr_get_jobstep_id.py
 
-from scr_common import runproc
-import re
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 from pyfe.joblauncher import AutoJobLauncher
@@ -40,5 +38,5 @@ def scr_get_jobstep_id(scr_env=None,pid=-1):
 if __name__=='__main__':
   ret = scr_get_jobstep_id()
   if ret is not None:
-    print('scr_get_jobstep_id: '+str(ret))
+    print(str(ret))
 

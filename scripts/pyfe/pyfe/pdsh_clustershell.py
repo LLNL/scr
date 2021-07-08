@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-import scr_const
-from inspect import ismodule
+from pyfe import scr_const
+inspect import ismodule
 
 class MyHandler(EventHandler):
   def ev_read(self,worker,node,sname,msg):

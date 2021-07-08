@@ -9,9 +9,9 @@
 # returns appropriate resource manager class according to resmgr value
 # returns an ResourceManager object if the resource manager was not determined
 
-import scr_const
+from pyfe import scr_const
 
-from resmgr import *
+from pyfe.resmgr import *
 
 class AutoResourceManager:
   def __new__(cls,resmgr=None):

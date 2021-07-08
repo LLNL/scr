@@ -6,7 +6,7 @@
 # the launcher object could be created here.
 
 import sys
-from scr_run import *
+from pyfe.scr_run import *
 
 if __name__=='__main__':
   # just printing help, print the help and exit

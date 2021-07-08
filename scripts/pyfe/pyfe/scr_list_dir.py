@@ -14,11 +14,11 @@
 # returns 1 for error, string for success
 
 import argparse, sys
-import scr_const
-from list_dir import list_dir
-from scr_environment import SCR_Env
-from scr_param import SCR_Param
-from resmgr import AutoResourceManager
+from pyfe import scr_const
+from pyfe.list_dir import list_dir
+from pyfe.scr_environment import SCR_Env
+from pyfe.scr_param import SCR_Param
+from pyfe.resmgr import AutoResourceManager
 
 if __name__=='__main__':
   parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_list_dir')

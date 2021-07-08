@@ -3,9 +3,9 @@
 # list_down_nodes.py
 
 from time import time
-import scr_const, scr_hostlist, scr_common
-from list_dir import list_dir
-from scr_common import runproc, pipeproc, scr_prefix
+from pyfe import scr_const, scr_hostlist, scr_common
+from pyfe.list_dir import list_dir
+from pyfe.scr_common import runproc, pipeproc, scr_prefix
 
 # mark any nodes specified on the command line
 def remove_argument_excluded_nodes(nodes=[],nodeset_down=None):

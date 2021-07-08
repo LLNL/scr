@@ -1,1 +1,11 @@
+SET(PYFE_TOP
+  README.rst
+  LICENSE
+  MANIFEST.in
+  lsftest.sh
+  slurmtest.sh
+  setup.py
+)
+INSTALL(FILES ${PYFE_TOP} DESTINATION ${CMAKE_INSTALL_BINDIR}/pyfe)
+
 ADD_SUBDIRECTORY(pyfe)

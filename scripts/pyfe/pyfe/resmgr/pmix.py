@@ -4,9 +4,9 @@
 # PMIX is a subclass if ResourceManager
 
 import os
-import scr_const, scr_hostlist
-from scr_common import runproc
-from resmgr import nodetests, ResourceManager
+from pyfe import scr_const, scr_hostlist
+from pyfe.scr_common import runproc
+from pyfe.resmgr import nodetests, ResourceManager
 
 class PMIX(ResourceManager):
   # init initializes vars from the environment

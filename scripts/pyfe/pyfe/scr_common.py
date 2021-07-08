@@ -4,8 +4,8 @@
 # Defines for common functions shared across scripts
 
 import argparse, inspect, os, sys
-import scr_const
 from subprocess import Popen, PIPE
+from pyfe import scr_const
 
 # for verbose, prints:
 # filename:function:linenum -> event

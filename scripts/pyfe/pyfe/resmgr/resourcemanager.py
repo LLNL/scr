@@ -7,8 +7,8 @@
 # (all environments currently also call the super init)
 
 import os
-import scr_const, scr_hostlist
-from scr_common import scr_prefix, runproc
+from pyfe import scr_const, scr_hostlist
+from pyfe.scr_common import scr_prefix, runproc
 
 class ResourceManager(object):
   def __init__(self,resmgr='unknown'):

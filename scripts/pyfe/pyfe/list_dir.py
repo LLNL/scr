@@ -10,7 +10,7 @@
 # rather than having it duplicated over a number of different
 # scripts
 
-import scr_const
+from pyfe import scr_const
 
 def list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None,bindir=''):
   # check that user specified "control" or "cache"

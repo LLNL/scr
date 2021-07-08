@@ -5,9 +5,9 @@
 # PBSALPS is a subclass of ResourceManager
 
 import os, re
-import scr_const, scr_hostlist
-from scr_common import runproc
-from resmgr import nodetests, ResourceManager
+from pyfe import scr_const, scr_hostlist
+from pyfe.scr_common import runproc
+from pyfe.resmgr import nodetests, ResourceManager
 
 class PBSALPS(ResourceManager):
   # init initializes vars from the environment

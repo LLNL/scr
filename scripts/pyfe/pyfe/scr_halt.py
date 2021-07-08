@@ -4,9 +4,9 @@
 # (from scripts/SLURM)
 
 import argparse, os, sys
-import scr_const
-from scr_common import runproc
-from parsetime import parsetime
+from pyfe import scr_const
+from pyfe.scr_common import runproc
+from pyfe.parsetime import parsetime
 
 def scr_halt(bindir=None,bash=None,mkdir=None,rm=None,echo=None,umask=None,checkpoints=None, before=None, after=None, immediate=False, seconds=None, dolist=False, unset_checkpoints=False, unset_before=False, unset_after=False, unset_seconds=False, unset_reason=False, remove=False, verbose=False, dirs=None):
   # requires: squeue, scontrol, scancel, umask (shell command)
