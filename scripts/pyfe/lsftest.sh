@@ -1,6 +1,6 @@
 #! /usr/bin/bash
 # LSF
-# bsub -Is bash -J pyfetest -nnodes 4 -q pdebug
+# bsub -q pdebug -nnodes 4 -Is bash
 # bkill -s KILL jobid
 # set SCR_PKG to the directory where SCR is cloned
 # set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
@@ -218,15 +218,15 @@ echo "----------------------"
 echo "       jsrun          "
 echo "----------------------"
 # clear cache and check that scr_srun works
-jsrun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
-jsrun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
+jsrun --tasks_per_rs=1 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
+jsrun --tasks_per_rs=1 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
-${PYFEBIN}scr_jsrun -n4 -N4 ./test_api
+${PYFEBIN}scr_jsrun --tasks_per_rs=1  ./test_api
 ${scrbin}/scr_index --list
 
-${PYFEBIN}scr_jsrun -n4 -N4 ./test_ckpt
+${PYFEBIN}scr_jsrun --tasks_per_rs=1 ./test_ckpt
 
-${PYFEBIN}scr_jsrun -n4 -N4 ./test_config
+${PYFEBIN}scr_jsrun --tasks_per_rs=1 ./test_config
 
 echo "----------------------"
 echo "        lrun          "
@@ -246,13 +246,13 @@ echo "----------------------"
 echo "      mpirun          "
 echo "----------------------"
 # clear cache and check that scr_srun works
-mpirun -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
-mpirun -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
+mpirun -N 1 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
+mpirun -N 1 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
-${PYFEBIN}scr_mpirun -N4 ./test_api
+${PYFEBIN}scr_mpirun -N 1 ./test_api
 ${scrbin}/scr_index --list
 
-${PYFEBIN}scr_mpirun -N4 ./test_ckpt
+${PYFEBIN}scr_mpirun -N 1 ./test_ckpt
 
-${PYFEBIN}scr_mpirun -N4 ./test_config
+${PYFEBIN}scr_mpirun -N 1 ./test_config
 
