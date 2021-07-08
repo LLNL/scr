@@ -29,6 +29,7 @@ SET(PYFE
   scr_srun.py
   scr_test_runtime.py
   scr_watchdog.py
+  setup.py
 )
 INSTALL(FILES ${PYFE} DESTINATION ${CMAKE_INSTALL_BINDIR}/pyfe)
 
