@@ -30,6 +30,8 @@ class SCR_Joblauncher_mpirun(SCR_Joblauncher_Base):
       return None
     # build set of unique hostnames, one hostname per line
     hosts = list(set(hosts))
+    ### if there could possibly be an empty line in the file
+    hosts = [host for host in hosts if host != '']
     return hosts
 
   def getlaunchargv(self,up_nodes='',down_nodes='',launcher_args=[]):

@@ -118,8 +118,8 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
       else:
         delargs.append(i)
     elif '$bindir' in arg:
-      pos = argv[i].find('$bindir')
-      argv[i] = argv[i][:pos]+bindir+argv[i][pos+7:]
+      pos = arg.find('$bindir')
+      argv[i] = arg[:pos]+bindir+arg[pos+7:]
   # delete unused arguments from the back to avoid index issues
   for i in range(len(delargs)-1,-1,-1):
     del argv[delargs[i]]
