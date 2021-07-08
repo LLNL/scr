@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import argparse, os, sys, re
+import argparse, os, sys
 from datetime import datetime
 from time import time
 import scr_const, scr_common, scr_hostlist
@@ -117,8 +117,9 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
         argv[i]=downnodes_spaced
       else:
         delargs.append(i)
-    elif arg.startswith('$bindir'):
-      argv[i] = re.sub('$bindir',bindir,argv[i])
+    elif '$bindir' in arg:
+      pos = argv[i].find('$bindir')
+      argv[i] = argv[i][:pos]+bindir+argv[i][pos+7:]
   # delete unused arguments from the back to avoid index issues
   for i in range(len(delargs)-1,-1,-1):
     del argv[delargs[i]]
