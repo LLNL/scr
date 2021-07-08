@@ -8,7 +8,7 @@ from .resourcemanager import ResourceManager
 # Resource manager section
 from .slurm import SLURM
 from .lsf import LSF
-from .aprun import APRUN
+from .pbsalps import PBSALPS
 from .pmix import PMIX
 
 

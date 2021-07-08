@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 
-# scr_joblauncher_base.py
-# SCR_Joblauncher_Base is the super class for the SCR_Joblauncher_ family
+# joblauncher.py
+# JobLauncher is the super class for the job launcher family
 
-class SCR_Joblauncher_Base(object):
+class JobLauncher(object):
   def __init__(self,launcher=''):
     self.conf = {}
     self.conf['launcher'] = launcher

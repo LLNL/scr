@@ -1,14 +1,14 @@
 #! /usr/bin/env python3
 
-# scr_joblauncher_srun.py
-# The SCR_Joblauncher_srun class provides interpretation for the srun launcher
+#srun.py
+# The SRUN class provides interpretation for the srun launcher
 
-from scr_common import runproc, pipeproc
-from joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
+from pyfe.scr_common import runproc, pipeproc
+from pyfe.joblauncher import JobLauncher
 
-class SCR_Joblauncher_srun(SCR_Joblauncher_Base):
+class SRUN(JobLauncher):
   def __init__(self,launcher='srun'):
-    super(SCR_Joblauncher_srun, self).__init__(launcher=launcher)
+    super(SRUN, self).__init__(launcher=launcher)
 
   # a command to run immediately before prerun is ran
   # NOP srun to force every node to run prolog to delete files from cache

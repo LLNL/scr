@@ -1,18 +1,18 @@
 #! /usr/bin/env python3
 
-# aprun.py
+# pbsalps.py
 # cray xt
-# APRUN is a subclass of ResourceManager
+# PBSALPS is a subclass of ResourceManager
 
 import os, re
 import scr_const, scr_hostlist
 from scr_common import runproc
 from resmgr import nodetests, ResourceManager
 
-class APRUN(ResourceManager):
+class PBSALPS(ResourceManager):
   # init initializes vars from the environment
   def __init__(self,env=None):
-    super(APRUN, self).__init__(resmgr='APRUN')
+    super(PBSALPS, self).__init__(resmgr='PBSALPS')
 
   # get job id, setting environment flag here
   def getjobid(self):

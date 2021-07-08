@@ -7,22 +7,54 @@
 # scr_{srun,jsrun,mpirun} scripts call this script with the launcher specified
 
 from datetime import datetime
-import os, signal, sys, time # need to use both time.time() and time.sleep()
+import os, signal, sys
 import multiprocessing as mp
-import scr_const, scr_common
-from list_dir import list_dir
-from postrun import postrun
-from list_down_nodes import list_down_nodes
-from scr_common import tracefunction, runproc, scr_prefix
-from scr_test_runtime import scr_test_runtime
-from scr_prerun import scr_prerun
-from scr_get_jobstep_id import scr_get_jobstep_id
-from scr_watchdog import scr_watchdog
-from scr_environment import SCR_Env
-from joblauncher.scr_joblauncher import SCR_Joblauncher
-from resmgr import AutoResourceManager
-from scr_param import SCR_Param
-from scr_glob_hosts import scr_glob_hosts
+from time import time, sleep
+from pyfe import scr_const, scr_common
+from pyfe.postrun import postrun
+from pyfe.list_dir import list_dir
+from pyfe.list_down_nodes import list_down_nodes
+from pyfe.scr_common import tracefunction, runproc, scr_prefix
+from pyfe.scr_test_runtime import scr_test_runtime
+from pyfe.scr_prerun import scr_prerun
+from pyfe.scr_get_jobstep_id import scr_get_jobstep_id
+from pyfe.scr_watchdog import scr_watchdog
+from pyfe.scr_environment import SCR_Env
+from pyfe.joblauncher import AutoJobLauncher
+from pyfe.resmgr import AutoResourceManager
+from pyfe.scr_param import SCR_Param
+from pyfe.scr_glob_hosts import scr_glob_hosts
+
+# determine how many nodes are needed
+def nodes_needed(scr_env, nodelist):
+  # if SCR_MIN_NODES is set, use that
+  num_needed = os.environ.get('SCR_MIN_NODES')
+  if num_needed is None or int(num_needed) <= 0:
+    # otherwise, use value in nodes file if one exists
+    # num_needed_env='$bindir/scr_env --prefix $prefix --runnodes'
+    num_needed = scr_env.get_runnode_count()
+    if num_needed <= 0:
+      # otherwise, assume we need all nodes in the allocation
+      num_needed = scr_glob_hosts(count=True, hosts=nodelist)
+      if num_needed is None:
+        # failed all methods to estimate the minimum number of nodes
+        return None
+  return int(num_needed)
+
+# return number of nodes left in allocation after excluding down nodes
+def nodes_remaining(nodelist, down_nodes):
+  # num_left='$bindir/scr_glob_hosts --count --minus $SCR_NODELIST:$down_nodes'
+  num_left = scr_glob_hosts(count=True, minus = nodelist + ':' + down_nodes)
+  if num_left is None:
+    return None
+  return int(num_left)
+
+# is there a halt condition instructing us to stop?
+def should_halt(bindir, prefix):
+  #$bindir/scr_retries_halt --dir $prefix;
+  argv = [bindir + '/scr_retries_halt', '--dir', prefix]
+  returncode = runproc(argv=argv)[1]
+  return (returncode == 0)
 
 def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
   if launcher=='':
@@ -51,7 +83,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
   # make a record of start time
   timestamp=datetime.now()
-  start_secs = int(time.time())
+  start_secs = int(time())
   print(prog+': Started: '+str(timestamp))
 
   # check that we have runtime dependencies
@@ -65,7 +97,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   param = SCR_Param()
   scr_env = SCR_Env() # env contains general environment infos independent of resmgr/launcher
   resourcemgr = AutoResourceManager() # resource manager (SLURM/LSF/ ...) set by argument or compile constant
-  launcher = SCR_Joblauncher(launcher) # launcher contains attributes unique to launcher (srun/jsrun/ ...)
+  launcher = AutoJobLauncher(launcher) # launcher contains attributes unique to launcher (srun/jsrun/ ...)
   # give scr_env a pointer to the objects for calling other methods
   scr_env.param = param
   scr_env.resmgr = resourcemgr
@@ -147,6 +179,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   # set the starting method for the mp.Process() call
   if resourcemgr.usewatchdog() == True:
     mp.set_start_method('forkserver') # https://docs.python.org/3/library/multiprocessing.html
+
   while True:
     # once we mark a node as bad, leave it as bad (even if it comes back healthy)
     # TODO: This hacks around the problem of accidentally deleting a checkpoint set during distribute
@@ -174,47 +207,34 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
       # if this is the first run, we hit down nodes right off the bat, make a record of them
       if attempts==0:
-        start_secs=int(time.time())
+        start_secs=int(time())
         print('SCR: Failed node detected: JOBID='+jobid+' ATTEMPT=0 TIME='+str(start_secs)+' NNODES=-1 RUNTIME=0 FAILED='+down_nodes)
 
       ##### Unless this value may change at some point in an allocation
       ##### This could be moved outside of this loop, this value is not changed within the loop
       ##### *  num_needed  *
 
-      # determine how many nodes are needed:
-      #   if SCR_MIN_NODES is set, use that
-      #   otherwise, use value in nodes file if one exists
-      #   otherwise, assume we need all nodes in the allocation
-      # to start, assume we need all nodes in the allocation
-      # if SCR_MIN_NODES is set, use that
-      num_needed = os.environ.get('SCR_MIN_NODES')
-      if num_needed is None or int(num_needed) <= 0:
-        # try to lookup the number of nodes used in the last run
-        num_needed = scr_env.get_runnode_count()
-        # num_needed_env='$bindir/scr_env --prefix $prefix --runnodes'
-        # if the command worked, and the number is something larger than 0, go with that
-        if num_needed<=0:
-          num_needed = scr_glob_hosts(count=True,hosts=nodelist)
-          if num_needed is None:
-            print(prog+': ERROR: Unable to determine number of nodes needed')
-            break
-      num_needed = int(num_needed)
-
-      # check that we have enough nodes left to run the job after excluding all down nodes
-      num_left = scr_glob_hosts(count=True,minus=nodelist+':'+down_nodes)
-      if num_left is None:
-        print(prog+': ERROR: Unable to determine number of nodes remaining')
+      # determine how many nodes are needed
+      num_needed = nodes_needed(scr_env, nodelist)
+      if num_needed is None:
+        print(prog + ': ERROR: Unable to determine number of nodes needed')
         break
-      num_left = int(num_left)
-      # num_left='$bindir/scr_glob_hosts --count --minus $SCR_NODELIST:$down_nodes'
+
+      # determine number of nodes remaining in allocation
+      num_left = nodes_remaining(nodelist, down_nodes)
+      if num_left is None:
+        print(prog + ': ERROR: Unable to determine number of nodes remaining')
+        break
+
+      # check that we have enough nodes after excluding down nodes
       if num_left < num_needed:
-        print(prog+': (Nodes remaining='+str(num_left)+') < (Nodes needed='+str(num_needed)+'), ending run.')
+        print(prog + ': (Nodes remaining=' + str(num_left) + ') < (Nodes needed=' + str(num_needed) + '), ending run.')
         break
 
     # make a record of when each run is started
-    attempts+=1
-    timestamp=datetime.now()
-    print(prog+': RUN '+str(attempts)+': '+str(timestamp))
+    attempts += 1
+    timestamp = datetime.now()
+    print(prog + ': RUN ' + str(attempts) + ': ' + str(timestamp))
 
     launch_cmd=launcher_args.copy()
     launch_cmd.append(run_cmd)
@@ -230,7 +250,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
         ###### should this be split (' ') ?
         launch_cmd.extend(my_restart_cmd.split(' '))
     # launch the job, make sure we include the script node and exclude down nodes
-    start_secs=int(time.time())
+    start_secs=int(time())
 
     scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_START', event_note='run='+str(attempts), event_start=str(start_secs))
     # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
@@ -246,7 +266,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       # $launcher $exclude $launch_cmd &
       #{launcher}run_pid = runproc.pid
       #{launcher}run_pid=$!;
-      time.sleep(10)
+      sleep(10)
       #sleep 10; # sleep a bit to wait for the job to show up in squeue
       print(bindir+'/scr_get_jobstep_id '+str(launcher_pid))
       jobstepid = scr_get_jobstep_id(scr_env=scr_env,pid=launcher_pid)
@@ -261,8 +281,8 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       # check_call will wait for the process to finish without trying to get other information from it
       launched_process.check_call()
 
-    end_secs=int(time.time())
-    run_secs=end_secs - start_secs
+    end_secs = int(time())
+    run_secs = end_secs - start_secs
 
     # check for and log any down nodes
     list_down_nodes(reason=True, nodeset_down=keep_down, log_nodes=True, runtime_secs=str(run_secs), scr_env=scr_env)
@@ -272,33 +292,28 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
     # any retry attempts left?
     if runs > 1:
-      runs-=1
+      runs -= 1
       if runs == 0:
         runs = os.environ.get('SCR_RUNS')
         print(prog+': '+runs+' exhausted, ending run.')
         break
 
     # is there a halt condition instructing us to stop?
-    argv=[bindir+'/scr_retries_halt','--dir',prefix]
-    returncode = runproc(argv=argv)[1]
-    #$bindir/scr_retries_halt --dir $prefix;
-    if returncode==0:
-      print(prog+': Halt condition detected, ending run.')
+    if should_halt(bindir, prefix):
+      print(prog + ': Halt condition detected, ending run.')
       break
 
     # give nodes a chance to clean up
-    time.sleep(60)
+    sleep(60)
 
     # check for halt condition again after sleep
-    returncode = runproc(argv=argv)[1]
-    #$bindir/scr_retries_halt --dir $prefix;
-    if returncode==0:
-      print(prog+': Halt condition detected, ending run.')
+    if should_halt(bindir, prefix):
+      print(prog + ': Halt condition detected, ending run.')
       break
 
   # make a record of time postrun is started
-  timestamp=datetime.now()
-  print(prog+': postrun: '+str(timestamp))
+  timestamp = datetime.now()
+  print(prog + ': postrun: ' + str(timestamp))
 
   # scavenge files from cache to parallel file system
   if postrun(prefix_dir=prefix,scr_env=scr_env) != 0:
@@ -306,12 +321,12 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
   # kill the watchdog process if it is running
   if watchdog is not None and watchdog.is_alive():
-    print('Killing watchdog using kill -SIGKILL '+str(watchdog.pid))
+    print('Killing watchdog using kill -SIGKILL ' + str(watchdog.pid))
     os.kill(watchdog.pid, signal.SIGKILL)
 
   # make a record of end time
-  timestamp=datetime.now()
-  print(prog+': Ended: '+str(timestamp))
+  timestamp = datetime.now()
+  print(prog + ': Ended: ' + str(timestamp))
 
 def print_usage(launcher=''):
   available_launchers = '[srun/jsrun/mpirun]'

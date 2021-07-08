@@ -1,10 +1,9 @@
 #! /usr/bin/env python3
 
-from joblauncher.scr_joblauncher import SCR_Joblauncher
-from joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
-from joblauncher.scr_joblauncher_aprun import SCR_Joblauncher_aprun
-from joblauncher.scr_joblauncher_jsrun import SCR_Joblauncher_jsrun
-from joblauncher.scr_joblauncher_lrun import SCR_Joblauncher_lrun
-from joblauncher.scr_joblauncher_mpirun import SCR_Joblauncher_mpirun
-from joblauncher.scr_joblauncher_srun import SCR_Joblauncher_srun
-
+from .joblauncher import JobLauncher
+from .auto import AutoJobLauncher
+from .srun import SRUN
+from .aprun import APRUN
+from .jsrun import JSRUN
+from .lrun import LRUN
+from .mpirun import MPIRUN

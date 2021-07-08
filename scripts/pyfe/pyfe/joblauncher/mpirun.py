@@ -1,15 +1,16 @@
 #! /usr/bin/env python3
 
-# scr_joblauncher_mpirun.py
-# The SCR_Joblauncher_mpirun class provides interpretation for the mpirun launcher
+# mpirun.py
+# The MPIRUN class provides interpretation for the mpirun launcher
 
 import os
 import scr_hostlist
-from joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
+from pyfe import scr_hostlist
+from pyfe.joblauncher import JobLauncher
 
-class SCR_Joblauncher_mpirun(SCR_Joblauncher_Base):
+class MPIRUN(JobLauncher):
   def __init__(self,launcher='mpirun'):
-    super(SCR_Joblauncher_mpirun, self).__init__(launcher=launcher)
+    super(MPIRUN, self).__init__(launcher=launcher)
 
   def get_hostfile_hosts(self,downlist=[]):
     # get the file name and read the file

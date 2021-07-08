@@ -4,9 +4,9 @@
 
 from scr_common import runproc
 import re
-from scr_environment import SCR_Env
-from resmgr import AutoResourceManager
-from joblauncher.scr_joblauncher import SCR_Joblauncher
+from pyfe.scr_environment import SCR_Env
+from pyfe.resmgr import AutoResourceManager
+from pyfe.joblauncher import AutoJobLauncher
 
 # This script attempts to get the job step id for the last srun command that 
 # was launched. The argument to this script is the PID of the srun command.
@@ -25,7 +25,7 @@ def scr_get_jobstep_id(scr_env=None,pid=-1):
   if scr_env.resmgr is None:
     scr_env.resmgr = AutoResourceManager()
   if scr_env.launcher is None:
-    scr_env.launcher = SCR_Joblauncher()
+    scr_env.launcher = AutoJobLauncher()
   user = scr_env.conf['user']
   if user is None:
     print('scr_get_jobstep_id: ERROR: Could not determine user ID')

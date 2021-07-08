@@ -5,10 +5,10 @@
 # SCR_Env contains general values from the environment
 
 import argparse
-from scr_environment import SCR_Env
-from resmgr import AutoResourceManager
-from scr_param import SCR_Param
-from joblauncher.scr_joblauncher import SCR_Joblauncher
+from pyfe.scr_environment import SCR_Env
+from pyfe.resmgr import AutoResourceManager
+from pyfe.scr_param import SCR_Param
+from pyfe.joblauncher import AutoJobLauncher
 
 def printobject(obj,objname):
   for attr in dir(obj):
@@ -36,7 +36,7 @@ if __name__ == '__main__':
   args = vars(parser.parse_args())
   scr_env = SCR_Env()
   scr_env.resmgr = AutoResourceManager()
-  scr_env.launcher = SCR_Joblauncher()
+  scr_env.launcher = AutoJobLauncher()
   scr_env.param = SCR_Param()
   if len(args)==0:
     printobject(scr_env,'scr_env')
