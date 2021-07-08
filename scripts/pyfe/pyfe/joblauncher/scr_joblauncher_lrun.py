@@ -3,7 +3,7 @@
 # scr_joblauncher_lrun.py
 # The SCR_Joblauncher_lrun class provides interpretation for the lrun launcher
 
-from pyfe.joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
+from joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
 
 class SCR_Joblauncher_lrun(SCR_Joblauncher_Base):
   def __init__(self,launcher='lrun'):

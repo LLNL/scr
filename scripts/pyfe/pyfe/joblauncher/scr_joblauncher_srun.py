@@ -3,8 +3,8 @@
 # scr_joblauncher_srun.py
 # The SCR_Joblauncher_srun class provides interpretation for the srun launcher
 
-from pyfe.scr_common import runproc, pipeproc
-from pyfe.joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
+from scr_common import runproc, pipeproc
+from joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
 
 class SCR_Joblauncher_srun(SCR_Joblauncher_Base):
   def __init__(self,launcher='srun'):

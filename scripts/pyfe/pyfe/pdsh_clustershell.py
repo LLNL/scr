@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-from pyfe import scr_const
+import scr_const
 from inspect import ismodule
 
 class MyHandler(EventHandler):

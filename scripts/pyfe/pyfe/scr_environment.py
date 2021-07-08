@@ -5,8 +5,8 @@
 # SCR_Env contains general values from the environment
 
 import os
-from pyfe import scr_const
-from pyfe.scr_common import scr_prefix
+import scr_const
+from scr_common import scr_prefix
 
 class SCR_Env:
   def __init__(self):

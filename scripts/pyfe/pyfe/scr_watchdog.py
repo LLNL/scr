@@ -9,11 +9,11 @@
 
 import argparse, time
 #from datetime import datetime
-from pyfe import scr_const
-from pyfe.scr_param import SCR_Param
-from pyfe.resmgr import AutoResourceManager
+import scr_const
+from scr_param import SCR_Param
+from resmgr import AutoResourceManager
 #from pyfe.scr_kill_jobstep import scr_kill_jobstep
-from pyfe.scr_common import runproc
+from scr_common import runproc
 
 def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
   # check that we have a  dir and apid

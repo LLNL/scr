@@ -9,10 +9,10 @@
 # requires: pdsh
 
 import argparse, os, re, subprocess
-from pyfe.scr_common import runproc
-from pyfe.scr_environment import SCR_Env
-from pyfe.resmgr import AutoResourceManager
-from pyfe import scr_const, scr_hostlist
+from scr_common import runproc
+from scr_environment import SCR_Env
+from resmgr import AutoResourceManager
+import scr_const, scr_hostlist
 
 def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_env=None):
   bindir = scr_const.X_BINDIR

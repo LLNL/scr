@@ -6,8 +6,8 @@
 # job step id supplied on the command line
 
 import argparse
-from pyfe import scr_const
-from pyfe.scr_common import runproc
+import scr_const
+from scr_common import runproc
 
 def scr_kill_jobstep(bindir=None,jobid=None):
   if bindir is None:

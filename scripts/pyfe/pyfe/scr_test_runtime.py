@@ -15,8 +15,8 @@
 # (or handled manually as well)
 
 import subprocess, sys
-from pyfe import scr_const
-from pyfe.scr_common import runproc
+import scr_const
+from scr_common import runproc
 
 class SCR_Test_Runtime:
   #someclassvariable = True # addition of some variable that exists outside of methods

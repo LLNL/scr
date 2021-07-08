@@ -3,8 +3,8 @@
 # scr_joblauncher_mpirun.py
 # The SCR_Joblauncher_mpirun class provides interpretation for the mpirun launcher
 
-from pyfe import scr_hostlist
-from pyfe.joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
+import scr_hostlist
+from joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
 
 class SCR_Joblauncher_mpirun(SCR_Joblauncher_Base):
   def __init__(self,launcher='mpirun'):

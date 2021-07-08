@@ -8,11 +8,12 @@
 import os, sys
 from datetime import datetime
 from time import time
-from pyfe import scr_const, list_dir
-from pyfe.scr_common import tracefunction, scr_prefix, runproc
-from pyfe.scr_scavenge import scr_scavenge
-from pyfe.list_down_nodes import list_down_nodes
-from pyfe.scr_glob_hosts import scr_glob_hosts
+import scr_const
+from list_dir import list_dir
+from scr_common import tracefunction, scr_prefix, runproc
+from scr_scavenge import scr_scavenge
+from list_down_nodes import list_down_nodes
+from scr_glob_hosts import scr_glob_hosts
 
 def postrun(prefix_dir=None,scr_env=None):
   if scr_env is None or scr_env.resmgr is None:

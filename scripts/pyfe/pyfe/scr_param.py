@@ -4,8 +4,8 @@
 # class SCR Param
 
 import os, re
-from pyfe import scr_const
-from pyfe.scr_common import interpolate_variables, scr_prefix
+import scr_const
+from scr_common import interpolate_variables, scr_prefix
 
 class SCR_Param():
   def __init__(self):

@@ -9,17 +9,20 @@
 from datetime import datetime
 import os, signal, sys, time # need to use both time.time() and time.sleep()
 import multiprocessing as mp
-from pyfe import scr_const, scr_common, list_dir, postrun, list_down_nodes
-from pyfe.scr_common import tracefunction, runproc, scr_prefix
-from pyfe.scr_test_runtime import scr_test_runtime
-from pyfe.scr_prerun import scr_prerun
-from pyfe.scr_get_jobstep_id import scr_get_jobstep_id
-from pyfe.scr_watchdog import scr_watchdog
-from pyfe.scr_environment import SCR_Env
-from pyfe.joblauncher.scr_joblauncher import SCR_Joblauncher
-from pyfe.resmgr import AutoResourceManager
-from pyfe.scr_param import SCR_Param
-from pyfe.scr_glob_hosts import scr_glob_hosts
+import scr_const, scr_common
+from list_dir import list_dir
+from postrun import postrun
+from list_down_nodes import list_down_nodes
+from scr_common import tracefunction, runproc, scr_prefix
+from scr_test_runtime import scr_test_runtime
+from scr_prerun import scr_prerun
+from scr_get_jobstep_id import scr_get_jobstep_id
+from scr_watchdog import scr_watchdog
+from scr_environment import SCR_Env
+from joblauncher.scr_joblauncher import SCR_Joblauncher
+from resmgr import AutoResourceManager
+from scr_param import SCR_Param
+from scr_glob_hosts import scr_glob_hosts
 
 def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
   if launcher=='':

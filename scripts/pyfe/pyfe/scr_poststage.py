@@ -23,8 +23,8 @@
 
 import argparse, subprocess
 from datetime import datetime
-from pyfe import scr_const
-from pyfe.scr_common import runproc
+import scr_const
+from scr_common import runproc
 
 # do_poststage is called from scr_poststage below
 # not intended to be directly called

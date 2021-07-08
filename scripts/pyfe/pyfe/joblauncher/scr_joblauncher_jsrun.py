@@ -3,7 +3,7 @@
 # scr_joblauncher_jsrun.py
 # The SCR_Joblauncher_jsrun class provides interpretation for the jsrun launcher
 
-from pyfe.joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
+from joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
 
 class SCR_Joblauncher_jsrun(SCR_Joblauncher_Base):
   def __init__(self,launcher='jsrun'):

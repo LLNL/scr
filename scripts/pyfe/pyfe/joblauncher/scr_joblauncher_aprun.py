@@ -3,8 +3,8 @@
 # scr_joblauncher_aprun.py
 # The SCR_Joblauncher_aprun class provides interpretation for the aprun launcher
 
-from pyfe.joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
-from pyfe.scr_common import runproc
+from joblauncher.scr_joblauncher_base import SCR_Joblauncher_Base
+from scr_common import runproc
 
 class SCR_Joblauncher_aprun(SCR_Joblauncher_Base):
   def __init__(self,launcher='aprun'):

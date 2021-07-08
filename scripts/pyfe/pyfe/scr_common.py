@@ -4,7 +4,7 @@
 # Defines for common functions shared across scripts
 
 import argparse, inspect, os, sys
-from pyfe import scr_const
+import scr_const
 from subprocess import Popen, PIPE
 
 # for verbose, prints:

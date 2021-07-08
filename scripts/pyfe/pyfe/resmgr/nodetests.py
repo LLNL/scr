@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-from pyfe import scr_const, scr_hostlist
-from pyfe.scr_common import runproc, pipeproc
+import scr_const, scr_hostlist
+from scr_common import runproc, pipeproc
 
 '''
  methods used by resource managers to test nodes

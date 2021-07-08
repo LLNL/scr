@@ -3,7 +3,7 @@
 #scr_glob_hosts.py
 
 import argparse
-from pyfe import scr_hostlist
+import scr_hostlist
 
 def scr_glob_hosts(count=False,nth=None,hosts=None,minus=None,intersection=None,compress=None):
   hostset = []

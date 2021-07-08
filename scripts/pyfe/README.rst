@@ -4,27 +4,31 @@ Python equivalents of perl/bash scripts in scr/scripts/*
 
 | *(Initial / tentative stage)*  
 |  
-| An scr_const.py.in is in the SLURM and LSF folders  
-| If a test is made for another resource manager, copy scr_const.py into that folder as scr_const.py.in  
-| For testing, copy the scr/scripts/pyfe/CMakelists.txt to scr/scripts  
-| Then running the make install will put a filled in scr_const.py in scr/install/bin/  
-| Copy that file to scr/scripts/pyfe/pyfe/  
-| Then there are 2 tentative testings scripts in scr/scripts/pyfe:  
+| For testing there are 2 scripts in scr/scripts/pyfe copied from testing/TESTING.sh  
 | lsftest.sh and slurmtest.sh  
-| These were copied from scr/testing/TESTING.sh  
 | Get an allocation for 4 nodes then run the script while in scr/scripts/pyfe/  
 |   
-| **Using the setup.py in this directory, we can do:**  
+| After doing the scr make install the pyfe scripts will be in scr/install/bin/pyfe  
+| Make a virtual environment somewhere and use pip install in scr/install/bin/pyfe  
+| ``$ cd ~/scr/install/bin``
 | ``$ python3 -m venv venv``  
 | ``$ source venv/bin/activate``  
+| ``$ cd pyfe/``
 | ``$ pip3 install -e .``  
-|   
-| **Then we can run a launcher as:**  
-| ``$ python3 scr_run [args]``  
-| ``$ python3 scr_srun [args]``  
-| ``$ python3 scr_jsrun [args]``  
 |  
-|  **To use clustershell instead of pdsh**  
+| With the package installed, we should be able to get an allocation of 4 nodes  
+| and run the testing scripts  
+| ``$ salloc -N 4``
+| ``$ cd ~/scr/scripts/pyfe``
+| ``$ ./slurmtest.sh``
+|  
+| **Then we can run scripts from any directory as:**  
+| ``$ python -m scr_run <launcher> [args]``  
+| ``$ python -m scr_srun [args]``  
+| ``$ python -m scr_list_down_nodes``
+|  
+| *clustershell not yet implemented*  
+| **To use clustershell instead of pdsh**  
 | ``$ pip install ClusterShell``  
 | **Some configuration is available, described in:**  
 | *clustershell.readthedocs.io/en/latest/config.html*  

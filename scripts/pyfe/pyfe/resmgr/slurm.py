@@ -4,9 +4,9 @@
 # SLURM is a subclass of ResourceManager
 
 import os, re
-from pyfe import scr_const, scr_hostlist
-from pyfe.scr_common import runproc, pipeproc
-from pyfe.resmgr import nodetests, ResourceManager
+import scr_const, scr_hostlist
+from scr_common import runproc, pipeproc
+from resmgr import nodetests, ResourceManager
 
 # AutoResourceManager class holds the configuration
 
