@@ -4,7 +4,6 @@
 # The MPIRUN class provides interpretation for the mpirun launcher
 
 import os
-import scr_hostlist
 from pyfe import scr_hostlist
 from pyfe.joblauncher import JobLauncher
 

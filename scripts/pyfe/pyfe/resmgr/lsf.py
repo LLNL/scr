@@ -14,13 +14,6 @@ class LSF(ResourceManager):
   def __init__(self):
     super(LSF, self).__init__(resmgr='LSF')
 
-  # no watchdog in LSF
-  def usewatchdog(self,use_scr_watchdog=None):
-    if use_scr_watchdog is None:
-      return False
-    if use_scr_watchdog==True:
-      print('WARNING: SCR_WATCHDOG not supported on LSF.')
-
   # get job id, setting environment flag here
   def getjobid(self):
     val = os.environ.get('LSB_JOBID')
@@ -107,7 +100,7 @@ class LSF(ResourceManager):
     if jobid==-1:
       print('You must specify the job step id to kill.')
       return 1
-    return runproc(argv=['scancel',str(jobid)])[1]
+    return runproc(argv=['bkill','-s','KILL',str(jobid)])[1]
 
   def get_scr_end_time(self):
     if self.conf['jobid'] is None:

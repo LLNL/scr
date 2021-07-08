@@ -23,9 +23,9 @@ Python equivalents of perl/bash scripts in scr/scripts/*
 | ``$ ./slurmtest.sh``
 |  
 | **Then we can run scripts from any directory as:**  
-| ``$ python -m scr_run <launcher> [args]``  
-| ``$ python -m scr_srun [args]``  
-| ``$ python -m scr_list_down_nodes``
+| ``$ python -m pyfe.scr_run <launcher> [args]``  
+| ``$ python -m pyfe.scr_srun [args]``  
+| ``$ python -m pyfe.scr_list_down_nodes``
 |  
 | *clustershell not yet implemented*  
 | **To use clustershell instead of pdsh**  

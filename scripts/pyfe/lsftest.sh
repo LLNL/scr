@@ -5,11 +5,11 @@
 # set SCR_PKG to the directory where SCR is cloned
 # set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
 # set SCR_INSTALL to the directory where SCR is installed
-cd ../../
+cd ../../../
 export SCR_PKG=$(pwd)
 #running script directly, need to add .py to scripts
 #export PYFEBIN="python3 ${SCR_PKG}/scripts/pyfe/pyfe/"
-export PYFEBIN="python3 -m "
+export PYFEBIN="python3 -m pyfe."
 export SCR_BUILD=${SCR_PKG}/build
 export SCR_INSTALL=${SCR_PKG}/install
 
