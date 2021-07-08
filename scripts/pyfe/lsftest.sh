@@ -9,7 +9,7 @@ cd ../../
 export SCR_PKG=$(pwd)
 #running script directly, need to add .py to scripts
 #export PYFEBIN="python3 ${SCR_PKG}/scripts/pyfe/pyfe/"
-export PYFEBIN="python3 -m pyfe."
+export PYFEBIN="python3 -m "
 export SCR_BUILD=${SCR_PKG}/build
 export SCR_INSTALL=${SCR_PKG}/install
 
@@ -31,7 +31,7 @@ export jobid=`${PYFEBIN}scr_env --jobid`
 echo "jobid = $jobid"
 export nodelist=`${PYFEBIN}scr_env --nodes`
 echo "nodelist = $nodelist"
-export downnode=`${PYFEBIN}scr_glob_hosts -n 1 "$nodelist"`
+export downnode=`${PYFEBIN}scr_glob_hosts -n 1 -h "$nodelist"`
 echo "downnode = $downnode"
 export prefix_files=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 

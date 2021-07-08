@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import argparse, os, sys
+import argparse, os, sys, re
 from datetime import datetime
 from time import time
 import scr_const, scr_common, scr_hostlist
@@ -48,7 +48,7 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
   start_time = int(time())
 
   # tag output files with jobid
-  jobid = scr_env.getjobid()
+  jobid = scr_env.resmgr.getjobid()
   if jobid is None:
     print('scr_scavenge: ERROR: Could not determine jobid.')
     return 1
@@ -56,7 +56,7 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
   # read node set of job
   jobset = scr_env.conf['nodes']
   if jobset is None:
-    jobset = scr_env.resmgr['nodes']
+    jobset = scr_env.resmgr.conf['nodes']
     if jobset is None:
       print('scr_scavenge: ERROR: Could not determine nodeset.')
       return 1
@@ -150,7 +150,7 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
   # get a timestamp for logging timing values
   end_time = int(time())
   diff_time = end_time - start_time
-  scr_common.log(bindir=bindir, prefix=prefixdir, jobid=jobid, event_type='SCAVENGE_END', event_dset=dset, event_start=str(start_time), event_secs=str(diff_time))
+  scr_common.log(bindir=bindir, prefix=prefixdir, jobid=jobid, event_type='SCAVENGE_END', event_dset=dataset_id, event_start=str(start_time), event_secs=str(diff_time))
   return 0
 
 if __name__=='__main__':

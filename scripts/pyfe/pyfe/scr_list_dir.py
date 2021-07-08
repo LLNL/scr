@@ -14,7 +14,8 @@
 # returns 1 for error, string for success
 
 import argparse, sys
-import scr_const, list_dir
+import scr_const
+from list_dir import list_dir
 from scr_environment import SCR_Env
 from scr_param import SCR_Param
 from resmgr import AutoResourceManager

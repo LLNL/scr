@@ -301,7 +301,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   print(prog+': postrun: '+str(timestamp))
 
   # scavenge files from cache to parallel file system
-  if scr_postrun(prefix_dir=prefix,scr_env=scr_env) != 0:
+  if postrun(prefix_dir=prefix,scr_env=scr_env) != 0:
     print(prog+': ERROR: Command failed: scr_postrun -p '+prefix)
 
   # kill the watchdog process if it is running

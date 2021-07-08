@@ -6,7 +6,7 @@
 
 import os
 import scr_const
-from scr_common import scr_prefix
+from scr_common import scr_prefix, runproc
 
 class SCR_Env:
   def __init__(self):
