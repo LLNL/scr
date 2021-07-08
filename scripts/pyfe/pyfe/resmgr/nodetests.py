@@ -61,39 +61,21 @@ def list_pdsh_fail_echo(nodes=[]):
   if len(nodes)>0:
     # only run this against set of nodes known to be responding
     upnodes = scr_hostlist.compress(nodes)
-
     # run an "echo UP" on each node to check whether it works
-    argv = []
-    argv.append([pdsh,'-f','256','-w',upnodes,'\"echo UP\"'])
-    argv.append([dshbak,'-c'])
-    output = pipeproc(argvs=argv,getstdout=True)[0]
-    position=0
-    for result in output.split('\n'):
-      if len(result)==0:
+    argv = [pdsh,'-f','256','-w',upnodes,'echo UP']
+    output = runproc(argv=argv,getstdout=True)[0]
+    for line in output.split('\n'):
+      if len(line)==0:
         continue
-      if position==0:
-        if result.startswith('---'):
-          position=1
-      elif position==1:
-        nodeset = result
-        position = 2
-      elif position==2:
-        line=result
-        position=3
-      elif position==3:
-        position=0
-        if 'UP' in result:
-          exclude_nodes = scr_hostlist.expand(nodeset)
-          for excludenode in exclude_nodes:
-            # this node responded, so remove it from the down list
-            if excludenode in pdsh_assumed_down:
-              pdsh_assumed_down.remove(excludenode)
+      if 'UP' in line:
+        uphost = line.split(':')[0]
+        if uphost in pdsh_assumed_down:
+          pdsh_assumed_down.remove(uphost)
 
   # if we still have any nodes assumed down, update our available/unavailable lists
   for node in pdsh_assumed_down:
     nodes.remove(node)
     unavailable[node] = 'Failed to pdsh echo UP'
-
   return unavailable
 
 #### Each resource manager other than LSF had this section

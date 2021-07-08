@@ -50,7 +50,7 @@ def scr_prefix():
 
 #####
 '''
-The default shell used by subprocess is /bin/sh. If you’re using other shells, like tch or csh, you can define them in the executable argument.
+The default shell used by subprocess is /bin/sh. If youre using other shells, like tch or csh, you can define them in the executable argument.
 '''
 ###
 
