@@ -9,8 +9,11 @@
 # salloc -N4 -ppdebug
 #
 
+# Ensure the scripts are executable
+dochmod.sh
+
 # Set the launcher for the launch script to use below
-launcher="jsrun"
+launcher="srun"
 if [ $launcher == "srun" ]; then
   launcherargs="-n4 -N4"
 elif [ $launcher == "lrun" ]; then
@@ -23,7 +26,7 @@ else
 fi
 ################################ aprun?
 
-export PYFEBIN="$(pwd)/pyfe"
+export PATH=$(pwd)/pyfe:${PATH}
 cd ../../../
 export SCR_PKG=$(pwd)
 export SCR_BUILD=${SCR_PKG}/build
@@ -34,16 +37,6 @@ export SCR_INSTALL=${SCR_PKG}/install
 #export OPT="-g -O0"
 #make
 cd ${SCR_BUILD}/examples
-
-# set up initial enviroment for testing
-scrbin=${SCR_INSTALL}/bin
-jobid=$(${PYFEBIN}/scr_env.py --jobid)
-echo "jobid = ${jobid}"
-nodelist=$(${PYFEBIN}/scr_env.py --nodes)
-echo "nodelist = ${nodelist}"
-downnode=$(${PYFEBIN}/scr_glob_hosts.py -n 1 -h "${nodelist}")
-echo "downnode = ${downnode}"
-prefix_files=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 
 #export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/install/lib:/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le/lib
 export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${LD_LIBRARY_PATH}
@@ -59,45 +52,64 @@ export SCR_CACHE_SIZE=2
 # if there is a configuration file
 #export SCR_CONF_FILE=~/myscr.conf
 
+# set up initial enviroment for testing
+scrbin=${SCR_INSTALL}/bin
+jobid=$(scr_env.py --jobid)
+echo "jobid = ${jobid}"
+nodelist=$(scr_env.py --nodes)
+echo "nodelist = ${nodelist}"
+downnode=$(scr_glob_hosts.py -n 1 -h "${nodelist}")
+echo "downnode = ${downnode}"
+prefix_files=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
+sleep 1
+
 echo "scr_const.py"
-${PYFEBIN}/scr_const.py
+scr_const.py
+sleep 1
 
 echo "scr_common.py"
-${PYFEBIN}/scr_common.py --interpolate .
-${PYFEBIN}/scr_common.py --interpolate ../some_neighbor_directory
-${PYFEBIN}/scr_common.py --interpolate "SCR_JOB_NAME = \$SCR_JOB_NAME"
-${PYFEBIN}/scr_common.py --runproc echo -e 'this\nis\na\ntest'
-${PYFEBIN}/scr_common.py --pipeproc echo -e 'this\nis\na\ntest' : grep t : grep e
+scr_common.py --interpolate .
+scr_common.py --interpolate ../some_neighbor_directory
+scr_common.py --interpolate "SCR_JOB_NAME = \$SCR_JOB_NAME"
+scr_common.py --runproc echo -e 'this\nis\na\ntest'
+scr_common.py --pipeproc echo -e 'this\nis\na\ntest' : grep t : grep e
 
 sleep 2
 
 echo "scr_env.py"
-echo "The user: $(${PYFEBIN}/scr_env.py -u)"
-echo "The jobid: $(${PYFEBIN}/scr_env.py -j)"
-echo "The nodes: $(${PYFEBIN}/scr_env.py -n)"
-echo "The downnodes: $(${PYFEBIN}/scr_env.py -d)"
-echo "Runnode count (last run): $(${PYFEBIN}/scr_env.py -r)"
+echo "The user: $(scr_env.py -u)"
+echo "The jobid: $(scr_env.py -j)"
+echo "The nodes: $(scr_env.py -n)"
+echo "The downnodes: $(scr_env.py -d)"
+echo "Runnode count (last run): $(scr_env.py -r)"
+sleep 1
 
 echo "scr_get_jobstep_id.py"
-${PYFEBIN}/scr_get_jobstep_id.py
+scr_get_jobstep_id.py
+sleep 1
 
 echo "scr_list_dir.py"
-${PYFEBIN}/scr_list_dir.py control
-${PYFEBIN}/scr_list_dir.py --base control
-${PYFEBIN}/scr_list_dir.py cache
-${PYFEBIN}/scr_list_dir.py --base cache
+scr_list_dir.py control
+scr_list_dir.py --base control
+scr_list_dir.py cache
+scr_list_dir.py --base cache
+sleep 1
 
 echo "scr_list_down_nodes.py"
-${PYFEBIN}/scr_list_down_nodes.py -r ${nodelist}
+scr_list_down_nodes.py -r ${nodelist}
+sleep 1
 
 echo "scr_param.py"
-${PYFEBIN}/scr_param.py
+scr_param.py
+sleep 1
 
 echo "scr_prerun.py"
-${PYFEBIN}/scr_prerun.py && echo "prerun passed" || echo "prerun failed"
+scr_prerun.py && echo "prerun passed" || echo "prerun failed"
+sleep 1
 
 echo "scr_test_runtime.py"
-${PYFEBIN}/scr_test_runtime.py
+scr_test_runtime.py
+sleep 1
 
 echo "scr_run test_api . . ."
 sleep 3
@@ -110,23 +122,23 @@ rm -f ${prefix_files}
 
 echo "check that a run works"
 sleep 1
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_api
+scr_${launcher}.py ${launcherargs} ./test_api
 
 echo "run again, check that checkpoints continue where last run left off"
 sleep 2
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_api
+scr_${launcher}.py ${launcherargs} ./test_api
 
 echo "delete all files from /ssd on rank 0, run again, check that rebuild works"
 sleep 2
 rm -rf /dev/shm/${USER}/scr.${jobid}
 rm -rf /ssd/${USER}/scr.${jobid}
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_api
+scr_${launcher}.py ${launcherargs} ./test_api
 
 echo "delete all files from all nodes, run again, check that run starts over"
 sleep 2
 ${launcher} ${launcherargs} /bin/rm -rf /ssd/${USER}/scr.${jobid}
 ${launcher} ${launcherargs} /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_api
+scr_${launcher}.py ${launcherargs} ./test_api
 
 
 echo "clear the cache and control directory"
@@ -138,53 +150,55 @@ rm -f ${prefix_files}
 
 echo "check that scr_list_dir.py returns good values"
 sleep 1
-${PYFEBIN}/scr_list_dir.py control
-${PYFEBIN}/scr_list_dir.py --base control
-${PYFEBIN}/scr_list_dir.py cache
-${PYFEBIN}/scr_list_dir.py --base cache
+scr_list_dir.py control
+scr_list_dir.py --base control
+scr_list_dir.py cache
+scr_list_dir.py --base cache
+sleep 1
 
 
 echo "check that scr_list_down_nodes.py returns good values"
 sleep 1
-${PYFEBIN}/scr_list_down_nodes.py
-${PYFEBIN}/scr_list_down_nodes.py --down ${downnode}
-${PYFEBIN}/scr_list_down_nodes.py --reason --down ${downnode}
+scr_list_down_nodes.py
+scr_list_down_nodes.py --down ${downnode}
+scr_list_down_nodes.py --reason --down ${downnode}
 export SCR_EXCLUDE_NODES=${downnode}
-${PYFEBIN}/scr_list_down_nodes
-${PYFEBIN}/scr_list_down_nodes.py --reason
+scr_list_down_nodes.py
+scr_list_down_nodes.py --reason
 unset SCR_EXCLUDE_NODES
+sleep 1
 
 
 echo "check that scr_halt.py seems to work"
 sleep 1
-${PYFEBIN}/scr_halt.py --list $(pwd)
-${PYFEBIN}/scr_halt.py --before '3pm today' $(pwd)
-${PYFEBIN}/scr_halt.py --after '4pm today' $(pwd)
-${PYFEBIN}/scr_halt.py --seconds 1200 $(pwd)
-${PYFEBIN}/scr_halt.py --unset-before $(pwd)
-${PYFEBIN}/scr_halt.py --unset-after $(pwd)
-${PYFEBIN}/scr_halt.py --unset-seconds $(pwd)
-${PYFEBIN}/scr_halt.py $(pwd)
-${PYFEBIN}/scr_halt.py --checkpoints 3 $(pwd)
-${PYFEBIN}/scr_halt.py --unset-checkpoints $(pwd)
-${PYFEBIN}/scr_halt.py --unset-reason $(pwd)
-${PYFEBIN}/scr_halt.py --remove $(pwd)
+scr_halt.py --list $(pwd)
+scr_halt.py --before '3pm today' $(pwd)
+scr_halt.py --after '4pm today' $(pwd)
+scr_halt.py --seconds 1200 $(pwd)
+scr_halt.py --unset-before $(pwd)
+scr_halt.py --unset-after $(pwd)
+scr_halt.py --unset-seconds $(pwd)
+scr_halt.py $(pwd)
+scr_halt.py --checkpoints 3 $(pwd)
+scr_halt.py --unset-checkpoints $(pwd)
+scr_halt.py --unset-reason $(pwd)
+scr_halt.py --remove $(pwd)
 sleep 1
 
 
 echo "check that scr_postrun works (w/ empty cache)"
 sleep 1
-${PYFEBIN}/scr_postrun.py
+scr_postrun.py
 
 
 echo "clear the cache, make a new run"
 sleep 2
 ${launcher} ${launcherargs} /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
 ${launcher} ${launcherargs} /bin/rm -rf /ssd/${USER}/scr.${jobid}
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_api
+scr_${launcher}.py ${launcherargs} ./test_api
 sleep 1
 echo "check that scr_postrun scavenges successfully (no rebuild)"
-${PYFEBIN}/scr_postrun.py
+scr_postrun.py
 sleep 1
 echo "scr_index"
 ${scrbin}/scr_index --list
@@ -193,9 +207,9 @@ sleep 2
 echo "fake a down node via EXCLUDE_NODES and redo above test (check that rebuild during scavenge works)"
 sleep 1
 export SCR_EXCLUDE_NODES=${downnode}
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_api
+scr_${launcher}.py ${launcherargs} ./test_api
 sleep 1
-${PYFEBIN}/scr_postrun.py
+scr_postrun.py
 sleep 1
 unset SCR_EXCLUDE_NODES
 ${scrbin}/scr_index --list
@@ -206,7 +220,7 @@ sleep 1
 ${launcher} ${launcherargs} /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
 ${launcher} ${launcherargs} /bin/rm -rf /ssd/${USER}/scr.${jobid}
 export SCR_FETCH=1
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_api
+scr_${launcher}.py ${launcherargs} ./test_api
 sleep 1
 ${scrbin}/scr_index --list
 sleep 2
@@ -226,9 +240,9 @@ sleep 2
 echo "enable flush, run again and check that flush succeeds and that postrun realizes that"
 sleep 1
 export SCR_FLUSH=10
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_api
+scr_${launcher}.py ${launcherargs} ./test_api
 sleep 1
-${PYFEBIN}/scr_postrun.py
+scr_postrun.py
 sleep 1
 ${scrbin}/scr_index --list
 sleep 2
@@ -239,12 +253,12 @@ sleep 2
 #export SCR_WATCHDOG_TIMEOUT_PFS=15
 #echo "run test_api_hang, which will sleep for 90 seconds before finalizing"
 
-#${PYFEBIN}/scr_${launcher}.py -n4 -N4 ./test_api_hang
+#/scr_${launcher}.py -n4 -N4 ./test_api_hang
 #echo "scr_${launcher} returned, try to restart (should get the checkpoint that was just made)"
 #unset SCR_WATCHDOG
 #unset SCR_WATCHDOG_TIMEOUT
 #unset SCR_WATCHDOG_TIMEOUT_PFS
-#${PYFEBIN}/scr_${launcher}.py -n4 -N4 ./test_api
+#/scr_${launcher}.py -n4 -N4 ./test_api
 #echo "back again"
 
 export SCR_DEBUG=0
@@ -256,11 +270,11 @@ sleep 2
 ${launcher} ${launcherargs} /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
 ${launcher} ${launcherargs} /bin/rm -rf /ssd/${USER}/scr.${jobid}
 rm -f ${prefix_files}
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_api
+scr_${launcher}.py ${launcherargs} ./test_api
 ${scrbin}/scr_index --list
 sleep 2
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_ckpt
+scr_${launcher}.py ${launcherargs} ./test_ckpt
 sleep 1
-${PYFEBIN}/scr_${launcher}.py ${launcherargs} ./test_config
+scr_${launcher}.py ${launcherargs} ./test_config
 sleep 1
 

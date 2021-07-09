@@ -36,10 +36,8 @@ class SLURM(ResourceManager):
     return None
 
   def get_jobstep_id(self,user='',pid=-1):
+    return self.conf['jobid'] if self.conf['jobid'] is not None
     # we previously weren't able to determine the job id
-    if self.conf['jobid'] is None:
-      return -1
-    # the slurm get_jobstep_id didn't use the pid parameter
     # get job steps for this user and job, order by decreasing job step
     # so first one should be the one we are looking for
     # -h means print no header, so just the data in this order:
@@ -49,29 +47,7 @@ class SLURM(ResourceManager):
     output, returncode = runproc(argv=argv,getstdout=True)
     if returncode != 0:
         return -1
-    output = output.split('\n')
-
-    currjobid=-1
-
-    for line in output:
-      line = line.strip()
-      if len(line)==0:
-        continue
-      #line = re.sub('^(\s+)','',line)
-      # $line=~ s/^\s+//;
-      fields = re.split('\s+',line)
-      # my @fields = split /\s+/, $line;
-      #print ("fields ",join(",",@fields),"\n");
-      #my @jobidparts=split /\./, $fields[0];
-      jobidparts = fields[0].split('.')
-      #print ("jobidparts: ", join(",",@jobidparts),"\n");
-      # the first item is the job step id
-      # if it is JOBID.0, then it is the allocation ID and we don't want that
-      # if it's not 0, then assume it's the one we're looking for
-      if jobidparts[1]!='0' and jobidparts[1]!='batch':
-        currjobid=int(fields[0])
-        break
-    return currjobid
+    return re.search('\d+',output)[0]
 
   def scr_kill_jobstep(self,jobid=-1):
     if jobid==-1:
