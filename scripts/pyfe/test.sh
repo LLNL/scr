@@ -10,7 +10,7 @@
 #
 
 # Ensure the scripts are executable
-dochmod.sh
+./dochmod.sh
 
 # Set the launcher for the launch script to use below
 launcher="srun"
