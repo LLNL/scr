@@ -4,28 +4,26 @@ Python equivalents of perl/bash scripts in scr/scripts/*
 
 | *(Initial / tentative stage)*  
 |  
-| For testing there are 2 scripts in scr/scripts/pyfe copied from testing/TESTING.sh  
-| lsftest.sh and slurmtest.sh  
-| Get an allocation for 4 nodes then run the script while in scr/scripts/pyfe/  
-|   
 | After doing the scr make install the pyfe scripts will be in scr/install/bin/pyfe  
+|  
+| pyfe can be installed using pip for the following usage:  
 | Make a virtual environment somewhere and use pip install in scr/install/bin/pyfe  
 | ``$ cd ~/scr/install/bin``
 | ``$ python3 -m venv venv``  
 | ``$ source venv/bin/activate``  
 | ``$ cd pyfe/``
 | ``$ pip3 install -e .``  
-|  
-| With the package installed, we should be able to get an allocation of 4 nodes  
-| and run the testing scripts  
-| ``$ salloc -N 4``
-| ``$ cd ~/scr/scripts/pyfe``
-| ``$ ./slurmtest.sh``
-|  
-| **Then we can run scripts from any directory as:**  
-| ``$ python -m pyfe.scr_run <launcher> [args]``  
 | ``$ python -m pyfe.scr_srun [args]``  
-| ``$ python -m pyfe.scr_list_down_nodes``
+|  
+| or scr/install/bin/pyfe can be added to the PATH and scripts ran directly  
+| ``$ scr_srun.py [args]``  
+|  
+| For testing there are 2 scripts in scr/scripts/pyfe copied from testing/TESTING.sh  
+| lsftest.sh and slurmtest.sh  
+| Get an allocation for 4 nodes then run the testing scripts at scr/install/bin/pyfe  
+| ``$ salloc -N 4``
+| ``$ cd ~/scr/install/bin/pyfe``
+| ``$ ./slurmtest.sh``
 |  
 | *clustershell not yet implemented*  
 | **To use clustershell instead of pdsh**  

@@ -2,11 +2,9 @@
 # set SCR_PKG to the directory where SCR is cloned
 # set SCR_BUILD to the directory where SCR should be untarred and built (this will be removed with rm -rf)
 # set SCR_INSTALL to the directory where SCR is installed
+export PYFEBIN="$(pwd)/pyfe"
 cd ../../../
 export SCR_PKG=$(pwd)
-#running script directly, need to add .py to scripts
-#export PYFEBIN="python3 ${SCR_PKG}/scripts/pyfe/pyfe/"
-export PYFEBIN="python3 -m pyfe."
 export SCR_BUILD=${SCR_PKG}/build
 export SCR_INSTALL=${SCR_PKG}/install
 
@@ -24,11 +22,11 @@ cd ${SCR_BUILD}/examples
 
 # set up initial enviroment for testing
 export scrbin=${SCR_INSTALL}/bin
-export jobid=`${PYFEBIN}scr_env --jobid`
+export jobid=`${PYFEBIN}/scr_env.py --jobid`
 echo "jobid = $jobid"
-export nodelist=`${PYFEBIN}scr_env --nodes`
+export nodelist=`${PYFEBIN}/scr_env.py --nodes`
 echo "nodelist = $nodelist"
-export downnode=`${PYFEBIN}scr_glob_hosts -n 1 -h "$nodelist"`
+export downnode=`${PYFEBIN}/scr_glob_hosts.py -n 1 -h "$nodelist"`
 echo "downnode = $downnode"
 export prefix_files=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 
@@ -53,30 +51,30 @@ rm -f ${prefix_files}
 
 
 echo "check that a run works"
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
 
 
 echo "run again, check that checkpoints continue where last run left off"
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
 
 
 echo "delete all files from /ssd on rank 0, run again, check that rebuild works"
 rm -rf /dev/shm/${USER}/scr.$jobid
 rm -rf /ssd/${USER}/scr.$jobid
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
 
 
 echo "delete latest checkpoint directory from two nodes, run again,"
 echo "check that rebuild works for older checkpoint"
 srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid/scr.dataset.18
 srun -n2 -N2 /bin/rm -rf /dev/shm/${USER}/scr.$jobid/scr.dataset.18
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
 
 
 echo "delete all files from all nodes, run again, check that run starts over"
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
 
 
 echo "clear the cache and control directory"
@@ -86,65 +84,65 @@ rm -f ${prefix_files}
 
 
 echo "check that scr_list_dir.py returns good values"
-${PYFEBIN}scr_list_dir control
-${PYFEBIN}scr_list_dir --base control
-${PYFEBIN}scr_list_dir cache
-${PYFEBIN}scr_list_dir --base cache
+${PYFEBIN}/scr_list_dir.py control
+${PYFEBIN}/scr_list_dir.py --base control
+${PYFEBIN}/scr_list_dir.py cache
+${PYFEBIN}/scr_list_dir.py --base cache
 
 
 echo "check that scr_list_down_nodes returns good values"
-${PYFEBIN}scr_list_down_nodes
-${PYFEBIN}scr_list_down_nodes --down $downnode
-${PYFEBIN}scr_list_down_nodes --reason --down $downnode
+${PYFEBIN}/scr_list_down_nodes.py
+${PYFEBIN}/scr_list_down_nodes.py --down $downnode
+${PYFEBIN}/scr_list_down_nodes.py --reason --down $downnode
 export SCR_EXCLUDE_NODES=$downnode
-${PYFEBIN}scr_list_down_nodes
-${PYFEBIN}scr_list_down_nodes --reason
+${PYFEBIN}/scr_list_down_nodes.py
+${PYFEBIN}/scr_list_down_nodes.py --reason
 unset SCR_EXCLUDE_NODES
 
 
 echo "check that scr_halt.py seems to work"
-${PYFEBIN}scr_halt --list `pwd`; sleep 3
-${PYFEBIN}scr_halt --before '3pm today' `pwd`; sleep 3
-${PYFEBIN}scr_halt --after '4pm today' `pwd`; sleep 3
-${PYFEBIN}scr_halt --seconds 1200 `pwd`; sleep 3
-${PYFEBIN}scr_halt --unset-before `pwd`; sleep 3
-${PYFEBIN}scr_halt --unset-after `pwd`; sleep 3
-${PYFEBIN}scr_halt --unset-seconds `pwd`; sleep 3
-${PYFEBIN}scr_halt `pwd`; sleep 3
-${PYFEBIN}scr_halt --checkpoints 5 `pwd`; sleep 3
-${PYFEBIN}scr_halt --unset-checkpoints `pwd`; sleep 3
-${PYFEBIN}scr_halt --unset-reason `pwd`; sleep 3
-${PYFEBIN}scr_halt --remove `pwd`
+${PYFEBIN}/scr_halt.py --list `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py --before '3pm today' `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py --after '4pm today' `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py --seconds 1200 `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py --unset-before `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py --unset-after `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py --unset-seconds `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py --checkpoints 5 `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py --unset-checkpoints `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py --unset-reason `pwd`; sleep 3
+${PYFEBIN}/scr_halt.py --remove `pwd`
 
 
 echo "check that scr_env.py seems to work"
-${PYFEBIN}scr_env --user
-${PYFEBIN}scr_env --jobid
-${PYFEBIN}scr_env --nodes
-${PYFEBIN}scr_env --down
+${PYFEBIN}/scr_env.py --user
+${PYFEBIN}/scr_env.py --jobid
+${PYFEBIN}/scr_env.py --nodes
+${PYFEBIN}/scr_env.py --down
 
 
 echo "check that scr_prerun works"
-${PYFEBIN}scr_prerun
+${PYFEBIN}/scr_prerun.py
 
 
 echo "check that scr_postrun works (w/ empty cache)"
-${PYFEBIN}scr_postrun
+${PYFEBIN}/scr_postrun.py
 
 
 echo "clear the cache, make a new run, and check that scr_postrun scavenges successfully (no rebuild)"
 srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
-${PYFEBIN}scr_postrun
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
+${PYFEBIN}/scr_postrun.py
 echo "scr_index (not a py script)"
 ${scrbin}/scr_index --list
 
 
 echo "fake a down node via EXCLUDE_NODES and redo above test (check that rebuild during scavenge works)"
 export SCR_EXCLUDE_NODES=$downnode
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
-${PYFEBIN}scr_postrun
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
+${PYFEBIN}/scr_postrun.py
 unset SCR_EXCLUDE_NODES
 ${scrbin}/scr_index --list
 
@@ -153,14 +151,14 @@ echo "delete all files, enable fetch, run again, check that fetch succeeds"
 srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 export SCR_FETCH=1
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
 
 echo "delete all files from 2 nodes, run again, check that distribute fails but fetch succeeds"
 srun -n2 -N2 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n2 -N2 /bin/rm -rf /ssd/${USER}/scr.$jobid
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
 
@@ -177,8 +175,8 @@ ${scrbin}/scr_index --list
 
 echo "enable flush, run again and check that flush succeeds and that postrun realizes that"
 export SCR_FLUSH=10
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
-${PYFEBIN}scr_postrun
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
+${PYFEBIN}/scr_postrun.py
 ${scrbin}/scr_index --list
 
 #echo "turn on the watchdog with a timeout of 15 seconds"
@@ -204,10 +202,10 @@ echo "----------------------"
 srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.$jobid
 srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.$jobid
 rm -f ${prefix_files}
-${PYFEBIN}scr_srun -n4 -N4 ./test_api
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_api
 ${scrbin}/scr_index --list
 
-${PYFEBIN}scr_srun -n4 -N4 ./test_ckpt
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_ckpt
 
-${PYFEBIN}scr_srun -n4 -N4 ./test_config
+${PYFEBIN}/scr_srun.py -n4 -N4 ./test_config
 
