@@ -309,6 +309,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       print(prog + ': Halt condition detected, ending run.')
       break
 
+    ##### Reduce this sleep time when testing scripts #####
     # give nodes a chance to clean up
     sleep(60)
 

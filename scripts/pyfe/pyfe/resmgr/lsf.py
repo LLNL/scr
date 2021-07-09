@@ -54,19 +54,7 @@ class LSF(ResourceManager):
 
   def get_jobstep_id(self,user='',pid=-1):
     # previously weren't able to get jobid
-    if self.conf['jobid'] is None:
-      return -1
-    # the slurm get_jobstep_id didn't use the pid parameter
-    # get job steps for this user and job, order by decreasing job step
-    # so first one should be the one we are looking for
-    # -h means print no header, so just the data in this order:
-    # STEPID         NAME PARTITION     USER      TIME NODELIST
-    argv = ['squeue','-h','-s','-u',user,'-j',str(self.conf['jobid']),'-S','\"-i\"']
-    # my $cmd="squeue -h -s -u $user -j $jobid -S \"-i\"";
-    output, returncode = runproc(argv=argv,getstdout=True)
-    if returncode != 0:
-        return -1
-    output = output.split('\n')
+    return -1 if self.conf['jobid'] is None else self.conf['jobid']
 
     currjobid=-1
     argv = ['ps','h','-p',str(pid)] if pid>=0 else []

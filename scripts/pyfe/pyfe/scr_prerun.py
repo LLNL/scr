@@ -80,4 +80,5 @@ if __name__=='__main__':
     parser.print_help()
   else:
     ret = scr_prerun(prefix=args['prefix'])
-    print('scr_prerun returned '+str(ret))
+    sys.exit(ret)
+

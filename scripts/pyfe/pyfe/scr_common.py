@@ -39,7 +39,7 @@ def interpolate_variables(varstr):
       varstr = varstr[3:]
     varstr = topdir+'/'+varstr
   elif varstr[0]=='.':
-    varstr=os.getcwd()+prefix[1:]
+    varstr=os.getcwd()+varstr[1:]
   if varstr[-1] == '/' and len(varstr) > 1:
     varstr = varstr[:-1]
   return os.path.expandvars(varstr)

@@ -38,7 +38,7 @@ def scr_get_jobstep_id(scr_env=None,pid=-1):
   if jobid is None:
     print('scr_get_jobstep_id: ERROR: Could not determine job ID')
     return None
-  currjobid = scr_env.launcher.get_jobstep_id(user=user,pid=pid)
+  currjobid = scr_env.resmgr.get_jobstep_id(user=user,pid=pid)
   return currjobid
 
 if __name__=='__main__':

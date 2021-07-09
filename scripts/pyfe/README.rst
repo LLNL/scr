@@ -18,12 +18,13 @@ Python equivalents of perl/bash scripts in scr/scripts/*
 | or scr/install/bin/pyfe can be added to the PATH and scripts ran directly  
 | ``$ scr_srun.py [args]``  
 |  
-| For testing there are 2 scripts in scr/scripts/pyfe copied from testing/TESTING.sh  
-| lsftest.sh and slurmtest.sh  
-| Get an allocation for 4 nodes then run the testing scripts at scr/install/bin/pyfe  
+| For testing scr/scripts/pyfe/test.sh will be copied to scr/install/bin/pyfe
+| Get an allocation for 4 nodes then run the testing script while in scr/install/bin/pyfe  
+| Specify the launcher to use near the top of the script  
+| There is a long sleep in scr_run.py (60 seconds) which can be reduced for testing  
 | ``$ salloc -N 4``
 | ``$ cd ~/scr/install/bin/pyfe``
-| ``$ ./slurmtest.sh``
+| ``$ ./test.sh``
 |  
 | *clustershell not yet implemented*  
 | **To use clustershell instead of pdsh**  
