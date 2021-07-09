@@ -5,8 +5,7 @@
 import os, sys
 
 if 'pyfe' not in sys.path:
-  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
-  print(sys.path)
+  sys.path.insert(0,'/'.join(os.path.realpath(__file__).split('/')[:-2]))
   import pyfe
 
 import argparse, subprocess
