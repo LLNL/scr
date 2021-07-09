@@ -6,6 +6,13 @@
 # Run this script after the final run in a job allocation
 # to scavenge files from cache to parallel file system.
 
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
 import argparse
 from pyfe.postrun import postrun
 from pyfe.scr_environment import SCR_Env

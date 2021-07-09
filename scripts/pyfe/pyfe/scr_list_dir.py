@@ -13,7 +13,14 @@
 
 # returns 1 for error, string for success
 
-import argparse, sys
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
+import argparse
 from pyfe import scr_const
 from pyfe.list_dir import list_dir
 from pyfe.scr_environment import SCR_Env

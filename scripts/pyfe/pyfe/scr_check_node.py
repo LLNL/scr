@@ -7,7 +7,14 @@
 #   cache directory is available and of proper size
 # print PASS if good, and FAIL if not
 
-import argparse, os
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
+import argparse
 
 def scr_check_node(free=False,cntl_list=None,cache_list=None):
   types = ['cntl','cache']

@@ -2,6 +2,13 @@
 
 # scr_get_jobstep_id.py
 
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 from pyfe.joblauncher import AutoJobLauncher

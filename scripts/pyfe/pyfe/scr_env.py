@@ -4,6 +4,13 @@
 # this is a standalone script which queries the class SCR_Env
 # SCR_Env contains general values from the environment
 
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
 import argparse
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager

@@ -3,7 +3,14 @@
 # scr_param.py
 # class SCR Param
 
-import os, re
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
+import re
 from pyfe import scr_const
 from pyfe.scr_common import interpolate_variables, scr_prefix
 

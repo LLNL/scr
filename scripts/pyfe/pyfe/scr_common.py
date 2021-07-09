@@ -3,7 +3,14 @@
 # scr_common.py
 # Defines for common functions shared across scripts
 
-import argparse, inspect, os, sys
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
+import argparse, inspect
 from subprocess import Popen, PIPE
 from pyfe import scr_const
 

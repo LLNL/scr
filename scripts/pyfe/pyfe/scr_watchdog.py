@@ -7,6 +7,13 @@
 # activity has occurred since the last time it checked. If too much time
 # passes without activity, it kills the job
 
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
 import argparse, time
 #from datetime import datetime
 from pyfe import scr_const

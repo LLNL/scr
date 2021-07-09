@@ -6,8 +6,15 @@
 # if called directly the launcher to use (srun/jsrun/mpirun) should be specified as an argument
 # scr_{srun,jsrun,mpirun} scripts call this script with the launcher specified
 
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
 from datetime import datetime
-import os, signal, sys
+import signal
 import multiprocessing as mp
 from time import time, sleep
 from pyfe import scr_const, scr_common

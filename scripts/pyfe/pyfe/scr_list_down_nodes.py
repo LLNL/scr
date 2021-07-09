@@ -3,15 +3,14 @@
 # scr_list_down_nodes.py
 # this is a launcher script for list_down_nodes.py
 
-import os
-import sys
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
 import argparse
-
-# add pyfe directory to PYTHONPATH
-topdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if topdir not in sys.path:
-  sys.path.append(topdir)
-
 from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_environment import SCR_Env
 from pyfe.scr_param import SCR_Param

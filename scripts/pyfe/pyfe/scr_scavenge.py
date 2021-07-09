@@ -1,6 +1,16 @@
 #! /usr/bin/env python3
 
-import argparse, os, sys
+# scr_scavenge.py
+# scavenge checkpoint files from cache to PFS
+
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
+import argparse
 from datetime import datetime
 from time import time
 from pyfe import scr_const, scr_common, scr_hostlist
@@ -9,7 +19,6 @@ from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 from pyfe.scr_common import tracefunction, runproc
 
-# scavenge checkpoint files from cache to PFS
 # check for pdsh / (clustershell) errors in case any nodes should be retried
 
 def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_id=None, cntldir=None, prefixdir=None, verbose=False, scr_env=None):

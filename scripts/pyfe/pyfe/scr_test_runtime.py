@@ -14,7 +14,14 @@
 # the return value of manual additions should be appended to rc[] in scr_test_runtime
 # (or handled manually as well)
 
-import subprocess, sys
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
+import subprocess
 from pyfe import scr_const
 from pyfe.scr_common import runproc
 

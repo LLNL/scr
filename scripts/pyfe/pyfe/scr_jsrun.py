@@ -5,7 +5,13 @@
 # calls scr_run specifying to use launcher 'jsrun'
 # the launcher object could be created here.
 
-import sys
+import os, sys
+
+if 'pyfe' not in sys.path:
+  sys.path.insert(0,'/'.join(os.path.dirname(__file__).split('/')[:-1]))
+  print(sys.path)
+  import pyfe
+
 from pyfe.scr_run import *
 
 if __name__=='__main__':
