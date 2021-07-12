@@ -52,8 +52,12 @@ class ResourceManager(object):
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
     return {}
 
-  def get_scavenge_pdsh_cmd(self):
-    return []
+  # perform the scavenge files operation for scr_scavenge
+  # command format depends on resource manager in use
+  # uses either pdsh or clustershell
+  # returns a list -> [ 'stdout', 'stderr' ]
+  def scavenge_files(self, prog='', upnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag='', downnodes_spaced=''):
+    return ['','']
 
 if __name__=='__main__':
   resmgr = ResourceManager()

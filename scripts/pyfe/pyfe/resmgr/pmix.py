@@ -70,8 +70,11 @@ class PMIX(ResourceManager):
       unavailable.update(nextunavail)
     return unavailable
 
-  def get_scavenge_pdsh_cmd(self):
-    argv = ['$pdsh', '-f', '256', '-S', '-w', '$upnodes']
+  # perform the scavenge files operation for scr_scavenge
+  # uses either pdsh or clustershell
+  # returns a list -> [ 'stdout', 'stderr' ]
+  def scavenge_files(self, prog='', upnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag='', downnodes_spaced=''):
+    argv = [scr_const.PDSH_EXE, '-f', '256', '-S', '-w', upnodes]
     cppr_lib = scr_const.CPPR_LDFLAGS
     if cppr_lib.startswith('-L'):
       cppr_lib = cppr_lib[2:]
@@ -79,11 +82,10 @@ class PMIX(ResourceManager):
     cppr_prefix = os.environ.get('CPPR_PREFIX')
     if cppr_prefix is not None:
       argv.append('CPPR_PREFIX='+cppr_prefix)
-    argv.extend(['$bindir/scr_copy', '--cntldir', '$cntldir', '--id', '$dataset_id', '--prefix', '$prefixdir', '--buf', '$buf_size', '$crc_flag'])
+    argv.extend([prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag])
     container_flag = scr_env.param.get('SCR_USE_CONTAINERS')
-    if container_flag is not None and container_flag=='0':
-      pass
-    else:
+    if container_flag is None or container_flag!='0':
       argv.append('--containers')
-    argv.append('$downnodes_spaced')
-    return argv
+    argv.append(downnodes_spaced)
+    output = runproc(argv=argv,getstdout=True,getstderr=True)[0]
+    return output

@@ -29,7 +29,6 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
     sys.settrace(tracefunction)
 
   bindir = scr_const.X_BINDIR
-  pdsh = scr_const.PDSH_EXE
 
   # TODO: need to be able to set these defaults via config settings somehow
   # for now just hardcode the values
@@ -83,7 +82,7 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
     upnodes = jobnodes
 
   ##############################
-  # format up and down node sets for pdsh command
+  # format up and down node sets for scavenge command
   #################
   upnodes = scr_hostlist.compress(upnodes)
   downnodes_spaced = ' '.join(downnodes)
@@ -95,47 +94,11 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
   # log the start of the scavenge operation
   scr_common.log(bindir=bindir, prefix=prefixdir, jobid=jobid, event_type='SCAVENGE_START', event_dset=dataset_id, event_start=str(start_time))
 
-  # gather files via pdsh
-  argv = scr_env.resmgr.get_scavenge_pdsh_cmd()
   print('scr_scavenge: '+str(int(time())))
-  #argv = ['$pdsh','-Rexec','-f','256','-S','-w','$upnodes','srun','-n1','-N1','-w','%h','$bindir/scr_copy','--cntldir','$cntldir','--id','$dataset_id','--prefix','$prefixdir','--buf','$buf_size','$crc_flag','$downnodes_spaced']
-  delargs = []
-  for i,arg in enumerate(argv):
-    if arg[0]!='$':
-      continue
-    if arg=='$pdsh':
-      argv[i] = pdsh
-    elif arg=='$upnodes':
-      argv[i] = upnodes
-    elif arg=='$cntldir':
-      argv[i] = cntldir
-    elif arg=='$dataset_id':
-      argv[i] = dataset_id
-    elif arg=='$prefixdir':
-      argv[i] = prefixdir
-    elif arg=='$buf_size':
-      argv[i] = buf_size
-    elif arg=='$crc_flag':
-      if crc_flag!='':
-        argv[i]=crc_flag
-      else:
-        delargs.append(i)
-    elif arg=='$downnodes_spaced':
-      if downnodes_spaced!='':
-        argv[i]=downnodes_spaced
-      else:
-        delargs.append(i)
-    elif '$bindir' in arg:
-      pos = arg.find('$bindir')
-      argv[i] = arg[:pos]+bindir+arg[pos+7:]
-  # delete unused arguments from the back to avoid index issues
-  for i in range(len(delargs)-1,-1,-1):
-    del argv[delargs[i]]
-  print('scr_scavenge: '+' '.join(argv))
-  #`$pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced`;
-  consoleout = runproc(argv=argv,getstdout=True,getstderr=True)[0]
+  # have the resmgr class gather files via pdsh or clustershell
+  consoleout = resmgr.scavenge_files(prog=$bindir+'/scr_copy', upnodes=upnodes, cntldir=cntldir, dataset_id=dataset_id, prefixdir=prefixdir, buf_size=buf_size, crc_flag=crc_flag, downnodes_spaced=downnodes_spaced)
 
-  # print pdsh output to screen
+  # print outputs to screen
   try:
     with open(output,'w') as outfile:
       outfile.write(consoleout[0])

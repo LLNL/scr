@@ -108,5 +108,10 @@ class LSF(ResourceManager):
       unavailable.update(nextunavail)
     return unavailable
 
-  def get_scavenge_pdsh_cmd(self):
-    return ['$pdsh', '-Rexec', '-f', '256', '-S', '-w', '$upnodes', '$bindir/scr_copy', '--cntldir', '$cntldir', '--id', '$dataset_id', '--prefix', '$prefixdir', '--buf', '$buf_size', '$crc_flag', '$downnodes_spaced']
+  # perform the scavenge files operation for scr_scavenge
+  # uses either pdsh or clustershell
+  # returns a list -> [ 'stdout', 'stderr' ]
+  def scavenge_files(self, prog='', upnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag='', downnodes_spaced=''):
+    argv = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', upnodes, prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag, downnodes_spaced]
+    output = runproc(argv=argv,getstdout=True,getstderr=True)[0]
+    return output
