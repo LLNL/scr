@@ -54,7 +54,7 @@ class ResourceManager(object):
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
-  def parallel_exec(self, argv=[], runnodes=''):
+  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     return [ [ '', '' ], 0 ]
 
   # perform the scavenge files operation for scr_scavenge

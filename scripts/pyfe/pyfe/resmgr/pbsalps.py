@@ -6,7 +6,7 @@
 
 import os, re
 from pyfe import scr_const, scr_hostlist
-from pyfe.scr_common import runproc
+from pyfe.scr_common import runproc, pipeproc
 from pyfe.resmgr import nodetests, ResourceManager
 
 class PBSALPS(ResourceManager):
@@ -94,19 +94,21 @@ class PBSALPS(ResourceManager):
     if scr_env is not None:
       nextunavail = nodetests.list_param_excluded_nodes(nodes=nodes,param=scr_env.param)
       unavailable.update(nextunavail)
-      argv = [ '$pdsh','-Rexec','-f','256','-w','$upnodes','aprun','-n','1','-L','%h' ]
-      #my $output = `$pdsh -Rexec -f 256 -w '$upnodes' aprun -n 1 -L %h $bindir/scr_check_node $free_flag $cntldir_flag $cachedir_flag | $dshbak -c`;
-      nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, scr_check_node_argv=argv,cntldir_string=cntldir_string,cachedir_string=cachedir_string)
+      # assert scr_env.resmgr == self
+      nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, cntldir_string=cntldir_string, cachedir_string=cachedir_string)
       unavailable.update(nextunavail)
     return unavailable
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
-  def parallel_exec(self, argv=[], runnodes=''):
+  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv==0):
       return [ [ '', '' ], 0 ]
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
+    if use_dshbak:
+      argv = [ pdshcmd, [scr_const.DSHBAK_EXE, '-c'] ]
+      return pipeproc(argvs=argv,getstdout=True,getstderr=True)
     return runproc(argv=pdshcmd,getstdout=True,getstderr=True)
 
   # perform the scavenge files operation for scr_scavenge
@@ -118,5 +120,5 @@ class PBSALPS(ResourceManager):
     if container_flag is None or container_flag!='0':
       argv.append('--containers')
     argv.append(downnodes_spaced)
-    output = self.parallel_exec(argv=argv,runnodes=upnodes)[0]
+    output = self.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
     return output

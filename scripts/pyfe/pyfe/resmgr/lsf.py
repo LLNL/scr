@@ -6,7 +6,7 @@
 import os, re
 from time import time
 from pyfe import scr_const, scr_hostlist
-from pyfe.scr_common import runproc
+from pyfe.scr_common import runproc, pipeproc
 from pyfe.resmgr import nodetests, ResourceManager
 
 class LSF(ResourceManager):
@@ -101,7 +101,7 @@ class LSF(ResourceManager):
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
     unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
-    nextunavail = nodetests.list_pdsh_fail_echo(nodes=nodes)
+    nextunavail = nodetests.list_pdsh_fail_echo(nodes=nodes,resmgr=self)
     unavailable.update(nextunavail)
     if scr_env is not None:
       nextunavail = nodetests.list_param_excluded_nodes(nodes=nodes, param=scr_env.param)
@@ -110,11 +110,14 @@ class LSF(ResourceManager):
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
-  def parallel_exec(self, argv=[], runnodes=''):
+  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv==0):
       return [ [ '', '' ], 0 ]
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
+    if use_dshbak:
+      argv = [ pdshcmd, [scr_const.DSHBAK_EXE, '-c'] ]
+      return pipeproc(argvs=argv,getstdout=True,getstderr=True)
     return runproc(argv=pdshcmd,getstdout=True,getstderr=True)
 
   # perform the scavenge files operation for scr_scavenge
@@ -122,5 +125,5 @@ class LSF(ResourceManager):
   # returns a list -> [ 'stdout', 'stderr' ]
   def scavenge_files(self, prog='', upnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag='', downnodes_spaced=''):
     argv = [prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag, downnodes_spaced]
-    output = self.parallel_exec(argv=argv,runnodes=upnodes)[0]
+    output = self.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
     return output

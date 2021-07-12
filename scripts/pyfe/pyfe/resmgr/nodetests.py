@@ -11,8 +11,6 @@ from pyfe.scr_common import runproc, pipeproc
 '''
 ping = 'ping'
 bindir = scr_const.X_BINDIR
-pdsh   = scr_const.PDSH_EXE
-dshbak = scr_const.DSHBAK_EXE
 # mark the set of nodes the resource manager thinks is down
 def list_resmgr_down_nodes(nodes=[],resmgr_nodes=None):
   unavailable = {}
@@ -55,15 +53,16 @@ def list_param_excluded_nodes(nodes=[],param=None):
   return unavailable
 
 # mark any nodes that don't respond to pdsh echo up
-def list_pdsh_fail_echo(nodes=[]):
+def list_pdsh_fail_echo(nodes=[],resmgr=None):
+  if resmgr is None:
+    return {}
   unavailable = {}
   pdsh_assumed_down = nodes.copy()
   if len(nodes)>0:
     # only run this against set of nodes known to be responding
     upnodes = scr_hostlist.compress(nodes)
     # run an "echo UP" on each node to check whether it works
-    argv = [pdsh,'-f','256','-w',upnodes,'echo UP']
-    output = runproc(argv=argv,getstdout=True)[0]
+    output = resmgr.parallel_exec(argv=['echo','UP'], runnodes=upnodes, use_dshbak=False)[0][0]
     for line in output.split('\n'):
       if len(line)==0:
         continue
@@ -79,13 +78,12 @@ def list_pdsh_fail_echo(nodes=[]):
   return unavailable
 
 #### Each resource manager other than LSF had this section
-#### Their difference was in the scr_check_node_argv
 #### Only the SLURM had the line size = param.abtoull(size)
 #### The abtoull will just return the int of the string if it isn't in the ab format
-def check_dir_capacity(nodes=[], free=False, scr_env=None, scr_check_node_argv=[], cntldir_string=None, cachedir_string=None):
-  if scr_check_node_argv == [] or nodes==[]:
+def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, cachedir_string=None):
+  if nodes==[]:
     return {}
-  if scr_env is None or scr_env.param is None:
+  if scr_env is None or scr_env.param is None or scr_env.resmgr is None:
     return {}
   unavailable = {}
   param = scr_env.param
@@ -146,52 +144,33 @@ def check_dir_capacity(nodes=[], free=False, scr_env=None, scr_check_node_argv=[
   upnodes = scr_hostlist.compress(nodes)
 
   # run scr_check_node on each node specifying control and cache directories to check
-  ################### This is calling a script, scr_check_node, from pdsh.
-  ###################### think this is going to need the python pdsh equivalent
-  #cray
-  # [ $pdsh -Rexec -f 256 -w $upnodes aprun -n 1 -L %h ]
-  #slurm [ $pdsh -Rexec -f 256 -w $upnodes srun -n 1 -N 1 -w %h ]
-  #### the pmix should have from the scr_checknode to the end as a single argument (... ?)
-  #pmix [ $pdsh -f 256 -w $upnodes ]
-  # we need to replace the $vars with their actual values and complete the argv
-  # full argv:
-  # argv = []
-  # argv.append( [ $pdsh $upnodes $scr_check_node $free_flag $cntldir_flag $cachedir_flag ] )
-  # argv.append( [ $dshbak -c ] )
-  # output = pipeproc(argv)
-  argv = [ [] ]
-  for arg in scr_check_node_argv:
-    if arg=='$pdsh':
-      argv[0].append(pdsh)
-    elif arg=='$upnodes':
-      argv[0].append(upnodes)
-    else:
-      argv[0].append(arg)
-  argv[0].extend(['python3', bindir+'/scr_check_node.py'])
+  argv = [bindir+'/pyfe/pyfe/scr_check_node.py']
   if free:
-    argv[0].append('--free')
-  argv[0].extend(cntldir_flag)
-  argv[0].extend(cachedir_flag)
-  argv.append([dshbak,'-c'])
-  output = pipeproc(argvs=argv,getstdout=True)[0]
+    argv.append('--free')
+  argv.extend(cntldir_flag)
+  argv.extend(cachedir_flag)
+  output = scr_env.resmgr.parallel_exec(argv=argv,runnodes=upnodes)[0][0]
   action=0 # tracking action to use range iterator and follow original line <- shift flow
   nodeset = ''
-  line = ''
-  for result in output.split('\n'):
-    if len(result)<1:
+  for line in output.split('\n'):
+    # blank line
+    if len(line)<1:
       pass
+    # top line
     elif action==0:
-      if result.startswith('---'):
+      if line.startswith('---'):
         action=1
+    # the nodeset
     elif action==1:
-      nodeset = result
+      nodeset = line
       action=2
+    # bottom line
     elif action==2:
-      line = result
       action=3
+    # output printed
     elif action==3:
       action=0
-      if 'PASS' not in result:
+      if 'PASS' not in line:
         exclude_nodes = scr_hostlist.expand(nodeset);
         for node in exclude_nodes:
           if node in nodes:
