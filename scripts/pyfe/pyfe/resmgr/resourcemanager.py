@@ -52,6 +52,11 @@ class ResourceManager(object):
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
     return {}
 
+  # perform a generic pdsh / clustershell command
+  # returns [ [ stdout, stderr ] , returncode ]
+  def parallel_exec(self, argv=[], runnodes=''):
+    return [ [ '', '' ], 0 ]
+
   # perform the scavenge files operation for scr_scavenge
   # command format depends on resource manager in use
   # uses either pdsh or clustershell

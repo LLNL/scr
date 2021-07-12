@@ -70,11 +70,20 @@ class PMIX(ResourceManager):
       unavailable.update(nextunavail)
     return unavailable
 
+  # perform a generic pdsh / clustershell command
+  # returns [ [ stdout, stderr ] , returncode ]
+  def parallel_exec(self, argv=[], runnodes=''):
+    if len(argv==0):
+      return [ [ '', '' ], 0 ]
+    pdshcmd = [scr_const.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
+    pdshcmd.extend(argv)
+    return runproc(argv=pdshcmd,getstdout=True,getstderr=True)
+
   # perform the scavenge files operation for scr_scavenge
   # uses either pdsh or clustershell
   # returns a list -> [ 'stdout', 'stderr' ]
   def scavenge_files(self, prog='', upnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag='', downnodes_spaced=''):
-    argv = [scr_const.PDSH_EXE, '-f', '256', '-S', '-w', upnodes]
+    argv = []
     cppr_lib = scr_const.CPPR_LDFLAGS
     if cppr_lib.startswith('-L'):
       cppr_lib = cppr_lib[2:]
@@ -87,5 +96,5 @@ class PMIX(ResourceManager):
     if container_flag is None or container_flag!='0':
       argv.append('--containers')
     argv.append(downnodes_spaced)
-    output = runproc(argv=argv,getstdout=True,getstderr=True)[0]
+    output = self.parallel_exec(argv=argv,runnodes=upnodes)[0]
     return output

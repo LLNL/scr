@@ -100,14 +100,23 @@ class PBSALPS(ResourceManager):
       unavailable.update(nextunavail)
     return unavailable
 
+  # perform a generic pdsh / clustershell command
+  # returns [ [ stdout, stderr ] , returncode ]
+  def parallel_exec(self, argv=[], runnodes=''):
+    if len(argv==0):
+      return [ [ '', '' ], 0 ]
+    pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
+    pdshcmd.extend(argv)
+    return runproc(argv=pdshcmd,getstdout=True,getstderr=True)
+
   # perform the scavenge files operation for scr_scavenge
   # uses either pdsh or clustershell
   # returns a list -> [ 'stdout', 'stderr' ]
   def scavenge_files(self, prog='', upnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag='', downnodes_spaced=''):
-    argv = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', upnodes, 'aprun', '-n', '1', 'L', '%h', prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag]
+    argv = ['aprun', '-n', '1', 'L', '%h', prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag]
     container_flag = scr_env.param.get('SCR_USE_CONTAINERS')
     if container_flag is None or container_flag!='0':
       argv.append('--containers')
     argv.append(downnodes_spaced)
-    output = runproc(argv=argv,getstdout=True,getstderr=True)[0]
+    output = self.parallel_exec(argv=argv,runnodes=upnodes)[0]
     return output
