@@ -21,7 +21,6 @@ from pyfe.postrun import postrun
 from pyfe.list_dir import list_dir
 from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_common import tracefunction, runproc, scr_prefix
-from pyfe.scr_test_runtime import scr_test_runtime
 from pyfe.scr_prerun import scr_prerun
 from pyfe.scr_get_jobstep_id import scr_get_jobstep_id
 from pyfe.scr_watchdog import scr_watchdog
@@ -92,12 +91,6 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   start_secs = int(time())
   print(prog+': Started: '+str(timestamp))
 
-  # check that we have runtime dependencies
-  if scr_test_runtime()!=0:
-    print('scr_test_runtime returned a failure')
-    print(prog+': exit code: 1')
-    sys.exit(1)
-
   # TODO: if not in job allocation, bail out
 
   param = SCR_Param()
@@ -152,6 +145,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   timestamp=datetime.now()
   print(prog+': prerun: '+str(timestamp))
 
+  # test runtime, ensure filepath exists,
   if scr_prerun(prefix=prefix)!=0:
     print(prog+': ERROR: Command failed: scr_prerun -p '+prefix)
     sys.exit(1)

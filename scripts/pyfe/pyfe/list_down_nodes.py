@@ -25,7 +25,6 @@ def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, 
   if scr_env is None or scr_env.resmgr is None or scr_env.param is None:
     return 1
   bindir = scr_const.X_BINDIR
-  pdsh   = scr_const.PDSH_EXE
 
   start_time = str(int(time())) # epoch seconds as int to remove decimal, as string to be a parameter
 
