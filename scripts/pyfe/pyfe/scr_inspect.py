@@ -16,7 +16,6 @@ if 'pyfe' not in sys.path:
 
 import argparse, re, subprocess
 from pyfe import scr_const, scr_hostlist
-from pyfe.scr_common import runproc
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 
@@ -66,30 +65,27 @@ def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_e
   # format up and down node sets for pdsh command
   upnodes   = scr_hostlist.compress(upnodes)
 
-  # TODO: should check that .scr direcotry exists
   # build the output filenames
   pwd = os.getcwd()
+  os.makedirs(pwd+'/.scr',exist_ok=True)
   output = pwd+'/.scr/scr_inspect.pdsh.o.'+jobid
   error  = pwd+'/.scr/scr_inspect.pdsh.e.'+jobid
 
-  # run scr_inspect_cache via pdsh
-  filemap = cntldir+'/filemap.scrinfo'
-  cmd = bindir+'/scr_inspect_cache' # +filemap
-
-  argv = [pdsh,'-f','256','-S','-w',upnodes,cmd,filemap]
-  out = runproc(argv=argv,getstdout=True,getstderr=True)[0]
+  # run scr_inspect_cache via pdsh / clustershell
+  argv = [bindir+'/scr_inspect_cache', cntldir+'/filemap.scrinfo']
+  out = scr_env.resmgr.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
   try:
     with open(output,'w') as outfile:
       outfile.write(out[0])
   except Exception as e:
     print(e)
-    print('scr_inspect: ERROR: Error writing stdout of pdsh')
+    print('scr_inspect: ERROR: Error writing scr_inspect_cache stdout')
   try:
     with open(error,'w') as errfile:
       errfile.write(out[1])
   except Exception as e:
     print(e)
-    print('scr_inspect: ERROR: Error writing stderr of pdsh')
+    print('scr_inspect: ERROR: Error writing scr_inspect_cache stderr')
 
   # scan output file for list of partners and failed copies
   groups = {}
@@ -123,7 +119,7 @@ def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_e
           types[dset] = atype
   except Exception as e:
     print(e)
-    print('scr_inspect: ERROR: Unable to read output file \"'+output+'\"')
+    print('scr_inspect: ERROR: Reading and processing output file \"'+output+'\"')
     return 1
 
   # starting with the most recent dataset, check whether we have (or may be able to recover) all files
