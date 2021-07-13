@@ -156,6 +156,8 @@ def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, 
     # blank line
     if len(line)<1:
       pass
+    elif line=='tput: No value for $TERM and no -T specified':
+      pass
     # top line
     elif action==0:
       if line.startswith('---'):
@@ -171,9 +173,10 @@ def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, 
     elif action==3:
       action=0
       if 'PASS' not in line:
+        print('pass not in line, expanding '+str(nodeset))
         exclude_nodes = scr_hostlist.expand(nodeset);
         for node in exclude_nodes:
           if node in nodes:
             nodes.remove(node)
-            unavailable[node] = result
+            unavailable[node] = line
   return unavailable
