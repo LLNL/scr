@@ -96,7 +96,7 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
 
   print('scr_scavenge: '+str(int(time())))
   # have the resmgr class gather files via pdsh or clustershell
-  consoleout = resmgr.scavenge_files(prog=$bindir+'/scr_copy', upnodes=upnodes, cntldir=cntldir, dataset_id=dataset_id, prefixdir=prefixdir, buf_size=buf_size, crc_flag=crc_flag, downnodes_spaced=downnodes_spaced)
+  consoleout = resmgr.scavenge_files(prog=bindir+'/scr_copy', upnodes=upnodes, cntldir=cntldir, dataset_id=dataset_id, prefixdir=prefixdir, buf_size=buf_size, crc_flag=crc_flag, downnodes_spaced=downnodes_spaced)
 
   # print outputs to screen
   try:

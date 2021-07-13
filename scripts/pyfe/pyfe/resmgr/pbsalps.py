@@ -57,7 +57,8 @@ class PBSALPS(ResourceManager):
     return None
 
   def get_jobstep_id(self,user='',pid=-1):
-    return self.conf['jobid'] if self.conf['jobid'] is not None
+    if self.conf['jobid'] is not None:
+      return self.conf['jobid']
     output = runproc(argv=['apstat','-avv'],getstdout=True)[0].split('\n')
     # we could use 'head' instead of cat or do a with open ?
     nid = runproc(argv=['cat','/proc/cray_xt/nid'],getstdout=True)[0].strip().split('\n')[0] #just the top line
@@ -102,7 +103,7 @@ class PBSALPS(ResourceManager):
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
-    if len(argv==0):
+    if len(argv)==0:
       return [ [ '', '' ], 0 ]
     if self.conf['clustershell'] is not None:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)

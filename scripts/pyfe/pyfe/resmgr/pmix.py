@@ -72,7 +72,7 @@ class PMIX(ResourceManager):
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
-    if len(argv==0):
+    if len(argv)==0:
       return [ [ '', '' ], 0 ]
     if self.conf['clustershell'] is not None:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)

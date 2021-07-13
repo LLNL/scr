@@ -65,25 +65,27 @@ class ResourceManager(object):
   # clustershell exec can be called from any sub-resource manager
   # the sub-resource manager is responsible for ensuring clustershell is available
   def clustershell_exec(self, argv=[], runnodes='', use_dshbak=True):
-    task = self.conf['clustershell'].Task.task_self()
+    from ClusterShell.Task import task_self, task_wait
+    task = task_self() #self.conf['clustershell'].Task.task_self()
     # launch the task
     task.run(' '.join(argv), nodes=runnodes)
     ret = [ [ '','' ], 0 ]
     # ensure the task has completed
-    task.task_wait()
+    task_wait()
     if use_dshbak:
       for rc, keys in task.iter_buffers():
         if rc==0:
-          ret[0][0]+='---\n'+keys+'\n---\n'+node_buffer(keys)
+          ret[0][0]+='---\n'+str(keys)+'\n'+'---\n'+('\n'.join(task.node_buffer(keys)))
         else:
-          ret[0][1]+='---\n'+keys+'\n---\n'+key_error(keys)
-          ret[1] = 1
+          ret[0][1]+='---\n'+str(keys)+'\n'+'---\n'+('\n'.join(task.key_error(keys)))
     else:
       for rc, keys in task.iter_buffers():
-        for line in node_buffer(keys).split('\n'):
-          ret[0][0]+=keys+': '+line+'\n'
-        for line in key_error(keys).split('\n'):
-          ret[0][1]+=keys+': '+line+'\n'
+        for host in scr_hostlist.expand(keys):
+          for line in task.node_buffer(keys):
+            ret[0][0]+=host+': '+line+'\n'
+          for line in task.key_error(keys):
+            ret[0][1]+=host+': '+line+'\n'
+        if rc!=0:
           ret[1] = 1
     return ret
 

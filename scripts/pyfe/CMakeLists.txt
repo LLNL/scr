@@ -2,6 +2,7 @@ SET(PYFE_TOP
   README.rst
   LICENSE
   MANIFEST.in
+  dochmod.sh
   test.sh
   setup.py
 )
