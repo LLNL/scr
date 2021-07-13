@@ -17,8 +17,24 @@ class SLURM(ResourceManager):
 
   # get job id, setting environment flag here
   def getjobid(self):
-    val = os.environ.get('SLURM_JOBID')
-    return val
+    if self.conf['jobid'] is not None:
+      return self.conf['jobid']
+    return os.environ.get('SLURM_JOBID')
+
+  def get_jobstep_id(self,user='',pid=-1):
+    if user=='' or self.conf['jobid'] is None:
+      return -1
+    # get job steps for this user and job, order by decreasing job step
+    # so first one should be the one we are looking for
+    # -h means print no header, so just the data in this order:
+    # STEPID         NAME PARTITION     USER      TIME NODELIST
+    cmd = ['squeue','-h','-s','-u',user,'-j',str(self.conf['jobid']),'-S','\"-i\"']
+    # my $cmd="squeue -h -s -u $user -j $jobid -S \"-i\"";
+    output = runproc(argv=argv,getstdout=True)[0]
+    output = re.search('\d+',output)
+    if output is None:
+      return -1
+    return output[0]
 
   # get node list
   def get_job_nodes(self):
@@ -34,21 +50,6 @@ class SLURM(ResourceManager):
         self.conf['down'] = down
         return down
     return None
-
-  def get_jobstep_id(self,user='',pid=-1):
-    if self.conf['jobid'] is not None:
-      return self.conf['jobid']
-    # we previously weren't able to determine the job id
-    # get job steps for this user and job, order by decreasing job step
-    # so first one should be the one we are looking for
-    # -h means print no header, so just the data in this order:
-    # STEPID         NAME PARTITION     USER      TIME NODELIST
-    argv = ['squeue','-h','-s','-u',user,'-j',str(self.conf['jobid']),'-S','\"-i\"']
-    # my $cmd="squeue -h -s -u $user -j $jobid -S \"-i\"";
-    output, returncode = runproc(argv=argv,getstdout=True)
-    if returncode != 0:
-        return -1
-    return re.search('\d+',output)[0]
 
   def scr_kill_jobstep(self,jobid=-1):
     if jobid==-1:

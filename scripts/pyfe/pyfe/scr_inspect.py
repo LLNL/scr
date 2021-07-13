@@ -30,7 +30,7 @@ def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_e
     scr_env.resmgr = AutoResourceManager()
 
   # tag output files with jobid
-  jobid = scr_enev.getjobid()
+  jobid = scr_env.getjobid()
   if jobid is None:
     print('scr_inspect: ERROR: Could not determine jobid.')
     return 1

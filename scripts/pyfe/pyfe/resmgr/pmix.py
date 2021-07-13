@@ -15,10 +15,27 @@ class PMIX(ResourceManager):
 
   # get job id, setting environment flag here
   def getjobid(self):
+    if self.conf['jobid'] is not None:
+      return self.conf['jobid']
+    #####
     # CALL SCR_ENV_HELPER FOR PMIX
     # failed to read jobid from environment,
     # assume user is running in test mode
     return None
+
+  # TODO: cppr/pmix notes - this script is only used when launching the watchdog process.  Have not tested this
+  def get_jobstep_id(self,user='',pid=-1):
+    # get job steps for this user and job, order by decreasing job step
+    # so first one should be the one we are looking for
+    # -h means print no header, so just the data in this order:
+    # STEPID         NAME PARTITION     USER      TIME NODELIST
+
+    #argv = []
+    #output = runproc(argv=argv,getstdout=True)[0].strip()
+    #output = output.split('\n')
+
+    currjobid=-1
+    return currjobid
 
   # get node list
   def get_job_nodes(self):
@@ -37,20 +54,6 @@ class PMIX(ResourceManager):
     #if (0) {
     #  my $nodeset = ""; #get nodeset with pmixhelper
     return None
-
-  # TODO: cppr/pmix notes - this script is only used when launching the watchdog process.  Have not tested this
-  def get_jobstep_id(self,user='',pid=-1):
-    # get job steps for this user and job, order by decreasing job step
-    # so first one should be the one we are looking for
-    # -h means print no header, so just the data in this order:
-    # STEPID         NAME PARTITION     USER      TIME NODELIST
-
-    #argv = []
-    #output = runproc(argv=argv,getstdout=True)[0].strip()
-    #output = output.split('\n')
-
-    currjobid=-1
-    return currjobid
 
   def scr_kill_jobstep(self,jobid=-1):
     print('pmix does not support this')

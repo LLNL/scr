@@ -16,9 +16,32 @@ class LSF(ResourceManager):
 
   # get job id, setting environment flag here
   def getjobid(self):
-    val = os.environ.get('LSB_JOBID')
-    # val may be None
-    return val
+    if self.conf['jobid'] is not None:
+      return self.conf['jobid']
+    return os.environ.get('LSB_JOBID')
+
+  def get_jobstep_id(self,user='',pid=-1):
+    if user=='' or self.conf['jobid'] is None:
+      return -1
+    cmd = ['squeue','-h','-s','-u',user,'-j',self.conf['jobid'],'-S','\"-i\"']
+    output = runproc(argv=cmd,getstdout=True)[0].split('\n')
+    currjobid=-1
+    for line in output:
+      fields = re.split('\s+',line)
+      jobidparts = fields[0].split('.')
+      #print "@jobidparts\n";
+      # the first item is the job step id
+      # if it is JOBID.0, then it is the allocation ID and we don't want that
+      # if it's not 0, then assume it's the one we're looking for
+      if jobidparts[1]!='0':
+        checkPIDcmd = ['ps','h'.'-p',str(pid)]
+        psOutput = runproc(argv=checkPIDcmd,getstdout=True)[0]
+        if pdOutput is not None:
+          pdOutput = re.split('\s+',pdOutput.strip())
+          if pdOutput[0] == str(pid):
+            currjobid = str(fields[0])
+            break
+    return currjobid
 
   # get node list
   def get_job_nodes(self):
@@ -52,10 +75,6 @@ class LSF(ResourceManager):
       # TODO : any way to get list of down nodes in LSF?
       pass
     return None
-
-  def get_jobstep_id(self,user='',pid=-1):
-    # previously weren't able to get jobid
-    return self.conf['jobid']
 
   def scr_kill_jobstep(self,jobid=-1):
     if jobid==-1:
