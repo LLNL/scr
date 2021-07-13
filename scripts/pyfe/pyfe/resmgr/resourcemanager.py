@@ -18,6 +18,13 @@ class ResourceManager(object):
     self.conf['use_watchdog'] = False
     self.conf['jobid'] = self.getjobid()
     self.conf['nodes'] = self.get_job_nodes()
+    self.conf['clustershell'] = None
+    if scr_const.USE_CLUSTERSHELL != '0':
+      try:
+        import ClusterShell
+        self.conf['clustershell'] = ClusterShell
+      except:
+        pass
 
   # no arg -> usewatchdog will return True or False for whether or not watchdog is enabled
   # boolean arg -> default value is to set self.use_watchdog = argument
@@ -51,6 +58,34 @@ class ResourceManager(object):
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
     return {}
+
+  #####
+  #### Return the output as pdsh / dshbak would have (?)
+  # https://clustershell.readthedocs.io/en/latest/api/Task.html
+  # clustershell exec can be called from any sub-resource manager
+  # the sub-resource manager is responsible for ensuring clustershell is available
+  def clustershell_exec(self, argv=[], runnodes='', use_dshbak=True):
+    task = self.conf['clustershell'].Task.task_self()
+    # launch the task
+    task.run(' '.join(argv), nodes=runnodes)
+    ret = [ [ '','' ], 0 ]
+    # ensure the task has completed
+    task.task_wait()
+    if use_dshbak:
+      for rc, keys in task.iter_buffers():
+        if rc==0:
+          ret[0][0]+='---\n'+keys+'\n---\n'+node_buffer(keys)
+        else:
+          ret[0][1]+='---\n'+keys+'\n---\n'+key_error(keys)
+          ret[1] = 1
+    else:
+      for rc, keys in task.iter_buffers():
+        for line in node_buffer(keys).split('\n'):
+          ret[0][0]+=keys+': '+line+'\n'
+        for line in key_error(keys).split('\n'):
+          ret[0][1]+=keys+': '+line+'\n'
+          ret[1] = 1
+    return ret
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]

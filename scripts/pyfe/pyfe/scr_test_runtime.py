@@ -20,16 +20,27 @@ if 'pyfe' not in sys.path:
   sys.path.insert(0,'/'.join(os.path.realpath(__file__).split('/')[:-2]))
   import pyfe
 
-import subprocess
 from pyfe import scr_const
 from pyfe.scr_common import runproc
 
 class SCR_Test_Runtime:
-  #someclassvariable = True # addition of some variable that exists outside of methods
+  # check that we have ClusterShell
+  @staticmethod
+  def check_clustershell():
+    try:
+      import ClusterShell
+    except:
+      if scr_const.USE_CLUSTERSHELL == '1':
+        print('scr_test_runtime: ERROR: Unable to import Clustershell as indicated by scr_const.py')
+        return 1
+    return 0
+
   # check that we have pdsh
   @staticmethod
   def check_pdsh():
-    #SCR_Test_Runtime.someclassvariable=False # using some class variable in tests
+    ### Don't need to check this when using clustershell
+    if scr_const.USE_CLUSTERSHELL == '1':
+      return 0
     pdsh = scr_const.PDSH_EXE
     argv=['which',pdsh]
     returncode = runproc(argv=argv)[1]
@@ -42,6 +53,9 @@ class SCR_Test_Runtime:
   # check that we have dshbak
   @staticmethod
   def check_dshbak():
+    ### Don't need to check this when using clustershell
+    if scr_const.USE_CLUSTERSHELL == '1':
+      return 0
     dshbak = scr_const.DSHBAK_EXE
     argv=['which',dshbak]
     returncode = runproc(argv=argv)[1]
@@ -63,4 +77,4 @@ def scr_test_runtime():
 
 if __name__=='__main__':
   ret = scr_test_runtime()
-  print('scr_test_runtime '+('passed' if ret==0 else 'failed'))
+  sys.exit(ret)

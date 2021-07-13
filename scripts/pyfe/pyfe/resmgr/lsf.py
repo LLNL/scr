@@ -41,6 +41,7 @@ class LSF(ResourceManager):
         pass
     val = os.environ.get('LSB_HOSTS')
     if val is not None:
+      val = ','.join(list(set(val.split(' '))))
       val = scr_hostlist.compress(val)
     # or, with jobid: squeue -j <jobid> -ho %N
     return val
@@ -113,6 +114,8 @@ class LSF(ResourceManager):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv==0):
       return [ [ '', '' ], 0 ]
+    if self.conf['clustershell'] is not None:
+      return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
     if use_dshbak:
