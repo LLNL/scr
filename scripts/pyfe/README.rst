@@ -17,7 +17,7 @@ Python equivalents of perl/bash scripts in scr/scripts/*
 | scripts can be ran without installing the package:  
 | python3 ~/scr/install/bin/pyfe/pyfe/scr_srun.py [args]  
 |  
-| or scr/install/bin/pyfe can be added to the PATH and scripts ran directly:  
+| or ~/scr/install/bin/pyfe/pyfe can be added to the PATH and scripts ran directly:  
 | ``$ scr_srun.py [args]``  
 |  
 | For testing: ~/scr/scripts/pyfe/test.sh will be copied to ~/scr/install/bin/pyfe
