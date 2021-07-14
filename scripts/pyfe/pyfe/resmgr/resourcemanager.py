@@ -115,11 +115,35 @@ class ResourceManager(object):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     return [ [ '', '' ], 0 ]
 
+  # each scavenge operation needs upnodes and downnodes_spaced
+  def get_scavenge_nodelists(self,upnodes=''.downnodes=''):
+    # get nodesets
+    jobnodes = self.get_job_nodes()
+    if jobnodes is None:
+      ### error handling
+      print('scr_scavenge: ERROR: Could not determine nodeset.')
+      return '', ''
+    jobnodes = scr_hostlist.expand(jobnodes)
+    if downnodes != '':
+      downnodes = scr_hostlist.expand(downnodes)
+      upnodes = scr_hostlist.diff(jobnodes, downnodes)
+    elif upnodes != '':
+      upnodes = scr_hostlist.expand(upnodes)
+      downnodes = scr_hostlist.diff(jobnodes, upnodes)
+    else:
+      upnodes = jobnodes
+    ##############################
+    # format up and down node sets for scavenge command
+    #################
+    upnodes = scr_hostlist.compress(upnodes)
+    downnodes_spaced = ' '.join(downnodes)
+    return upnodes, downnodes_spaced
+
   # perform the scavenge files operation for scr_scavenge
   # command format depends on resource manager in use
   # uses either pdsh or clustershell
   # returns a list -> [ 'stdout', 'stderr' ]
-  def scavenge_files(self, prog='', upnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag='', downnodes_spaced=''):
+  def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
     return ['','']
 
 if __name__=='__main__':

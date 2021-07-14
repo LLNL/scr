@@ -135,7 +135,7 @@ def rangefromnumbers(numstring):
   return ret
 
 # Returns a list of hostnames given a hostlist string
-# expand("rhea[2-4,6]") returns ('rhea2','rhea3','rhea4','rhea6')
+# expand("rhea[2-4,6]") returns ['rhea2','rhea3','rhea4','rhea6']
 # hostrange can contain an optional suffix after brackets:
 #   rhea[2-4,6].llnl.gov
 # multiple ranges can be listed as csv:

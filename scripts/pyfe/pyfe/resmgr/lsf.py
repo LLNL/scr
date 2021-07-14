@@ -145,7 +145,8 @@ class LSF(ResourceManager):
   # perform the scavenge files operation for scr_scavenge
   # uses either pdsh or clustershell
   # returns a list -> [ 'stdout', 'stderr' ]
-  def scavenge_files(self, prog='', upnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag='', downnodes_spaced=''):
+  def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
+    upnodes, downnodes_spaced = self.get_scavenge_nodelists(upnodes=upnodes, downnodes=downnodes)
     argv = [prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag, downnodes_spaced]
     output = self.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
     return output

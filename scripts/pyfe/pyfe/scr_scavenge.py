@@ -12,7 +12,7 @@ if 'pyfe' not in sys.path:
 import argparse
 from datetime import datetime
 from time import time
-from pyfe import scr_const, scr_common, scr_hostlist
+from pyfe import scr_const, scr_common
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
@@ -20,7 +20,7 @@ from pyfe.scr_common import tracefunction, runproc
 
 # check for pdsh / (clustershell) errors in case any nodes should be retried
 
-def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_id=None, cntldir=None, prefixdir=None, verbose=False, scr_env=None):
+def scr_scavenge(nodeset_job=None, nodeset_up='', nodeset_down='', dataset_id=None, cntldir=None, prefixdir=None, verbose=False, scr_env=None):
   # check that we have a nodeset for the job and directories to read from / write to
   if nodeset_job is None or dataset_id is None or cntldir is None or prefixdir is None:
     return 1
@@ -60,33 +60,6 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
     print('scr_scavenge: ERROR: Could not determine jobid.')
     return 1
 
-  # read node set of job
-  jobset = scr_env.conf['nodes']
-  if jobset is None:
-    jobset = scr_env.resmgr.conf['nodes']
-    if jobset is None:
-      print('scr_scavenge: ERROR: Could not determine nodeset.')
-      return 1
-
-  # get nodesets
-  jobnodes  = scr_hostlist.expand(nodeset_job)
-  upnodes = []
-  downnodes = []
-  if nodeset_down is not None:
-    downnodes = scr_hostlist.expand(nodeset_down)
-    upnodes   = scr_hostlist.diff(jobnodes, downnodes)
-  elif nodeset_up is not None:
-    upnodes   = scr_hostlist.expand(nodeset_up)
-    downnodes = scr_hostlist.diff(jobnodes, upnodes)
-  else:
-    upnodes = jobnodes
-
-  ##############################
-  # format up and down node sets for scavenge command
-  #################
-  upnodes = scr_hostlist.compress(upnodes)
-  downnodes_spaced = ' '.join(downnodes)
-
   # build the output filenames
   output = prefixdir+'/.scr/scr.dataset.'+dataset_id+'/scr_scavenge.pdsh.o'+jobid
   error  = prefixdir+'/.scr/scr.dataset.'+dataset_id+'/scr_scavenge.pdsh.e'+jobid
@@ -96,7 +69,7 @@ def scr_scavenge(nodeset_job=None, nodeset_up=None, nodeset_down=None, dataset_i
 
   print('scr_scavenge: '+str(int(time())))
   # have the resmgr class gather files via pdsh or clustershell
-  consoleout = resmgr.scavenge_files(prog=bindir+'/scr_copy', upnodes=upnodes, cntldir=cntldir, dataset_id=dataset_id, prefixdir=prefixdir, buf_size=buf_size, crc_flag=crc_flag, downnodes_spaced=downnodes_spaced)
+  consoleout = resmgr.scavenge_files(prog=bindir+'/scr_copy', upnodes=nodeset_up, downnodes=nodeset_down, cntldir=cntldir, dataset_id=dataset_id, prefixdir=prefixdir, buf_size=buf_size, crc_flag=crc_flag)
 
   # print outputs to screen
   try:

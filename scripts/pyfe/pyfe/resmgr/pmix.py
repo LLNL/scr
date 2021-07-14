@@ -89,7 +89,7 @@ class PMIX(ResourceManager):
   # perform the scavenge files operation for scr_scavenge
   # uses either pdsh or clustershell
   # returns a list -> [ 'stdout', 'stderr' ]
-  def scavenge_files(self, prog='', upnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag='', downnodes_spaced=''):
+  def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
     argv = []
     cppr_lib = scr_const.CPPR_LDFLAGS
     if cppr_lib.startswith('-L'):
@@ -103,5 +103,5 @@ class PMIX(ResourceManager):
     if container_flag is None or container_flag!='0':
       argv.append('--containers')
     argv.append(downnodes_spaced)
-    output = self.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
+    output = self.parallel_exec(argv=argv,runnodes=self.get_job_nodes(),use_dshbak=False)[0]
     return output
