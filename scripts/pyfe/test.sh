@@ -9,9 +9,6 @@
 # salloc -N4 -ppdebug
 #
 
-# Ensure the scripts are executable
-./dochmod.sh
-
 # Set the launcher for the launch script to use below
 launcher="srun"
 if [ $launcher == "srun" ]; then
