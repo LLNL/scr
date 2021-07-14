@@ -16,9 +16,39 @@ class PBSALPS(ResourceManager):
 
   # get job id, setting environment flag here
   def getjobid(self):
-    val = os.environ.get('PBS_JOBID')
+    if self.conf['jobid'] is not None:
+      return self.conf['jobid']
     # val may be None
-    return val
+    return os.environ.get('PBS_JOBID')
+
+  def get_jobstep_id(self,user='',pid=-1):
+    output = runproc(argv=['apstat','-avv'],getstdout=True)[0].split('\n')
+    nid = None
+    try:
+      with open('/proc/cray_xt/nid','r') as NIDfile:
+        nid = NIDfile.read()[:-1]
+      except:
+        pass
+    if nid is None: # or value not sane
+      #### Are we unable to continue ?
+      return -1
+    currApid=-1
+    for line in output:
+      line=line.strip()
+      if len(line)==0:
+        continue
+      fields = re.split('\s+',line)
+      if fields[0].startswith('Ap'):
+        currApid=int(fields[2][:-1])
+      elif fields[1].startswith('Originator:'):
+         #did we find the apid that corresponds to the pid?
+         # also check to see if it was launched from this MOM node in case two
+         # happen to have the same pid
+        thisnid = int(fields[5][:-1])
+        if thisnid == nid and fields[7] == pid:
+          break
+        currApid=-1
+    return currApid
 
   # get node list
   def get_job_nodes(self):
@@ -55,31 +85,6 @@ class PBSALPS(ResourceManager):
       if len(downnodes)>0:
         return scr_hostlist.compress(downnodes)
     return None
-
-  def get_jobstep_id(self,user='',pid=-1):
-    if self.conf['jobid'] is not None:
-      return self.conf['jobid']
-    output = runproc(argv=['apstat','-avv'],getstdout=True)[0].split('\n')
-    # we could use 'head' instead of cat or do a with open ?
-    nid = runproc(argv=['cat','/proc/cray_xt/nid'],getstdout=True)[0].strip().split('\n')[0] #just the top line
-    currApid=-1
-    for line in output:
-      line=line.strip()
-      if len(line)<1:
-        continue
-      fields = re.split('\s+',line)
-      fields = line.strip().split(' ')
-      if fields[0].startswith('Ap'):
-        currApid=int(fields[2][:-1])
-      elif fields[1].startswith('Originator:'):
-         #did we find the apid that corresponds to the pid?
-         # also check to see if it was launched from this MOM node in case two
-         # happen to have the same pid
-        thisnid = fields[5][:-1]
-        if thisnid == nid and fields[7] == pid: # pid is used in this one.
-          break
-        currApid=-1
-    return currApid
 
   def scr_kill_jobstep(self,jobid=-1):
     if jobid==-1:

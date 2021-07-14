@@ -16,6 +16,7 @@ class ResourceManager(object):
     self.conf['prefix'] = scr_prefix()
     self.conf['resmgr'] = resmgr
     self.conf['use_watchdog'] = False
+    self.conf['jobid'] = None
     self.conf['jobid'] = self.getjobid()
     self.conf['nodes'] = self.get_job_nodes()
     self.conf['clustershell'] = None
@@ -34,6 +35,9 @@ class ResourceManager(object):
       return self.conf['use_watchdog']
     self.conf['use_watchdog'] = use_scr_watchdog
 
+  def get_jobstep_id(self,user='',pid=-1):
+    return -1
+
   def getjobid(self):
     # failed to read jobid from environment,
     # assume user is running in test mode
@@ -45,9 +49,6 @@ class ResourceManager(object):
 
   def get_downnodes(self):
     return None
-
-  def get_jobstep_id(self,user='',pid=-1):
-    return -1
 
   def scr_kill_jobstep(self,jobid=-1):
     return 1
