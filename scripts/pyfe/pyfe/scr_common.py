@@ -13,7 +13,7 @@ import argparse, inspect
 from subprocess import Popen, PIPE
 from pyfe import scr_const
 
-# for verbose, prints:
+# for function tracing, prints:
 # filename:function:linenum -> event
 # (filename ommitted if unavailable from frame)
 # usage: sys.settrace(scr_common.tracefunction)

@@ -19,7 +19,7 @@ from pyfe import scr_const, scr_hostlist
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 
-def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,verbose=False,scr_env=None):
+def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,scr_env=None):
   bindir = scr_const.X_BINDIR
   pdsh = scr_const.PDSH_EXE
 
@@ -176,7 +176,6 @@ if __name__=='__main__':
   parser.add_argument('-u', '--up', default=None, metavar='<nodeset>', type=str, help='Up nodes.')
   parser.add_argument('-d', '--down', default=None, metavar='<nodeset>', type=str, help='Down nodes.')
   parser.add_argument('-f', '--from', default=None, metavar='<ctrl dir>', type=str, help='Control directory.')
-  parser.add_argument('-v', '--verbose', default=False, action='store_true', help='Verbose output.')
   args = vars(parser.parse_args())
   if 'help' in args:
     parser.print_help()
@@ -184,6 +183,6 @@ if __name__=='__main__':
     parser.print_help()
     print('Job nodes and control directory must be specified.')
   else:
-    ret = scr_inspect(jobnodes=args['jobset'], up=args['up'], down=args['down'], cntldir=args['from'], verbose=args['verbose'])
+    ret = scr_inspect(jobnodes=args['jobset'], up=args['up'], down=args['down'], cntldir=args['from'])
     print('scr_inspect returned '+str(ret))
 

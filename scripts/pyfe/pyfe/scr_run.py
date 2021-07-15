@@ -84,6 +84,9 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   verbose = False
   if val is not None and int(val)>0:
     verbose=True
+
+  # turn on python function tracing
+  if scr_const.PYFE_TRACE_FUNC==1 or os.environ.get('PYFE_TRACE_FUNC')=='1':
     sys.settrace(tracefunction)
 
   # make a record of start time
@@ -172,6 +175,8 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     runs+=1
   else:
     runs=int(runs)
+  # totalruns printed when runs are exhausted
+  totalruns = str(runs)
 
   # need to reference the watchdog process outside of this loop
   watchdog = None
@@ -294,8 +299,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     if runs > 1:
       runs -= 1
       if runs == 0:
-        runs = os.environ.get('SCR_RUNS')
-        print(prog+': '+runs+' exhausted, ending run.')
+        print(prog+': '+totalruns+' exhausted, ending run.')
         break
 
     # is there a halt condition instructing us to stop?
@@ -317,7 +321,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   print(prog + ': postrun: ' + str(timestamp))
 
   # scavenge files from cache to parallel file system
-  if postrun(prefix_dir=prefix,scr_env=scr_env) != 0:
+  if postrun(prefix_dir=prefix,scr_env=scr_env,verbose=verbose) != 0:
     print(prog+': ERROR: Command failed: scr_postrun -p '+prefix)
 
   # kill the watchdog process if it is running

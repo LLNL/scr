@@ -25,9 +25,6 @@ def scr_scavenge(nodeset_job=None, nodeset_up='', nodeset_down='', dataset_id=No
   if nodeset_job is None or dataset_id is None or cntldir is None or prefixdir is None:
     return 1
 
-  if verbose:
-    sys.settrace(tracefunction)
-
   bindir = scr_const.X_BINDIR
 
   # TODO: need to be able to set these defaults via config settings somehow

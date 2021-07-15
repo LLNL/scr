@@ -15,20 +15,13 @@ from pyfe.scr_scavenge import scr_scavenge
 from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_glob_hosts import scr_glob_hosts
 
-def postrun(prefix_dir=None,scr_env=None):
+def postrun(prefix_dir=None,scr_env=None,verbose=False):
   if scr_env is None or scr_env.resmgr is None:
     return 1
   # if SCR is disabled, immediately exit
   val = os.environ.get('SCR_ENABLE')
   if val is not None and val=='0':
     return 0
-
-  # if SCR_DEBUG is set > 0, turn on verbosity
-  verbose=False
-  val = os.environ.get('SCR_DEBUG')
-  if val is not None and int(val)>0:
-    sys.settrace(tracefunction)
-    verbose=True
 
   # record the start time for timing purposes
   start_time=datetime.now()
