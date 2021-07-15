@@ -34,7 +34,7 @@ class LSF(ResourceManager):
       # if it is JOBID.0, then it is the allocation ID and we don't want that
       # if it's not 0, then assume it's the one we're looking for
       if jobidparts[1]!='0':
-        checkPIDcmd = ['ps','h'.'-p',str(pid)]
+        checkPIDcmd = ['ps','h','-p',str(pid)]
         psOutput = runproc(argv=checkPIDcmd,getstdout=True)[0]
         if pdOutput is not None:
           pdOutput = re.split('\s+',pdOutput.strip())
@@ -133,7 +133,7 @@ class LSF(ResourceManager):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv)==0:
       return [ [ '', '' ], 0 ]
-    if self.conf['clustershell'] is not None:
+    if self.conf['ClusterShell.Task'] is not None:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)

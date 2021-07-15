@@ -77,7 +77,7 @@ class PMIX(ResourceManager):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv)==0:
       return [ [ '', '' ], 0 ]
-    if self.conf['clustershell'] is not None:
+    if self.conf['ClusterShell.Task'] is not None:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)

@@ -19,11 +19,11 @@ class ResourceManager(object):
     self.conf['jobid'] = None
     self.conf['jobid'] = self.getjobid()
     self.conf['nodes'] = self.get_job_nodes()
-    self.conf['clustershell'] = None
+    self.conf['ClusterShell.Task'] = None
     if scr_const.USE_CLUSTERSHELL != '0':
       try:
-        import ClusterShell
-        self.conf['clustershell'] = ClusterShell
+        import ClusterShell.Task as MyCSTask
+        self.conf['ClusterShell.Task'] = MyCSTask
       except:
         pass
 
@@ -66,13 +66,12 @@ class ResourceManager(object):
   # clustershell exec can be called from any sub-resource manager
   # the sub-resource manager is responsible for ensuring clustershell is available
   def clustershell_exec(self, argv=[], runnodes='', use_dshbak=True):
-    from ClusterShell.Task import task_self, task_wait
-    task = task_self() #self.conf['clustershell'].Task.task_self()
+    task = self.conf['ClusterShell.Task'].task_self()
     # launch the task
     task.run(' '.join(argv), nodes=runnodes)
     ret = [ [ '','' ], 0 ]
-    # ensure the task has completed
-    task.wait(task)
+    # ensure all of the tasks have completed
+    self.conf['ClusterShell.Task'].task_wait()
     # iterate through the task.iter_retcodes() to get (return code, [nodes])
     # to get msg objects, output must be retrieved by individual node using task.node_buffer or .key_error
     # retrieved outputs are bytes, convert with .decode('utf-8')
@@ -81,7 +80,6 @@ class ResourceManager(object):
       for rc, keys in task.iter_retcodes():
         if rc!=0:
           ret[1] = 1
-        print('keys = '+str(keys))
         # groups may have multiple nodes with identical output, use output of the first node
         output = task.node_buffer(keys[0]).decode('utf-8')
         if len(output)!=0:
@@ -116,7 +114,7 @@ class ResourceManager(object):
     return [ [ '', '' ], 0 ]
 
   # each scavenge operation needs upnodes and downnodes_spaced
-  def get_scavenge_nodelists(self,upnodes=''.downnodes=''):
+  def get_scavenge_nodelists(self,upnodes='',downnodes=''):
     # get nodesets
     jobnodes = self.get_job_nodes()
     if jobnodes is None:

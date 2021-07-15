@@ -30,7 +30,7 @@ class SLURM(ResourceManager):
     # STEPID         NAME PARTITION     USER      TIME NODELIST
     cmd = ['squeue','-h','-s','-u',user,'-j',str(self.conf['jobid']),'-S','\"-i\"']
     # my $cmd="squeue -h -s -u $user -j $jobid -S \"-i\"";
-    output = runproc(argv=argv,getstdout=True)[0]
+    output = runproc(argv=cmd,getstdout=True)[0]
     output = re.search('\d+',output)
     if output is None:
       return -1
@@ -88,7 +88,7 @@ class SLURM(ResourceManager):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv)==0:
       return [ [ '', '' ], 0 ]
-    if self.conf['clustershell'] is not None:
+    if self.conf['ClusterShell.Task'] is not None:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
