@@ -3,17 +3,14 @@
 # list_down_nodes.py
 
 from time import time
-from pyfe import scr_const, scr_hostlist, scr_common
+from pyfe import scr_const, scr_common
 from pyfe.list_dir import list_dir
 from pyfe.scr_common import runproc, pipeproc, scr_prefix
 
 # mark any nodes specified on the command line
-def remove_argument_excluded_nodes(nodes=[],nodeset_down=None):
-  if nodeset_down is None:
-    return
+def remove_argument_excluded_nodes(nodes=[],nodeset_down=[]):
   #unavailable = {}
-  exclude_nodes = scr_hostlist.expand(nodeset_down)
-  for node in exclude_nodes:
+  for node in nodeset_down:
     if node in nodes:
       nodes.remove(node)
       #unavailable[node] = 'Specified on command line'
@@ -41,7 +38,7 @@ def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, 
   param = scr_env.param
 
   # get list of nodes from nodeset
-  nodes = scr_hostlist.expand(nodeset)
+  nodes = scr_env.resmgr.expand_hosts(nodeset)
 
   # get prefix directory
   prefix = scr_env.conf['prefix']
@@ -55,7 +52,8 @@ def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, 
   ### these nodes are marked as unavailable, and also removed from the list to log
   ### There is no use to keep track of them in the unavailable dictionary
   #unavailable = list_argument_excluded_nodes(nodes=nodes,nodeset_down=nodeset_down)
-  remove_argument_excluded_nodes(nodes=nodes,nodeset_down=nodeset_down)
+  if nodeset_down!='':
+    remove_argument_excluded_nodes(nodes=nodes, nodeset_down=scr_env.resmgr.expand_hosts(nodeset_down))
 
   # get strings here for the resmgr/nodetests.py
   cntldir_string = list_dir(base=True,runcmd='control',scr_env=scr_env,bindir=bindir)
@@ -84,7 +82,7 @@ def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, 
       ret = ret[:-1] ### take off the final trailing newline (?)
     else:
       # simply print the list of down node in range syntax
-      ret = scr_hostlist.compress(list(unavailable))
+      ret = scr_env.resmgr.compress_hosts(list(unavailable))
     return ret
   # otherwise, don't print anything and exit with 0
   return 0

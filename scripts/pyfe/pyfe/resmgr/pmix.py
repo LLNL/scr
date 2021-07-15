@@ -4,7 +4,7 @@
 # PMIX is a subclass if ResourceManager
 
 import os
-from pyfe import scr_const, scr_hostlist
+from pyfe import scr_const
 from pyfe.scr_common import runproc, pipeproc
 from pyfe.resmgr import nodetests, ResourceManager
 
@@ -42,7 +42,7 @@ class PMIX(ResourceManager):
     val = os.environ.get('PMIX_NODELIST')
     if val is not None:
       node_list = val.split(',')
-      nodeset = scr_hostlist.compress(node_list)
+      nodeset = self.compress_hosts(node_list)
       return nodeset
     return None
 
@@ -61,11 +61,12 @@ class PMIX(ResourceManager):
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
-    unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
+    unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_downnodes()))
     nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)
-    if scr_env is not None:
-      nextunavail = nodetests.list_param_excluded_nodes(nodes=nodes, param=scr_env.param)
+    if scr_env is not None and scr_env.param is not None:
+      exclude_nodes = self.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
+      nextunavail = nodetests.list_param_excluded_nodes(nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
       unavailable.update(nextunavail)
       # assert scr_env.resmgr == self
       nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, cntldir_string=cntldir_string, cachedir_string=cachedir_string)
@@ -77,7 +78,7 @@ class PMIX(ResourceManager):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv)==0:
       return [ [ '', '' ], 0 ]
-    if self.conf['ClusterShell.Task'] is not None:
+    if self.conf['ClusterShell'] == True:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)

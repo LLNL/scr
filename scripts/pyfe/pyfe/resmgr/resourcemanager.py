@@ -19,11 +19,14 @@ class ResourceManager(object):
     self.conf['jobid'] = None
     self.conf['jobid'] = self.getjobid()
     self.conf['nodes'] = self.get_job_nodes()
-    self.conf['ClusterShell.Task'] = None
+    self.conf['ClusterShell'] = False
     if scr_const.USE_CLUSTERSHELL != '0':
       try:
         import ClusterShell.Task as MyCSTask
+        import ClusterShell.NodeSet as MyCSNodeSet
         self.conf['ClusterShell.Task'] = MyCSTask
+        self.conf['ClusterShell.NodeSet'] = MyCSNodeSet
+        self.conf['ClusterShell'] = True
       except:
         pass
 
@@ -56,6 +59,39 @@ class ResourceManager(object):
   def get_scr_end_time(self):
     return 0
 
+  # Returns a hostlist string given a list of hostnames
+  def compress_hosts(self,hostnames=[]):
+    if hostnames is None or len(hostnames)==0:
+      return ''
+    if self.conf['ClusterShell']:
+      nodeset = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(hostnames)
+      return str(nodeset)
+    return scr_hostlist.compress(hostnames)
+
+  # Returns a list of hostnames given a hostlist string
+  def expand_hosts(self,hostnames=''):
+    if hostnames is None or hostnames=='':
+      return []
+    if self.conf['ClusterShell']:
+      nodeset = self.conf['ClusterShell.NodeSet'].NodeSet(hostnames)
+      nodeset = [node for node in nodeset]
+      return nodeset
+    return scr_hostlist.expand(hostnames)
+
+  # Given references to two lists, subtract elements in list 2 from list 1 and return remainder
+  def diff_hosts(self,set1=[],set2=[]):
+    if set1 is None or set1==[]:
+      return set2 if set2 is not None else []
+    if set2 is None or set2==[]:
+      return set1
+    if self.conf['ClusterShell']:
+      set1 = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(set1)
+      set2 = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(set2)
+      set1.difference_update(set2)
+      set1 = [node for node in set1]
+      return set1
+    return scr_hostlist.diff(set1=set1,set2=set2)
+
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
     return {}
@@ -65,6 +101,7 @@ class ResourceManager(object):
   # https://clustershell.readthedocs.io/en/latest/api/Task.html
   # clustershell exec can be called from any sub-resource manager
   # the sub-resource manager is responsible for ensuring clustershell is available
+  ### TODO: different ssh programs may need different parameters added to remove the 'tput: ' from the output
   def clustershell_exec(self, argv=[], runnodes='', use_dshbak=True):
     task = self.conf['ClusterShell.Task'].task_self()
     # launch the task
@@ -86,25 +123,31 @@ class ResourceManager(object):
           ret[0][0]+='---\n'
           ret[0][0]+=','.join(keys)+'\n'
           ret[0][0]+='---\n'
-          ret[0][0]+=output.rstrip()+'\n'
+          lines = output.split('\n')
+          for line in lines:
+            if line!='' and line!='tput: No value for $TERM and no -T specified':
+              ret[0][0]+=line+'\n'
         output = task.key_error(keys[0]).decode('utf-8')
         if len(output)!=0:
           ret[0][1]+='---\n'
           ret[0][1]+=','.join(keys)+'\n'
           ret[0][1]+='---\n'
-          ret[0][1]+=output.rstrip()+'\n'
+          lines = output.split('\n')
+          for line in lines:
+            if line!='' and line!='tput: No value for $TERM and no -T specified':
+              ret[0][1]+=line+'\n'
     else:
       for rc, keys in task.iter_retcodes():
         if rc!=0:
           ret[1] = 1
         for host in keys:
           output = task.node_buffer(host).decode('utf-8')
-          if len(output)!=0:
-            for line in output.split('\n'):
+          for line in output.split('\n'):
+            if line!='' and line!='tput: No value for $TERM and no -T specified':
               ret[0][0]+=host+': '+line+'\n'
           output = task.key_error(host).decode('utf-8')
-          if len(output)!=0:
-            for line in output.split('\n'):
+          for line in output.split('\n'):
+            if line!='' and line!='tput: No value for $TERM and no -T specified':
               ret[0][1]+=host+': '+line+'\n'
     return ret
 
@@ -121,19 +164,19 @@ class ResourceManager(object):
       ### error handling
       print('scr_scavenge: ERROR: Could not determine nodeset.')
       return '', ''
-    jobnodes = scr_hostlist.expand(jobnodes)
+    jobnodes = self.expand_hosts(jobnodes)
     if downnodes != '':
-      downnodes = scr_hostlist.expand(downnodes)
-      upnodes = scr_hostlist.diff(jobnodes, downnodes)
+      downnodes = self.expand_hosts(downnodes)
+      upnodes = self.diff_hosts(jobnodes, downnodes)
     elif upnodes != '':
-      upnodes = scr_hostlist.expand(upnodes)
-      downnodes = scr_hostlist.diff(jobnodes, upnodes)
+      upnodes = self.expand_hosts(upnodes)
+      downnodes = self.diff_hosts(jobnodes, upnodes)
     else:
       upnodes = jobnodes
     ##############################
     # format up and down node sets for scavenge command
     #################
-    upnodes = scr_hostlist.compress(upnodes)
+    upnodes = self.compress_hosts(upnodes)
     downnodes_spaced = ' '.join(downnodes)
     return upnodes, downnodes_spaced
 

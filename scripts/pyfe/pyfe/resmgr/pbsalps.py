@@ -5,7 +5,7 @@
 # PBSALPS is a subclass of ResourceManager
 
 import os, re
-from pyfe import scr_const, scr_hostlist
+from pyfe import scr_const
 from pyfe.scr_common import runproc, pipeproc
 from pyfe.resmgr import nodetests, ResourceManager
 
@@ -63,7 +63,7 @@ class PBSALPS(ResourceManager):
         if len(nodearray)>0:
           if nodearray[-1].startswith('Application'):
             nodearray=nodearray[:-1]
-          shortnodes = scr_hostlist.compress(nodearray)
+          shortnodes = self.compress_hosts(nodearray)
           return shortnodes
     return None
 
@@ -71,9 +71,9 @@ class PBSALPS(ResourceManager):
     downnodes = []
     snodes = self.get_job_nodes()
     if snodes is not None:
-      snodes = scr_hostlist.expand(snodes)
+      snodes = self.expand_hosts(snodes)
       argv = ['xtprocadmin', '-n', ''] # $xtprocadmin
-      for node in nodes:
+      for node in snodes:
         argv[2] = node
         out, returncode = runproc(argv=argv, getstdout=True)
         #if returncode==0:
@@ -83,8 +83,8 @@ class PBSALPS(ResourceManager):
         if 'down' in answer:
           downnodes.append(node)
       if len(downnodes)>0:
-        return scr_hostlist.compress(downnodes)
-    return None
+        return self.compress_hosts(downnodes)
+    return []
 
   def scr_kill_jobstep(self,jobid=-1):
     if jobid==-1:
@@ -94,11 +94,12 @@ class PBSALPS(ResourceManager):
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
-    unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes,resmgr_nodes=self.get_downnodes())
+    unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_downnodes()))
     nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)
-    if scr_env is not None:
-      nextunavail = nodetests.list_param_excluded_nodes(nodes=nodes,param=scr_env.param)
+    if scr_env is not None and scr_env.param is not None:
+      exclude_nodes = self.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
+      nextunavail = nodetests.list_param_excluded_nodes(nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
       unavailable.update(nextunavail)
       # assert scr_env.resmgr == self
       nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, cntldir_string=cntldir_string, cachedir_string=cachedir_string)
@@ -110,7 +111,7 @@ class PBSALPS(ResourceManager):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv)==0:
       return [ [ '', '' ], 0 ]
-    if self.conf['ClusterShell.Task'] is not None:
+    if self.conf['ClusterShell'] == True:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)

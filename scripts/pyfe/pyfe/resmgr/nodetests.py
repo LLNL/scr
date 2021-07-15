@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-from pyfe import scr_const, scr_hostlist
+from pyfe import scr_const
 from pyfe.scr_common import runproc, pipeproc
 
 '''
@@ -14,12 +14,10 @@ bindir = scr_const.X_BINDIR
 # mark the set of nodes the resource manager thinks is down
 def list_resmgr_down_nodes(nodes=[],resmgr_nodes=None):
   unavailable = {}
-  if resmgr_nodes is not None:
-    resmgr_nodes = scr_hostlist.expand(resmgr_nodes)
-    for node in resmgr_nodes:
-      if node in nodes:
-        nodes.remove(node)
-      unavailable[node] = 'Reported down by resource manager'
+  for node in resmgr_nodes:
+    if node in nodes:
+      nodes.remove(node)
+    unavailable[node] = 'Reported down by resource manager'
   return unavailable
 
 # mark any nodes that fail to respond to (up to 2) ping(s)
@@ -40,29 +38,24 @@ def list_nodes_failed_ping(nodes=[]):
   return unavailable
 
 # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
-def list_param_excluded_nodes(nodes=[],param=None):
+def list_param_excluded_nodes(nodes=[],exclude_nodes=[]):
   unavailable = {}
-  if param is not None:
-    exclude = param.get('SCR_EXCLUDE_NODES')
-    if exclude is not None:
-      exclude_nodes = scr_hostlist.expand(exclude)
-      for node in exclude_nodes:
-        if node in nodes:
-          nodes.remove(node)
-          unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
+  for node in exclude_nodes:
+    if node in nodes:
+      nodes.remove(node)
+      unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
   return unavailable
 
 # mark any nodes that don't respond to pdsh echo up
-def list_pdsh_fail_echo(nodes=[],resmgr=None):
+def list_pdsh_fail_echo(nodes=[],nodes_string='',resmgr=None):
   if resmgr is None:
     return {}
   unavailable = {}
   pdsh_assumed_down = nodes.copy()
   if len(nodes)>0:
     # only run this against set of nodes known to be responding
-    upnodes = scr_hostlist.compress(nodes)
     # run an "echo UP" on each node to check whether it works
-    output = resmgr.parallel_exec(argv=['echo','UP'], runnodes=upnodes, use_dshbak=False)[0][0]
+    output = resmgr.parallel_exec(argv=['echo','UP'], runnodes=nodes_string, use_dshbak=False)[0][0]
     for line in output.split('\n'):
       if len(line)==0:
         continue
@@ -141,7 +134,7 @@ def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, 
     cachedir_flag = ['--cache ', ','.join(cachedir_vals)]
 
   # only run this against set of nodes known to be responding
-  upnodes = scr_hostlist.compress(nodes)
+  upnodes = scr_env.resmgr.compress_hosts(nodes)
 
   # run scr_check_node on each node specifying control and cache directories to check
   argv = [bindir+'/pyfe/pyfe/scr_check_node.py']
@@ -155,8 +148,6 @@ def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, 
   for line in output.split('\n'):
     # blank line
     if len(line)<1:
-      pass
-    elif line=='tput: No value for $TERM and no -T specified':
       pass
     # top line
     elif action==0:
@@ -174,7 +165,7 @@ def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, 
       action=0
       if 'PASS' not in line:
         print('pass not in line, expanding '+str(nodeset))
-        exclude_nodes = scr_hostlist.expand(nodeset);
+        exclude_nodes = scr_env.resmgr.expand_hosts(nodeset);
         for node in exclude_nodes:
           if node in nodes:
             nodes.remove(node)
