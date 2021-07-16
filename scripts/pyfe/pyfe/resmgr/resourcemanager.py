@@ -16,8 +16,6 @@ class ResourceManager(object):
     self.conf['prefix'] = scr_prefix()
     self.conf['resmgr'] = resmgr
     self.conf['use_watchdog'] = False
-    self.conf['jobid'] = None
-    self.conf['jobid'] = self.getjobid()
     self.conf['nodes'] = self.get_job_nodes()
     self.conf['ClusterShell'] = False
     if scr_const.USE_CLUSTERSHELL != '0':

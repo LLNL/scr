@@ -44,7 +44,7 @@ def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, 
   prefix = scr_env.conf['prefix']
 
   # get jobid
-  jobid = resourcemgr.conf['jobid']
+  jobid = resourcemgr.getjobid()
   #if jobid == 'defjobid': # job id could not be determined
   #  print('Could not determine the job id') # the only place this is used here is in the logging below
 

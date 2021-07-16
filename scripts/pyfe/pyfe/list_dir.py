@@ -58,7 +58,7 @@ def list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None,bindir='')
       user = scr_env.conf['user']
     # if not specified, read jobid from environment
     if jobid is None:
-      jobid = scr_env.resmgr.conf['jobid']
+      jobid = scr_env.resmgr.getjobid()
     # check that the required environment variables are set
     if user is None or jobid is None:
       # something is missing, print invalid dir and exit with error
