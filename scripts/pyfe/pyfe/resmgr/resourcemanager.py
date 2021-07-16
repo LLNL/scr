@@ -63,6 +63,8 @@ class ResourceManager(object):
   def compress_hosts(self,hostnames=[]):
     if hostnames is None or len(hostnames)==0:
       return ''
+    if type(hostnames) is str:
+      hostnames = hostnames.split(',')
     if self.conf['ClusterShell']:
       nodeset = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(hostnames)
       return str(nodeset)
@@ -72,6 +74,8 @@ class ResourceManager(object):
   def expand_hosts(self,hostnames=''):
     if hostnames is None or hostnames=='':
       return []
+    if type(hostnames) is list:
+      hostnames = ','.join(hostnames)
     if self.conf['ClusterShell']:
       nodeset = self.conf['ClusterShell.NodeSet'].NodeSet(hostnames)
       nodeset = [node for node in nodeset]
@@ -80,6 +84,10 @@ class ResourceManager(object):
 
   # Given references to two lists, subtract elements in list 2 from list 1 and return remainder
   def diff_hosts(self,set1=[],set2=[]):
+    if type(set1) is str:
+      set1 = set1.split(',')
+    if type(set2) is str:
+      set2 = set2.split(',')
     if set1 is None or set1==[]:
       return set2 if set2 is not None else []
     if set2 is None or set2==[]:
