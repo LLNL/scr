@@ -107,7 +107,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   # this may be used by a launcher to store a list of hosts
   scr_env.launcher.conf['hostfile'] = scr_env.conf['prefix']+'/.scr/hostfile'
   # jobid will come from resource manager.
-  jobid = resourcemgr.conf['jobid']
+  jobid = resourcemgr.getjobid()
 
   # TODO: check that we have a valid jobid and bail if not
   # pmix always returns None
@@ -136,7 +136,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     resourcemgr.usewatchdog(True)
 
   # get the control directory
-  cntldir = list_dir(user=scr_env.conf['user'], jobid=resourcemgr.conf['jobid'], runcmd='control', scr_env=scr_env, bindir=bindir)
+  cntldir = list_dir(user=scr_env.conf['user'], jobid=resourcemgr.getjobid(), runcmd='control', scr_env=scr_env, bindir=bindir)
   if cntldir == 1:
     print(prog+': ERROR: Could not determine control directory')
     sys.exit(1)
