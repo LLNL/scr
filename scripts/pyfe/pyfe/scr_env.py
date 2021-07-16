@@ -54,7 +54,7 @@ if __name__ == '__main__':
     if 'user' in args:
       print(str(scr_env.conf['user']),end='')
     if 'jobid' in args:
-      print(str(scr_env.resmgr.conf['jobid']),end='')
+      print(str(scr_env.resmgr.getjobid()),end='')
     if 'nodes' in args:
       print(str(scr_env.resmgr.conf['nodes']),end='')
     if 'down' in args:
