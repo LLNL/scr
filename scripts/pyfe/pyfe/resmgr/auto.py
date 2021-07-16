@@ -11,7 +11,13 @@
 
 from pyfe import scr_const
 
-from pyfe.resmgr import *
+from pyfe.resmgr import (
+    ResourceManager,
+    LSF,
+    PBSALPS,
+    PMIX,
+    SLURM,
+)
 
 class AutoResourceManager:
   def __new__(cls,resmgr=None):

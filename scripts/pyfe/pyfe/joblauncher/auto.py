@@ -7,7 +7,14 @@
 
 from pyfe import scr_const
 
-from pyfe.joblauncher import *
+from pyfe.joblauncher import (
+    JobLauncher,
+    APRUN,
+    JSRUN,
+    LRUN,
+    MPIRUN,
+    SRUN,
+)
 
 class AutoJobLauncher:
   def __new__(cls,launcher=None):
