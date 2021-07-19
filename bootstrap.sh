@@ -136,6 +136,7 @@ pushd KVTree
   if [ $build_dev -eq 0 ] ; then
     git checkout v1.1.1
   fi
+  rm -rf build
   mkdir -p build
   pushd build
     cmake \
@@ -156,6 +157,7 @@ pushd AXL
   if [ $build_dev -eq 0 ] ; then
     git checkout v0.4.0
   fi
+  rm -rf build
   mkdir -p build
   pushd build
     cmake \
@@ -175,6 +177,7 @@ pushd spath
   if [ $build_dev -eq 0 ] ; then
     git checkout v0.0.2
   fi
+  rm -rf build
   mkdir -p build
   pushd build
     cmake \
@@ -195,6 +198,7 @@ pushd rankstr
   if [ $build_dev -eq 0 ] ; then
     git checkout v0.0.3
   fi
+  rm -rf build
   mkdir -p build
   pushd build
     cmake \
@@ -214,6 +218,7 @@ pushd redset
   if [ $build_dev -eq 0 ] ; then
     git checkout v0.0.5
   fi
+  rm -rf build
   mkdir -p build
   pushd build
     cmake \
@@ -234,6 +239,7 @@ pushd shuffile
   if [ $build_dev -eq 0 ] ; then
     git checkout v0.0.4
   fi
+  rm -rf build
   mkdir -p build
   pushd build
     cmake \
@@ -254,6 +260,7 @@ pushd er
   if [ $build_dev -eq 0 ] ; then
     git checkout v0.0.4
   fi
+  rm -rf build
   mkdir -p build
   pushd build
     cmake \
