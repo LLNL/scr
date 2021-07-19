@@ -13,8 +13,8 @@ set -x
 
 # optional builds
 clone_ssh=0   # whether to clone with https (0) or ssh (1)
-build_debug=0 # whether to build optimized (0) or debug "-g -O0" (1)
-build_dev=0   # whether to checkout fixed version tags (0) or use latest (1)
+build_debug=1 # whether to build optimized (0) or debug "-g -O0" (1)
+build_dev=1   # whether to checkout fixed version tags (0) or use latest (1)
 build_clean=0 # whether to keep deps directory (0) or delete and recreate (1)
 
 while [ $# -ge 1 ]; do
@@ -23,6 +23,8 @@ while [ $# -ge 1 ]; do
       clone_ssh=1 ;;
     "--debug" )
       build_debug=1 ;;
+    "--opt" )
+      build_debug=0 ;;
     "--dev" )
       build_dev=1 ;;
     "--clean" )
