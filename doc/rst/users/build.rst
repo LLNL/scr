@@ -31,17 +31,6 @@ existing compilers, a resource manager (like SLURM or LSF), and an MPI environme
 These base software packages are typically preinstalled and configured
 for users by the support staff of HPC clusters.
 
-For those who are installing SCR outside of an HPC cluster,
-are using Fedora, and have sudo access,
-the following steps install and activate most of the necessary base dependencies:
-
-.. code-block:: bash
-
-    sudo dnf groupinstall "Development Tools"
-    sudo dnf install cmake gcc-c++ mpi mpi-devel environment-modules zlib-devel pdsh
-    [restart shell]
-    module load mpi
-
 .. _sec-build-cmake:
 
 CMake

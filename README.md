@@ -6,7 +6,7 @@ bandwidth for checkpointing, restarting, and output in large-scale jobs.
 With SCR, jobs run more efficiently, recompute less work upon a failure,
 and reduce load on critical shared resources such as the parallel file system.
 
-Detailed usage is provided at [SCR.ReadTheDocs.io](https://scr.readthedocs.io/en/latest/).
+Instructions to build and use are hosted at [SCR.ReadTheDocs.io](https://scr.readthedocs.io/en/latest/).
 
 For new users, the [Quick Start guide](https://scr.readthedocs.io/en/latest/users/quick.html)
 shows one how to build and run an example using SCR.
@@ -29,7 +29,7 @@ SCR uses components from [ECP-VeloC](https://github.com/ECP-VeloC),
 which have their own [user](https://github.com/ECP-VeloC/component-user-docs)
 and [developer](https://github.com/ECP-VeloC/component-dev-docs) docs.
 
-For a development build of SCR and its dependencies,
+For a development build of SCR and its dependencies on SLURM systems,
 one can use the bootstrap.sh script:
 
     git clone https://github.com/LLNL/scr.git
@@ -45,6 +45,15 @@ One can then run a test program:
 
     cd examples
     srun -n4 -N4 ./test_api
+
+For developers who may be installing SCR outside of an HPC cluster,
+who are using Fedora, and who have sudo access,
+the following steps install and activate most of the necessary base dependencies:
+
+    sudo dnf groupinstall "Development Tools"
+    sudo dnf install cmake gcc-c++ mpi mpi-devel environment-modules zlib-devel pdsh
+    [restart shell]
+    module load mpi
 
 ## Authors
 
