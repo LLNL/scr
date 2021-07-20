@@ -20,9 +20,7 @@ class ResourceManager(object):
     self.conf['ClusterShell'] = False
     if scr_const.USE_CLUSTERSHELL != '0':
       try:
-        import ClusterShell.Task as MyCSTask
         import ClusterShell.NodeSet as MyCSNodeSet
-        self.conf['ClusterShell.Task'] = MyCSTask
         self.conf['ClusterShell.NodeSet'] = MyCSNodeSet
         self.conf['ClusterShell'] = True
       except:
@@ -102,66 +100,6 @@ class ResourceManager(object):
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
     return {}
 
-  #####
-  #### Return the output as pdsh / dshbak would have (?)
-  # https://clustershell.readthedocs.io/en/latest/api/Task.html
-  # clustershell exec can be called from any sub-resource manager
-  # the sub-resource manager is responsible for ensuring clustershell is available
-  ### TODO: different ssh programs may need different parameters added to remove the 'tput: ' from the output
-  def clustershell_exec(self, argv=[], runnodes='', use_dshbak=True):
-    task = self.conf['ClusterShell.Task'].task_self()
-    # launch the task
-    task.run(' '.join(argv), nodes=runnodes)
-    ret = [ [ '','' ], 0 ]
-    # ensure all of the tasks have completed
-    self.conf['ClusterShell.Task'].task_wait()
-    # iterate through the task.iter_retcodes() to get (return code, [nodes])
-    # to get msg objects, output must be retrieved by individual node using task.node_buffer or .key_error
-    # retrieved outputs are bytes, convert with .decode('utf-8')
-    if use_dshbak:
-      # all outputs in each group are the same
-      for rc, keys in task.iter_retcodes():
-        if rc!=0:
-          ret[1] = 1
-        # groups may have multiple nodes with identical output, use output of the first node
-        output = task.node_buffer(keys[0]).decode('utf-8')
-        if len(output)!=0:
-          ret[0][0]+='---\n'
-          ret[0][0]+=','.join(keys)+'\n'
-          ret[0][0]+='---\n'
-          lines = output.split('\n')
-          for line in lines:
-            if line!='' and line!='tput: No value for $TERM and no -T specified':
-              ret[0][0]+=line+'\n'
-        output = task.key_error(keys[0]).decode('utf-8')
-        if len(output)!=0:
-          ret[0][1]+='---\n'
-          ret[0][1]+=','.join(keys)+'\n'
-          ret[0][1]+='---\n'
-          lines = output.split('\n')
-          for line in lines:
-            if line!='' and line!='tput: No value for $TERM and no -T specified':
-              ret[0][1]+=line+'\n'
-    else:
-      for rc, keys in task.iter_retcodes():
-        if rc!=0:
-          ret[1] = 1
-        for host in keys:
-          output = task.node_buffer(host).decode('utf-8')
-          for line in output.split('\n'):
-            if line!='' and line!='tput: No value for $TERM and no -T specified':
-              ret[0][0]+=host+': '+line+'\n'
-          output = task.key_error(host).decode('utf-8')
-          for line in output.split('\n'):
-            if line!='' and line!='tput: No value for $TERM and no -T specified':
-              ret[0][1]+=host+': '+line+'\n'
-    return ret
-
-  # perform a generic pdsh / clustershell command
-  # returns [ [ stdout, stderr ] , returncode ]
-  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
-    return [ [ '', '' ], 0 ]
-
   # each scavenge operation needs upnodes and downnodes_spaced
   def get_scavenge_nodelists(self,upnodes='',downnodes=''):
     # get nodesets
@@ -185,13 +123,6 @@ class ResourceManager(object):
     upnodes = self.compress_hosts(upnodes)
     downnodes_spaced = ' '.join(downnodes)
     return upnodes, downnodes_spaced
-
-  # perform the scavenge files operation for scr_scavenge
-  # command format depends on resource manager in use
-  # uses either pdsh or clustershell
-  # returns a list -> [ 'stdout', 'stderr' ]
-  def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
-    return ['','']
 
 if __name__=='__main__':
   resmgr = ResourceManager()

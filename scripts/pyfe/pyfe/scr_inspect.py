@@ -18,6 +18,7 @@ import argparse, re, subprocess
 from pyfe import scr_const, scr_hostlist
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
+from pyfe.joblauncher import AutoJobLauncher
 
 def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,scr_env=None):
   bindir = scr_const.X_BINDIR
@@ -27,6 +28,8 @@ def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,scr_env=None):
     scr_env = SCR_Env()
   if scr_env.resmgr is None:
     scr_env.resmgr = AutoResourceManager()
+  if scr_env.launcher is None:
+    scr_env.launcher = AutoJobLauncher()
 
   # tag output files with jobid
   jobid = scr_env.getjobid()
@@ -73,7 +76,7 @@ def scr_inspect(jobnodes=None,up=None,down=None,cntldir=None,scr_env=None):
 
   # run scr_inspect_cache via pdsh / clustershell
   argv = [bindir+'/scr_inspect_cache', cntldir+'/filemap.scrinfo']
-  out = scr_env.resmgr.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
+  out = scr_env.launcher.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
   try:
     with open(output,'w') as outfile:
       outfile.write(out[0])

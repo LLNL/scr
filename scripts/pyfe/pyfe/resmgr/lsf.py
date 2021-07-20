@@ -114,33 +114,10 @@ class LSF(ResourceManager):
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
     unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_downnodes()))
-    nextunavail = nodetests.list_pdsh_fail_echo(nodes=nodes, nodes_string=self.compress_hosts(nodes), resmgr=self)
+    nextunavail = nodetests.list_pdsh_fail_echo(nodes=nodes, nodes_string=self.compress_hosts(nodes), launcher=scr_env.launcher)
     unavailable.update(nextunavail)
     if scr_env is not None and scr_env.param is not None:
       exclude_nodes = self.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
       nextunavail = nodetests.list_param_excluded_nodes(nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
       unavailable.update(nextunavail)
     return unavailable
-
-  # perform a generic pdsh / clustershell command
-  # returns [ [ stdout, stderr ] , returncode ]
-  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
-    if len(argv)==0:
-      return [ [ '', '' ], 0 ]
-    if self.conf['ClusterShell'] == True:
-      return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
-    pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
-    pdshcmd.extend(argv)
-    if use_dshbak:
-      argv = [ pdshcmd, [scr_const.DSHBAK_EXE, '-c'] ]
-      return pipeproc(argvs=argv,getstdout=True,getstderr=True)
-    return runproc(argv=pdshcmd,getstdout=True,getstderr=True)
-
-  # perform the scavenge files operation for scr_scavenge
-  # uses either pdsh or clustershell
-  # returns a list -> [ 'stdout', 'stderr' ]
-  def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
-    upnodes, downnodes_spaced = self.get_scavenge_nodelists(upnodes=upnodes, downnodes=downnodes)
-    argv = [prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag, downnodes_spaced]
-    output = self.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
-    return output

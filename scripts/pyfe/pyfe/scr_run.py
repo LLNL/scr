@@ -260,14 +260,13 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_START', event_note='run='+str(attempts), event_start=str(start_secs))
     # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
     if resourcemgr.usewatchdog() == False:
-      argv=launcher.getlaunchargv(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
-      runproc(argv=argv)
+      launcher.launchruncmd(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
       # $launcher $exclude $launch_cmd
     else:
       print(prog+': Attempting to start watchdog process.')
       # need to get job step id of the srun command
-      argv=launcher.getlaunchargv(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
-      launched_process, launcher_pid = runproc(argv=argv, wait=False)
+      launched_process, launcher_pid = launcher.launchruncmd(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
+      #launched_process, launcher_pid = runproc(argv=argv, wait=False)
       # $launcher $exclude $launch_cmd &
       #{launcher}run_pid = runproc.pid
       #{launcher}run_pid=$!;

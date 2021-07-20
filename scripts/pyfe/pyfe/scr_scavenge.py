@@ -16,6 +16,7 @@ from pyfe import scr_const, scr_common
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
+from pyfe.joblauncher import AutoJobLauncher
 from pyfe.scr_common import tracefunction, runproc
 
 # check for pdsh / (clustershell) errors in case any nodes should be retried
@@ -36,6 +37,8 @@ def scr_scavenge(nodeset_job=None, nodeset_up='', nodeset_down='', dataset_id=No
     scr_env.param = SCR_Param()
   if scr_env.resmgr is None:
     scr_env.resmgr = AutoResourceManager()
+  if scr_env.launcher is None:
+    scr_env.launcher = AutoJobLauncher()
   # lookup buffer size and crc flag via scr_param
   param = scr_env.param
 
@@ -65,8 +68,8 @@ def scr_scavenge(nodeset_job=None, nodeset_up='', nodeset_down='', dataset_id=No
   scr_common.log(bindir=bindir, prefix=prefixdir, jobid=jobid, event_type='SCAVENGE_START', event_dset=dataset_id, event_start=str(start_time))
 
   print('scr_scavenge: '+str(int(time())))
-  # have the resmgr class gather files via pdsh or clustershell
-  consoleout = resmgr.scavenge_files(prog=bindir+'/scr_copy', upnodes=nodeset_up, downnodes=nodeset_down, cntldir=cntldir, dataset_id=dataset_id, prefixdir=prefixdir, buf_size=buf_size, crc_flag=crc_flag)
+  # have the launcher class gather files via pdsh or clustershell
+  consoleout = scr_env.launcher.scavenge_files(prog=bindir+'/scr_copy', upnodes=nodeset_up, downnodes=nodeset_down, cntldir=cntldir, dataset_id=dataset_id, prefixdir=prefixdir, buf_size=buf_size, crc_flag=crc_flag)
 
   # print outputs to screen
   try:

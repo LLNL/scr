@@ -47,15 +47,15 @@ def list_param_excluded_nodes(nodes=[],exclude_nodes=[]):
   return unavailable
 
 # mark any nodes that don't respond to pdsh echo up
-def list_pdsh_fail_echo(nodes=[],nodes_string='',resmgr=None):
-  if resmgr is None:
+def list_pdsh_fail_echo(nodes=[],nodes_string='',launcher=None):
+  if launcher is None:
     return {}
   unavailable = {}
   pdsh_assumed_down = nodes.copy()
   if len(nodes)>0:
     # only run this against set of nodes known to be responding
     # run an "echo UP" on each node to check whether it works
-    output = resmgr.parallel_exec(argv=['echo','UP'], runnodes=nodes_string, use_dshbak=False)[0][0]
+    output = launcher.parallel_exec(argv=['echo','UP'], runnodes=nodes_string, use_dshbak=False)[0][0]
     for line in output.split('\n'):
       if len(line)==0:
         continue
@@ -76,7 +76,7 @@ def list_pdsh_fail_echo(nodes=[],nodes_string='',resmgr=None):
 def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, cachedir_string=None):
   if nodes==[]:
     return {}
-  if scr_env is None or scr_env.param is None or scr_env.resmgr is None:
+  if scr_env is None or scr_env.param is None or scr_env.resmgr is None or scr_env.launcher is None:
     return {}
   unavailable = {}
   param = scr_env.param
@@ -142,7 +142,7 @@ def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, 
     argv.append('--free')
   argv.extend(cntldir_flag)
   argv.extend(cachedir_flag)
-  output = scr_env.resmgr.parallel_exec(argv=argv,runnodes=upnodes)[0][0]
+  output = scr_env.launcher.parallel_exec(argv=argv,runnodes=upnodes)[0][0]
   action=0 # tracking action to use range iterator and follow original line <- shift flow
   nodeset = ''
   for line in output.split('\n'):
