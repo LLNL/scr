@@ -3,6 +3,7 @@
 # lrun.py
 # The LRUN class provides interpretation for the lrun launcher
 
+from pyfe import scr_const
 from pyfe.joblauncher import JobLauncher
 
 class LRUN(JobLauncher):

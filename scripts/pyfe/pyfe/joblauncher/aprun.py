@@ -3,6 +3,7 @@
 # aprun.py
 # The APRUN class provides interpretation for the aprun launcher
 
+from pyfe import scr_const
 from pyfe.joblauncher import JobLauncher
 from pyfe.scr_common import runproc
 

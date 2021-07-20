@@ -3,6 +3,7 @@
 # jsrun.py
 # The jsrun class provides interpretation for the jsrun launcher
 
+from pyfe import scr_const
 from pyfe.joblauncher import JobLauncher
 
 class JSRUN(JobLauncher):
