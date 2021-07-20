@@ -11,23 +11,26 @@
 
 # Set the launcher for the launch script to use below
 launcher="srun"
-if [ $launcher == "srun" ]; then
-  launcherargs="-n4 -N4"
-elif [ $launcher == "lrun" ]; then
-  launcherargs="-n4 -N4"
-elif [ $launcher == "jsrun" ]; then
-  launcherargs="--tasks_per_rs=1"
-else
-  launcher="mpirun"
-  launcherargs="-N 1"
-fi
-################################ aprun?
 
 export PATH=$(pwd)/pyfe:${PATH}
 cd ../../../
 export SCR_PKG=$(pwd)
 export SCR_BUILD=${SCR_PKG}/build
 export SCR_INSTALL=${SCR_PKG}/install
+
+if [ $launcher == "srun" ]; then
+  launcherargs="-n4 -N4"
+elif [ $launcher == "lrun" ]; then
+  launcherargs="-n4 -N4"
+elif [ $launcher == "jsrun" ]; then
+  launcherargs="--tasks_per_rs=1"
+elif [ $launcher == "aprun" ]; then
+  nodelist=$(scr_env.py --nodes)
+  launcherargs="-L ${nodelist}"
+else
+  launcher="mpirun"
+  launcherargs="-N 1"
+fi
 
 # cd to examples directory, and check that build of test programs works
 #cd ${SCR_INSTALL}/share/scr/examples
