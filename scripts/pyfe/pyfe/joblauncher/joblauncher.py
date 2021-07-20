@@ -3,6 +3,8 @@
 # joblauncher.py
 # JobLauncher is the super class for the job launcher family
 
+from pyfe import scr_const
+
 class JobLauncher(object):
   def __init__(self,launcher=''):
     self.conf = {}

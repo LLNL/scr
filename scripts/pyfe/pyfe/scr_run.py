@@ -104,6 +104,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   scr_env.param = param
   scr_env.resmgr = resourcemgr
   scr_env.launcher = launcher
+  scr_env.launcher.conf['resmgr'] = resourcemgr
   # this may be used by a launcher to store a list of hosts
   scr_env.launcher.conf['hostfile'] = scr_env.conf['prefix']+'/.scr/hostfile'
   # jobid will come from resource manager.
