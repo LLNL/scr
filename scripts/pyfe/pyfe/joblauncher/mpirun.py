@@ -74,6 +74,6 @@ class MPIRUN(JobLauncher):
   # returns a list -> [ 'stdout', 'stderr' ]
   def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
     upnodes, downnodes_spaced = self.conf['resmgr'].get_scavenge_nodelists(upnodes=upnodes, downnodes=downnodes)
-    argv = ['srun', '-n1', '-N1', '-w', '%h', prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag, downnodes_spaced]
+    argv = [prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag, downnodes_spaced]
     output = self.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
     return output
