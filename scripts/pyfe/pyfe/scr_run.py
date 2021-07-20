@@ -40,16 +40,16 @@ def nodes_needed(scr_env, nodelist):
     num_needed = scr_env.get_runnode_count()
     if num_needed <= 0:
       # otherwise, assume we need all nodes in the allocation
-      num_needed = scr_glob_hosts(count=True, hosts=nodelist)
+      num_needed = scr_glob_hosts(count=True, hosts=nodelist, resmgr=scr_env.resmgr)
       if num_needed is None:
         # failed all methods to estimate the minimum number of nodes
         return None
   return int(num_needed)
 
 # return number of nodes left in allocation after excluding down nodes
-def nodes_remaining(nodelist, down_nodes):
+def nodes_remaining(resmgr, nodelist, down_nodes):
   # num_left='$bindir/scr_glob_hosts --count --minus $SCR_NODELIST:$down_nodes'
-  num_left = scr_glob_hosts(count=True, minus = nodelist + ':' + down_nodes)
+  num_left = scr_glob_hosts(count=True, minus = nodelist + ':' + down_nodes, resmgr=resmgr)
   if num_left is None:
     return None
   return int(num_left)
@@ -227,7 +227,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
         break
 
       # determine number of nodes remaining in allocation
-      num_left = nodes_remaining(nodelist, down_nodes)
+      num_left = nodes_remaining(resourcemgr, nodelist, down_nodes)
       if num_left is None:
         print(prog + ': ERROR: Unable to determine number of nodes remaining')
         break

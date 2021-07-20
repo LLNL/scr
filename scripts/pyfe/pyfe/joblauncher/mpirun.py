@@ -53,7 +53,11 @@ class MPIRUN(JobLauncher):
       print(e)
       print('scr_mpirun: Error writing hostfile and creating launcher command')
       print('launcher file: \"'+self.conf['hostfile']+'\"')
-      return None, -1
+      #return None, -1
+      ### We could just do -N 1 to run a single process on every node of the allocation?
+      argv = [self.conf['launcher'],'-N','1']
+      argv.extend(launcher_args)
+      return runproc(argv=argv, wait=False)
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]

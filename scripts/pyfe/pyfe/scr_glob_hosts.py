@@ -11,30 +11,42 @@ if 'pyfe' not in sys.path:
 import argparse
 from pyfe import scr_hostlist
 
-def scr_glob_hosts(count=False,nth=None,hosts=None,minus=None,intersection=None,compress=None):
+def scr_glob_hosts(count=False,nth=None,hosts=None,minus=None,intersection=None,compress=None,resmgr=None):
   hostset = []
   if hosts is not None:
-    hostset = scr_hostlist.expand(hosts)
+    # resmgr can use ClusterShell.NodeSet, if available
+    if resmgr is not None:
+      hostset = resmgr.expand_hosts(hostnames=hosts)
+    else:
+      hostset = scr_hostlist.expand(hosts)
   elif minus is not None and ':' in minus:
     # subtract nodes in set2 from set1
     pieces = minus.split(':')
-    set1 = scr_hostlist.expand(pieces[0])
-    set2 = scr_hostlist.expand(pieces[1])
-    hostset = scr_hostlist.diff(set1,set2)
+    if resmgr is not None:
+      set1 = resmgr.expand_hosts(pieces[0])
+      set2 = resmgr.expand_hosts(pieces[1])
+      hostset = resmgr.diff_hosts(set1,set2)
+    else:
+      set1 = scr_hostlist.expand(pieces[0])
+      set2 = scr_hostlist.expand(pieces[1])
+      hostset = scr_hostlist.diff(set1,set2)
   elif intersection is not None and ':' in intersection:
     # take the intersection of two nodesets
     pieces = intersection.split(':')
-    set1 = scr_hostlist.expand(pieces[0])
-    set2 = scr_hostlist.expand(pieces[1])
-    hostset = scr_hostlist.intersect(set1,set2)
+    if resmgr is not None:
+      set1 = resmgr.expand_hosts(pieces[0])
+      set2 = resmgr.expand_hosts(pieces[1])
+      hostset = resmgr.intersect_hosts(set1,set2)
+    else:
+      set1 = scr_hostlist.expand(pieces[0])
+      set2 = scr_hostlist.expand(pieces[1])
+      hostset = scr_hostlist.intersect(set1,set2)
   elif compress is not None:
-    # if the argument is a csv then the compress function has no effect
-    # this python implementation can just return the parameter . . .
-    # (to act as 'printing' it then exiting)
-    # return conf['compress'] # returns the csv string
-    # if we compress the range (?)
-    hostset = compress.split(',') #scr_hostlist.expand(compress)
-    return scr_hostlist.compress_range(hostset)
+    if resmgr is not None:
+      hostset = resmgr.compress_hosts(compress)
+    else:
+      hostset = compress.split(',')
+      return scr_hostlist.compress_range(hostset)
   else: #if not valid
     return None
   # ok, got our resulting nodeset, now print stuff to the screen
@@ -52,6 +64,9 @@ def scr_glob_hosts(count=False,nth=None,hosts=None,minus=None,intersection=None,
   if count:
     return len(hostset)
   # return a csv string representation of the nodelist
+  if resmgr is not None:
+    hostset = resmgr.expand_hosts(hostset)
+    return ','.join(hostset)
   return scr_hostlist.compress(hostset)
 
 if __name__=='__main__':

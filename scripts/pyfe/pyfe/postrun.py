@@ -62,7 +62,7 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
     #else: #returned 0, no error and no down nodes
     #  downnodes = ''
   else: # returned a list of down nodes
-    upnodes = scr_glob_hosts(minus=upnodes+':'+downnodes)
+    upnodes = scr_glob_hosts(minus=upnodes+':'+downnodes, resmgr=scr_env.resmgr)
   print('scr_postrun: UPNODES:   '+upnodes)
 
   # if there is at least one remaining up node, attempt to scavenge

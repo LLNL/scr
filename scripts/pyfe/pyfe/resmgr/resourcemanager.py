@@ -64,7 +64,7 @@ class ResourceManager(object):
     if self.conf['ClusterShell']:
       nodeset = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(hostnames)
       return str(nodeset)
-    return scr_hostlist.compress(hostnames)
+    return scr_hostlist.compress_range(hostnames)
 
   # Returns a list of hostnames given a hostlist string
   def expand_hosts(self,hostnames=''):
@@ -91,10 +91,31 @@ class ResourceManager(object):
     if self.conf['ClusterShell']:
       set1 = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(set1)
       set2 = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(set2)
-      set1.difference_update(set2)
+      # strict=False is default
+      # if strict true then raises error if something in set2 not in set1
+      set1.difference_update(set2, strict=False)
+      # ( this should also work like set1 -= set2 )
       set1 = [node for node in set1]
       return set1
     return scr_hostlist.diff(set1=set1,set2=set2)
+
+  # Return the intersection of two host lists
+  def intersect_hosts(self,set1=[],set2=[]):
+    if type(set1) is str:
+      set1 = set1.split(',')
+    if type(set2) is str:
+      set2 = set2.split(',')
+    if set1 is None or set1==[]:
+      return []
+    if set2 is None or set2==[]:
+      return []
+    if self.conf['ClusterShell']:
+      set1 = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(set1)
+      set2 = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(set2)
+      set1.intersection_update(set2)
+      set1 = [node for node in set1]
+      return set1
+    return scr_hostlist.intersect(set1,set2)
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
