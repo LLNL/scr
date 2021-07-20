@@ -21,7 +21,7 @@ class LSF(ResourceManager):
 
   # this doesn't really apply for LSF
   def get_jobstep_id(self,user='',pid=-1):
-    return -1
+    return None
 
   # get node list
   def get_job_nodes(self):

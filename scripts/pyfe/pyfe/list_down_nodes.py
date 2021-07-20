@@ -28,7 +28,7 @@ def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, 
   # check that we have a nodeset before going any further
   resourcemgr = scr_env.resmgr
   if nodeset is None or len(nodeset)==0:
-    nodeset = resourcemgr.conf['nodes']
+    nodeset = resourcemgr.get_job_nodes()
     if nodeset is None or len(nodeset)==0:
       print('scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.')
       return 1
@@ -41,7 +41,7 @@ def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, 
   nodes = scr_env.resmgr.expand_hosts(nodeset)
 
   # get prefix directory
-  prefix = scr_env.conf['prefix']
+  prefix = scr_env.get_prefix()
 
   # get jobid
   jobid = resourcemgr.getjobid()

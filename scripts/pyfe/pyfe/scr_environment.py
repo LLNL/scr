@@ -21,10 +21,19 @@ class SCR_Env:
     self.conf['user'] = os.environ.get('USER')
     self.conf['nodes'] = os.environ.get('SCR_NODELIST')
 
+  def get_user(self):
+    return self.conf['user']
+
+  def get_scr_nodelist(self):
+    return self.conf['nodes']
+
   # set the nodelist (called if the environment variable wasn't set)
   def set_nodelist(self,nodelist):
     self.conf['nodes'] = nodelist
     os.environ['SCR_NODELIST'] = nodelist
+
+  def get_prefix(self):
+    return self.conf['prefix']
 
   # set the prefix
   def set_prefix(self,prefix):

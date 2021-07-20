@@ -34,7 +34,7 @@ class PMIX(ResourceManager):
     #output = runproc(argv=argv,getstdout=True)[0].strip()
     #output = output.split('\n')
 
-    currjobid=-1
+    currjobid=None
     return currjobid
 
   # get node list

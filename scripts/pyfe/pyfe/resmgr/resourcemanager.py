@@ -35,7 +35,7 @@ class ResourceManager(object):
     self.conf['use_watchdog'] = use_scr_watchdog
 
   def get_jobstep_id(self,user='',pid=-1):
-    return -1
+    return None
 
   def getjobid(self):
     # failed to read jobid from environment,

@@ -31,7 +31,7 @@ class PBSALPS(ResourceManager):
       pass
     if nid is None: # or value not sane
       #### Are we unable to continue ?
-      return -1
+      return None
     currApid=-1
     for line in output:
       line=line.strip()
@@ -48,7 +48,7 @@ class PBSALPS(ResourceManager):
         if thisnid == nid and fields[7] == pid:
           break
         currApid=-1
-    return currApid
+    return currApid if currApid != -1 else None
 
   # get node list
   def get_job_nodes(self):

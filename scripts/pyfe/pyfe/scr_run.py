@@ -43,15 +43,13 @@ def nodes_needed(scr_env, nodelist):
       num_needed = scr_glob_hosts(count=True, hosts=nodelist, resmgr=scr_env.resmgr)
       if num_needed is None:
         # failed all methods to estimate the minimum number of nodes
-        return None
+        return 0
   return int(num_needed)
 
 # return number of nodes left in allocation after excluding down nodes
 def nodes_remaining(resmgr, nodelist, down_nodes):
   # num_left='$bindir/scr_glob_hosts --count --minus $SCR_NODELIST:$down_nodes'
   num_left = scr_glob_hosts(count=True, minus = nodelist + ':' + down_nodes, resmgr=resmgr)
-  if num_left is None:
-    return None
   return int(num_left)
 
 # is there a halt condition instructing us to stop?
@@ -64,7 +62,7 @@ def should_halt(bindir, prefix):
 def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=[]):
   if launcher=='':
     launcher=scr_const.SCR_LAUNCHER
-    if '@' in launcher:
+    if launcher == '':
       print('Launcher must be specified')
       return 1
   prog='scr_'+launcher
@@ -73,7 +71,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   bindir=scr_const.X_BINDIR
 
   val = os.environ.get('SCR_ENABLE')
-  if val is not None and val=='0':
+  if val=='0':
     launcher = [launcher]
     launcher.extend(launcher_args)
     returncode = runproc(argv=launcher)[1]
@@ -86,7 +84,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     verbose=True
 
   # turn on python function tracing
-  if scr_const.PYFE_TRACE_FUNC==1 or os.environ.get('PYFE_TRACE_FUNC')=='1':
+  if scr_const.PYFE_TRACE_FUNC=='1' or os.environ.get('PYFE_TRACE_FUNC')=='1':
     sys.settrace(tracefunction)
 
   # make a record of start time
@@ -120,15 +118,15 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     #sys.exit(1)
 
   # get the nodeset of this job
-  nodelist = scr_env.conf['nodes']
+  nodelist = scr_env.get_scr_nodelist()
   if nodelist is None:
-    nodelist = scr_env.resmgr.conf['nodes']
+    nodelist = scr_env.resmgr.get_job_nodes()
     if nodelist is None:
       print(prog+': ERROR: Could not identify nodeset')
       sys.exit(1)
 
   # get prefix directory
-  prefix=scr_env.conf['prefix']
+  prefix=scr_env.get_prefix()
 
   val=os.environ.get('SCR_WATCHDOG')
   if val is None or val!='1':
@@ -137,7 +135,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     resourcemgr.usewatchdog(True)
 
   # get the control directory
-  cntldir = list_dir(user=scr_env.conf['user'], jobid=resourcemgr.getjobid(), runcmd='control', scr_env=scr_env, bindir=bindir)
+  cntldir = list_dir(user=scr_env.get_user(), jobid=resourcemgr.getjobid(), runcmd='control', scr_env=scr_env, bindir=bindir)
   if cntldir == 1:
     print(prog+': ERROR: Could not determine control directory')
     sys.exit(1)
@@ -222,13 +220,13 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
       # determine how many nodes are needed
       num_needed = nodes_needed(scr_env, nodelist)
-      if num_needed is None:
+      if num_needed <= 0:
         print(prog + ': ERROR: Unable to determine number of nodes needed')
         break
 
       # determine number of nodes remaining in allocation
       num_left = nodes_remaining(resourcemgr, nodelist, down_nodes)
-      if num_left is None:
+      if num_left <= 0:
         print(prog + ': ERROR: Unable to determine number of nodes remaining')
         break
 
@@ -268,7 +266,6 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       print(prog+': Attempting to start watchdog process.')
       # need to get job step id of the srun command
       launched_process, launched_pid = launcher.launchruncmd(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
-      #launched_process, launcher_pid = runproc(argv=argv, wait=False)
       # $launcher $exclude $launch_cmd &
       #{launcher}run_pid = runproc.pid
       #{launcher}run_pid=$!;

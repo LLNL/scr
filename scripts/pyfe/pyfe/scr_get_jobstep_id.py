@@ -30,7 +30,7 @@ def scr_get_jobstep_id(scr_env=None,pid=-1):
     scr_env.resmgr = AutoResourceManager()
   if scr_env.launcher is None:
     scr_env.launcher = AutoJobLauncher()
-  user = scr_env.conf['user']
+  user = scr_env.get_user()
   if user is None:
     print('scr_get_jobstep_id: ERROR: Could not determine user ID')
     return None

@@ -55,7 +55,7 @@ def list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None,bindir='')
   if base is False:
     # if not specified, read username from environment
     if user is None:
-      user = scr_env.conf['user']
+      user = scr_env.get_user()
     # if not specified, read jobid from environment
     if jobid is None:
       jobid = scr_env.resmgr.getjobid()

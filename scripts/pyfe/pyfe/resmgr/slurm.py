@@ -25,7 +25,7 @@ class SLURM(ResourceManager):
   def get_jobstep_id(self, user='', pid=-1):
     jobid = self.getjobid()
     if user == '' or jobid is None:
-      return -1
+      return None
 
     # get job steps for this user and job, order by decreasing job step
     # so first one should be the one we are looking for
@@ -36,7 +36,7 @@ class SLURM(ResourceManager):
     output = runproc(argv=cmd, getstdout=True)[0]
     output = re.search('\d+', output)
     if output is None:
-      return -1
+      return None
     return output[0]
 
   # get node list
