@@ -25,6 +25,7 @@ def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
   if prefix is None or jobstepid is None:
     return 1
 
+  bindir = scr_const.X_BINDIR
   param = None
   resmgr = None
   if scr_env is not None:
@@ -63,26 +64,23 @@ def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
   lastCheckpoint    = ''
   lastCheckpointLoc = ''
 
-  getLatestCmd    = 'scr_flush_file --dir '+prefix+' -l'
-  getLatestLocCmd = 'scr_flush_file --dir '+prefix+' -L'
+  getLatestCmd    = bindir+'/scr_flush_file --dir '+prefix+' -l'
+  getLatestLocCmd = bindir+'/scr_flush_file --dir '+prefix+' -L'
 
   timeToSleep = int(timeout)
 
   while True:
     time.sleep(timeToSleep)
-    #print "was sleeping, now awake\n";
     argv = getLatestCmd.split(' ')
     latest = runproc(argv=argv,getstdout=True)[0]
-    #print "latest was $latest\n";
     latestLoc = ''
     if latest!='':
       argv = getLatestLocCmd.split(' ')
       argv.extend(latest.split(' ')[0])
       latestLoc = runproc(argv=argv,getstdout=True)[0]
-    #print "latestLoc was $latestLoc\n";
     if latest == lastCheckpoint:
       if latestLoc == lastCheckpointLoc:
-        #print "time to kill\n";
+        # print('time to kill')
         break
     lastCheckpoint = latest
     lastCheckpointLoc = latestLoc
