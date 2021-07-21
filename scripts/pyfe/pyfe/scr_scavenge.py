@@ -73,6 +73,7 @@ def scr_scavenge(nodeset_job=None, nodeset_up='', nodeset_down='', dataset_id=No
 
   # print outputs to screen
   try:
+    os.makedirs('/'.join(output.split('/')[:-1]),exist_ok=True)
     with open(output,'w') as outfile:
       outfile.write(consoleout[0])
     if verbose:

@@ -75,6 +75,7 @@ class SCR_Param():
   def read_config_file(self,filename):
     h = {}
     try:
+      os.makedirs('/'.join(filename.split('/')[:-1]),exist_ok=True)
       with open (filename,'r') as infile:
         for line in infile.readlines():
           line=line.strip()

@@ -74,6 +74,7 @@ def scr_check_node(free=False,cntl_list=None,cache_list=None):
     for adir in dirs:
       testfile = adir+'/testfile.txt'
       try:
+        os.makedirs(adir,exist_ok=True)
         with open(testfile,'w') as outfile:
           pass
       except PermissionError:

@@ -194,6 +194,7 @@ def scr_poststage(prefix=None):
   # Path to where you want the scr_poststage log
   logfile=prefix+'/scr_poststage.log'
   try:
+    os.makedirs('/'.join(logfile.split('/')[:-1]),exist_ok=True)
     with open(logfile,'a') as logfile:
       do_poststage(bindir,prefix,logfile)
   except:

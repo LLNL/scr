@@ -37,19 +37,12 @@ def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
     param = SCR_Param()
   if resmgr is None:
     resmgr = AutoResourceManager()
-  timeout = None
-  timeout_pfs = None
 
   # we have two timeout variables now, one for the length of time to wait under
   # "normal" circumstances and one for the length of time to wait if writing
   # to the parallel file system
-  param_timeout = param.get('SCR_WATCHDOG_TIMEOUT')
-  if param_timeout is not None:
-    timeout = param_timeout
-
-  param_timeout_pfs = param.get('SCR_WATCHDOG_TIMEOUT_PFS')
-  if param_timeout_pfs is not None:
-    timeout_pfs = param_timeout_pfs
+  timeout = param.get('SCR_WATCHDOG_TIMEOUT')
+  timeout_pfs = param.get('SCR_WATCHDOG_TIMEOUT_PFS')
 
   # TODO: What to do if timeouts are not set? die? should we set default values?
   # for now die with error message
@@ -60,6 +53,9 @@ def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
     print('Necessary environment variables not set: SCR_HANG_TIMEOUT and SCR_HANG_TIMEOUT_PFS')
     return 1
 
+  timeout = int(timeout)
+  timeout_pfs = int(timeout_pfs)
+
   # loop periodically checking the flush file for activity
   lastCheckpoint    = ''
   lastCheckpointLoc = ''
@@ -67,7 +63,7 @@ def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
   getLatestCmd    = bindir+'/scr_flush_file --dir '+prefix+' -l'
   getLatestLocCmd = bindir+'/scr_flush_file --dir '+prefix+' -L'
 
-  timeToSleep = int(timeout)
+  timeToSleep = timeout
 
   while True:
     time.sleep(timeToSleep)
@@ -85,9 +81,9 @@ def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
     lastCheckpoint = latest
     lastCheckpointLoc = latestLoc
     if latestLoc == 'SYNC_FLUSHING':
-      timeToSleep = int(timeout_pfs)
+      timeToSleep = timeout_pfs
     else:
-      timeToSleep = int(timeout)
+      timeToSleep = timeout
 
   print('Killing simulation using scr_kill_jobstep --jobStepId '+jobstepid)
   resmgr.scr_kill_jobstep(jobid=jobstepid)
