@@ -52,11 +52,11 @@ if __name__ == '__main__':
     if 'prefix' in args:
       scr_env.set_prefix(args['prefix'])
     if 'user' in args:
-      print(str(scr_env.conf['user']),end='')
+      print(str(scr_env.get_user()),end='')
     if 'jobid' in args:
       print(str(scr_env.resmgr.getjobid()),end='')
     if 'nodes' in args:
-      print(str(scr_env.resmgr.conf['nodes']),end='')
+      print(str(scr_env.resmgr.get_scr_nodelist()),end='')
     if 'down' in args:
       print(str(scr_env.resmgr.get_downnodes()),end='')
     if 'runnodes' in args:

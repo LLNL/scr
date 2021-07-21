@@ -7,16 +7,14 @@ from pyfe import scr_const
 
 class JobLauncher(object):
   def __init__(self,launcher=''):
-    self.conf = {}
-    self.conf['launcher'] = launcher
-    self.conf['hostfile'] = ''
-    self.conf['resmgr'] = None
-    self.conf['ClusterShell'] = False
+    self.launcher = launcher
+    self.hostfile = ''
+    self.resmgr = None
+    self.clustershell_task = None
     if scr_const.USE_CLUSTERSHELL != '0':
       try:
         import ClusterShell.Task as MyCSTask
-        self.conf['ClusterShell.Task'] = MyCSTask
-        self.conf['ClusterShell'] = True
+        self.clustershell_task = MyCSTask
       except:
         pass
 
@@ -40,12 +38,12 @@ class JobLauncher(object):
   # the sub-resource manager is responsible for ensuring clustershell is available
   ### TODO: different ssh programs may need different parameters added to remove the 'tput: ' from the output
   def clustershell_exec(self, argv=[], runnodes='', use_dshbak=True):
-    task = self.conf['ClusterShell.Task'].task_self()
+    task = self.clustershell_task.task_self()
     # launch the task
     task.run(' '.join(argv), nodes=runnodes)
     ret = [ [ '','' ], 0 ]
     # ensure all of the tasks have completed
-    self.conf['ClusterShell.Task'].task_wait()
+    self.clustershell_task.task_wait()
     # iterate through the task.iter_retcodes() to get (return code, [nodes])
     # to get msg objects, output must be retrieved by individual node using task.node_buffer or .key_error
     # retrieved outputs are bytes, convert with .decode('utf-8')

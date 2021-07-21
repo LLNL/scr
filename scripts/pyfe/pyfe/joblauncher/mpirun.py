@@ -42,20 +42,20 @@ class MPIRUN(JobLauncher):
     target_hosts = self.get_hostfile_hosts(downlist=scr_hostlist.expand(down_nodes))
     try:
       # need to first ensure the directory exists
-      basepath = '/'.join(self.conf['hostfile'].split('/')[:-1])
+      basepath = '/'.join(self.hostfile.split('/')[:-1])
       os.makedirs(basepath,exist_ok=True)
-      with open(self.conf['hostfile'],'w') as hostfile:
+      with open(self.hostfile,'w') as hostfile:
         print(','.join(target_hosts),file=hostfile)
-      argv = [self.conf['launcher'],'--hostfile',self.conf['hostfile']]
+      argv = [self.launcher,'--hostfile',self.hostfile]
       argv.extend(launcher_args)
       return runproc(argv=argv, wait=False)
     except Exception as e:
       print(e)
       print('scr_mpirun: Error writing hostfile and creating launcher command')
-      print('launcher file: \"'+self.conf['hostfile']+'\"')
+      print('launcher file: \"'+self.hostfile+'\"')
       #return None, -1
       ### We could just do -N 1 to run a single process on every node of the allocation?
-      argv = [self.conf['launcher'],'-N','1']
+      argv = [self.launcher,'-N','1']
       argv.extend(launcher_args)
       return runproc(argv=argv, wait=False)
 
@@ -64,7 +64,7 @@ class MPIRUN(JobLauncher):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv)==0:
       return [ [ '', '' ], 0 ]
-    if self.conf['ClusterShell'] == True:
+    if self.clustershell_task is not None:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
@@ -77,7 +77,7 @@ class MPIRUN(JobLauncher):
   # uses either pdsh or clustershell
   # returns a list -> [ 'stdout', 'stderr' ]
   def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
-    upnodes, downnodes_spaced = self.conf['resmgr'].get_scavenge_nodelists(upnodes=upnodes, downnodes=downnodes)
+    upnodes, downnodes_spaced = self.resmgr.get_scavenge_nodelists(upnodes=upnodes, downnodes=downnodes)
     argv = [prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag, downnodes_spaced]
     output = self.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
     return output

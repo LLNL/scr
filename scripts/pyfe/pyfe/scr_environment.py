@@ -15,33 +15,32 @@ class SCR_Env:
     self.launcher = None
     self.resmgr = None
     # initialize the infos
-    self.conf = {}
-    self.conf['prefix'] = scr_prefix()
-    self.conf['nodes_file'] = scr_const.X_BINDIR+'/scr_nodes_file'
-    self.conf['user'] = os.environ.get('USER')
-    self.conf['nodes'] = os.environ.get('SCR_NODELIST')
+    self.prefix = scr_prefix()
+    self.nodes_file = scr_const.X_BINDIR+'/scr_nodes_file'
+    self.user = os.environ.get('USER')
+    self.nodes = os.environ.get('SCR_NODELIST')
 
   def get_user(self):
-    return self.conf['user']
+    return self.user
 
   def get_scr_nodelist(self):
-    return self.conf['nodes']
+    return self.nodes
 
   # set the nodelist (called if the environment variable wasn't set)
   def set_nodelist(self,nodelist):
-    self.conf['nodes'] = nodelist
+    self.nodes = nodelist
     os.environ['SCR_NODELIST'] = nodelist
 
   def get_prefix(self):
-    return self.conf['prefix']
+    return self.prefix
 
   # set the prefix
   def set_prefix(self,prefix):
-    self.conf['prefix'] = prefix
+    self.prefix = prefix
 
   # list the number of nodes used in the last run
   def get_runnode_count(self):
-    argv = [self.conf['nodes_file'], '--dir', self.conf['prefix']]
+    argv = [self.nodes_file, '--dir', self.prefix]
     out, returncode = runproc(argv=argv, getstdout=True)
     if returncode == 0:
       return int(out)

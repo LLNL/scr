@@ -26,7 +26,7 @@ class APRUN(JobLauncher):
     # ap run needs to specify nodes to use
     if len(launcher_args)==0 or len(up_nodes)==0:
       return None, -1
-    argv = [ self.conf['launcher'] ]
+    argv = [ self.launcher ]
     argv.extend([ '-L', up_nodes ])
     argv.extend(launcher_args)
     return runproc(argv=argv, wait=False)
@@ -36,7 +36,7 @@ class APRUN(JobLauncher):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv)==0:
       return [ [ '', '' ], 0 ]
-    if self.conf['ClusterShell'] == True:
+    if self.clustershell_task is not None:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
@@ -49,11 +49,8 @@ class APRUN(JobLauncher):
   # uses either pdsh or clustershell
   # returns a list -> [ 'stdout', 'stderr' ]
   def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
-    upnodes, downnodes_spaced = self.conf['resmgr'].get_scavenge_nodelists(upnodes=upnodes, downnodes=downnodes)
+    upnodes, downnodes_spaced = self.resmgr.get_scavenge_nodelists(upnodes=upnodes, downnodes=downnodes)
     argv = ['aprun', '-n', '1', 'L', '%h', prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag]
-    container_flag = scr_env.param.get('SCR_USE_CONTAINERS')
-    if container_flag is None or container_flag!='0':
-      argv.append('--containers')
     argv.append(downnodes_spaced)
     output = self.parallel_exec(argv=argv,runnodes=upnodes,use_dshbak=False)[0]
     return output

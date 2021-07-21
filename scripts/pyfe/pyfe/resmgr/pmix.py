@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-
+'''
 # pmix.py
 # PMIX is a subclass if ResourceManager
 
@@ -15,8 +15,8 @@ class PMIX(ResourceManager):
 
   # get job id, setting environment flag here
   def getjobid(self):
-    if self.conf['jobid'] is not None:
-      return self.conf['jobid']
+    if self.jobid is not None:
+      return self.jobid
     #####
     # CALL SCR_ENV_HELPER FOR PMIX
     # failed to read jobid from environment,
@@ -78,7 +78,7 @@ class PMIX(ResourceManager):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv)==0:
       return [ [ '', '' ], 0 ]
-    if self.conf['ClusterShell'] == True:
+    if self.clustershell is not None:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
@@ -95,14 +95,15 @@ class PMIX(ResourceManager):
     cppr_lib = scr_const.CPPR_LDFLAGS
     if cppr_lib.startswith('-L'):
       cppr_lib = cppr_lib[2:]
-      argv.append('LD_LIBRARY_PATH='+cpprlib+':$LD_LIBRARY_PATH')
+      ldpath = os.environ.get('LD_LIBRARY_PATH')
+      if ldpath is None:
+        ldpath=''
+      argv.append('LD_LIBRARY_PATH='+cpprlib+':'+ldpath)
     cppr_prefix = os.environ.get('CPPR_PREFIX')
     if cppr_prefix is not None:
       argv.append('CPPR_PREFIX='+cppr_prefix)
     argv.extend([prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag])
-    container_flag = scr_env.param.get('SCR_USE_CONTAINERS')
-    if container_flag is None or container_flag!='0':
-      argv.append('--containers')
     argv.append(downnodes_spaced)
     output = self.parallel_exec(argv=argv,runnodes=self.get_job_nodes(),use_dshbak=False)[0]
     return output
+'''

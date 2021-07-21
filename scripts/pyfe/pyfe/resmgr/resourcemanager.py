@@ -12,17 +12,15 @@ from pyfe.scr_common import scr_prefix, runproc
 
 class ResourceManager(object):
   def __init__(self,resmgr='unknown'):
-    self.conf = {}
-    self.conf['prefix'] = scr_prefix()
-    self.conf['resmgr'] = resmgr
-    self.conf['use_watchdog'] = False
-    self.conf['nodes'] = self.get_job_nodes()
-    self.conf['ClusterShell'] = False
+    self.prefix = scr_prefix()
+    self.resmgr = resmgr
+    self.use_watchdog = False
+    self.nodes = self.get_job_nodes()
+    self.clustershell_nodeset = None
     if scr_const.USE_CLUSTERSHELL != '0':
       try:
         import ClusterShell.NodeSet as MyCSNodeSet
-        self.conf['ClusterShell.NodeSet'] = MyCSNodeSet
-        self.conf['ClusterShell'] = True
+        self.clustershell_nodeset = MyCSNodeSet
       except:
         pass
 
@@ -31,8 +29,8 @@ class ResourceManager(object):
   # override this method for a specific resource manager to disable use of scr_watchdog
   def usewatchdog(self,use_scr_watchdog=None):
     if use_scr_watchdog is None:
-      return self.conf['use_watchdog']
-    self.conf['use_watchdog'] = use_scr_watchdog
+      return self.use_watchdog
+    self.use_watchdog = use_scr_watchdog
 
   def get_jobstep_id(self,user='',pid=-1):
     return None
@@ -61,8 +59,8 @@ class ResourceManager(object):
       return ''
     if type(hostnames) is str:
       hostnames = hostnames.split(',')
-    if self.conf['ClusterShell']:
-      nodeset = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(hostnames)
+    if self.clustershell_nodeset is not None:
+      nodeset = self.clustershell_nodeset.NodeSet.fromlist(hostnames)
       return str(nodeset)
     return scr_hostlist.compress_range(hostnames)
 
@@ -72,8 +70,8 @@ class ResourceManager(object):
       return []
     if type(hostnames) is list:
       hostnames = ','.join(hostnames)
-    if self.conf['ClusterShell']:
-      nodeset = self.conf['ClusterShell.NodeSet'].NodeSet(hostnames)
+    if self.clustershell_nodeset is not None:
+      nodeset = self.clustershell_nodeset.NodeSet(hostnames)
       nodeset = [node for node in nodeset]
       return nodeset
     return scr_hostlist.expand(hostnames)
@@ -88,9 +86,9 @@ class ResourceManager(object):
       return set2 if set2 is not None else []
     if set2 is None or set2==[]:
       return set1
-    if self.conf['ClusterShell']:
-      set1 = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(set1)
-      set2 = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(set2)
+    if self.clustershell_nodeset is not None:
+      set1 = self.clustershell_nodeset.NodeSet.fromlist(set1)
+      set2 = self.clustershell_nodeset.NodeSet.fromlist(set2)
       # strict=False is default
       # if strict true then raises error if something in set2 not in set1
       set1.difference_update(set2, strict=False)
@@ -109,9 +107,9 @@ class ResourceManager(object):
       return []
     if set2 is None or set2==[]:
       return []
-    if self.conf['ClusterShell']:
-      set1 = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(set1)
-      set2 = self.conf['ClusterShell.NodeSet'].NodeSet.fromlist(set2)
+    if self.clustershell_nodeset is not None:
+      set1 = self.clustershell_nodeset.NodeSet.fromlist(set1)
+      set2 = self.clustershell_nodeset.NodeSet.fromlist(set2)
       set1.intersection_update(set2)
       set1 = [node for node in set1]
       return set1
