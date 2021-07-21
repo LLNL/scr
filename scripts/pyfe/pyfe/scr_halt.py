@@ -14,22 +14,11 @@ from pyfe import scr_const
 from pyfe.scr_common import runproc
 from pyfe.parsetime import parsetime
 
-def scr_halt(bindir=None,bash=None,mkdir=None,rm=None,echo=None,umask=None,checkpoints=None, before=None, after=None, immediate=False, seconds=None, dolist=False, unset_checkpoints=False, unset_before=False, unset_after=False, unset_seconds=False, unset_reason=False, remove=False, verbose=False, dirs=None):
+def scr_halt(bindir=None,checkpoints=None, before=None, after=None, immediate=False, seconds=None, dolist=False, unset_checkpoints=False, unset_before=False, unset_after=False, unset_seconds=False, unset_reason=False, remove=False, verbose=False, dirs=None):
   # requires: squeue, scontrol, scancel, umask (shell command)
 
   if bindir is None:
     bindir = scr_const.X_BINDIR
-  # use absolute paths to internal commands
-  if bash is None:
-    bash  = '/bin/bash'
-  if mkdir is None:
-    mkdir = '/bin/mkdir'
-  if rm is None:
-    rm    = '/bin/rm'
-  if echo is None:
-    echo  = '/bin/echo'
-  if umask is None:
-    umask = 'umask' # shell command
 
   # get the directories
   # if find some arguments on the command line, assume they are target directories
@@ -102,24 +91,24 @@ def scr_halt(bindir=None,bash=None,mkdir=None,rm=None,echo=None,umask=None,check
     # build the name of the halt file
     halt_file = adir+'/.scr/halt.scr'
 
-    # TODO: Set halt file permissions so system admins can modify them
-    halt_cmd = []
-    if len(halt_conditions)>0:
-      # create the halt file with specified conditions
-      os.makedirs(adir+'/.scr',exist_ok=True)
-      # $halt_cmd = "$bash -c \"$bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
-      #halt_file_options = ' '.join(halt_conditions)
-      # can specify a different bash with popen (?)
-      halt_cmd = [bindir+'/scr_halt_cntl', '-f', halt_file] #, halt_file_options ]
-      halt_cmd.extend(halt_conditions)
-    else:
+    if halt_conditions == []:
       # remove the halt file
       #halt_cmd = [bash,' -c \"'+rm+' -f '+halt_file+'\"']
       try:
         os.remove(halt_file)
       except:
         pass
-      return 0
+      continue
+
+    # TODO: Set halt file permissions so system admins can modify them
+    halt_cmd = []
+    # create the halt file with specified conditions
+    os.makedirs(adir+'/.scr',exist_ok=True)
+    # $halt_cmd = "$bash -c \"$bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
+    #halt_file_options = ' '.join(halt_conditions)
+    # can specify a different bash with popen (?)
+    halt_cmd = [bindir+'/scr_halt_cntl', '-f', halt_file] #, halt_file_options ]
+    halt_cmd.extend(halt_conditions)
 
     # execute the command
     #########################
