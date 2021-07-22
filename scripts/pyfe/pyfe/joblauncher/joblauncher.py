@@ -10,7 +10,7 @@ class JobLauncher(object):
     self.launcher = launcher
     self.hostfile = ''
     self.resmgr = None
-    self.clustershell_task = None
+    self.clustershell_task = False
     if scr_const.USE_CLUSTERSHELL != '0':
       try:
         import ClusterShell.Task as MyCSTask

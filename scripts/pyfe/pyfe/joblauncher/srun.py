@@ -25,7 +25,7 @@ class SRUN(JobLauncher):
   def launchruncmd(self,up_nodes='',down_nodes='',launcher_args=[]):
     if len(launcher_args)==0:
       return None, -1
-    argv = [self.launcher]]
+    argv = [self.launcher]
     if len(down_nodes)>0:
       argv.extend(['--exclude',down_nodes])
     argv.extend(launcher_args)
@@ -36,7 +36,7 @@ class SRUN(JobLauncher):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv)==0:
       return [ [ '', '' ], 0 ]
-    if self.clustershell_task is not None:
+    if self.clustershell_task != False:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)

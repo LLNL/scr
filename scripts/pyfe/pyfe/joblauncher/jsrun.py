@@ -5,6 +5,7 @@
 
 from pyfe import scr_const
 from pyfe.joblauncher import JobLauncher
+from pyfe.scr_common import runproc, pipeproc
 
 class JSRUN(JobLauncher):
   def __init__(self,launcher='jsrun'):
@@ -26,7 +27,7 @@ class JSRUN(JobLauncher):
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if len(argv)==0:
       return [ [ '', '' ], 0 ]
-    if self.clustershell_task is not None:
+    if self.clustershell_task != False:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)

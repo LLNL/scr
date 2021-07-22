@@ -12,17 +12,17 @@ from pyfe.scr_common import scr_prefix, runproc
 
 class ResourceManager(object):
   def __init__(self,resmgr='unknown'):
-    self.prefix = scr_prefix()
-    self.resmgr = resmgr
-    self.use_watchdog = False
-    self.nodes = self.get_job_nodes()
-    self.clustershell_nodeset = None
+    self.clustershell_nodeset = False
     if scr_const.USE_CLUSTERSHELL != '0':
       try:
         import ClusterShell.NodeSet as MyCSNodeSet
         self.clustershell_nodeset = MyCSNodeSet
       except:
-        pass
+        self.clustershell_nodeset = False
+    self.prefix = scr_prefix()
+    self.resmgr = resmgr
+    self.use_watchdog = False
+    self.nodes = self.get_job_nodes()
 
   # no arg -> usewatchdog will return True or False for whether or not watchdog is enabled
   # boolean arg -> default value is to set self.use_watchdog = argument
@@ -59,7 +59,7 @@ class ResourceManager(object):
       return ''
     if type(hostnames) is str:
       hostnames = hostnames.split(',')
-    if self.clustershell_nodeset is not None:
+    if self.clustershell_nodeset != False:
       nodeset = self.clustershell_nodeset.NodeSet.fromlist(hostnames)
       return str(nodeset)
     return scr_hostlist.compress_range(hostnames)
@@ -70,7 +70,7 @@ class ResourceManager(object):
       return []
     if type(hostnames) is list:
       hostnames = ','.join(hostnames)
-    if self.clustershell_nodeset is not None:
+    if self.clustershell_nodeset != False:
       nodeset = self.clustershell_nodeset.NodeSet(hostnames)
       nodeset = [node for node in nodeset]
       return nodeset
@@ -86,7 +86,7 @@ class ResourceManager(object):
       return set2 if set2 is not None else []
     if set2 is None or set2==[]:
       return set1
-    if self.clustershell_nodeset is not None:
+    if self.clustershell_nodeset != False:
       set1 = self.clustershell_nodeset.NodeSet.fromlist(set1)
       set2 = self.clustershell_nodeset.NodeSet.fromlist(set2)
       # strict=False is default
@@ -107,7 +107,7 @@ class ResourceManager(object):
       return []
     if set2 is None or set2==[]:
       return []
-    if self.clustershell_nodeset is not None:
+    if self.clustershell_nodeset != False:
       set1 = self.clustershell_nodeset.NodeSet.fromlist(set1)
       set2 = self.clustershell_nodeset.NodeSet.fromlist(set2)
       set1.intersection_update(set2)

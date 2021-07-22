@@ -56,7 +56,7 @@ if __name__ == '__main__':
     if 'jobid' in args:
       print(str(scr_env.resmgr.getjobid()),end='')
     if 'nodes' in args:
-      print(str(scr_env.resmgr.get_scr_nodelist()),end='')
+      print(str(scr_env.resmgr.get_job_nodes()),end='')
     if 'down' in args:
       print(str(scr_env.resmgr.get_downnodes()),end='')
     if 'runnodes' in args:

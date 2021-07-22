@@ -50,6 +50,8 @@ def nodes_needed(scr_env, nodelist):
 def nodes_remaining(resmgr, nodelist, down_nodes):
   # num_left='$bindir/scr_glob_hosts --count --minus $SCR_NODELIST:$down_nodes'
   num_left = scr_glob_hosts(count=True, minus = nodelist + ':' + down_nodes, resmgr=resmgr)
+  if num_left is None:
+    return 0
   return int(num_left)
 
 # is there a halt condition instructing us to stop?
@@ -104,7 +106,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   scr_env.launcher = launcher
   launcher.resmgr = resourcemgr
   # this may be used by a launcher to store a list of hosts
-  launcher.hostfile = scr_env.conf['prefix']+'/.scr/hostfile'
+  launcher.hostfile = scr_env.get_prefix()+'/.scr/hostfile'
   # jobid will come from resource manager.
   jobid = resourcemgr.getjobid()
 
@@ -274,7 +276,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       print(bindir+'/scr_get_jobstep_id '+str(launched_pid))
       jobstepid = scr_get_jobstep_id(scr_env=scr_env,pid=launched_pid)
       # then start the watchdog  if we got a valid job step id
-      if jobstepid is not None:
+      if jobstepid != -1:
         # Launching a new process to execute the python method
         watchdog = mp.Process(target=scr_watchdog,args=(prefix,jobstepid, scr_env,))
         watchdog.start()
