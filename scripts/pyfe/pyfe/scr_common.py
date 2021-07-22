@@ -68,6 +68,14 @@ The default shell used by subprocess is /bin/sh. If youre using other shells, li
 # for the first return value (output) -> specify getstdout to get the stdout, getstderr to get stderr
 # specifying both getstdout and getstderr=True returns a list where [0] is stdout and [1] is stderr
 def runproc(argv,wait=True,getstdout=False,getstderr=False):
+  # allow caller to pass command as a string, as in:
+  #   "ls -lt" rather than ["ls", "-lt"]
+  # this does not support arguments that may have embedded spaces
+  #   "echo 'hello world'"
+  # one must pass argv as a list in such cases
+  if type(argv) is str:
+    argv = argv.strip().split()
+
   if len(argv)<1:
     return None, None
   try:

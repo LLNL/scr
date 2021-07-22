@@ -59,11 +59,11 @@ class LSF(ResourceManager):
     if jobid == -1:
       print('You must specify the job step id to kill.')
       return 1
-    return runproc(argv=['bkill', '-s', 'KILL', str(jobid)])[1]
+    return runproc("bkill -s KILL " + str(jobid))[1]
 
   def get_scr_end_time(self):
     # run bjobs to get time remaining in current allocation
-    bjobs, rc = runproc(argv=['bjobs', '-o', 'time_left'], getstdout=True)
+    bjobs, rc = runproc("bjobs -o time_left", getstdout=True)
     if rc != 0:
       return 0
 

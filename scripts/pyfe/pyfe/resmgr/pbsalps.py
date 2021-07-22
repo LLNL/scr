@@ -22,7 +22,7 @@ class PBSALPS(ResourceManager):
     return os.environ.get('PBS_JOBID')
 
   def get_jobstep_id(self,user='',pid=-1):
-    output = runproc(argv=['apstat','-avv'],getstdout=True)[0].split('\n')
+    output = runproc("apstat -avv",getstdout=True)[0].split('\n')
     nid = None
     try:
       with open('/proc/cray_xt/nid','r') as NIDfile:
@@ -54,8 +54,8 @@ class PBSALPS(ResourceManager):
   def get_job_nodes(self):
     val = os.environ.get('PBS_NUM_NODES')
     if val is not None:
-      argv = ['aprun','-n',val,'-N','1','cat','/proc/cray_xt/nid'] # $nidfile
-      out = runproc(argv=argv,getstdout=True)[0]
+      cmd = "aprun -n " + val + " -N 1 cat /proc/cray_xt/nid" # $nidfile
+      out = runproc(cmd,getstdout=True)[0]
       nodearray = out.split('\n')
       if len(nodearray)>0:
         if nodearray[-1]=='\n':
@@ -72,10 +72,8 @@ class PBSALPS(ResourceManager):
     snodes = self.get_job_nodes()
     if snodes is not None:
       snodes = self.expand_hosts(snodes)
-      argv = ['xtprocadmin', '-n', ''] # $xtprocadmin
       for node in snodes:
-        argv[2] = node
-        out, returncode = runproc(argv=argv, getstdout=True)
+        out, returncode = runproc("xtprocadmin -n " + node, getstdout=True)
         #if returncode==0:
         resarray = out.split('\n')
         answerarray = resarray[1].split(' ')
@@ -90,7 +88,7 @@ class PBSALPS(ResourceManager):
     if jobid==-1:
       print('You must specify the job step id to kill.')
       return 1
-    return runproc(argv=['apkill',str(jobid)])[1]
+    return runproc("apkill " + str(jobid))[1]
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
