@@ -34,11 +34,10 @@ def scr_get_jobstep_id(scr_env=None,pid=-1):
   if user is None:
     print('scr_get_jobstep_id: ERROR: Could not determine user ID')
     return None
-  jobid = scr_env.resmgr.getjobid()
-  if jobid is None:
+  currjobid = scr_env.resmgr.get_jobstep_id(user=user,pid=pid)
+  if currjobid is None:
     print('scr_get_jobstep_id: ERROR: Could not determine job ID')
     return None
-  currjobid = scr_env.resmgr.get_jobstep_id(user=user,pid=pid)
   return currjobid
 
 if __name__=='__main__':

@@ -85,7 +85,7 @@ def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
     else:
       timeToSleep = timeout
 
-  print('Killing simulation using scr_kill_jobstep --jobStepId '+jobstepid)
+  print('Killing simulation using scr_kill_jobstep --jobStepId '+str(jobstepid))
   resmgr.scr_kill_jobstep(jobid=jobstepid)
   return 0
 

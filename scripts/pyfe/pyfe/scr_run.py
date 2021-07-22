@@ -276,7 +276,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       print(bindir+'/scr_get_jobstep_id '+str(launched_pid))
       jobstepid = scr_get_jobstep_id(scr_env=scr_env,pid=launched_pid)
       # then start the watchdog  if we got a valid job step id
-      if jobstepid != -1:
+      if jobstepid is not None:
         # Launching a new process to execute the python method
         watchdog = mp.Process(target=scr_watchdog,args=(prefix,jobstepid, scr_env,))
         watchdog.start()
