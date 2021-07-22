@@ -15,7 +15,7 @@ from pyfe.resmgr import (
     ResourceManager,
     LSF,
     PBSALPS,
-    PMIX,
+    #PMIX,
     SLURM,
 )
 
@@ -30,8 +30,8 @@ class AutoResourceManager:
       return LSF()
     if resmgr=='APRUN':
       return APRUN()
-    if resmgr=='PMIX':
-      return PMIX()
+    #if resmgr=='PMIX':
+    #  return PMIX()
     return ResourceManager()
 
 if __name__ == '__main__':
@@ -43,6 +43,6 @@ if __name__ == '__main__':
   print(type(resourcemgr))
   resourcemgr = AutoResourceManager(resmgr='APRUN')
   print(type(resourcemgr))
-  resourcemgr = AutoResourceManager(resmgr='PMIX')
-  print(type(resourcemgr))
+  #resourcemgr = AutoResourceManager(resmgr='PMIX')
+  #print(type(resourcemgr))
 

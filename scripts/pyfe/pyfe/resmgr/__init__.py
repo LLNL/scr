@@ -9,7 +9,7 @@ from .resourcemanager import ResourceManager
 from .slurm import SLURM
 from .lsf import LSF
 from .pbsalps import PBSALPS
-from .pmix import PMIX
+#from .pmix import PMIX
 
 
 
