@@ -29,6 +29,7 @@ from pyfe.joblauncher import AutoJobLauncher
 from pyfe.resmgr import AutoResourceManager
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_glob_hosts import scr_glob_hosts
+from pyfe.cli import SCRLog
 
 # determine how many nodes are needed
 def nodes_needed(scr_env, nodelist):
@@ -36,7 +37,6 @@ def nodes_needed(scr_env, nodelist):
   num_needed = os.environ.get('SCR_MIN_NODES')
   if num_needed is None or int(num_needed) <= 0:
     # otherwise, use value in nodes file if one exists
-    # num_needed_env='$bindir/scr_env --prefix $prefix --runnodes'
     num_needed = scr_env.get_runnode_count()
     if num_needed <= 0:
       # otherwise, assume we need all nodes in the allocation
@@ -48,7 +48,6 @@ def nodes_needed(scr_env, nodelist):
 
 # return number of nodes left in allocation after excluding down nodes
 def nodes_remaining(resmgr, nodelist, down_nodes):
-  # num_left='$bindir/scr_glob_hosts --count --minus $SCR_NODELIST:$down_nodes'
   num_left = scr_glob_hosts(count=True, minus = nodelist + ':' + down_nodes, resmgr=resmgr)
   if num_left is None:
     return 0
@@ -56,8 +55,7 @@ def nodes_remaining(resmgr, nodelist, down_nodes):
 
 # is there a halt condition instructing us to stop?
 def should_halt(bindir, prefix):
-  #$bindir/scr_retries_halt --dir $prefix;
-  argv = [bindir + '/scr_retries_halt', '--dir', prefix]
+  argv = [os.path.join(bindir, 'scr_retries_halt'), '--dir', prefix]
   returncode = runproc(argv=argv)[1]
   return (returncode == 0)
 
@@ -109,6 +107,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   launcher.hostfile = scr_env.get_prefix()+'/.scr/hostfile'
   # jobid will come from resource manager.
   jobid = resourcemgr.getjobid()
+  user = scr_env.get_user()
 
   # TODO: check that we have a valid jobid and bail if not
   # pmix always returns None
@@ -137,7 +136,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     resourcemgr.usewatchdog(True)
 
   # get the control directory
-  cntldir = list_dir(user=scr_env.get_user(), jobid=resourcemgr.getjobid(), runcmd='control', scr_env=scr_env, bindir=bindir)
+  cntldir = list_dir(user=user, jobid=resourcemgr.getjobid(), runcmd='control', scr_env=scr_env, bindir=bindir)
   if cntldir == 1:
     print(prog+': ERROR: Could not determine control directory')
     sys.exit(1)
@@ -148,6 +147,8 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   # make a record of time prerun is started
   timestamp=datetime.now()
   print(prog+': prerun: '+str(timestamp))
+
+  log = SCRLog(prefix, jobid, user=user, jobstart=start_secs)
 
   # test runtime, ensure filepath exists,
   if scr_prerun(prefix=prefix)!=0:
@@ -248,14 +249,12 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
         launch_cmd = launcher_args.copy()
         ###### should this be split (' ') ?
         launch_cmd.extend(my_restart_cmd.split(' '))
+
     # launch the job, make sure we include the script node and exclude down nodes
     start_secs=int(time())
-
-    scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_START', event_note='run='+str(attempts), event_start=str(start_secs))
-    # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
+    log.event('RUN_START', note='run=' + str(attempts))
     print(prog + ': Launching ' + str(launch_cmd))
     proc, pid = launcher.launchruncmd(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
-    # $launcher $exclude $launch_cmd
     if resourcemgr.usewatchdog() == False:
       proc.wait(timeout=None)
     else:
@@ -268,11 +267,11 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     end_secs = int(time())
     run_secs = end_secs - start_secs
 
+    # log stats on the latest run attempt
+    log.event('RUN_END', note='run=' + str(attempts), secs=str(run_secs))
+
     # check for and log any down nodes
     list_down_nodes(reason=True, nodeset_down=keep_down, log_nodes=True, runtime_secs=str(run_secs), scr_env=scr_env)
-    # log stats on the latest run attempt
-    scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_END', event_note='run='+str(attempts), event_start=str(end_secs), event_secs=str(run_secs))
-    #$bindir/scr_log_event -i $jobid -p $prefix -T "RUN_END" -N "run=$attempts" -S $end_secs -L $run_secs
 
     # any retry attempts left?
     if runs > 1:
