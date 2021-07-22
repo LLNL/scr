@@ -6,6 +6,8 @@ SET(PYFE
   postrun.py
   scr_environment.py
   scr_hostlist.py
+  flush_file.py
+  index.py
 )
 INSTALL(FILES ${PYFE} DESTINATION ${CMAKE_INSTALL_BINDIR}/pyfe/pyfe)
 
