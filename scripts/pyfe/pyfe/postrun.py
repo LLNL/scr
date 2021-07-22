@@ -15,6 +15,7 @@ from pyfe.scr_scavenge import scr_scavenge
 from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_glob_hosts import scr_glob_hosts
 from pyfe.flush_file import FlushFile
+from pyfe.index import Index
 
 def postrun(prefix_dir=None,scr_env=None,verbose=False):
   if scr_env is None or scr_env.resmgr is None:
@@ -43,7 +44,7 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
     return 1
 
   scr_flush_file = FlushFile(bindir, pardir)
-  scr_index      = os.path.join(bindir, "scr_index") + " --prefix " + pardir
+  scr_index      = Index(bindir, pardir)
 
   # all parameters checked out, start normal output
   print('scr_postrun: Started: '+str(datetime.now()))
@@ -134,13 +135,11 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
         # if not, don't update current marker
         #update_current=1
         print('scr_postrun: Checking that dataset is complete')
-        cmd = scr_index + " --build " + d
-        print(cmd)
-        returncode = runproc(cmd)[1]
-        if returncode!=0:
+        if not scr_index.build(d)
           # failed to get dataset, stop trying for later sets
           failed_dataset = d
           break
+
         # remember that we scavenged this dataset in case we try again below
         succeeded.append(d)
         print('scr_postrun: Scavenged dataset '+dsetname+' successfully')
@@ -159,7 +158,7 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
             if dsetname:
               print('scr_postrun: Already scavenged checkpoint dataset ' + d)
               print('scr_postrun: Updating current marker in index to ' + dsetname)
-              runproc(scr_index + " --current " + dsetname)
+              scr_index.current(dsetname)
               ret = 0
               break
           else:
@@ -198,10 +197,7 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
         # check that gathered set is complete,
         # if not, don't update current marker
         print('scr_postrun: Checking that dataset is complete')
-        cmd = scr_index + " --build " + d
-        print(cmd)
-        returncode = runproc(cmd)[1]
-        if returncode!=0:
+        if not scr_index.build(d):
           # incomplete dataset, don't update current marker
           #update_current=0
           pass
@@ -209,8 +205,8 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
         # if the set is complete, update the current marker
         else:
           # make the new current
-          print('scr_postrun: Updating current marker in index to '+dsetname)
-          runproc(scr_index + " --current " + dsetname)
+          print('scr_postrun: Updating current marker in index to ' + dsetname)
+          scr_index.current(dsetname)
 
           # just completed scavenging this dataset, so quit
           ret=0
