@@ -14,8 +14,7 @@ from pyfe.scr_common import tracefunction, scr_prefix, runproc
 from pyfe.scr_scavenge import scr_scavenge
 from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_glob_hosts import scr_glob_hosts
-from pyfe.flush_file import FlushFile
-from pyfe.index import Index
+from pyfe.cli import SCRIndex, SCRFlushFile
 
 def postrun(prefix_dir=None,scr_env=None,verbose=False):
   if scr_env is None or scr_env.resmgr is None:
@@ -43,8 +42,8 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
   if pardir=='':
     return 1
 
-  scr_flush_file = FlushFile(bindir, pardir)
-  scr_index      = Index(bindir, pardir)
+  scr_index      = SCRIndex(bindir, pardir)
+  scr_flush_file = SCRFlushFile(bindir, pardir)
 
   # all parameters checked out, start normal output
   print('scr_postrun: Started: '+str(datetime.now()))

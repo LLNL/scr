@@ -4,7 +4,7 @@ import os
 
 from pyfe.scr_common import runproc
 
-class Index:
+class SCRIndex:
   def __init__(self, bindir, prefix):
     self.bindir = bindir # path to SCR bin directory
     self.prefix = prefix # path to SCR_PREFIX
