@@ -37,7 +37,8 @@ class LSF(ResourceManager):
           raise ValueError('Hostfile empty')
 
         # get a set of unique hostnames, convert list to set and back
-        hostlist = self.compress_hosts(lines)
+        hostlist = list(set(lines[1:]))
+        hostlist = self.compress_hosts(hostlist)
         return hostlist
       except:
         # failed to read file
@@ -47,7 +48,7 @@ class LSF(ResourceManager):
     hosts = os.environ.get('LSB_HOSTS')
     if hosts is not None:
       hosts = hosts.split(' ')
-      hosts = hosts[1:]
+      hosts = list(set(hosts[1:]))
       hosts = self.compress_hosts(hosts)
     return hosts
 
