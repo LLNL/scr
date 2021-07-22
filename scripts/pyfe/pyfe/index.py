@@ -12,10 +12,10 @@ class Index:
 
   # make named dataset as current
   def current(self, name):
-    rc = runproc(self.exe + " --current " + name)
+    rc = runproc(self.exe + " --current " + name)[1]
     return (rc == 0)
 
   # run build command to inspect and rebuild dataset files
   def build(self, dset):
-    rc = runproc(self.exe + " --build " + dset)
+    rc = runproc(self.exe + " --build " + dset)[1]
     return (rc == 0)

@@ -28,5 +28,5 @@ if __name__=='__main__':
   else:
     scr_env = SCR_Env()
     scr_env.resmgr = AutoResourceManager()
-    ret = postrun(prefix_dir=args['prefix'],verbose=args['verbose'])
+    ret = postrun(prefix_dir=args['prefix'], scr_env=scr_env, verbose=args['verbose'])
     print(str(ret))
