@@ -36,21 +36,60 @@ class ResourceManager(object):
     return None
 
   def getjobid(self):
+    """Return current job allocation id.
+
+    Returns
+    -------
+    str
+        job allocation id
+    """
     # failed to read jobid from environment,
     # assume user is running in test mode
     return None
 
   # get node list
   def get_job_nodes(self):
+    """Return compute nodes in allocation.
+
+    Each node should be specified once and in order
+    if node order matters, e.g., for job launchers.
+
+    Returns
+    -------
+    str
+        list of allocation compute nodes in string format
+    """
     return None
 
   def get_downnodes(self):
+    """Return allocation compute nodes the resource manager identifies as down.
+
+    Some resource managers can report nodes it has determined to be down.
+    The returned list should be a subset of the allocation nodes.
+
+    Returns
+    -------
+    str
+        list of down compute nodes in string format
+        or None if there are no down nodes
+    """
     return None
 
   def scr_kill_jobstep(self,jobid=-1):
     return 1
 
   def get_scr_end_time(self):
+    """Return expected allocation end time.
+
+    The end time must be expressed as seconds since
+    the Unix epoch.
+
+    Returns
+    -------
+    int
+        end time as secs since Unix epoch
+        or None if there is no end time
+    """
     return 0
 
   # Returns a hostlist string given a list of hostnames
