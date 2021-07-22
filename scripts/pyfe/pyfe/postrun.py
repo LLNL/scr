@@ -92,10 +92,11 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
     # array to track datasets we got
     succeeded = []
 
-    # scavenge all output sets in ascending order,
     # track the id of the first one we fail to get
-    print('scr_postrun: Looking for output sets')
     failed_dataset = None
+
+    # scavenge all output sets in ascending order
+    print('scr_postrun: Looking for output sets')
     dsets_output = scr_flush_file.list_dsets_output()
     if not dsets_output:
       print('scr_postrun: Found no output set to scavenge')
@@ -142,7 +143,7 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
 
         # remember that we scavenged this dataset in case we try again below
         succeeded.append(d)
-        print('scr_postrun: Scavenged dataset '+dsetname+' successfully')
+        print('scr_postrun: Scavenged dataset ' + dsetname + ' successfully')
 
     # check whether we have a dataset set to flush
     print('scr_postrun: Looking for most recent checkpoint')
@@ -195,21 +196,13 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
           print('scr_postrun: ERROR: Scavenge files from cache for '+dsetname+' to '+datadir)
 
         # check that gathered set is complete,
-        # if not, don't update current marker
         print('scr_postrun: Checking that dataset is complete')
-        if not scr_index.build(d):
-          # incomplete dataset, don't update current marker
-          #update_current=0
-          pass
-
-        # if the set is complete, update the current marker
-        else:
+        if scr_index.build(d):
           # make the new current
+          # just completed scavenging this dataset, so quit
           print('scr_postrun: Updating current marker in index to ' + dsetname)
           scr_index.current(dsetname)
-
-          # just completed scavenging this dataset, so quit
-          ret=0
+          ret = 0
           break
 
   # print the timing info
