@@ -32,8 +32,8 @@ class SLURM(ResourceManager):
     #   squeue -h -s -u $user -j $jobid -S "-i"
     # -h means print no header, so just the data in this order:
     # STEPID         NAME PARTITION     USER      TIME NODELIST
-    cmd = ['squeue', '-h', '-s', '-u', user, '-j', jobid, '-S', '\"-i\"']
-    output = runproc(argv=cmd, getstdout=True)[0]
+    cmd = "squeue -h -s -u " + user + " -j " + jobid + " -S \"-i\""
+    output = runproc(cmd, getstdout=True)[0]
     output = re.search('\d+', output)
     if output is None:
       return None
@@ -47,8 +47,7 @@ class SLURM(ResourceManager):
   def get_downnodes(self):
     nodelist = self.get_job_nodes()
     if nodelist is not None:
-      argv = ['sinfo', '-ho', '%N', '-t', 'down', '-n', nodelist]
-      down, returncode = runproc(argv=argv, getstdout=True)
+      down, returncode = runproc("sinfo -ho %N -t down -n " + nodelist, getstdout=True)
       if returncode == 0:
         down = down.strip()
         return down
@@ -58,7 +57,7 @@ class SLURM(ResourceManager):
     if jobid==-1:
       print('You must specify the job step id to kill.')
       return 1
-    return runproc(argv=['scancel',str(jobid)])[1]
+    return runproc('scancel ' + str(jobid))[1]
 
   # query SLURM for allocation endtime, expressed as secs since epoch
   def get_scr_end_time(self):
@@ -68,8 +67,7 @@ class SLURM(ResourceManager):
       return 0
 
     # ask scontrol for endtime of this job
-    argv = ['scontrol', '--oneliner', 'show', 'job', jobid]
-    output = runproc(argv=argv, getstdout=True)[0]
+    output = runproc("scontrol --oneliner show job " + jobid, getstdout=True)[0]
     m = re.search('EndTime=(\\S*)', output)
     if not m:
       return 0
