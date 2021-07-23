@@ -10,7 +10,9 @@
 #
 
 # Set the launcher for the launch script to use below
-launcher="srun"
+launcher="lrun"
+# Set number of nodes in allocation (min 2)
+numnodes="2"
 
 export PATH=$(pwd)/pyfe:${PATH}
 cd ../../../
@@ -19,9 +21,9 @@ export SCR_BUILD=${SCR_PKG}/build
 export SCR_INSTALL=${SCR_PKG}/install
 
 if [ $launcher == "srun" ]; then
-  launcherargs="-n4 -N4"
+  launcherargs="-n${numnodes} -N${numnodes}"
 elif [ $launcher == "lrun" ]; then
-  launcherargs="-n4 -N4"
+  launcherargs="-n${numnodes} -N${numnodes}"
 elif [ $launcher == "jsrun" ]; then
   launcherargs="--tasks_per_rs=1"
 elif [ $launcher == "aprun" ]; then
@@ -30,6 +32,21 @@ elif [ $launcher == "aprun" ]; then
 else
   launcher="mpirun"
   launcherargs="-N 1"
+fi
+
+cd ${SCR_INSTALL}/bin/pyfe
+if [ -x "sleeper" ]; then
+  echo "Testing the watchdog"
+  export SCR_WATCHDOG=1
+  export SCR_WATCHDOG_TIMEOUT=1
+  export SCR_WATCHDOG_TIMEOUT_PFS=1
+  echo "Launching sleeper . . ."
+  scr_${launcher}.py ${launcherargs} $(pwd)/sleeper
+  unset SCR_WATCHDOG
+  unset SCR_WATCHDOG_TIMEOUT
+  unset SCR_WATCHDOG_TIMEOUT_PFS
+  echo "Execution has returned, watchdog test concluded"
+  sleep 3
 fi
 
 # cd to examples directory, and check that build of test programs works

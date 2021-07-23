@@ -179,13 +179,6 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   # totalruns printed when runs are exhausted
   totalruns = str(runs)
 
-  # need to reference the watchdog process outside of this loop
-  watchdog = None
-
-  # set the starting method for the mp.Process() call
-  if resourcemgr.usewatchdog() == True:
-    mp.set_start_method('forkserver') # https://docs.python.org/3/library/multiprocessing.html
-
   while True:
     # once we mark a node as bad, leave it as bad (even if it comes back healthy)
     # TODO: This hacks around the problem of accidentally deleting a checkpoint set during distribute
@@ -260,31 +253,17 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
 
     scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='RUN_START', event_note='run='+str(attempts), event_start=str(start_secs))
     # $bindir/scr_log_event -i $jobid -p $prefix -T "RUN_START" -N "run=$attempts" -S $start_secs
+    print(prog + ': Launching ' + str(launch_cmd))
+    proc, pid = launcher.launchruncmd(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
+    # $launcher $exclude $launch_cmd
     if resourcemgr.usewatchdog() == False:
-      proc, pid = launcher.launchruncmd(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
       proc.wait(timeout=None)
-      # $launcher $exclude $launch_cmd
     else:
-      print(prog+': Attempting to start watchdog process.')
-      # need to get job step id of the srun command
-      launched_process, launched_pid = launcher.launchruncmd(up_nodes=nodelist,down_nodes=down_nodes,launcher_args=launch_cmd)
-      # $launcher $exclude $launch_cmd &
-      #{launcher}run_pid = runproc.pid
-      #{launcher}run_pid=$!;
-      sleep(10)
-      #sleep 10; # sleep a bit to wait for the job to show up in squeue
-      print(bindir+'/scr_get_jobstep_id '+str(launched_pid))
-      jobstepid = scr_get_jobstep_id(scr_env=scr_env,pid=launched_pid)
-      # then start the watchdog  if we got a valid job step id
-      if jobstepid is not None:
-        # Launching a new process to execute the python method
-        watchdog = mp.Process(target=scr_watchdog,args=(prefix,jobstepid, scr_env,))
-        watchdog.start()
-        print(prog+': Started watchdog process with PID '+str(watchdog.pid)+'.')
-      else:
-        print(prog+': ERROR: Unable to start scr_watchdog because couldn\'t get job step id.')
-      # check_call will wait for the process to finish without trying to get other information from it
-      launched_process.wait(timeout=None)
+      print(prog + ': Entering watchdog method')
+      # The watchdog will return when the process finishes or is killed
+     i scr_watchdog(prefix=prefix, watched_process=proc, scr_env=scr_env)
+
+    #print('Process has finished or has been terminated.')
 
     end_secs = int(time())
     run_secs = end_secs - start_secs
@@ -323,11 +302,6 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   # scavenge files from cache to parallel file system
   if postrun(prefix_dir=prefix,scr_env=scr_env,verbose=verbose) != 0:
     print(prog+': ERROR: Command failed: scr_postrun -p '+prefix)
-
-  # kill the watchdog process if it is running
-  if watchdog is not None and watchdog.is_alive():
-    print('Killing watchdog using kill -SIGKILL ' + str(watchdog.pid))
-    os.kill(watchdog.pid, signal.SIGKILL)
 
   # make a record of end time
   timestamp = datetime.now()

@@ -8,35 +8,31 @@
 # passes without activity, it kills the job
 
 import os, sys
+from subprocess import TimeoutExpired
 
 if 'pyfe' not in sys.path:
   sys.path.insert(0,'/'.join(os.path.realpath(__file__).split('/')[:-2]))
   import pyfe
 
-import argparse, time
+import time
 #from datetime import datetime
 from pyfe import scr_const
 from pyfe.scr_param import SCR_Param
-from pyfe.resmgr import AutoResourceManager
 from pyfe.scr_common import runproc
 
-def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
+def scr_watchdog(prefix=None, watched_process=None, scr_env=None):
   # check that we have a  dir and apid
-  if prefix is None or jobstepid is None:
+  if prefix is None or watched_process is None:
     return 1
 
   bindir = scr_const.X_BINDIR
   param = None
-  resmgr = None
   if scr_env is not None:
     param = scr_env.param
-    resmgr = scr_env.resmgr
 
   # lookup timeout values from environment
   if param is None:
     param = SCR_Param()
-  if resmgr is None:
-    resmgr = AutoResourceManager()
 
   # we have two timeout variables now, one for the length of time to wait under
   # "normal" circumstances and one for the length of time to wait if writing
@@ -66,7 +62,14 @@ def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
   timeToSleep = timeout
 
   while True:
-    time.sleep(timeToSleep)
+    # wait up to 'timeToSleep' to see if the process terminates normally
+    try:
+      watched_process.communicate(timeout=timeToSleep)
+      # the process has terminated normally, leave the watchdog method
+      return 0
+    except TimeoutExpired as e:
+      pass
+    # the process is still running, check for progress
     argv = getLatestCmd.split(' ')
     latest = runproc(argv=argv,getstdout=True)[0]
     latestLoc = ''
@@ -85,20 +88,11 @@ def scr_watchdog(prefix=None,jobstepid=None,scr_env=None):
     else:
       timeToSleep = timeout
 
-  print('Killing simulation using scr_kill_jobstep --jobStepId '+str(jobstepid))
-  resmgr.scr_kill_jobstep(jobid=jobstepid)
+  # forward progress not observed in an expected timeframe
+  # kill the watched process and return
+  if watched_process.returncode is None:
+    print('Killing simulation PID '+str(watched_process.pid))
+    watched_process.kill()
+    watched_process.communicate()
   return 0
 
-if __name__=='__main__':
-  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_watchdog')
-  parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
-  parser.add_argument('-d','--dir', metavar='<prefixDir>', type=str, default=None, help='Specify the prefix directory.')
-  parser.add_argument('-j','--jobStepId', metavar='<jobStepId>', type=str, default=None, help='Specify the jobstep id.')
-  args = vars(parser.parse_args())
-  if 'help' in args:
-    parser.print_help()
-  elif args['dir'] is None or args['jobStepId'] is None:
-    print('Prefix directory and job step id must be specified.')
-  else:
-    ret = scr_watchdog(prefix=args['prefix'],jobstepid=args['jobStepId'])
-    print('scr_watchdog returned '+str(ret))

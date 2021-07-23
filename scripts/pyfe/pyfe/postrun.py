@@ -102,7 +102,7 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
     else:
       for d in dsets_output:
         # determine whether this dataset needs to be flushed
-        if not scr_flush_file.need_flush(d)
+        if not scr_flush_file.need_flush(d):
           # dataset has already been flushed, go to the next one
           print('scr_postrun: Dataset ' + d + ' has already been flushed')
           continue
@@ -135,7 +135,7 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
         # if not, don't update current marker
         #update_current=1
         print('scr_postrun: Checking that dataset is complete')
-        if not scr_index.build(d)
+        if not scr_index.build(d):
           # failed to get dataset, stop trying for later sets
           failed_dataset = d
           break
