@@ -201,6 +201,11 @@ def scr_run(launcher='',
   # totalruns printed when runs are exhausted
   totalruns = str(runs)
 
+  # this loop breaks when runs hits zero (or some other conditions)
+  # we can protect against an invalid input for number of runs here
+  if runs <= 0:
+    runs = 1
+
   while True:
     # once we mark a node as bad, leave it as bad (even if it comes back healthy)
     # TODO: This hacks around the problem of accidentally deleting a checkpoint set during distribute
@@ -293,7 +298,8 @@ def scr_run(launcher='',
     else:
       print(prog + ': Entering watchdog method')
       # The watchdog will return when the process finishes or is killed
-      scr_watchdog(prefix=prefix, watched_process=proc, scr_env=scr_env)
+      if scr_watchdog(prefix=prefix, watched_process=proc, scr_env=scr_env) != 0:
+        print(prog + ': watchdog: Process terminated or unable to start watchdog')
 
     #print('Process has finished or has been terminated.')
 
@@ -310,26 +316,23 @@ def scr_run(launcher='',
                     scr_env=scr_env,
                     log=log)
 
-    # any retry attempts left?
-    if runs > 1:
-      runs -= 1
-      if runs == 0:
-        print(prog + ': ' + totalruns + ' exhausted, ending run.')
-        break
-
+    # decrement retry counter
+    runs -= 1
+    if runs == 0:
+      print(prog + ': ' + totalruns + ' launches exhausted, ending run.')
+      break
     # is there a halt condition instructing us to stop?
-    if should_halt(bindir, prefix):
+    elif should_halt(bindir, prefix):
       print(prog + ': Halt condition detected, ending run.')
       break
-
     ##### Reduce this sleep time when testing scripts #####
     # give nodes a chance to clean up
-    sleep(60)
-
-    # check for halt condition again after sleep
-    if should_halt(bindir, prefix):
-      print(prog + ': Halt condition detected, ending run.')
-      break
+    else:
+      sleep(60)
+      # check for halt condition again after sleep
+      if should_halt(bindir, prefix):
+        print(prog + ': Halt condition detected, ending run.')
+        break
 
   # make a record of time postrun is started
   timestamp = datetime.now()

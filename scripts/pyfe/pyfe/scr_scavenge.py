@@ -30,7 +30,7 @@ def scr_scavenge(nodeset_job=None,
                  prefixdir=None,
                  verbose=False,
                  scr_env=None,
-                 log=log):
+                 log=None):
   # check that we have a nodeset for the job and directories to read from / write to
   if nodeset_job is None or dataset_id is None or cntldir is None or prefixdir is None:
     return 1
