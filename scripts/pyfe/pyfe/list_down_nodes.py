@@ -2,10 +2,9 @@
 
 # list_down_nodes.py
 
-from time import time
 from pyfe import scr_const, scr_common
 from pyfe.list_dir import list_dir
-from pyfe.scr_common import runproc, pipeproc, scr_prefix
+from pyfe.scr_common import runproc, pipeproc
 
 # mark any nodes specified on the command line
 def remove_argument_excluded_nodes(nodes=[],nodeset_down=[]):
@@ -18,12 +17,10 @@ def remove_argument_excluded_nodes(nodes=[],nodeset_down=[]):
 
 # The main scr_list_down_nodes method.
 # this method takes an scr_env, the contained resource manager will determine which methods above to use
-def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, runtime_secs=None, nodeset=None, scr_env=None):
+def list_down_nodes(reason=False, free=False, nodeset_down='', runtime_secs=None, nodeset=None, scr_env=None, log=None):
   if scr_env is None or scr_env.resmgr is None or scr_env.param is None:
     return 1
   bindir = scr_const.X_BINDIR
-
-  start_time = str(int(time())) # epoch seconds as int to remove decimal, as string to be a parameter
 
   # check that we have a nodeset before going any further
   resourcemgr = scr_env.resmgr
@@ -39,14 +36,6 @@ def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, 
 
   # get list of nodes from nodeset
   nodes = scr_env.resmgr.expand_hosts(nodeset)
-
-  # get prefix directory
-  prefix = scr_env.get_prefix()
-
-  # get jobid
-  jobid = resourcemgr.getjobid()
-  #if jobid == 'defjobid': # job id could not be determined
-  #  print('Could not determine the job id') # the only place this is used here is in the logging below
 
   ### In each of the scr_list_down_nodes.in
   ### these nodes are marked as unavailable, and also removed from the list to log
@@ -66,23 +55,23 @@ def list_down_nodes(reason=False, free=False, nodeset_down='', log_nodes=False, 
   # TODO: read exclude list from a file, as well?
 
   # print any failed nodes to stdout and exit with non-zero
-  if len(unavailable)>0:
+  if len(unavailable) > 0:
     # log each newly failed node, along with the reason
-    if log_nodes:
-      # scr_common.log calls the external program: scr_log_event
-      # the method will also accept a dictionary (instead of a string)
-      # for the event_note argument, this moves the loop closer to the runproc call
-      scr_common.log(bindir=bindir, prefix=prefix, jobid=jobid, event_type='NODE_FAIL', event_note=unavailable, event_start=start_time, event_secs=runtime_secs)
+    if log:
+      for node in unavailable:
+        note = node + ": " + unavailable[node]
+        log.event('NODE_FAIL', note=note, secs=runtime_secs)
+
     # now output info to the user
-    ret=''
     if reason:
       # list each node and the reason each is down
+      reasons = []
       for node in unavailable:
-        ret += node+': '+unavailable[node]+'\n'
-      ret = ret[:-1] ### take off the final trailing newline (?)
+        reasons.append(node + ': ' + unavailable[node])
+      return "\n".join(reasons)
     else:
       # simply print the list of down node in range syntax
-      ret = scr_env.resmgr.compress_hosts(list(unavailable))
-    return ret
+      return scr_env.resmgr.compress_hosts(list(unavailable))
+
   # otherwise, don't print anything and exit with 0
   return 0

@@ -14,6 +14,7 @@ from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_environment import SCR_Env
 from pyfe.scr_param import SCR_Param
 from pyfe.resmgr import AutoResourceManager
+from pyfe.cli import SCRLog
 
 if __name__=='__main__':
   parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_list_down_nodes')
@@ -31,5 +32,14 @@ if __name__=='__main__':
     scr_env = SCR_Env()
     scr_env.resmgr = AutoResourceManager()
     scr_env.param = SCR_Param()
-    ret = list_down_nodes(reason=args['reason'], free=args['free'], nodeset_down=args['down'], log_nodes=args['log'], runtime_secs=args['secs'], nodeset=args['[nodeset]'], scr_env=scr_env)
+
+    # create log object if asked to log down nodes
+    log = None
+    if args['log']:
+      prefix = scr_env.get_prefix()
+      jobid = scr_env.resmgr.getjobid()
+      user = scr_env.get_user()
+      log = SCRLog(prefix, jobid, user=user)
+
+    ret = list_down_nodes(reason=args['reason'], free=args['free'], nodeset_down=args['down'], runtime_secs=args['secs'], nodeset=args['[nodeset]'], scr_env=scr_env, log=log)
     print(str(ret),end='') ### remove trailing newlines?

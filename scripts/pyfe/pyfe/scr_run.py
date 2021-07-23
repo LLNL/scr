@@ -203,7 +203,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
       down_nodes = ''
     if down_nodes!='':
       # print the reason for the down nodes, and log them
-      list_down_nodes(reason=True, free=free_flag, nodeset_down=down_nodes, log_nodes=True, runtime_secs='0', scr_env=scr_env)
+      list_down_nodes(reason=True, free=free_flag, nodeset_down=down_nodes, runtime_secs='0', scr_env=scr_env, log=log)
 
       # if this is the first run, we hit down nodes right off the bat, make a record of them
       if attempts==0:
@@ -271,7 +271,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     log.event('RUN_END', note='run=' + str(attempts), secs=str(run_secs))
 
     # check for and log any down nodes
-    list_down_nodes(reason=True, nodeset_down=keep_down, log_nodes=True, runtime_secs=str(run_secs), scr_env=scr_env)
+    list_down_nodes(reason=True, nodeset_down=keep_down, runtime_secs=str(run_secs), scr_env=scr_env, log=log)
 
     # any retry attempts left?
     if runs > 1:
