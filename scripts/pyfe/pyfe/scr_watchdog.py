@@ -23,7 +23,11 @@ from pyfe.scr_common import runproc
 
 def scr_watchdog(prefix=None, watched_process=None, scr_env=None):
   # check that we have a  dir and apid
-  if prefix is None or watched_process is None:
+  if prefix is None:
+    print('scr_watchdog: ERROR: Prefix must be specified.')
+    return 1
+  if watched_process is None:
+    print('scr_watchdog: ERROR: No process to watch.')
     return 1
 
   bindir = scr_const.X_BINDIR

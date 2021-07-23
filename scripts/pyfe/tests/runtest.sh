@@ -10,10 +10,14 @@
 #
 
 # Set the launcher for the launch script to use below
-launcher="lrun"
+launcher="srun"
 # Set number of nodes in allocation (min 2)
 numnodes="2"
+# Set mpi C compiler for the sleeper/watchdog test
+MPICC="mpicc"
 
+export TESTDIR=$(pwd)
+cd ..
 export PATH=$(pwd)/pyfe:${PATH}
 cd ../../../
 export SCR_PKG=$(pwd)
@@ -22,19 +26,67 @@ export SCR_INSTALL=${SCR_PKG}/install
 
 if [ $launcher == "srun" ]; then
   launcherargs="-n${numnodes} -N${numnodes}"
+  singleargs="-n1 -N1"
 elif [ $launcher == "lrun" ]; then
   launcherargs="-n${numnodes} -N${numnodes}"
+  singleargs="-n1 -N1"
 elif [ $launcher == "jsrun" ]; then
   launcherargs="--tasks_per_rs=1"
+  singleargs="--tasks_per_rs=1"
 elif [ $launcher == "aprun" ]; then
   nodelist=$(scr_env.py --nodes)
   launcherargs="-L ${nodelist}"
+  singleargs="-L ${nodelist}"
 else
   launcher="mpirun"
   launcherargs="-N 1"
+  singleargs="-N 1"
 fi
 
-cd ${SCR_INSTALL}/bin/pyfe
+export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${LD_LIBRARY_PATH}
+export SCR_FETCH=0
+export SCR_DEBUG=1
+export SCR_JOB_NAME=testing_job
+
+# Run any scripts in pyfe/tests/test*.py
+cd ${TESTDIR}
+export SCR_PREFIX=$(pwd)
+export SCR_CACHE_BASE=$(pwd)/cache
+rm -rf .scr/ ckpt.* output.* cache/
+echo ""
+echo "----------------------"
+echo ""
+echo "Running test_api with CACHE_BYPASS=0, CACHE_SIZE=6, FLUSH=6"
+echo ""
+echo "----------------------"
+echo ""
+export SCR_CACHE_BYPASS=0
+export SCR_CACHE_SIZE=6
+export SCR_FLUSH=6
+scr_${launcher}.py ${singleargs} ${SCR_BUILD}/examples/test_api --output 4
+sleep 1
+for testscript in ${TESTDIR}/test*.py; do
+  echo ""
+  echo "----------------------"
+  echo ""
+  echo "${testscript##*/}"
+  sleep 1
+  ${testscript}
+  echo ""
+  echo "----------------------"
+  echo ""
+  sleep 3
+done
+rm -rf .scr/ ckpt.* output.* cache/
+unset SCR_PREFIX
+unset SCR_CACHE_BASE
+unset SCR_CACHE_BYPASS
+unset SCR_CACHE_SIZE
+unset SCR_FLUSH
+
+#exit 0
+
+${MPICC} -o sleeper sleeper.c
 if [ -x "sleeper" ]; then
   echo "Testing the watchdog"
   export SCR_WATCHDOG=1
@@ -56,13 +108,9 @@ fi
 cd ${SCR_BUILD}/examples
 
 #export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/install/lib:/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le/lib
-export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${LD_LIBRARY_PATH}
 export SCR_PREFIX=$(pwd)
-export SCR_FETCH=0
 export SCR_FLUSH=0
-export SCR_DEBUG=1
 export SCR_LOG_ENABLE=0
-export SCR_JOB_NAME=testing_job
 export SCR_CACHE_BYPASS=0
 export SCR_CACHE_SIZE=2
 

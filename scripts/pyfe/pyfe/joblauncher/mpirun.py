@@ -48,7 +48,7 @@ class MPIRUN(JobLauncher):
       basepath = '/'.join(self.hostfile.split('/')[:-1])
       os.makedirs(basepath, exist_ok=True)
       with open(self.hostfile, 'w') as hostfile:
-        print(','.join(target_hosts), file=hostfile)
+        print(','.join(target_hosts), file=self.hostfile)
       argv = [self.launcher, '--hostfile', self.hostfile]
       argv.extend(launcher_args)
       return runproc(argv=argv, wait=False)
