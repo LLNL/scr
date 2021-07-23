@@ -16,7 +16,7 @@ from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_glob_hosts import scr_glob_hosts
 from pyfe.cli import SCRIndex, SCRFlushFile
 
-def postrun(prefix_dir=None,scr_env=None,verbose=False):
+def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
   if scr_env is None or scr_env.resmgr is None:
     return 1
 
@@ -126,7 +126,7 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
         # Gather files from cache to parallel file system
         print('scr_postrun: Scavenging files from cache for '+dsetname+' to '+datadir)
         print('scr_postrun: '+bindir+'/scr_scavenge '+('--verbose ' if verbose else '')+'--id '+d+' --from '+cntldir+' --to '+pardir+' --jobset '+scr_nodelist+' --up '+upnodes)
-        if scr_scavenge(nodeset_job=scr_nodelist, nodeset_up=upnodes, dataset_id=d, cntldir=cntldir, prefixdir=pardir, verbose=verbose, scr_env=scr_env)!=1:
+        if scr_scavenge(nodeset_job=scr_nodelist, nodeset_up=upnodes, dataset_id=d, cntldir=cntldir, prefixdir=pardir, verbose=verbose, scr_env=scr_env, log=log)!=1:
           print('scr_postrun: Done scavenging files from cache for '+dsetname+' to '+datadir)
         else:
           print('scr_postrun: ERROR: Scavenge files from cache for '+dsetname+' to '+datadir)
@@ -189,7 +189,7 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
         # Gather files from cache to parallel file system
         print('scr_postrun: Scavenging files from cache for checkpoint '+dsetname+' to '+datadir)
         print('scr_postrun: '+bindir+'/scr_scavenge '+('--verbose ' if verbose else '')+'--id '+d+' --from '+cntldir+' --to '+pardir+' --jobset '+scr_nodelist+' --up '+upnodes)
-        if scr_scavenge(nodeset_job=scr_nodelist, nodeset_up=upnodes, dataset_id=d, cntldir=cntldir, prefixdir=pardir, verbose=verbose, scr_env=scr_env) != 1:
+        if scr_scavenge(nodeset_job=scr_nodelist, nodeset_up=upnodes, dataset_id=d, cntldir=cntldir, prefixdir=pardir, verbose=verbose, scr_env=scr_env, log=log) != 1:
           print('scr_postrun: Done scavenging files from cache for '+dsetname+' to '+datadir)
         else:
           print('scr_postrun: ERROR: Scavenge files from cache for '+dsetname+' to '+datadir)

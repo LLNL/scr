@@ -12,7 +12,7 @@ if 'pyfe' not in sys.path:
 import argparse
 from datetime import datetime
 from time import time
-from pyfe import scr_const, scr_common
+from pyfe import scr_const
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
@@ -21,7 +21,7 @@ from pyfe.scr_common import tracefunction, runproc
 
 # check for pdsh / (clustershell) errors in case any nodes should be retried
 
-def scr_scavenge(nodeset_job=None, nodeset_up='', nodeset_down='', dataset_id=None, cntldir=None, prefixdir=None, verbose=False, scr_env=None):
+def scr_scavenge(nodeset_job=None, nodeset_up='', nodeset_down='', dataset_id=None, cntldir=None, prefixdir=None, verbose=False, scr_env=None, log=log):
   # check that we have a nodeset for the job and directories to read from / write to
   if nodeset_job is None or dataset_id is None or cntldir is None or prefixdir is None:
     return 1
@@ -65,7 +65,8 @@ def scr_scavenge(nodeset_job=None, nodeset_up='', nodeset_down='', dataset_id=No
   error  = prefixdir+'/.scr/scr.dataset.'+dataset_id+'/scr_scavenge.pdsh.e'+jobid
 
   # log the start of the scavenge operation
-  scr_common.log(bindir=bindir, prefix=prefixdir, jobid=jobid, event_type='SCAVENGE_START', event_dset=dataset_id, event_start=str(start_time))
+  if log:
+    log.event('SCAVENGE_START', dset=dataset_id)
 
   print('scr_scavenge: '+str(int(time())))
   # have the launcher class gather files via pdsh or clustershell
@@ -96,7 +97,9 @@ def scr_scavenge(nodeset_job=None, nodeset_up='', nodeset_down='', dataset_id=No
   # get a timestamp for logging timing values
   end_time = int(time())
   diff_time = end_time - start_time
-  scr_common.log(bindir=bindir, prefix=prefixdir, jobid=jobid, event_type='SCAVENGE_END', event_dset=dataset_id, event_start=str(start_time), event_secs=str(diff_time))
+  if log:
+    log.event('SCAVENGE_END', dset=dataset_id, secs=diff_time)
+
   return 0
 
 if __name__=='__main__':

@@ -299,7 +299,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
   print(prog + ': postrun: ' + str(timestamp))
 
   # scavenge files from cache to parallel file system
-  if postrun(prefix_dir=prefix,scr_env=scr_env,verbose=verbose) != 0:
+  if postrun(prefix_dir=prefix, scr_env=scr_env, verbose=verbose, log=log) != 0:
     print(prog+': ERROR: Command failed: scr_postrun -p '+prefix)
 
   # make a record of end time
