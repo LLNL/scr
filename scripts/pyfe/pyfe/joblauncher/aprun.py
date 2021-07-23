@@ -54,14 +54,12 @@ class APRUN(JobLauncher):
   def scavenge_files(self,
                      prog='',
                      upnodes='',
-                     downnodes='',
+                     downnodes_spaced='',
                      cntldir='',
                      dataset_id='',
                      prefixdir='',
                      buf_size='',
                      crc_flag=''):
-    upnodes, downnodes_spaced = self.resmgr.get_scavenge_nodelists(
-        upnodes=upnodes, downnodes=downnodes)
     argv = [
         'aprun', '-n', '1', 'L', '%h', prog, '--cntldir', cntldir, '--id',
         dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag

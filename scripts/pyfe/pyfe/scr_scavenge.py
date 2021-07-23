@@ -73,6 +73,10 @@ def scr_scavenge(nodeset_job=None,
   output = prefixdir + '/.scr/scr.dataset.' + dataset_id + '/scr_scavenge.pdsh.o' + jobid
   error = prefixdir + '/.scr/scr.dataset.' + dataset_id + '/scr_scavenge.pdsh.e' + jobid
 
+  # format up and down nodesets for the scavenge command
+  nodeset_up, nodeset_down = scr_env.resmgr.get_scavenge_nodelists(
+      upnodes=nodeset_up, downnodes=nodeset_down)
+
   # log the start of the scavenge operation
   if log:
     log.event('SCAVENGE_START', dset=dataset_id)
@@ -81,7 +85,7 @@ def scr_scavenge(nodeset_job=None,
   # have the launcher class gather files via pdsh or clustershell
   consoleout = scr_env.launcher.scavenge_files(prog=bindir + '/scr_copy',
                                                upnodes=nodeset_up,
-                                               downnodes=nodeset_down,
+                                               downnodes_spaced=nodeset_down,
                                                cntldir=cntldir,
                                                dataset_id=dataset_id,
                                                prefixdir=prefixdir,
