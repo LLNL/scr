@@ -261,7 +261,7 @@ def scr_run(launcher='',launcher_args=[],run_cmd='',restart_cmd='',restart_args=
     else:
       print(prog + ': Entering watchdog method')
       # The watchdog will return when the process finishes or is killed
-     i scr_watchdog(prefix=prefix, watched_process=proc, scr_env=scr_env)
+      scr_watchdog(prefix=prefix, watched_process=proc, scr_env=scr_env)
 
     #print('Process has finished or has been terminated.')
 
