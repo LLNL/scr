@@ -72,11 +72,6 @@ def scr_run(launcher='',
             run_cmd='',
             restart_cmd='',
             restart_args=[]):
-  if launcher == '':
-    launcher = scr_const.SCR_LAUNCHER
-    if launcher == '':
-      print('Launcher must be specified')
-      return 1
   prog = 'scr_' + launcher
 
   libdir = scr_const.X_LIBDIR
@@ -298,8 +293,10 @@ def scr_run(launcher='',
     else:
       print(prog + ': Entering watchdog method')
       # The watchdog will return when the process finishes or is killed
-      if scr_watchdog(prefix=prefix, watched_process=proc, scr_env=scr_env) != 0:
-        print(prog + ': watchdog: Process terminated or unable to start watchdog')
+      if scr_watchdog(prefix=prefix, watched_process=proc,
+                      scr_env=scr_env) != 0:
+        print(prog +
+              ': watchdog: Process terminated or unable to start watchdog')
 
     #print('Process has finished or has been terminated.')
 

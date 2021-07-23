@@ -13,7 +13,6 @@ X_LIBDIR = '@X_LIBDIR@'
 PDSH_EXE = '@PDSH_EXE@'
 DSHBAK_EXE = '@DSHBAK_EXE@'
 SCR_RESOURCE_MANAGER = '@SCR_RESOURCE_MANAGER@'
-SCR_LAUNCHER = '@LAUNCHER@'
 ### PMIX constants
 CPPR_LDFLAGS = '@CPPR_LDFLAGS@'
 HAVE_LIBCPPR = '@HAVE_LIBCPPR@'
@@ -32,4 +31,5 @@ if __name__ == '__main__':
   print('PDSH_EXE = \"' + PDSH_EXE + '\"')
   print('DSHBAK_EXE = \"' + DSHBAK_EXE + '\"')
   print('SCR_RESOURCE_MANAGER = \"' + SCR_RESOURCE_MANAGER + '\"')
-  print('SCR_LAUNCHER = \"' + SCR_LAUNCHER + '\"')
+  print('USE_CLUSTERSHELL = \"' + USE_CLUSTERSHELL + '\"')
+  print('PYFE_TRACE_FUNC = \"' + PYFE_TRACE_FUNC + '\"')

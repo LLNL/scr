@@ -1,11 +1,14 @@
 #! /usr/bin/env python3
+"""
+joblauncher/auto.py
+AutoJobLauncher is called to return the appropriate JobLauncher class
 
-# auto.py
+This is the class called to obtain an instance of a job launcher.
 
-# AutoJobLauncher is class constructor for the specific job launchers
-# The job launcher will handle differences between run commands
-
-from pyfe import scr_const
+To add a new job launcher:
+* Insert the new class name at the end of pyfe.joblauncher import statement
+* Insert the condition and return statement for your new launcher within __new__
+"""
 
 from pyfe.joblauncher import (
     JobLauncher,
@@ -19,9 +22,6 @@ from pyfe.joblauncher import (
 
 class AutoJobLauncher:
   def __new__(cls, launcher=None):
-    if launcher is None:
-      launcher = scr_const.SCR_LAUNCHER
-
     if launcher == 'srun':
       return SRUN()
     if launcher == 'jsrun':
@@ -36,10 +36,10 @@ class AutoJobLauncher:
 
 
 if __name__ == '__main__':
-  joblauncher = JobLauncher()
-  #joblauncher = JobLauncher(launcher='srun')
-  #joblauncher = JobLauncher(launcher='jsrun')
-  #joblauncher = JobLauncher(launcher='mpirun')
-  #joblauncher = JobLauncher(launcher='lrun')
-  #joblauncher = JobLauncher(launcher='aprun')
+  joblauncher = AutoJobLauncher()
+  #joblauncher = AutoJobLauncher(launcher='srun')
+  #joblauncher = AutoJobLauncher(launcher='jsrun')
+  #joblauncher = AutoJobLauncher(launcher='mpirun')
+  #joblauncher = AutoJobLauncher(launcher='lrun')
+  #joblauncher = AutoJobLauncher(launcher='aprun')
   print(type(joblauncher))

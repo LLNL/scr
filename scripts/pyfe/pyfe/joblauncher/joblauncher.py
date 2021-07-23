@@ -1,7 +1,76 @@
 #! /usr/bin/env python3
+"""
+joblauncher/joblauncher.py
 
-# joblauncher.py
-# JobLauncher is the super class for the job launcher family
+JobLauncher is the super class for the job launcher family.
+The clustershell_exec method is provided by this class, other methods should be overridden.
+If the constant, USE_CLUSTERSHELL, is not '0' and the module ClusterShell is available
+then ClusterShell.Task will be available and the clustershell_exec method can be used.
+
+Attributes
+----------
+launcher          - string representation of the launcher
+hostfile          - string location of the hostfile, set in scr_run.py: scr_env.get_prefix() + '/.scr/hostfile'
+clustershell_task - Either False or a pointer to the module ClusterShell.Task
+
+Methods
+-------
+init()
+    This method initializes class attributes.
+prepareforprerun()
+    This method is called (without arguments) before scr_prerun.py.
+    Any necessary preamble work can be inserted into this method.
+    This method does nothing by default and may be overridden when needed.
+
+launchruncmd(up_nodes, down_nodes, launcher_args)
+    Job launchers should override this method.
+    up_nodes and down_nodes are strings with comma separated lists of nodes.
+    launcher_args is a list of arguments representing the command.
+    Format an argv according to the job launcher specifications.
+    This method should return runproc(argv=argv, wait=False).
+    The caller will receive the tuple: (subprocess.Popen object, object.pid).
+parallel_exec(argv, runnodes, use_dshbak)
+    Job launchers should override this method.
+    argv is a list of arguments representing the command.
+    runnodes is a comma separated string of nodes which will execute the command.
+    use_dshbak is True by default, and determines whether the command is piped to dshbak.
+    `which pdsh` and `which dshbak` are defined in ../scr_const.py as PDSH_EXE and DSHBAK_EXE.
+    If self.clustershell_task is not False:
+      return self.clustershell_exec(argv, runnodes, use_dshbak).
+    Otherwise:
+      Format pdshcmd as a list using scr_const.PDSH_EXE, the argv, and runnodes.
+      If use_dshbak is False:
+        return runproc(argv=pdshcmd, getstdout=True, getstderr=True).
+      If use_dshbak is true:
+        Let pdshcmd = [pdshcmd, [scr_const.DSHBAK_EXE, 'c']].
+        return pipeproc(argv=pdshcmd, getstdout=True, getstderr=True).
+scavenge_files(prog, upnodes, downnodes_spaced, cntldir, dataset_id, prefixdir, buf_size, crc_flag)
+    Job launchers should override this method.
+    prog is a string and is the location of the scr_copy program.
+    upnodes is a string with comma separated lists of nodes.
+    downnodes_spaced is a space separated string of down nodes.
+    cntldir is a string for the control directory path, obtained from SCR_Param.
+    dataset_id is a string for the dataset id.
+    prefixdir is a string for the prefix directory path.
+    buf_size is a string, set by $SCR_FILE_BUF_SIZE.
+      If undefined, the default value is (1024 * 1024).
+    crc_flag is a string, set by $SCR_CRC_ON_FLUSH.
+      If undefined, the default value is '--crc'.
+      If '0', crc_flag will be set to ''.
+    Format an argv according to the job launcher specifications.
+    Return self.parallel_exec(argv=argv, runnodes=upnodes, use_dshbak=False)[0]
+
+clustershell_exec(argv, runnodes, use_dshbak)
+    This method implementation is provided by the base class.
+    argv is a list of arguments representing the command.
+    runnodes is a comma separated string of nodes which will execute the command.
+    use_dshbak is True by default, and determines the format of the returned output.
+    The command specified by argv will be ran on the nodes specified by runnodes.
+    The return value is a list: [output, returncode]
+    The output is a list: [stdout, stderr]
+    The full return value is then: [[stdout, stderr], returncode]
+
+"""
 
 from pyfe import scr_const
 
@@ -10,7 +79,6 @@ class JobLauncher(object):
   def __init__(self, launcher=''):
     self.launcher = launcher
     self.hostfile = ''
-    self.resmgr = None
     self.clustershell_task = False
     if scr_const.USE_CLUSTERSHELL != '0':
       try:
@@ -99,7 +167,7 @@ class JobLauncher(object):
   def scavenge_files(self,
                      prog='',
                      upnodes='',
-                     downnodes='',
+                     downnodes_spaced='',
                      cntldir='',
                      dataset_id='',
                      prefixdir='',
