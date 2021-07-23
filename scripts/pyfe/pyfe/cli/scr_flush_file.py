@@ -2,13 +2,14 @@
 
 import os
 
+from pyfe import scr_const
 from pyfe.scr_common import runproc
 
 class SCRFlushFile:
-  def __init__(self, bindir, prefix):
-    self.bindir = bindir # path to SCR bin directory
+  def __init__(self, prefix):
+    self.bindir = scr_const.X_BINDIR # path to SCR bin directory
     self.prefix = prefix # path to SCR_PREFIX
-    self.exe = os.path.join(bindir, "scr_flush_file") + " --dir " + prefix
+    self.exe = os.path.join(self.bindir, "scr_flush_file") + " --dir " + prefix
 
   # return list of output datasets
   def list_dsets_output(self):

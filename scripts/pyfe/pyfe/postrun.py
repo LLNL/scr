@@ -42,8 +42,8 @@ def postrun(prefix_dir=None,scr_env=None,verbose=False):
   if pardir=='':
     return 1
 
-  scr_index      = SCRIndex(bindir, pardir)
-  scr_flush_file = SCRFlushFile(bindir, pardir)
+  scr_index      = SCRIndex(pardir)
+  scr_flush_file = SCRFlushFile(pardir)
 
   # all parameters checked out, start normal output
   print('scr_postrun: Started: '+str(datetime.now()))
