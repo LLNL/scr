@@ -2,7 +2,6 @@
 
 from pyfe import scr_const
 from pyfe.scr_common import runproc, pipeproc
-
 '''
  methods used by resource managers to test nodes
  these methods return a hash to track nodes which failed and their reason
@@ -11,8 +10,10 @@ from pyfe.scr_common import runproc, pipeproc
 '''
 ping = 'ping'
 bindir = scr_const.X_BINDIR
+
+
 # mark the set of nodes the resource manager thinks is down
-def list_resmgr_down_nodes(nodes=[],resmgr_nodes=None):
+def list_resmgr_down_nodes(nodes=[], resmgr_nodes=None):
   unavailable = {}
   for node in resmgr_nodes:
     if node in nodes:
@@ -20,25 +21,27 @@ def list_resmgr_down_nodes(nodes=[],resmgr_nodes=None):
     unavailable[node] = 'Reported down by resource manager'
   return unavailable
 
+
 # mark any nodes that fail to respond to (up to 2) ping(s)
 def list_nodes_failed_ping(nodes=[]):
   unavailable = {}
   # `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
-  argv=[ping,'-c','1','-w','1','']
+  argv = [ping, '-c', '1', '-w', '1', '']
   for node in nodes:
     argv[5] = node
     returncode = runproc(argv=argv)[1]
-    if returncode!=0:
+    if returncode != 0:
       returncode = runproc(argv=argv)[1]
-      if returncode!=0:
+      if returncode != 0:
         unavailable[node] = 'Failed to ping'
   for node in unavailable:
     if node in nodes:
       nodes.remove(node)
   return unavailable
 
+
 # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
-def list_param_excluded_nodes(nodes=[],exclude_nodes=[]):
+def list_param_excluded_nodes(nodes=[], exclude_nodes=[]):
   unavailable = {}
   for node in exclude_nodes:
     if node in nodes:
@@ -46,18 +49,21 @@ def list_param_excluded_nodes(nodes=[],exclude_nodes=[]):
       unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
   return unavailable
 
+
 # mark any nodes that don't respond to pdsh echo up
-def list_pdsh_fail_echo(nodes=[],nodes_string='',launcher=None):
+def list_pdsh_fail_echo(nodes=[], nodes_string='', launcher=None):
   if launcher is None:
     return {}
   unavailable = {}
   pdsh_assumed_down = nodes.copy()
-  if len(nodes)>0:
+  if len(nodes) > 0:
     # only run this against set of nodes known to be responding
     # run an "echo UP" on each node to check whether it works
-    output = launcher.parallel_exec(argv=['echo','UP'], runnodes=nodes_string, use_dshbak=False)[0][0]
+    output = launcher.parallel_exec(argv=['echo', 'UP'],
+                                    runnodes=nodes_string,
+                                    use_dshbak=False)[0][0]
     for line in output.split('\n'):
-      if len(line)==0:
+      if len(line) == 0:
         continue
       if 'UP' in line:
         uphost = line.split(':')[0]
@@ -70,11 +76,16 @@ def list_pdsh_fail_echo(nodes=[],nodes_string='',launcher=None):
     unavailable[node] = 'Failed to pdsh echo UP'
   return unavailable
 
+
 #### Each resource manager other than LSF had this section
 #### Only the SLURM had the line size = param.abtoull(size)
 #### The abtoull will just return the int of the string if it isn't in the ab format
-def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, cachedir_string=None):
-  if nodes==[]:
+def check_dir_capacity(nodes=[],
+                       free=False,
+                       scr_env=None,
+                       cntldir_string=None,
+                       cachedir_string=None):
+  if nodes == []:
     return {}
   if scr_env is None or scr_env.param is None or scr_env.resmgr is None or scr_env.launcher is None:
     return {}
@@ -91,21 +102,23 @@ def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, 
     dirs = cntldir_string.split(' ')
     cntldirs = param.get_hash('CNTLDIR')
     for base in dirs:
-      if len(base)<1:
+      if len(base) < 1:
         continue
       val = base
-      if cntldirs is not None and base in cntldirs and 'BYTES' in cntldirs[base]:
-        if len(cntldirs[base]['BYTES'].keys())>0:
-          size = list(cntldirs[base]['BYTES'].keys())[0] #(keys %{$$cntldirs{$base}{"BYTES"}})[0];
+      if cntldirs is not None and base in cntldirs and 'BYTES' in cntldirs[
+          base]:
+        if len(cntldirs[base]['BYTES'].keys()) > 0:
+          size = list(cntldirs[base]['BYTES'].keys())[
+              0]  #(keys %{$$cntldirs{$base}{"BYTES"}})[0];
           #if (defined $size) {
           size = param.abtoull(size)
           #  $size = $param->abtoull($size);
-          val += ':'+str(size)
+          val += ':' + str(size)
           #  $val = "$base:$size";
       cntldir_vals.append(val)
 
   cntldir_flag = []
-  if len(cntldir_vals)>0:
+  if len(cntldir_vals) > 0:
     cntldir_flag = ['--cntl ', ','.join(cntldir_vals)]
 
   # get the cache directory the job will use
@@ -115,17 +128,18 @@ def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, 
     dirs = cachedir_string.split(' ')
     cachedirs = param.get_hash('CACHEDIR')
     for base in dirs:
-      if len(base)<1:
+      if len(base) < 1:
         continue
       val = base
-      if cachedirs is not None and base in cachedirs and 'BYTES' in cachedirs[base]:
-        if len(cachedirs[base]['BYTES'].keys())>0:
+      if cachedirs is not None and base in cachedirs and 'BYTES' in cachedirs[
+          base]:
+        if len(cachedirs[base]['BYTES'].keys()) > 0:
           size = list(cachedirs[base]['BYTES'].keys())[0]
           #my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
           #if (defined $size) {
           size = param.abtoull(size)
           #  $size = $param->abtoull($size);
-          val += ':'+str(size)
+          val += ':' + str(size)
           #  $val = "$base:$size";
       cachedir_vals.append(val)
 
@@ -137,35 +151,35 @@ def check_dir_capacity(nodes=[], free=False, scr_env=None, cntldir_string=None, 
   upnodes = scr_env.resmgr.compress_hosts(nodes)
 
   # run scr_check_node on each node specifying control and cache directories to check
-  argv = [bindir+'/pyfe/pyfe/scr_check_node.py']
+  argv = [bindir + '/pyfe/pyfe/scr_check_node.py']
   if free:
     argv.append('--free')
   argv.extend(cntldir_flag)
   argv.extend(cachedir_flag)
-  output = scr_env.launcher.parallel_exec(argv=argv,runnodes=upnodes)[0][0]
-  action=0 # tracking action to use range iterator and follow original line <- shift flow
+  output = scr_env.launcher.parallel_exec(argv=argv, runnodes=upnodes)[0][0]
+  action = 0  # tracking action to use range iterator and follow original line <- shift flow
   nodeset = ''
   for line in output.split('\n'):
     # blank line
-    if len(line)<1:
+    if len(line) < 1:
       pass
     # top line
-    elif action==0:
+    elif action == 0:
       if line.startswith('---'):
-        action=1
+        action = 1
     # the nodeset
-    elif action==1:
+    elif action == 1:
       nodeset = line
-      action=2
+      action = 2
     # bottom line
-    elif action==2:
-      action=3
+    elif action == 2:
+      action = 3
     # output printed
-    elif action==3:
-      action=0
+    elif action == 3:
+      action = 0
       if 'PASS' not in line:
-        print('pass not in line, expanding '+str(nodeset))
-        exclude_nodes = scr_env.resmgr.expand_hosts(nodeset);
+        print('pass not in line, expanding ' + str(nodeset))
+        exclude_nodes = scr_env.resmgr.expand_hosts(nodeset)
         for node in exclude_nodes:
           if node in nodes:
             nodes.remove(node)

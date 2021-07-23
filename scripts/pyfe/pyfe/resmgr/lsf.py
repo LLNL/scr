@@ -10,6 +10,7 @@ from pyfe import scr_const
 from pyfe.scr_common import runproc, pipeproc
 from pyfe.resmgr import nodetests, ResourceManager
 
+
 class LSF(ResourceManager):
   # init initializes vars from the environment
   def __init__(self):
@@ -20,7 +21,7 @@ class LSF(ResourceManager):
     return os.environ.get('LSB_JOBID')
 
   # this doesn't really apply for LSF
-  def get_jobstep_id(self,user='',pid=-1):
+  def get_jobstep_id(self, user='', pid=-1):
     return None
 
   # get node list
@@ -31,7 +32,7 @@ class LSF(ResourceManager):
         # make a list from the set -> make a set from the list -> file.readlines().rstrip('\n')
         # get a list of lines without newlines and skip the first line
         lines = []
-        with open(hostfile,'r') as f:
+        with open(hostfile, 'r') as f:
           lines = [line.strip() for line in f.readlines()][1:]
         if len(lines) == 0:
           raise ValueError('Hostfile empty')
@@ -56,7 +57,7 @@ class LSF(ResourceManager):
     # TODO : any way to get list of down nodes in LSF?
     return None
 
-  def scr_kill_jobstep(self,jobid=-1):
+  def scr_kill_jobstep(self, jobid=-1):
     if jobid == -1:
       print('You must specify the job step id to kill.')
       return 1
@@ -103,7 +104,7 @@ class LSF(ResourceManager):
 
       # compute seconds left in job
       hours = int(pieces[2])
-      mins  = int(pieces[3])
+      mins = int(pieces[3])
       secs_remaining = ((hours * 60) + mins) * 60
 
       secs = secs_now + secs_remaining
@@ -113,12 +114,22 @@ class LSF(ResourceManager):
     return 0
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
-    unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_downnodes()))
-    nextunavail = nodetests.list_pdsh_fail_echo(nodes=nodes, nodes_string=self.compress_hosts(nodes), launcher=scr_env.launcher)
+  def list_down_nodes_with_reason(self,
+                                  nodes=[],
+                                  scr_env=None,
+                                  free=False,
+                                  cntldir_string=None,
+                                  cachedir_string=None):
+    unavailable = nodetests.list_resmgr_down_nodes(
+        nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_downnodes()))
+    nextunavail = nodetests.list_pdsh_fail_echo(
+        nodes=nodes,
+        nodes_string=self.compress_hosts(nodes),
+        launcher=scr_env.launcher)
     unavailable.update(nextunavail)
     if scr_env is not None and scr_env.param is not None:
       exclude_nodes = self.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
-      nextunavail = nodetests.list_param_excluded_nodes(nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
+      nextunavail = nodetests.list_param_excluded_nodes(
+          nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
       unavailable.update(nextunavail)
     return unavailable

@@ -16,8 +16,9 @@ from pyfe.joblauncher import (
     SRUN,
 )
 
+
 class AutoJobLauncher:
-  def __new__(cls,launcher=None):
+  def __new__(cls, launcher=None):
     if launcher is None:
       launcher = scr_const.SCR_LAUNCHER
 
@@ -32,6 +33,7 @@ class AutoJobLauncher:
     if launcher == 'aprun':
       return APRUN()
     return JobLauncher()
+
 
 if __name__ == '__main__':
   joblauncher = JobLauncher()

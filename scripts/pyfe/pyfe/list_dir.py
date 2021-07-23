@@ -12,9 +12,15 @@
 
 from pyfe import scr_const
 
-def list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None,bindir=''):
+
+def list_dir(user=None,
+             jobid=None,
+             base=False,
+             runcmd=None,
+             scr_env=None,
+             bindir=''):
   # check that user specified "control" or "cache"
-  if runcmd != 'control' and runcmd !='cache':
+  if runcmd != 'control' and runcmd != 'cache':
     return 1
 
   # TODO: read cache directory from config file
@@ -26,7 +32,7 @@ def list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None,bindir='')
 
   # get the base directory
   bases = []
-  if runcmd=='cache':
+  if runcmd == 'cache':
     # lookup cache base
     cachedesc = scr_env.param.get_hash('CACHE')
     if type(cachedesc) is dict:
@@ -46,7 +52,7 @@ def list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None,bindir='')
       bases = [bases]
     else:
       value = []
-  if len(bases)==0:
+  if len(bases) == 0:
     print('INVALID')
     return 1
 
@@ -64,15 +70,14 @@ def list_dir(user=None,jobid=None,base=False,runcmd=None,scr_env=None,bindir='')
       # something is missing, print invalid dir and exit with error
       print('INVALID')
       return 1
-    suffix = user+'/scr.'+jobid
+    suffix = user + '/scr.' + jobid
 
   # ok, all values are here, print out the directory name and exit with success
   dirs = []
   for abase in bases:
-    if suffix!='':
-      dirs.append(abase+'/'+suffix)
+    if suffix != '':
+      dirs.append(abase + '/' + suffix)
     else:
       dirs.append(abase)
   dirs = ' '.join(dirs)
   return dirs
-

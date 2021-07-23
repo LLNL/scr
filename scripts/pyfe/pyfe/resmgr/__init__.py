@@ -11,8 +11,6 @@ from .lsf import LSF
 from .pbsalps import PBSALPS
 #from .pmix import PMIX
 
-
-
 ####
 ####
 # The AutoResourceManager returns one of the above classes

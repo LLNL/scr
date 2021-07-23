@@ -19,20 +19,22 @@ from pyfe.resmgr import (
     SLURM,
 )
 
+
 class AutoResourceManager:
-  def __new__(cls,resmgr=None):
+  def __new__(cls, resmgr=None):
     if resmgr is None:
       resmgr = scr_const.SCR_RESOURCE_MANAGER
 
-    if resmgr=='SLURM':
+    if resmgr == 'SLURM':
       return SLURM()
-    if resmgr=='LSF':
+    if resmgr == 'LSF':
       return LSF()
-    if resmgr=='APRUN':
+    if resmgr == 'APRUN':
       return APRUN()
     #if resmgr=='PMIX':
     #  return PMIX()
     return ResourceManager()
+
 
 if __name__ == '__main__':
   resourcemgr = AutoResourceManager()
@@ -45,4 +47,3 @@ if __name__ == '__main__':
   print(type(resourcemgr))
   #resourcemgr = AutoResourceManager(resmgr='PMIX')
   #print(type(resourcemgr))
-

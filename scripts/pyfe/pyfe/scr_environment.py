@@ -8,6 +8,7 @@ import os
 from pyfe import scr_const
 from pyfe.scr_common import scr_prefix, runproc
 
+
 class SCR_Env:
   def __init__(self):
     # we can keep a reference to the other objects
@@ -16,7 +17,7 @@ class SCR_Env:
     self.resmgr = None
     # initialize the infos
     self.prefix = scr_prefix()
-    self.nodes_file = scr_const.X_BINDIR+'/scr_nodes_file'
+    self.nodes_file = scr_const.X_BINDIR + '/scr_nodes_file'
     self.user = os.environ.get('USER')
     self.nodes = os.environ.get('SCR_NODELIST')
 
@@ -27,7 +28,7 @@ class SCR_Env:
     return self.nodes
 
   # set the nodelist (called if the environment variable wasn't set)
-  def set_nodelist(self,nodelist):
+  def set_nodelist(self, nodelist):
     self.nodes = nodelist
     os.environ['SCR_NODELIST'] = nodelist
 
@@ -35,7 +36,7 @@ class SCR_Env:
     return self.prefix
 
   # set the prefix
-  def set_prefix(self,prefix):
+  def set_prefix(self, prefix):
     self.prefix = prefix
 
   # list the number of nodes used in the last run
@@ -44,4 +45,4 @@ class SCR_Env:
     out, returncode = runproc(argv=argv, getstdout=True)
     if returncode == 0:
       return int(out)
-    return 0 # print(err)
+    return 0  # print(err)

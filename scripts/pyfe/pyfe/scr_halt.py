@@ -6,7 +6,7 @@
 import os, sys
 
 if 'pyfe' not in sys.path:
-  sys.path.insert(0,'/'.join(os.path.realpath(__file__).split('/')[:-2]))
+  sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
   import pyfe
 
 import argparse
@@ -14,7 +14,22 @@ from pyfe import scr_const
 from pyfe.scr_common import runproc
 from pyfe.parsetime import parsetime
 
-def scr_halt(bindir=None,checkpoints=None, before=None, after=None, immediate=False, seconds=None, dolist=False, unset_checkpoints=False, unset_before=False, unset_after=False, unset_seconds=False, unset_reason=False, remove=False, verbose=False, dirs=None):
+
+def scr_halt(bindir=None,
+             checkpoints=None,
+             before=None,
+             after=None,
+             immediate=False,
+             seconds=None,
+             dolist=False,
+             unset_checkpoints=False,
+             unset_before=False,
+             unset_after=False,
+             unset_seconds=False,
+             unset_reason=False,
+             remove=False,
+             verbose=False,
+             dirs=None):
   # requires: squeue, scontrol, scancel, umask (shell command)
 
   if bindir is None:
@@ -24,7 +39,7 @@ def scr_halt(bindir=None,checkpoints=None, before=None, after=None, immediate=Fa
   # if find some arguments on the command line, assume they are target directories
   if dirs is None:
     # use current working directory if none specified
-    dirs = [ os.getcwd ]
+    dirs = [os.getcwd]
 
   ret = 0
 
@@ -38,7 +53,7 @@ def scr_halt(bindir=None,checkpoints=None, before=None, after=None, immediate=Fa
     if checkpoints is not None:
       checkpoints = str(checkpoints)
       # TODO: check that a valid value was given
-      halt_conditions = ['-c',checkpoints]
+      halt_conditions = ['-c', checkpoints]
 
     # halt before time
     if before is not None:
@@ -78,7 +93,7 @@ def scr_halt(bindir=None,checkpoints=None, before=None, after=None, immediate=Fa
       halt_conditions.append('-xr')
 
     # if we were not given any conditions, set the exit reason to JOB_HALTED
-    if len(halt_conditions)==0 or immediate:
+    if len(halt_conditions) == 0 or immediate:
       halt_conditions.append('-r')
       halt_conditions.append('JOB_HALTED')
 
@@ -86,10 +101,10 @@ def scr_halt(bindir=None,checkpoints=None, before=None, after=None, immediate=Fa
   for adir in dirs:
     rc = 0
 
-    print('Updating halt file in '+adir)
+    print('Updating halt file in ' + adir)
 
     # build the name of the halt file
-    halt_file = adir+'/.scr/halt.scr'
+    halt_file = adir + '/.scr/halt.scr'
 
     if halt_conditions == []:
       # remove the halt file
@@ -103,11 +118,12 @@ def scr_halt(bindir=None,checkpoints=None, before=None, after=None, immediate=Fa
     # TODO: Set halt file permissions so system admins can modify them
     halt_cmd = []
     # create the halt file with specified conditions
-    os.makedirs(adir+'/.scr',exist_ok=True)
+    os.makedirs(adir + '/.scr', exist_ok=True)
     # $halt_cmd = "$bash -c \"$bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
     #halt_file_options = ' '.join(halt_conditions)
     # can specify a different bash with popen (?)
-    halt_cmd = [bindir+'/scr_halt_cntl', '-f', halt_file] #, halt_file_options ]
+    halt_cmd = [bindir + '/scr_halt_cntl', '-f',
+                halt_file]  #, halt_file_options ]
     halt_cmd.extend(halt_conditions)
 
     # execute the command
@@ -115,11 +131,11 @@ def scr_halt(bindir=None,checkpoints=None, before=None, after=None, immediate=Fa
     #if verbose:
     print(' '.join(halt_cmd))
     # RUN HALT CMD
-    output, rc = runproc(halt_cmd,getstdout=True,getstderr=True)
-    if rc!=0:
+    output, rc = runproc(halt_cmd, getstdout=True, getstderr=True)
+    if rc != 0:
       if output is not None:
         print(output[1].strip())
-      print('scr_halt: ERROR: Failed to update halt file for '+adir)
+      print('scr_halt: ERROR: Failed to update halt file for ' + adir)
       ret = 1
 
     # print output to screen
@@ -136,25 +152,88 @@ def scr_halt(bindir=None,checkpoints=None, before=None, after=None, immediate=Fa
 
   return ret
 
-if __name__=='__main__':
-  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_halt', epilog='TIME arguments are parsed using parsetime.py,\nand t may be specified in one of many formats.\nExamples include \'12pm\', \'yesterday noon\', \'12/25 15:30:33\', and so on.\nIf no directory is specified, the current working directory is used.')
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(
+      add_help=False,
+      argument_default=argparse.SUPPRESS,
+      prog='scr_halt',
+      epilog=
+      'TIME arguments are parsed using parsetime.py,\nand t may be specified in one of many formats.\nExamples include \'12pm\', \'yesterday noon\', \'12/25 15:30:33\', and so on.\nIf no directory is specified, the current working directory is used.'
+  )
   # when prefixes are unambiguous then also adding shortcodes isn't necessary
   #parser.add_argument('-z', '--all', action='store_true', help='Halt all jobs on the system.')
   #parser.add_argument('-u', '--user', metavar='LIST', type=str, help='Halt all jobs for a comma-separated LIST of users.')
-  parser.add_argument('-c', '--checkpoints', metavar='N', default=None, type=int, help='Halt job after N checkpoints.')
-  parser.add_argument('-b', '--before', metavar='TIME', default=None, type=str, help='Halt job before specified TIME. Uses SCR_HALT_SECONDS if set.')
-  parser.add_argument('-a', '--after', metavar='TIME', default=None, type=str, help='Halt job after specified TIME.')
-  parser.add_argument('-i', '--immediate', action='store_true', default=False, help='Halt job immediately.')
-  parser.add_argument('-s', '--seconds', metavar='N', default=None, type=str, help='Set or reset SCR_HALT_SECONDS for active job.')
-  parser.add_argument('-l', '--list', action='store_true', default=False, help='List the current halt conditions specified for a job or jobs.')
-  parser.add_argument('--unset-checkpoints', action='store_true', default=False, help='Unset any checkpoint halt condition.')
-  parser.add_argument('--unset-before', action='store_true', default=False, help='Unset any halt before condition.')
-  parser.add_argument('--unset-after', action='store_true', default=False, help='Unset halt after condition.')
-  parser.add_argument('--unset-seconds', action='store_true', default=False, help='Unset halt seconds.')
-  parser.add_argument('--unset-reason', action='store_true', default=False, help='Unset the current halt reason.')
-  parser.add_argument('-r', '--remove', action='store_true', default=False, help='Remove halt file.')
-  parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Increase verbosity.')
-  parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
+  parser.add_argument('-c',
+                      '--checkpoints',
+                      metavar='N',
+                      default=None,
+                      type=int,
+                      help='Halt job after N checkpoints.')
+  parser.add_argument(
+      '-b',
+      '--before',
+      metavar='TIME',
+      default=None,
+      type=str,
+      help='Halt job before specified TIME. Uses SCR_HALT_SECONDS if set.')
+  parser.add_argument('-a',
+                      '--after',
+                      metavar='TIME',
+                      default=None,
+                      type=str,
+                      help='Halt job after specified TIME.')
+  parser.add_argument('-i',
+                      '--immediate',
+                      action='store_true',
+                      default=False,
+                      help='Halt job immediately.')
+  parser.add_argument('-s',
+                      '--seconds',
+                      metavar='N',
+                      default=None,
+                      type=str,
+                      help='Set or reset SCR_HALT_SECONDS for active job.')
+  parser.add_argument(
+      '-l',
+      '--list',
+      action='store_true',
+      default=False,
+      help='List the current halt conditions specified for a job or jobs.')
+  parser.add_argument('--unset-checkpoints',
+                      action='store_true',
+                      default=False,
+                      help='Unset any checkpoint halt condition.')
+  parser.add_argument('--unset-before',
+                      action='store_true',
+                      default=False,
+                      help='Unset any halt before condition.')
+  parser.add_argument('--unset-after',
+                      action='store_true',
+                      default=False,
+                      help='Unset halt after condition.')
+  parser.add_argument('--unset-seconds',
+                      action='store_true',
+                      default=False,
+                      help='Unset halt seconds.')
+  parser.add_argument('--unset-reason',
+                      action='store_true',
+                      default=False,
+                      help='Unset the current halt reason.')
+  parser.add_argument('-r',
+                      '--remove',
+                      action='store_true',
+                      default=False,
+                      help='Remove halt file.')
+  parser.add_argument('-v',
+                      '--verbose',
+                      action='store_true',
+                      default=False,
+                      help='Increase verbosity.')
+  parser.add_argument('-h',
+                      '--help',
+                      action='store_true',
+                      help='Show this help message and exit.')
   parser.add_argument('dirs', nargs=argparse.REMAINDER, default=None)
   args = vars(parser.parse_args())
   if 'help' in args:
@@ -162,6 +241,18 @@ if __name__=='__main__':
   #elif 'all' in args or 'user' in args:
   #  print('scr_halt: ERROR: --all and --user options not yet supported')
   else:
-    ret = scr_halt(checkpoints=args['checkpoints'], before=args['before'], after=args['after'], immediate=args['immediate'], seconds=args['seconds'], dolist=args['list'], unset_checkpoints=args['unset_checkpoints'], unset_before=args['unset_before'], unset_after=args['unset_after'], unset_seconds=args['unset_seconds'], unset_reason=args['unset_reason'], remove=args['remove'], verbose=args['verbose'], dirs=args['dirs'])
+    ret = scr_halt(checkpoints=args['checkpoints'],
+                   before=args['before'],
+                   after=args['after'],
+                   immediate=args['immediate'],
+                   seconds=args['seconds'],
+                   dolist=args['list'],
+                   unset_checkpoints=args['unset_checkpoints'],
+                   unset_before=args['unset_before'],
+                   unset_after=args['unset_after'],
+                   unset_seconds=args['unset_seconds'],
+                   unset_reason=args['unset_reason'],
+                   remove=args['remove'],
+                   verbose=args['verbose'],
+                   dirs=args['dirs'])
     print(str(ret))
-

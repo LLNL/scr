@@ -16,7 +16,7 @@
 import os, sys
 
 if 'pyfe' not in sys.path:
-  sys.path.insert(0,'/'.join(os.path.realpath(__file__).split('/')[:-2]))
+  sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
   import pyfe
 
 import argparse
@@ -26,13 +26,37 @@ from pyfe.scr_environment import SCR_Env
 from pyfe.scr_param import SCR_Param
 from pyfe.resmgr import AutoResourceManager
 
-if __name__=='__main__':
-  parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS, prog='scr_list_dir')
-  parser.add_argument('-h','--help', action='store_true', help='Show this help message and exit.')
-  parser.add_argument('-u','--user', default=None, metavar='<user>', type=str, help='Specify username.')
-  parser.add_argument('-j','--jobid', default=None, metavar='<id>', type=str, help='Specify jobid.')
-  parser.add_argument('-b','--base', action='store_true', default=False, help='List base portion of cache/control directory')
-  parser.add_argument('control/cache', choices=['control','cache'], metavar='<control | cache>', nargs='?', default=None, help='Specify the directory to list.')
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(add_help=False,
+                                   argument_default=argparse.SUPPRESS,
+                                   prog='scr_list_dir')
+  parser.add_argument('-h',
+                      '--help',
+                      action='store_true',
+                      help='Show this help message and exit.')
+  parser.add_argument('-u',
+                      '--user',
+                      default=None,
+                      metavar='<user>',
+                      type=str,
+                      help='Specify username.')
+  parser.add_argument('-j',
+                      '--jobid',
+                      default=None,
+                      metavar='<id>',
+                      type=str,
+                      help='Specify jobid.')
+  parser.add_argument('-b',
+                      '--base',
+                      action='store_true',
+                      default=False,
+                      help='List base portion of cache/control directory')
+  parser.add_argument('control/cache',
+                      choices=['control', 'cache'],
+                      metavar='<control | cache>',
+                      nargs='?',
+                      default=None,
+                      help='Specify the directory to list.')
   args = vars(parser.parse_args())
   if 'help' in args:
     parser.print_help()
@@ -47,9 +71,13 @@ if __name__=='__main__':
     scr_env = SCR_Env()
     scr_env.resmgr = AutoResourceManager()
     scr_env.param = SCR_Param()
-    ret = list_dir(user=args['user'], jobid=args['jobid'], base=args['base'], runcmd=args['control/cache'], scr_env=scr_env, bindir=bindir)
+    ret = list_dir(user=args['user'],
+                   jobid=args['jobid'],
+                   base=args['base'],
+                   runcmd=args['control/cache'],
+                   scr_env=scr_env,
+                   bindir=bindir)
     if type(ret) is int:
       sys.exit(ret)
     print(str(ret))
     sys.exit(0)
-

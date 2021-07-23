@@ -6,12 +6,13 @@
 import os, sys
 
 if 'pyfe' not in sys.path:
-  sys.path.insert(0,'/'.join(os.path.realpath(__file__).split('/')[:-2]))
+  sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
   import pyfe
 
 import re
 from pyfe import scr_const
 from pyfe.scr_common import interpolate_variables, scr_prefix
+
 
 class SCR_Param():
   def __init__(self):
@@ -24,9 +25,9 @@ class SCR_Param():
     usrfile = os.environ.get('SCR_CONF_FILE')
     # if not set look in the prefix directory
     if usrfile is None:
-      usrfile = prefix+'/.scrconf'
+      usrfile = prefix + '/.scrconf'
     # read in the app configuration file, if specified
-    appfile = prefix+'/.scr/app.conf'
+    appfile = prefix + '/.scr/app.conf'
 
     #if os.path.isfile(appfile) and os.access(appfile,'R_OK'):
     # better to just try than to check for permission
@@ -72,46 +73,47 @@ class SCR_Param():
       self.usrconf['CACHE'][self.cache_base]['SIZE'] = {}
       self.usrconf['CACHE'][self.cache_base]['SIZE'][self.cache_size] = {}
 
-  def read_config_file(self,filename):
+  def read_config_file(self, filename):
     h = {}
     try:
-      os.makedirs('/'.join(filename.split('/')[:-1]),exist_ok=True)
-      with open (filename,'r') as infile:
+      os.makedirs('/'.join(filename.split('/')[:-1]), exist_ok=True)
+      with open(filename, 'r') as infile:
         for line in infile.readlines():
-          line=line.strip()
-          line = re.sub('=',' ',line) # replace '=' with spaces
+          line = line.strip()
+          line = re.sub('=', ' ', line)  # replace '=' with spaces
           parts = line.split(' ')
           key = ''
           top_key = ''
           top_value = ''
-          lastpart = len(parts)-1
-          first=True # need the next top_key
+          lastpart = len(parts) - 1
+          first = True  # need the next top_key
           for i, part in enumerate(parts):
-            if len(part)==0: # input had double-spaces
+            if len(part) == 0:  # input had double-spaces
               continue
-            if part[0]=='#':
+            if part[0] == '#':
               break
             # read in the value (should have at least one more item in the list)
-            if first==True:
-              if i==lastpart:
-                print('scr_param: ERROR: Invalid key=value pair detected in '+filename+'.')
+            if first == True:
+              if i == lastpart:
+                print('scr_param: ERROR: Invalid key=value pair detected in ' +
+                      filename + '.')
                 return {}
-              key=part.upper()
-              first=False
+              key = part.upper()
+              first = False
             else:
               value = interpolate_variables(part)
-              if top_key!='':
+              if top_key != '':
                 if key not in h[top_key][top_value]:
                   h[top_key][top_value][key] = {}
                 h[top_key][top_value][key][value] = {}
               else:
-                top_key=key
-                top_value=value
+                top_key = key
+                top_value = value
                 if top_key not in h:
                   h[top_key] = {}
                 if top_value not in h[top_key]:
                   h[top_key][top_value] = {}
-              first=True
+              first = True
 
     except Exception as e:
       # print(e)
@@ -119,7 +121,7 @@ class SCR_Param():
       return {}
     return h
 
-  def get(self,name):
+  def get(self, name):
     val = os.environ.get(name)
 
     # if param is set in environment, return that value
@@ -144,7 +146,7 @@ class SCR_Param():
 
     return None
 
-  def get_hash(self,name):
+  def get_hash(self, name):
     val = os.environ.get(name)
 
     # if param is set in environment, return that value
@@ -169,43 +171,43 @@ class SCR_Param():
     return None
 
   # convert byte string like 2kb, 1.5m, 200GB, 1.4T to integer value
-  def abtoull(self,stringval):
+  def abtoull(self, stringval):
     number = ''
     units = ''
-    tokens = re.match('(\d*)(\.?)(\d*)(\D+)',stringval).groups()
-    if len(tokens)>1:
+    tokens = re.match('(\d*)(\.?)(\d*)(\D+)', stringval).groups()
+    if len(tokens) > 1:
       number = ''.join(tokens[:-1])
       units = tokens[-1].lower()
     else:
-      return int(stringval) # TODO: print error? unknown unit string
+      return int(stringval)  # TODO: print error? unknown unit string
     factor = None
-    if units!='':
-      if units=='b':
-        factor=1
-      elif units=='kb' or units=='k':
-        factor=1024
-      elif units=='mb' or units=='m':
-        factor=1024*1024
-      elif units=='gb' or units=='g':
-        factor=1024*1024*1024
-      elif units=='tb' or units=='t':
-        factor=1024*1024*1024*1024
-      elif units=='pb' or units=='p':
-        factor=1024*1024*1024*1024*1024
-      elif units=='eb' or units=='e':
-        factor=1024*1024*1024*1024*1024*1024
+    if units != '':
+      if units == 'b':
+        factor = 1
+      elif units == 'kb' or units == 'k':
+        factor = 1024
+      elif units == 'mb' or units == 'm':
+        factor = 1024 * 1024
+      elif units == 'gb' or units == 'g':
+        factor = 1024 * 1024 * 1024
+      elif units == 'tb' or units == 't':
+        factor = 1024 * 1024 * 1024 * 1024
+      elif units == 'pb' or units == 'p':
+        factor = 1024 * 1024 * 1024 * 1024 * 1024
+      elif units == 'eb' or units == 'e':
+        factor = 1024 * 1024 * 1024 * 1024 * 1024 * 1024
       else:
-        return int(stringval) # TODO: print error? unknown unit string
+        return int(stringval)  # TODO: print error? unknown unit string
     val = float(number)
     if factor is not None:
-      val*=factor
-    elif units!='':
-      val = 0.0 # got a units string but couldn't parse it
+      val *= factor
+    elif units != '':
+      val = 0.0  # got a units string but couldn't parse it
     val = int(val)
     return val
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
   scr_param = SCR_Param()
   for key in scr_param.compile:
-    print('scr_param.compile['+key+'] = '+str(scr_param.compile[key]))
-
+    print('scr_param.compile[' + key + '] = ' + str(scr_param.compile[key]))

@@ -12,6 +12,7 @@ from pyfe.resmgr import nodetests, ResourceManager
 
 # AutoResourceManager class holds the configuration
 
+
 class SLURM(ResourceManager):
   # init initializes vars from the environment
   def __init__(self):
@@ -47,14 +48,15 @@ class SLURM(ResourceManager):
   def get_downnodes(self):
     nodelist = self.get_job_nodes()
     if nodelist is not None:
-      down, returncode = runproc("sinfo -ho %N -t down -n " + nodelist, getstdout=True)
+      down, returncode = runproc("sinfo -ho %N -t down -n " + nodelist,
+                                 getstdout=True)
       if returncode == 0:
         down = down.strip()
         return down
     return None
 
-  def scr_kill_jobstep(self,jobid=-1):
-    if jobid==-1:
+  def scr_kill_jobstep(self, jobid=-1):
+    if jobid == -1:
       print('You must specify the job step id to kill.')
       return 1
     return runproc('scancel ' + str(jobid))[1]
@@ -67,7 +69,8 @@ class SLURM(ResourceManager):
       return 0
 
     # ask scontrol for endtime of this job
-    output = runproc("scontrol --oneliner show job " + jobid, getstdout=True)[0]
+    output = runproc("scontrol --oneliner show job " + jobid,
+                     getstdout=True)[0]
     m = re.search('EndTime=(\\S*)', output)
     if not m:
       return 0
@@ -79,15 +82,27 @@ class SLURM(ResourceManager):
     return timestamp
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
-    unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_downnodes()))
+  def list_down_nodes_with_reason(self,
+                                  nodes=[],
+                                  scr_env=None,
+                                  free=False,
+                                  cntldir_string=None,
+                                  cachedir_string=None):
+    unavailable = nodetests.list_resmgr_down_nodes(
+        nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_downnodes()))
     nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)
     if scr_env is not None and scr_env.param is not None:
       exclude_nodes = self.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
-      nextunavail = nodetests.list_param_excluded_nodes(nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
+      nextunavail = nodetests.list_param_excluded_nodes(
+          nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
       unavailable.update(nextunavail)
       # assert scr_env.resmgr == self
-      nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, cntldir_string=cntldir_string, cachedir_string=cachedir_string)
+      nextunavail = nodetests.check_dir_capacity(
+          nodes=nodes,
+          free=free,
+          scr_env=scr_env,
+          cntldir_string=cntldir_string,
+          cachedir_string=cachedir_string)
       unavailable.update(nextunavail)
     return unavailable

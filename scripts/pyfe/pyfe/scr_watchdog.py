@@ -11,7 +11,7 @@ import os, sys
 from subprocess import TimeoutExpired
 
 if 'pyfe' not in sys.path:
-  sys.path.insert(0,'/'.join(os.path.realpath(__file__).split('/')[:-2]))
+  sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
   import pyfe
 
 import time
@@ -19,6 +19,7 @@ import time
 from pyfe import scr_const
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_common import runproc
+
 
 def scr_watchdog(prefix=None, watched_process=None, scr_env=None):
   # check that we have a  dir and apid
@@ -46,18 +47,20 @@ def scr_watchdog(prefix=None, watched_process=None, scr_env=None):
   # start_time = datetime.now() ## this is not used?
 
   if timeout is None or timeout_pfs is None:
-    print('Necessary environment variables not set: SCR_HANG_TIMEOUT and SCR_HANG_TIMEOUT_PFS')
+    print(
+        'Necessary environment variables not set: SCR_HANG_TIMEOUT and SCR_HANG_TIMEOUT_PFS'
+    )
     return 1
 
   timeout = int(timeout)
   timeout_pfs = int(timeout_pfs)
 
   # loop periodically checking the flush file for activity
-  lastCheckpoint    = ''
+  lastCheckpoint = ''
   lastCheckpointLoc = ''
 
-  getLatestCmd    = bindir+'/scr_flush_file --dir '+prefix+' -l'
-  getLatestLocCmd = bindir+'/scr_flush_file --dir '+prefix+' -L'
+  getLatestCmd = bindir + '/scr_flush_file --dir ' + prefix + ' -l'
+  getLatestLocCmd = bindir + '/scr_flush_file --dir ' + prefix + ' -L'
 
   timeToSleep = timeout
 
@@ -71,12 +74,12 @@ def scr_watchdog(prefix=None, watched_process=None, scr_env=None):
       pass
     # the process is still running, check for progress
     argv = getLatestCmd.split(' ')
-    latest = runproc(argv=argv,getstdout=True)[0]
+    latest = runproc(argv=argv, getstdout=True)[0]
     latestLoc = ''
-    if latest!='':
+    if latest != '':
       argv = getLatestLocCmd.split(' ')
       argv.extend(latest.split(' ')[0])
-      latestLoc = runproc(argv=argv,getstdout=True)[0]
+      latestLoc = runproc(argv=argv, getstdout=True)[0]
     if latest == lastCheckpoint:
       if latestLoc == lastCheckpointLoc:
         # print('time to kill')
@@ -91,8 +94,7 @@ def scr_watchdog(prefix=None, watched_process=None, scr_env=None):
   # forward progress not observed in an expected timeframe
   # kill the watched process and return
   if watched_process.returncode is None:
-    print('Killing simulation PID '+str(watched_process.pid))
+    print('Killing simulation PID ' + str(watched_process.pid))
     watched_process.kill()
     watched_process.communicate()
   return 0
-

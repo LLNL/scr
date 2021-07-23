@@ -16,37 +16,38 @@ from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_glob_hosts import scr_glob_hosts
 from pyfe.cli import SCRIndex, SCRFlushFile
 
+
 def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
   if scr_env is None or scr_env.resmgr is None:
     return 1
 
   # if SCR is disabled, immediately exit
   val = os.environ.get('SCR_ENABLE')
-  if val is not None and val=='0':
+  if val is not None and val == '0':
     return 0
 
   # record the start time for timing purposes
-  start_time=datetime.now()
-  start_secs=int(time())
+  start_time = datetime.now()
+  start_secs = int(time())
 
-  bindir=scr_const.X_BINDIR
+  bindir = scr_const.X_BINDIR
 
   pardir = ''
   # pass prefix via command line
   if prefix_dir is not None:
-    pardir=prefix_dir
+    pardir = prefix_dir
   else:
-    pardir=scr_prefix()
+    pardir = scr_prefix()
 
   # check that we have the parallel file system prefix
-  if pardir=='':
+  if pardir == '':
     return 1
 
-  scr_index      = SCRIndex(pardir)
+  scr_index = SCRIndex(pardir)
   scr_flush_file = SCRFlushFile(pardir)
 
   # all parameters checked out, start normal output
-  print('scr_postrun: Started: '+str(datetime.now()))
+  print('scr_postrun: Started: ' + str(datetime.now()))
 
   # get our nodeset for this job
   nodelist_env = os.environ.get('SCR_NODELIST')
@@ -59,22 +60,23 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
   scr_nodelist = os.environ.get('SCR_NODELIST')
 
   # identify what nodes are still up
-  upnodes=scr_nodelist
-  downnodes = list_down_nodes(nodeset=upnodes,scr_env=scr_env)
+  upnodes = scr_nodelist
+  downnodes = list_down_nodes(nodeset=upnodes, scr_env=scr_env)
   if type(downnodes) is int:
     downnodes = ''
     #if downnodes==1: # returned error
     #  return 1 # probably should return error (?)
     #else: #returned 0, no error and no down nodes
     #  downnodes = ''
-  else: # returned a list of down nodes
-    upnodes = scr_glob_hosts(minus=upnodes+':'+downnodes, resmgr=scr_env.resmgr)
-  print('scr_postrun: UPNODES:   '+upnodes)
+  else:  # returned a list of down nodes
+    upnodes = scr_glob_hosts(minus=upnodes + ':' + downnodes,
+                             resmgr=scr_env.resmgr)
+  print('scr_postrun: UPNODES:   ' + upnodes)
 
   # if there is at least one remaining up node, attempt to scavenge
-  ret=1
-  if upnodes!='':
-    cntldir=list_dir(runcmd='control',scr_env=scr_env,bindir=bindir)
+  ret = 1
+  if upnodes != '':
+    cntldir = list_dir(runcmd='control', scr_env=scr_env, bindir=bindir)
     # TODO: check that we have a control directory
 
     # TODODSET: avoid scavenging things unless it's in this list
@@ -124,12 +126,25 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
         os.makedirs(datadir, exist_ok=True)
 
         # Gather files from cache to parallel file system
-        print('scr_postrun: Scavenging files from cache for '+dsetname+' to '+datadir)
-        print('scr_postrun: '+bindir+'/scr_scavenge '+('--verbose ' if verbose else '')+'--id '+d+' --from '+cntldir+' --to '+pardir+' --jobset '+scr_nodelist+' --up '+upnodes)
-        if scr_scavenge(nodeset_job=scr_nodelist, nodeset_up=upnodes, dataset_id=d, cntldir=cntldir, prefixdir=pardir, verbose=verbose, scr_env=scr_env, log=log)!=1:
-          print('scr_postrun: Done scavenging files from cache for '+dsetname+' to '+datadir)
+        print('scr_postrun: Scavenging files from cache for ' + dsetname +
+              ' to ' + datadir)
+        print('scr_postrun: ' + bindir + '/scr_scavenge ' +
+              ('--verbose ' if verbose else '') + '--id ' + d + ' --from ' +
+              cntldir + ' --to ' + pardir + ' --jobset ' + scr_nodelist +
+              ' --up ' + upnodes)
+        if scr_scavenge(nodeset_job=scr_nodelist,
+                        nodeset_up=upnodes,
+                        dataset_id=d,
+                        cntldir=cntldir,
+                        prefixdir=pardir,
+                        verbose=verbose,
+                        scr_env=scr_env,
+                        log=log) != 1:
+          print('scr_postrun: Done scavenging files from cache for ' +
+                dsetname + ' to ' + datadir)
         else:
-          print('scr_postrun: ERROR: Scavenge files from cache for '+dsetname+' to '+datadir)
+          print('scr_postrun: ERROR: Scavenge files from cache for ' +
+                dsetname + ' to ' + datadir)
 
         # check that gathered set is complete,
         # if not, don't update current marker
@@ -157,20 +172,23 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
             dsetname = scr_flush_file.name(d)
             if dsetname:
               print('scr_postrun: Already scavenged checkpoint dataset ' + d)
-              print('scr_postrun: Updating current marker in index to ' + dsetname)
+              print('scr_postrun: Updating current marker in index to ' +
+                    dsetname)
               scr_index.current(dsetname)
               ret = 0
               break
           else:
             # already tried and failed, skip this dataset
-            print('scr_postrun: Skipping checkpoint dataset ' + d + ', since already failed to scavenge')
+            print('scr_postrun: Skipping checkpoint dataset ' + d +
+                  ', since already failed to scavenge')
             continue
 
         # we have a dataset, check whether it still needs to be flushed
 
         if not scr_flush_file.need_flush(d):
           # found a dataset that has already been flushed, we can quit
-          print('scr_postrun: Checkpoint dataset ' + d + ' has already been flushed')
+          print('scr_postrun: Checkpoint dataset ' + d +
+                ' has already been flushed')
           ret = 0
           break
         print('scr_postrun: Attempting to scavenge checkpoint dataset ' + d)
@@ -187,12 +205,25 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
         os.makedirs(datadir, exist_ok=True)
 
         # Gather files from cache to parallel file system
-        print('scr_postrun: Scavenging files from cache for checkpoint '+dsetname+' to '+datadir)
-        print('scr_postrun: '+bindir+'/scr_scavenge '+('--verbose ' if verbose else '')+'--id '+d+' --from '+cntldir+' --to '+pardir+' --jobset '+scr_nodelist+' --up '+upnodes)
-        if scr_scavenge(nodeset_job=scr_nodelist, nodeset_up=upnodes, dataset_id=d, cntldir=cntldir, prefixdir=pardir, verbose=verbose, scr_env=scr_env, log=log) != 1:
-          print('scr_postrun: Done scavenging files from cache for '+dsetname+' to '+datadir)
+        print('scr_postrun: Scavenging files from cache for checkpoint ' +
+              dsetname + ' to ' + datadir)
+        print('scr_postrun: ' + bindir + '/scr_scavenge ' +
+              ('--verbose ' if verbose else '') + '--id ' + d + ' --from ' +
+              cntldir + ' --to ' + pardir + ' --jobset ' + scr_nodelist +
+              ' --up ' + upnodes)
+        if scr_scavenge(nodeset_job=scr_nodelist,
+                        nodeset_up=upnodes,
+                        dataset_id=d,
+                        cntldir=cntldir,
+                        prefixdir=pardir,
+                        verbose=verbose,
+                        scr_env=scr_env,
+                        log=log) != 1:
+          print('scr_postrun: Done scavenging files from cache for ' +
+                dsetname + ' to ' + datadir)
         else:
-          print('scr_postrun: ERROR: Scavenge files from cache for '+dsetname+' to '+datadir)
+          print('scr_postrun: ERROR: Scavenge files from cache for ' +
+                dsetname + ' to ' + datadir)
 
         # check that gathered set is complete,
         print('scr_postrun: Checking that dataset is complete')
@@ -205,12 +236,12 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
           break
 
   # print the timing info
-  end_time=datetime.now()
-  end_secs=int(time())
-  run_secs=end_secs - start_secs
-  print('scr_postrun: Ended: '+str(end_time))
-  print('scr_postrun: secs: '+str(run_secs))
+  end_time = datetime.now()
+  end_secs = int(time())
+  run_secs = end_secs - start_secs
+  print('scr_postrun: Ended: ' + str(end_time))
+  print('scr_postrun: secs: ' + str(run_secs))
 
   # print the exit code and exit
-  print('scr_postrun: exit code: '+str(ret))
+  print('scr_postrun: exit code: ' + str(ret))
   return ret

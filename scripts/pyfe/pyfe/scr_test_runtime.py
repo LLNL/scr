@@ -17,11 +17,12 @@
 import os, sys
 
 if 'pyfe' not in sys.path:
-  sys.path.insert(0,'/'.join(os.path.realpath(__file__).split('/')[:-2]))
+  sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
   import pyfe
 
 from pyfe import scr_const
 from pyfe.scr_common import runproc
+
 
 class SCR_Test_Runtime:
   # check that we have ClusterShell
@@ -31,7 +32,9 @@ class SCR_Test_Runtime:
       import ClusterShell
     except:
       if scr_const.USE_CLUSTERSHELL == '1':
-        print('scr_test_runtime: ERROR: Unable to import Clustershell as indicated by scr_const.py')
+        print(
+            'scr_test_runtime: ERROR: Unable to import Clustershell as indicated by scr_const.py'
+        )
         return 1
     return 0
 
@@ -42,10 +45,10 @@ class SCR_Test_Runtime:
     if scr_const.USE_CLUSTERSHELL == '1':
       return 0
     pdsh = scr_const.PDSH_EXE
-    argv=['which',pdsh]
+    argv = ['which', pdsh]
     returncode = runproc(argv=argv)[1]
-    if returncode!=0:
-      print('scr_test_runtime: ERROR: \'which '+pdsh+'\' failed')
+    if returncode != 0:
+      print('scr_test_runtime: ERROR: \'which ' + pdsh + '\' failed')
       print('scr_test_runtime: ERROR: Problem using pdsh, see README for help')
       return 1
     return 0
@@ -57,24 +60,30 @@ class SCR_Test_Runtime:
     if scr_const.USE_CLUSTERSHELL == '1':
       return 0
     dshbak = scr_const.DSHBAK_EXE
-    argv=['which',dshbak]
+    argv = ['which', dshbak]
     returncode = runproc(argv=argv)[1]
-    if returncode!=0:
-      print('scr_test_runtime: ERROR: \'which '+dshbak+'\' failed')
-      print('scr_test_runtime: ERROR: Problem using dshbak, see README for help')
+    if returncode != 0:
+      print('scr_test_runtime: ERROR: \'which ' + dshbak + '\' failed')
+      print(
+          'scr_test_runtime: ERROR: Problem using dshbak, see README for help')
       return 1
     return 0
+
 
 # collects return codes of all methods declared in SCR_Test_Runtime
 # returns 0 if OK, returns 1 if any test returns 1
 def scr_test_runtime():
-  tests = [ attr for attr in dir(SCR_Test_Runtime) if not attr.startswith('__') and callable(getattr(SCR_Test_Runtime,attr)) ]
+  tests = [
+      attr for attr in dir(SCR_Test_Runtime) if not attr.startswith('__')
+      and callable(getattr(SCR_Test_Runtime, attr))
+  ]
   rc = []
   # iterate through the methods of the SCR_Test_Runtime class
   for test in tests:
-    rc.append(getattr(SCR_Test_Runtime,test)())
+    rc.append(getattr(SCR_Test_Runtime, test)())
   return 1 if 1 in rc else 0
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
   ret = scr_test_runtime()
   sys.exit(ret)

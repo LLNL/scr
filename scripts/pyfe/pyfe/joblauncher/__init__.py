@@ -12,8 +12,6 @@ from .jsrun import JSRUN
 from .lrun import LRUN
 from .mpirun import MPIRUN
 
-
-
 ####
 ####
 # The AutoJobLauncher returns one of the above classes

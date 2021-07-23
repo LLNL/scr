@@ -5,21 +5,28 @@ import os
 from pyfe import scr_const
 from pyfe.scr_common import runproc
 
+
 class SCRLog:
   def __init__(self, prefix, jobid, jobname=None, user=None, jobstart=None):
-    self.bindir   = scr_const.X_BINDIR # path to SCR bin directory
+    self.bindir = scr_const.X_BINDIR  # path to SCR bin directory
 
-    self.prefix   = prefix # path to SCR_PREFIX
-    self.user     = user
-    self.jobid    = jobid
-    self.jobname  = jobname
+    self.prefix = prefix  # path to SCR_PREFIX
+    self.user = user
+    self.jobid = jobid
+    self.jobname = jobname
     self.jobstart = jobstart
 
-    self.exe_event    = os.path.join(self.bindir, "scr_log_event")
+    self.exe_event = os.path.join(self.bindir, "scr_log_event")
     self.eve_transfer = os.path.join(self.bindir, "scr_log_transfer")
 
   # return list of output datasets
-  def event(self, event_type, dset=None, name=None, start=None, secs=None, note=None):
+  def event(self,
+            event_type,
+            dset=None,
+            name=None,
+            start=None,
+            secs=None,
+            note=None):
     argv = [self.exe_event, '-p', self.prefix]
 
     if self.user is not None:
