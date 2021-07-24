@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <time.h>
 #include "mpi.h"
 
@@ -30,7 +31,7 @@ int main(int argc, char**argv) {
   int secs = 600;
   while (secs>0) {
     time_t seconds = time(NULL);
-    fprintf(outfile,"ld\n",seconds);
+    fprintf(outfile,"%ld\n",seconds);
     fflush(outfile);
     sleep(5);
     secs-=5;
