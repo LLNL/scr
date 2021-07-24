@@ -24,6 +24,8 @@ class SRUN(JobLauncher):
   # returns the process and PID of the launched process
   # as returned by runproc(argv=argv, wait=False)
   def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
+    if type(launcher_args) is str:
+      launcher_args = launcher_args.split()
     if len(launcher_args) == 0:
       return None, -1
     argv = [self.launcher]

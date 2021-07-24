@@ -48,11 +48,15 @@ export SCR_FETCH=0
 export SCR_DEBUG=1
 export SCR_JOB_NAME=testing_job
 
-# Run any scripts in pyfe/tests/test*.py
+# Do tests
 cd ${TESTDIR}
-export SCR_PREFIX=$(pwd)
-export SCR_CACHE_BASE=$(pwd)/cache
+
+# Make the sleeper program
+${MPICC} -o sleeper sleeper.c
+
+# Clear any leftover files
 rm -rf .scr/ ckpt.* output.* cache/
+# Do a predefined run to give expected values
 echo ""
 echo "----------------------"
 echo ""
@@ -60,18 +64,25 @@ echo "Running test_api with CACHE_BYPASS=0, CACHE_SIZE=6, FLUSH=6"
 echo ""
 echo "----------------------"
 echo ""
+export SCR_PREFIX=$(pwd)
+export SCR_CACHE_BASE=$(pwd)/cache
 export SCR_CACHE_BYPASS=0
 export SCR_CACHE_SIZE=6
 export SCR_FLUSH=6
 scr_${launcher}.py ${singleargs} ${SCR_BUILD}/examples/test_api --output 4
 sleep 1
+# Run any scripts in pyfe/tests/test*.py
 for testscript in ${TESTDIR}/test*.py; do
   echo ""
   echo "----------------------"
   echo ""
   echo "${testscript##*/}"
   sleep 1
-  ${testscript}
+  if [ "${testscript##*/}" == "test_watchdog.py" ]; then
+    ${testscript} ${launcher} "${launcherargs}"
+  else
+    ${testscript}
+  fi
   echo ""
   echo "----------------------"
   echo ""
@@ -86,7 +97,6 @@ unset SCR_FLUSH
 
 #exit 0
 
-${MPICC} -o sleeper sleeper.c
 if [ -x "sleeper" ]; then
   echo "Testing the watchdog"
   export SCR_WATCHDOG=1
