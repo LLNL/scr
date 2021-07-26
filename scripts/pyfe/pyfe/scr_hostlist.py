@@ -78,9 +78,73 @@ def numbersfromrange(numstring):
   return ret
 
 
+# return the int value of the rightmost number
+def numfromhost(host=''):
+  number = 0
+  for i in range(len(host)-1,-1,-1):
+    if host[i] == ',' or host[i] == '-' or host[i] == '[':
+      break
+    if host[i].isnumeric():
+      number *= 10
+      number += int(host[i])
+  return number
+
+
+# return a list from a host string
+def splithosts(hosts=''):
+  if type(hosts) is not str:
+    return hosts
+  # split the host string on commas
+  hosts = hosts.split(',')
+  # we could have a host set of the form: host[1,3-5]
+  # we shouldn't have split on commas if they are within brackets
+  parts = []
+  # track whether we are continuing the same part
+  samehost = False
+  i = -1
+  for host in hosts:
+    if samehost:
+      parts[i] += ',' + host
+      if ']' in host:
+        samehost = False
+    else:
+      parts.append(host)
+      i += 1
+      if '[' in host and ']' not in host:
+        samehost = True
+  return parts
+
+
+# sort a string of hosts in ascending order
+def sorthoststring(hosts=''):
+  if type(hosts) is list:
+    hosts = ','.join(hosts)
+  if hosts is None or hosts == '' or ',' not in hosts:
+    return hosts if hosts is not None else ''
+  parts = splithosts(hosts)
+  hosts = [ parts[0] ]
+  leftnum = numfromhost(parts[0])
+  for righti in range(1,len(parts)):
+    number = numfromhost(parts[righti])
+    # we need to put this one earlier
+    if number < leftnum:
+      hosts.append('')
+      for lefti in range(righti-1,-1,-1):
+        if number < numfromhost(hosts[lefti]):
+          hosts[lefti+1] = hosts[lefti]
+        else:
+          hosts[lefti+1] = parts[righti]
+          break
+      if number < numfromhost(hosts[0]):
+        hosts[0] = parts[righti]
+    else:
+      hosts.append(parts[righti])
+      leftnum = number
+  return ','.join(hosts)
+
+
 # rangefromnumbers is a helper function to collapse a list of numbers, if possible.
 # accepts number strings that already have a range ( the '-' operator )
-# *** any number range should be in ascending order ***
 # '1,2,3,4,5,9,11,12' -> '1-5,9,11-12'
 # '1,2,3,5-7' -> '1-3,5-7'
 def rangefromnumbers(numstring):
@@ -146,7 +210,10 @@ def rangefromnumbers(numstring):
 # left fills with 0 if a host starts with 0:
 #   machine[08-10] --> machine08,machine09,machine10
 def expand(nodelist):
-  if nodelist is None or len(nodelist) < 1:
+  if nodelist is None:
+    return []
+  nodelist = sorthoststring(nodelist)
+  if nodelist == '':
     return []
   # list of gathered nodes (string list)
   prefixes = []
@@ -229,7 +296,12 @@ def expand(nodelist):
 # Returns a hostlist string given a list of hostnames
 # compress('rhea2','rhea3','rhea4','rhea6') returns "rhea[2-4,6]"
 def compress_range(nodelist):
-  if nodelist is None or len(nodelist) == 0:
+  if nodelist is None:
+    return ''
+  nodelist = expand(nodelist)
+  nodelist = splithosts(nodelist)
+  print('nodelist is '+str(nodelist))
+  if len(nodelist) == 0:
     return ''
   # dictionary keyed on prefix+'0'+suffix
   # holds a number string
@@ -274,7 +346,7 @@ def compress_range(nodelist):
 # ( will also try to ensure a string is a comma separated string )
 # compress(['rhea2','rhea3','rhea4','rhea6']) returns "rhea2,rhea3,rhea4,rhea6"
 def compress(hostlist):
-  if hostlist is None or len(hostlist) == 0:
+  if hostlist is None:
     return ''
   if type(hostlist) is str:
     # turn any commas (plus space) into just a space
@@ -283,12 +355,16 @@ def compress(hostlist):
     hostlist = re.sub('\s+', ' ', hostlist).strip()
     # put commas into the spaces
     hostlist = re.sub('\s', ',', hostlist)
-    return hostlist
-  return ','.join(hostlist)
+  hostlist = sorthoststring(hostlist)
+  return hostlist
 
 
 # Given references to two lists, subtract elements in list 2 from list 1 and return remainder
 def diff(set1, set2):
+  if type(set1) is str:
+    set1 = set1.split(',')
+  if type(set2) is str:
+    set2 = set2.split(',')
   # we should have two list references
   if set1 is None:
     return []
@@ -308,6 +384,10 @@ def diff(set1, set2):
 
 
 def intersect(set1, set2):
+  if type(set1) is str:
+    set1 = set1.split(',')
+  if type(set2) is str:
+    set2 = set2.split(',')
   if set1 is None or set2 is None:
     return []
   if len(set1) == 0 or len(set2) == 0:
