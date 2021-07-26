@@ -24,6 +24,8 @@ def testwatchdog(launcher, launcher_args):
   rm = AutoResourceManager()
   nodelist = rm.get_job_nodes()
   down_nodes = rm.get_downnodes()
+  if down_nodes is None:
+    down_nodes = ''
   launcher = AutoJobLauncher(launcher)
   launcher_args += ' ./sleeper'
 
@@ -35,12 +37,14 @@ def testwatchdog(launcher, launcher_args):
                                     launcher_args=launcher_args)
   if proc is None:
     print('Error launching the sleeper process!')
-    sys.exit(0)
+    return
 
   print('Each launched sleeper process will output the posix time every 5 seconds.')
-  print('Allowing the sleeper processes to run for 20 seconds . . .')
+  print('Allowing the sleeper processes to run for 15 seconds . . .')
   try:
-    proc.communicate(timeout=20)
+    proc.communicate(timeout=15)
+    print('The program has returned before the timeout, this should not have happened.')
+    return
   except TimeoutExpired as e:
     print('TimeoutExpired exception was caught, this is expected.')
 
@@ -57,8 +61,8 @@ def testwatchdog(launcher, launcher_args):
   print('The process now has the return code:', str(proc.returncode))
   print('The stdout should be blank: \"' + str(output[0]) + '\"')
   print('The stderr should be blank: \"' + str(output[1]) + '\"')
-  print('Sleeping for 20 seconds before checking the output files . . .')
-  time.sleep(20)
+  print('Sleeping for 45 seconds before checking the output files . . .')
+  time.sleep(45)
   print('Examining files named in the manner \"outrank%d\"')
   i = 0
   while True:

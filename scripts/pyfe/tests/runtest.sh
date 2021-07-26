@@ -55,7 +55,7 @@ cd ${TESTDIR}
 ${MPICC} -o sleeper sleeper.c
 
 # Clear any leftover files
-rm -rf .scr/ ckpt.* output.* cache/
+rm -rf .scr/ ckpt.* output.* cache/ outrank*
 # Do a predefined run to give expected values
 echo ""
 echo "----------------------"
@@ -88,7 +88,6 @@ for testscript in ${TESTDIR}/test*.py; do
   echo ""
   sleep 3
 done
-rm -rf .scr/ ckpt.* output.* cache/
 unset SCR_PREFIX
 unset SCR_CACHE_BASE
 unset SCR_CACHE_BYPASS

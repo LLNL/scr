@@ -300,7 +300,6 @@ def compress_range(nodelist):
     return ''
   nodelist = expand(nodelist)
   nodelist = splithosts(nodelist)
-  print('nodelist is '+str(nodelist))
   if len(nodelist) == 0:
     return ''
   # dictionary keyed on prefix+'0'+suffix
