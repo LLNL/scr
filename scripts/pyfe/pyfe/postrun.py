@@ -128,10 +128,6 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
         # Gather files from cache to parallel file system
         print('scr_postrun: Scavenging files from cache for ' + dsetname +
               ' to ' + datadir)
-        print('scr_postrun: ' + bindir + '/scr_scavenge ' +
-              ('--verbose ' if verbose else '') + '--id ' + d + ' --from ' +
-              cntldir + ' --to ' + pardir + ' --jobset ' + scr_nodelist +
-              ' --up ' + upnodes)
         if scr_scavenge(nodeset_job=scr_nodelist,
                         nodeset_up=upnodes,
                         dataset_id=d,
@@ -207,10 +203,6 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
         # Gather files from cache to parallel file system
         print('scr_postrun: Scavenging files from cache for checkpoint ' +
               dsetname + ' to ' + datadir)
-        print('scr_postrun: ' + bindir + '/scr_scavenge ' +
-              ('--verbose ' if verbose else '') + '--id ' + d + ' --from ' +
-              cntldir + ' --to ' + pardir + ' --jobset ' + scr_nodelist +
-              ' --up ' + upnodes)
         if scr_scavenge(nodeset_job=scr_nodelist,
                         nodeset_up=upnodes,
                         dataset_id=d,
