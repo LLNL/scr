@@ -1,10 +1,81 @@
 #! /usr/bin/env python3
+"""
+resmgr/resourcemanager.py
 
-# resourcemanager
-# ResourceManager is the super class of the specific resource manager classes
-# the ResourceManager itself is missing its environment type (unknown)
-# common methods shared between subclasses can be used from here
-# (all environments currently also call the super init)
+ResourceManager is the super class for the resource manager family.
+Node set methods (compress, expand, diff, intersect) are provided by this class.
+If the constant, USE_CLUSTERSHELL, is not '0' and the module ClusterShell is available
+then ClusterShell.NodeSet will be used for these operations.
+
+Attributes
+----------
+clustershell_nodeset - Either False or a pointer to the module ClusterShell.NodeSet
+prefix               - String returned from scr_prefix()
+resmgr               - String representation of the resource manager
+use_watchdog         - A boolean indicating whether to use the watchdog method
+nodes                - Comma separated string of nodes in the current allocation.
+
+Methods
+-------
+init()
+    This method initializes class attributes.
+get_jobstep_id(user, pid) ###
+    This method can be removed if the watchdog works ok. ***
+    Takes the user (string) and the pid.
+    This returned an ID to be used in the kill jobstep command for the watchdog.
+getjobid()
+    This method returns the Job ID as a string.
+    The Job ID is how the resource manager refers to the current allocation.
+    None is returned when the Job ID cannot be determined or is not applicable.
+get_job_nodes()
+    This method returns a comma separated string of nodes in the current allocation.
+    None is returned when this cannot be determined.
+      (If None is returned here the nodelist must be obtainable through scr_env.get_scr_nodelist)
+get_downnodes()
+    This method returns a comma separated string of nodes.
+    These are nodes the resource manager thinks to be down.
+    None may be returned if there are no down nodes or this cannot be determined.
+scr_kill_jobstep(jobid) ###
+    This method can be removed if the watchdog works ok. ***
+    This method has the resource manager kill the jobstep id returned by the above noted method.
+get_scr_end_time()
+    This method returns an integer, the posix time for the end of the current allocation.
+    Return 0 for error, or if the time cannot be determined.
+    Return -1 to indicate that there is no end time / limit.
+list_down_nodes_with_reason(nodes=[],scr_env=None,free=False,cntldir_string=None,cachedir_string=None) ###
+    This method receives a list of nodes to test to determine if they are still up.
+    This method returns a dictionary of nodes, keyed by nodes with reasons as values.
+      e.g., return { 'node1' : 'Failed ping' }
+    *** The parameters of this method should be simplified ***
+
+usewatchdog(use_scr_watchdog)
+    This method implementation is provided by the base class.
+    This method is called with an optional Boolean parameter.
+    If the parameter is not given, the current value of the attribute is returned.
+    If the parameter is given, the attribute is assigned to the value of the parameter.
+compress_hosts(hostnames)
+    This method implementation is provided by the base class.
+    This method receives a list (or string) or hostnames.
+    The host names will be converted to a compressed format, e.g., 'node[1-7]'
+    This method returns a comma separated list of hosts as a string.
+expand_hosts(hostnames='')
+    This method implementation is provided by the base class.
+    This method receives a string (or list) of hostnames.
+    The hostnames will be returned as a list in expanded format, e.g., [node1, node2, node3]
+diff_hosts(set1=[],set2=[])
+    This method implementation is provided by the base class.
+    This method receives 2 lists (or strings) of hostnames.
+    A list will be returned of the set difference of these 2 lists.
+intersect_hosts(set1=[], set2=[])
+    This method implementation is provided by the base class.
+    This method receives 2 lists (or strings) of hostnames.
+    A list will be returned of the set intersection of these 2 lists.
+get_scavenge_nodelists(upnodes, downnodes)
+    This method implementation is provided by the base class.
+    This method receives 2 nodelist strings (or lists).
+    This returns 2 nodelist strings which will be provided to the job launcher during scavenge operations.
+    The returned strings are a comma separated list of upnodes and a space separated list of downnodes.
+"""
 
 import os
 from pyfe import scr_const, scr_hostlist
@@ -95,10 +166,10 @@ class ResourceManager(object):
 
   # Returns a hostlist string given a list of hostnames
   def compress_hosts(self, hostnames=[]):
-    if hostnames is None or len(hostnames) == 0:
-      return ''
     if type(hostnames) is str:
       hostnames = hostnames.split(',')
+    if hostnames is None or len(hostnames) == 0:
+      return ''
     if self.clustershell_nodeset != False:
       nodeset = self.clustershell_nodeset.NodeSet.fromlist(hostnames)
       return str(nodeset)
@@ -106,10 +177,10 @@ class ResourceManager(object):
 
   # Returns a list of hostnames given a hostlist string
   def expand_hosts(self, hostnames=''):
-    if hostnames is None or hostnames == '':
-      return []
     if type(hostnames) is list:
       hostnames = ','.join(hostnames)
+    if hostnames is None or hostnames == '':
+      return []
     if self.clustershell_nodeset != False:
       nodeset = self.clustershell_nodeset.NodeSet(hostnames)
       nodeset = [node for node in nodeset]
@@ -166,6 +237,10 @@ class ResourceManager(object):
 
   # each scavenge operation needs upnodes and downnodes_spaced
   def get_scavenge_nodelists(self, upnodes='', downnodes=''):
+    if type(upnodes) is list:
+      upnodes = ','.join(upnodes)
+    if type(downnodes) is list:
+      downnodes = ','.join(downnodes)
     # get nodesets
     jobnodes = self.get_job_nodes()
     if jobnodes is None:

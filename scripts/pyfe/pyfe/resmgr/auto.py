@@ -1,13 +1,16 @@
 #! /usr/bin/env python3
+"""
+resmgr/auto.py
+AutoResourceManager is called to return the appropriate ResourceManager class
 
-# auto.py
+This is the class called to obtain an instance of a resource manager.
 
-# AutoResourceManager is class constructor for the specific resource managers
-# the AutoResourceManager constructor takes a resmgr argument
-# resmgr can be: 'SLURM', 'LSF', 'APRUN', 'PMIX', None
-# if resmgr is None we check scr_const.SCR_RESOURCE_MANAGER
-# returns appropriate resource manager class according to resmgr value
-# returns an ResourceManager object if the resource manager was not determined
+To add a new resource manager:
+* Insert the new class name at the end of pyfe.resmgr import statement
+* Insert the condition and return statement for your new resource manager within __new__
+
+The resmgr string normally comes from the value of scr_const.SCR_RESOURCE_MANAGER
+"""
 
 from pyfe import scr_const
 

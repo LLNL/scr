@@ -41,9 +41,11 @@ class LSF(ResourceManager):
         hostlist = list(set(lines[1:]))
         hostlist = self.compress_hosts(hostlist)
         return hostlist
-      except:
+      except Exception as e:
         # failed to read file
-        pass
+        print('ERROR: LSF.get_job_nodes')
+        print(e)
+    return None
 
     # fall back to try LSB_HOSTS
     hosts = os.environ.get('LSB_HOSTS')
@@ -97,7 +99,7 @@ class LSF(ResourceManager):
       pieces = re.split(r'(^\s*)(\d+):(\d+)\s+', line)
       if len(pieces) < 3:
         continue
-      print(line)
+      #print(line)
 
       # get current secs since epoch
       secs_now = int(time())
