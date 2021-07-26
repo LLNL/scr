@@ -78,7 +78,7 @@ The default shell used by subprocess is /bin/sh. If youre using other shells, li
 # to return the pid requires the shell argument of subprocess.Popen to be false (default)
 # for the first return value (output) -> specify getstdout to get the stdout, getstderr to get stderr
 # specifying both getstdout and getstderr=True returns a list where [0] is stdout and [1] is stderr
-def runproc(argv, wait=True, getstdout=False, getstderr=False):
+def runproc(argv, wait=True, getstdout=False, getstderr=False, verbose=False):
   # allow caller to pass command as a string, as in:
   #   "ls -lt" rather than ["ls", "-lt"]
   # this does not support arguments that may have embedded spaces
@@ -90,6 +90,10 @@ def runproc(argv, wait=True, getstdout=False, getstderr=False):
   if len(argv) < 1:
     return None, None
   try:
+    # if verbose, print the command we will run to stdout
+    if verbose:
+      print(" ".join(argv))
+
     runproc = Popen(argv,
                     bufsize=1,
                     stdin=None,
