@@ -96,15 +96,31 @@ class ResourceManager(object):
     self.use_watchdog = False
     self.nodes = self.get_job_nodes()
 
-  # no arg -> usewatchdog will return True or False for whether or not watchdog is enabled
-  # boolean arg -> default value is to set self.use_watchdog = argument
-  # override this method for a specific resource manager to disable use of scr_watchdog
   def usewatchdog(self, use_scr_watchdog=None):
+    """Set or get the use_scr_watchdog attribute
+
+    Given a boolean parameter will set the use_scr_watchdog attribute
+    Called without a parameter value will return the use_scr_watchdog attribute
+
+    Returns
+    -------
+    bool
+        use_scr_watchdog
+        or None if parameter given and attribute was set
+    """
     if use_scr_watchdog is None:
       return self.use_watchdog
     self.use_watchdog = use_scr_watchdog
 
   def get_jobstep_id(self, user='', pid=-1):
+    """Return an identifier for the most recently launched task.
+
+    Returns
+    -------
+    str
+        jobstep id
+        or None if unknown or error
+    """
     return None
 
   def getjobid(self):
@@ -114,12 +130,10 @@ class ResourceManager(object):
     -------
     str
         job allocation id
+        or None if unknown or error
     """
-    # failed to read jobid from environment,
-    # assume user is running in test mode
     return None
 
-  # get node list
   def get_job_nodes(self):
     """Return compute nodes in allocation.
 
@@ -130,6 +144,7 @@ class ResourceManager(object):
     -------
     str
         list of allocation compute nodes in string format
+        or None if unknown or error
     """
     return None
 
@@ -148,6 +163,14 @@ class ResourceManager(object):
     return None
 
   def scr_kill_jobstep(self, jobid=-1):
+    """Kills task identified by jobid parameter.
+
+    Returns
+    -------
+    int
+        return code of the kill command
+        or 1 if jobid not specified or other error
+    """
     return 1
 
   def get_scr_end_time(self):
@@ -164,8 +187,16 @@ class ResourceManager(object):
     """
     return 0
 
-  # Returns a hostlist string given a list of hostnames
   def compress_hosts(self, hostnames=[]):
+    """Return hostlist string, where the hostlist is in a compressed form.
+
+    Input parameter, hostnames, is a list or a comma separated string.
+
+    Returns
+    -------
+    str
+        comma separated hostlist in compressed form, e.g., 'node[1-4],node7'
+    """
     if type(hostnames) is str:
       hostnames = hostnames.split(',')
     if hostnames is None or len(hostnames) == 0:
@@ -175,8 +206,16 @@ class ResourceManager(object):
       return str(nodeset)
     return scr_hostlist.compress_range(hostnames)
 
-  # Returns a list of hostnames given a hostlist string
   def expand_hosts(self, hostnames=''):
+    """Return list of hosts, where each element is a single host.
+
+    Input parameter, hostnames, is a comma separated string or a list.
+
+    Returns
+    -------
+    list
+        list of expanded hosts, e.g., ['node1','node2','node3']
+    """
     if type(hostnames) is list:
       hostnames = ','.join(hostnames)
     if hostnames is None or hostnames == '':
@@ -187,8 +226,16 @@ class ResourceManager(object):
       return nodeset
     return scr_hostlist.expand(hostnames)
 
-  # Given references to two lists, subtract elements in list 2 from list 1 and return remainder
   def diff_hosts(self, set1=[], set2=[]):
+    """Return the set difference from 2 host lists
+
+    Input parameters, set1 and set2, are lists or comma separated strings.
+
+    Returns
+    -------
+    list
+        elements of set1 that do not appear in set2
+    """
     if type(set1) is str:
       set1 = set1.split(',')
     if type(set2) is str:
@@ -208,8 +255,16 @@ class ResourceManager(object):
       return set1
     return scr_hostlist.diff(set1=set1, set2=set2)
 
-  # Return the intersection of two host lists
   def intersect_hosts(self, set1=[], set2=[]):
+    """Return the set intersection of 2 host lists
+
+    Input parameters, set1 and set2, are lists or comma separated strings.
+
+    Returns
+    -------
+    list
+        elements of set1 that also appear in set2
+    """
     if type(set1) is str:
       set1 = set1.split(',')
     if type(set2) is str:
@@ -233,10 +288,32 @@ class ResourceManager(object):
                                   free=False,
                                   cntldir_string=None,
                                   cachedir_string=None):
+    """Return down nodes with the reason they are down
+
+    Input parameter, nodes, is a list or a comma separated string.
+    ### Other input parameters? scr_env?
+    ### Could pass in a set of down nodes reported from scr_env to (add to)/(ignore).
+
+    Returns
+    -------
+    dict
+        dictionary of reported down nodes, keyed by node with reasons as values
+    """
     return {}
 
   # each scavenge operation needs upnodes and downnodes_spaced
   def get_scavenge_nodelists(self, upnodes='', downnodes=''):
+    """Return formatted upnodes and downnodes for joblaunchers' scavenge operation
+
+    Input parameters upnodes and downnodes are comma separated strings or lists.
+
+    Returns
+    -------
+    str
+        comma separated list of up nodes
+    str
+        space separated list of down nodes
+    """
     if type(upnodes) is list:
       upnodes = ','.join(upnodes)
     if type(downnodes) is list:

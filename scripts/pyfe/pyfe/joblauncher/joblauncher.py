@@ -87,17 +87,27 @@ class JobLauncher(object):
       except:
         pass
 
-  # if a job launcher would like to perform any operations before scr_prerun
   def prepareforprerun(self):
+    """Called before scr_prerun
+
+    Gives a job launcher an opportunity to perform any preamble work
+
+    Returns
+    -------
+    None
+    """
     pass
 
-  # some launchers use only up or down nodes.
-  # the run_cmd or restart_cmd will be appended to launcher_args already
-  # returns the process and PID of the launched process
-  # as returned by runproc(argv=argv, wait=False)
   def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
-    # an empty argv will just immediately return
-    # could return something like: ['echo','unknown launcher']
+    """Launch job specified by launcher_args using up_nodes and down_nodes.
+
+    Returns
+    -------
+    tuple (Popen object, int)
+        Returns the same value returned by scr_common.runproc(argv, wait=False)
+        returns (process, process id)
+        or (None, -1) on error
+    """
     return None, -1
 
   #####
