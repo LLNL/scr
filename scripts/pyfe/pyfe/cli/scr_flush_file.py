@@ -31,11 +31,23 @@ class SCRFlushFile:
 
   # determine whether this dataset needs to be flushed
   def need_flush(self, d):
-    rc = runproc(self.exe + " --need-flush " + d)[1]
+    rc = runproc(self.exe + " --need-flush " + str(d))[1]
     return (rc == 0)
 
   # return name of specified dataset
   def name(self, d):
-    name, rc = runproc(self.exe + " --name " + d, getstdout=True)
+    name, rc = runproc(self.exe + " --name " + str(d), getstdout=True)
     if rc == 0:
       return name.rstrip()
+
+  # return the latest dataset id, or None
+  def latest(self):
+    dset, rc = runproc(self.exe + " --latest", getstdout=True)
+    if rc == 0:
+      return dset.rstrip()
+
+  # return the location string for the given dataset id
+  def location(self, d):
+    dset, rc = runproc(self.exe + " --location " + str(d), getstdout=True)
+    if rc == 0:
+      return dset.rstrip()
