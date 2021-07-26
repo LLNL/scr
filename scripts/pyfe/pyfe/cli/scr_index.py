@@ -10,14 +10,25 @@ class SCRIndex:
   def __init__(self, prefix):
     self.bindir = scr_const.X_BINDIR  # path to SCR bin directory
     self.prefix = prefix  # path to SCR_PREFIX
-    self.exe = os.path.join(self.bindir, "scr_index") + " --prefix " + prefix
+    self.exe = os.path.join(self.bindir, "scr_index") + " --prefix " + str(prefix)
+
+  # capture and return verbatim output from the --list command
+  def list(self):
+    output, rc = runproc(self.exe + " --list", getstdout=True)
+    if rc == 0:
+      return output
 
   # make named dataset as current
   def current(self, name):
-    rc = runproc(self.exe + " --current " + name)[1]
+    rc = runproc(self.exe + " --current " + str(name))[1]
+    return (rc == 0)
+
+  # add dataset to index file (must already exist)
+  def add(self, dset):
+    rc = runproc(self.exe + " --add " + str(dset))[1]
     return (rc == 0)
 
   # run build command to inspect and rebuild dataset files
   def build(self, dset):
-    rc = runproc(self.exe + " --build " + dset)[1]
+    rc = runproc(self.exe + " --build " + str(dset))[1]
     return (rc == 0)

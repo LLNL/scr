@@ -10,7 +10,7 @@ class SCRFlushFile:
   def __init__(self, prefix):
     self.bindir = scr_const.X_BINDIR  # path to SCR bin directory
     self.prefix = prefix  # path to SCR_PREFIX
-    self.exe = os.path.join(self.bindir, "scr_flush_file") + " --dir " + prefix
+    self.exe = os.path.join(self.bindir, "scr_flush_file") + " --dir " + str(prefix)
 
   # return list of output datasets
   def list_dsets_output(self):
@@ -23,7 +23,7 @@ class SCRFlushFile:
   def list_dsets_ckpt(self, before=None):
     cmd = self.exe + " --list-ckpt"
     if before:
-      cmd = cmd + " --before " + before
+      cmd = cmd + " --before " + str(before)
     dsets, rc = runproc(cmd, getstdout=True)
     if rc == 0:
       return dsets.split()
@@ -51,3 +51,13 @@ class SCRFlushFile:
     dset, rc = runproc(self.exe + " --location " + str(d), getstdout=True)
     if rc == 0:
       return dset.rstrip()
+
+  # resume a transfer of specified dataset id, used in poststage
+  def resume(self, d):
+    dset, rc = runproc(self.exe + " --resume --name " + str(d))[1]
+    return (rc == 0)
+
+  # create summary file for specified dataset id, used in prestage
+  def write_summary(self, d):
+    dset, rc = runproc(self.exe + " --summary --name " + str(d))[1]
+    return (rc == 0)
