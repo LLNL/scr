@@ -7,7 +7,7 @@ from pyfe.scr_common import runproc
 
 
 class SCRLog:
-  def __init__(self, prefix, jobid, jobname=None, user=None, jobstart=None):
+  def __init__(self, prefix, jobid, jobname=None, user=None, jobstart=None, verbose=False):
     self.bindir = scr_const.X_BINDIR  # path to SCR bin directory
 
     self.prefix = prefix  # path to SCR_PREFIX
@@ -15,6 +15,7 @@ class SCRLog:
     self.jobid = jobid
     self.jobname = jobname
     self.jobstart = jobstart
+    self.verbose = verbose
 
     self.exe_event = os.path.join(self.bindir, "scr_log_event")
     self.eve_transfer = os.path.join(self.bindir, "scr_log_transfer")
@@ -59,5 +60,5 @@ class SCRLog:
     if note is not None:
       argv.extend(['-N', str(note)])
 
-    rc = runproc(argv)[1]
+    rc = runproc(argv, verbose=self.verbose)[1]
     return (rc == 0)
