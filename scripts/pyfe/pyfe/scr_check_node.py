@@ -22,28 +22,30 @@ def scr_check_node(free=False, cntl_list=None, cache_list=None):
   checkdict = {}
   for atype in types:
     if (atype == 'cntl'
-        and cntl_list is not None) or (atype == 'cache'
-                                       and cache_list is not None):
-      checkdict[atype] = {}
-      dirs = []
-      if atype == 'cntl':
-        dirs = cntl_list.split(',')
+        and cntl_list is None) or (atype == 'cache'
+                                       and cache_list is None):
+      types.remove(atype)
+      continue
+    checkdict[atype] = {}
+    dirs = []
+    if atype == 'cntl':
+      dirs = cntl_list.split(',')
+    else:
+      dirs = cache_list.split(',')
+    for adir in dirs:
+      if adir[-1] == '/':
+        adir = adir[:-1]
+      if ':' in adir:
+        parts = adir.split(':')
+        checkdict[atype][parts[0]] = {}
+        checkdict[atype][parts[0]]['bytes'] = parts[1]
       else:
-        dirs = cache_list.split(',')
-      for adir in dirs:
-        if adir[-1] == '/':
-          adir = adir[:-1]
-        if ':' in adir:
-          parts = adir.split(':')
-          checkdict[atype][parts[0]] = {}
-          checkdict[atype][parts[0]]['bytes'] = parts[1]
-        else:
-          checkdict[atype][adir] = {}
-          checkdict[atype][adir]['bytes'] = None
+        checkdict[atype][adir] = {}
+        checkdict[atype][adir]['bytes'] = None
 
   # check that we can access the directory
   for atype in checkdict:
-    dirs = checkdict[atype].keys()
+    dirs = list(checkdict[atype])
     # check that we can access the directory
     # (perl code ran an ls)
     # the docs suggest not to ask if access available, but to just try to access:
