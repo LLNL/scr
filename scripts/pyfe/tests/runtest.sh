@@ -16,9 +16,9 @@
 #      use any other word to only do the bottom of ./runtest.sh
 
 # Set the launcher for the launch script to use below
-launcher="srun"
+launcher="jsrun"
 # Set number of nodes in allocation (min 2)
-numnodes="4"
+numnodes="2"
 # Set mpi C compiler for the sleeper/watchdog test
 MPICC="mpicc"
 
@@ -37,8 +37,8 @@ elif [ $launcher == "lrun" ]; then
   launcherargs="-n${numnodes} -N${numnodes}"
   singleargs="-n1 -N1"
 elif [ $launcher == "jsrun" ]; then
-  launcherargs="--tasks_per_rs=1"
-  singleargs="--tasks_per_rs=1"
+  launcherargs="--cpu_per_rs 1 --np ${numnodes}"
+  singleargs="--cpu_per_rs 1 --np 1"
 elif [ $launcher == "aprun" ]; then
   nodelist=$(scr_env.py --nodes)
   launcherargs="-L ${nodelist}"

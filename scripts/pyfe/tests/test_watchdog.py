@@ -20,6 +20,33 @@ import pyfe
 from pyfe.resmgr import AutoResourceManager
 from pyfe.joblauncher import AutoJobLauncher
 
+def checkfiletimes():
+  good = True
+  i = 0
+  while True:
+    try:
+      filename = 'outrank' + str(i)
+      with open(filename,'r') as infile:
+        contents = infile.readlines()
+        # the 'last' line will be blank
+        lastline = contents[-2].strip()
+        try:
+          timeval = int(lastline)
+          elapsed = int(time.time()) - timeval
+          print('Rank', str(i), 'elapsed time:', str(elapsed))
+          if elapsed < 45:
+            good = False
+        except Exception as e:
+          print(e)
+          print('Error converting \"' + lastline + '\" to an integer.')
+      i += 1
+    except:
+      print('Unable to open file for rank', str(i))
+      print('This is expected when the rank goes out of bounds.')
+      print('This concludes the watchdog test.')
+      break
+  return good
+
 def testwatchdog(launcher, launcher_args):
   rm = AutoResourceManager()
   nodelist = rm.get_job_nodes()
@@ -64,27 +91,14 @@ def testwatchdog(launcher, launcher_args):
   print('Sleeping for 45 seconds before checking the output files . . .')
   time.sleep(45)
   print('Examining files named in the manner \"outrank%d\"')
-  i = 0
-  while True:
-    try:
-      filename = 'outrank' + str(i)
-      with open(filename,'r') as infile:
-        contents = infile.readlines()
-        # the 'last' line will be blank
-        lastline = contents[-2].strip()
-        try:
-          timeval = int(lastline)
-          elapsed = int(time.time()) - timeval
-          print('Rank', str(i), 'elapsed time:', str(elapsed))
-        except Exception as e:
-          print(e)
-          print('Error converting \"' + lastline + '\" to an integer.')
-      i += 1
-    except:
-      print('Unable to open file for rank', str(i))
-      print('This is expected when the rank goes out of bounds.')
-      print('This concludes the watchdog test.')
+  for i in range(3):
+    if checkfiletimes():
       break
+    if i<2:
+      print('Test wasn\'t good, sleeping another 45 seconds . . .')
+      time.sleep(45)
+    else:
+      print('watchdog test not good :(')
 
 if __name__ == '__main__':
   if len(sys.argv)!=3:
