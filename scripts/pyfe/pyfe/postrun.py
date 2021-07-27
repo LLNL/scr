@@ -80,7 +80,10 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
   ret = 1
   if upnodes != '':
     cntldir = list_dir(runcmd='control', scr_env=scr_env, bindir=bindir)
-    # TODO: check that we have a control directory
+    # list_dir returns 1 or a space separated list of directories
+    if cntldir == 1:
+      print('scr_postrun: Unable to determine a control directory')
+      return 1
 
     # TODODSET: avoid scavenging things unless it's in this list
     # get list of possible datasets
@@ -97,7 +100,9 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
     succeeded = []
 
     # track the id of the first one we fail to get
-    failed_dataset = None
+    # this will be used to list dsets --before "failed_dataset"
+    # if there is no failure, we pass --before "0"
+    failed_dataset = '0'
 
     # scavenge all output sets in ascending order
     print('scr_postrun: Looking for output sets')

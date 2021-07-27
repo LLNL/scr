@@ -56,6 +56,7 @@ def list_down_nodes(reason=False,
         nodes=nodes, nodeset_down=scr_env.resmgr.expand_hosts(nodeset_down))
 
   # get strings here for the resmgr/nodetests.py
+  # these are space separated strings with paths
   cntldir_string = list_dir(base=True,
                             runcmd='control',
                             scr_env=scr_env,

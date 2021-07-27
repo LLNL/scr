@@ -51,14 +51,14 @@ def list_dir(user=None,
     elif type(bases) is not None:
       bases = [bases]
     else:
-      value = []
+      bases = []
   if len(bases) == 0:
     print('INVALID')
     return 1
 
   # get the user/job directory
   suffix = ''
-  if base is False:
+  if base == False:
     # if not specified, read username from environment
     if user is None:
       user = scr_env.get_user()
