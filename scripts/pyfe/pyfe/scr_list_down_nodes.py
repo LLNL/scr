@@ -80,4 +80,4 @@ if __name__ == '__main__':
                           nodeset=args['[nodeset]'],
                           scr_env=scr_env,
                           log=log)
-    print(str(ret), end='')  ### remove trailing newlines?
+    sys.exit(ret)

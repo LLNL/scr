@@ -62,6 +62,11 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
   # identify what nodes are still up
   upnodes = scr_nodelist
   downnodes = list_down_nodes(nodeset=upnodes, scr_env=scr_env)
+
+  if verbose:
+    print('scr_postrun: upnodes:   ' + str(upnodes))
+    print('scr_postrun: downnodes: ' + str(downnodes))
+
   # list_down_nodes returns 0 for none, 1 for error
   if type(downnodes) is int:
     downnodes = ''

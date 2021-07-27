@@ -298,8 +298,8 @@ def expand(nodelist):
 def compress_range(nodelist):
   if nodelist is None:
     return ''
-  nodelist = expand(nodelist)
-  nodelist = splithosts(nodelist)
+  if type(nodelist) is str:
+    nodelist = nodelist.split(',')
   if len(nodelist) == 0:
     return ''
   # dictionary keyed on prefix+'0'+suffix

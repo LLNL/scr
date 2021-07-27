@@ -73,9 +73,17 @@ def scr_scavenge(nodeset_job=None,
   output = prefixdir + '/.scr/scr.dataset.' + dataset_id + '/scr_scavenge.pdsh.o' + jobid
   error = prefixdir + '/.scr/scr.dataset.' + dataset_id + '/scr_scavenge.pdsh.e' + jobid
 
+  if verbose:
+    print('scr_scavenge: nodeset_up =   ' + nodeset_up)
+    print('scr_scavenge: nodeset_down = ' + nodeset_down)
+
   # format up and down nodesets for the scavenge command
   nodeset_up, nodeset_down = scr_env.resmgr.get_scavenge_nodelists(
       upnodes=nodeset_up, downnodes=nodeset_down)
+
+  if verbose:
+    print('scr_scavenge: upnodes =          ' + nodeset_up)
+    print('scr_scavenge: downnodes_spaced = ' + nodeset_down)
 
   # log the start of the scavenge operation
   if log:
