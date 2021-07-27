@@ -34,13 +34,13 @@ def list_down_nodes(reason=False,
   resourcemgr = scr_env.resmgr
   if type(nodeset) is list:
     nodeset = ','.join(nodeset)
-  elif nodeset is None or nodeset == '':
+  elif nodeset is None:
     nodeset = resourcemgr.get_job_nodes()
-    if nodeset is None or nodeset == '':
-      print(
-          'scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.'
-      )
-      return 1
+  if nodeset is None or nodeset == '':
+    print(
+        'scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.'
+    )
+    return 1
 
   param = scr_env.param
 
