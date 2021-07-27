@@ -160,6 +160,21 @@ spack-scr-catalyst:
     - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
     - make
 
+TESTING-script-catalyst:
+  stage: test
+  when: manual
+  tags:
+    - catalyst
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pbatch'
+  script:
+    - cd ${WORK_DIR_BASE}
+    - git clone file://${SRC_DIR} scr-test
+    - cd scr-test
+    - ./bootstrap.sh --dev
+    - csh testing/TESTING.csh
 
 buildjob-quartz:
   stage: build
@@ -288,6 +303,22 @@ spack-scr-quartz:
     - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
     - make
     
+TESTING-script-quartz:
+  stage: test
+  when: manual
+  tags:
+    - quartz
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pbatch'
+  script:
+    - cd ${WORK_DIR_BASE}
+    - git clone file://${SRC_DIR} scr-test
+    - cd scr-test
+    - ./bootstrap.sh --dev
+    - csh testing/TESTING.csh
+
 testdist-quartz:
   stage: testdist
   when: manual
@@ -511,3 +542,4 @@ TESTING-script-lassen:
     - cd scr-test
     - ./bootstrap.sh --dev
     - csh testing/TESTING.csh
+
