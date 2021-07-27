@@ -8,29 +8,27 @@ if 'pyfe' not in sys.path:
   sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
   import pyfe
 
-import argparse, subprocess
+import argparse
 from datetime import datetime
 from time import time
-from pyfe import scr_const
+
 from pyfe.scr_common import tracefunction, scr_prefix
 from pyfe.scr_test_runtime import scr_test_runtime
 
 
 def scr_prerun(prefix=None):
+  # bail out if not enabled
   val = os.environ.get('SCR_ENABLE')
   if val is None or val == '0':
     return 0
-  val = os.environ.get('SCR_DEBUG')
+
   # enable verbosity
+  val = os.environ.get('SCR_DEBUG')
   if val is not None and int(val) > 0:
     sys.settrace(tracefunction)
 
   start_time = datetime.now()
   start_secs = int(time())
-  bindir = scr_const.X_BINDIR
-
-  pardir = scr_prefix() if prefix is None else prefix
-
   print('scr_prerun: Started: ' + str(start_time))
 
   # check that we have all the runtime dependences we need
@@ -38,9 +36,10 @@ def scr_prerun(prefix=None):
     print('scr_prerun: exit code: 1')
     return 1
 
+  pardir = scr_prefix() if prefix is None else prefix
+
   # create the .scr subdirectory in the prefix directory
-  #mkdir -p ${pardir}/.scr
-  os.makedirs(pardir + '/.scr', exist_ok=True)
+  os.makedirs(os.path.join(pardir, '.scr'), exist_ok=True)
 
   # TODO: It would be nice to clear the cache and control directories
   # here in preparation for the run.  However, a simple rm -rf is too
@@ -54,11 +53,12 @@ def scr_prerun(prefix=None):
   # requested the job to halt
   # remove files: ${pardir}/.scr/{flush.scr,nodes.scr}
   try:
-    os.remove(pardir + '/.scr/flush.scr')
+    os.remove(os.path.join(pardir, '.scr', 'flush.scr'))
   except:  # error on doesn't exist / etc ...
     pass
+
   try:
-    os.remove(pardir + '/.scr/nodes.scr')
+    os.remove(os.path.join(pardir, '.scr', 'nodes.scr'))
   except:
     pass
 
