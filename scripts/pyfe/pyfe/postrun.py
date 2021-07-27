@@ -62,13 +62,16 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
   # identify what nodes are still up
   upnodes = scr_nodelist
   downnodes = list_down_nodes(nodeset=upnodes, scr_env=scr_env)
+  # list_down_nodes returns 0 for none, 1 for error
   if type(downnodes) is int:
     downnodes = ''
     #if downnodes==1: # returned error
-    #  return 1 # probably should return error (?)
-    #else: #returned 0, no error and no down nodes
+    #  return 1 # should we return an error here (?)
+    #else: #returned 0, there were no down nodes
     #  downnodes = ''
-  else:  # returned a list of down nodes
+  # otherwise a comma separated string of downnodes was returned
+  else:
+    # subtract the downnodes from the upnodes
     upnodes = scr_glob_hosts(minus=upnodes + ':' + downnodes,
                              resmgr=scr_env.resmgr)
   print('scr_postrun: UPNODES:   ' + upnodes)

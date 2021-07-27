@@ -32,15 +32,15 @@ def list_down_nodes(reason=False,
 
   # check that we have a nodeset before going any further
   resourcemgr = scr_env.resmgr
-  if nodeset is None or len(nodeset) == 0:
+  if type(nodeset) is list:
+    nodeset = ','.join(nodeset)
+  elif nodeset is None or len(nodeset) == 0:
     nodeset = resourcemgr.get_job_nodes()
-    if nodeset is None or len(nodeset) == 0:
+    if nodeset is None or nodeset == '':
       print(
           'scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.'
       )
       return 1
-  if type(nodeset) is not str:
-    nodeset = ','.join(nodeset)
 
   param = scr_env.param
 
@@ -93,6 +93,7 @@ def list_down_nodes(reason=False,
       return "\n".join(reasons)
     else:
       # simply print the list of down node in range syntax
+      # cast unavailable to a list to get only the keys of the dictionary
       return scr_env.resmgr.compress_hosts(list(unavailable))
 
   # otherwise, don't print anything and exit with 0

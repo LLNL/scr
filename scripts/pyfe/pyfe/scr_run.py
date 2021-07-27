@@ -220,18 +220,21 @@ def scr_run(launcher='',
     down_nodes = list_down_nodes(free=free_flag,
                                  nodeset_down=down_nodes,
                                  scr_env=scr_env)
-    # returns 0 for none, 1 for error, or a string
-    # could handle error here
+    # list_down_nodes returns 0 for none, 1 for error
+    # could handle an error here, or just continue
     if type(down_nodes) is int:
       down_nodes = ''
-    if down_nodes != '':
+    # a comma separated string of down nodes is returned otherwise
+    else: #if down_nodes != '':
       # print the reason for the down nodes, and log them
-      list_down_nodes(reason=True,
+      # when reason == True a string formatted for printing will be returned
+      printstring = list_down_nodes(reason=True,
                       free=free_flag,
                       nodeset_down=down_nodes,
                       runtime_secs='0',
                       scr_env=scr_env,
                       log=log)
+      print(printstring)
 
       # if this is the first run, we hit down nodes right off the bat, make a record of them
       if attempts == 0:
@@ -270,6 +273,7 @@ def scr_run(launcher='',
     launch_cmd = launcher_args.copy()
     if run_cmd != '':
       launch_cmd.append(run_cmd)
+
     if restart_cmd != '':
       argv = [launcher]
       argv.extend(launcher_args)
@@ -304,11 +308,14 @@ def scr_run(launcher='',
     log.event('RUN_END', note='run=' + str(attempts), secs=str(run_secs))
 
     # check for and log any down nodes
-    list_down_nodes(reason=True,
+    # logging happens within list_down_nodes
+    # a string formatted for printing is returned when reason == True
+    printstring = list_down_nodes(reason=True,
                     nodeset_down=keep_down,
                     runtime_secs=str(run_secs),
                     scr_env=scr_env,
                     log=log)
+    print(printstring)
 
     # decrement retry counter
     runs -= 1
