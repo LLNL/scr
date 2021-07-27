@@ -81,12 +81,13 @@ def numbersfromrange(numstring):
 # return the int value of the rightmost number
 def numfromhost(host=''):
   number = 0
+  place = 1
   for i in range(len(host)-1,-1,-1):
     if host[i] == ',' or host[i] == '-' or host[i] == '[':
       break
     if host[i].isnumeric():
-      number *= 10
-      number += int(host[i])
+      number += int(host[i]) * place
+      place *= 10
   return number
 
 
@@ -298,8 +299,8 @@ def expand(nodelist):
 def compress_range(nodelist):
   if nodelist is None:
     return ''
-  if type(nodelist) is str:
-    nodelist = nodelist.split(',')
+  nodelist = sorthoststring(nodelist)
+  nodelist = splithosts(nodelist)
   if len(nodelist) == 0:
     return ''
   # dictionary keyed on prefix+'0'+suffix

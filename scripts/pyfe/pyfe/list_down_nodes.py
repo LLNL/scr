@@ -34,7 +34,7 @@ def list_down_nodes(reason=False,
   resourcemgr = scr_env.resmgr
   if type(nodeset) is list:
     nodeset = ','.join(nodeset)
-  elif nodeset is None:
+  if not nodeset:
     nodeset = resourcemgr.get_job_nodes()
   if nodeset is None or nodeset == '':
     print(

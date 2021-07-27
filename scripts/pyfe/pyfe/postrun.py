@@ -36,7 +36,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
   # pass prefix via command line
   if prefix_dir is not None:
     pardir = prefix_dir
-  else:
+  if not pardir:
     pardir = scr_prefix()
 
   # check that we have the parallel file system prefix
