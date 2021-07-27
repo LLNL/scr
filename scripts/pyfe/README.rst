@@ -20,17 +20,19 @@ Python equivalents of perl/bash scripts in scr/scripts/*
 | or ~/scr/install/bin/pyfe/pyfe can be added to the PATH and scripts ran directly:  
 | ``$ scr_srun.py [args]``  
 |  
-| For testing: ~/scr/scripts/pyfe/test.sh will be copied to ~/scr/install/bin/pyfe
-| In an allocation for 4 nodes run ./test.sh while in ~/scr/install/bin/pyfe  
-| *Specify the launcher to use near the top of the script*  
-| There is a sleep in scr_run.py (~line 308) which can be reduced for testing  
-| ``$ salloc -N 4``
-| ``$ cd ~/scr/install/bin/pyfe``
-| ``$ ./test.sh``
+| For testing, the directory ~/scr/install/bin/pyfe/tests/ will be created  
+| Ensure these variables at the top of runtest.sh are appropriate values:  
+| *launcher, numnodes, MPICC*  
+| *(There is a sleep in scr_run.py (~line 308) which can be reduced for testing)*  
+| From an allocation, run the test script:  
+| ``$ cd ~/scr/install/bin/pyfe``  
+| ``$ ./runtest.sh``  
+| To add additional test scripts, place a file whose name matches: test*.py  
+| in ~/scr/install/bin/pyfe/tests/  
 |  
-| The scripts will try to use the ClusterShell module  
+| The pyfe scripts will try to use the ClusterShell module  
 | *this can be disabled by setting USE_CLUSTERSHELL='0' in pyfe/scr_const.py*  
-| if clustershell is not found or it is disabled the scripts will use pdsh  
+| ClusterShell will not be used if it is not found or it is disabled  
 |  
 | **To use clustershell instead of pdsh**  
 | ``$ pip install ClusterShell``  

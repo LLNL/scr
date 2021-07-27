@@ -198,7 +198,7 @@ def scr_run(launcher='',
 
   # this loop breaks when runs hits zero (or some other conditions)
   # we can protect against an invalid input for number of runs here
-  if runs <= 0:
+  if runs < 1:
     runs = 1
 
   while True:
@@ -268,7 +268,8 @@ def scr_run(launcher='',
     print(prog + ': RUN ' + str(attempts) + ': ' + str(timestamp))
 
     launch_cmd = launcher_args.copy()
-    launch_cmd.append(run_cmd)
+    if run_cmd != '':
+      launch_cmd.append(run_cmd)
     if restart_cmd != '':
       argv = [launcher]
       argv.extend(launcher_args)
@@ -278,7 +279,6 @@ def scr_run(launcher='',
         restart_name = restart_name.strip()
         my_restart_cmd = re.sub('SCR_CKPT_NAME', restart_name, restart_cmd)
         launch_cmd = launcher_args.copy()
-        ###### should this be split (' ') ?
         launch_cmd.extend(my_restart_cmd.split(' '))
 
     # launch the job, make sure we include the script node and exclude down nodes
