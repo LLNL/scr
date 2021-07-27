@@ -1,6 +1,5 @@
 #! /usr/bin/bash
-# run this from an interactive allocation of 4 nodes
-#
+# run this from an interactive allocation of N nodes
 # bsub -q pdebug -nnodes 4 -Is bash
 # bkill -s KILL jobid
 #
@@ -8,11 +7,18 @@
 #
 # salloc -N4 -ppdebug
 #
+# Run this script as:
+# ./runtest.sh
+#      do both tests/test*.py scripts and the bottom of ./runtest.sh
+# ./runtest.sh scripts
+#      only do the tests/test*.py scripts
+# ./runtest.sh <word>
+#      use any other word to only do the bottom of ./runtest.sh
 
 # Set the launcher for the launch script to use below
 launcher="srun"
 # Set number of nodes in allocation (min 2)
-numnodes="2"
+numnodes="4"
 # Set mpi C compiler for the sleeper/watchdog test
 MPICC="mpicc"
 
@@ -54,47 +60,52 @@ cd ${TESTDIR}
 # Make the sleeper program
 ${MPICC} -o sleeper sleeper.c
 
-# Clear any leftover files
-rm -rf .scr/ ckpt.* output.* cache/ outrank*
-# Do a predefined run to give expected values
-echo ""
-echo "----------------------"
-echo ""
-echo "Running test_api with CACHE_BYPASS=0, CACHE_SIZE=6, FLUSH=6"
-echo ""
-echo "----------------------"
-echo ""
-export SCR_PREFIX=$(pwd)
-export SCR_CACHE_BASE=$(pwd)/cache
-export SCR_CACHE_BYPASS=0
-export SCR_CACHE_SIZE=6
-export SCR_FLUSH=6
-scr_${launcher}.py ${singleargs} ${SCR_BUILD}/examples/test_api --output 4
-sleep 1
-# Run any scripts in pyfe/tests/test*.py
-for testscript in ${TESTDIR}/test*.py; do
-  echo ""
-  echo "----------------------"
-  echo ""
-  echo "${testscript##*/}"
-  sleep 1
-  if [ "${testscript##*/}" == "test_watchdog.py" ]; then
-    ${testscript} ${launcher} "${launcherargs}"
-  else
-    ${testscript}
-  fi
-  echo ""
-  echo "----------------------"
-  echo ""
-  sleep 3
-done
-unset SCR_PREFIX
-unset SCR_CACHE_BASE
-unset SCR_CACHE_BYPASS
-unset SCR_CACHE_SIZE
-unset SCR_FLUSH
+if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
 
-#exit 0
+  # Clear any leftover files
+  rm -rf .scr/ ckpt.* output.* cache/ outrank*
+  # Do a predefined run to give expected values
+  echo ""
+  echo "----------------------"
+  echo ""
+  echo "Running test_api with CACHE_BYPASS=0, CACHE_SIZE=6, FLUSH=6"
+  echo ""
+  echo "----------------------"
+  echo ""
+  export SCR_PREFIX=$(pwd)
+  export SCR_CACHE_BASE=$(pwd)/cache
+  export SCR_CACHE_BYPASS=0
+  export SCR_CACHE_SIZE=6
+  export SCR_FLUSH=6
+  scr_${launcher}.py ${singleargs} ${SCR_BUILD}/examples/test_api --output 4
+  sleep 1
+  # Run any scripts in pyfe/tests/test*.py
+  for testscript in ${TESTDIR}/test*.py; do
+    echo ""
+    echo "----------------------"
+    echo ""
+    echo "${testscript##*/}"
+    sleep 1
+    if [ "${testscript##*/}" == "test_watchdog.py" ]; then
+      ${testscript} ${launcher} "${launcherargs}"
+    else
+      ${testscript}
+    fi
+    echo ""
+    echo "----------------------"
+    echo ""
+    sleep 3
+  done
+  unset SCR_PREFIX
+  unset SCR_CACHE_BASE
+  unset SCR_CACHE_BYPASS
+  unset SCR_CACHE_SIZE
+  unset SCR_FLUSH
+fi
+
+if [ "$1" == "scripts" ]; then
+  exit 0
+fi
 
 if [ -x "sleeper" ]; then
   echo "Testing the watchdog"
@@ -115,6 +126,7 @@ fi
 #export OPT="-g -O0"
 #make
 cd ${SCR_BUILD}/examples
+rm -rf .scr/
 
 #export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/install/lib:/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le/lib
 export SCR_PREFIX=$(pwd)
