@@ -14,11 +14,15 @@
 import os, sys
 import time
 from subprocess import TimeoutExpired
+import multiprocessing as mp
 
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
 import pyfe
 from pyfe.resmgr import AutoResourceManager
 from pyfe.joblauncher import AutoJobLauncher
+from pyfe.scr_param import SCR_Param
+from pyfe.scr_environment import SCR_Env
+from pyfe.scr_watchdog import SCR_Watchdog
 
 def checkfiletimes():
   good = True
@@ -48,12 +52,22 @@ def checkfiletimes():
   return good
 
 def testwatchdog(launcher, launcher_args):
+  mp.set_start_method('fork')
+  os.environ['SCR_HANG_TIMEOUT'] = '1'
+  os.environ['SCR_HANG_TIMEOUT_PFS'] = '1'
+  scr_env = SCR_Env()
+  param = SCR_Param()
   rm = AutoResourceManager()
+  launcher = AutoJobLauncher(launcher)
+  prefix = scr_env.get_prefix()
+  scr_env.param = param
+  scr_env.launcher = launcher
   nodelist = rm.get_job_nodes()
   down_nodes = rm.get_downnodes()
+  watchdog = SCR_Watchdog(prefix, scr_env)
+
   if down_nodes is None:
     down_nodes = ''
-  launcher = AutoJobLauncher(launcher)
   launcher_args += ' ./sleeper'
 
   print('Nodelist = ' + str(nodelist))
@@ -62,43 +76,41 @@ def testwatchdog(launcher, launcher_args):
   proc, pid = launcher.launchruncmd(up_nodes=nodelist,
                                     down_nodes=down_nodes,
                                     launcher_args=launcher_args)
+
   if proc is None:
     print('Error launching the sleeper process!')
     return
 
+  #if watchdog is None: proc.communicate(timeout=None)
+  #else:
+
   print('Each launched sleeper process will output the posix time every 5 seconds.')
   print('Allowing the sleeper processes to run for 15 seconds . . .')
-  try:
-    proc.communicate(timeout=15)
-    print('The program has returned before the timeout, this should not have happened.')
-    return
-  except TimeoutExpired as e:
-    print('TimeoutExpired exception was caught, this is expected.')
+  time.sleep(15)
+  print('Calling watchdog watchprocess')
+  if watchdog.watchproc(proc) != 0:
+    print('The watchdog failed to start')
+    print('Waiting for the original process to terminate now . . .')
+    proc.communicate(timeout=None)
+  elif watchdog.process is not None:
+    print('The watchdog launched a separate process will be launched for')
+    print('  joblaunchers that require a specific method to kill a launched job')
+    print('Waiting for that process to terminate now . . .')
+    watchdog.process.join()
+    jobstepid = launcher.get_jobstep_id()
+    print('jobstep id is now ' + str(jobstepid))
 
-  if proc.returncode is not None:
-    print('The process has a return code, this should not have happened.')
-    print('The return code is:', str(proc.returncode))
-    return
-
-  print('The process has no return code (it is still running).')
-  print('This is expected, killing the process now.')
-  proc.kill()
-  print('Calling proc communicate() as recommended.')
-  output = proc.communicate()
-  print('The process now has the return code:', str(proc.returncode))
-  print('The stdout should be blank: \"' + str(output[0]) + '\"')
-  print('The stderr should be blank: \"' + str(output[1]) + '\"')
+  print('The process has now been terminated')
   print('Sleeping for 45 seconds before checking the output files . . .')
   time.sleep(45)
   print('Examining files named in the manner \"outrank%d\"')
-  for i in range(3):
-    if checkfiletimes():
-      break
-    if i<2:
-      print('Test wasn\'t good, sleeping another 45 seconds . . .')
-      time.sleep(45)
-    else:
-      print('watchdog test not good :(')
+  if checkfiletimes():
+    print('The results of the test appear good')
+  else:
+    print('It appears the processes are still running')
+
+  print('Watchdog test concluded')
+
 
 if __name__ == '__main__':
   if len(sys.argv)!=3:

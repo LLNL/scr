@@ -63,7 +63,7 @@ ${MPICC} -o sleeper sleeper.c
 if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
 
   # Clear any leftover files
-  rm -rf .scr/ ckpt.* output.* cache/ outrank*
+  rm -rf .scr/ ckpt.* out* cache/
   # Do a predefined run to give expected values
   echo ""
   echo "----------------------"

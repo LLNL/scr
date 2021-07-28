@@ -184,3 +184,12 @@ class JobLauncher(object):
                      buf_size='',
                      crc_flag=''):
     return ['', '']
+
+  def killsprocess(self):
+    return False
+
+  def get_jobstep_id(self):
+    return -1
+
+  def scr_kill_jobstep(self, jobstepid=None):
+    pass

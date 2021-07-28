@@ -23,7 +23,7 @@ from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_common import tracefunction, runproc, scr_prefix
 from pyfe.scr_prerun import scr_prerun
 from pyfe.scr_get_jobstep_id import scr_get_jobstep_id
-from pyfe.scr_watchdog import scr_watchdog
+from pyfe.scr_watchdog import SCR_Watchdog
 from pyfe.scr_environment import SCR_Env
 from pyfe.joblauncher import AutoJobLauncher
 from pyfe.resmgr import AutoResourceManager
@@ -103,20 +103,22 @@ def scr_run(launcher='',
   # TODO: if not in job allocation, bail out
 
   param = SCR_Param()
-  scr_env = SCR_Env(
-  )  # env contains general environment infos independent of resmgr/launcher
-  resourcemgr = AutoResourceManager(
-  )  # resource manager (SLURM/LSF/ ...) set by argument or compile constant
-  launcher = AutoJobLauncher(
-      launcher
-  )  # launcher contains attributes unique to launcher (srun/jsrun/ ...)
+  # env contains general environment infos independent of resmgr/launcher
+  scr_env = SCR_Env()
+  # get prefix directory
+  prefix = scr_env.get_prefix()
+
+  # resource manager (SLURM/LSF/ ...) set by argument or compile constant
+  resourcemgr = AutoResourceManager()
+  # launcher contains attributes unique to launcher (srun/jsrun/ ...)
+  launcher = AutoJobLauncher(launcher)
   # give scr_env a pointer to the objects for calling other methods
   scr_env.param = param
   scr_env.resmgr = resourcemgr
   scr_env.launcher = launcher
   launcher.resmgr = resourcemgr
   # this may be used by a launcher to store a list of hosts
-  launcher.hostfile = scr_env.get_prefix() + '/.scr/hostfile'
+  launcher.hostfile = prefix + '/.scr/hostfile'
   # jobid will come from resource manager.
   jobid = resourcemgr.getjobid()
   user = scr_env.get_user()
@@ -138,14 +140,15 @@ def scr_run(launcher='',
       print(prog + ': ERROR: Could not identify nodeset')
       sys.exit(1)
 
-  # get prefix directory
-  prefix = scr_env.get_prefix()
-
+  watchdog = None
   val = os.environ.get('SCR_WATCHDOG')
   if val is None or val != '1':
     resourcemgr.usewatchdog(False)
   else:
     resourcemgr.usewatchdog(True)
+    watchdog = SCR_Watchdog(prefix, scr_env)
+    mp.set_start_method('forkserver')
+
 
   # get the control directory
   cntldir = list_dir(user=user,
@@ -292,14 +295,19 @@ def scr_run(launcher='',
     proc, pid = launcher.launchruncmd(up_nodes=nodelist,
                                       down_nodes=down_nodes,
                                       launcher_args=launch_cmd)
-    if resourcemgr.usewatchdog() == False:
-      proc.wait(timeout=None)
+    if watchdog is None:
+      proc.communicate(timeout=None)
     else:
       print(prog + ': Entering watchdog method')
-      # The watchdog will return when the process finishes or is killed
-      scr_watchdog(prefix=prefix, watched_process=proc, scr_env=scr_env)
+      # watchdog returned error or a watcher process was launched
+      if watchdog.watchproc(proc) != 0:
+        print(prog + ': Error launching watchdog')
+        proc.communicate(timeout=None)
+      elif watchdog.process is not None:
+        watchdog.process.join()
+      # else the watchdog returned because the process has finished/been killed
 
-    #print('Process has finished or has been terminated (or scr_watchdog failed to start).')
+    #print('Process has finished or has been terminated.')
 
     end_secs = int(time())
     run_secs = end_secs - start_secs

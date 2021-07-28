@@ -3,6 +3,8 @@
 # jsrun.py
 # The jsrun class provides interpretation for the jsrun launcher
 
+from time import sleep
+
 from pyfe import scr_const
 from pyfe.joblauncher import JobLauncher
 from pyfe.scr_common import runproc, pipeproc
@@ -21,7 +23,7 @@ class JSRUN(JobLauncher):
       return None, -1
     argv = [self.launcher]
     if len(down_nodes) > 0:
-      argv.append('--exclude_hosts=' + down_nodes)
+      argv.append('--exclude_hosts ' + down_nodes)
     argv.extend(launcher_args)
     return runproc(argv=argv, wait=False)
 
@@ -60,3 +62,25 @@ class JSRUN(JobLauncher):
     output = self.parallel_exec(argv=argv, runnodes=upnodes,
                                 use_dshbak=False)[0]
     return output
+
+  def killsprocess(self):
+    return True
+
+  def get_jobstep_id(self,attempts=0):
+    jobstepid = -1
+    output = runproc('jslist', getstdout=True)[0]
+    for line in output.split('\n'):
+      if 'Running' not in line:
+        continue
+      line = line.split()
+      if int(line[0]) > jobstepid:
+        jobstepid = int(line[0])
+    if jobstepid == -1 and attempts == 0:
+      print('jobstepid was -1, reattempting in 5 seconds')
+      sleep(5)
+      return self.get_jobstep_id(attempts=1)
+    return jobstepid
+
+  def scr_kill_jobstep(self, jobstepid=None):
+    if jobstepid is not None:
+      runproc('jskill ' + str(jobstepid))
