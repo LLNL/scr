@@ -147,7 +147,7 @@ def scr_run(launcher='',
   else:
     resourcemgr.usewatchdog(True)
     watchdog = SCR_Watchdog(prefix, scr_env)
-    mp.set_start_method('forkserver')
+    mp.set_start_method('fork')
 
 
   # get the control directory

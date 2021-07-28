@@ -3,7 +3,7 @@
 # scr_common.py
 # Defines for common functions shared across scripts
 
-import os, sys
+import os, sys, shlex
 
 if 'pyfe' not in sys.path:
   sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
@@ -85,7 +85,10 @@ def runproc(argv, wait=True, getstdout=False, getstderr=False, verbose=False):
   #   "echo 'hello world'"
   # one must pass argv as a list in such cases
   if type(argv) is str:
-    argv = argv.strip().split()
+    # if we were just given a string, assume that
+    # we may need to expand environment vars or ~ .. ./ paths
+    argv = interpolate_variables(argv)
+    argv = shlex.split(argv)
 
   if len(argv) < 1:
     return None, None

@@ -67,8 +67,9 @@ class JSRUN(JobLauncher):
     return True
 
   def get_jobstep_id(self,attempts=0):
+    sleep(5)
     jobstepid = -1
-    output = runproc('jslist', getstdout=True)[0]
+    output = runproc(['jslist'], getstdout=True)[0]
     for line in output.split('\n'):
       if 'Running' not in line:
         continue
@@ -76,11 +77,9 @@ class JSRUN(JobLauncher):
       if int(line[0]) > jobstepid:
         jobstepid = int(line[0])
     if jobstepid == -1 and attempts == 0:
-      print('jobstepid was -1, reattempting in 5 seconds')
-      sleep(5)
       return self.get_jobstep_id(attempts=1)
     return jobstepid
 
   def scr_kill_jobstep(self, jobstepid=None):
     if jobstepid is not None:
-      runproc('jskill ' + str(jobstepid))
+      runproc(argv=['jskill', str(jobstepid)])

@@ -53,8 +53,8 @@ def checkfiletimes():
 
 def testwatchdog(launcher, launcher_args):
   mp.set_start_method('fork')
-  os.environ['SCR_HANG_TIMEOUT'] = '1'
-  os.environ['SCR_HANG_TIMEOUT_PFS'] = '1'
+  os.environ['SCR_WATCHDOG_TIMEOUT'] = '1'
+  os.environ['SCR_WATCHDOG_TIMEOUT_PFS'] = '1'
   scr_env = SCR_Env()
   param = SCR_Param()
   rm = AutoResourceManager()
@@ -68,7 +68,7 @@ def testwatchdog(launcher, launcher_args):
 
   if down_nodes is None:
     down_nodes = ''
-  launcher_args += ' ./sleeper'
+  launcher_args.append('./sleeper')
 
   print('Nodelist = ' + str(nodelist))
   print('Down nodes = ' + str(down_nodes))
@@ -115,7 +115,7 @@ def testwatchdog(launcher, launcher_args):
 if __name__ == '__main__':
   if len(sys.argv)!=3:
     print('ERROR: Invalid usage')
-    print('Usage: test_watchdog.py <launcher> \"<launcher_args>\"')
-    print('   Ex: test_watchdog.py srun \"-n1 -N1\"')
+    print('Usage: test_watchdog.py <launcher> <launcher_args>')
+    print('   Ex: test_watchdog.py srun -n1 -N1')
     sys.exit(1)
-  testwatchdog(sys.argv[1], sys.argv[2])
+  testwatchdog(sys.argv[1], sys.argv[2:])
