@@ -87,7 +87,7 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
     echo "${testscript##*/}"
     sleep 1
     if [ "${testscript##*/}" == "test_watchdog.py" ]; then
-      ${testscript} ${launcher} "${launcherargs}"
+      ${testscript} ${launcher} ${launcherargs}
     else
       ${testscript}
     fi

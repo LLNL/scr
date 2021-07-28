@@ -20,6 +20,7 @@ print('Because of the sleep(10), the second entry should be about 10 seconds lat
 print('--------------------------------------------------------')
 
 import os, sys
+from datetime import datetime
 import time
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
 import pyfe
@@ -40,8 +41,9 @@ jobid = rm.getjobid()
 pwd = os.getcwd()
 log = SCRLog(pwd, jobid, user)
 
-timestamp = time.time()
-print('timestamp =', timestamp)
+timestamp = int(time.time())
+datestring = str(datetime.now())
+print('current timestamp =', timestamp, ' (', datestring, ')')
 log.event('test_event')
 time.sleep(10)
 log.event('test_event2', dset=100, name='ckpt.100', note='note2', start=int(time.time()), secs=30)
