@@ -51,6 +51,12 @@ if __name__ == '__main__':
                       action='store_true',
                       default=False,
                       help='List base portion of cache/control directory')
+  parser.add_argument('-p',
+                      '--prefix',
+                      default=None,
+                      metavar='<id>',
+                      type=str,
+                      help='Specify the prefix directory.')
   parser.add_argument('control/cache',
                       choices=['control', 'cache'],
                       metavar='<control | cache>',
@@ -68,7 +74,7 @@ if __name__ == '__main__':
     # TODO: read cache directory from config file
     bindir = scr_const.X_BINDIR
     # ensure scr_env is set
-    scr_env = SCR_Env()
+    scr_env = SCR_Env(prefix=args['prefix'])
     scr_env.resmgr = AutoResourceManager()
     scr_env.param = SCR_Param()
     ret = list_dir(user=args['user'],

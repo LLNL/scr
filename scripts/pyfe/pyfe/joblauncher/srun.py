@@ -13,6 +13,9 @@ from pyfe.joblauncher import JobLauncher
 class SRUN(JobLauncher):
   def __init__(self, launcher='srun'):
     super(SRUN, self).__init__(launcher=launcher)
+    # The Popen.kill() seems to work for srun
+    if scr_const.USE_JOBLAUNCHER_KILL == '1':
+      self.watchprocess = True
 
   # a command to run immediately before prerun is ran
   # NOP srun to force every node to run prolog to delete files from cache
@@ -71,10 +74,6 @@ class SRUN(JobLauncher):
     output = self.parallel_exec(argv=argv, runnodes=upnodes,
                                 use_dshbak=False)[0]
     return output
-
-  # The Popen.kill() seems to work for srun
-  def killsprocess(self):
-    return False
 
   # query SLURM for the most recent jobstep in current allocation
   def get_jobstep_id(self, user='', allocid='', pid=-1):

@@ -16,10 +16,12 @@ SCR_RESOURCE_MANAGER = '@SCR_RESOURCE_MANAGER@'
 ### PMIX constants
 CPPR_LDFLAGS = '@CPPR_LDFLAGS@'
 HAVE_LIBCPPR = '@HAVE_LIBCPPR@'
-### Could have a compile time/configurable constant here
-### This could explicitly disable attempt to use clustershell
+### Explicitly disable attempt to use clustershell, set to '1'
 USE_CLUSTERSHELL = '@USE_CLUSTERSHELL@'
+### Enable Python function tracing, set to '1'
 PYFE_TRACE_FUNC = '@PYFE_TRACE_FUNC@'
+### Prefer job launcher's method to kill a jobstep, set to '1'
+USE_JOBLAUNCHER_KILL = '@USE_JOBLAUNCHER_KILL@'
 
 if __name__ == '__main__':
   print('SCR_CNTL_BASE = \"' + SCR_CNTL_BASE + '\"')
@@ -33,3 +35,4 @@ if __name__ == '__main__':
   print('SCR_RESOURCE_MANAGER = \"' + SCR_RESOURCE_MANAGER + '\"')
   print('USE_CLUSTERSHELL = \"' + USE_CLUSTERSHELL + '\"')
   print('PYFE_TRACE_FUNC = \"' + PYFE_TRACE_FUNC + '\"')
+  print('USE_JOBLAUNCHER_KILL = \"' + USE_JOBLAUNCHER_KILL + '\"')

@@ -10,7 +10,6 @@ from datetime import datetime
 from time import time
 from pyfe import scr_const
 from pyfe.list_dir import list_dir
-from pyfe.scr_common import tracefunction, scr_prefix, runproc
 from pyfe.scr_scavenge import scr_scavenge
 from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_glob_hosts import scr_glob_hosts
@@ -37,7 +36,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
   if prefix_dir is not None:
     pardir = prefix_dir
   if not pardir:
-    pardir = scr_prefix()
+    pardir = scr_env.get_prefix()
 
   # check that we have the parallel file system prefix
   if pardir == '':

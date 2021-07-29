@@ -79,6 +79,7 @@ class JobLauncher(object):
   def __init__(self, launcher=''):
     self.launcher = launcher
     self.hostfile = ''
+    self.watchprocess = False
     self.clustershell_task = False
     if scr_const.USE_CLUSTERSHELL != '0':
       try:
@@ -189,7 +190,7 @@ class JobLauncher(object):
     """Indicates whether a job launcher implements
         get_jobstep_id and scr_kill_jobstep
     """
-    return False
+    return self.watchprocess
 
   def get_jobstep_id(self, user='', allocid='', pid=-1):
     """Return an identifier for the most recently launched task.

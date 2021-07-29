@@ -13,8 +13,6 @@ if 'pyfe' not in sys.path:
   import pyfe
 
 from datetime import datetime
-import signal
-import multiprocessing as mp
 from time import time, sleep
 from pyfe import scr_const, scr_common
 from pyfe.postrun import postrun
@@ -110,18 +108,17 @@ def scr_run(launcher='',
   scr_env = SCR_Env(prefix=prefix)
 
   # resource manager (SLURM/LSF/ ...) set by argument or compile constant
-  resourcemgr = AutoResourceManager()
+  resmgr = AutoResourceManager()
   # launcher contains attributes unique to launcher (srun/jsrun/ ...)
   launcher = AutoJobLauncher(launcher)
   # give scr_env a pointer to the objects for calling other methods
   scr_env.param = param
-  scr_env.resmgr = resourcemgr
+  scr_env.resmgr = resmgr
   scr_env.launcher = launcher
-  launcher.resmgr = resourcemgr
   # this may be used by a launcher to store a list of hosts
   launcher.hostfile = prefix + '/.scr/hostfile'
   # jobid will come from resource manager.
-  jobid = resourcemgr.getjobid()
+  jobid = resmgr.getjobid()
   user = scr_env.get_user()
 
   # TODO: check that we have a valid jobid and bail if not
@@ -130,30 +127,27 @@ def scr_run(launcher='',
   # previously they returned 'defjobid' with the comment to assume testing
   if jobid is None:  #### pmix always returns none.
     jobid = 'defjobid'
-    #print(prog+': ERROR: Could not determine jobid.')
-    #sys.exit(1)
 
   # get the nodeset of this job
   nodelist = scr_env.get_scr_nodelist()
   if nodelist is None:
-    nodelist = scr_env.resmgr.get_job_nodes()
+    nodelist = resmgr.get_job_nodes()
     if nodelist is None:
       print(prog + ': ERROR: Could not identify nodeset')
       sys.exit(1)
 
   watchdog = None
   val = os.environ.get('SCR_WATCHDOG')
-  if val is None or val != '1':
-    resourcemgr.usewatchdog(False)
+  if val != '1':
+    resmgr.usewatchdog(False)
   else:
-    resourcemgr.usewatchdog(True)
+    resmgr.usewatchdog(True)
     watchdog = SCR_Watchdog(prefix, scr_env)
-    mp.set_start_method('fork')
 
 
   # get the control directory
   cntldir = list_dir(user=user,
-                     jobid=resourcemgr.getjobid(),
+                     jobid=resmgr.getjobid(),
                      runcmd='control',
                      scr_env=scr_env,
                      bindir=bindir)
@@ -175,7 +169,7 @@ def scr_run(launcher='',
     print(prog + ': ERROR: Command failed: scr_prerun -p ' + prefix)
     sys.exit(1)
 
-  endtime = resourcemgr.get_scr_end_time()
+  endtime = resmgr.get_scr_end_time()
   if endtime == 0:
     # no function to get end time for pmix / aprun (crayxt)
     if verbose == True:
@@ -258,7 +252,7 @@ def scr_run(launcher='',
         break
 
       # determine number of nodes remaining in allocation
-      num_left = nodes_remaining(resourcemgr, nodelist, down_nodes)
+      num_left = nodes_remaining(resmgr, nodelist, down_nodes)
       if num_left <= 0:
         print(prog + ': ERROR: Unable to determine number of nodes remaining')
         break
@@ -462,9 +456,9 @@ if __name__ == '__main__':
   if len(sys.argv) < 3 or '-h' in sys.argv[1:] or '--help' in sys.argv[1:]:
     print_usage()
   elif not any(
-      arg.startswith('-h') or arg.startswith('--help') or arg.startswith('-rc')
-      or arg.startswith('--run-cmd') or arg.startswith('-rs')
-      or arg.startswith('--restart-cmd') for arg in sys.argv):
+      arg.startswith('-rc') or arg.startswith('--run-cmd')
+      or arg.startswith('-rs') or arg.startswith('--restart-cmd')
+      for arg in sys.argv):
     # then we were called with: scr_run launcher [args]
     scr_run(launcher=sys.argv[1], launcher_args=sys.argv[2:])
   else:

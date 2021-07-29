@@ -16,18 +16,27 @@ from pyfe.cli import SCRFlushFile
 
 class SCR_Watchdog:
   def __init__(self,prefix,scr_env):
-    self.process = None
-    self.watched_process = None
-    self.launcher = scr_env.launcher
     # we have two timeout variables now, one for the length of time to wait under
     # "normal" circumstances and one for the length of time to wait if writing
     # to the parallel file system
     self.timeout = scr_env.param.get('SCR_WATCHDOG_TIMEOUT')
     self.timeout_pfs = scr_env.param.get('SCR_WATCHDOG_TIMEOUT_PFS')
+
     if self.timeout is not None and self.timeout_pfs is not None:
       self.timeout = int(self.timeout)
       self.timeout_pfs = int(self.timeout_pfs)
+
+    self.watched_process = None
+
+    self.launcher = scr_env.launcher
     self.jobstepid = None
+    self.process = None
+    if self.launcher.killsprocess:
+      try:
+        mp.set_start_method('fork')
+      except:
+        pass
+
     # interface to query values from the SCR flush file
     self.scr_flush_file = SCRFlushFile(prefix)
 

@@ -13,6 +13,9 @@ from pyfe.scr_common import runproc, pipeproc
 class JSRUN(JobLauncher):
   def __init__(self, launcher='jsrun'):
     super(JSRUN, self).__init__(launcher=launcher)
+    # it looks like the Popen.terminate is working with jsrun
+    if scr_const.USE_JOBLAUNCHER_KILL == '1':
+      self.watchprocess = True
 
   # returns the process and PID of the launched process
   # as returned by runproc(argv=argv, wait=False)
@@ -62,11 +65,6 @@ class JSRUN(JobLauncher):
     output = self.parallel_exec(argv=argv, runnodes=upnodes,
                                 use_dshbak=False)[0]
     return output
-
-  # jsrun needs to use jskill to kill a jobstep
-  def killsprocess(self):
-    # It looks like Popen.terminate() is working
-    return False
 
   # query jslist for the most recent jobstep in current allocation
   def get_jobstep_id(self, user='', allocid='', pid=-1):

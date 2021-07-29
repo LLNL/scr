@@ -13,6 +13,10 @@ from pyfe.scr_common import runproc, pipeproc
 class APRUN(JobLauncher):
   def __init__(self, launcher='aprun'):
     super(APRUN, self).__init__(launcher=launcher)
+    # unconditionally set it True if it is needed
+    #self.watchprocess = True
+    if scr_const.USE_JOBLAUNCHER_KILL == '1':
+      self.watchprocess = True
 
   # a command to run immediately before prerun is ran
   # NOP srun to force every node to run prolog to delete files from cache
@@ -72,10 +76,6 @@ class APRUN(JobLauncher):
     output = self.parallel_exec(argv=argv, runnodes=upnodes,
                                 use_dshbak=False)[0]
     return output
-
-  ### Determine whether this is needed
-  def killsprocess(self):
-    return False
 
   def get_jobstep_id(self, user='', allocid='', pid=-1):
     # allow launched job to show in apstat

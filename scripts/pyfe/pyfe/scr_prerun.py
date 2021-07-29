@@ -12,7 +12,6 @@ import argparse
 from datetime import datetime
 from time import time
 
-from pyfe.scr_common import tracefunction
 from pyfe.scr_test_runtime import scr_test_runtime
 from pyfe.scr_environment import SCR_Env
 
@@ -21,11 +20,6 @@ def scr_prerun(scr_env=None):
   val = os.environ.get('SCR_ENABLE')
   if val == '0':
     return 0
-
-  # enable verbosity
-  val = os.environ.get('SCR_DEBUG')
-  if val is not None and int(val) > 0:
-    sys.settrace(tracefunction)
 
   start_time = datetime.now()
   start_secs = int(time())
