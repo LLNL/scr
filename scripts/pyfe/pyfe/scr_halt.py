@@ -9,6 +9,7 @@ if 'pyfe' not in sys.path:
   import pyfe
 
 import argparse
+import stat
 from pyfe import scr_const
 from pyfe.scr_common import runproc
 from pyfe.parsetime import parsetime
@@ -118,14 +119,45 @@ def scr_halt(bindir=None,
     # execute the command
     # create the halt file with specified conditions
     # TODO: Set halt file permissions so system admins can modify them
+    ####### ensure we have chmod664 ? then also need to ensure owned path is 775 ?
+    ### If a chmod is good, 664+775 or 660+770
+    ### Doing directories ... when to stop ? 2 dirs ?
+    ### the makedirs is supposed to take a 'mode' argument, that didn't work for me.
+    chmod664 = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
+    chmod775 = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | \
+               stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | \
+               stat.S_IROTH | stat.S_IXOTH
+    chmod660 = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP
+    chmod770 = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | \
+               stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP
+    chmod664 = None
+
     cmd = [scr_halt_cntl, '-f', halt_file]
     cmd.extend(halt_conditions)
-    output, rc = runproc(cmd, getstdout=True, getstderr=True)
+    output, rc = runproc(cmd, getstdout=True, getstderr=True, verbose=verbose)
     if rc != 0:
       if output is not None:
         print(output[1].strip())
       print('scr_halt: ERROR: Failed to update halt file for ' + d)
       ret = 1
+    # TODO For file permissions ?
+    # Doing 664+775
+    #else: # rc == 0:
+    elif chmod664 is not None:
+      # the file
+      try:
+        # 664 OR with whatever was there before
+        os.chmod(halt_file, chmod664 | os.stat(halt_file).st_mode)
+      except:
+        pass
+      chdir = '/'.join(halt_file.split('/')[:-1])
+      try:
+        # do both directories: d / .scr
+        os.chmod(chdir, chmod775 | os.stat(chdir).st_mode)
+        chdir = '/'.join(chdir.split('/')[:-1])
+        os.chmod(chdir, chmod775 | os.stat(chdir).st_mode)
+      except:
+        pass
 
     # print output to screen
     if output is not None:
