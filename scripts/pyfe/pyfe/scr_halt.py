@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 
 # scr_halt.py
-# (from scripts/SLURM)
 
 import os, sys
 
@@ -29,50 +28,45 @@ def scr_halt(bindir=None,
              unset_reason=False,
              remove=False,
              verbose=False,
-             dirs=None):
-  # requires: squeue, scontrol, scancel, umask (shell command)
+             dirs=[]):
+  ret = 0
 
   if bindir is None:
     bindir = scr_const.X_BINDIR
 
-  # get the directories
-  # if find some arguments on the command line, assume they are target directories
-  if dirs is None:
-    # use current working directory if none specified
-    dirs = [os.getcwd]
+  # path to scr_halt_cntl command
+  scr_halt_cntl = os.path.join(bindir, 'scr_halt_cntl')
 
-  ret = 0
+  # use current working directory if none specified
+  if not dirs:
+    dirs = [os.getcwd()]
 
-  # commands to build halt file
+  # list to accumulate options for scr_halt_cntl command
   halt_conditions = []
 
   # the -r option overrides everything else
   if not remove:
     # halt after X checkpoints
-    checkpoints_left = None
+    # TODO: check that a valid value was given
     if checkpoints is not None:
       checkpoints = str(checkpoints)
-      # TODO: check that a valid value was given
       halt_conditions = ['-c', checkpoints]
 
     # halt before time
     if before is not None:
       secs = parsetime(before)
-      #  print "$prog: Exit before: " . localtime($secs) . "\n";
       halt_conditions.append('-b')
       halt_conditions.append(str(secs))
 
     # halt after time
     if after is not None:
       secs = parsetime(after)
-      #  print "$prog: Exit after: " . localtime($secs) . "\n";
       halt_conditions.append('-a')
       halt_conditions.append(str(secs))
 
     # set (reset) SCR_HALT_SECONDS value
+    # TODO: check that a valid value was given
     if seconds is not None:
-      # halt_seconds = seconds
-      # TODO: check that a valid value was given
       halt_conditions.append('-s')
       halt_conditions.append(seconds)
 
@@ -97,54 +91,48 @@ def scr_halt(bindir=None,
       halt_conditions.append('-r')
       halt_conditions.append('JOB_HALTED')
 
-  # create a halt file on each node
-  for adir in dirs:
+  # create a halt file in each target prefix directory
+  for d in dirs:
+    print('Updating halt file in ' + d)
     rc = 0
 
-    print('Updating halt file in ' + adir)
-
     # build the name of the halt file
-    halt_file = adir + '/.scr/halt.scr'
+    halt_file = os.path.join(d, '.scr', 'halt.scr')
 
+    # remove the halt file and move on to next direcotry
+    # if no conditions are specified
     if halt_conditions == []:
-      # remove the halt file
-      #halt_cmd = [bash,' -c \"'+rm+' -f '+halt_file+'\"']
       try:
         os.remove(halt_file)
       except:
         pass
       continue
 
-    # TODO: Set halt file permissions so system admins can modify them
-    halt_cmd = []
-    # create the halt file with specified conditions
-    os.makedirs(adir + '/.scr', exist_ok=True)
-    # $halt_cmd = "$bash -c \"$bindir/scr_halt_cntl -f $halt_file $halt_file_options;\"";
-    #halt_file_options = ' '.join(halt_conditions)
-    # can specify a different bash with popen (?)
-    halt_cmd = [bindir + '/scr_halt_cntl', '-f',
-                halt_file]  #, halt_file_options ]
-    halt_cmd.extend(halt_conditions)
+    # create scr prefix directory
+    try:
+      os.makedirs(os.path.join(d, '.scr'))
+    except:
+      pass
+    #os.makedirs(os.path.join(d, '.scr'), exist_ok=True)
 
     # execute the command
-    #########################
-    #if verbose:
-    print(' '.join(halt_cmd))
-    # RUN HALT CMD
-    output, rc = runproc(halt_cmd, getstdout=True, getstderr=True)
+    # create the halt file with specified conditions
+    # TODO: Set halt file permissions so system admins can modify them
+    cmd = [scr_halt_cntl, '-f', halt_file]
+    cmd.extend(halt_conditions)
+    output, rc = runproc(cmd, getstdout=True, getstderr=True)
     if rc != 0:
       if output is not None:
         print(output[1].strip())
-      print('scr_halt: ERROR: Failed to update halt file for ' + adir)
+      print('scr_halt: ERROR: Failed to update halt file for ' + d)
       ret = 1
 
     # print output to screen
     if output is not None:
       print(output[0].strip())
 
-  # TODO: would like to protect against killing a job in the middle of a checkpoint if possible
-
   # kill job if immediate was set
+  # TODO: would like to protect against killing a job in the middle of a checkpoint if possible
   if immediate:
     # TODO: lookup active jobid for given prefix directory and halt job based on system
     print('scr_halt: ERROR: --immediate option not yet supported')
@@ -234,8 +222,9 @@ if __name__ == '__main__':
                       '--help',
                       action='store_true',
                       help='Show this help message and exit.')
-  parser.add_argument('dirs', nargs=argparse.REMAINDER, default=None)
+  parser.add_argument('dirs', nargs=argparse.REMAINDER, default=[])
   args = vars(parser.parse_args())
+
   if 'help' in args:
     parser.print_help()
   #elif 'all' in args or 'user' in args:
