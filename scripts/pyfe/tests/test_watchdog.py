@@ -46,15 +46,14 @@ def checkfiletimes():
       i += 1
     except:
       print('Unable to open file for rank', str(i))
-      print('This is expected when the rank goes out of bounds.')
-      print('This concludes the watchdog test.')
+      print('(this is expected when the rank goes out of bounds.)')
       break
   return good
 
 def testwatchdog(launcher, launcher_args):
   mp.set_start_method('fork')
-  os.environ['SCR_WATCHDOG_TIMEOUT'] = '1'
-  os.environ['SCR_WATCHDOG_TIMEOUT_PFS'] = '1'
+  os.environ['SCR_WATCHDOG_TIMEOUT'] = '15'
+  os.environ['SCR_WATCHDOG_TIMEOUT_PFS'] = '15'
   scr_env = SCR_Env()
   param = SCR_Param()
   rm = AutoResourceManager()
@@ -85,20 +84,18 @@ def testwatchdog(launcher, launcher_args):
   #else:
 
   print('Each launched sleeper process will output the posix time every 5 seconds.')
-  print('Allowing the sleeper processes to run for 15 seconds . . .')
-  time.sleep(15)
-  print('Calling watchdog watchprocess')
+  print('We\'ve set the watchdog timer to 15 seconds.')
+  print('Calling watchdog watchprocess . . .')
   if watchdog.watchproc(proc) != 0:
     print('The watchdog failed to start')
     print('Waiting for the original process to terminate now . . .')
     proc.communicate(timeout=None)
   elif watchdog.process is not None:
-    print('The watchdog launched a separate process will be launched for')
-    print('  joblaunchers that require a specific method to kill a launched job')
+    print('The watchdog launched a separate process launched for a launcher')
+    print('  that requires a specific method to kill a launched job')
     print('Waiting for that process to terminate now . . .')
     watchdog.process.join()
     jobstepid = launcher.get_jobstep_id()
-    print('jobstep id is now ' + str(jobstepid))
 
   print('The process has now been terminated')
   print('Sleeping for 45 seconds before checking the output files . . .')
@@ -107,13 +104,14 @@ def testwatchdog(launcher, launcher_args):
   if checkfiletimes():
     print('The results of the test appear good')
   else:
-    print('It appears the processes are still running')
+    print('It appears the processes may still be running')
 
   print('Watchdog test concluded')
 
 
 if __name__ == '__main__':
-  if len(sys.argv)!=3:
+  # requiring a launcher at a minimum, perhaps without arguments.
+  if len(sys.argv)<2:
     print('ERROR: Invalid usage')
     print('Usage: test_watchdog.py <launcher> <launcher_args>')
     print('   Ex: test_watchdog.py srun -n1 -N1')

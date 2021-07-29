@@ -22,24 +22,6 @@ class SLURM(ResourceManager):
   def getjobid(self):
     return os.environ.get('SLURM_JOBID')
 
-  # query SLURM for most recent jobstep in current allocation
-  def get_jobstep_id(self, user='', pid=-1):
-    jobid = self.getjobid()
-    if user == '' or jobid is None:
-      return None
-
-    # get job steps for this user and job, order by decreasing job step
-    # so first one should be the one we are looking for
-    #   squeue -h -s -u $user -j $jobid -S "-i"
-    # -h means print no header, so just the data in this order:
-    # STEPID         NAME PARTITION     USER      TIME NODELIST
-    cmd = "squeue -h -s -u " + user + " -j " + jobid + " -S \"-i\""
-    output = runproc(cmd, getstdout=True)[0]
-    output = re.search('\d+', output)
-    if output is None:
-      return None
-    return output[0]
-
   # get node list
   def get_job_nodes(self):
     return os.environ.get('SLURM_NODELIST')
@@ -54,12 +36,6 @@ class SLURM(ResourceManager):
         down = down.strip()
         return down
     return None
-
-  def scr_kill_jobstep(self, jobid=-1):
-    if jobid == -1:
-      print('You must specify the job step id to kill.')
-      return 1
-    return runproc('scancel ' + str(jobid))[1]
 
   # query SLURM for allocation endtime, expressed as secs since epoch
   def get_scr_end_time(self):

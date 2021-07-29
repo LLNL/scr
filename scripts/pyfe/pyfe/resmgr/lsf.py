@@ -20,10 +20,6 @@ class LSF(ResourceManager):
   def getjobid(self):
     return os.environ.get('LSB_JOBID')
 
-  # this doesn't really apply for LSF
-  def get_jobstep_id(self, user='', pid=-1):
-    return None
-
   # get node list
   def get_job_nodes(self):
     hostfile = os.environ.get('LSB_DJOB_HOSTFILE')
@@ -58,12 +54,6 @@ class LSF(ResourceManager):
   def get_downnodes(self):
     # TODO : any way to get list of down nodes in LSF?
     return None
-
-  def scr_kill_jobstep(self, jobid=-1):
-    if jobid == -1:
-      print('You must specify the job step id to kill.')
-      return 1
-    return runproc("bkill -s KILL " + str(jobid))[1]
 
   def get_scr_end_time(self):
     # run bjobs to get time remaining in current allocation

@@ -69,3 +69,30 @@ class SRUN(JobLauncher):
     output = self.parallel_exec(argv=argv, runnodes=upnodes,
                                 use_dshbak=False)[0]
     return output
+
+  # The Popen.kill() seems to work for srun
+  def killsprocess(self):
+    return False
+
+  # query SLURM for the most recent jobstep in current allocation
+  def get_jobstep_id(self, user='', allocid='', pid=-1):
+    # allow launched job to show in squeue
+    sleep(10)
+    if user == '' or allocid == '':
+      return None
+
+    # get job steps for this user and job, order by decreasing job step
+    # so first one should be the one we are looking for
+    #   squeue -h -s -u $user -j $jobid -S "-i"
+    # -h means print no header, so just the data in this order:
+    # STEPID         NAME PARTITION     USER      TIME NODELIST
+    cmd = "squeue -h -s -u " + user + " -j " + allocid + " -S \"-i\""
+    output = runproc(cmd, getstdout=True)[0]
+    output = re.search('\d+', output)
+    if output is None:
+      return None
+    return output[0]
+
+  def scr_kill_jobstep(self, jobstepid=None):
+    if jobstepid is not None:
+      runproc(argv=['scancel', jobstepid])

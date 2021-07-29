@@ -112,17 +112,6 @@ class ResourceManager(object):
       return self.use_watchdog
     self.use_watchdog = use_scr_watchdog
 
-  def get_jobstep_id(self, user='', pid=-1):
-    """Return an identifier for the most recently launched task.
-
-    Returns
-    -------
-    str
-        jobstep id
-        or None if unknown or error
-    """
-    return None
-
   def getjobid(self):
     """Return current job allocation id.
 
@@ -161,17 +150,6 @@ class ResourceManager(object):
         or None if there are no down nodes
     """
     return None
-
-  def scr_kill_jobstep(self, jobid=-1):
-    """Kills task identified by jobid parameter.
-
-    Returns
-    -------
-    int
-        return code of the kill command
-        or 1 if jobid not specified or other error
-    """
-    return 1
 
   def get_scr_end_time(self):
     """Return expected allocation end time.

@@ -186,10 +186,34 @@ class JobLauncher(object):
     return ['', '']
 
   def killsprocess(self):
+    """Indicates whether a job launcher implements
+        get_jobstep_id and scr_kill_jobstep
+    """
     return False
 
-  def get_jobstep_id(self):
-    return -1
+  def get_jobstep_id(self, user='', allocid='', pid=-1):
+    """Return an identifier for the most recently launched task.
+    Parameters
+    ----------
+    str
+        user: The user name from the environment
+    str
+        allocid: Identifier for the allocation
+    int
+        pid: The PID returned from parallel_exec
+
+    Returns
+    -------
+    str
+        jobstep id
+        or None if unknown or error
+    """
+    return None
 
   def scr_kill_jobstep(self, jobstepid=None):
+    """Kills task identified by jobid parameter.
+        method defined when a joblauncher has a special
+        procedure to kill a launched job
+
+    """
     pass

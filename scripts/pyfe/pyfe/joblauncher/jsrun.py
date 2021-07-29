@@ -63,23 +63,29 @@ class JSRUN(JobLauncher):
                                 use_dshbak=False)[0]
     return output
 
+  # jsrun needs to use jskill to kill a jobstep
   def killsprocess(self):
     return True
 
-  def get_jobstep_id(self,attempts=0):
-    sleep(5)
+  # query jslist for the most recent jobstep in current allocation
+  def get_jobstep_id(self, user='', allocid='', pid=-1):
+    # allow launched job to show in jslist
+    sleep(10)
+    # track the highest number running job
     jobstepid = -1
+    # get the output of 'jslist'
     output = runproc(['jslist'], getstdout=True)[0]
     for line in output.split('\n'):
       if 'Running' not in line:
         continue
       line = line.split()
+      # Format:
+      # ID ParentID nrs CPUs/rs GPUs/rs ExitStatus Status
+      #  2        0   2       1       0          0  Running
       if int(line[0]) > jobstepid:
         jobstepid = int(line[0])
-    if jobstepid == -1 and attempts == 0:
-      return self.get_jobstep_id(attempts=1)
-    return jobstepid
+    return str(jobstepid)
 
   def scr_kill_jobstep(self, jobstepid=None):
     if jobstepid is not None:
-      runproc(argv=['jskill', str(jobstepid)])
+      runproc(argv=['jskill', jobstepid])

@@ -22,35 +22,6 @@ class PBSALPS(ResourceManager):
     # val may be None
     return os.environ.get('PBS_JOBID')
 
-  def get_jobstep_id(self, user='', pid=-1):
-    output = runproc("apstat -avv", getstdout=True)[0].split('\n')
-    nid = None
-    try:
-      with open('/proc/cray_xt/nid', 'r') as NIDfile:
-        nid = NIDfile.read()[:-1]
-    except:
-      pass
-    if nid is None:  # or value not sane
-      #### Are we unable to continue ?
-      return None
-    currApid = -1
-    for line in output:
-      line = line.strip()
-      if len(line) == 0:
-        continue
-      fields = re.split('\s+', line)
-      if fields[0].startswith('Ap'):
-        currApid = int(fields[2][:-1])
-      elif fields[1].startswith('Originator:'):
-        #did we find the apid that corresponds to the pid?
-        # also check to see if it was launched from this MOM node in case two
-        # happen to have the same pid
-        thisnid = int(fields[5][:-1])
-        if thisnid == nid and fields[7] == pid:
-          break
-        currApid = -1
-    return currApid if currApid != -1 else None
-
   # get node list
   def get_job_nodes(self):
     val = os.environ.get('PBS_NUM_NODES')
@@ -84,12 +55,6 @@ class PBSALPS(ResourceManager):
       if len(downnodes) > 0:
         return self.compress_hosts(downnodes)
     return []
-
-  def scr_kill_jobstep(self, jobid=-1):
-    if jobid == -1:
-      print('You must specify the job step id to kill.')
-      return 1
-    return runproc("apkill " + str(jobid))[1]
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,

@@ -70,3 +70,40 @@ class APRUN(JobLauncher):
     output = self.parallel_exec(argv=argv, runnodes=upnodes,
                                 use_dshbak=False)[0]
     return output
+
+  ### Determine whether this is needed
+  def killsprocess(self):
+    return False
+
+  def get_jobstep_id(self, user='', allocid='', pid=-1):
+    # allow launched job to show in apstat
+    sleep(10)
+    output = runproc(['apstat', '-avv'], getstdout=True)[0].split('\n')
+    nid = None
+    try:
+      with open('/proc/cray_xt/nid', 'r') as NIDfile:
+        nid = NIDfile.read()[:-1]
+    except:
+      return None
+    pid = str(pid)
+    currApid = None
+    for line in output:
+      line = line.strip()
+      fields = re.split('\s+', line)
+      if len(fields) < 8:
+        continue
+      if fields[0].startswith('Ap'):
+        currApid = fields[2][:-1]
+      elif fields[1].startswith('Originator:'):
+        #did we find the apid that corresponds to the pid?
+        # also check to see if it was launched from this MOM node in case two
+        # happen to have the same pid
+        thisnid = fields[5][:-1]
+        if thisnid == nid and fields[7] == pid:
+          break
+        currApid = None
+    return currApid
+
+  def scr_kill_jobstep(self, jobstepid=None):
+    if jobstepid is not None:
+      runproc(argv=['apkill', jobid])
