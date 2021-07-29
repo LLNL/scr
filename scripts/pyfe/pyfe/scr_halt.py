@@ -110,11 +110,7 @@ def scr_halt(bindir=None,
       continue
 
     # create scr prefix directory
-    try:
-      os.makedirs(os.path.join(d, '.scr'))
-    except:
-      pass
-    #os.makedirs(os.path.join(d, '.scr'), exist_ok=True)
+    os.makedirs(os.path.join(d, '.scr'), exist_ok=True)
 
     # execute the command
     # create the halt file with specified conditions
