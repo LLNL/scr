@@ -12,14 +12,14 @@ import argparse
 from datetime import datetime
 from time import time
 
-from pyfe.scr_common import tracefunction, scr_prefix
+from pyfe.scr_common import tracefunction
 from pyfe.scr_test_runtime import scr_test_runtime
+from pyfe.scr_environment import SCR_Env
 
-
-def scr_prerun(prefix=None):
+def scr_prerun(scr_env=None):
   # bail out if not enabled
   val = os.environ.get('SCR_ENABLE')
-  if val is None or val == '0':
+  if val == '0':
     return 0
 
   # enable verbosity
@@ -36,10 +36,9 @@ def scr_prerun(prefix=None):
     print('scr_prerun: exit code: 1')
     return 1
 
-  pardir = scr_prefix() if prefix is None else prefix
-
   # create the .scr subdirectory in the prefix directory
-  os.makedirs(os.path.join(pardir, '.scr'), exist_ok=True)
+  dir_scr = scr_env.dir_scr()
+  os.makedirs(dir_scr, exist_ok=True)
 
   # TODO: It would be nice to clear the cache and control directories
   # here in preparation for the run.  However, a simple rm -rf is too
@@ -53,12 +52,12 @@ def scr_prerun(prefix=None):
   # requested the job to halt
   # remove files: ${pardir}/.scr/{flush.scr,nodes.scr}
   try:
-    os.remove(os.path.join(pardir, '.scr', 'flush.scr'))
+    os.remove(os.path.join(dir_scr, 'flush.scr'))
   except:  # error on doesn't exist / etc ...
     pass
 
   try:
-    os.remove(os.path.join(pardir, '.scr', 'nodes.scr'))
+    os.remove(os.path.join(dir_scr, 'nodes.scr'))
   except:
     pass
 
@@ -88,8 +87,10 @@ if __name__ == '__main__':
                       default=None,
                       help='Specify the prefix directory.')
   args = vars(parser.parse_args())
+
   if 'help' in args:
     parser.print_help()
   else:
-    ret = scr_prerun(prefix=args['prefix'])
+    scr_env = SCR_Env(prefix=args['prefix'])
+    ret = scr_prerun(scr_env=scr_env)
     sys.exit(ret)

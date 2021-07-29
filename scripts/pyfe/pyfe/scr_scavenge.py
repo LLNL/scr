@@ -41,7 +41,7 @@ def scr_scavenge(nodeset_job=None,
   # for now just hardcode the values
 
   if scr_env is None:
-    scr_env = SCR_Env()
+    scr_env = SCR_Env(prefix=prefixdir)
   if scr_env.param is None:
     scr_env.param = SCR_Param()
   if scr_env.resmgr is None:
@@ -70,8 +70,9 @@ def scr_scavenge(nodeset_job=None,
     return 1
 
   # build the output filenames
-  output = prefixdir + '/.scr/scr.dataset.' + dataset_id + '/scr_scavenge.pdsh.o' + jobid
-  error = prefixdir + '/.scr/scr.dataset.' + dataset_id + '/scr_scavenge.pdsh.e' + jobid
+  dset_dir = scr_env.dir_dset(dataset_id)
+  output = os.path.join(dset_dir, 'scr_scavenge.pdsh.o' + jobid)
+  error = os.path.join(dset_dir, 'scr_scavenge.pdsh.e' + jobid)
 
   if verbose:
     print('scr_scavenge: nodeset_up =   ' + nodeset_up)

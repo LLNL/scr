@@ -135,7 +135,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
           break
 
         # build full path to dataset directory
-        datadir = os.path.join(pardir, '.scr', 'scr.dataset.' + d)
+        datadir = scr_env.dir_dset(d)
         os.makedirs(datadir, exist_ok=True)
 
         # Gather files from cache to parallel file system
@@ -210,7 +210,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
           continue
 
         # build full path to dataset directory
-        datadir = os.path.join(pardir, '.scr', 'scr.dataset.' + d)
+        datadir = scr_env.dir_dset(d)
         os.makedirs(datadir, exist_ok=True)
 
         # Gather files from cache to parallel file system

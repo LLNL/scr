@@ -102,11 +102,13 @@ def scr_run(launcher='',
 
   # TODO: if not in job allocation, bail out
 
-  param = SCR_Param()
-  # env contains general environment infos independent of resmgr/launcher
-  scr_env = SCR_Env()
   # get prefix directory
-  prefix = scr_env.get_prefix()
+  prefix = scr_prefix()
+
+  param = SCR_Param()
+
+  # env contains general environment infos independent of resmgr/launcher
+  scr_env = SCR_Env(prefix=prefix)
 
   # resource manager (SLURM/LSF/ ...) set by argument or compile constant
   resourcemgr = AutoResourceManager()
@@ -170,7 +172,7 @@ def scr_run(launcher='',
   log = SCRLog(prefix, jobid, user=user, jobstart=start_secs)
 
   # test runtime, ensure filepath exists,
-  if scr_prerun(prefix=prefix) != 0:
+  if scr_prerun(scr_env=scr_env) != 0:
     print(prog + ': ERROR: Command failed: scr_prerun -p ' + prefix)
     sys.exit(1)
 

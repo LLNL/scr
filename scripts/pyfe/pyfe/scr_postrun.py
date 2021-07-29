@@ -37,10 +37,11 @@ if __name__ == '__main__':
                       default=False,
                       help='Verbose output.')
   args = vars(parser.parse_args())
+
   if 'help' in args:
     parser.print_help()
   else:
-    scr_env = SCR_Env()
+    scr_env = SCR_Env(prefix=args['prefix'])
     scr_env.resmgr = AutoResourceManager()
     ret = postrun(prefix_dir=args['prefix'],
                   scr_env=scr_env,
