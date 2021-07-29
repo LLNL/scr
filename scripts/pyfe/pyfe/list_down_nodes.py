@@ -2,9 +2,8 @@
 
 # list_down_nodes.py
 
-from pyfe import scr_const, scr_common
+from pyfe import scr_const
 from pyfe.list_dir import list_dir
-from pyfe.scr_common import runproc, pipeproc
 
 
 # mark any nodes specified on the command line

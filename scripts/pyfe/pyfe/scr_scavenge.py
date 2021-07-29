@@ -10,14 +10,12 @@ if 'pyfe' not in sys.path:
   import pyfe
 
 import argparse
-from datetime import datetime
 from time import time
 from pyfe import scr_const
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 from pyfe.joblauncher import AutoJobLauncher
-from pyfe.scr_common import tracefunction, runproc
 
 # check for pdsh / (clustershell) errors in case any nodes should be retried
 

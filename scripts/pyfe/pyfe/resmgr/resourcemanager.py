@@ -79,7 +79,7 @@ get_scavenge_nodelists(upnodes, downnodes)
 
 import os
 from pyfe import scr_const, scr_hostlist
-from pyfe.scr_common import scr_prefix, runproc
+from pyfe.scr_common import scr_prefix
 
 
 class ResourceManager(object):
