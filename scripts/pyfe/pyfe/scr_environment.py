@@ -10,34 +10,39 @@ from pyfe.scr_common import scr_prefix, runproc
 
 
 class SCR_Env:
-  def __init__(self):
+  def __init__(self, prefix=None):
     # we can keep a reference to the other objects
     self.param = None
     self.launcher = None
     self.resmgr = None
+
+    # record SCR_PREFIX directory, default to scr_prefix if not specified
+    if prefix is None:
+      prefix = scr_prefix()
+    self.prefix = prefix
+
     # initialize the infos
-    self.prefix = scr_prefix()
-    self.nodes_file = scr_const.X_BINDIR + '/scr_nodes_file'
-    self.user = os.environ.get('USER')
-    self.nodes = os.environ.get('SCR_NODELIST')
+    bindir = scr_const.X_BINDIR
+    self.nodes_file = os.path.join(bindir, 'scr_nodes_file')
 
   def get_user(self):
-    return self.user
+    return os.environ.get('USER')
 
   def get_scr_nodelist(self):
-    return self.nodes
+    return os.environ.get('SCR_NODELIST')
 
-  # set the nodelist (called if the environment variable wasn't set)
-  def set_nodelist(self, nodelist):
-    self.nodes = nodelist
-    os.environ['SCR_NODELIST'] = nodelist
-
+  # return path to $SCR_PREFIX
   def get_prefix(self):
     return self.prefix
 
-  # set the prefix
-  def set_prefix(self, prefix):
-    self.prefix = prefix
+  # return path to $SCR_PREFIX/.scr
+  def dir_scr(self):
+    return os.path.join(self.prefix, '.scr')
+
+  # given a dataset id, return dataset directory within prefix
+  # ${SCR_PREFIX}/.scr/scr.dataset.<id>
+  def dir_dset(self, d):
+    return os.path.join(self.dir_scr(), 'scr.dataset.' + str(d))
 
   # list the number of nodes used in the last run
   def get_runnode_count(self):

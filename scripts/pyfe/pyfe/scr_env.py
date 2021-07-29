@@ -64,23 +64,24 @@ if __name__ == '__main__':
                       '--prefix',
                       metavar='<dir>',
                       type=str,
+                      default=None,
                       help='Specify the prefix directory.')
   parser.add_argument('-r',
                       '--runnodes',
                       action='store_true',
                       help='List the number of nodes used in the last run.')
   args = vars(parser.parse_args())
-  scr_env = SCR_Env()
+
+  scr_env = SCR_Env(prefix=args['prefix'])
   scr_env.resmgr = AutoResourceManager()
   scr_env.launcher = AutoJobLauncher()
   scr_env.param = SCR_Param()
+
   if len(args) == 0:
     printobject(scr_env, 'scr_env')
   elif 'help' in args:
     parser.print_help()
   else:
-    if 'prefix' in args:
-      scr_env.set_prefix(args['prefix'])
     if 'user' in args:
       print(str(scr_env.get_user()), end='')
     if 'jobid' in args:
