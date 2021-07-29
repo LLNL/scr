@@ -11,6 +11,7 @@ if 'pyfe' not in sys.path:
 
 import argparse, inspect
 from subprocess import Popen, PIPE
+import shlex
 from pyfe import scr_const
 
 
@@ -81,13 +82,7 @@ The default shell used by subprocess is /bin/sh. If youre using other shells, li
 def runproc(argv, wait=True, getstdout=False, getstderr=False, verbose=False):
   # allow caller to pass command as a string, as in:
   #   "ls -lt" rather than ["ls", "-lt"]
-  # this does not support arguments that may have embedded spaces
-  #   "echo 'hello world'"
-  # one must pass argv as a list in such cases
   if type(argv) is str:
-    # if we were just given a string, assume that
-    # we may need to expand environment vars or ~ .. ./ paths
-    argv = interpolate_variables(argv)
     argv = shlex.split(argv)
 
   if len(argv) < 1:
@@ -136,14 +131,25 @@ def pipeproc(argvs, wait=True, getstdout=False, getstderr=False):
   if len(argvs) == 1:
     return runproc(argvs[0], wait, getstdout, getstderr)
   try:
-    nextprog = Popen(argvs[0],
+    # split command into list if given as string
+    cmd = argvs[0]
+    if type(cmd) is str:
+      cmd = shlex.split(cmd)
+
+    nextprog = Popen(cmd,
                      bufsize=1,
                      stdin=None,
                      stdout=PIPE,
                      stderr=PIPE,
                      universal_newlines=True)
+
     for i in range(1, len(argvs)):
-      pipeprog = Popen(argvs[i],
+      # split command into list if given as string
+      cmd = argvs[i]
+      if type(cmd) is str:
+        cmd = shlex.split(cmd)
+
+      pipeprog = Popen(cmd,
                        stdin=nextprog.stdout,
                        stdout=PIPE,
                        stderr=PIPE,
