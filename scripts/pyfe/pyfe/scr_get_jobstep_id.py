@@ -25,17 +25,13 @@ from pyfe.joblauncher import AutoJobLauncher
 
 def scr_get_jobstep_id(scr_env=None, pid=-1):
   #my $pid=$ARGV[0]; # unused
-  if scr_env is None:
-    scr_env = SCR_Env()
-  if scr_env.resmgr is None:
-    scr_env.resmgr = AutoResourceManager()
-  if scr_env.launcher is None:
-    scr_env.launcher = AutoJobLauncher()
+  if scr_env is None or scr_env.resmgr is None or scr_env.launcher is None:
+    return None
   user = scr_env.get_user()
   if user is None:
     print('scr_get_jobstep_id: ERROR: Could not determine user ID')
     return None
-  currjobid = scr_env.resmgr.get_jobstep_id(user=user, pid=pid)
+  currjobid = scr_env.launcher.get_jobstep_id(user=user, pid=pid)
   if currjobid is None:
     print('scr_get_jobstep_id: ERROR: Could not determine job ID')
     return None
@@ -43,6 +39,15 @@ def scr_get_jobstep_id(scr_env=None, pid=-1):
 
 
 if __name__ == '__main__':
-  ret = scr_get_jobstep_id()
-  if ret is not None:
-    print(str(ret))
+  if len(sys.argv) != 2:
+    print('scr_get_jobstep_id: job launcher must be specified.')
+    print('                Ex: scr_get_jobstep_id.py srun')
+    sys.exit(1)
+  scr_env = SCR_Env()
+  scr_env.resmgr = AutoResourceManager()
+  scr_env.launcher = AutoJobLauncher(sys.argv[1])
+  ret = scr_get_jobstep_id(scr_env)
+  if ret is None:
+    sys.exit(1)
+  print(ret)
+  sys.exit(0)

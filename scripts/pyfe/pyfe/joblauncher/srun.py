@@ -3,6 +3,8 @@
 #srun.py
 # The SRUN class provides interpretation for the srun launcher
 
+from time import sleep
+
 from pyfe import scr_const
 from pyfe.scr_common import runproc, pipeproc
 from pyfe.joblauncher import JobLauncher

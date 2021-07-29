@@ -171,7 +171,7 @@ echo "Runnode count (last run): $(scr_env.py -r)"
 sleep 1
 
 echo "scr_get_jobstep_id.py"
-scr_get_jobstep_id.py
+scr_get_jobstep_id.py ${launcher}
 sleep 1
 
 echo "scr_list_dir.py"

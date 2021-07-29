@@ -14,6 +14,7 @@ if 'pyfe' not in sys.path:
 import argparse
 from pyfe import scr_const
 from pyfe.scr_common import runproc
+from pyfe.joblauncher import AutoJobLauncher
 
 
 def scr_kill_jobstep(bindir=None, jobid=None):
@@ -45,6 +46,11 @@ if __name__ == '__main__':
                       metavar='<bindir>',
                       default=None,
                       help='Specify the bin directory.')
+  parser.add_argument('-l',
+                      '--launcher',
+                      metavar='<launcher>',
+                      default=None,
+                      help='Specify the job launcher.')
   parser.add_argument('-j',
                       '--jobStepId',
                       metavar='<jobstepid>',
@@ -55,9 +61,8 @@ if __name__ == '__main__':
     parser.print_help()
   elif 'jobStepId' not in args:
     print('You must specify the job step id to kill.')
+  elif 'launcher' not in args:
+    print('You must specify the job launcher used to launch the job.')
   else:
-    ret = scr_kill_jobstep(bindir=args['bindir'], jobid=args['jobStepId'])
-    if ret == 0:
-      print('Kill command issued successfully.')
-    else:
-      print('Kill command returned with code ' + str(ret))
+    launcher = AutoJobLauncher(args['launcher'])
+    launcher.scr_kill_jobstep(jobid=args['jobStepId'])

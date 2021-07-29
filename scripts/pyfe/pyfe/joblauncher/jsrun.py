@@ -65,7 +65,8 @@ class JSRUN(JobLauncher):
 
   # jsrun needs to use jskill to kill a jobstep
   def killsprocess(self):
-    return True
+    # It looks like Popen.terminate() is working
+    return False
 
   # query jslist for the most recent jobstep in current allocation
   def get_jobstep_id(self, user='', allocid='', pid=-1):

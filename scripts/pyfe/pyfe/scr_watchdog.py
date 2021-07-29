@@ -37,7 +37,7 @@ class SCR_Watchdog:
       self.process = None
     elif self.watched_process.returncode is None:
       print('Killing simulation PID ' + str(self.watched_process.pid))
-      self.watched_process.kill()
+      self.watched_process.terminate()
       self.watched_process.communicate()
     return 0
 

@@ -22,7 +22,6 @@ from pyfe.list_dir import list_dir
 from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_common import tracefunction, runproc, scr_prefix
 from pyfe.scr_prerun import scr_prerun
-from pyfe.scr_get_jobstep_id import scr_get_jobstep_id
 from pyfe.scr_watchdog import SCR_Watchdog
 from pyfe.scr_environment import SCR_Env
 from pyfe.joblauncher import AutoJobLauncher
