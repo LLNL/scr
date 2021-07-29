@@ -13,6 +13,8 @@ See the `JobLauncher` class in `joblauncher.py`
 for the interface definitions that one must implement, e.g.:
 
     >>: cat newlauncher.py
+    from pyfe.joblauncher import JobLauncher
+
     class NewLauncher(JobLauncher):
       def launchruncmd():
         pass
@@ -37,10 +39,18 @@ Add lines to import the new class and create an object to `auto.py`.
       NewLauncher
     )
 
-And create an object of that class in :
+And create an object of that class in the `__new__` method of `AutoJobLauncher`:
 
     class AutoJobLauncher:
       def __new__(cls,joblauncher=None):
         ...
         if joblauncher == 'NewLauncher':
           return NewLauncher()
+
+## Add class file to `CMakeLists.txt`
+Include the new job launcher in the list of files to be installed by CMake in `CMakeLists.txt`:
+
+    SET(JOBLAUNCHERS
+      ...
+      newlauncher.py
+    )
