@@ -22,6 +22,8 @@ USE_CLUSTERSHELL = '@USE_CLUSTERSHELL@'
 PYFE_TRACE_FUNC = '@PYFE_TRACE_FUNC@'
 ### Prefer job launcher's method to kill a jobstep, set to '1'
 USE_JOBLAUNCHER_KILL = '@USE_JOBLAUNCHER_KILL@'
+### Set to '1' to enable Flux integration with job launcher
+USE_FLUX = '@USE_FLUX@'
 
 if __name__ == '__main__':
   print('SCR_CNTL_BASE = \"' + SCR_CNTL_BASE + '\"')
@@ -36,3 +38,4 @@ if __name__ == '__main__':
   print('USE_CLUSTERSHELL = \"' + USE_CLUSTERSHELL + '\"')
   print('PYFE_TRACE_FUNC = \"' + PYFE_TRACE_FUNC + '\"')
   print('USE_JOBLAUNCHER_KILL = \"' + USE_JOBLAUNCHER_KILL + '\"')
+  print('USE_FLUX = \"' + USE_FLUX + '\"')

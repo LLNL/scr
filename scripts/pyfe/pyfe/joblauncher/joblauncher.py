@@ -87,6 +87,23 @@ class JobLauncher(object):
         self.clustershell_task = MyCSTask
       except:
         pass
+    # attempt to take over launchruncmd+getjobstepid+killjobstep
+    if scr_const.USE_FLUX == '1':
+      try:
+        import flux as myflux
+        self.flux = myflux
+        # we were able to import flux
+        #import json
+        from flux.job import JobspecV1 as myjobspec
+        self.jobspec = myjobspec
+        from flux.job.JobID import myJobID
+        self.jobid = myJobID
+        ### move function definitions here to joblauncher.py from flux.py
+        self.launchruncmd = self.launchfluxcmd
+        self.get_jobstep_id = self.get_flux_jobstep
+        self.scr_kill_jobstep = self.flux_kill_jobstep
+      except:
+        pass
 
   def prepareforprerun(self):
     """Called before scr_prerun
