@@ -26,6 +26,7 @@ from .aprun import APRUN
 from .jsrun import JSRUN
 from .lrun import LRUN
 from .mpirun import MPIRUN
+from .flux import FLUX
 
 ####
 ####
