@@ -1,7 +1,0 @@
-# git clone https://github.com/spack/spack ~/spack
-# cd ~/spack
-# . share/spack/setup-env.sh
-# spack env create flux
-# spacktivate -p flux
-# spack install libedit@3.1-20210216
-# spack install flux-sched@master
