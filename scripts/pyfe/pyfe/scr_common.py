@@ -3,7 +3,7 @@
 # scr_common.py
 # Defines for common functions shared across scripts
 
-import os, sys, shlex
+import os, sys
 
 if 'pyfe' not in sys.path:
   sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
