@@ -158,8 +158,8 @@ class JobLauncher(object):
 
   def flux_kill_jobstep(self, jobstepid=None):
     if jobstepid is not None:
-      self.flux['flux'].job.cancel(self.flux['flux'], jobstepid)
-      self.flux['flux'].job.wait_async(self.flux['flux'], jobstepid)
+      self.flux['flux'].job.cancel(self.flux['f'], jobstepid)
+      self.flux['flux'].job.wait_async(self.flux['f'], jobstepid)
 
   def prepareforprerun(self):
     """Called before scr_prerun
