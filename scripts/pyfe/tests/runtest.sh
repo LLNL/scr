@@ -22,6 +22,11 @@ numnodes="2"
 # Set mpi C compiler for the sleeper/watchdog test
 MPICC="mpicc"
 
+# set useflux to "true"
+# then do `start flux` before running this script
+# * this changes the launcher args *
+useflux="true"
+
 export TESTDIR=$(pwd)
 cd ..
 export PATH=$(pwd)/pyfe:${PATH}
@@ -29,10 +34,6 @@ cd ../../../
 export SCR_PKG=$(pwd)
 export SCR_BUILD=${SCR_PKG}/build
 export SCR_INSTALL=${SCR_PKG}/install
-
-# set useflux to "true"
-# then do `start flux` before running this script
-useflux="false"
 
 if [ $launcher == "srun" ]; then
   launcherargs="-n${numnodes} -N${numnodes}"
@@ -98,7 +99,7 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
     echo "${testscript##*/}"
     sleep 1
     if [ "${testscript##*/}" == "test_watchdog.py" ]; then
-      ${testscript} ${launcher} ${launcherargs}
+      ${testscript} ${launcher} ${launcherargs} $(pwd)/sleeper
     else
       ${testscript}
     fi
@@ -213,8 +214,8 @@ sleep 3
 
 echo "clean out any cruft from previous runs"
 echo "deletes files from cache and any halt, flush, nodes files"
-${launcher} ${launcherargs} /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
-${launcher} ${launcherargs} /bin/rm -rf /ssd/${USER}/scr.${jobid}
+rm -rf /dev/shm/${USER}/scr.${jobid}
+rm -rf /ssd/${USER}/scr.${jobid}
 rm -f ${prefix_files}
 
 echo "check that a run works"
@@ -233,15 +234,15 @@ scr_${launcher}.py ${launcherargs} ./test_api
 
 echo "delete all files from all nodes, run again, check that run starts over"
 sleep 2
-${launcher} ${launcherargs} /bin/rm -rf /ssd/${USER}/scr.${jobid}
-${launcher} ${launcherargs} /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
+rm -rf /ssd/${USER}/scr.${jobid}
+rm -rf /dev/shm/${USER}/scr.${jobid}
 scr_${launcher}.py ${launcherargs} ./test_api
 
 
 echo "clear the cache and control directory"
 sleep 2
-${launcher} ${launcherargs} /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
-${launcher} ${launcherargs} /bin/rm -rf /ssd/${USER}/scr.${jobid}
+rm -rf /dev/shm/${USER}/scr.${jobid}
+rm -rf /ssd/${USER}/scr.${jobid}
 rm -f ${prefix_files}
 
 
@@ -290,8 +291,8 @@ scr_postrun.py
 
 echo "clear the cache, make a new run"
 sleep 2
-${launcher} ${launcherargs} /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
-${launcher} ${launcherargs} /bin/rm -rf /ssd/${USER}/scr.${jobid}
+rm -rf /dev/shm/${USER}/scr.${jobid}
+rm -rf /ssd/${USER}/scr.${jobid}
 scr_${launcher}.py ${launcherargs} ./test_api
 sleep 1
 echo "check that scr_postrun scavenges successfully (no rebuild)"
@@ -314,8 +315,8 @@ sleep 2
 
 echo "delete all files, enable fetch, run again, check that fetch succeeds"
 sleep 1
-${launcher} ${launcherargs} /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
-${launcher} ${launcherargs} /bin/rm -rf /ssd/${USER}/scr.${jobid}
+rm -rf /dev/shm/${USER}/scr.${jobid}
+rm -rf /ssd/${USER}/scr.${jobid}
 export SCR_FETCH=1
 scr_${launcher}.py ${launcherargs} ./test_api
 sleep 1
@@ -344,28 +345,14 @@ sleep 1
 ${scrbin}/scr_index --list
 sleep 2
 
-#echo "turn on the watchdog with a timeout of 15 seconds"
-#export SCR_WATCHDOG=1
-#export SCR_WATCHDOG_TIMEOUT=15
-#export SCR_WATCHDOG_TIMEOUT_PFS=15
-#echo "run test_api_hang, which will sleep for 90 seconds before finalizing"
-
-#/scr_${launcher}.py -n4 -N4 ./test_api_hang
-#echo "scr_${launcher} returned, try to restart (should get the checkpoint that was just made)"
-#unset SCR_WATCHDOG
-#unset SCR_WATCHDOG_TIMEOUT
-#unset SCR_WATCHDOG_TIMEOUT_PFS
-#/scr_${launcher}.py -n4 -N4 ./test_api
-#echo "back again"
-
 export SCR_DEBUG=0
 echo "----------------------"
 echo "        ${launcher}"
 echo "----------------------"
 sleep 2
 # clear cache and check that scr_srun works
-${launcher} ${launcherargs} /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
-${launcher} ${launcherargs} /bin/rm -rf /ssd/${USER}/scr.${jobid}
+rm -rf /dev/shm/${USER}/scr.${jobid}
+rm -rf /ssd/${USER}/scr.${jobid}
 rm -f ${prefix_files}
 scr_${launcher}.py ${launcherargs} ./test_api
 ${scrbin}/scr_index --list
@@ -374,4 +361,3 @@ scr_${launcher}.py ${launcherargs} ./test_ckpt
 sleep 1
 scr_${launcher}.py ${launcherargs} ./test_config
 sleep 1
-

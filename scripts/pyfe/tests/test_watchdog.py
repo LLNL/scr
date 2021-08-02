@@ -67,16 +67,16 @@ def testwatchdog(launcher, launcher_args):
 
   if down_nodes is None:
     down_nodes = ''
-  launcher_args.append('./sleeper')
 
   print('Nodelist = ' + str(nodelist))
   print('Down nodes = ' + str(down_nodes))
 
+  print('Launching command ' + ' '.join(launcher_args))
   proc, pid = launcher.launchruncmd(up_nodes=nodelist,
                                     down_nodes=down_nodes,
                                     launcher_args=launcher_args)
 
-  if proc is None:
+  if proc is None or pid == -1:
     print('Error launching the sleeper process!')
     return
 
@@ -95,7 +95,6 @@ def testwatchdog(launcher, launcher_args):
     print('  that requires a specific method to kill a launched job')
     print('Waiting for that process to terminate now . . .')
     watchdog.process.join()
-    jobstepid = launcher.get_jobstep_id()
 
   print('The process has now been terminated')
   print('Sleeping for 45 seconds before checking the output files . . .')
