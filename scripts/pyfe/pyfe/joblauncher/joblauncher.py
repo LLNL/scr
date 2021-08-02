@@ -72,6 +72,7 @@ clustershell_exec(argv, runnodes, use_dshbak)
 
 """
 
+import os
 from pyfe import scr_const
 
 
@@ -88,22 +89,77 @@ class JobLauncher(object):
       except:
         pass
     # attempt to take over launchruncmd+getjobstepid+killjobstep
+    self.flux = None
     if scr_const.USE_FLUX == '1':
       try:
         import flux as myflux
-        self.flux = myflux
+        self.flux = {}
         # we were able to import flux
-        #import json
+        self.flux['flux'] = myflux
+        self.flux['f'] = myflux.Flux()
+        #import json (?)
         from flux.job import JobspecV1 as myjobspec
-        self.jobspec = myjobspec
-        from flux.job.JobID import myJobID
-        self.jobid = myJobID
+        self.flux['JobspecV1'] = myjobspec
+        from flux.job.JobID import JobID as myJobID
+        self.flux['JobID'] = myJobID
         ### move function definitions here to joblauncher.py from flux.py
         self.launchruncmd = self.launchfluxcmd
         self.get_jobstep_id = self.get_flux_jobstep
         self.scr_kill_jobstep = self.flux_kill_jobstep
-      except:
+      except Exception as e:
+        print(e)
+
+  def waitonprocess(self, proc, timeout=None):
+    if self.flux is None:
+      proc.communicate(timeout=timeout)
+    else:
+      if timeout is not None:
+        self.flux['flux'].job.wait_async(self.flux['f'], proc).wait_for(timeout)
+      else:
+        self.flux['flux'].job.wait_async(self.flux['f'], proc)
+
+  def parsefluxargs(self, launcher_args):
+    # default values if none are specified in launcher_args
+    nnodes = 1
+    ntasks = 1
+    corespertask = 1
+    argv = []
+    for arg in launcher_args:
+      if arg == 'mini' or arg == 'submit':
         pass
+      elif arg.startswith('--nodes'):
+        nnodes = int(arg.split('=')[1])
+      elif arg.startswith('--ntasks'):
+        ntasks = int(arg.split('=')[1])
+      elif arg.startswith('--cores-per-task'):
+        corespertask = int(arg.split('=')[1])
+      else:
+        argv.append(arg)
+    return nnodes, ntasks, corespertask, argv
+
+  def launchfluxcmd(self, up_nodes='', down_nodes='', launcher_args=[]):
+    if type(launcher_args) is str:
+      launcher_args = launcher_args.split(' ')
+    nnodes, ntasks, ncores, argv = self.parsefluxargs(launcher_args)
+    compute_jobreq = self.flux['JobspecV1'].from_command(
+        command=argv, num_tasks=ntasks, num_nodes=nnodes, cores_per_task=ncores)
+    ###
+    compute_jobreq.cwd = os.getcwd()
+    compute_jobreq.environment = dict(os.environ)
+    job = self.flux['flux'].job.submit(self.flux['f'],
+                                       compute_jobreq,
+                                       waitable=True)
+    # job is an integer representing the job id, this is all we need
+    return job, job
+
+  def get_flux_jobstep(self, user='', allocid='', pid=-1):
+    # the incoming 'pid' is actually the jobstep id that is needed
+    return pid
+
+  def flux_kill_jobstep(self, jobstepid=None):
+    if jobstepid is not None:
+      self.flux['flux'].job.cancel(self.flux['flux'], jobstepid)
+      self.flux['flux'].job.wait_async(self.flux['flux'], jobstepid)
 
   def prepareforprerun(self):
     """Called before scr_prerun

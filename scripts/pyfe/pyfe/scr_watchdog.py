@@ -31,7 +31,7 @@ class SCR_Watchdog:
     self.launcher = scr_env.launcher
     self.jobstepid = None
     self.process = None
-    if self.launcher.killsprocess:
+    if self.launcher.flux is None and self.launcher.killsprocess:
       try:
         mp.set_start_method('fork')
       except:
@@ -58,13 +58,16 @@ class SCR_Watchdog:
     while True:
       # wait up to 'timeToSleep' to see if the process terminates normally
       #if self.launcher.killsprocess() { sleep(timeToSleep) } else {
-      try:
-        self.watched_process.communicate(timeout=timeToSleep)
+      if self.launcher.flux is not None:
+        self.launcher.waitonprocess(self.watched_process, timeout=timeToSleep)
+      else:
+        try:
+          self.watched_process.communicate(timeout=timeToSleep)
 
-        # the process has terminated normally, leave the watchdog method
-        return 0
-      except TimeoutExpired as e:
-        pass
+          # the process has terminated normally, leave the watchdog method
+          return 0
+        except TimeoutExpired as e:
+          pass
 
       # the process is still running, read flush file to get latest
       # dataset id and its location
@@ -109,7 +112,7 @@ class SCR_Watchdog:
           'Necessary environment variables not set: SCR_HANG_TIMEOUT and SCR_HANG_TIMEOUT_PFS'
       )
       return 1
-    if self.launcher.killsprocess():
+    if self.launcher.flux is None and self.launcher.killsprocess():
       self.process = mp.Process(target=self.watchfiles)
       self.process.start()
       return 0

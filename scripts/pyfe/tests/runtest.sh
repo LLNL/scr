@@ -30,6 +30,10 @@ export SCR_PKG=$(pwd)
 export SCR_BUILD=${SCR_PKG}/build
 export SCR_INSTALL=${SCR_PKG}/install
 
+# set useflux to "true"
+# then do `start flux` before running this script
+useflux="false"
+
 if [ $launcher == "srun" ]; then
   launcherargs="-n${numnodes} -N${numnodes}"
   singleargs="-n1 -N1"
@@ -47,6 +51,13 @@ else
   launcher="mpirun"
   launcherargs="-N 1"
   singleargs="-N 1"
+fi
+
+# '1' is the default value when nodes/tasks/cores are not specified.
+# (the single args could be a blank string)
+if [ $useflux == "true" ]; then
+  launcherargs="--nodes=${numnodes} --ntasks=${numnodes} --cores-per-task=1"
+  singleargs="--nodes=1 --ntasks=1 --cores-per-task=1"
 fi
 
 export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${LD_LIBRARY_PATH}

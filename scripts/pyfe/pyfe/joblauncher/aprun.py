@@ -15,7 +15,7 @@ class APRUN(JobLauncher):
     super(APRUN, self).__init__(launcher=launcher)
     # unconditionally set it True if it is needed
     #self.watchprocess = True
-    if scr_const.USE_JOBLAUNCHER_KILL == '1':
+    if self.flux is not None or scr_const.USE_JOBLAUNCHER_KILL == '1':
       self.watchprocess = True
 
   # a command to run immediately before prerun is ran

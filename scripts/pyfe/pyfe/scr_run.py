@@ -282,13 +282,13 @@ def scr_run(launcher='',
                                       down_nodes=down_nodes,
                                       launcher_args=launch_cmd)
     if watchdog is None:
-      proc.communicate(timeout=None)
+      launcher.waitonprocess(proc)
     else:
       print(prog + ': Entering watchdog method')
       # watchdog returned error or a watcher process was launched
       if watchdog.watchproc(proc) != 0:
         print(prog + ': Error launching watchdog')
-        proc.communicate(timeout=None)
+        launcher.waitonprocess(proc)
       elif watchdog.process is not None:
         watchdog.process.join()
       # else the watchdog returned because the process has finished/been killed

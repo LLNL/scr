@@ -11,9 +11,8 @@ from pyfe.scr_common import runproc, pipeproc
 class LRUN(JobLauncher):
   def __init__(self, launcher='lrun'):
     super(LRUN, self).__init__(launcher=launcher)
-    if scr_const.USE_JOBLAUNCHER_KILL == '1':
-      #self.watchprocess = True
-      pass
+    if self.flux is not None or scr_const.USE_JOBLAUNCHER_KILL == '1':
+      self.watchprocess = True
 
   # returns the process and PID of the launched process
   # as returned by runproc(argv=argv, wait=False)

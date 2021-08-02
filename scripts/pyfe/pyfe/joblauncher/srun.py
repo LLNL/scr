@@ -14,7 +14,7 @@ class SRUN(JobLauncher):
   def __init__(self, launcher='srun'):
     super(SRUN, self).__init__(launcher=launcher)
     # The Popen.kill() seems to work for srun
-    if scr_const.USE_JOBLAUNCHER_KILL == '1':
+    if self.flux is not None or scr_const.USE_JOBLAUNCHER_KILL == '1':
       self.watchprocess = True
 
   # a command to run immediately before prerun is ran

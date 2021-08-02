@@ -14,7 +14,7 @@ class JSRUN(JobLauncher):
   def __init__(self, launcher='jsrun'):
     super(JSRUN, self).__init__(launcher=launcher)
     # it looks like the Popen.terminate is working with jsrun
-    if scr_const.USE_JOBLAUNCHER_KILL == '1':
+    if self.flux is not None or scr_const.USE_JOBLAUNCHER_KILL == '1':
       self.watchprocess = True
 
   # returns the process and PID of the launched process
