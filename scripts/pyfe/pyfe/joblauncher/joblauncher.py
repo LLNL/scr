@@ -107,14 +107,20 @@ class JobLauncher(object):
         self.get_jobstep_id = self.get_flux_jobstep
         self.scr_kill_jobstep = self.flux_kill_jobstep
       except Exception as e:
+        print('JobLauncher: flux option set but unable to use flux:')
         print(e)
+        self.flux = None
 
   def waitonprocess(self, proc, timeout=None):
     if self.flux is None:
       proc.communicate(timeout=timeout)
     else:
       if timeout is not None:
-        self.flux['flux'].job.wait_async(self.flux['f'], proc).wait_for(timeout)
+        # when the timeout is set we want to ignore the TimeoutError exception
+        try:
+          self.flux['flux'].job.wait_async(self.flux['f'], proc).wait_for(float(timeout))
+        except TimeoutError:
+          pass
       else:
         self.flux['flux'].job.wait_async(self.flux['f'], proc)
 
@@ -158,8 +164,12 @@ class JobLauncher(object):
 
   def flux_kill_jobstep(self, jobstepid=None):
     if jobstepid is not None:
-      self.flux['flux'].job.cancel(self.flux['f'], jobstepid)
-      self.flux['flux'].job.wait_async(self.flux['f'], jobstepid)
+      try:
+        self.flux['flux'].job.cancel(self.flux['f'], jobstepid)
+        self.flux['flux'].job.wait_async(self.flux['f'], jobstepid)
+      except Exception as e:
+        # Shouldn't have an exception?
+        print(e)
 
   def prepareforprerun(self):
     """Called before scr_prerun

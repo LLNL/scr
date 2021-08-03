@@ -23,8 +23,9 @@ numnodes="2"
 MPICC="mpicc"
 
 # set useflux to "true"
-# then do `start flux` before running this script
-# * this changes the launcher args *
+# then run `start flux` on every node before running this script, e.g.,
+# srun -N2 -n2 --pty flux start
+# * setting useflux changes the launcher args *
 useflux="true"
 
 export TESTDIR=$(pwd)

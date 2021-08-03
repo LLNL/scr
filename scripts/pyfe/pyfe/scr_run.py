@@ -286,7 +286,7 @@ def scr_run(launcher='',
     else:
       print(prog + ': Entering watchdog method')
       # watchdog returned error or a watcher process was launched
-      if watchdog.watchproc(proc) != 0:
+      if watchdog.watchproc(proc, pid) != 0:
         print(prog + ': Error launching watchdog')
         launcher.waitonprocess(proc)
       elif watchdog.process is not None:

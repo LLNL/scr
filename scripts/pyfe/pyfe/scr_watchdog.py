@@ -45,7 +45,6 @@ class SCR_Watchdog:
       self.launcher.scr_kill_jobstep(self.jobstepid)
       self.process = None
     elif self.watched_process.returncode is None:
-      print('Killing simulation PID ' + str(self.watched_process.pid))
       self.watched_process.terminate()
       self.watched_process.communicate()
     return 0
@@ -59,7 +58,7 @@ class SCR_Watchdog:
       # wait up to 'timeToSleep' to see if the process terminates normally
       #if self.launcher.killsprocess() { sleep(timeToSleep) } else {
       if self.launcher.flux is not None:
-        self.launcher.waitonprocess(self.watched_process, timeout=timeToSleep)
+        self.launcher.waitonprocess(self.jobstepid, timeout=timeToSleep)
       else:
         try:
           self.watched_process.communicate(timeout=timeToSleep)
@@ -96,20 +95,20 @@ class SCR_Watchdog:
     # kill the watched process and return
     return self.killproc()
 
-  def watchproc(self, watched_process=None):
+  def watchproc(self, watched_process=None, pid=-1):
     if watched_process is None:
       print('scr_watchdog: ERROR: No process to watch.')
       return 1
 
     if self.launcher.killsprocess():
-      self.jobstepid = self.launcher.get_jobstep_id()
+      self.jobstepid = self.launcher.get_jobstep_id(pid=pid)
 
     self.watched_process = watched_process
     # TODO: What to do if timeouts are not set? die? should we set default values?
     # for now die with error message
     if self.timeout is None or self.timeout_pfs is None:
       print(
-          'Necessary environment variables not set: SCR_HANG_TIMEOUT and SCR_HANG_TIMEOUT_PFS'
+          'Necessary environment variables not set: SCR_WATCHDOG_TIMEOUT and SCR_WATCHDOG_TIMEOUT_PFS'
       )
       return 1
     if self.launcher.flux is None and self.launcher.killsprocess():

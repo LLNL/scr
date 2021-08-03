@@ -86,7 +86,7 @@ def testwatchdog(launcher, launcher_args):
   print('Each launched sleeper process will output the posix time every 5 seconds.')
   print('We\'ve set the watchdog timer to 15 seconds.')
   print('Calling watchdog watchprocess . . .')
-  if watchdog.watchproc(proc) != 0:
+  if watchdog.watchproc(proc, pid) != 0:
     print('The watchdog failed to start')
     print('Waiting for the original process to terminate now . . .')
     proc.communicate(timeout=None)
