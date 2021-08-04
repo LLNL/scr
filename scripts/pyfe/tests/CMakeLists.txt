@@ -1,5 +1,6 @@
 SET(PYFE_TESTS_SRC
   sleeper.c
+  printer.c
 )
 INSTALL(FILES ${PYFE_TESTS_SRC}
         DESTINATION ${CMAKE_INSTALL_BINDIR}/pyfe/tests)
@@ -7,6 +8,7 @@ INSTALL(FILES ${PYFE_TESTS_SRC}
 SET(PYFE_TESTS_EXE
   runtest.sh
   test_flush_file.py
+  test_launch.py
   test_log.py
   test_rm.py
   test_scr_index.py

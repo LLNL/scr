@@ -1,9 +1,7 @@
 #! /usr/bin/bash
 # run this from an interactive allocation of N nodes
-# bsub -q pdebug -nnodes 4 -Is bash
+# bsub -q pdebug -nnodes 2 -ISs -tty
 # bkill -s KILL jobid
-#
-# lalloc 4 -q pdebug
 #
 # salloc -N4 -ppdebug
 #
@@ -16,13 +14,17 @@
 #      use any other word to only do the bottom of ./runtest.sh
 
 # Set the launcher for the launch script to use below
-launcher="jsrun"
+launcher="srun"
 # Set number of nodes in allocation (min 2)
 numnodes="2"
 # Set mpi C compiler for the sleeper/watchdog test
 MPICC="mpicc"
 
-# set useflux to "true"
+### FLUX ###
+# set useflux to "true", set to anything else to not use flux
+# ensure ../pyfe/scr_const.py has USE_FLUX='1'
+# environment variables need to be set before the next step
+# do "source fluxenv.sh" before starting flux
 # then run `start flux` on every node before running this script, e.g.,
 # srun -N2 -n2 --pty flux start
 # * setting useflux changes the launcher args *
@@ -70,8 +72,9 @@ export SCR_JOB_NAME=testing_job
 # Do tests
 cd ${TESTDIR}
 
-# Make the sleeper program
+# Make the other test programs
 ${MPICC} -o sleeper sleeper.c
+${MPICC} -o printer printer.c
 
 if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
 
@@ -101,6 +104,8 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
     sleep 1
     if [ "${testscript##*/}" == "test_watchdog.py" ]; then
       ${testscript} ${launcher} ${launcherargs} $(pwd)/sleeper
+    elif [ "${testscript##*/}" == "test_launch.py" ]; then
+      ${testscript} ${launcher} ${launcherargs} $(pwd)/printer
     else
       ${testscript}
     fi
