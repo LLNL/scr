@@ -168,8 +168,8 @@ class JobLauncher(object):
         self.flux['flux'].job.cancel(self.flux['f'], jobstepid)
         self.flux['flux'].job.wait_async(self.flux['f'], jobstepid)
       except Exception as e:
-        # Shouldn't have an exception?
-        print(e)
+        # we could get invalid jobstep id when the job has already terminated
+        pass
 
   def prepareforprerun(self):
     """Called before scr_prerun

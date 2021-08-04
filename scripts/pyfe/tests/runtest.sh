@@ -1,6 +1,6 @@
 #! /usr/bin/bash
 # run this from an interactive allocation of N nodes
-# bsub -q pdebug -nnodes 2 -ISs -tty
+# bsub -q pdebug -nnodes 2 -Is /usr/bin/bash
 # bkill -s KILL jobid
 #
 # salloc -N4 -ppdebug

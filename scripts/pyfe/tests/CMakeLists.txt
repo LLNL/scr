@@ -6,6 +6,8 @@ INSTALL(FILES ${PYFE_TESTS_SRC}
         DESTINATION ${CMAKE_INSTALL_BINDIR}/pyfe/tests)
 
 SET(PYFE_TESTS_EXE
+  fluxenv.sh
+  resetenv.sh
   runtest.sh
   test_flush_file.py
   test_launch.py
