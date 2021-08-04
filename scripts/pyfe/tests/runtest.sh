@@ -1,11 +1,8 @@
 #! /usr/bin/bash
 # run this from an interactive allocation of N nodes
-# bsub -q pdebug -nnodes 2 -Is /usr/bin/bash
-# bkill -s KILL jobid
-#
-# salloc -N4 -ppdebug
-#
-# Run this script as:
+
+## Set the below variables: "launcher", "numnodes", "MPICC"
+## Script options:
 # ./runtest.sh
 #      do both tests/test*.py scripts and the bottom of ./runtest.sh
 # ./runtest.sh scripts
@@ -13,22 +10,35 @@
 # ./runtest.sh <word>
 #      use any other word to only do the bottom of ./runtest.sh
 
-# Set the launcher for the launch script to use below
+### SLURM + srun
+# salloc -N2 -ppdebug
+# cd ~/scr/install/bin/pyfe/tests
+# ./runtest.sh
+
+### SLURM + flux
+# cd ~/scr/install/bin/pyfe/tests
+# source fluxenv.sh
+# vim ../pyfe/scr_const.py ### change USE_FLUX to USE_FLUX='1'
+# ### set launcher="srun" and numnodes="2" below
+# ### set useflux="true" below
+# salloc -N2 -ppdebug
+# srun -N2 -n2 --pty --mpi=none --mpibind=off flux start
+# ./runtest
+
+### LSF + jsrun
+# bsub -q pdebug -nnodes 2 -Is /usr/bin/bash
+# cd ~/scr/install/bin/pyfe/tests
+# ./runtest.sh
+
+### Set these variables ###
 launcher="srun"
 # Set number of nodes in allocation (min 2)
 numnodes="2"
 # Set mpi C compiler for the sleeper/watchdog test
 MPICC="mpicc"
-
-### FLUX ###
-# set useflux to "true", set to anything else to not use flux
-# ensure ../pyfe/scr_const.py has USE_FLUX='1'
-# environment variables need to be set before the next step
-# do "source fluxenv.sh" before starting flux
-# then run `start flux` on every node before running this script, e.g.,
-# srun -N2 -n2 --pty flux start
+# Set to "true" to use flux, something else to not use flux
+useflux="nottrue"
 # * setting useflux changes the launcher args *
-useflux="true"
 
 export TESTDIR=$(pwd)
 cd ..
