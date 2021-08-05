@@ -22,7 +22,7 @@
 # ### set launcher="srun" and numnodes="2" below
 # ### set useflux="true" below
 # salloc -N2 -ppdebug
-# srun -N2 -n2 --pty --mpi=none --mpibind=off flux start
+# srun -N2 -n2 --pty flux start
 # ./runtest
 
 ### LSF + jsrun
