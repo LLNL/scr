@@ -74,7 +74,7 @@ clustershell_exec(argv, runnodes, use_dshbak)
 
 import os
 from pyfe import scr_const
-
+from pyfe.scr_common import interpolate_variables
 
 class JobLauncher(object):
   def __init__(self, launcher=''):
@@ -107,7 +107,7 @@ class JobLauncher(object):
         self.get_jobstep_id = self.get_flux_jobstep
         self.scr_kill_jobstep = self.flux_kill_jobstep
       except Exception as e:
-        print('JobLauncher: flux option set but unable to use flux:')
+        print('JobLauncher: flux option was set but unable to use flux:')
         print(e)
         self.flux = None
 
@@ -118,10 +118,15 @@ class JobLauncher(object):
       if timeout is not None:
         # when the timeout is set we want to ignore the TimeoutError exception
         try:
-          self.flux['flux'].job.wait_async(self.flux['f'], proc).wait_for(float(timeout))
+          self.flux['flux'].job.wait_async(self.flux['f'], proc).wait_for(int(timeout))
         except TimeoutError:
+          # this is expected when the wait times out and it is still running
           pass
+        except Exception as e:
+          # it can also throw an exception if there is no job to wait for
+          print(e)
       else:
+        # wait without a timeout
         self.flux['flux'].job.wait_async(self.flux['f'], proc)
 
   def parsefluxargs(self, launcher_args):
@@ -152,6 +157,22 @@ class JobLauncher(object):
     ###
     compute_jobreq.cwd = os.getcwd()
     compute_jobreq.environment = dict(os.environ)
+
+    #### An error I got assigning something else to stdout:
+    #
+    #File "... /flux/python3 /flux/job/Jobspec.py", line 360, in stdout
+    #self._set_io_path("output", "stdout", path)
+    #File "... /flux/python3 /flux/job/Jobspec.py", line 395, in _set_io_path
+    #"The path must be a string or pathlib object, "
+    ###
+    #
+    # Providing a path for the stdout to this variable wrote the stdout
+    # from all processes (lines interleaved)
+    # I think I have seen another option somewhere to prepend rank/nodenum
+    #
+    filepath = interpolate_variables('~/scr/install/bin/pyfe/tests/stdout')
+    # all tasks will write their stdout to this file
+    compute_jobreq.stdout = filepath
     job = self.flux['flux'].job.submit(self.flux['f'],
                                        compute_jobreq,
                                        waitable=True)
