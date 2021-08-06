@@ -91,7 +91,8 @@ class FLUX(JobLauncher):
     ### without specifying it is set above to just launch 1 task on 1 cpu on 1 node
     ### glob_hosts defaults to scr_hostlist.expand(hosts)
     ###  passing in the resmgr would allow use of ClusterShell.NodeSet
-    nnodes = scr_glob_hosts(count=True,hosts=runnodes)
+    ### The size is the number of ranks flux start was launched with
+    nnodes = int(self.flux.attr_get("size"))
     ntasks = nnodes
     compute_jobreq = JobspecV1.from_command(
         command=argv, num_tasks=ntasks, num_nodes=nnodes, cores_per_task=ncores)
