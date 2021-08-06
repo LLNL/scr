@@ -39,8 +39,8 @@ class FLUX(ResourceManager):
     offline = str(resp['offline'])
     exclude = str(resp['exclude'])
     if offline != '' and exclude != '':
-      offline += ',' + exclude
-    elif offline != '':
+      return offline + ',' + exclude
+    elif exclude != '':
       return offline
     return exclude
 
