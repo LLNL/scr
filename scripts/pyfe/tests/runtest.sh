@@ -31,12 +31,18 @@
 # ./runtest.sh
 
 ### Set these variables ###
-launcher="srun"
+launcher="flux"
 # Set number of nodes in allocation (min 2)
 numnodes="2"
 # Set mpi C compiler for the sleeper/watchdog test
 MPICC="mpicc"
-# Set to "true" to use flux, something else to not use flux
+# Set to "true" to use flux from the base class
+# (something else to not use flux)
+# or use the launcher="flux" to use the flux.py launcher class
+# main difference is the pdsh attempts to go through flux.
+# This is not currently fully working with launcher="flux"
+# setting launcher = "srun" and useflux = "true" will use the pdsh
+# command in the srun launcher, but use the flux launch in joblauncher.py
 useflux="nottrue"
 # * setting useflux changes the launcher args *
 
@@ -61,6 +67,9 @@ elif [ $launcher == "aprun" ]; then
   nodelist=$(scr_env.py --nodes)
   launcherargs="-L ${nodelist}"
   singleargs="-L ${nodelist}"
+elif [ $launcher == "flux" ]; then
+  launcherargs="--nodes=${numnodes} --ntasks=${numnodes} --cores-per-task=1"
+  singleargs="--nodes=1 --ntasks=1 --cores-per-task=1"
 else
   launcher="mpirun"
   launcherargs="-N 1"
@@ -116,6 +125,8 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
       ${testscript} ${launcher} ${launcherargs} $(pwd)/sleeper
     elif [ "${testscript##*/}" == "test_launch.py" ]; then
       ${testscript} ${launcher} ${launcherargs} $(pwd)/printer
+    elif [ "${testscript##*/}" == "test_pdsh.py" ]; then
+      ${testscript} ${launcher} $(pwd)/printer
     else
       ${testscript}
     fi

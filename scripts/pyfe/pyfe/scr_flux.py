@@ -22,8 +22,14 @@ if __name__ == '__main__':
     # then we were called with: scr_flux [launcher args]
     scr_run(launcher='flux', launcher_args=sys.argv[1:])
   else:
+    # remove prepended flux args which have no use for us
+    argv = sys.argv[1:]
+    if argv[0] == 'mini':
+      argv = argv[1:]
+    if argv[0] == 'run' or argv[0] == 'submit':
+      argv = argv[1:]
     launcher, launcher_args, run_cmd, restart_cmd, restart_args = parseargs(
-        sys.argv[1:], launcher='flux')
+        argv, launcher='flux')
     scr_run(launcher='flux',
             launcher_args=launcher_args,
             run_cmd=run_cmd,

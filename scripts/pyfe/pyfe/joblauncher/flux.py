@@ -1,12 +1,12 @@
 #! /usr/bin/env python3
 
-import os
-from time import sleep
+import os, re
+from time import sleep, time
 
 #from pyfe import scr_const
-#from pyfe.scr_common import runproc, pipeproc
+from pyfe.scr_common import scr_prefix
 from pyfe.joblauncher import JobLauncher
-from pyfe import scr_glob_hosts
+from pyfe.scr_glob_hosts import scr_glob_hosts
 
 # flux imports
 try:
@@ -23,19 +23,47 @@ class FLUX(JobLauncher):
     super(FLUX, self).__init__(launcher=launcher)
     # Don't enable Popen.terminate() for the flux parallel exec
     self.watchprocess = True
+    # use fluxpdsh.sh in this directory
+    #  this script will execute each command and prepend $HOSTNAME
+    pdshcmd = os.path.join('/'.join(os.path.realpath(__file__).split('/')[:-1]), 'fluxpdsh.sh')
+    self.pdshscript = [pdshcmd]
     # connect to the running Flux instance
-    self.flux = flux.Flux()
+    try:
+      self.flux = flux.Flux()
+    except:
+      raise ImportError('Error importing flux, ensure that the flux daemon is running.')
+
+  def waitonprocess(self, proc, timeout=None):
+    if timeout is not None:
+      # waiting throws a TimeoutError exception when process still running
+      try:
+        flux.job.wait_async(self.flux, proc).wait_for(int(timeout))
+      except TimeoutError:
+        # this is expected when the wait times out and it is still running
+        pass
+      except Exception as e:
+        # it can also throw an exception if there is no job to wait for
+        print(e)
+    else:
+      # wait without a timeout
+      flux.job.wait_async(self.flux, proc)
 
   def parsefluxargs(self, launcher_args):
+    # if scr_flux.py is called these can be trimmed there.
+    # if scr_run.py flux <launcher_args> is called
+    #   then these will not be trimmed yet.
+    #   could add this trim in scr_run's main if launcher=='flux'
+    if launcher_args[0] == 'mini':
+      launcher_args = launcher_args[1:]
+    if launcher_args[0] == 'run' or launcher_args[0] == 'submit':
+      launcher_args = launcher_args[1:]
     # default values if none are specified in launcher_args
     nodes = 1
     ntasks = 1
     corespertask = 1
     argv = []
     for arg in launcher_args:
-      if arg == 'mini' or arg == 'submit':
-        pass
-      elif arg.startswith('--nodes'):
+      if arg.startswith('--nodes'):
         nodes = int(arg.split('=')[1])
       elif arg.startswith('--ntasks'):
         ntasks = int(arg.split('=')[1])
@@ -51,41 +79,74 @@ class FLUX(JobLauncher):
     nnodes, ntasks, ncores, argv = self.parsefluxargs(launcher_args)
     compute_jobreq = JobspecV1.from_command(
         command=argv, num_tasks=ntasks, num_nodes=nnodes, cores_per_task=ncores)
-    ###
     compute_jobreq.cwd = os.getcwd()
     compute_jobreq.environment = dict(os.environ)
-    job = flux.job.submit(self.flux, compute_jobreq, waitable=True)
-    ### this just returned the integer job id.
-    ### need a reference to the submitted job.
+    job = flux.job.submit(self.flux,
+                          compute_jobreq,
+                          waitable=True)
+    # job is an integer representing the job id, this is all we need
     return job, job
 
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
     if type(argv) is str:
       argv = argv.split(' ')
-    ### without a reference to resmgr we can't use clustershell.nodeset
-    ### glob hosts instead will use scr_hostlist.expand
-    ### could add a node count to this method.
-    numnodes = scr_glob_hosts(count=True, hosts=runnodes)
-    # we will N tasks on N nodes, 1 core per task.
+    nnodes, ntasks, ncores, argv = self.parsefluxargs(argv)
+    ### launch the command from the fluxpdsh.sh
+    ### this script will prepend the rank to each line of stdout/stderr
+    ### we should be able to determine the host from the rank (?)
+    argv = self.pdshscript + argv
+    ### Need to determine number of nodes to set nnodes and nntasks to N
+    ### without specifying it is set above to just launch 1 task on 1 cpu on 1 node
+    ### glob_hosts defaults to scr_hostlist.expand(hosts)
+    ###  passing in the resmgr would allow use of ClusterShell.NodeSet
+    nnodes = scr_glob_hosts(count=True,hosts=runnodes)
+    ntasks = nnodes
     compute_jobreq = JobspecV1.from_command(
-        command=argv, num_tasks=numnodes, num_nodes=numnodes, cores_per_task=1)
+        command=argv, num_tasks=ntasks, num_nodes=nnodes, cores_per_task=ncores)
     compute_jobreq.cwd = os.getcwd()
+    ### the hostname from each node appears as the root's hostname
+    ### we can get the rank, we should be able to map from rank -> hostname
     compute_jobreq.environment = dict(os.environ)
-    # there is also a submit_async that returns the future
-    #   that would combine the submit+wait_async into one call
-    job = flux.job.submit(self.flux, compute_jobreq, waitable=True)
+    prefix = scr_prefix()
+    timestamp = str(time())
+    # time will return posix timestamp like -> '1628179160.1724932'
+    # some unique filename to send stdout/stderr to
+    ### the script prepends the rank to stdout, not stderr.
+    outfilename = 'out' + timestamp
+    errfilename = 'err' + timestamp
+    outfilename = os.path.join(prefix, outfilename)
+    errfilename = os.path.join(prefix, errfilename)
+    # all tasks will write their stdout to this file
+    compute_jobreq.stdout = outfilename
+    compute_jobreq.stderr = errfilename
+    job = flux.job.submit(self.flux,
+                          compute_jobreq,
+                          waitable=True)
     future = flux.job.wait_async(self.flux, job)
     status = future.get_status()
-    stderr = status.errstr.decode('UTF-8')
-    retcode = 1 if status.success != 'True' else 0
-    #### Need to find out how to get the stdout/stderr
-    # I launched the test job with output forwarded to a log
-    # on a test program did fprintf(stdout,...), couldn't see the output anywhere
-    # or we'll need to use pdsh/dshbak.
-    # since these commands vary between launchers, perhaps flux should be a sub-subclass
-    # the stderr here wasn't from the actual program's output (fprintf(stderr,...))
-    ###
-    return [['', stderr], retcode]
+    ret = [['', ''], 0]
+    # don't fail if can't open a file, just leave output blank
+    try:
+      with open(outfilename,'r') as infile:
+        ret[0][0] = infile.read()
+      os.remove(outfilename)
+    except:
+      pass
+    try:
+      with open(errfilename,'r') as infile:
+        ret[0][1] = infile.read()
+    except:
+      try:
+        ret[0][1] = status.errstr.decode('UTF-8')
+      except:
+        pass
+    # stderr set in a nested try, remove the errfile here
+    try:
+      os.remove(errfilename)
+    except:
+      pass
+    ret[1] = 0 if status.success == True else 1
+    return ret
 
   # perform the scavenge files operation for scr_scavenge
   # command format depends on resource manager in use
@@ -114,6 +175,9 @@ class FLUX(JobLauncher):
 
   def scr_kill_jobstep(self, jobstepid=None):
     if jobstepid is not None:
-      ### need a reference to the job, or to get the job from the jobid (?)
-      flux.job.cancel(self.flux, jobstepid)
-      flux.job.wait_async(self.flux, jobstepid)
+      try:
+        flux.job.cancel(self.flux, jobstepid)
+        flux.job.wait_async(self.flux, jobstepid)
+      except Exception as e:
+        # we could get 'invalid jobstep id' when the job has already terminated
+        pass

@@ -457,6 +457,7 @@ if __name__ == '__main__':
   else:
     launcher, launcher_args, run_cmd, restart_cmd, restart_args = parseargs(
         sys.argv[1:])
+    #if launcher=='flux', remove 'mini' 'submit' 'run' from front of args
     scr_run(launcher_args=launcher_args,
             run_cmd=run_cmd,
             restart_cmd=restart_cmd,
