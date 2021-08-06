@@ -23,10 +23,6 @@ class FLUX(JobLauncher):
     super(FLUX, self).__init__(launcher=launcher)
     # Don't enable Popen.terminate() for the flux parallel exec
     self.watchprocess = True
-    # use fluxpdsh.sh in this directory
-    #  this script will execute each command and prepend $HOSTNAME
-    pdshcmd = os.path.join('/'.join(os.path.realpath(__file__).split('/')[:-1]), 'fluxpdsh.sh')
-    self.pdshscript = [pdshcmd]
     # connect to the running Flux instance
     try:
       self.flux = flux.Flux()
@@ -91,10 +87,6 @@ class FLUX(JobLauncher):
     if type(argv) is str:
       argv = argv.split(' ')
     nnodes, ntasks, ncores, argv = self.parsefluxargs(argv)
-    ### launch the command from the fluxpdsh.sh
-    ### this script will prepend the rank to each line of stdout/stderr
-    ### we should be able to determine the host from the rank (?)
-    argv = self.pdshscript + argv
     ### Need to determine number of nodes to set nnodes and nntasks to N
     ### without specifying it is set above to just launch 1 task on 1 cpu on 1 node
     ### glob_hosts defaults to scr_hostlist.expand(hosts)
@@ -104,9 +96,9 @@ class FLUX(JobLauncher):
     compute_jobreq = JobspecV1.from_command(
         command=argv, num_tasks=ntasks, num_nodes=nnodes, cores_per_task=ncores)
     compute_jobreq.cwd = os.getcwd()
-    ### the hostname from each node appears as the root's hostname
-    ### we can get the rank, we should be able to map from rank -> hostname
     compute_jobreq.environment = dict(os.environ)
+    compute_jobreq.setattr_shell_option("output.stdout.label", True)
+    compute_jobreq.setattr_shell_option("output.stderr.label", True)
     prefix = scr_prefix()
     timestamp = str(time())
     # time will return posix timestamp like -> '1628179160.1724932'
