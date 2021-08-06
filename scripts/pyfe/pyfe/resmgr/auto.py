@@ -20,6 +20,7 @@ from pyfe.resmgr import (
     PBSALPS,
     #PMIX,
     SLURM,
+    FLUX,
 )
 
 
@@ -27,7 +28,11 @@ class AutoResourceManager:
   def __new__(cls, resmgr=None):
     if resmgr is None:
       resmgr = scr_const.SCR_RESOURCE_MANAGER
-
+    try:
+      resmgr = FLUX()
+      return resmgr
+    except:
+      pass
     if resmgr == 'SLURM':
       return SLURM()
     if resmgr == 'LSF':
