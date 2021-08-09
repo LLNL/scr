@@ -1,67 +1,111 @@
 #! /usr/bin/env python3
 
+import os
 from pyfe import scr_const
-from pyfe.scr_common import runproc, pipeproc
-'''
- methods used by resource managers to test nodes
- these methods return a hash to track nodes which failed and their reason
- these methods take a list of nodes which would otherwise be used
- failing nodes are deleted from the list argument in each of these methods
-'''
-ping = 'ping'
-bindir = scr_const.X_BINDIR
+from pyfe.scr_common import runproc
+from pyfe.list_dir import list_dir
 
+class Nodetests:
+  def __init__(self):
+    # The list_dir() method uses a free flag iff it is the first run
+    # other tests could perform alternate behavior during first/subsequent runs
+    self.firstrun = True
+    # the ping executable
+    self.pingexe = 'ping'
+    # First try to read the environment variable
+    self.tests = os.environ.get('SCR_NODE_TESTS')
+    if self.tests is not None:
+      self.tests = self.tests.split(',')
+    elif scr_const.SCR_NODE_TESTS != '':
+      self.tests = scr_const.SCR_NODE_TESTS.split(',')
+    elif scr_const.SCR_NODE_TESTS_FILE != '':
+      try:
+        self.tests = []
+        with open(scr_const.SCR_NODE_TESTS_FILE,'r') as infile:
+          for line in infile.readlines():
+            line = line.strip()
+            if line != '':
+              self.tests.extend(line.split(','))
+      except:
+        print('nodetests.py: ERROR: Unable to open file ' + scr_const.SCR_NODE_TESTS_FILE)
+    else:
+      self.tests = []
 
-# mark the set of nodes the resource manager thinks is down
-def list_resmgr_down_nodes(nodes=[], resmgr_nodes=None):
-  unavailable = {}
-  for node in resmgr_nodes:
-    if node in nodes:
-      nodes.remove(node)
-    unavailable[node] = 'Reported down by resource manager'
-  return unavailable
+  def __call__(self,
+               nodes=[],
+               scr_env=None):
+    if type(nodes) is str:
+      nodes = nodes.split(',')
+    # This method returns a dictionary of unavailable nodes
+    #   keyed on node with the reason as the value
+    unavailable = {}
+    # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
+    nodelist = scr_env.resmgr.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
+    for node in nodelist:
+      if node == '':
+        continue
+      if node in nodes:
+        nodes.remove(node)
+      unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
+    # mark the set of nodes the resource manager thinks is down
+    nodelist = scr_env.resmgr.get_downnodes()
+    for node in nodelist:
+      if node == '':
+        continue
+      if node in nodes:
+        nodes.remove(node)
+      unavailable[node] = nodelist[node]
+    # iterate through user selected tests
+    for test in self.tests:
+      # if all of the nodes have failed discontinue the tests
+      if nodes == []:
+        break
+      try:
+        testmethod = getattr(self, test)
+        if callable(testmethod):
+          nextunavailable = testmethod(nodes=nodes,scr_env=scr_env)
+          unavailable.update(nextunavailable)
+        else:
+          print('nodetests.py: ERROR: ' + test + ' is not a test method.')
+      except AttributeError as e:
+        print('nodetests.py: ERROR: ' + test + ' is not defined.')
+      except Exception as e:
+        print(e)
+        print('nodetests.py: ERROR: Unable to perform the ' + test + ' test.')
+    # allow alternate behavior on subsequent runs
+    self.firstrun = False
+    return unavailable
 
-
-# mark any nodes that fail to respond to (up to 2) ping(s)
-def list_nodes_failed_ping(nodes=[]):
-  unavailable = {}
-  # `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
-  argv = [ping, '-c', '1', '-w', '1', '']
-  for node in nodes:
-    argv[5] = node
-    returncode = runproc(argv=argv)[1]
-    if returncode != 0:
+  # mark any nodes that fail to respond to (up to 2) ping(s)
+  def ping(self,
+           nodes=[],
+           scr_env=None):
+    unavailable = {}
+    # `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
+    argv = [self.pingexe, '-c', '1', '-w', '1', '']
+    for node in nodes:
+      argv[5] = node
       returncode = runproc(argv=argv)[1]
       if returncode != 0:
-        unavailable[node] = 'Failed to ping'
-  for node in unavailable:
-    if node in nodes:
-      nodes.remove(node)
-  return unavailable
+        returncode = runproc(argv=argv)[1]
+        if returncode != 0:
+          unavailable[node] = 'Failed to ping'
+    for node in unavailable:
+      if node in nodes:
+        nodes.remove(node)
+    return unavailable
 
-
-# mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
-def list_param_excluded_nodes(nodes=[], exclude_nodes=[]):
-  unavailable = {}
-  for node in exclude_nodes:
-    if node in nodes:
-      nodes.remove(node)
-      unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
-  return unavailable
-
-
-# mark any nodes that don't respond to pdsh echo up
-def list_pdsh_fail_echo(nodes=[], nodes_string='', launcher=None):
-  if launcher is None:
-    return {}
-  unavailable = {}
-  pdsh_assumed_down = nodes.copy()
-  if len(nodes) > 0:
+  # mark any nodes that don't respond to pdsh echo up
+  def pdsh_echo(self,
+                nodes=[],
+                scr_env=None):
+    unavailable = {}
+    pdsh_assumed_down = nodes.copy()
     # only run this against set of nodes known to be responding
     # run an "echo UP" on each node to check whether it works
-    output = launcher.parallel_exec(argv=['echo', 'UP'],
-                                    runnodes=nodes_string,
-                                    use_dshbak=False)[0][0]
+    output = scr_env.launcher.parallel_exec(argv=['echo', 'UP'],
+                                            runnodes=','.join(nodes),
+                                            use_dshbak=False)[0][0]
     for line in output.split('\n'):
       if len(line) == 0:
         continue
@@ -69,119 +113,136 @@ def list_pdsh_fail_echo(nodes=[], nodes_string='', launcher=None):
         uphost = line.split(':')[0]
         if uphost in pdsh_assumed_down:
           pdsh_assumed_down.remove(uphost)
+  
+    # if we still have any nodes assumed down, update our available/unavailable lists
+    for node in pdsh_assumed_down:
+      nodes.remove(node)
+      unavailable[node] = 'Failed to pdsh echo UP'
+    return unavailable
 
-  # if we still have any nodes assumed down, update our available/unavailable lists
-  for node in pdsh_assumed_down:
-    nodes.remove(node)
-    unavailable[node] = 'Failed to pdsh echo UP'
-  return unavailable
+  # mark nodes that fail the capacity check
+  def dir_capacity(self,
+                   nodes=[],
+                   #free=False, ###free is only true during the _first_ run
+                   scr_env=None):
+    cntldir_string = list_dir(base=True,
+                              runcmd='control',
+                              scr_env=scr_env,
+                              bindir=scr_const.X_BINDIR)
+    cachedir_string = list_dir(base=True,
+                               runcmd='cache',
+                               scr_env=scr_env,
+                               bindir=scr_const.X_BINDIR)
+    unavailable = {}
+    param = scr_env.param
+    # specify whether to check total or free capacity in directories
+    #if free: free_flag = '--free'
 
+    # check that control and cache directories on each node work and are of proper size
+    # get the control directory the job will use
+    cntldir_vals = []
+    # cntldir_string = `$bindir/scr_list_dir --base control`;
+    if type(cntldir_string) is str and len(cntldir_string) != 0:
+      dirs = cntldir_string.split(' ')
+      cntldirs = param.get_hash('CNTLDIR')
+      for base in dirs:
+        if len(base) < 1:
+          continue
+        val = base
+        if cntldirs is not None and base in cntldirs and 'BYTES' in cntldirs[
+            base]:
+          if len(cntldirs[base]['BYTES'].keys()) > 0:
+            size = list(cntldirs[base]['BYTES'].keys())[
+                0]  #(keys %{$$cntldirs{$base}{"BYTES"}})[0];
+            #if (defined $size) {
+            size = param.abtoull(size)
+            #  $size = $param->abtoull($size);
+            val += ':' + str(size)
+            #  $val = "$base:$size";
+        cntldir_vals.append(val)
 
-#### Each resource manager other than LSF had this section
-#### Only the SLURM had the line size = param.abtoull(size)
-#### The abtoull will just return the int of the string if it isn't in the ab format
-def check_dir_capacity(nodes=[],
-                       free=False,
-                       scr_env=None,
-                       cntldir_string=None,
-                       cachedir_string=None):
-  if nodes == []:
-    return {}
-  if scr_env is None or scr_env.param is None or scr_env.resmgr is None or scr_env.launcher is None:
-    return {}
-  unavailable = {}
-  param = scr_env.param
-  # specify whether to check total or free capacity in directories
-  #if free: free_flag = '--free'
+    cntldir_flag = []
+    if len(cntldir_vals) > 0:
+      cntldir_flag = ['--cntl', ','.join(cntldir_vals)]
 
-  # check that control and cache directories on each node work and are of proper size
-  # get the control directory the job will use
-  cntldir_vals = []
-  # cntldir_string = `$bindir/scr_list_dir --base control`;
-  if type(cntldir_string) is str and len(cntldir_string) != 0:
-    dirs = cntldir_string.split(' ')
-    cntldirs = param.get_hash('CNTLDIR')
-    for base in dirs:
-      if len(base) < 1:
-        continue
-      val = base
-      if cntldirs is not None and base in cntldirs and 'BYTES' in cntldirs[
-          base]:
-        if len(cntldirs[base]['BYTES'].keys()) > 0:
-          size = list(cntldirs[base]['BYTES'].keys())[
-              0]  #(keys %{$$cntldirs{$base}{"BYTES"}})[0];
-          #if (defined $size) {
-          size = param.abtoull(size)
-          #  $size = $param->abtoull($size);
-          val += ':' + str(size)
-          #  $val = "$base:$size";
-      cntldir_vals.append(val)
+    # get the cache directory the job will use
+    cachedir_vals = []
+    #`$bindir/scr_list_dir --base cache`;
+    if type(cachedir_string) is str and len(cachedir_string) != 0:
+      dirs = cachedir_string.split(' ')
+      cachedirs = param.get_hash('CACHEDIR')
+      for base in dirs:
+        if len(base) < 1:
+          continue
+        val = base
+        if cachedirs is not None and base in cachedirs and 'BYTES' in cachedirs[
+            base]:
+          if len(cachedirs[base]['BYTES'].keys()) > 0:
+            size = list(cachedirs[base]['BYTES'].keys())[0]
+            #my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
+            #if (defined $size) {
+            size = param.abtoull(size)
+            #  $size = $param->abtoull($size);
+            val += ':' + str(size)
+            #  $val = "$base:$size";
+        cachedir_vals.append(val)
 
-  cntldir_flag = []
-  if len(cntldir_vals) > 0:
-    cntldir_flag = ['--cntl ', ','.join(cntldir_vals)]
+    cachedir_flag = []
+    if len(cachedir_vals) > 0:
+      cachedir_flag = ['--cache', ','.join(cachedir_vals)]
 
-  # get the cache directory the job will use
-  cachedir_vals = []
-  #`$bindir/scr_list_dir --base cache`;
-  if type(cachedir_string) is str and len(cachedir_string) != 0:
-    dirs = cachedir_string.split(' ')
-    cachedirs = param.get_hash('CACHEDIR')
-    for base in dirs:
-      if len(base) < 1:
-        continue
-      val = base
-      if cachedirs is not None and base in cachedirs and 'BYTES' in cachedirs[
-          base]:
-        if len(cachedirs[base]['BYTES'].keys()) > 0:
-          size = list(cachedirs[base]['BYTES'].keys())[0]
-          #my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
-          #if (defined $size) {
-          size = param.abtoull(size)
-          #  $size = $param->abtoull($size);
-          val += ':' + str(size)
-          #  $val = "$base:$size";
-      cachedir_vals.append(val)
+    # only run this against set of nodes known to be responding
+    upnodes = scr_env.resmgr.compress_hosts(nodes)
 
-  cachedir_flag = []
-  if len(cachedir_vals) > 0:
-    cachedir_flag = ['--cache ', ','.join(cachedir_vals)]
-
-  # only run this against set of nodes known to be responding
-  upnodes = scr_env.resmgr.compress_hosts(nodes)
-
-  # run scr_check_node on each node specifying control and cache directories to check
-  argv = [bindir + '/pyfe/pyfe/scr_check_node.py']
-  if free:
-    argv.append('--free')
-  argv.extend(cntldir_flag)
-  argv.extend(cachedir_flag)
-  output = scr_env.launcher.parallel_exec(argv=argv, runnodes=upnodes)[0][0]
-  action = 0  # tracking action to use range iterator and follow original line <- shift flow
-  nodeset = ''
-  for line in output.split('\n'):
-    # blank line
-    if len(line) < 1:
-      pass
-    # top line
-    elif action == 0:
-      if line.startswith('---'):
-        action = 1
-    # the nodeset
-    elif action == 1:
-      nodeset = line
-      action = 2
-    # bottom line
-    elif action == 2:
-      action = 3
-    # output printed
-    elif action == 3:
-      action = 0
-      if 'PASS' not in line:
-        print('pass not in line, expanding ' + str(nodeset))
-        exclude_nodes = scr_env.resmgr.expand_hosts(nodeset)
-        for node in exclude_nodes:
+    # run scr_check_node on each node specifying control and cache directories to check
+    argv = [scr_const.X_BINDIR + '/pyfe/pyfe/scr_check_node.py']
+    if self.firstrun:
+      argv.append('--free')
+    argv.extend(cntldir_flag)
+    argv.extend(cachedir_flag)
+    ##################################
+    #### This is the only think dshbak is used for with parallel_exec
+    ### If we get treat this as pdsh then there are no issues with flux output.
+    ##################################
+    output = scr_env.launcher.parallel_exec(argv=argv, runnodes=upnodes)[0][0]
+    action = 0  # tracking action to use range iterator and follow original line <- shift flow
+    nodeset = ''
+    #dshbak output
+    if '---' in output:
+      for line in output.split('\n'):
+        # blank line
+        if line == '':
+          pass
+        # top line
+        elif action == 0:
+          if line.startswith('---'):
+            action = 1
+        # the nodeset
+        elif action == 1:
+          nodeset = line
+          action = 2
+        # bottom line
+        elif action == 2:
+          action = 3
+        # output printed
+        elif action == 3:
+          action = 0
+          if 'PASS' not in line:
+            print('pass not in line, expanding ' + str(nodeset))
+            exclude_nodes = scr_env.resmgr.expand_hosts(nodeset)
+            for node in exclude_nodes:
+              if node in nodes:
+                nodes.remove(node)
+                unavailable[node] = line
+    #not dshbak output
+    else:
+      for line in output.split('\n'):
+        if line == '':
+          continue
+        if 'FAIL' in line:
+          parts = line.split(':')
+          node = parts[0]
           if node in nodes:
             nodes.remove(node)
-            unavailable[node] = line
-  return unavailable
+            unavailable[node] = parts[1][1:]
+    return unavailable

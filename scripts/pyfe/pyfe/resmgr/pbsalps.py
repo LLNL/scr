@@ -14,6 +14,10 @@ class PBSALPS(ResourceManager):
   # init initializes vars from the environment
   def __init__(self, env=None):
     super(PBSALPS, self).__init__(resmgr='PBSALPS')
+    if 'ping' not in self.nodetests.tests:
+      self.nodetests.tests.append('ping')
+    if 'dir_capacity' not in self.nodetests.tests:
+      self.nodetests.tests.append('dir_capacity')
 
   # get job id, setting environment flag here
   def getjobid(self):
@@ -40,7 +44,7 @@ class PBSALPS(ResourceManager):
     return None
 
   def get_downnodes(self):
-    downnodes = []
+    downnodes = {}
     snodes = self.get_job_nodes()
     if snodes is not None:
       snodes = self.expand_hosts(snodes)
@@ -51,33 +55,5 @@ class PBSALPS(ResourceManager):
         answerarray = resarray[1].split(' ')
         answer = answerarray[4]
         if 'down' in answer:
-          downnodes.append(node)
-      if len(downnodes) > 0:
-        return downnodes
-    return []
-
-  # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,
-                                  nodes=[],
-                                  scr_env=None,
-                                  free=False,
-                                  cntldir_string=None,
-                                  cachedir_string=None):
-    unavailable = nodetests.list_resmgr_down_nodes(
-        nodes=nodes, resmgr_nodes=get_downnodes())
-    nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
-    unavailable.update(nextunavail)
-    if scr_env is not None and scr_env.param is not None:
-      exclude_nodes = self.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
-      nextunavail = nodetests.list_param_excluded_nodes(
-          nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
-      unavailable.update(nextunavail)
-      # assert scr_env.resmgr == self
-      nextunavail = nodetests.check_dir_capacity(
-          nodes=nodes,
-          free=free,
-          scr_env=scr_env,
-          cntldir_string=cntldir_string,
-          cachedir_string=cachedir_string)
-      unavailable.update(nextunavail)
-    return unavailable
+          downnodes[node] = 'Reported down by resource manager'
+    return downnodes

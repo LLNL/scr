@@ -79,7 +79,7 @@ get_scavenge_nodelists(upnodes, downnodes)
 import os
 from pyfe import scr_const, scr_hostlist
 from pyfe.scr_common import scr_prefix
-
+from pyfe.resmgr import Nodetests
 
 class ResourceManager(object):
   def __init__(self, resmgr='unknown'):
@@ -94,6 +94,7 @@ class ResourceManager(object):
     self.resmgr = resmgr
     self.use_watchdog = False
     self.nodes = self.get_job_nodes()
+    self.nodetests = Nodetests()
 
   def usewatchdog(self, use_scr_watchdog=None):
     """Set or get the use_scr_watchdog attribute
@@ -144,11 +145,11 @@ class ResourceManager(object):
 
     Returns
     -------
-    list
-        list of down compute nodes
-        or None if there are no down nodes
+    dict
+        dict of down compute nodes, keyed by the node
+        value is 'Reported down by resource manager' or 'Excluded by resource manager'
     """
-    return None
+    return {}
 
   def get_scr_end_time(self):
     """Return expected allocation end time.
@@ -261,10 +262,7 @@ class ResourceManager(object):
   # return a hash to define all unavailable (down or excluded) nodes and reason
   def list_down_nodes_with_reason(self,
                                   nodes=[],
-                                  scr_env=None,
-                                  free=False,
-                                  cntldir_string=None,
-                                  cachedir_string=None):
+                                  scr_env=None):
     """Return down nodes with the reason they are down
 
     Input parameter, nodes, is a list or a comma separated string.
@@ -276,7 +274,8 @@ class ResourceManager(object):
     dict
         dictionary of reported down nodes, keyed by node with reasons as values
     """
-    return {}
+    unavailable = self.nodetests(nodes=nodes, scr_env=scr_env)
+    return unavailable
 
   # each scavenge operation needs upnodes and downnodes_spaced
   def get_scavenge_nodelists(self, upnodes='', downnodes=''):

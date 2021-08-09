@@ -51,29 +51,16 @@ def list_down_nodes(reason=False,
   ### There is no use to keep track of them in the unavailable dictionary
   #unavailable = list_argument_excluded_nodes(nodes=nodes,nodeset_down=nodeset_down)
   if nodeset_down != '':
-    remove_argument_excluded_nodes(
-        nodes=nodes, nodeset_down=scr_env.resmgr.expand_hosts(nodeset_down))
-
-  # get strings here for the resmgr/nodetests.py
-  # these are space separated strings with paths
-  cntldir_string = list_dir(base=True,
-                            runcmd='control',
-                            scr_env=scr_env,
-                            bindir=bindir)
-  cachedir_string = list_dir(base=True,
-                             runcmd='cache',
-                             scr_env=scr_env,
-                             bindir=bindir)
+    remove_argument_excluded_nodes(nodes=nodes,
+                                   nodeset_down=scr_env.resmgr.expand_hosts(nodeset_down))
 
   # get a hash of all unavailable (down or excluded) nodes and reason
   # keys are nodes and the values are the reasons
   unavailable = resourcemgr.list_down_nodes_with_reason(
       nodes=nodes,
-      scr_env=scr_env,
-      free=free,
-      cntldir_string=cntldir_string,
-      cachedir_string=cachedir_string)
-
+      scr_env=scr_env)
+  # remove any 'blank' node names
+  unavailable = { k:v for k,v in unavailable.items() if k }
   # TODO: read exclude list from a file, as well?
 
   # print any failed nodes to stdout and exit with non-zero

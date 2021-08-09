@@ -12,7 +12,9 @@ The base class, ResourceManager, should remain located at the top of this file.
 The auto class, AutoResourceManager, should remain located at the bottom of this file.
 New resource manager classes must be inserted in the middle section.
 """
-
+####
+# Nodetests class
+from .nodetests import Nodetests
 ####
 # Parent ResourceManager class
 from .resourcemanager import ResourceManager

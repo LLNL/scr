@@ -15,6 +15,8 @@ class LSF(ResourceManager):
   # init initializes vars from the environment
   def __init__(self):
     super(LSF, self).__init__(resmgr='LSF')
+    if 'pdsh_echo' not in self.nodetests.tests:
+      self.nodetests.tests.append('pdsh_echo')
 
   # get LSF jobid
   def getjobid(self):
@@ -53,7 +55,7 @@ class LSF(ResourceManager):
 
   def get_downnodes(self):
     # TODO : any way to get list of down nodes in LSF?
-    return None
+    return {}
 
   def get_scr_end_time(self):
     # run bjobs to get time remaining in current allocation
@@ -104,25 +106,3 @@ class LSF(ResourceManager):
 
     # had a problem executing bjobs command
     return 0
-
-  # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,
-                                  nodes=[],
-                                  scr_env=None,
-                                  free=False,
-                                  cntldir_string=None,
-                                  cachedir_string=None):
-    unavailable = {}
-    ### Is there a way to get down nodes in LSF?
-    #unavailable = list_down_nodes ...
-    nextunavail = nodetests.list_pdsh_fail_echo(
-        nodes=nodes,
-        nodes_string=self.compress_hosts(nodes),
-        launcher=scr_env.launcher)
-    unavailable.update(nextunavail)
-    if scr_env is not None and scr_env.param is not None:
-      exclude_nodes = self.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
-      nextunavail = nodetests.list_param_excluded_nodes(
-          nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
-      unavailable.update(nextunavail)
-    return unavailable

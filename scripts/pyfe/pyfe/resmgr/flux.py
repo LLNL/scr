@@ -34,35 +34,18 @@ class FLUX(ResourceManager):
     return rset.nodelist
 
   def get_downnodes(self):
+    downnodes = {}
     resp = RPC(self.flux, "resource.status").get()
     rset = ResourceSet(resp["R"])
     offline = str(resp['offline'])
     exclude = str(resp['exclude'])
-    if offline != '' and exclude != '':
-      offline = offline.split(',')
-      offline.extend(exclude.split(','))
-      return offline
-    elif exclude != '':
-      return offline.split(',')
-    return exclude.split(',')
+    for node in offline.split(','):
+      if node != '' and node not in downnodes:
+        downnodes[node] = 'Reported down by resource manager'
+    for node in exclude.split(','):
+      if node != '' and node not in downnodes:
+        downnodes[node] = 'Excluded by resource manager'
+    return downnodes
 
   def get_scr_end_time(self):
     return 0
-
-  # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,
-                                  nodes=[],
-                                  scr_env=None,
-                                  free=False,
-                                  cntldir_string=None,
-                                  cachedir_string=None):
-    resp = RPC(self.flux, "resource.status").get()
-    rset = ResourceSet(resp["R"])
-    offline = resp['offline']
-    exclude = resp['exclude']
-    unavailable = {}
-    for rank in offline:
-      unavailable[rank] = 'Determined offline by flux'
-    for rank in exclude:
-      unavailable[rank] = 'Excluded by flux'
-    return unavailable

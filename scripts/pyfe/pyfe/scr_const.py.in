@@ -16,6 +16,18 @@ SCR_RESOURCE_MANAGER = '@SCR_RESOURCE_MANAGER@'
 ### PMIX constants
 CPPR_LDFLAGS = '@CPPR_LDFLAGS@'
 HAVE_LIBCPPR = '@HAVE_LIBCPPR@'
+### Nodetests to run during list_down_nodes
+### A comma separated list
+SCR_NODE_TESTS = '@SCR_NODE_TESTS@'
+#SCR_NODE_TESTS = 'ping,pdsh_echo,dir_capacity'
+# ping: remove remove nodes that don't respond to a ping from the root node
+#   ping is defined in nodetests.py
+# pdsh_echo: remove nodes that don't respond to pdsh echo UP
+#   echo UP is ran via the launcher.parallel_exec
+# dir_capacity: remove nodes that fail scr_check_node.py
+#   scr_check_node.py is ran via the launcher.parallel_exec
+### A file with each test on its own line
+SCR_NODE_TESTS_FILE = '@SCR_NODE_TESTS_FILE@'
 ### Explicitly disable attempt to use clustershell, set to '1'
 USE_CLUSTERSHELL = '@USE_CLUSTERSHELL@'
 ### Enable Python function tracing, set to '1'
