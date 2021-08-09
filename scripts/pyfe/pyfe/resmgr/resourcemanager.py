@@ -32,8 +32,7 @@ get_job_nodes()
     None is returned when this cannot be determined.
       (If None is returned here the nodelist must be obtainable through scr_env.get_scr_nodelist)
 get_downnodes()
-    This method returns a comma separated string of nodes.
-    These are nodes the resource manager thinks to be down.
+    This method returns a list of nodes the resource manager thinks to be down.
     None may be returned if there are no down nodes or this cannot be determined.
 scr_kill_jobstep(jobid) ###
     This method can be removed if the watchdog works ok. ***
@@ -145,8 +144,8 @@ class ResourceManager(object):
 
     Returns
     -------
-    str
-        list of down compute nodes in string format
+    list
+        list of down compute nodes
         or None if there are no down nodes
     """
     return None

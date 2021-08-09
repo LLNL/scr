@@ -34,8 +34,10 @@ class SLURM(ResourceManager):
                                  getstdout=True)
       if returncode == 0:
         down = down.strip()
-        return down
-    return None
+        #### verify this format, comma separated list
+        ### if nodes may be duplicated convert list to set then to list again
+        nodelist = list(set(down.split(',')))
+    return nodelist
 
   # query SLURM for allocation endtime, expressed as secs since epoch
   def get_scr_end_time(self):

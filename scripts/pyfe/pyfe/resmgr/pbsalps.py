@@ -53,7 +53,7 @@ class PBSALPS(ResourceManager):
         if 'down' in answer:
           downnodes.append(node)
       if len(downnodes) > 0:
-        return self.compress_hosts(downnodes)
+        return downnodes
     return []
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
@@ -64,7 +64,7 @@ class PBSALPS(ResourceManager):
                                   cntldir_string=None,
                                   cachedir_string=None):
     unavailable = nodetests.list_resmgr_down_nodes(
-        nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_downnodes()))
+        nodes=nodes, resmgr_nodes=get_downnodes())
     nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)
     if scr_env is not None and scr_env.param is not None:

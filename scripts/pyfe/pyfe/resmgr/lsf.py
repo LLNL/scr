@@ -112,8 +112,9 @@ class LSF(ResourceManager):
                                   free=False,
                                   cntldir_string=None,
                                   cachedir_string=None):
-    unavailable = nodetests.list_resmgr_down_nodes(
-        nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_downnodes()))
+    unavailable = {}
+    ### Is there a way to get down nodes in LSF?
+    #unavailable = list_down_nodes ...
     nextunavail = nodetests.list_pdsh_fail_echo(
         nodes=nodes,
         nodes_string=self.compress_hosts(nodes),

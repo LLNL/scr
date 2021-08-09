@@ -39,10 +39,12 @@ class FLUX(ResourceManager):
     offline = str(resp['offline'])
     exclude = str(resp['exclude'])
     if offline != '' and exclude != '':
-      return offline + ',' + exclude
-    elif exclude != '':
+      offline = offline.split(',')
+      offline.extend(exclude.split(','))
       return offline
-    return exclude
+    elif exclude != '':
+      return offline.split(',')
+    return exclude.split(',')
 
   def get_scr_end_time(self):
     return 0
