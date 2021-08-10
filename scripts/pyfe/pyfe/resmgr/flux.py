@@ -50,4 +50,11 @@ class FLUX(ResourceManager):
     return downnodes
 
   def get_scr_end_time(self):
-    return 0
+    resp = RPC(self.flux, "resource.status").get()
+    rset = ResourceSet(resp["R"])
+    endtime = 0
+    try:
+      endtime = int(rset.expiration)
+    except:
+      pass
+    return endtime
