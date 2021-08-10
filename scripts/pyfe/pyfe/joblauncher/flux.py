@@ -42,7 +42,8 @@ class FLUX(JobLauncher):
         print(e)
     else:
       # wait without a timeout
-      flux.job.wait_async(self.flux, proc)
+      future = flux.job.wait_async(self.flux, proc)
+      status = future.get_status()
 
   def parsefluxargs(self, launcher_args):
     # if scr_flux.py is called these can be trimmed there.
@@ -73,8 +74,10 @@ class FLUX(JobLauncher):
     if type(launcher_args) is str:
       launcher_args = launcher_args.split(' ')
     nnodes, ntasks, ncores, argv = self.parsefluxargs(launcher_args)
-    compute_jobreq = JobspecV1.from_command(
-        command=argv, num_tasks=ntasks, num_nodes=nnodes, cores_per_task=ncores)
+    compute_jobreq = JobspecV1.from_command(command=argv,
+                                            num_tasks=ntasks,
+                                            num_nodes=nnodes,
+                                            cores_per_task=ncores)
     compute_jobreq.cwd = os.getcwd()
     compute_jobreq.environment = dict(os.environ)
     job = flux.job.submit(self.flux,
