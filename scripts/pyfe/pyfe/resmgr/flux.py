@@ -31,7 +31,7 @@ class FLUX(ResourceManager):
   def get_job_nodes(self):
     resp = RPC(self.flux, "resource.status").get()
     rset = ResourceSet(resp["R"])
-    return rset.nodelist
+    return str(rset.nodelist)
 
   def get_downnodes(self):
     downnodes = {}
@@ -39,10 +39,12 @@ class FLUX(ResourceManager):
     rset = ResourceSet(resp["R"])
     offline = str(resp['offline'])
     exclude = str(resp['exclude'])
-    for node in offline.split(','):
+    offline = self.expand_hosts(offline)
+    exclude = self.expand_hosts(offline)
+    for node in offline:
       if node != '' and node not in downnodes:
         downnodes[node] = 'Reported down by resource manager'
-    for node in exclude.split(','):
+    for node in exclude:
       if node != '' and node not in downnodes:
         downnodes[node] = 'Excluded by resource manager'
     return downnodes

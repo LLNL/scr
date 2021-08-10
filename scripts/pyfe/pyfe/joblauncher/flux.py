@@ -14,6 +14,8 @@ try:
   #import json
   from flux.job import JobspecV1
   from flux.job.JobID import JobID
+  from flux.resource import ResourceSet
+  from flux.rpc import RPC
 except:
   pass
 
@@ -95,7 +97,9 @@ class FLUX(JobLauncher):
     ### glob_hosts defaults to scr_hostlist.expand(hosts)
     ###  passing in the resmgr would allow use of ClusterShell.NodeSet
     ### The size is the number of ranks flux start was launched with
-    nnodes = int(self.flux.attr_get("size"))
+    resp = RPC(self.flux, 'resource.status').get()
+    rset = ResourceSet(resp['R'])
+    nnodes = rset.nnodes
     ntasks = nnodes
     compute_jobreq = JobspecV1.from_command(
         command=argv, num_tasks=ntasks, num_nodes=nnodes, cores_per_task=ncores)
@@ -118,19 +122,37 @@ class FLUX(JobLauncher):
     job = flux.job.submit(self.flux,
                           compute_jobreq,
                           waitable=True)
+    # get the hostlist to swap ranks for hosts
+    nodelist = rset.nodelist
     future = flux.job.wait_async(self.flux, job)
     status = future.get_status()
     ret = [['', ''], 0]
     # don't fail if can't open a file, just leave output blank
     try:
       with open(outfilename,'r') as infile:
-        ret[0][0] = infile.read()
+        lines = infile.readlines()
+        for line in lines:
+          try:
+            rank = re.search('\d', line)
+            host = nodelist[int(rank[0])]
+            line = host + line[line.find(':'):]
+          except:
+            pass
+          ret[0][0] += line
       os.remove(outfilename)
     except:
       pass
     try:
       with open(errfilename,'r') as infile:
-        ret[0][1] = infile.read()
+        lines = infile.readlines()
+        for line in lines:
+          try:
+            rank = re.search('\d', line)
+            host = nodelist[int(rank[0])]
+            line = host + line[line.find(':'):]
+          except:
+            pass
+          ret[0][1] += line
     except:
       try:
         ret[0][1] = status.errstr.decode('UTF-8')

@@ -56,7 +56,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
       print('scr_postrun: ERROR: Could not identify nodeset')
       return 1
     os.environ['SCR_NODELIST'] = nodelist_env
-  scr_nodelist = novelist_env
+  scr_nodelist = nodelist_env
 
   # identify what nodes are still up
   upnodes = scr_nodelist
