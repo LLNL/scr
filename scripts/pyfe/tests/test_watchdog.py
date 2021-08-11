@@ -70,6 +70,7 @@ def testwatchdog(launcher, launcher_args):
 
   print('Nodelist = ' + str(nodelist))
   print('Down nodes = ' + str(down_nodes))
+  down_nodes = list(down_nodes.keys())
 
   print('Launching command ' + ' '.join(launcher_args))
   proc, pid = launcher.launchruncmd(up_nodes=nodelist,
