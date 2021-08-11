@@ -240,9 +240,6 @@ def scr_run(launcher='',
 
       # determine number of nodes remaining in allocation
       num_left = nodes_remaining(resmgr, nodelist, down_nodes)
-      if num_left <= 0:
-        print(prog + ': ERROR: Unable to determine number of nodes remaining')
-        break
 
       # check that we have enough nodes after excluding down nodes
       if num_left < num_needed:
