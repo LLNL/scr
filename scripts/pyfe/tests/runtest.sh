@@ -1,50 +1,12 @@
 #! /usr/bin/bash
 # run this from an interactive allocation of N nodes
 
-## Set the below variables: "launcher", "numnodes", "MPICC"
-## Script options:
-# ./runtest.sh
-#      do both tests/test*.py scripts and the bottom of ./runtest.sh
-# ./runtest.sh scripts
-#      only do the tests/test*.py scripts
-# ./runtest.sh <word>
-#      use any other word to only do the bottom of ./runtest.sh
-
-### SLURM + srun
-# salloc -N2 -ppdebug
-# cd ~/scr/install/bin/pyfe/tests
-# ./runtest.sh
-
-### SLURM + flux
-# cd ~/scr/install/bin/pyfe/tests
-# source fluxenv.sh
-# vim ../pyfe/scr_const.py ### change USE_FLUX to USE_FLUX='1'
-# ### set launcher="srun" and numnodes="2" below
-# ### set useflux="true" below
-# salloc -N2 -ppdebug
-# srun -N2 -n2 --pty flux start
-# ./runtest
-
-### LSF + jsrun
-# bsub -q pdebug -nnodes 2 -Is /usr/bin/bash
-# cd ~/scr/install/bin/pyfe/tests
-# ./runtest.sh
-
 ### Set these variables ###
 launcher="flux"
-# Set number of nodes in allocation (min 2)
+# Set number of nodes in allocation
 numnodes="2"
 # Set mpi C compiler for the sleeper/watchdog test
 MPICC="mpicc"
-# Set to "true" to use flux from the base class
-# (something else to not use flux)
-# or use the launcher="flux" to use the flux.py launcher class
-# main difference is the pdsh attempts to go through flux.
-# This is not currently fully working with launcher="flux"
-# setting launcher = "srun" and useflux = "true" will use the pdsh
-# command in the srun launcher, but use the flux launch in joblauncher.py
-useflux="nottrue"
-# * setting useflux changes the launcher args *
 
 export TESTDIR=$(pwd)
 cd ..
@@ -74,13 +36,6 @@ else
   launcher="mpirun"
   launcherargs="-N 1"
   singleargs="-N 1"
-fi
-
-# '1' is the default value when nodes/tasks/cores are not specified.
-# (the single args could be a blank string)
-if [ $useflux == "true" ]; then
-  launcherargs="--nodes=${numnodes} --ntasks=${numnodes} --cores-per-task=1"
-  singleargs="--nodes=1 --ntasks=1 --cores-per-task=1"
 fi
 
 export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${LD_LIBRARY_PATH}
