@@ -107,7 +107,8 @@ if [ "$1" == "scripts" ]; then
   exit 0
 fi
 
-if [ -x "sleeper" ]; then
+# can't change env variables within the flux
+if [ $launcher != "flux" ] && [ -x "sleeper" ]; then
   echo "Testing the watchdog"
   export SCR_WATCHDOG=1
   export SCR_WATCHDOG_TIMEOUT=1
@@ -230,18 +231,19 @@ scr_list_dir.py --prefix ${SCR_PREFIX} cache
 scr_list_dir.py --prefix ${SCR_PREFIX} --base cache
 sleep 2
 
-#if [ $launcher != "flux" ]; then
-echo ""
-echo "check that scr_list_down_nodes.py returns good values"
-sleep 1
-scr_list_down_nodes.py --joblauncher ${launcher}
-scr_list_down_nodes.py --joblauncher ${launcher} --down ${downnode}
-scr_list_down_nodes.py --joblauncher ${launcher} --reason --down ${downnode}
-export SCR_EXCLUDE_NODES=${downnode}
-scr_list_down_nodes.py --joblauncher ${launcher}
-scr_list_down_nodes.py --joblauncher ${launcher} --reason
-unset SCR_EXCLUDE_NODES
-sleep 2
+if [ $launcher != "flux" ]; then
+  echo ""
+  echo "check that scr_list_down_nodes.py returns good values"
+  sleep 1
+  scr_list_down_nodes.py --joblauncher ${launcher}
+  scr_list_down_nodes.py --joblauncher ${launcher} --down ${downnode}
+  scr_list_down_nodes.py --joblauncher ${launcher} --reason --down ${downnode}
+  export SCR_EXCLUDE_NODES=${downnode}
+  scr_list_down_nodes.py --joblauncher ${launcher}
+  scr_list_down_nodes.py --joblauncher ${launcher} --reason
+  unset SCR_EXCLUDE_NODES
+  sleep 2
+fi
 
 echo ""
 echo "check that scr_halt.py seems to work"
@@ -280,25 +282,26 @@ echo "scr_index"
 ${scrbin}/scr_index --list
 sleep 2
 
-echo ""
-echo "fake a down node via EXCLUDE_NODES and redo above test (check that rebuild during scavenge works)"
-sleep 1
-export SCR_EXCLUDE_NODES=${downnode}
-scr_${launcher}.py ${launcherargs} ./test_api
-sleep 3
-echo ""
-echo "scr_postrun.py"
-scr_postrun.py --prefix ${SCR_PREFIX} --joblauncher ${launcher}
-sleep 1
-unset SCR_EXCLUDE_NODES
-${scrbin}/scr_index --list
-sleep 2
+if [ $launcher != "flux" ]; then
+  echo ""
+  echo "fake a down node via EXCLUDE_NODES and redo above test (check that rebuild during scavenge works)"
+  sleep 1
+  export SCR_EXCLUDE_NODES=${downnode}
+  scr_${launcher}.py ${launcherargs} ./test_api
+  sleep 3
+  echo ""
+  echo "scr_postrun.py"
+  scr_postrun.py --prefix ${SCR_PREFIX} --joblauncher ${launcher}
+  sleep 1
+  unset SCR_EXCLUDE_NODES
+  ${scrbin}/scr_index --list
+  sleep 2
+fi
 
 echo ""
-echo "delete all files, enable fetch, run again, check that fetch succeeds"
+echo "delete all files, run again, check that fetch succeeds"
 sleep 1
 rm -rf ${delfiles}
-export SCR_FETCH=1
 scr_${launcher}.py ${launcherargs} ./test_api
 sleep 2
 echo "scr_index --list"
@@ -310,7 +313,6 @@ echo "removing files . . ."
 rm -rf ${delfiles}
 sleep 2
 
-export SCR_DEBUG=0
 echo ""
 echo "----------------------"
 echo "        ${launcher}"

@@ -5,6 +5,7 @@
 
 import os, re
 import datetime
+from time import time
 
 from pyfe import scr_const
 from pyfe.resmgr import nodetests, ResourceManager
@@ -27,6 +28,26 @@ class FLUX(ResourceManager):
       raise ImportError('Error importing flux, ensure that the flux daemon is running.')
     # the super.init() calls resmgr.get_job_nodes, we must set self.flux first
     super(FLUX, self).__init__(resmgr='FLUX')
+    ### set the jobid once at init
+    self.jobid = None
+    self.jobid = self.getjobid()
+
+  ####
+  # the job id of the allocation is needed in postrun/list_dir
+  # the job id is a component of the path.
+  # We can either copy methods from existing resource managers . . .
+  # or we can use the POSIX timestamp and set the value at __init__
+  def getjobid(self):
+    if self.jobid is not None:
+      return self.jobid
+    if scr_const.SCR_RESOURCE_MANAGER == 'SLURM':
+      return os.environ.get('SLURM_JOBID')
+    if scr_const.SCR_RESOURCE_MANAGER == 'LSF':
+      return os.environ.get('LSB_JOBID')
+    if scr_const.SCR_RESOURCE_MANAGER == 'APRUN':
+      return os.environ.get('PBS_JOBID')
+    timestamp = str(int(time()))
+    return timestamp
 
   # get node list
   def get_job_nodes(self):
