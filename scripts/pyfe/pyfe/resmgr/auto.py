@@ -26,13 +26,16 @@ from pyfe.resmgr import (
 
 class AutoResourceManager:
   def __new__(cls, resmgr=None):
-    if resmgr is None:
-      resmgr = scr_const.SCR_RESOURCE_MANAGER
+    # see if we are in a flux instance
     try:
-      resmgr = FLUX()
-      return resmgr
+      fluxresmgr = FLUX()
+      return fluxresmgr
+    # not in a flux instance, just continue
     except:
       pass
+    if resmgr is None:
+      resmgr = scr_const.SCR_RESOURCE_MANAGER
+    print('resmgr = ' + resmgr)
     if resmgr == 'SLURM':
       return SLURM()
     if resmgr == 'LSF':

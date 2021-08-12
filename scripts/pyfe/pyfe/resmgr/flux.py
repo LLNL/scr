@@ -21,11 +21,12 @@ except:
 class FLUX(ResourceManager):
   # init initializes vars from the environment
   def __init__(self):
-    super(FLUX, self).__init__(resmgr='FLUX')
     try:
       self.flux = flux.Flux()
     except:
       raise ImportError('Error importing flux, ensure that the flux daemon is running.')
+    # the super.init() calls resmgr.get_job_nodes, we must set self.flux first
+    super(FLUX, self).__init__(resmgr='FLUX')
 
   # get node list
   def get_job_nodes(self):

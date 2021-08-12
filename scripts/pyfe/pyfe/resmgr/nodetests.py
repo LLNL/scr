@@ -69,6 +69,7 @@ class Nodetests:
           print('nodetests.py: ERROR: ' + test + ' is not a test method.')
       except AttributeError as e:
         print('nodetests.py: ERROR: ' + test + ' is not defined.')
+        print('dir(self)='+str(dir(self)))
       except Exception as e:
         print(e)
         print('nodetests.py: ERROR: Unable to perform the ' + test + ' test.')
@@ -228,7 +229,7 @@ class Nodetests:
         elif action == 3:
           action = 0
           if 'PASS' not in line:
-            print('pass not in line, expanding ' + str(nodeset))
+            print('nodetests.dir_capacity: PASS not in line, expanding ' + str(nodeset))
             exclude_nodes = scr_env.resmgr.expand_hosts(nodeset)
             for node in exclude_nodes:
               if node in nodes:

@@ -148,6 +148,7 @@ if [ -x "sleeper" ]; then
   export SCR_WATCHDOG=1
   export SCR_WATCHDOG_TIMEOUT=1
   export SCR_WATCHDOG_TIMEOUT_PFS=1
+  echo ""
   echo "Launching sleeper . . ."
   scr_${launcher}.py ${launcherargs} $(pwd)/sleeper
   unset SCR_WATCHDOG
@@ -184,10 +185,12 @@ echo "downnode = ${downnode}"
 prefix_files=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
 sleep 1
 
+echo ""
 echo "scr_const.py"
 scr_const.py
 sleep 1
 
+echo ""
 echo "scr_common.py"
 scr_common.py --interpolate .
 scr_common.py --interpolate ../some_neighbor_directory
@@ -197,6 +200,7 @@ scr_common.py --pipeproc echo -e 'this\nis\na\ntest' : grep t : grep e
 
 sleep 2
 
+echo ""
 echo "scr_env.py"
 echo "The user: $(scr_env.py -u)"
 echo "The jobid: $(scr_env.py -j)"
@@ -205,79 +209,90 @@ echo "The downnodes: $(scr_env.py -d)"
 echo "Runnode count (last run): $(scr_env.py -r)"
 sleep 1
 
+echo ""
 echo "scr_get_jobstep_id.py"
 scr_get_jobstep_id.py ${launcher}
 sleep 1
 
+echo ""
 echo "scr_list_dir.py"
 scr_list_dir.py control
 scr_list_dir.py --base control
 scr_list_dir.py cache
 scr_list_dir.py --base cache
-sleep 1
+sleep 2
 
+echo ""
 echo "scr_list_down_nodes.py"
 scr_list_down_nodes.py -r ${nodelist}
 sleep 1
 
+echo ""
 echo "scr_param.py"
 scr_param.py
 sleep 1
 
+echo ""
 echo "scr_prerun.py"
 scr_prerun.py && echo "prerun passed" || echo "prerun failed"
-sleep 1
+sleep 2
 
+echo ""
 echo "scr_test_runtime.py"
 scr_test_runtime.py
 sleep 1
 
 echo "scr_run test_api . . ."
-sleep 3
+sleep 2
 
+echo ""
 echo "clean out any cruft from previous runs"
 echo "deletes files from cache and any halt, flush, nodes files"
 rm -rf /dev/shm/${USER}/scr.${jobid}
 rm -rf /ssd/${USER}/scr.${jobid}
 rm -f ${prefix_files}
 
+echo ""
 echo "check that a run works"
 sleep 1
 scr_${launcher}.py ${launcherargs} ./test_api
 
+echo ""
 echo "run again, check that checkpoints continue where last run left off"
 sleep 2
 scr_${launcher}.py ${launcherargs} ./test_api
 
+echo ""
 echo "delete all files from /ssd on rank 0, run again, check that rebuild works"
 sleep 2
 rm -rf /dev/shm/${USER}/scr.${jobid}
 rm -rf /ssd/${USER}/scr.${jobid}
 scr_${launcher}.py ${launcherargs} ./test_api
 
+echo ""
 echo "delete all files from all nodes, run again, check that run starts over"
 sleep 2
 rm -rf /ssd/${USER}/scr.${jobid}
 rm -rf /dev/shm/${USER}/scr.${jobid}
 scr_${launcher}.py ${launcherargs} ./test_api
 
-
+echo ""
 echo "clear the cache and control directory"
 sleep 2
 rm -rf /dev/shm/${USER}/scr.${jobid}
 rm -rf /ssd/${USER}/scr.${jobid}
 rm -f ${prefix_files}
 
-
+echo ""
 echo "check that scr_list_dir.py returns good values"
-sleep 1
+sleep 2
 scr_list_dir.py control
 scr_list_dir.py --base control
 scr_list_dir.py cache
 scr_list_dir.py --base cache
-sleep 1
+sleep 2
 
-
+echo ""
 echo "check that scr_list_down_nodes.py returns good values"
 sleep 1
 scr_list_down_nodes.py
@@ -287,31 +302,33 @@ export SCR_EXCLUDE_NODES=${downnode}
 scr_list_down_nodes.py
 scr_list_down_nodes.py --reason
 unset SCR_EXCLUDE_NODES
-sleep 1
+sleep 2
 
-
+echo ""
 echo "check that scr_halt.py seems to work"
-sleep 1
+sleep 2
 scr_halt.py --list $(pwd)
 scr_halt.py --before '3pm today' $(pwd)
 scr_halt.py --after '4pm today' $(pwd)
 scr_halt.py --seconds 1200 $(pwd)
+sleep 1
 scr_halt.py --unset-before $(pwd)
 scr_halt.py --unset-after $(pwd)
 scr_halt.py --unset-seconds $(pwd)
 scr_halt.py $(pwd)
+sleep 1
 scr_halt.py --checkpoints 3 $(pwd)
 scr_halt.py --unset-checkpoints $(pwd)
 scr_halt.py --unset-reason $(pwd)
 scr_halt.py --remove $(pwd)
-sleep 1
+sleep 2
 
-
+echo ""
 echo "check that scr_postrun works (w/ empty cache)"
 sleep 1
 scr_postrun.py
 
-
+echo ""
 echo "clear the cache, make a new run"
 sleep 2
 rm -rf /dev/shm/${USER}/scr.${jobid}
@@ -320,67 +337,82 @@ scr_${launcher}.py ${launcherargs} ./test_api
 sleep 1
 echo "check that scr_postrun scavenges successfully (no rebuild)"
 scr_postrun.py
-sleep 1
+sleep 2
 echo "scr_index"
 ${scrbin}/scr_index --list
 sleep 2
 
+echo ""
 echo "fake a down node via EXCLUDE_NODES and redo above test (check that rebuild during scavenge works)"
 sleep 1
 export SCR_EXCLUDE_NODES=${downnode}
 scr_${launcher}.py ${launcherargs} ./test_api
-sleep 1
+sleep 3
+echo ""
+echo "scr_postrun.py"
 scr_postrun.py
 sleep 1
 unset SCR_EXCLUDE_NODES
 ${scrbin}/scr_index --list
 sleep 2
 
+echo ""
 echo "delete all files, enable fetch, run again, check that fetch succeeds"
 sleep 1
 rm -rf /dev/shm/${USER}/scr.${jobid}
 rm -rf /ssd/${USER}/scr.${jobid}
 export SCR_FETCH=1
 scr_${launcher}.py ${launcherargs} ./test_api
-sleep 1
-${scrbin}/scr_index --list
 sleep 2
-
-
-# this test case is broken until we add CRC support back
-## delete all files, corrupt file on disc, run again, check that fetch of current fails but old succeeds
-#srun -n4 -N4 /bin/rm -rf /dev/shm/${USER}/scr.${jobid}
-#srun -n4 -N4 /bin/rm -rf /ssd/${USER}/scr.${jobid}
-##vi -b ${SCR_INSTALL}/share/scr/examples/scr.dataset.12/rank_2.ckpt
-#sed -i 's/\?/i/' ${SCR_INSTALL}/share/scr/examples/scr.dataset.12/rank_2.ckpt
-## change some characters and save file (:wq)
-#srun -n4 -N4 ./test_api
-#${scrbin}/scr_index --list
-
-
-echo "enable flush, run again and check that flush succeeds and that postrun realizes that"
+echo "scr_index --list"
+${scrbin}/scr_index --list
 sleep 1
+
+echo ""
+echo "enable flush, run again and check that flush succeeds and that postrun realizes that"
+sleep 2
 export SCR_FLUSH=10
 scr_${launcher}.py ${launcherargs} ./test_api
+sleep 2
+echo ""
+echo "scr_postrun"
 sleep 1
 scr_postrun.py
+sleep 2
+echo ""
+echo "scr_index --list"
 sleep 1
 ${scrbin}/scr_index --list
-sleep 2
-
-export SCR_DEBUG=0
-echo "----------------------"
-echo "        ${launcher}"
-echo "----------------------"
-sleep 2
+echo "removing files . . ."
 # clear cache and check that scr_srun works
 rm -rf /dev/shm/${USER}/scr.${jobid}
 rm -rf /ssd/${USER}/scr.${jobid}
 rm -f ${prefix_files}
+sleep 2
+
+export SCR_DEBUG=0
+echo ""
+echo "----------------------"
+echo "        ${launcher}"
+echo "----------------------"
+echo "running scr_${launcher}.py ${launcherargs} ./test_api"
+sleep 1
 scr_${launcher}.py ${launcherargs} ./test_api
+sleep 2
+echo ""
+echo "running ${scrbin}/scr_index --list"
+sleep 1
 ${scrbin}/scr_index --list
 sleep 2
+echo ""
+echo "running scr${launcher}.py ${launcherargs} ./test_ckpt"
+sleep 1
 scr_${launcher}.py ${launcherargs} ./test_ckpt
+sleep 2
+echo ""
+echo "running scr_${launcher}.py ${launcherargs} ./test_config"
 sleep 1
 scr_${launcher}.py ${launcherargs} ./test_config
-sleep 1
+rm -rf /dev/shm/${USER}/scr.${jobid}
+rm -rf /ssd/${USER}/scr.${jobid}
+rm -f ${prefix_files}
