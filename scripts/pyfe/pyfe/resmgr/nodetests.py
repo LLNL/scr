@@ -228,8 +228,8 @@ class Nodetests:
         # output printed
         elif action == 3:
           action = 0
-          if 'PASS' not in line:
-            print('nodetests.dir_capacity: PASS not in line, expanding ' + str(nodeset))
+          if 'FAIL' in line:
+            print('nodetests.dir_capacity: FAIL in line, expanding ' + str(nodeset))
             exclude_nodes = scr_env.resmgr.expand_hosts(nodeset)
             for node in exclude_nodes:
               if node in nodes:

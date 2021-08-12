@@ -82,7 +82,7 @@ def scr_check_node(free=False, cntl_list=None, cache_list=None):
       try:
         os.makedirs(adir, exist_ok=True)
         with open(testfile, 'w') as outfile:
-          pass
+          outfile.write('test')
       except PermissionError:
         print('scr_check_node: FAIL: Lack permission to write test file: ' +
               testfile)
@@ -95,6 +95,8 @@ def scr_check_node(free=False, cntl_list=None, cache_list=None):
       except PermissionError:
         print('scr_check_node: FAIL: Lack permission to rm test file: ' + testfile)
         return 1
+      except FileNotFoundError:
+        pass
       except Exception as e:
         print('scr_check_node: FAIL: Could not rm test file: ' + testfile + str(e))
         return 1
