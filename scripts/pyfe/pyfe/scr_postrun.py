@@ -51,7 +51,7 @@ if __name__ == '__main__':
     scr_env = SCR_Env(prefix=args['prefix'])
     scr_env.resmgr = AutoResourceManager()
     scr_env.param = SCR_Param()
-    scr_env.launcher = AutoJobLauncher(args['launcher'])
+    scr_env.launcher = AutoJobLauncher(args['joblauncher'])
     ret = postrun(prefix_dir=args['prefix'],
                   scr_env=scr_env,
                   verbose=args['verbose'])

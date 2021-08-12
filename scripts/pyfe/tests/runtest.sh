@@ -168,7 +168,7 @@ sleep 2
 
 echo ""
 echo "scr_list_down_nodes.py"
-scr_list_down_nodes.py -r ${nodelist}
+scr_list_down_nodes.py --joblauncher ${launcher} -r ${nodelist}
 sleep 1
 
 echo ""
@@ -234,12 +234,12 @@ sleep 2
 echo ""
 echo "check that scr_list_down_nodes.py returns good values"
 sleep 1
-scr_list_down_nodes.py
-scr_list_down_nodes.py --down ${downnode}
-scr_list_down_nodes.py --reason --down ${downnode}
+scr_list_down_nodes.py --joblauncher ${launcher}
+scr_list_down_nodes.py --joblauncher ${launcher} --down ${downnode}
+scr_list_down_nodes.py --joblauncher ${launcher} --reason --down ${downnode}
 export SCR_EXCLUDE_NODES=${downnode}
-scr_list_down_nodes.py
-scr_list_down_nodes.py --reason
+scr_list_down_nodes.py --joblauncher ${launcher}
+scr_list_down_nodes.py --joblauncher ${launcher} --reason
 unset SCR_EXCLUDE_NODES
 sleep 2
 
@@ -265,7 +265,7 @@ sleep 2
 echo ""
 echo "check that scr_postrun works (w/ empty cache)"
 sleep 1
-scr_postrun.py
+scr_postrun.py --prefix ${SCR_PREFIX} --joblauncher ${launcher}
 
 echo ""
 echo "clear the cache, make a new run"
@@ -274,7 +274,7 @@ rm -rf ${delfiles}
 scr_${launcher}.py ${launcherargs} ./test_api
 sleep 1
 echo "check that scr_postrun scavenges successfully (no rebuild)"
-scr_postrun.py
+scr_postrun.py --prefix ${SCR_PREFIX} --joblauncher ${launcher}
 sleep 2
 echo "scr_index"
 ${scrbin}/scr_index --list
@@ -288,7 +288,7 @@ scr_${launcher}.py ${launcherargs} ./test_api
 sleep 3
 echo ""
 echo "scr_postrun.py"
-scr_postrun.py
+scr_postrun.py --prefix ${SCR_PREFIX} --joblauncher ${launcher}
 sleep 1
 unset SCR_EXCLUDE_NODES
 ${scrbin}/scr_index --list
