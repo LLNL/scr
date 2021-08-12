@@ -87,6 +87,7 @@ export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${LD_LIBRARY_PATH}
 export SCR_FETCH=0
 export SCR_DEBUG=1
 export SCR_JOB_NAME=testing_job
+export SCR_PREFIX=${SCR_BUILD}/examples
 
 # Do tests
 cd ${TESTDIR}
@@ -107,8 +108,6 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
   echo ""
   echo "----------------------"
   echo ""
-  export SCR_PREFIX=$(pwd)
-  export SCR_CACHE_BASE=$(pwd)/cache
   export SCR_CACHE_BYPASS=0
   export SCR_CACHE_SIZE=6
   export SCR_FLUSH=6
@@ -135,8 +134,6 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
     echo ""
     sleep 3
   done
-  unset SCR_PREFIX
-  unset SCR_CACHE_BASE
   unset SCR_CACHE_BYPASS
   unset SCR_CACHE_SIZE
   unset SCR_FLUSH
@@ -168,7 +165,6 @@ cd ${SCR_BUILD}/examples
 rm -rf .scr/
 
 #export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/install/lib:/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le/lib
-export SCR_PREFIX=$(pwd)
 export SCR_FLUSH=0
 export SCR_LOG_ENABLE=0
 export SCR_CACHE_BYPASS=0

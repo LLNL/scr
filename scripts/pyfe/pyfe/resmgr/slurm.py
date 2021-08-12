@@ -44,7 +44,8 @@ class SLURM(ResourceManager):
         ### if nodes may be duplicated convert list to set then to list again
         nodelist = list(set(down.split(',')))
         for node in nodelist:
-          downnodes[node] = 'Reported down by resource manager'
+          if node != '':
+            downnodes[node] = 'Reported down by resource manager'
     return downnodes
 
   # query SLURM for allocation endtime, expressed as secs since epoch

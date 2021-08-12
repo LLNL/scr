@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import os, re
+import io, os, re
 from time import sleep, time
 
 #from pyfe import scr_const
@@ -103,6 +103,11 @@ class FLUX(JobLauncher):
     ntasks = nnodes
     compute_jobreq = JobspecV1.from_command(
         command=argv, num_tasks=ntasks, num_nodes=nnodes, cores_per_task=ncores)
+    ### create a yaml 'file' stream from a string to get JobspecV1.from_yaml_stream()
+    #   This may allow to explicitly specify the nodes to run on
+    # string = 'yaml spec'
+    # stream = io.StringIO(string)
+    # compute_jobreq = JobspecV1.from_yaml_stream(stream)
     compute_jobreq.cwd = os.getcwd()
     compute_jobreq.environment = dict(os.environ)
     compute_jobreq.setattr_shell_option("output.stdout.label", True)

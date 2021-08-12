@@ -16,12 +16,11 @@ export SCR_FETCH=0
 export SCR_DEBUG=1
 export SCR_JOB_NAME=testing_job
 cd ${TESTDIR}
-export SCR_PREFIX=$(pwd)
-export SCR_CACHE_BASE=$(pwd)/cache
+export SCR_PREFIX=${SCR_BUILD}/examples
 export SCR_CACHE_BYPASS=0
 export SCR_CACHE_SIZE=6
 export SCR_FLUSH=6
 export SCR_WATCHDOG=1
 export SCR_WATCHDOG_TIMEOUT=15
 export SCR_WATCHDOG_TIMEOUT_PFS=15
-export SCR_LOG_ENABLE=1
+export SCR_LOG_ENABLE=0

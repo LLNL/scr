@@ -59,8 +59,6 @@ def list_down_nodes(reason=False,
   unavailable = resourcemgr.list_down_nodes_with_reason(
       nodes=nodes,
       scr_env=scr_env)
-  # remove any 'blank' node names
-  unavailable = { k:v for k,v in unavailable.items() if k }
   # TODO: read exclude list from a file, as well?
 
   # print any failed nodes to stdout and exit with non-zero

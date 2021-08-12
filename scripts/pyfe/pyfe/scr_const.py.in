@@ -26,7 +26,7 @@ SCR_NODE_TESTS = '@SCR_NODE_TESTS@'
 #   echo UP is ran via the launcher.parallel_exec
 # dir_capacity: remove nodes that fail scr_check_node.py
 #   scr_check_node.py is ran via the launcher.parallel_exec
-### A file with each test on its own line
+### A file with each line a comma separated list of tests
 SCR_NODE_TESTS_FILE = '@SCR_NODE_TESTS_FILE@'
 ### Explicitly disable attempt to use clustershell, set to '1'
 USE_CLUSTERSHELL = '@USE_CLUSTERSHELL@'

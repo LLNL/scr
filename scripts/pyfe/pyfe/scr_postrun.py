@@ -15,6 +15,7 @@ if 'pyfe' not in sys.path:
 import argparse
 from pyfe.postrun import postrun
 from pyfe.scr_environment import SCR_Env
+from pyfe.scr_param import SCR_Param
 from pyfe.resmgr import AutoResourceManager
 
 if __name__ == '__main__':
@@ -43,6 +44,7 @@ if __name__ == '__main__':
   else:
     scr_env = SCR_Env(prefix=args['prefix'])
     scr_env.resmgr = AutoResourceManager()
+    scr_env.param = SCR_Param()
     ret = postrun(prefix_dir=args['prefix'],
                   scr_env=scr_env,
                   verbose=args['verbose'])
