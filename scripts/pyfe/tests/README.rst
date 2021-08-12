@@ -19,7 +19,7 @@ Testing scripts for SCR+pyfe
 Usage instructions for all use cases  
 ========================================================
 
-| *These variables at the top of runtest.sh must be set:*  
+| **These variables at the top of runtest.sh must be set:**  
 |  
 |   launcher="srun"  - options:{srun,jsrun,flux,aprun,mpirun,lrun}  
 |   numnodes="2"     - the number of nodes in the allocation  

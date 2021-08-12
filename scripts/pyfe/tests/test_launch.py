@@ -97,11 +97,11 @@ def dolaunch(launcher, launch_cmd):
     # print the reason for the down nodes, and log them
     # when reason == True a string formatted for printing will be returned
     printstring = list_down_nodes(reason=True,
-                    free=first_run,
+                    free=True,
                     nodeset_down=down_nodes,
                     runtime_secs='0',
                     scr_env=scr_env,
-                    log=log)
+                    log=None)
     print(printstring)
   num_needed = nodes_needed(scr_env, nodelist)
   print('num_needed = ' + str(num_needed))
