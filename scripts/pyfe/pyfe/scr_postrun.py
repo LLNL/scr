@@ -17,6 +17,7 @@ from pyfe.postrun import postrun
 from pyfe.scr_environment import SCR_Env
 from pyfe.scr_param import SCR_Param
 from pyfe.resmgr import AutoResourceManager
+from pyfe.joblauncher import AutoJobLauncher
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(add_help=False,
@@ -26,6 +27,10 @@ if __name__ == '__main__':
                       '--help',
                       action='store_true',
                       help='Show this help message and exit.')
+  parser.add_argument('-j',
+                      '--joblauncher',
+                      type=str,
+                      help='Required: Specify the job launcher.')
   parser.add_argument('-p',
                       '--prefix',
                       metavar='<dir>',
@@ -39,13 +44,15 @@ if __name__ == '__main__':
                       help='Verbose output.')
   args = vars(parser.parse_args())
 
-  if 'help' in args:
+  if 'help' in args or 'joblauncher' not in args:
     parser.print_help()
+    sys.exit(0)
   else:
     scr_env = SCR_Env(prefix=args['prefix'])
     scr_env.resmgr = AutoResourceManager()
     scr_env.param = SCR_Param()
+    scr_env.launcher = AutoJobLauncher(args['launcher'])
     ret = postrun(prefix_dir=args['prefix'],
                   scr_env=scr_env,
                   verbose=args['verbose'])
-    print(str(ret))
+    sys.exit(ret)

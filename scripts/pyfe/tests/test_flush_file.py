@@ -42,6 +42,8 @@ from pyfe.cli import SCRFlushFile
 time.sleep(2)
 
 pwd = os.getcwd()
+if __name__ == '__main__' and len(sys.argv) == 2:
+  pwd = sys.argv[1]
 ff = SCRFlushFile(pwd)
 
 dsets = ff.list_dsets_output()

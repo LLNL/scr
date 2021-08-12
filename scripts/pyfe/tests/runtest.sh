@@ -2,19 +2,11 @@
 # run this from an interactive allocation of N nodes
 
 ### Set these variables ###
-launcher="flux"
+launcher="srun"
 # Set number of nodes in allocation
 numnodes="2"
 # Set mpi C compiler for the sleeper/watchdog test
 MPICC="mpicc"
-
-export TESTDIR=$(pwd)
-cd ..
-export PATH=$(pwd)/pyfe:${PATH}
-cd ../../../
-export SCR_PKG=$(pwd)
-export SCR_BUILD=${SCR_PKG}/build
-export SCR_INSTALL=${SCR_PKG}/install
 
 if [ $launcher == "srun" ]; then
   launcherargs="-n${numnodes} -N${numnodes}"
@@ -38,14 +30,35 @@ else
   singleargs="-N 1"
 fi
 
+export TESTDIR=$(pwd)
+cd ..
+export PATH=$(pwd)/pyfe:${PATH}
+cd ../../../
+export SCR_PKG=$(pwd)
+export SCR_BUILD=${SCR_PKG}/build
+export SCR_INSTALL=${SCR_PKG}/install
 export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${LD_LIBRARY_PATH}
-export SCR_FETCH=0
+
+export SCR_FETCH=1
 export SCR_DEBUG=1
 export SCR_JOB_NAME=testing_job
-export SCR_PREFIX=${SCR_BUILD}/examples
+export SCR_PREFIX=${TESTDIR}
+export SCR_CNTL_BASE=${TESTDIR}/cntl
+export SCR_CACHE_BASE=${TESTDIR}/cache
+
+export SCR_CACHE_BYPASS=0
+export SCR_CACHE_SIZE=6
+export SCR_FLUSH=6
+export SCR_WATCHDOG=1
+export SCR_WATCHDOG_TIMEOUT=20
+export SCR_WATCHDOG_TIMEOUT_PFS=20
+export SCR_LOG_ENABLE=1
+
+delfiles="out* .scr/ ckpt* cache/ cntl/"
 
 # Do tests
 cd ${TESTDIR}
+cp ${SCR_BUILD}/examples/{test_api,test_config,test_ckpt} .
 
 # Make the other test programs
 ${MPICC} -o sleeper sleeper.c
@@ -54,7 +67,7 @@ ${MPICC} -o printer printer.c
 if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
 
   # Clear any leftover files
-  rm -rf .scr/ ckpt.* out* cache/
+  rm -rf ${delfiles}
   # Do a predefined run to give expected values
   echo ""
   echo "----------------------"
@@ -63,10 +76,7 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
   echo ""
   echo "----------------------"
   echo ""
-  export SCR_CACHE_BYPASS=0
-  export SCR_CACHE_SIZE=6
-  export SCR_FLUSH=6
-  scr_${launcher}.py ${singleargs} ${SCR_BUILD}/examples/test_api --output 4
+  scr_${launcher}.py ${singleargs} test_api --output 4
   sleep 1
   # Run any scripts in pyfe/tests/test*.py
   for testscript in ${TESTDIR}/test*.py; do
@@ -81,6 +91,8 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
       ${testscript} ${launcher} ${launcherargs} $(pwd)/printer
     elif [ "${testscript##*/}" == "test_pdsh.py" ]; then
       ${testscript} ${launcher} $(pwd)/printer
+    elif [ "${testscript##*/}" == "test_flush_file.py" ]; then
+      ${testscript} ${SCR_PREFIX}
     else
       ${testscript}
     fi
@@ -89,9 +101,6 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
     echo ""
     sleep 3
   done
-  unset SCR_CACHE_BYPASS
-  unset SCR_CACHE_SIZE
-  unset SCR_FLUSH
 fi
 
 if [ "$1" == "scripts" ]; then
@@ -113,45 +122,30 @@ if [ -x "sleeper" ]; then
   sleep 3
 fi
 
-# cd to examples directory, and check that build of test programs works
-#cd ${SCR_INSTALL}/share/scr/examples
-#export OPT="-g -O0"
-#make
-cd ${SCR_BUILD}/examples
-rm -rf .scr/
+rm -rf ${delfiles}
 
-#export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${SCR_PKG}/install/lib:/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le/lib
-export SCR_FLUSH=0
-export SCR_LOG_ENABLE=0
-export SCR_CACHE_BYPASS=0
-export SCR_CACHE_SIZE=2
-
-# if there is a configuration file
-#export SCR_CONF_FILE=~/myscr.conf
-
-# set up initial enviroment for testing
+# vars for testing
 scrbin=${SCR_INSTALL}/bin
 jobid=$(scr_env.py --jobid)
 echo "jobid = ${jobid}"
 nodelist=$(scr_env.py --nodes)
 echo "nodelist = ${nodelist}"
 downnode=$(scr_glob_hosts.py -n 1 -h "${nodelist}")
-echo "downnode = ${downnode}"
-prefix_files=".scr/flush.scr .scr/halt.scr .scr/nodes.scr"
-sleep 1
+echo "first node = ${downnode}"
+sleep 2
 
 echo ""
 echo "scr_const.py"
 scr_const.py
-sleep 1
+sleep 2
 
 echo ""
 echo "scr_common.py"
 scr_common.py --interpolate .
 scr_common.py --interpolate ../some_neighbor_directory
 scr_common.py --interpolate "SCR_JOB_NAME = \$SCR_JOB_NAME"
-scr_common.py --runproc echo -e 'this\nis\na\ntest'
-scr_common.py --pipeproc echo -e 'this\nis\na\ntest' : grep t : grep e
+scr_common.py --runproc echo -e 'this\nis a\ntest'
+scr_common.py --pipeproc echo -e 'this\nis a\ntest' : grep t : grep e
 
 sleep 2
 
@@ -162,19 +156,14 @@ echo "The jobid: $(scr_env.py -j)"
 echo "The nodes: $(scr_env.py -n)"
 echo "The downnodes: $(scr_env.py -d)"
 echo "Runnode count (last run): $(scr_env.py -r)"
-sleep 1
-
-echo ""
-echo "scr_get_jobstep_id.py"
-scr_get_jobstep_id.py ${launcher}
-sleep 1
+sleep 2
 
 echo ""
 echo "scr_list_dir.py"
-scr_list_dir.py control
-scr_list_dir.py --base control
-scr_list_dir.py cache
-scr_list_dir.py --base cache
+scr_list_dir.py --prefix ${SCR_PREFIX} control
+scr_list_dir.py --prefix ${SCR_PREFIX} --base control
+scr_list_dir.py --prefix ${SCR_PREFIX} cache
+scr_list_dir.py --prefix ${SCR_PREFIX} --base cache
 sleep 2
 
 echo ""
@@ -185,7 +174,7 @@ sleep 1
 echo ""
 echo "scr_param.py"
 scr_param.py
-sleep 1
+sleep 2
 
 echo ""
 echo "scr_prerun.py"
@@ -203,9 +192,7 @@ sleep 2
 echo ""
 echo "clean out any cruft from previous runs"
 echo "deletes files from cache and any halt, flush, nodes files"
-rm -rf /dev/shm/${USER}/scr.${jobid}
-rm -rf /ssd/${USER}/scr.${jobid}
-rm -f ${prefix_files}
+rm -rf ${delfiles}
 
 echo ""
 echo "check that a run works"
@@ -220,33 +207,30 @@ scr_${launcher}.py ${launcherargs} ./test_api
 echo ""
 echo "delete all files from /ssd on rank 0, run again, check that rebuild works"
 sleep 2
-rm -rf /dev/shm/${USER}/scr.${jobid}
-rm -rf /ssd/${USER}/scr.${jobid}
+rm -rf ${delfiles}
 scr_${launcher}.py ${launcherargs} ./test_api
 
 echo ""
 echo "delete all files from all nodes, run again, check that run starts over"
 sleep 2
-rm -rf /ssd/${USER}/scr.${jobid}
-rm -rf /dev/shm/${USER}/scr.${jobid}
+rm -rf ${delfiles}
 scr_${launcher}.py ${launcherargs} ./test_api
 
 echo ""
 echo "clear the cache and control directory"
 sleep 2
-rm -rf /dev/shm/${USER}/scr.${jobid}
-rm -rf /ssd/${USER}/scr.${jobid}
-rm -f ${prefix_files}
+rm -rf ${delfiles}
 
 echo ""
 echo "check that scr_list_dir.py returns good values"
 sleep 2
-scr_list_dir.py control
-scr_list_dir.py --base control
-scr_list_dir.py cache
-scr_list_dir.py --base cache
+scr_list_dir.py --prefix ${SCR_PREFIX} control
+scr_list_dir.py --prefix ${SCR_PREFIX} --base control
+scr_list_dir.py --prefix ${SCR_PREFIX} cache
+scr_list_dir.py --prefix ${SCR_PREFIX} --base cache
 sleep 2
 
+#if [ $launcher != "flux" ]; then
 echo ""
 echo "check that scr_list_down_nodes.py returns good values"
 sleep 1
@@ -286,8 +270,7 @@ scr_postrun.py
 echo ""
 echo "clear the cache, make a new run"
 sleep 2
-rm -rf /dev/shm/${USER}/scr.${jobid}
-rm -rf /ssd/${USER}/scr.${jobid}
+rm -rf ${delfiles}
 scr_${launcher}.py ${launcherargs} ./test_api
 sleep 1
 echo "check that scr_postrun scavenges successfully (no rebuild)"
@@ -314,8 +297,7 @@ sleep 2
 echo ""
 echo "delete all files, enable fetch, run again, check that fetch succeeds"
 sleep 1
-rm -rf /dev/shm/${USER}/scr.${jobid}
-rm -rf /ssd/${USER}/scr.${jobid}
+rm -rf ${delfiles}
 export SCR_FETCH=1
 scr_${launcher}.py ${launcherargs} ./test_api
 sleep 2
@@ -323,26 +305,9 @@ echo "scr_index --list"
 ${scrbin}/scr_index --list
 sleep 1
 
-echo ""
-echo "enable flush, run again and check that flush succeeds and that postrun realizes that"
-sleep 2
-export SCR_FLUSH=10
-scr_${launcher}.py ${launcherargs} ./test_api
-sleep 2
-echo ""
-echo "scr_postrun"
-sleep 1
-scr_postrun.py
-sleep 2
-echo ""
-echo "scr_index --list"
-sleep 1
-${scrbin}/scr_index --list
 echo "removing files . . ."
 # clear cache and check that scr_srun works
-rm -rf /dev/shm/${USER}/scr.${jobid}
-rm -rf /ssd/${USER}/scr.${jobid}
-rm -f ${prefix_files}
+rm -rf ${delfiles}
 sleep 2
 
 export SCR_DEBUG=0
@@ -368,6 +333,4 @@ echo ""
 echo "running scr_${launcher}.py ${launcherargs} ./test_config"
 sleep 1
 scr_${launcher}.py ${launcherargs} ./test_config
-rm -rf /dev/shm/${USER}/scr.${jobid}
-rm -rf /ssd/${USER}/scr.${jobid}
-rm -f ${prefix_files}
+rm -rf ${delfiles}

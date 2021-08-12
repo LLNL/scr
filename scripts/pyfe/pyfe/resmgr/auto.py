@@ -35,7 +35,6 @@ class AutoResourceManager:
       pass
     if resmgr is None:
       resmgr = scr_const.SCR_RESOURCE_MANAGER
-    print('resmgr = ' + resmgr)
     if resmgr == 'SLURM':
       return SLURM()
     if resmgr == 'LSF':
