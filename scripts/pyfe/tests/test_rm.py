@@ -29,6 +29,7 @@ time.sleep(2)
 
 rm = AutoResourceManager()
 
+print(str(type(rm)))
 print("jobid:", rm.getjobid())
 print("nodes:", rm.get_job_nodes())
 print("downnodes:", rm.get_downnodes())
