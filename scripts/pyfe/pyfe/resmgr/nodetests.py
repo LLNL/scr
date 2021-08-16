@@ -105,8 +105,7 @@ class Nodetests:
     # only run this against set of nodes known to be responding
     # run an "echo UP" on each node to check whether it works
     output = scr_env.launcher.parallel_exec(argv=['echo', 'UP'],
-                                            runnodes=','.join(nodes),
-                                            use_dshbak=False)[0][0]
+                                            runnodes=','.join(nodes))[0][0]
     for line in output.split('\n'):
       if len(line) == 0:
         continue
@@ -201,49 +200,16 @@ class Nodetests:
       argv.append('--free')
     argv.extend(cntldir_flag)
     argv.extend(cachedir_flag)
-    ##################################
-    #### This is the only think dshbak is used for with parallel_exec
-    ### If we get treat this as pdsh then there are no issues with flux output.
-    ##################################
     output = scr_env.launcher.parallel_exec(argv=argv, runnodes=upnodes)[0][0]
     action = 0  # tracking action to use range iterator and follow original line <- shift flow
     nodeset = ''
-    #dshbak output
-    if '---' in output:
-      for line in output.split('\n'):
-        # blank line
-        if line == '':
-          pass
-        # top line
-        elif action == 0:
-          if line.startswith('---'):
-            action = 1
-        # the nodeset
-        elif action == 1:
-          nodeset = line
-          action = 2
-        # bottom line
-        elif action == 2:
-          action = 3
-        # output printed
-        elif action == 3:
-          action = 0
-          if 'FAIL' in line:
-            print('nodetests.dir_capacity: FAIL in line, expanding ' + str(nodeset))
-            exclude_nodes = scr_env.resmgr.expand_hosts(nodeset)
-            for node in exclude_nodes:
-              if node in nodes:
-                nodes.remove(node)
-                unavailable[node] = line
-    #not dshbak output
-    else:
-      for line in output.split('\n'):
-        if line == '':
-          continue
-        if 'FAIL' in line:
-          parts = line.split(':')
-          node = parts[0]
-          if node in nodes:
-            nodes.remove(node)
-            unavailable[node] = parts[1][1:]
+    for line in output.split('\n'):
+      if line == '':
+        continue
+      if 'FAIL' in line:
+        parts = line.split(':')
+        node = parts[0]
+        if node in nodes:
+          nodes.remove(node)
+          unavailable[node] = parts[1][1:]
     return unavailable

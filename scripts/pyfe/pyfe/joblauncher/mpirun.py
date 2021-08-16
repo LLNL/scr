@@ -66,18 +66,13 @@ class MPIRUN(JobLauncher):
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
-  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
+  def parallel_exec(self, argv=[], runnodes=''):
     if len(argv) == 0:
       return [['', ''], 0]
     if self.clustershell_task != False:
-      return self.clustershell_exec(argv=argv,
-                                    runnodes=runnodes,
-                                    use_dshbak=use_dshbak)
+      return self.clustershell_exec(argv=argv,runnodes=runnodes)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
-    if use_dshbak:
-      argv = [pdshcmd, [scr_const.DSHBAK_EXE, '-c']]
-      return pipeproc(argvs=argv, getstdout=True, getstderr=True)
     return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
 
   # perform the scavenge files operation for scr_scavenge
@@ -96,6 +91,5 @@ class MPIRUN(JobLauncher):
         prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir,
         '--buf', buf_size, crc_flag, downnodes_spaced
     ]
-    output = self.parallel_exec(argv=argv, runnodes=upnodes,
-                                use_dshbak=False)[0]
+    output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
     return output

@@ -11,7 +11,6 @@ X_DATADIR = '@X_DATADIR@'
 X_BINDIR = '@X_BINDIR@'
 X_LIBDIR = '@X_LIBDIR@'
 PDSH_EXE = '@PDSH_EXE@'
-DSHBAK_EXE = '@DSHBAK_EXE@'
 SCR_RESOURCE_MANAGER = '@SCR_RESOURCE_MANAGER@'
 ### PMIX constants
 CPPR_LDFLAGS = '@CPPR_LDFLAGS@'
@@ -45,8 +44,6 @@ if __name__ == '__main__':
   print('X_BINDIR = \"' + X_BINDIR + '\"')
   print('X_LIBDIR = \"' + X_LIBDIR + '\"')
   print('PDSH_EXE = \"' + PDSH_EXE + '\"')
-  print('DSHBAK_EXE = \"' + DSHBAK_EXE + '\"')
-  print('SCR_RESOURCE_MANAGER = \"' + SCR_RESOURCE_MANAGER + '\"')
   print('USE_CLUSTERSHELL = \"' + USE_CLUSTERSHELL + '\"')
   print('PYFE_TRACE_FUNC = \"' + PYFE_TRACE_FUNC + '\"')
   print('USE_JOBLAUNCHER_KILL = \"' + USE_JOBLAUNCHER_KILL + '\"')

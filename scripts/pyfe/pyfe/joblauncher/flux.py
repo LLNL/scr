@@ -88,7 +88,7 @@ class FLUX(JobLauncher):
     # job is an integer representing the job id, this is all we need
     return job, job
 
-  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
+  def parallel_exec(self, argv=[], runnodes=''):
     if type(argv) is str:
       argv = argv.split(' ')
     nnodes, ntasks, ncores, argv = self.parsefluxargs(argv)
@@ -188,8 +188,7 @@ class FLUX(JobLauncher):
         prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir,
         '--buf', buf_size, crc_flag, downnodes_spaced
     ]
-    output = self.parallel_exec(argv=argv, runnodes=upnodes,
-                                use_dshbak=False)[0]
+    output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
     return output
 
   # the 'pid' returned by the above launchruncmd is the jobid

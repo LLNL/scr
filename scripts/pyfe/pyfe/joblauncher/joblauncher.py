@@ -29,21 +29,16 @@ launchruncmd(up_nodes, down_nodes, launcher_args)
     Format an argv according to the job launcher specifications.
     This method should return runproc(argv=argv, wait=False).
     The caller will receive the tuple: (subprocess.Popen object, object.pid).
-parallel_exec(argv, runnodes, use_dshbak)
+parallel_exec(argv, runnodes)
     Job launchers should override this method.
     argv is a list of arguments representing the command.
     runnodes is a comma separated string of nodes which will execute the command.
-    use_dshbak is True by default, and determines whether the command is piped to dshbak.
-    `which pdsh` and `which dshbak` are defined in ../scr_const.py as PDSH_EXE and DSHBAK_EXE.
+    `which pdsh` is defined in ../scr_const.py as PDSH_EXE.
     If self.clustershell_task is not False:
-      return self.clustershell_exec(argv, runnodes, use_dshbak).
+      return self.clustershell_exec(argv, runnodes).
     Otherwise:
       Format pdshcmd as a list using scr_const.PDSH_EXE, the argv, and runnodes.
-      If use_dshbak is False:
-        return runproc(argv=pdshcmd, getstdout=True, getstderr=True).
-      If use_dshbak is true:
-        Let pdshcmd = [pdshcmd, [scr_const.DSHBAK_EXE, 'c']].
-        return pipeproc(argv=pdshcmd, getstdout=True, getstderr=True).
+      return runproc(argv=pdshcmd, getstdout=True, getstderr=True).
 scavenge_files(prog, upnodes, downnodes_spaced, cntldir, dataset_id, prefixdir, buf_size, crc_flag)
     Job launchers should override this method.
     prog is a string and is the location of the scr_copy program.
@@ -58,13 +53,12 @@ scavenge_files(prog, upnodes, downnodes_spaced, cntldir, dataset_id, prefixdir, 
       If undefined, the default value is '--crc'.
       If '0', crc_flag will be set to ''.
     Format an argv according to the job launcher specifications.
-    Return self.parallel_exec(argv=argv, runnodes=upnodes, use_dshbak=False)[0]
+    Return self.parallel_exec(argv=argv, runnodes=upnodes)[0]
 
-clustershell_exec(argv, runnodes, use_dshbak)
+clustershell_exec(argv, runnodes)
     This method implementation is provided by the base class.
     argv is a list of arguments representing the command.
     runnodes is a comma separated string of nodes which will execute the command.
-    use_dshbak is True by default, and determines the format of the returned output.
     The command specified by argv will be ran on the nodes specified by runnodes.
     The return value is a list: [output, returncode]
     The output is a list: [stdout, stderr]
@@ -216,12 +210,11 @@ class JobLauncher(object):
     return None, -1
 
   #####
-  #### Return the output as pdsh / dshbak would have (?)
   # https://clustershell.readthedocs.io/en/latest/api/Task.html
   # clustershell exec can be called from any sub-resource manager
   # the sub-resource manager is responsible for ensuring clustershell is available
   ### TODO: different ssh programs may need different parameters added to remove the 'tput: ' from the output
-  def clustershell_exec(self, argv=[], runnodes='', use_dshbak=True):
+  def clustershell_exec(self, argv=[], runnodes=''):
     task = self.clustershell_task.task_self()
     # launch the task
     task.run(' '.join(argv), nodes=runnodes)
@@ -231,48 +224,23 @@ class JobLauncher(object):
     # iterate through the task.iter_retcodes() to get (return code, [nodes])
     # to get msg objects, output must be retrieved by individual node using task.node_buffer or .key_error
     # retrieved outputs are bytes, convert with .decode('utf-8')
-    if use_dshbak:
-      # all outputs in each group are the same
-      for rc, keys in task.iter_retcodes():
-        if rc != 0:
-          ret[1] = 1
-        # groups may have multiple nodes with identical output, use output of the first node
-        output = task.node_buffer(keys[0]).decode('utf-8')
-        if len(output) != 0:
-          ret[0][0] += '---\n'
-          ret[0][0] += ','.join(keys) + '\n'
-          ret[0][0] += '---\n'
-          lines = output.split('\n')
-          for line in lines:
-            if line != '' and line != 'tput: No value for $TERM and no -T specified':
-              ret[0][0] += line + '\n'
-        output = task.key_error(keys[0]).decode('utf-8')
-        if len(output) != 0:
-          ret[0][1] += '---\n'
-          ret[0][1] += ','.join(keys) + '\n'
-          ret[0][1] += '---\n'
-          lines = output.split('\n')
-          for line in lines:
-            if line != '' and line != 'tput: No value for $TERM and no -T specified':
-              ret[0][1] += line + '\n'
-    else:
-      for rc, keys in task.iter_retcodes():
-        if rc != 0:
-          ret[1] = 1
-        for host in keys:
-          output = task.node_buffer(host).decode('utf-8')
-          for line in output.split('\n'):
-            if line != '' and line != 'tput: No value for $TERM and no -T specified':
-              ret[0][0] += host + ': ' + line + '\n'
-          output = task.key_error(host).decode('utf-8')
-          for line in output.split('\n'):
-            if line != '' and line != 'tput: No value for $TERM and no -T specified':
-              ret[0][1] += host + ': ' + line + '\n'
+    for rc, keys in task.iter_retcodes():
+      if rc != 0:
+        ret[1] = 1
+      for host in keys:
+        output = task.node_buffer(host).decode('utf-8')
+        for line in output.split('\n'):
+          if line != '' and line != 'tput: No value for $TERM and no -T specified':
+            ret[0][0] += host + ': ' + line + '\n'
+        output = task.key_error(host).decode('utf-8')
+        for line in output.split('\n'):
+          if line != '' and line != 'tput: No value for $TERM and no -T specified':
+            ret[0][1] += host + ': ' + line + '\n'
     return ret
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
-  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
+  def parallel_exec(self, argv=[], runnodes=''):
     return [['', ''], 0]
 
   # perform the scavenge files operation for scr_scavenge

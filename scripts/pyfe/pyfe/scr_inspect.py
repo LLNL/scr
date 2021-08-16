@@ -78,8 +78,7 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
   # run scr_inspect_cache via pdsh / clustershell
   argv = [bindir + '/scr_inspect_cache', cntldir + '/filemap.scrinfo']
   out = scr_env.launcher.parallel_exec(argv=argv,
-                                       runnodes=upnodes,
-                                       use_dshbak=False)[0]
+                                       runnodes=upnodes)[0]
   try:
     with open(output, 'w') as outfile:
       outfile.write(out[0])

@@ -53,22 +53,6 @@ class SCR_Test_Runtime:
       return 1
     return 0
 
-  # check that we have dshbak
-  @staticmethod
-  def check_dshbak():
-    ### Don't need to check this when using clustershell
-    if scr_const.USE_CLUSTERSHELL == '1':
-      return 0
-    dshbak = scr_const.DSHBAK_EXE
-    argv = ['which', dshbak]
-    returncode = runproc(argv=argv)[1]
-    if returncode != 0:
-      print('scr_test_runtime: ERROR: \'which ' + dshbak + '\' failed')
-      print(
-          'scr_test_runtime: ERROR: Problem using dshbak, see README for help')
-      return 1
-    return 0
-
 
 # collects return codes of all methods declared in SCR_Test_Runtime
 # returns 0 if OK, returns 1 if any test returns 1
