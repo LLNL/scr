@@ -63,3 +63,7 @@ Running runtest.sh within a batch script
 | *With these steps completed, submit the script:*  
 | ``sbatch submit.sh``  
 |  
+| **SLURM +srun**
+| Same as above except with this execution command:  
+| ``./runtest.sh``  
+|  

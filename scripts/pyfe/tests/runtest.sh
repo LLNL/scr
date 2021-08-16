@@ -15,8 +15,8 @@ elif [ $launcher == "lrun" ]; then
   launcherargs="-n${numnodes} -N${numnodes}"
   singleargs="-n1 -N1"
 elif [ $launcher == "jsrun" ]; then
-  launcherargs="--cpu_per_rs 1 --np ${numnodes}"
-  singleargs="--cpu_per_rs 1 --np 1"
+  launcherargs="-n ${numnodes} -c 1"
+  singleargs="-n 1 -c 1"
 elif [ $launcher == "aprun" ]; then
   nodelist=$(scr_env.py --nodes)
   launcherargs="-L ${nodelist}"

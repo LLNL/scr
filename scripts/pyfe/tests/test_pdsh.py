@@ -107,20 +107,8 @@ def getpdshout(launcher, launch_cmd):
   num_left = nodes_remaining(resmgr, nodelist, down_nodes)
   print('num_left = ' + str(num_left))
   print('testing: Getting output from: ' + str(launch_cmd))
-  print('Not using dshbak:')
   output = launcher.parallel_exec(argv=launch_cmd,
-                                  runnodes=nodelist,
-                                  use_dshbak=False)
-  print('###\n# stdout:')
-  print(output[0][0])
-  print('###\n# stderr:')
-  print(output[0][1])
-  print('###\n# Execution return code: ' + str(output[1]))
-  sleep(3)
-  print('Using dshbak: (default)')
-  output = launcher.parallel_exec(argv=launch_cmd,
-                                  runnodes=nodelist,
-                                  use_dshbak=True)
+                                  runnodes=nodelist)
   print('###\n# stdout:')
   print(output[0][0])
   print('###\n# stderr:')
