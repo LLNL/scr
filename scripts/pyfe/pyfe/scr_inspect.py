@@ -39,10 +39,12 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
     return 1
 
   # read node set of job
-  jobset = scr_env.resmgr.get_job_nodes()
+  jobset = scr_env.get_scr_nodelist()
   if jobset is None:
-    print('scr_inspect: ERROR: Could not determine nodeset.')
-    return 1
+    jobset = scr_env.resmgr.get_job_nodes()
+    if jobset is None:
+      print('scr_inspect: ERROR: Could not determine nodeset.')
+      return 1
 
   # can't get directories
   if cntldir is None:
@@ -66,8 +68,8 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
   else:
     upnodes = jobnodes
 
-  # format up and down node sets for pdsh command
-  upnodes = scr_hostlist.compress(upnodes)
+  # make the list a comma separated string
+  upnodes = ','.join(upnodes)
 
   # build the output filenames
   pwd = os.getcwd()

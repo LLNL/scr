@@ -34,7 +34,9 @@ def list_down_nodes(reason=False,
   if type(nodeset) is list:
     nodeset = ','.join(nodeset)
   if not nodeset:
-    nodeset = resourcemgr.get_job_nodes()
+    nodeset = scr_env.get_scr_nodelist()
+    if nodeset is None:
+      nodeset = resourcemgr.get_job_nodes()
   if nodeset is None or nodeset == '':
     print(
         'scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.'
