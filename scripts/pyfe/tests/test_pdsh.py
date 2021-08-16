@@ -62,9 +62,12 @@ def getpdshout(launcher, launch_cmd):
   print('user = ' + str(user))
   # get the nodeset of this job
   nodelist = scr_env.get_scr_nodelist()
-  print('nodelist = ' + str(nodelist))
   if nodelist is None:
-    nodelist = ''
+    nodelist = resmgr.get_job_nodes()
+    if nodelist is None:
+      nodelist = ''
+  nodelist = ','.join(resmgr.expand_hosts(nodelist))
+  print('nodelist = ' + str(nodelist))
   resmgr.usewatchdog(True)
   watchdog = SCR_Watchdog(prefix, scr_env)
   if launcher == 'srun':

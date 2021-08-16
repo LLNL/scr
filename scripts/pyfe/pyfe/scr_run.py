@@ -139,6 +139,7 @@ def scr_run(launcher='',
     if nodelist is None:
       print(prog + ': ERROR: Could not identify nodeset')
       sys.exit(1)
+  nodelist = ','.join(resmgr.expand_hosts(nodelist))
 
   watchdog = None
   val = os.environ.get('SCR_WATCHDOG')

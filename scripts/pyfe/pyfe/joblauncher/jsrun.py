@@ -25,7 +25,7 @@ class JSRUN(JobLauncher):
     if len(launcher_args) == 0:
       return None, -1
     argv = [self.launcher]
-    if len(down_nodes) > 0:
+    if down_nodes != '':
       argv.append('--exclude_hosts ' + down_nodes)
     argv.extend(launcher_args)
     return runproc(argv=argv, wait=False)

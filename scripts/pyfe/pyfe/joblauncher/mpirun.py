@@ -13,29 +13,6 @@ class MPIRUN(JobLauncher):
   def __init__(self, launcher='mpirun'):
     super(MPIRUN, self).__init__(launcher=launcher)
 
-  def get_hostfile_hosts(self, downlist=[]):
-    # get the file name and read the file
-    val = os.environ.get('LSB_DJOB_HOSTFILE')
-    if val is None:
-      return None
-    # LSB_HOSTS would be easier, but it gets truncated at some limit
-    # only reliable way to build this list is to process file specified
-    # by LSB_DJOB_HOSTFILE
-    hosts = []
-    try:
-      # got a file, try to read it
-      with open(val, 'r') as hostfile:
-        hosts = [line.strip() for line in hostfile.readlines()]
-      if len(hosts) == 0:
-        raise ValueError('Hostfile empty')
-    except:
-      return None
-    # build set of unique hostnames, one hostname per line
-    hosts = list(set(hosts))
-    ### if there could possibly be an empty line in the file
-    hosts = [host for host in hosts if host != '']
-    return hosts
-
   # returns the process and PID of the launched process
   # as returned by runproc(argv=argv, wait=False)
   def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
@@ -43,14 +20,14 @@ class MPIRUN(JobLauncher):
       launcher_args = launcher_args.split()
     if len(launcher_args) == 0:
       return None, -1
-    target_hosts = self.get_hostfile_hosts(
-        downlist=scr_hostlist.expand(down_nodes))
+    # split the node string into a node per line
+    up_nodes = '/n'.join(up_nodes.split(','))
     try:
       # need to first ensure the directory exists
       basepath = '/'.join(self.hostfile.split('/')[:-1])
       os.makedirs(basepath, exist_ok=True)
-      with open(self.hostfile, 'w') as hostfile:
-        print(','.join(target_hosts), file=self.hostfile)
+      with open(self.hostfile, 'w') as usehostfile:
+        usehostfile.write(up_nodes)
       argv = [self.launcher, '--hostfile', self.hostfile]
       argv.extend(launcher_args)
       return runproc(argv=argv, wait=False)
@@ -58,11 +35,7 @@ class MPIRUN(JobLauncher):
       print(e)
       print('scr_mpirun: Error writing hostfile and creating launcher command')
       print('launcher file: \"' + self.hostfile + '\"')
-      #return None, -1
-      ### We could just do -N 1 to run a single process on every node of the allocation?
-      argv = [self.launcher, '-N', '1']
-      argv.extend(launcher_args)
-      return runproc(argv=argv, wait=False)
+      return None, -1
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]

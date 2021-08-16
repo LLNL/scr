@@ -31,7 +31,7 @@ class LSF(ResourceManager):
         # get a list of lines without newlines and skip the first line
         lines = []
         with open(hostfile, 'r') as f:
-          lines = [line.strip() for line in f.readlines()][1:]
+          lines = [line.strip() for line in f.readlines()]
         if len(lines) == 0:
           raise ValueError('Hostfile empty')
 

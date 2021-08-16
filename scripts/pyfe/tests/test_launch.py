@@ -59,14 +59,17 @@ def dolaunch(launcher, launch_cmd):
   scr_env.launcher = launcher
   jobid = resmgr.getjobid()
   user = scr_env.get_user()
+  launcher.hostfile = os.path.join(scr_env.dir_scr(), 'hostfile')
   print('jobid = ' + str(jobid))
   print('user = ' + str(user))
   # get the nodeset of this job
   nodelist = scr_env.get_scr_nodelist()
-  print('nodelist = ' + str(nodelist))
   if nodelist is None:
-    nodelist = ''
-  resmgr.usewatchdog(True)
+    nodelist = resmgr.get_job_nodes()
+    if nodelist is None:
+      nodelist = ''
+  nodelist = ','.join(resmgr.expand_hosts(nodelist))
+  print('nodelist = ' + str(nodelist))
   watchdog = SCR_Watchdog(prefix, scr_env)
   if launcher == 'srun':
     print('calling prepareforprerun . . .')
@@ -115,17 +118,21 @@ def dolaunch(launcher, launch_cmd):
   print('proc = ' + str(proc))
   print('pid = ' + str(pid))
   print('testing : Entering watchdog method')
-  if watchdog.watchproc(proc, pid) != 0:
-    print('watchdog.watchproc returned nonzero')
-    print('calling launcher.waitonprocess . . .')
-    launcher.waitonprocess(proc)
-  elif watchdog.process is not None:
-    print('watchdog.watchproc returned zero, a process was launched')
-    print('joining the watchdog process . . .')
-    watchdog.process.join()
+  if os.environ.get('SCR_WATCHDOG_TIMEOUT') is not None and \
+      os.environ.get('SCR_WATCHDOG_TIMEOUT_PFS') is not None:
+    if watchdog.watchproc(proc, pid) != 0:
+      print('watchdog.watchproc returned nonzero')
+      print('calling launcher.waitonprocess . . .')
+      launcher.waitonprocess(proc)
+    elif watchdog.process is not None:
+      print('watchdog.watchproc returned zero, a process was launched')
+      print('joining the watchdog process . . .')
+      watchdog.process.join()
+    else:
+      print('watchdog returned zero and didn\'t launch another process')
+      print('this means the process is terminated')
   else:
-    print('watchdog returned zero and didn\'t launch another process')
-    print('this means the process is terminated')
+    launcher.waitonprocess(proc)
   print('Process has finished or has been terminated.')
 
 if __name__ == '__main__':

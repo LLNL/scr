@@ -49,17 +49,16 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
   print('scr_postrun: Started: ' + str(datetime.now()))
 
   # get our nodeset for this job
-  nodelist_env = os.environ.get('SCR_NODELIST')
-  if nodelist_env is None:
-    nodelist_env = scr_env.resmgr.get_job_nodes()
-    if nodelist_env is None:
+  scr_nodelist = scr_env.get_scr_nodelist()
+  if scr_nodelist is None:
+    scr_nodelist = scr_env.resmgr.get_job_nodes()
+    if scr_nodelist is None:
       print('scr_postrun: ERROR: Could not identify nodeset')
       return 1
-    os.environ['SCR_NODELIST'] = nodelist_env
-  scr_nodelist = nodelist_env
+    os.environ['SCR_NODELIST'] = scr_nodelist
 
   # identify what nodes are still up
-  upnodes = scr_nodelist
+  upnodes = ','.join(scr_env.resmgr.expand_hosts(scr_nodelist))
   downnodes = list_down_nodes(nodeset=upnodes, scr_env=scr_env)
 
   if verbose:
