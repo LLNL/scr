@@ -2,26 +2,37 @@
 Testing scripts for SCR+pyfe  
 ========================================================
 
-| The file *runtest.sh* will iterate through all test*.py scripts  
+| The *test\*.py* scripts can each be ran independently  
+| Scripts can mostly be ran without arguments  
+| These scripts accept the following arguments:  
 |  
+| ``test_watchdog.py <launcher> <launcher args> <program> <program args>``  
+| *ex: test_watchdog.py srun -N 2 -n 2 sleeper*  
+|  ``test_launch.py <launcher> <launcher args> <program> <program args>``  
+| *ex: test_launch.py srun -N 2 -n 2 test_api*  
+| ``test_pdsh.py <launcher> <program> <program args>``  
+| *ex: test_pdsh.py srun printer*  
+| ``test_flush_file.py <scr prefix directory>``  
+| *specify the prefix directory, otherwise pyfe/tests is used*  
+|  
+| The file *runtest.sh* will iterate through all test*.py scripts  
 | *It can be ran in one of three ways:*  
 |  
 | ``./runtest.sh``  
 |   do all test*.py scripts and the bottom portion of runtest.sh  
-|  
 | ``./runtest.sh scripts``  
 |   only do the test*.py scripts, following 1 run of the test_api  
-|  
 | ``./runtest.sh <word>``  
 |   use some other word to only do the bottom of runtest.sh  
 
 ========================================================
-Usage instructions for all use cases  
+Usage instructions for runtest.sh for all use cases  
 ========================================================
 
 | **These variables at the top of runtest.sh must be set:**  
 |  
 |   launcher="srun"  - options:{srun,jsrun,flux,aprun,mpirun,lrun}  
+|   *you may verify the format of launcher args near the top of runtest.sh*  
 |   numnodes="2"     - the number of nodes in the allocation  
 |   MPICC="mpicc"    - the MPI C compiler to use for compiling test programs  
 
