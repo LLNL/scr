@@ -73,9 +73,9 @@ The default shell used by subprocess is /bin/sh. If youre using other shells, li
 
 
 # calls subprocessPopen using argv for program+arguments
-# return value is always a pair, [0] is output or None, [1] is returncode or pid
-# specify wait=False to return the pid (don't wait for a returncode / output)
-# with wait=False the first return value is the Popen and the second is the pid
+# return value is always a pair, [0] is output or None, [1] is returncode
+# with wait=False the first and second return values are both the Popen object
+# the pid can be obtained with the Popen object's .pid attribute
 # to return the pid requires the shell argument of subprocess.Popen to be false (default)
 # for the first return value (output) -> specify getstdout to get the stdout, getstderr to get stderr
 # specifying both getstdout and getstderr=True returns a list where [0] is stdout and [1] is stderr
@@ -99,7 +99,7 @@ def runproc(argv, wait=True, getstdout=False, getstderr=False, verbose=False):
                     stderr=PIPE,
                     universal_newlines=True)
     if wait == False:
-      return runproc, runproc.pid
+      return runproc, runproc
     if getstdout == True and getstderr == True:
       output = runproc.communicate()
       return output, runproc.returncode

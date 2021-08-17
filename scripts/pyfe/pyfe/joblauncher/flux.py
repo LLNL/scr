@@ -23,8 +23,6 @@ except:
 class FLUX(JobLauncher):
   def __init__(self, launcher='flux'):
     super(FLUX, self).__init__(launcher=launcher)
-    # Don't enable Popen.terminate() for the flux parallel exec
-    self.watchprocess = True
     # connect to the running Flux instance
     try:
       self.flux = flux.Flux()
@@ -37,8 +35,8 @@ class FLUX(JobLauncher):
       try:
         flux.job.wait_async(self.flux, proc).wait_for(int(timeout))
       except TimeoutError:
-        # this is expected when the wait times out and it is still running
-        pass
+        # return 1 to indicate the process is still running and timeout has expired
+        return 1
       except Exception as e:
         # it can also throw an exception if there is no job to wait for
         print(e)
@@ -46,6 +44,8 @@ class FLUX(JobLauncher):
       # wait without a timeout
       future = flux.job.wait_async(self.flux, proc)
       status = future.get_status()
+    # return 0 to indicate the program is no longer running (or there was some exception)
+    return 0
 
   def parsefluxargs(self, launcher_args):
     # if scr_flux.py is called these can be trimmed there.
@@ -171,35 +171,11 @@ class FLUX(JobLauncher):
     ret[1] = 0 if status.success == True else 1
     return ret
 
-  # perform the scavenge files operation for scr_scavenge
-  # command format depends on resource manager in use
-  # uses either pdsh or clustershell
-  # returns a list -> [ 'stdout', 'stderr' ]
-  def scavenge_files(self,
-                     prog='',
-                     upnodes='',
-                     downnodes_spaced='',
-                     cntldir='',
-                     dataset_id='',
-                     prefixdir='',
-                     buf_size='',
-                     crc_flag=''):
-    argv = [
-        prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir,
-        '--buf', buf_size, crc_flag, downnodes_spaced
-    ]
-    output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
-    return output
-
-  # the 'pid' returned by the above launchruncmd is the jobid
-  def get_jobstep_id(self, user='', allocid='', pid=-1):
-    return pid
-
-  def scr_kill_jobstep(self, jobstepid=None):
+  def scr_kill_jobstep(self, jobstep=None):
     if jobstepid is not None:
       try:
         flux.job.cancel(self.flux, jobstepid)
         flux.job.wait_async(self.flux, jobstepid)
-      except Exception as e:
+      except Exception:
         # we could get 'invalid jobstep id' when the job has already terminated
         pass

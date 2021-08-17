@@ -276,7 +276,7 @@ def scr_run(launcher='',
 
     # launch the job, make sure we include the script node and exclude down nodes
     print(prog + ': Launching ' + str(launch_cmd))
-    proc, pid = launcher.launchruncmd(up_nodes=nodelist,
+    proc, jobstep = launcher.launchruncmd(up_nodes=nodelist,
                                       down_nodes=down_nodes,
                                       launcher_args=launch_cmd)
     if watchdog is None:
@@ -284,11 +284,14 @@ def scr_run(launcher='',
     else:
       print(prog + ': Entering watchdog method')
       # watchdog returned error or a watcher process was launched
-      if watchdog.watchproc(proc, pid) != 0:
+      if watchdog.watchproc(proc, jobstep) != 0:
         print(prog + ': Error launching watchdog')
         launcher.waitonprocess(proc)
       elif watchdog.process is not None:
-        watchdog.process.join()
+        try:
+          watchdog.process.join()
+        except:
+          pass
       # else the watchdog returned because the process has finished/been killed
 
     #print('Process has finished or has been terminated.')

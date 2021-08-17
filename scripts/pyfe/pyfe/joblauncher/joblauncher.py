@@ -1,80 +1,55 @@
 #! /usr/bin/env python3
-"""
-joblauncher/joblauncher.py
 
-JobLauncher is the super class for the job launcher family.
-The clustershell_exec method is provided by this class, other methods should be overridden.
-If the constant, USE_CLUSTERSHELL, is not '0' and the module ClusterShell is available
-then ClusterShell.Task will be available and the clustershell_exec method can be used.
-
-Attributes
-----------
-launcher          - string representation of the launcher
-hostfile          - string location of the hostfile, set in scr_run.py: scr_env.get_prefix() + '/.scr/hostfile'
-clustershell_task - Either False or a pointer to the module ClusterShell.Task
-
-Methods
--------
-init()
-    This method initializes class attributes.
-prepareforprerun()
-    This method is called (without arguments) before scr_prerun.py.
-    Any necessary preamble work can be inserted into this method.
-    This method does nothing by default and may be overridden when needed.
-
-launchruncmd(up_nodes, down_nodes, launcher_args)
-    Job launchers should override this method.
-    up_nodes and down_nodes are strings with comma separated lists of nodes.
-    launcher_args is a list of arguments representing the command.
-    Format an argv according to the job launcher specifications.
-    This method should return runproc(argv=argv, wait=False).
-    The caller will receive the tuple: (subprocess.Popen object, object.pid).
-parallel_exec(argv, runnodes)
-    Job launchers should override this method.
-    argv is a list of arguments representing the command.
-    runnodes is a comma separated string of nodes which will execute the command.
-    `which pdsh` is defined in ../scr_const.py as PDSH_EXE.
-    If self.clustershell_task is not False:
-      return self.clustershell_exec(argv, runnodes).
-    Otherwise:
-      Format pdshcmd as a list using scr_const.PDSH_EXE, the argv, and runnodes.
-      return runproc(argv=pdshcmd, getstdout=True, getstderr=True).
-scavenge_files(prog, upnodes, downnodes_spaced, cntldir, dataset_id, prefixdir, buf_size, crc_flag)
-    Job launchers should override this method.
-    prog is a string and is the location of the scr_copy program.
-    upnodes is a string with comma separated lists of nodes.
-    downnodes_spaced is a space separated string of down nodes.
-    cntldir is a string for the control directory path, obtained from SCR_Param.
-    dataset_id is a string for the dataset id.
-    prefixdir is a string for the prefix directory path.
-    buf_size is a string, set by $SCR_FILE_BUF_SIZE.
-      If undefined, the default value is (1024 * 1024).
-    crc_flag is a string, set by $SCR_CRC_ON_FLUSH.
-      If undefined, the default value is '--crc'.
-      If '0', crc_flag will be set to ''.
-    Format an argv according to the job launcher specifications.
-    Return self.parallel_exec(argv=argv, runnodes=upnodes)[0]
-
-clustershell_exec(argv, runnodes)
-    This method implementation is provided by the base class.
-    argv is a list of arguments representing the command.
-    runnodes is a comma separated string of nodes which will execute the command.
-    The command specified by argv will be ran on the nodes specified by runnodes.
-    The return value is a list: [output, returncode]
-    The output is a list: [stdout, stderr]
-    The full return value is then: [[stdout, stderr], returncode]
-
-"""
+# joblauncher/joblauncher.py
 
 import os
+from subprocess import TimeoutExpired
 from pyfe import scr_const
 from pyfe.scr_common import interpolate_variables
 
 class JobLauncher(object):
+  """JobLauncher is the super class for the job launcher family
+
+  Methods
+  -------
+  Methods whose functionality is not provided or compatible must be overridden.
+
+  launchruncmd() should be overridden, and should return a tuple of 2 values.
+  The first value will be passed to waitonprocess().
+  The second value will be passed to scr_kill_jobstep().
+
+  launchruncmd() may return scr_common.runproc(argv, wait=False) and use the
+  provided waitonprocess() and scr_kill_jobstep() methods
+
+  Default methods
+  ---------------
+  clustershell_exec()
+    If the constant, USE_CLUSTERSHELL, is not '0', and the module ClusterShell is available,
+    then the clustershell_exec method will be used instead of parallel_exec.
+
+  waitonprocess(), scr_kill_jobstep()
+  These may both be used if the overridden launchcmd method returns scr_common.runproc(argv, wait=False).
+  These each expect the Popen object returned from scr_common.runproc(wait=False).
+
+  scavenge_files:
+  If the default argv for the scavenge_files command are compatible,
+  then the default scavenge_files method may be used.
+
+  Attributes
+  ----------
+  launcher          - string representation of the launcher
+  hostfile          - string location of a writable hostfile, set in scr_run.py: scr_env.dir_scr() + '/hostfile'
+                      this is a file a launcher may use, provided for use in parallel_exec()
+  clustershell_task - Either False or a pointer to the module ClusterShell.Task, if this value is not False
+                      a launcher can use clustershell_exec() rather than parallel_exec().
+  """
   def __init__(self, launcher=''):
+    """Base class initialization
+
+    Call super().__init__() in derived launchers.
+    """
     self.launcher = launcher
     self.hostfile = ''
-    self.watchprocess = False
     self.clustershell_task = False
     if scr_const.USE_CLUSTERSHELL != '0':
       try:
@@ -82,132 +57,55 @@ class JobLauncher(object):
         self.clustershell_task = MyCSTask
       except:
         pass
-    # attempt to take over launchruncmd+getjobstepid+killjobstep
-    self.flux = None
-    if scr_const.USE_FLUX == '1':
-      try:
-        import flux as myflux
-        self.flux = {}
-        # we were able to import flux
-        self.flux['flux'] = myflux
-        self.flux['f'] = myflux.Flux()
-        #import json (?)
-        from flux.job import JobspecV1 as myjobspec
-        self.flux['JobspecV1'] = myjobspec
-        from flux.job.JobID import JobID as myJobID
-        self.flux['JobID'] = myJobID
-        ### move function definitions here to joblauncher.py from flux.py
-        self.launchruncmd = self.launchfluxcmd
-        self.get_jobstep_id = self.get_flux_jobstep
-        self.scr_kill_jobstep = self.flux_kill_jobstep
-      except Exception as e:
-        print('JobLauncher: flux option was set but unable to use flux:')
-        print(e)
-        self.flux = None
 
-  def waitonprocess(self, proc, timeout=None):
-    if self.flux is None:
-      proc.communicate(timeout=timeout)
-    else:
-      if timeout is not None:
-        # when the timeout is set we want to ignore the TimeoutError exception
-        try:
-          self.flux['flux'].job.wait_async(self.flux['f'], proc).wait_for(int(timeout))
-        except TimeoutError:
-          # this is expected when the wait times out and it is still running
-          pass
-        except Exception as e:
-          # it can also throw an exception if there is no job to wait for
-          print(e)
-      else:
-        # wait without a timeout
-        self.flux['flux'].job.wait_async(self.flux['f'], proc)
+  def waitonprocess(self, proc=None, timeout=None):
+    """This method is called after a jobstep is launched with the return values of launchruncmd
 
-  def parsefluxargs(self, launcher_args):
-    # default values if none are specified in launcher_args
-    nnodes = 1
-    ntasks = 1
-    corespertask = 1
-    argv = []
-    for arg in launcher_args:
-      if arg == 'mini' or arg == 'submit':
-        pass
-      elif arg.startswith('--nodes'):
-        nnodes = int(arg.split('=')[1])
-      elif arg.startswith('--ntasks'):
-        ntasks = int(arg.split('=')[1])
-      elif arg.startswith('--cores-per-task'):
-        corespertask = int(arg.split('=')[1])
-      else:
-        argv.append(arg)
-    return nnodes, ntasks, corespertask, argv
-
-  def launchfluxcmd(self, up_nodes='', down_nodes='', launcher_args=[]):
-    if type(launcher_args) is str:
-      launcher_args = launcher_args.split(' ')
-    nnodes, ntasks, ncores, argv = self.parsefluxargs(launcher_args)
-    compute_jobreq = self.flux['JobspecV1'].from_command(
-        command=argv, num_tasks=ntasks, num_nodes=nnodes, cores_per_task=ncores)
-    ###
-    compute_jobreq.cwd = os.getcwd()
-    compute_jobreq.environment = dict(os.environ)
-
-    #### An error I got assigning something else to stdout:
-    #
-    #File "... /flux/python3 /flux/job/Jobspec.py", line 360, in stdout
-    #self._set_io_path("output", "stdout", path)
-    #File "... /flux/python3 /flux/job/Jobspec.py", line 395, in _set_io_path
-    #"The path must be a string or pathlib object, "
-    ###
-    #
-    # Providing a path for the stdout to this variable wrote the stdout
-    # from all processes (lines interleaved)
-    # I think I have seen another option somewhere to prepend rank/nodenum
-    #
-    filepath = interpolate_variables('~/scr/install/bin/pyfe/tests/stdout')
-    # all tasks will write their stdout to this file
-    compute_jobreq.stdout = filepath
-    job = self.flux['flux'].job.submit(self.flux['f'],
-                                       compute_jobreq,
-                                       waitable=True)
-    # job is an integer representing the job id, this is all we need
-    return job, job
-
-  def get_flux_jobstep(self, user='', allocid='', pid=-1):
-    # the incoming 'pid' is actually the jobstep id that is needed
-    return pid
-
-  def flux_kill_jobstep(self, jobstepid=None):
-    if jobstepid is not None:
-      try:
-        self.flux['flux'].job.cancel(self.flux['f'], jobstepid)
-        self.flux['flux'].job.wait_async(self.flux['f'], jobstepid)
-      except Exception as e:
-        # we could get invalid jobstep id when the job has already terminated
-        pass
-
-  def prepareforprerun(self):
-    """Called before scr_prerun
-
-    Gives a job launcher an opportunity to perform any preamble work
+    The base class method may be used when launchruncmd returns runproc(argv=argv,wait=False).
+    Override this implementation in any base class whose launchruncmd returns a different value,
+    or if there is a different method used to wait on a process (blocking or with a timeout).
+    The timeout will be none (wait until process terminates) or a numeric value indicating seconds.
+    A timeout value will exist when using SCR_Watchdog.
 
     Returns
     -------
-    None
+    integer
+        0 - indicates the process is no longer running, or if some exception occured
+        1 - indicates we waited for the timeout and the process is still running
+    """
+    if proc is not None:
+      try:
+        proc.communicate(timeout=timeout)
+      except TimeoutExpired:
+        return 1
+      except:
+        pass
+    return 0
+
+  def prepareforprerun(self):
+    """This method is called (without arguments) before scr_prerun.py
+
+    Any necessary preamble work can be inserted into this method.
+    This method does nothing by default and may be overridden as needed.
     """
     pass
 
   def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
-    """Launch job specified by launcher_args using up_nodes and down_nodes.
+    """This method is called to launch a jobstep
+
+    This method must be overridden.
+    Launch a jobstep specified by launcher_args using up_nodes and down_nodes.
 
     Returns
     -------
-    tuple (Popen object, int)
-        Returns the same value returned by scr_common.runproc(argv, wait=False)
-        returns (process, process id)
-        or (None, -1) on error
+    tuple (process, id)
+        When using the provided base class methods: waitonprocess() and scr_kill_jobstep(),
+        return scr_common.runproc(argv, wait=False).
+
+        The first return value is used as the argument for waiting on the process in launcher.waitonprocess().
+        The second return value is used as the argument to kill a jobstep in launcher.scr_kill_jobstep().
     """
-    return None, -1
+    return None, None
 
   #####
   # https://clustershell.readthedocs.io/en/latest/api/Task.html
@@ -215,6 +113,24 @@ class JobLauncher(object):
   # the sub-resource manager is responsible for ensuring clustershell is available
   ### TODO: different ssh programs may need different parameters added to remove the 'tput: ' from the output
   def clustershell_exec(self, argv=[], runnodes=''):
+    """This method implements the functionality of parallel_exec using clustershell
+
+    This method may be called from a launcher's parallel_exec if self.clustershell_task is not False.
+    if self.clustershell_task is not False:
+      return self.clustershell_exec(argv, runnodes)
+
+    argv is a list of arguments representing the command.
+    runnodes is a comma separated string of nodes which will execute the command.
+
+    The command specified by argv will be ran on the nodes specified by runnodes.
+
+    Returns
+    -------
+    list
+      The return value is: [output, returncode],
+      where output is a list: [stdout, stderr],
+      so the full return value is then: [[stdout, stderr], returncode].
+    """
     task = self.clustershell_task.task_self()
     # launch the task
     task.run(' '.join(argv), nodes=runnodes)
@@ -239,13 +155,25 @@ class JobLauncher(object):
     return ret
 
   # perform a generic pdsh / clustershell command
-  # returns [ [ stdout, stderr ] , returncode ]
   def parallel_exec(self, argv=[], runnodes=''):
+    """Job launchers should override this method to run the command in the manner of pdsh
+
+    argv is a list of arguments representing the command.
+    runnodes is a comma separated string of nodes which will execute the command.
+
+    `which pdsh` is defined in scr_const.PDSH_EXE.
+    If self.clustershell_task is not False:
+      return self.clustershell_exec(argv, runnodes).
+    Otherwise:
+      Format pdshcmd as a list using scr_const.PDSH_EXE, the argv, and runnodes.
+      return runproc(argv=pdshcmd, getstdout=True, getstderr=True).
+    """
+    if self.clustershell_task is not False:
+      return self.clustershell_exec(argv=argv, runnodes=runnodes)
     return [['', ''], 0]
 
-  # perform the scavenge files operation for scr_scavenge
+  # generate the argv to perform the scavenge files operation for scr_scavenge
   # command format depends on resource manager in use
-  # uses either pdsh or clustershell
   # returns a list -> [ 'stdout', 'stderr' ]
   def scavenge_files(self,
                      prog='',
@@ -256,37 +184,52 @@ class JobLauncher(object):
                      prefixdir='',
                      buf_size='',
                      crc_flag=''):
-    return ['', '']
+    """Job launchers may override this method to change the scavenge command
 
-  def killsprocess(self):
-    """Indicates whether a job launcher implements
-        get_jobstep_id and scr_kill_jobstep
-    """
-    return self.watchprocess
+    The scavenge argv is formed in this method and launched with launcher.parallel_exec().
 
-  def get_jobstep_id(self, user='', allocid='', pid=-1):
-    """Return an identifier for the most recently launched task.
-    Parameters
-    ----------
-    str
-        user: The user name from the environment
-    str
-        allocid: Identifier for the allocation
-    int
-        pid: The PID returned from parallel_exec
+    Arguments
+    ---------
+    prog               string, the location of the scr_copy program.
+    upnodes            string, comma separated lists of nodes.
+    downnodes_spaced   string, a space separated string of down nodes.
+    cntldir            string, the control directory path, obtained from SCR_Param.
+    dataset_id         string, the dataset id.
+    prefixdir          string, the prefix directory path.
+    buf_size           string, set by $SCR_FILE_BUF_SIZE.
+      (If undefined, the default value is (1024 * 1024)).
+    crc_flag           string, set by $SCR_CRC_ON_FLUSH.
+      (If undefined, the default value is '--crc').
+      (If '0', crc_flag will be set to '').
+      (Otherwise, this will be the crc_flag to use).
+
+    Formats the argv for the scavenge command.
 
     Returns
     -------
-    str
-        jobstep id
-        or None if unknown or error
+    list
+          The text output (first element of the list) of launcher.parallel_exec()
+          ['stdout', 'stderr']
     """
-    return None
+    argv = [
+        prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir,
+        '--buf', buf_size, crc_flag, downnodes_spaced
+    ]
+    output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
+    return output
 
-  def scr_kill_jobstep(self, jobstepid=None):
-    """Kills task identified by jobid parameter.
-        method defined when a joblauncher has a special
-        procedure to kill a launched job
+  def scr_kill_jobstep(self, jobstep=None):
+    """Kills task identified by jobstep parameter.
 
+    When launcher.launchruncmd() returns scr_common.runproc(argv, wait=False),
+    then this method may be used to send the terminate signal through the Popen object.
     """
-    pass
+    if jobstep is not None:
+      try:
+        # if jobstep.returncode is None:
+        # send the SIGTERM message to the subprocess.Popen object
+        jobstep.terminate()
+        # ensure complete
+        jobstep.communicate()
+      except:
+        pass

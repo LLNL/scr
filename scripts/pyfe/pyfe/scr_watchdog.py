@@ -7,10 +7,7 @@
 # activity has occurred since the last time it checked. If too much time
 # passes without activity, it kills the job
 
-import multiprocessing as mp
-from subprocess import TimeoutExpired
-#from time import sleep
-
+from pyfe import scr_const
 from pyfe.scr_param import SCR_Param
 from pyfe.cli import SCRFlushFile
 
@@ -26,47 +23,21 @@ class SCR_Watchdog:
       self.timeout = int(self.timeout)
       self.timeout_pfs = int(self.timeout_pfs)
 
-    self.watched_process = None
-
     self.launcher = scr_env.launcher
-    self.jobstepid = None
-    self.process = None
-    if self.launcher.flux is None and self.launcher.killsprocess:
-      try:
-        mp.set_start_method('fork')
-      except:
-        pass
 
     # interface to query values from the SCR flush file
     self.scr_flush_file = SCRFlushFile(prefix)
 
-  def killproc(self):
-    if self.launcher.killsprocess():
-      self.launcher.scr_kill_jobstep(self.jobstepid)
-      self.process = None
-    elif self.watched_process.returncode is None:
-      self.watched_process.terminate()
-      self.watched_process.communicate()
-    return 0
-
-  def watchfiles(self):
+  def watchfiles(self, proc, jobstep):
     # loop periodically checking the flush file for activity
     timeToSleep = self.timeout
     lastCheckpoint = None
     lastCheckpointLoc = None
     while True:
       # wait up to 'timeToSleep' to see if the process terminates normally
-      #if self.launcher.killsprocess() { sleep(timeToSleep) } else {
-      if self.launcher.flux is not None:
-        self.launcher.waitonprocess(self.jobstepid, timeout=timeToSleep)
-      else:
-        try:
-          self.watched_process.communicate(timeout=timeToSleep)
-
-          # the process has terminated normally, leave the watchdog method
-          return 0
-        except TimeoutExpired as e:
-          pass
+      if self.launcher.waitonprocess(proc, timeout=timeToSleep) == 0:
+        # when the wait returns zero the process is no longer running
+        return 0
 
       # the process is still running, read flush file to get latest
       # dataset id and its location
@@ -93,26 +64,20 @@ class SCR_Watchdog:
         timeToSleep = self.timeout
     # forward progress not observed in an expected timeframe
     # kill the watched process and return
-    return self.killproc()
+    self.launcher.scr_kill_jobstep(jobstep)
+    return 0
 
-  def watchproc(self, watched_process=None, pid=-1):
-    if watched_process is None:
+  def watchproc(self, watched_process=None, jobstep=None):
+    if watched_process is None or jobstep is None:
       print('scr_watchdog: ERROR: No process to watch.')
       return 1
 
-    if self.launcher.killsprocess():
-      self.jobstepid = self.launcher.get_jobstep_id(pid=pid)
-
-    self.watched_process = watched_process
     # TODO: What to do if timeouts are not set? die? should we set default values?
     # for now die with error message
     if self.timeout is None or self.timeout_pfs is None:
       print(
           'Necessary environment variables not set: SCR_WATCHDOG_TIMEOUT and SCR_WATCHDOG_TIMEOUT_PFS'
       )
+      # Returning 1 to scr_run to indicate watchdog did not start/complete
       return 1
-    if self.launcher.flux is None and self.launcher.killsprocess():
-      self.process = mp.Process(target=self.watchfiles)
-      self.process.start()
-      return 0
-    return self.watchfiles()
+    return self.watchfiles(proc=watched_process, jobstep=jobstep)

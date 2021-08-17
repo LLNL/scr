@@ -73,11 +73,11 @@ def testwatchdog(launcher, launcher_args):
   down_nodes = list(down_nodes.keys())
 
   print('Launching command ' + ' '.join(launcher_args))
-  proc, pid = launcher.launchruncmd(up_nodes=nodelist,
+  proc, jobstep = launcher.launchruncmd(up_nodes=nodelist,
                                     down_nodes=down_nodes,
                                     launcher_args=launcher_args)
 
-  if proc is None or pid == -1:
+  if proc is None or jobstep is None:
     print('Error launching the sleeper process!')
     return
 
@@ -85,17 +85,11 @@ def testwatchdog(launcher, launcher_args):
   #else:
 
   print('Each launched sleeper process will output the posix time every 5 seconds.')
-  print('We\'ve set the watchdog timer to 15 seconds.')
   print('Calling watchdog watchprocess . . .')
-  if watchdog.watchproc(proc, pid) != 0:
+  if watchdog.watchproc(proc, jobstep) != 0:
     print('The watchdog failed to start')
     print('Waiting for the original process to terminate now . . .')
-    proc.communicate(timeout=None)
-  elif watchdog.process is not None:
-    print('The watchdog launched a separate process launched for a launcher')
-    print('  that requires a specific method to kill a launched job')
-    print('Waiting for that process to terminate now . . .')
-    watchdog.process.join()
+    launcher.waitonprocess(proc=proc)
 
   print('The process has now been terminated')
   print('Sleeping for 45 seconds before checking the output files . . .')

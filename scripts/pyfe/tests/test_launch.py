@@ -71,10 +71,9 @@ def dolaunch(launcher, launch_cmd):
   nodelist = ','.join(resmgr.expand_hosts(nodelist))
   print('nodelist = ' + str(nodelist))
   watchdog = SCR_Watchdog(prefix, scr_env)
-  if launcher == 'srun':
-    print('calling prepareforprerun . . .')
-    launcher.prepareforprerun()
-    print('returned from prepareforprerun')
+  print('calling prepareforprerun . . .')
+  launcher.prepareforprerun()
+  print('returned from prepareforprerun')
   if scr_prerun(scr_env=scr_env) != 0:
     print('testing: ERROR: Command failed: scr_prerun -p ' + prefix)
     print('This would terminate run')
@@ -111,28 +110,20 @@ def dolaunch(launcher, launch_cmd):
   num_left = nodes_remaining(resmgr, nodelist, down_nodes)
   print('num_left = ' + str(num_left))
   print('testing: Launching ' + str(launch_cmd))
-  proc, pid = launcher.launchruncmd(up_nodes=nodelist,
+  proc, jobstep = launcher.launchruncmd(up_nodes=nodelist,
                                     down_nodes=down_nodes,
                                     launcher_args=launch_cmd)
-  print('type(proc) = ' + str(type(proc)) + ', type(pid) = ' + str(type(pid)))
+  print('type(proc) = ' + str(type(proc)) + ', type(jobstep) = ' + str(type(jobstep)))
   print('proc = ' + str(proc))
-  print('pid = ' + str(pid))
+  print('pid = ' + str(jobstep))
   print('testing : Entering watchdog method')
-  if os.environ.get('SCR_WATCHDOG_TIMEOUT') is not None and \
-      os.environ.get('SCR_WATCHDOG_TIMEOUT_PFS') is not None:
-    if watchdog.watchproc(proc, pid) != 0:
-      print('watchdog.watchproc returned nonzero')
-      print('calling launcher.waitonprocess . . .')
-      launcher.waitonprocess(proc)
-    elif watchdog.process is not None:
-      print('watchdog.watchproc returned zero, a process was launched')
-      print('joining the watchdog process . . .')
-      watchdog.process.join()
-    else:
-      print('watchdog returned zero and didn\'t launch another process')
-      print('this means the process is terminated')
-  else:
+  if watchdog.watchproc(proc, jobstep) != 0:
+    print('watchdog.watchproc returned nonzero')
+    print('calling launcher.waitonprocess . . .')
     launcher.waitonprocess(proc)
+  else:
+    print('watchdog returned zero and didn\'t launch another process')
+    print('this means the process is terminated')
   print('Process has finished or has been terminated.')
 
 if __name__ == '__main__':

@@ -11,16 +11,14 @@ from pyfe.scr_common import runproc, pipeproc
 class LRUN(JobLauncher):
   def __init__(self, launcher='lrun'):
     super(LRUN, self).__init__(launcher=launcher)
-    if self.flux is not None or scr_const.USE_JOBLAUNCHER_KILL == '1':
-      self.watchprocess = True
 
-  # returns the process and PID of the launched process
+  # returns the subprocess.Popen object as left and right elements of a tuple,
   # as returned by runproc(argv=argv, wait=False)
   def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
     if type(launcher_args) is str:
       launcher_args = launcher_args.split()
     if len(launcher_args) == 0:
-      return None, -1
+      return None, None
     argv = [self.launcher]
     if len(down_nodes) > 0:
       argv.append('--exclude_hosts=' + down_nodes)
@@ -33,27 +31,7 @@ class LRUN(JobLauncher):
     if len(argv) == 0:
       return [['', ''], 0]
     if self.clustershell_task != False:
-      return self.clustershell_exec(argv=argv,
-                                    runnodes=runnodes)
+      return self.clustershell_exec(argv=argv, runnodes=runnodes)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
     return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
-
-  # perform the scavenge files operation for scr_scavenge
-  # uses either pdsh or clustershell
-  # returns a list -> [ 'stdout', 'stderr' ]
-  def scavenge_files(self,
-                     prog='',
-                     upnodes='',
-                     downnodes_spaced='',
-                     cntldir='',
-                     dataset_id='',
-                     prefixdir='',
-                     buf_size='',
-                     crc_flag=''):
-    argv = [
-        prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir,
-        '--buf', buf_size, crc_flag, downnodes_spaced
-    ]
-    output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
-    return output

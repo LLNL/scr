@@ -13,13 +13,13 @@ class MPIRUN(JobLauncher):
   def __init__(self, launcher='mpirun'):
     super(MPIRUN, self).__init__(launcher=launcher)
 
-  # returns the process and PID of the launched process
+  # returns the subprocess.Popen object as left and right elements of a tuple,
   # as returned by runproc(argv=argv, wait=False)
   def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
     if type(launcher_args) is str:
       launcher_args = launcher_args.split()
     if len(launcher_args) == 0:
-      return None, -1
+      return None, None
     # split the node string into a node per line
     up_nodes = '/n'.join(up_nodes.split(','))
     try:
@@ -35,7 +35,7 @@ class MPIRUN(JobLauncher):
       print(e)
       print('scr_mpirun: Error writing hostfile and creating launcher command')
       print('launcher file: \"' + self.hostfile + '\"')
-      return None, -1
+      return None, None
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
@@ -47,22 +47,3 @@ class MPIRUN(JobLauncher):
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
     return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
-
-  # perform the scavenge files operation for scr_scavenge
-  # uses either pdsh or clustershell
-  # returns a list -> [ 'stdout', 'stderr' ]
-  def scavenge_files(self,
-                     prog='',
-                     upnodes='',
-                     downnodes_spaced='',
-                     cntldir='',
-                     dataset_id='',
-                     prefixdir='',
-                     buf_size='',
-                     crc_flag=''):
-    argv = [
-        prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir,
-        '--buf', buf_size, crc_flag, downnodes_spaced
-    ]
-    output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
-    return output
