@@ -45,6 +45,8 @@ class SCR_Test_Runtime:
     if scr_const.USE_CLUSTERSHELL == '1':
       return 0
     pdsh = scr_const.PDSH_EXE
+    ### Could change to ['pdsh', '-V']
+    ### or some other command?
     argv = ['which', pdsh]
     returncode = runproc(argv=argv)[1]
     if returncode != 0:
