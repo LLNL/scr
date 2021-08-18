@@ -287,11 +287,6 @@ def scr_run(launcher='',
       if watchdog.watchproc(proc, jobstep) != 0:
         print(prog + ': Error launching watchdog')
         launcher.waitonprocess(proc)
-      elif watchdog.process is not None:
-        try:
-          watchdog.process.join()
-        except:
-          pass
       # else the watchdog returned because the process has finished/been killed
 
     #print('Process has finished or has been terminated.')

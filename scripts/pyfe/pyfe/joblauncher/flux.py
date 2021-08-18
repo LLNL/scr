@@ -172,10 +172,10 @@ class FLUX(JobLauncher):
     return ret
 
   def scr_kill_jobstep(self, jobstep=None):
-    if jobstepid is not None:
+    if jobstep is not None:
       try:
-        flux.job.cancel(self.flux, jobstepid)
-        flux.job.wait_async(self.flux, jobstepid)
+        flux.job.cancel(self.flux, jobstep)
+        flux.job.wait_async(self.flux, jobstep)
       except Exception:
         # we could get 'invalid jobstep id' when the job has already terminated
         pass
