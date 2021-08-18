@@ -2,8 +2,12 @@
 
 # scr_kill_jobstep.py
 
-# This script uses the scancel command to kill the job step with the
-# job step id supplied on the command line
+"""
+This script can use the 'scancel' or equivalent command
+to kill a jobstep with the jobstep id supplied via the command line.
+
+This requires specifying both the joblauncher and a jobstep id.
+"""
 
 import os, sys
 
@@ -15,23 +19,6 @@ import argparse
 from pyfe import scr_const
 from pyfe.scr_common import runproc
 from pyfe.joblauncher import AutoJobLauncher
-
-
-def scr_kill_jobstep(bindir=None, jobid=None):
-  if bindir is None:
-    bindir = scr_const.X_BINDIR
-
-  killCmd = 'scancel'
-
-  if jobid is None:
-    print('You must specify the job step id to kill.')
-    return 1
-
-  print(killCmd + ' ' + str(jobid))
-  argv = [killCmd, str(jobid)]
-  returncode = runproc(argv=argv)[1]
-  return returncode
-
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(add_help=False,
@@ -65,4 +52,8 @@ if __name__ == '__main__':
     print('You must specify the job launcher used to launch the job.')
   else:
     launcher = AutoJobLauncher(args['launcher'])
-    launcher.scr_kill_jobstep(jobid=args['jobStepId'])
+    print('Joblauncher:')
+    print(str(type(launcher)))
+    print('Jobstep id: ' + args['jobStepId'])
+    print('Calling launcher.scr_kill_jobstep . . .')
+    launcher.scr_kill_jobstep(jobstep=args['jobStepId'])
