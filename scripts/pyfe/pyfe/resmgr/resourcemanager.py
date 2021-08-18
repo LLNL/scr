@@ -294,6 +294,6 @@ class ResourceManager(object):
     ##############################
     # format up and down node sets for scavenge command
     #################
-    upnodes = self.compress_hosts(upnodes)
-    downnodes_spaced = ' '.join(downnodes)
+    upnodes = ','.join(self.expand_hosts(upnodes))
+    downnodes_spaced = ' '.join(self.expand_hosts(downnodes))
     return upnodes, downnodes_spaced
