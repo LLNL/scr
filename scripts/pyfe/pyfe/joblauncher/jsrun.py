@@ -68,8 +68,7 @@ class JSRUN(JobLauncher):
   # Only use jskill to kill the jobstep if desired and get_jobstep_id was successful
   def scr_kill_jobstep(self, jobstep=None):
     # it looks like the Popen.terminate is working with jsrun
-    if jobstep is not None:
-      if type(jobstep) is str:
-        runproc(argv=['jskill', jobstep])
-      else:
-        super().scr_kill_jobstep(jobstep)
+    if type(jobstep) is str:
+      runproc(argv=['jskill', jobstep])
+    else:
+      super().scr_kill_jobstep(jobstep)

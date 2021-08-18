@@ -108,8 +108,7 @@ class APRUN(JobLauncher):
   # Only use akill to kill the jobstep if desired and get_jobstep_id was successful
   def scr_kill_jobstep(self, jobstep=None):
     # it looks like the Popen.terminate is working with srun
-    if jobstep is not None:
-      if type(jobstep) is str:
-        runproc(argv=['apkill', jobstep])
-      else:
-        super().scr_kill_jobstep(jobstep)
+    if type(jobstep) is str:
+      runproc(argv=['apkill', jobstep])
+    else:
+      super().scr_kill_jobstep(jobstep)
