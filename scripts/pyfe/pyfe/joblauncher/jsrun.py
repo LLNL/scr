@@ -28,7 +28,7 @@ class JSRUN(JobLauncher):
     # it looks like the Popen.terminate is working with jsrun
     if scr_const.USE_JOBLAUNCHER_KILL != '1':
       return runproc(argv=argv, wait=False)
-    proc, proc = runproc(argv=argv, wait=False)
+    proc = runproc(argv=argv, wait=False)[0]
     jobstepid = self.get_jobstep_id()
     if jobstepid != '-1':
       return proc, jobstepid

@@ -38,7 +38,7 @@ class SRUN(JobLauncher):
     # The Popen.terminate() seems to work for srun
     if scr_const.USE_JOBLAUNCHER_KILL != '1':
       return runproc(argv=argv, wait=False)
-    proc, proc = runproc(argv=argv, wait=False)
+    proc = runproc(argv=argv, wait=False)[0]
     ### TODO: If we allow this to be toggled, we have to get the user and allocid below!
     jobstepid = self.get_jobstep_id(pid = proc.pid)
     if jobstepid is not None:

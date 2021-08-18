@@ -37,7 +37,7 @@ class APRUN(JobLauncher):
     ### TODO: #ensure the Popen.terminate() works here too.
     if scr_const.USE_JOBLAUNCHER_KILL != '1':
       return runproc(argv=argv, wait=False)
-    proc, proc = runproc(argv=argv, wait=False)
+    proc = runproc(argv=argv, wait=False)[0]
     jobstepid = self.get_jobstep_id(pid = proc.pid)
     if jobstepid is not None:
       return proc, jobstepid
