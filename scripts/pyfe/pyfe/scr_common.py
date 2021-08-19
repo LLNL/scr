@@ -79,10 +79,18 @@ The default shell used by subprocess is /bin/sh. If youre using other shells, li
 # to return the pid requires the shell argument of subprocess.Popen to be false (default)
 # for the first return value (output) -> specify getstdout to get the stdout, getstderr to get stderr
 # specifying both getstdout and getstderr=True returns a list where [0] is stdout and [1] is stderr
-def runproc(argv, wait=True, getstdout=False, getstderr=False, verbose=False):
+def runproc(argv, wait=True, getstdout=False, getstderr=False, verbose=False, shell=False):
+  # The shell argument specifies whether to use the shell as the program to execute
+  # If shell is True, it is recommended to pass args as a string rather than as a sequence.
+  if shell:
+    if type(argv) is list:
+      argv = ' '.join(argv)
+    # following the security recommendation from subprocess.Popen:
+    # turn the command into a shlex quoted string
+    argv = 'bash -c ' + shlex.quote(argv)
   # allow caller to pass command as a string, as in:
   #   "ls -lt" rather than ["ls", "-lt"]
-  if type(argv) is str:
+  elif type(argv) is str:
     argv = shlex.split(argv)
 
   if len(argv) < 1:
@@ -90,13 +98,17 @@ def runproc(argv, wait=True, getstdout=False, getstderr=False, verbose=False):
   try:
     # if verbose, print the command we will run to stdout
     if verbose:
-      print(" ".join(argv))
+      if type(argv) is list:
+        print(" ".join(argv))
+      else:
+        print(argv)
 
     runproc = Popen(argv,
                     bufsize=1,
                     stdin=None,
                     stdout=PIPE,
                     stderr=PIPE,
+                    shell=shell,
                     universal_newlines=True)
     if wait == False:
       return runproc, runproc
