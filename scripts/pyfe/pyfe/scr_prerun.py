@@ -12,8 +12,9 @@ import argparse
 from datetime import datetime
 from time import time
 
-from pyfe.scr_test_runtime import scr_test_runtime
+from pyfe.scr_test_runtime import SCR_Test_Runtime
 from pyfe.scr_environment import SCR_Env
+from pyfe.resmgr import AutoResourceManager
 
 def scr_prerun(scr_env=None):
   # bail out if not enabled
@@ -21,12 +22,16 @@ def scr_prerun(scr_env=None):
   if val == '0':
     return 0
 
+  if scr_env is None or scr_env.resmgr is None:
+    print('scr_prerun: ERROR: Unknown environment')
+    return 1
+
   start_time = datetime.now()
   start_secs = int(time())
   print('scr_prerun: Started: ' + str(start_time))
 
   # check that we have all the runtime dependences we need
-  if scr_test_runtime() != 0:
+  if SCR_Test_Runtime(scr_env.resmgr.get_prerun_tests()) != 0:
     print('scr_prerun: exit code: 1')
     return 1
 
@@ -86,5 +91,6 @@ if __name__ == '__main__':
     parser.print_help()
   else:
     scr_env = SCR_Env(prefix=args['prefix'])
+    scr_env.resmgr = AutoResourceManager()
     ret = scr_prerun(scr_env=scr_env)
     sys.exit(ret)

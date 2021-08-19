@@ -66,13 +66,13 @@ class Nodetests:
           nextunavailable = testmethod(nodes=nodes,scr_env=scr_env)
           unavailable.update(nextunavailable)
         else:
-          print('nodetests.py: ERROR: ' + test + ' is not a test method.')
+          print('Nodetests: ERROR: ' + test + ' is defined but is not a test method.')
       except AttributeError as e:
-        print('nodetests.py: ERROR: ' + test + ' is not defined.')
+        print('Nodetests: ERROR: ' + test + ' is not defined.')
         print('dir(self)='+str(dir(self)))
       except Exception as e:
+        print('Nodetests: ERROR: Unable to perform the ' + test + ' test.')
         print(e)
-        print('nodetests.py: ERROR: Unable to perform the ' + test + ' test.')
     # allow alternate behavior on subsequent runs
     self.firstrun = False
     return unavailable

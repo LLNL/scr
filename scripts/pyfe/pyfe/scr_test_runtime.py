@@ -1,18 +1,6 @@
 #! /usr/bin/env python3
 
-#scr_test_runtime.py
-
-# scr_test_runtime() is called immediately after checking if scr is enabled and setting verbosity
-# the test runtime method calls every method in the SCR_Test_Runtime class
-# additional tests can be added by just adding new static methods
-# tests should return 0 for success and 1 for failure
-# tests can be disabled by removing, commenting out, or prepending a test method's name with 2 underscores
-# tests do not take arguments
-# an example of declaration and use of a class variable is commented out
-
-# alternatively, tests could be manually added and manually called
-# the return value of manual additions should be appended to rc[] in scr_test_runtime
-# (or handled manually as well)
+# scr_test_runtime.py
 
 import os, sys
 
@@ -22,18 +10,33 @@ if 'pyfe' not in sys.path:
 
 from pyfe import scr_const
 from pyfe.scr_common import runproc
+from pyfe.resmgr import AutoResourceManager
 
-### TODO: The tests performed should be configurable,
-### as with the tests in the resmgr/nodetests.py Nodetests class.
+### TODO: Configuration of which test methods to use
 
 class SCR_Test_Runtime:
   """SCR_Test_Runtime class contains methods to determine whether we should launch with SCR
 
-  This class is currently a 'static' class, not intended to be instantiated.
-  This class contains static methods, each of which perform one test.
+  This class contains methods to test the environment, to ensure SCR will be able to function.
+  These tests are called in scr_prerun.py, immediately after checking if scr is enabled.
+  Not all methods are appropriate to test in every environment.
+  Additional test methods may be added to this class to integrate into the pre-run tests.
+  Test methods should run without arguments and return an integer representing PASS / FAIL.
 
-  Currently, when using the scr_test_runtime() method or this script with __name__ == '__main__',
-  all methods are iterated through, and a failure is returned if any individual test fails.
+  We could receive a list of applicable tests through:
+    A configuration file.
+    A compile constant (scr_const.py).
+    Environment variables.
+    Querying the ResourceManager and/or Joblauncher classes.
+
+  Currently the ResourceManager is queried, which aligns with the original bash/perl scripts.
+
+  Each test in the list, that is a callable method in this class, will be called during scr_prerun.
+  If any indicated test fails then scr_prerun will fail.
+
+  This class is currently a 'static' class, not intended to be instantiated.
+  The __new__ method is used to launch the tests, this method returns the success value.
+  Methods other than `__new__` should be decorated with `@staticmethod`.
 
   Test Return Values
   ------------------
@@ -41,10 +44,45 @@ class SCR_Test_Runtime:
   0 - success
   1 - failure
   """
+  def __new__(cls, tests=[]):
+    """This method collects the return codes of all static methods declared in SCR_Test_Runtime
+
+    This method receives a list.
+      Each element is a string and is the name of a method of the SCR_Test_Runtime class
+
+    Returns
+    -------
+      This method returns an integer.
+      This method does not return an instance of a class.
+
+      This method returns 0 if all tests succeed,
+      Otherwise this method returns the 1, indicating a test has failed.
+    """
+    #tests = [
+    #    attr for attr in dir(SCR_Test_Runtime) if not attr.startswith('__')
+    #    and callable(getattr(SCR_Test_Runtime, attr))
+    #]
+    rc = []
+    for test in tests:
+      try:
+        testmethod = getattr(SCR_Test_Runtime, test)
+        if callable(testmethod):
+          rc.append(testmethod())
+        else:
+          print('SCR_Test_Runtime: ERROR: ' + test + ' is defined but is not a test method.')
+      except AttributeError as e:
+        print('SCR_Test_Runtime: ERROR: ' + test + ' is not defined.')
+        print('dir(SCR_Test_Runtime)='+str(dir(SCR_Test_Runtime)))
+      except Exception as e:
+        # Could set an error code . . .
+        print('scr_test_runtime: ERROR: Exception in test ' + test)
+        print(e)
+    return 1 if 1 in rc else 0
+
   @staticmethod
   def check_clustershell():
     """This method tests if the ClusterShell module is available
-    
+
     This test will return failure if the option USE_CLUSTERSHELL
     enables ClusterShell and the module is not available.
     """
@@ -73,19 +111,24 @@ class SCR_Test_Runtime:
     if scr_const.USE_CLUSTERSHELL == '1':
       return 0
     ### TODO: If the Flux joblauncher is in use, this test does not apply.
+    ### if using flux: return 0
     pdsh = scr_const.PDSH_EXE
-    ### Could change to ['pdsh', '-V']
-    ### or some other command?
-    argv = ['which', pdsh]
-    returncode = runproc(argv=argv)[1]
-    ### TODO: Validate pdsh command through some other means
-    ### or determine appropriate return values.
+    ### TODO: Validate pdsh command through some other means (or just leave this test out)
+    ### there was an issue reported with this.
+    #   I changed the argv from "which pdsh" to "bash -c \"which pdsh\""
+    ### Perhaps that will fix that issue.
     # From subprocess.Popen docs, it appears Python 3.59+ all return the same values.
     # Return value of None indicates the program is still running (it will not be with the above call)
     # A negative return value (POSIX only) indicates the process was terminated by that signal.
     # (  -9 indicates the process received signal 9  )
     # Otherwise, the return value should be the return value of the process.
     # This should typically be 0 for success, and nonzero for failure
+    ### This test doesn't work everywhere
+    ### Could change to ['pdsh', '-V']
+    ### or some other command?
+    ### Or just some environments shouldn't use this test
+    argv = ['bash','-c','\"which ' + pdsh + '\"']
+    returncode = runproc(argv=argv)[1]
     if returncode != 0:
       print('scr_test_runtime: ERROR: \'which ' + pdsh + '\' failed')
       print('scr_test_runtime: ERROR: Problem using pdsh, see README for help')
@@ -93,26 +136,12 @@ class SCR_Test_Runtime:
     return 0
 
 
-def scr_test_runtime():
-  """This method collects the return codes of all methods declared in SCR_Test_Runtime
-
-  This method returns 0 if all tests succeed.
-  Otherwise this method returns 1, indicating a test has failed.
-  """
-  ### TODO: We are currently iterating through all tests in the class
-  ### This needs to be a configurable subset of the class methods
-  tests = [
-      attr for attr in dir(SCR_Test_Runtime) if not attr.startswith('__')
-      and callable(getattr(SCR_Test_Runtime, attr))
-  ]
-  rc = []
-  # iterate through the methods of the SCR_Test_Runtime class
-  for test in tests:
-    rc.append(getattr(SCR_Test_Runtime, test)())
-  return 1 if 1 in rc else 0
-
-
 if __name__ == '__main__':
-  """When this script is called as main, simply call sys.exit(scr_test_runtime())"""
-  ret = scr_test_runtime()
+  """Call sys.exit(result) When this is called as a standalone script
+
+  This provides a compact illustration of usage of the test methods in scr_prerun.
+  """
+  resmgr = AutoResourceManager()
+  tests = resmgr.get_prerun_tests()
+  ret = SCR_Test_Runtime(tests)
   sys.exit(ret)

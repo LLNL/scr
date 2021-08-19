@@ -10,11 +10,7 @@ from pyfe import scr_const
 from pyfe.scr_common import runproc, pipeproc
 from pyfe.resmgr import ResourceManager
 
-# AutoResourceManager class holds the configuration
-
-
 class SLURM(ResourceManager):
-  # init initializes vars from the environment
   def __init__(self):
     super(SLURM, self).__init__(resmgr='SLURM')
     ### need default configs.
@@ -22,6 +18,11 @@ class SLURM(ResourceManager):
       self.nodetests.tests.append('ping')
     if 'dir_capacity' not in self.nodetests.tests:
       self.nodetests.tests.append('dir_capacity')
+
+  # get a list of tests, methods that exist in the class SCR_Test_Runtime
+  # these tests will be ran during scr_prerun
+  def get_prerun_tests(self):
+    return ['check_clustershell','check_pdsh']
 
   # get SLURM jobid of current allocation
   def getjobid(self):
