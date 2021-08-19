@@ -110,13 +110,23 @@ class SCR_Test_Runtime:
     """
     if scr_const.USE_CLUSTERSHELL == '1':
       return 0
-    ### TODO: If the Flux joblauncher is in use, this test does not apply.
-    ### if using flux: return 0
     pdsh = scr_const.PDSH_EXE
-    ### TODO: Validate pdsh command through some other means (or just leave this test out)
+    ### TODO: Validate pdsh command through some other means for some resmgrs?
     ### there was an issue reported with this.
     #   I changed the argv from "which pdsh" to "bash -c \"which pdsh\""
-    ### Perhaps that will fix that issue.
+    #  this is what the command looked like in the original scripts,
+    #  this makes the test fail in SLURM though.
+    #  Maybe we need a new `runproc` method that launches the command in a new shell.
+    #   There is a Popen() option Shell= that can do this.
+    ###
+    #  SLURM+srun environment test:
+    #    >>> result = runproc(argv=['which','pdsh'],getstdout=True,getstderr=True)
+    #    >>> result
+    #    (('/usr/bin/pdsh\n', ''), 0)
+    #    >>> result = runproc(argv=['bash','-c','\"which pdsh\"'],getstdout=True,getstderr=True)
+    #    >>> result
+    #    (('', 'bash: which pdsh: command not found\n'), 127)
+    ###
     # From subprocess.Popen docs, it appears Python 3.59+ all return the same values.
     # Return value of None indicates the program is still running (it will not be with the above call)
     # A negative return value (POSIX only) indicates the process was terminated by that signal.
@@ -127,7 +137,8 @@ class SCR_Test_Runtime:
     ### Could change to ['pdsh', '-V']
     ### or some other command?
     ### Or just some environments shouldn't use this test
-    argv = ['bash','-c','\"which ' + pdsh + '\"']
+    #argv = ['bash','-c','\"which ' + pdsh + '\"']
+    argv = ['which', pdsh]
     returncode = runproc(argv=argv)[1]
     if returncode != 0:
       print('scr_test_runtime: ERROR: \'which ' + pdsh + '\' failed')
