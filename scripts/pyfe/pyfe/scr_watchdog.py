@@ -2,34 +2,51 @@
 
 # scr_watchdog.py
 
-# This is a generic utility for detecting when an application that uses
-# SCR is hung. It periodically checks the flush file to see if checkpointing
-# activity has occurred since the last time it checked. If too much time
-# passes without activity, it kills the job
-
 from pyfe import scr_const
 from pyfe.scr_param import SCR_Param
 from pyfe.cli import SCRFlushFile
 
 class SCR_Watchdog:
+  """This class attempts to detect hanging applications in order to avoid wasting allocations
+
+  Use of the SCR_Watchdog requires 3 configuration variables to be set:
+  SCR_WATCHDOG=1               The watchdog must be enabled (set to '1')
+  We must also have an expected time (in seconds) to check for existence of checkpoint files.
+  For example:
+  SCR_WATCHDOG_TIMEOUT=300     An expected time where we should see a new in-system checkpoint.
+  SCR_WATCHDOG_TIMEOUT_PFS=900 An expected time where we should see a new write to the PFS.
+
+  If the SCR_Watchdog is enabled, and timeouts are set, then we will monitor for progress
+  following the launch of a jobstep.
+
+  Normally, we would ask the Joblauncher class to wait until a launched jobstep terminates.
+  The SCR_Watchdog will ask the Joblauncher class to wait with a timeout value.
+  The Joblauncher will return 0 if the jobstep is no longer running, and 1 if it is running.
+  Each time the Joblauncher indicates the jobstep is still running, we will check for progress.
+  If no progress has been made, we will ask the Joblauncher to terminate the jobstep.
+  If progress has been made, we will ask the Joblauncher to again wait with a timeout.
+  """
   def __init__(self,prefix,scr_env):
-    # we have two timeout variables now, one for the length of time to wait under
-    # "normal" circumstances and one for the length of time to wait if writing
-    # to the parallel file system
+    """
+    The SCR_Watchdog class is instantiated once, before any jobstep is ever launched,
+    if SCR_Watchdog is enabled.
+
+    Set timeout values from the environment.
+    Copy the reference to the Joblauncher from the SCR_Env class.
+    Instantiate an instance of SCRFlushFile using the provided prefix for later checking.
+    """
     self.timeout = scr_env.param.get('SCR_WATCHDOG_TIMEOUT')
     self.timeout_pfs = scr_env.param.get('SCR_WATCHDOG_TIMEOUT_PFS')
 
     if self.timeout is not None and self.timeout_pfs is not None:
       self.timeout = int(self.timeout)
       self.timeout_pfs = int(self.timeout_pfs)
-
-    self.launcher = scr_env.launcher
-
-    # interface to query values from the SCR flush file
-    self.scr_flush_file = SCRFlushFile(prefix)
+      self.launcher = scr_env.launcher
+      self.scr_flush_file = SCRFlushFile(prefix)
 
   def watchfiles(self, proc, jobstep):
-    # loop periodically checking the flush file for activity
+    """This is an internal method
+    In this method the SCR_Watchdog loops, periodically checking for activity."""
     timeToSleep = self.timeout
     lastCheckpoint = None
     lastCheckpointLoc = None
@@ -68,6 +85,19 @@ class SCR_Watchdog:
     return 0
 
   def watchproc(self, watched_process=None, jobstep=None):
+    """watchproc is the method called after launcher.launchruncmd()
+
+    Parameters
+    ----------
+    watched_process - The reference needed for a Joblauncher to wait on a process.
+    jobstep         - The reference needed for a Joblauncher to terminate a jobstep.
+
+    Returns
+    -------
+    int
+       0 - Indicates the jobstep is no longer running, regardless of reason for termination.
+       1 - Indicates the SCR_Watchdog could not be initialized.
+    """
     if watched_process is None or jobstep is None:
       print('scr_watchdog: ERROR: No process to watch.')
       return 1
