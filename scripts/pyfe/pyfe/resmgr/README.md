@@ -37,6 +37,7 @@ Add a line to import the new class in the `__init__.py` file:
 
 ## Create a class object in `auto.py`
 Users often create new resource manager objects through the `AutoResourceManager` function.
+
 The ResourceManager type, when not provided on instantiation, is determined by a constant in scr\_const.py
 
     rm = new AutoResourceManager(resmgr='NewRM')

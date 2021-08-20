@@ -49,6 +49,16 @@ And create an object of that class in the `__new__` method of `AutoJobLauncher`:
         if joblauncher == 'NewLauncher':
           return NewLauncher()
 
+Usage for your new job launcher will be: `scr_run.py NewLauncher <cmd> <args>`
+
+You may also provide a named script to shorten the usage:
+    cp pyfe/scr_srun.py pyfe/scr_joblauncher.py
+    sed -i 's/srun/JobLauncher/g' scr_joblauncher.py
+
+This will allow your launcher to be ran as: `scr_joblauncher.py <cmd> <args>`
+
+_If a new named script is created ensure to add it to pyfe/CMakeLists.txt as well_
+
 ## Add class file to `CMakeLists.txt`
 Include the new job launcher in the list of files to be installed by CMake in `CMakeLists.txt`:
 
