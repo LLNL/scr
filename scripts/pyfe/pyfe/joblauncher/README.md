@@ -22,7 +22,8 @@ for the interface definitions that one must implement, e.g.:
       def killrun():
         pass
 
-## Import the new class in `__init__.py` after the JobLauncher and before the AutoJobLauncher imports
+## Import the new class in `__init__.py`
+Add the new import after the JobLauncher and before the AutoJobLauncher imports
 Add a line to import the new class in the `__init__.py` file:
 
     from .newlauncher import NewLauncher
