@@ -10,9 +10,9 @@ class SCR_Env:
   """The SCR_Env class tracks information relating to the environment
 
   This class retrieves information from the environment.
-  This class contains pointers to the active Joblauncher and ResourceManager instances.
+  This class contains pointers to the active Joblauncher, ResourceManager, and SCR_Param.
 
-  References to other classes should be assigned following instantiation of this class.
+  References to these other classes should be assigned following instantiation of this class.
 
   Attributes
   ----------
@@ -29,12 +29,12 @@ class SCR_Env:
     self.launcher = None
     self.resmgr = None
 
-    # record SCR_PREFIX directory, default to scr_prefix if not specified
+    # record SCR_PREFIX directory, default to scr_prefix if not provided
     if prefix is None:
       prefix = scr_prefix()
     self.prefix = prefix
 
-    # initialize the infos
+    # initialize paths
     bindir = scr_const.X_BINDIR
     self.nodes_file = os.path.join(bindir, 'scr_nodes_file')
 

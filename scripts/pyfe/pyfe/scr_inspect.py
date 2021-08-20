@@ -2,12 +2,6 @@
 
 # scr_inspect.py
 
-# This file runs scr_inspect_cache on each node using pdsh.
-# It lists the ids of all cached datasets for which there
-# may be a chance to flush and rebuild data.
-
-# requires: pdsh
-
 import os, sys
 
 if 'pyfe' not in sys.path:
@@ -22,6 +16,14 @@ from pyfe.joblauncher import AutoJobLauncher
 
 
 def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
+  """this method runs scr_inspect_cache on each node using Joblauncher.parallel_exec
+
+  Returns
+  -------
+  string   A space separated list of cached datasets which may be able to flush and rebuild
+  
+  On error this method returns the integer 1
+  """
   bindir = scr_const.X_BINDIR
   pdsh = scr_const.PDSH_EXE
 

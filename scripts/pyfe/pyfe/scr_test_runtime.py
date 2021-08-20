@@ -41,8 +41,8 @@ class SCR_Test_Runtime:
   Test Return Values
   ------------------
   Each test should return an integer:
-  0 - success
-  1 - failure
+  0 - PASS
+  1 - FAIL
   """
   def __new__(cls, tests=[]):
     """This method collects the return codes of all static methods declared in SCR_Test_Runtime
