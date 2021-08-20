@@ -49,11 +49,3 @@ class AutoResourceManager:
 if __name__ == '__main__':
   resourcemgr = AutoResourceManager()
   print(type(resourcemgr))
-  resourcemgr = AutoResourceManager(resmgr='SLURM')
-  print(type(resourcemgr))
-  resourcemgr = AutoResourceManager(resmgr='LSF')
-  print(type(resourcemgr))
-  resourcemgr = AutoResourceManager(resmgr='APRUN')
-  print(type(resourcemgr))
-  #resourcemgr = AutoResourceManager(resmgr='PMIX')
-  #print(type(resourcemgr))
