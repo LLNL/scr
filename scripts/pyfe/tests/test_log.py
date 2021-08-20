@@ -16,7 +16,7 @@ print('')
 print('2021-07-23T12:15:36: host=quartz1, jobid=7155341, event=test_event')
 print('2021-07-23T12:15:46: host=quartz1, jobid=7155341, event=test_event2, note=\"note2\", dset=100, name=\"ckpt.100\", secs=30.000000')
 print('')
-print('Because of the sleep(10), the second entry should be about 10 seconds later')
+print('Because of the sleep(10), the last entry should be about 10 seconds later')
 print('--------------------------------------------------------')
 
 import os, sys

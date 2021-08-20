@@ -169,6 +169,7 @@ def scr_run(launcher='',
       print(prog + ': WARNING: Unable to get end time.')
   elif endtime == -1:  # no end time / limit
     pass
+  #else:
   os.environ['SCR_END_TIME'] = str(endtime)
 
   # determine number of times to run application

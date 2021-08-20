@@ -17,6 +17,15 @@ from pyfe.cli import SCRIndex, SCRFlushFile
 
 
 def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
+  """this method is called after all runs has completed, before scr_run.py exits
+
+  Determine whether there are datasets to scavenge, and perform scavenge operations
+
+  Returns
+  -------
+  int     0 on success
+          1 on error
+  """
   if scr_env is None or scr_env.resmgr is None:
     return 1
 
@@ -81,6 +90,9 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
 
   # if there is at least one remaining up node, attempt to scavenge
   ret = 1
+  ### TODO : the default return value is 1, indicating failure.
+  ### Should this be changed to zero, and conditionally set the return value to 1 ?
+  ### This has no affect on anything else, as this is called as the script is ending.
   if upnodes != '':
     cntldir = list_dir(runcmd='control', scr_env=scr_env, bindir=bindir)
     # list_dir returns 1 or a space separated list of directories

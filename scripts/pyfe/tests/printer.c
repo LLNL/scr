@@ -14,7 +14,7 @@ int main(int argc, char**argv) {
   fprintf(stdout,"Rank %d: PID = %d, PPID = %d\n",rank,pid,ppid);
   fprintf(stdout,"This program will write the posix timestamp every 5 seconds\n");
   fflush(stdout);
-  fprintf(stderr,"stderr: Rank %d beginning loop\n",rank);
+  fprintf(stderr,"stderr: Rank %d: This is a helpful error message\n",rank);
   fflush(stderr);
   int secs = 20;
   while (secs>0) {

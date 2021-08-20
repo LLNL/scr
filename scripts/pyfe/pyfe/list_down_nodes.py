@@ -82,6 +82,8 @@ def list_down_nodes(reason=False,
       # simply print the list of down node in range syntax
       # cast unavailable to a list to get only the keys of the dictionary
       return scr_env.resmgr.compress_hosts(list(unavailable))
-
+  # if we are returning a print string, just return a blank string if no down nodes
+  elif reason:
+    return ''
   # otherwise, don't print anything and exit with 0
   return 0

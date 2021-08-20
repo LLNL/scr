@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-# SCR Pre Run
+# scr_prerun.py
 
 import os, sys
 
@@ -17,6 +17,19 @@ from pyfe.scr_environment import SCR_Env
 from pyfe.resmgr import AutoResourceManager
 
 def scr_prerun(scr_env=None):
+  """this script is called after initialization to ensure verify the environment
+
+  Prerun Operations
+  -----------------
+  Call SCR_Test_Runtime with a list of tests provided by the resmgr
+  Ensures the .scr directory exists
+  Remove existing flush or nodes files
+
+  Returns
+  -------
+  int   0 - no error
+        1 - error
+  """
   # bail out if not enabled
   val = os.environ.get('SCR_ENABLE')
   if val == '0':
