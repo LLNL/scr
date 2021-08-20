@@ -28,13 +28,14 @@ for the interface definitions that one must implement, e.g.:
       def get_downnodes():
         pass
 
-## Import the new class in `__init__.py`
+## Import the new class in `__init__.py` after the ResourceManager and before the AutoResourceManager imports
 Add a line to import the new class in the `__init__.py` file:
 
     from .newrm import NewRM
 
 ## Create a class object in `auto.py`
 Users often create new resource manager objects through the `AutoResourceManager` function.
+The ResourceManager type, when not provided on instantiation, is determined by a constant in scr\_const.py
 
     rm = new AutoResourceManager(resmgr='NewRM')
 
