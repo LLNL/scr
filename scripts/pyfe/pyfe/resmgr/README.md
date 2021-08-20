@@ -30,6 +30,7 @@ for the interface definitions that one must implement, e.g.:
 
 ## Import the new class in `__init__.py`
 Add the new import after the ResourceManager and before the AutoResourceManager imports
+
 Add a line to import the new class in the `__init__.py` file:
 
     from .newrm import NewRM
