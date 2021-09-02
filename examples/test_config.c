@@ -111,6 +111,8 @@ int main (int argc, char* argv[])
   remove(".scr/test_config.d/.scr/app.conf");
   remove(".scr/test_config.d/.scr");
   remove(".scr/test_config.d/");
+  mkdir(".scr", S_IRWXU);
+  mkdir(".scr/test_config.d", S_IRWXU);
   tests_passed &= test_cfg("DEBUG", NULL, __LINE__);
 
   /* test basic parsing */
@@ -241,13 +243,46 @@ int main (int argc, char* argv[])
     tests_passed = 0;
   }
 
+  /* create some config files with different settings */
+  const char usrcfgfn1[] = "user1.conf";
+  usrcfg = fopen(usrcfgfn1, "w");
+  if (usrcfg != NULL) {
+    fputs("SCR_COPY_TYPE=PARTNER\n", usrcfg);
+    fclose(usrcfg);
+  } else {
+    fprintf(stderr, "Failed to create file: %s: %s\n", usrcfgfn1,
+            strerror(errno));
+    tests_passed = 0;
+  }
+
+  /* create some config files with different settings */
+  const char usrcfgfn2[] = "user2.conf";
+  usrcfg = fopen(usrcfgfn2, "w");
+  if (usrcfg != NULL) {
+    fputs("SCR_COPY_TYPE=XOR\n", usrcfg);
+    fclose(usrcfg);
+  } else {
+    fprintf(stderr, "Failed to create file: %s: %s\n", usrcfgfn2,
+            strerror(errno));
+    tests_passed = 0;
+  }
+
+  tests_passed &= test_cfg("SCR_COPY_TYPE", NULL, __LINE__);
+  SCR_Configf("SCR_CONF_FILE=%s", usrcfgfn1);
+  tests_passed &= test_cfg("SCR_COPY_TYPE", "PARTNER", __LINE__);
+  SCR_Configf("SCR_CONF_FILE=%s", usrcfgfn2);
+  tests_passed &= test_cfg("SCR_COPY_TYPE", "XOR", __LINE__);
+  SCR_Config("SCR_CONF_FILE=");
+  tests_passed &= test_cfg("SCR_COPY_TYPE", NULL, __LINE__);
+
   /* re-enable debugging */
   SCR_Config("DEBUG=1");
   tests_passed &= test_cfg("DEBUG", "1", __LINE__);
 
+  SCR_Config("SCR_COPY_TYPE=RS");
   if (SCR_Init() == SCR_SUCCESS) {
 
-    tests_passed &= test_global_var(scr_copy_type, SCR_COPY_SINGLE, __LINE__);
+    tests_passed &= test_global_var(scr_copy_type, SCR_COPY_RS, __LINE__);
     tests_passed &= test_global_var(scr_debug, 0, __LINE__);
 
     SCR_Finalize();

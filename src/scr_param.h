@@ -50,6 +50,9 @@ int scr_param_init(void);
 /* free contents from config files */
 int scr_param_finalize(void);
 
+/* save app config values to a file */
+int scr_param_save(void);
+
 /* searchs for name and returns a character pointer to its value if set,
  * returns NULL if not found */
 const char* scr_param_get(const char* name);
