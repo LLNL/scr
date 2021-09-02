@@ -134,6 +134,105 @@ static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_
   return d;
 }
 
+/* returns 1 if dataset id can be finalized in poststage, 0 otherwise */
+static int scr_flush_can_poststage(int id)
+{
+  int poststage = 0;
+
+  /* currently only BBAPI can support poststage */
+  const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, id);
+  const char* type = storedesc->xfer;
+  if (strcmp(type, "BBAPI") == 0) {
+    poststage = 1;
+  }
+
+  return poststage;
+}
+
+static int scr_flush_finalize(void)
+{
+  /* When using poststage, we can finalize flushes
+   * after the job completes rather than waiting on them here. */
+  int poststage = scr_flush_poststage;
+
+  /* check each outstanding async flush, if any */
+  if (poststage && scr_flush_async_in_progress()) {
+    /* Got at least one outstanding async flush.
+     * Check whether all async flushes can be handled in poststage.
+     * Iterate over all dataset ids still being flushed.
+     * If any can not be completed in poststage, disable all poststage. */
+
+    /* get ordered list of ids being flushed */
+    int flush_num = 0;
+    int* flush_ids = NULL;
+    scr_flush_async_get_list(scr_cindex, &flush_num, &flush_ids);
+
+    /* check that all flushes are using something we can complete in poststage */
+    int i;
+    for (i = 0; i < flush_num; i++) {
+      int id = flush_ids[i];
+      if (! scr_flush_can_poststage(id)) {
+        poststage = 0;
+      }
+    }
+
+    /* free list of flush ids */
+    scr_free(&flush_ids);
+  }
+
+  /* check latest checkpoint if it still needs to be flushed */
+  if (poststage && scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
+    /* latest checkpoint needs to be flushed,
+     * check whether we can also handle this checkpoint with poststage */
+    if (scr_flush_can_poststage(scr_ckpt_dset_id)) {
+      /* can finalize this flush in poststage */
+      if (! scr_flush_file_is_flushing(scr_ckpt_dset_id)) {
+        /* Initiate the flush now, but finish in the poststage.
+         * Start as an async flush, even if we're otherwise using sync flush. */
+        int flush_rc = scr_flush_async_start(scr_cindex, scr_ckpt_dset_id);
+        if (flush_rc != SCR_SUCCESS) {
+          scr_err("Flush of dataset %d failed @ %s:%d",
+            scr_ckpt_dset_id, __FILE__, __LINE__
+          );
+        }
+      }
+    } else {
+      /* cannot use poststage, so disable */
+      poststage = 0;
+    }
+  }
+
+  /* if we're not using postage, wait on all flushes now */
+  if (! poststage) {
+    /* wait on all async flushes to complete */
+    if (scr_flush_async_in_progress()) {
+      /* if any flush cannot use poststage, wait on them all to finish now */
+      int flush_rc = scr_flush_async_waitall(scr_cindex);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_err("Flush of datasets failed @ %s:%d",
+          __FILE__, __LINE__
+        );
+      }
+    }
+
+    /* Flush checkpoint synchronously (wait for it to finish now). */
+    if (scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
+      int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_err("Flush of dataset %d failed @ %s:%d",
+          scr_ckpt_dset_id, __FILE__, __LINE__
+        );
+      }
+    }
+  }
+
+  if (scr_flush_async) {
+    scr_flush_async_finalize();
+  }
+
+  return SCR_SUCCESS;
+}
+
 /*
 =========================================
 Halt logic
@@ -281,57 +380,8 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
 
   /* halt job if we need to, and flush latest checkpoint if needed */
   if (need_to_halt && halt_exit) {
-    /* handle any async flush */
-    if (scr_flush_async_in_progress) {
-      /* there's an async flush ongoing, see which dataset is being flushed */
-      int flush_rc;
-      if (scr_flush_async_dataset_id == scr_dataset_id) {
-#ifdef HAVE_LIBCPPR
-        /* if we have CPPR, async flush is faster than sync flush, so let it finish */
-        flush_rc = scr_flush_async_wait(scr_cindex);
-#else
-        /* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
-        /* else wait */
-        /* get the TYPE of the store for checkpoint */
-        /* neither strdup nor free */
-        const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, scr_dataset_id);
-        const char* type = storedesc->xfer;
-        if (strcmp(type, "DATAWARP") == 0) {
-          /* wait for datawarp flushes to finish */
-          flush_rc = scr_flush_async_wait(scr_cindex);
-        } else {
-          /* kill the async flush, we'll get this with a sync flush instead */
-          scr_flush_async_stop();
-        }
-#endif
-      } else {
-        /* the async flush is flushing a different dataset, so wait for it */
-        flush_rc = scr_flush_async_wait(scr_cindex);
-      }
-      if (flush_rc != SCR_SUCCESS) {
-        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-          scr_flush_async_dataset_id, __FILE__, __LINE__
-        );
-      }
-    }
-
-    /* flush files if needed */
-    if (scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
-      if (scr_my_rank_world == 0) {
-	scr_dbg(2, "sync flush due to need to halt @ %s:%d", __FILE__, __LINE__);
-      }
-      int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
-      if (flush_rc != SCR_SUCCESS) {
-        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-          scr_ckpt_dset_id, __FILE__, __LINE__
-        );
-      }
-    }
-
-    /* give our async flush method a chance to shut down */
-    if (scr_flush_async) {
-      scr_flush_async_finalize();
-    }
+    /* flush any pending datasets and shut down flush methods */
+    scr_flush_finalize();
 
     /* sync up tasks before exiting (don't want tasks to exit so early that
      * runtime kills others after timeout) */
@@ -384,15 +434,15 @@ Utility functions
 =========================================
 */
 
-/* check whether a flush is needed, and execute flush if so */
-static int scr_check_flush(scr_cache_index* map)
+/* flush the specified dataset id if needed */
+static int scr_check_flush_id(scr_cache_index* cindex, int id)
 {
   /* assume we don't have to flush */
   int need_flush = 0;
 
   /* get info for current dataset */
   scr_dataset* dataset = scr_dataset_new();
-  scr_cache_index_get_dataset(map, scr_dataset_id, dataset);
+  scr_cache_index_get_dataset(cindex, id, dataset);
 
   /* if this is output we have to flush */
   int is_output = scr_dataset_is_output(dataset);
@@ -402,10 +452,16 @@ static int scr_check_flush(scr_cache_index* map)
 
   /* check whether user has flush enabled */
   if (scr_flush > 0) {
+    /* TODO: get checkpoint id for dataset */
     /* if this is a checkpoint, then every scr_flush checkpoints, flush the checkpoint set */
     int is_ckpt = scr_dataset_is_ckpt(dataset);
-    if (is_ckpt && scr_checkpoint_id > 0 && scr_checkpoint_id % scr_flush == 0) {
-      need_flush = 1;
+    if (is_ckpt) {
+      /* get checkpoint id for dataset */
+      int ckpt_id = 0;
+      scr_dataset_get_ckpt(dataset, &ckpt_id);
+      if (ckpt_id > 0 && ckpt_id % scr_flush == 0) {
+        need_flush = 1;
+      }
     }
   }
 
@@ -413,33 +469,14 @@ static int scr_check_flush(scr_cache_index* map)
   if (need_flush) {
     /* need to flush, determine whether to use async or sync flush */
     if (scr_flush_async) {
-      if (scr_my_rank_world == 0) {
-        scr_dbg(2, "async flush attempt @ %s:%d", __FILE__, __LINE__);;
-      }
-
-      /* check that we don't start an async flush if one is already in progress */
-      if (scr_flush_async_in_progress) {
-        /* we need to flush the current dataset, however, another flush is ongoing,
-         * so wait for this other flush to complete before starting the next one */
-        int flush_rc = scr_flush_async_wait(scr_cindex);
-        if (flush_rc != SCR_SUCCESS) {
-          scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-            scr_flush_async_dataset_id, __FILE__, __LINE__
-          );
-        }
-      }
-
       /* start an async flush on the current dataset id */
-      scr_flush_async_start(scr_cindex, scr_dataset_id);
+      scr_flush_async_start(cindex, id);
     } else {
       /* synchronously flush the current dataset */
-      if (scr_my_rank_world == 0) {
-        scr_dbg(2, "sync flush attempt @ %s:%d", __FILE__, __LINE__);
-      }
-      int flush_rc = scr_flush_sync(scr_cindex, scr_dataset_id);
+      int flush_rc = scr_flush_sync(cindex, id);
       if (flush_rc != SCR_SUCCESS) {
         scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-          scr_dataset_id, __FILE__, __LINE__
+          id, __FILE__, __LINE__
         );
       }
     }
@@ -447,6 +484,59 @@ static int scr_check_flush(scr_cache_index* map)
 
   /* free the dataset info */
   scr_dataset_delete(&dataset);
+
+  return SCR_SUCCESS;
+}
+
+/* check whether a flush is needed, and execute flush if so */
+static int scr_check_flush(scr_cache_index* cindex)
+{
+  int rc= scr_check_flush_id(cindex, scr_dataset_id);
+  return rc;
+}
+
+/* on restart, check each cached dataset to see whether it should be flushed,
+ * to be called after scr_cache_rebuild and scr_flush_file_rebuild */
+int scr_flush_restart(scr_cache_index* cindex)
+{
+  /* get ordered list of dataset ids in cache */
+  int ndsets;
+  int* dsets;
+  scr_cache_index_list_datasets(cindex, &ndsets, &dsets);
+
+  /* iterate over ordered list of datasets in cache,
+   * flush each dataset if needed */
+  int i;
+  for (i = 0; i < ndsets; i++) {
+    int id = dsets[i];
+
+    /* check whether we need to flush data */
+    if (scr_flush_on_restart) {
+      /* TODO: We could be more efficient here.
+       * This may flush some checkpoints that aren't needed.
+       * For example, if we have two checkpoints in cache, we really
+       * only need to flush the most recent one.  We could also
+       * avoid flushing a pure-output dataset that comes after the most
+       * recent checkpoint since in theory it'll be overwritten anyway. */
+
+      /* Application wants the latest checkpoint flushed to be able
+       * to read it during restart, so force a sync flush.
+       * We flush everything with sync here to maintain
+       * proper ordering of the current marker. */
+      int flush_rc = scr_flush_sync(cindex, id);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+          id, __FILE__, __LINE__
+        );
+      }
+    } else {
+      /* otherwise, flush only if we need to flush */
+      scr_check_flush_id(cindex, id);
+    }
+  }
+
+  /* free allocated list of checkpoint ids */
+  scr_free(&dsets);
 
   return SCR_SUCCESS;
 }
@@ -585,6 +675,9 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_ENABLE")) != NULL) {
     scr_enabled = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_ENABLE=%d", scr_enabled);
+  }
 
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
@@ -596,11 +689,17 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_DEBUG")) != NULL) {
     scr_debug = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_DEBUG=%d", scr_debug);
+  }
 
   /* set scr_prefix_path and scr_prefix */
   value = scr_param_get("SCR_PREFIX");
   scr_prefix_path = scr_get_prefix(value);
   scr_prefix = spath_strdup(scr_prefix_path);
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_PREFIX=%s", scr_prefix);
+  }
 
   /* define the path to the .scr subdir within the prefix dir */
   spath* path_prefix_scr = spath_dup(scr_prefix_path);
@@ -623,39 +722,69 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_LOG_ENABLE")) != NULL) {
     scr_log_enable = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_ENABLE=%d", scr_log_enable);
+  }
 
   /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_LOG_TXT_ENABLE")) != NULL) {
     scr_log_txt_enable = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_TXT_ENABLE=%d", scr_log_txt_enable);
   }
 
   /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_LOG_SYSLOG_ENABLE")) != NULL) {
     scr_log_syslog_enable = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_SYSLOG_ENABLE=%d", scr_log_syslog_enable);
+  }
 
   /* check whether SCR logging DB is enabled */
   if ((value = scr_param_get("SCR_LOG_DB_ENABLE")) != NULL) {
     scr_log_db_enable = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_ENABLE=%d", scr_log_db_enable);
   }
 
   /* read in the debug level for database log messages */
   if ((value = scr_param_get("SCR_LOG_DB_DEBUG")) != NULL) {
     scr_log_db_debug = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_DEBUG=%d", scr_log_db_debug);
+  }
 
   /* SCR log DB connection parameters */
   if ((value = scr_param_get("SCR_LOG_DB_HOST")) != NULL) {
     scr_log_db_host = strdup(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_HOST=%s", scr_log_db_host);
+  }
+
   if ((value = scr_param_get("SCR_LOG_DB_USER")) != NULL) {
     scr_log_db_user = strdup(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_USER=%s", scr_log_db_user);
+  }
+
   if ((value = scr_param_get("SCR_LOG_DB_PASS")) != NULL) {
     scr_log_db_pass = strdup(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_PASS=%s", scr_log_db_pass);
+  }
+
   if ((value = scr_param_get("SCR_LOG_DB_NAME")) != NULL) {
     scr_log_db_name = strdup(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_LOG_DB_NAME=%s", scr_log_db_name);
   }
 
   /* read username from SCR_USER_NAME, if not set, try to read from environment */
@@ -663,6 +792,9 @@ static int scr_get_params()
     scr_username = strdup(value);
   } else {
     scr_username = scr_env_username();
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_USER_NAME=%s", scr_username);
   }
 
   /* check that the username is defined, fatal error if not */
@@ -677,6 +809,9 @@ static int scr_get_params()
     scr_jobid = strdup(value);
   } else {
     scr_jobid = scr_env_jobid();
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_JOB_ID=%s", scr_jobid);
   }
 
   /* check that the jobid is defined, fatal error if not */
@@ -700,12 +835,18 @@ static int scr_get_params()
       );
     }
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_JOB_NAME=%s", scr_jobname);
+  }
 
   /* read cluster name from SCR_CLUSTER_NAME, if not set, try to read from environment */
   if ((value = scr_param_get("SCR_CLUSTER_NAME")) != NULL) {
     scr_clustername = strdup(value);
   } else {
     scr_clustername = scr_env_cluster();
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CLUSTER_NAME=%s", scr_clustername);
   }
 
   /* override default base control directory */
@@ -714,6 +855,9 @@ static int scr_get_params()
   } else {
     scr_cntl_base = spath_strdup_reduce_str(SCR_CNTL_BASE);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CNTL_BASE=%s", scr_cntl_base);
+  }
 
   /* override default base directory for checkpoint cache */
   if ((value = scr_param_get("SCR_CACHE_BASE")) != NULL) {
@@ -721,10 +865,16 @@ static int scr_get_params()
   } else {
     scr_cache_base = spath_strdup_reduce_str(SCR_CACHE_BASE);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CACHE_BASE=%s", scr_cache_base);
+  }
 
   /* set maximum number of checkpoints to keep in cache */
   if ((value = scr_param_get("SCR_CACHE_SIZE")) != NULL) {
     scr_cache_size = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CACHE_SIZE=%d", scr_cache_size);
   }
 
   /* fill in a hash of group descriptors */
@@ -739,18 +889,22 @@ static int scr_get_params()
   tmp = (kvtree*) scr_param_get_hash(SCR_CONFIG_KEY_STOREDESC);
   if (tmp != NULL) {
     kvtree_set(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, tmp);
-  } else {
-    /* TODO: consider requiring user to specify config file for this */
+  }
 
+  /* ensure we have a store descriptor for the default cache directory */
+  tmp = kvtree_get_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cache_base);
+  if (tmp == NULL) {
     /* create a store descriptor for the cache directory */
     tmp = kvtree_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cache_base);
     kvtree_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, scr_cache_size);
+  }
 
-    /* also create one for control directory if cntl != cache */
-    if (strcmp(scr_cntl_base, scr_cache_base) != 0) {
-      tmp = kvtree_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cntl_base);
-      kvtree_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, 0);
-    }
+  /* ensure we have a store descriptor for the default control directory */
+  tmp = kvtree_get_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cntl_base);
+  if (tmp == NULL) {
+    /* create a store descriptor for the control directory */
+    tmp = kvtree_set_kv(scr_storedesc_hash, SCR_CONFIG_KEY_STOREDESC, scr_cntl_base);
+    kvtree_util_set_int(tmp, SCR_CONFIG_KEY_COUNT, 0);
   }
 
   /* select copy method */
@@ -767,15 +921,24 @@ static int scr_get_params()
       scr_copy_type = SCR_COPY_FILE;
     }
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_COPY_TYPE=%d", scr_copy_type);
+  }
 
   /* specify the number of tasks in xor set */
   if ((value = scr_param_get("SCR_SET_SIZE")) != NULL) {
     scr_set_size = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_SET_SIZE=%d", scr_set_size);
+  }
 
   /* specify the number of failures we should tolerate per set */
   if ((value = scr_param_get("SCR_SET_FAILURES")) != NULL) {
     scr_set_failures = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_SET_FAILURES=%d", scr_set_failures);
   }
 
   /* specify the group name to protect failures */
@@ -783,6 +946,9 @@ static int scr_get_params()
     scr_group = strdup(value);
   } else {
     scr_group = strdup(SCR_GROUP);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_GROUP=%s", scr_group);
   }
 
   /* fill in a hash of redundancy descriptors */
@@ -830,16 +996,25 @@ static int scr_get_params()
     /* if BYPASS is set explicitly, we use that */
     scr_cache_bypass = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CACHE_BYPASS=%d", scr_cache_bypass);
+  }
 
   /* if job has fewer than SCR_HALT_SECONDS remaining after completing a checkpoint,
    * halt it */
   if ((value = scr_param_get("SCR_HALT_SECONDS")) != NULL) {
     scr_halt_seconds = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_HALT_SECONDS=%d", scr_halt_seconds);
+  }
 
   /* determine whether we should call exit() upon detecting a halt condition */
   if ((value = scr_param_get("SCR_HALT_EXIT")) != NULL) {
     scr_halt_exit = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_HALT_EXIT=%d", scr_halt_exit);
   }
 
   /* set MPI buffer size (file chunk size) */
@@ -853,41 +1028,65 @@ static int scr_get_params()
       }
     }
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_MPI_BUF_SIZE=%llu", (unsigned long long)scr_mpi_buf_size);
+  }
 
   /* whether to delete all datasets from cache on restart,
    * primarily used for debugging */
   if ((value = scr_param_get("SCR_CACHE_PURGE")) != NULL) {
     scr_purge = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CACHE_PURGE=%d", scr_purge);
+  }
 
   /* whether to distribute files in filemap to ranks */
   if ((value = scr_param_get("SCR_DISTRIBUTE")) != NULL) {
     scr_distribute = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_DISTRIBUTE=%d", scr_distribute);
   }
 
   /* whether to fetch files from the parallel file system */
   if ((value = scr_param_get("SCR_FETCH")) != NULL) {
     scr_fetch = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FETCH=%d", scr_fetch);
+  }
 
   /* specify number of processes to read files simultaneously */
   if ((value = scr_param_get("SCR_FETCH_WIDTH")) != NULL) {
     scr_fetch_width = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FETCH_WIDTH=%d", scr_fetch_width);
   }
 
   /* allow user to specify checkpoint to start with on fetch */
   if ((value = scr_param_get("SCR_CURRENT")) != NULL) {
     scr_fetch_current = strdup(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CURRENT=%s", scr_fetch_current);
+  }
 
   /* specify how often we should flush files */
   if ((value = scr_param_get("SCR_FLUSH")) != NULL) {
     scr_flush = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH=%d", scr_flush);
+  }
 
   /* specify number of processes to write files simultaneously */
   if ((value = scr_param_get("SCR_FLUSH_WIDTH")) != NULL) {
     scr_flush_width = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_WIDTH=%d", scr_flush_width);
   }
 
   /* specify flush transfer type */
@@ -896,15 +1095,24 @@ static int scr_get_params()
   } else {
     scr_flush_type = strdup(SCR_FLUSH_TYPE);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_TYPE=%s", scr_flush_type);
+  }
 
   /* specify whether to always flush latest checkpoint from cache on restart */
   if ((value = scr_param_get("SCR_FLUSH_ON_RESTART")) != NULL) {
     scr_flush_on_restart = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_ON_RESTART=%d", scr_flush_on_restart);
+  }
 
   /* set to 1 if code must be restarted from the parallel file system */
   if ((value = scr_param_get("SCR_GLOBAL_RESTART")) != NULL) {
     scr_global_restart = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_GLOBAL_RESTART=%d", scr_global_restart);
   }
 
   /* set to 1 to auto-drop all datasets that come after dataset named in
@@ -913,12 +1121,18 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_DROP_AFTER_CURRENT")) != NULL) {
     scr_drop_after_current = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_DROP_AFTER_CURRENT=%d", scr_drop_after_current);
+  }
 
   /* specify window of number of checkpoints to keep in prefix directory,
    * set to positive integer to enable, then older checkpoints will be deleted
    * after a successful flush */
   if ((value = scr_param_get("SCR_PREFIX_SIZE")) != NULL) {
     scr_prefix_size = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_PREFIX_SIZE=%d", scr_prefix_size);
   }
 
   /* Some applications provide options so their users can wipe out all checkpoints
@@ -928,10 +1142,25 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_PREFIX_PURGE")) != NULL) {
     scr_prefix_purge = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_PREFIX_PURGE=%d ", scr_prefix_purge);
+  }
 
   /* specify whether to use asynchronous flush */
   if ((value = scr_param_get("SCR_FLUSH_ASYNC")) != NULL) {
     scr_flush_async = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_ASYNC=%d", scr_flush_async);
+  }
+
+ /* Specify whether our flush will be finalized in poststage (currently
+  * only supported with BBAPI). */
+  if ((value = scr_param_get("SCR_FLUSH_POSTSTAGE")) != NULL) {
+    scr_flush_poststage = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_POSTSTAGE=%d", scr_flush_poststage);
   }
 
   /* bandwidth limit imposed during async flush (in bytes/sec) */
@@ -949,6 +1178,9 @@ static int scr_get_params()
       );
     }
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_ASYNC_BW=%f", scr_flush_async_bw);
+  }
 
   /* runtime overhead limit imposed during async flush (in percentage) */
   if ((value = scr_param_get("SCR_FLUSH_ASYNC_PERCENT")) != NULL) {
@@ -959,6 +1191,9 @@ static int scr_get_params()
         __FILE__, __LINE__
       );
     }
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_ASYNC_PERCENT=%f", scr_flush_async_percent);
   }
 
   /* set file copy buffer size (file chunk size) */
@@ -976,30 +1211,48 @@ static int scr_get_params()
       );
     }
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FILE_BUF_SIZE=%d", scr_file_buf_size);
+  }
 
   /* whether file metadata should also be copied */
   if ((value = scr_param_get("SCR_COPY_METADATA")) != NULL) {
     scr_copy_metadata = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_COPY_METADATA=%d", scr_copy_metadata);
   }
 
   /* whether to have AXL create directories for files during a flush */
   if ((value = scr_param_get("SCR_AXL_MKDIR")) != NULL) {
     scr_axl_mkdir = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_AXL_MKDIR=%d", scr_axl_mkdir);
+  }
 
   /* specify whether to compute CRC when applying redundancy scheme */
   if ((value = scr_param_get("SCR_CRC_ON_COPY")) != NULL) {
     scr_crc_on_copy = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CRC_ON_COPY=%d", scr_crc_on_copy);
   }
 
   /* specify whether to compute CRC on fetch and flush */
   if ((value = scr_param_get("SCR_CRC_ON_FLUSH")) != NULL) {
     scr_crc_on_flush = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CRC_ON_FLUSH=%d", scr_crc_on_flush);
+  }
 
   /* specify whether to compute and check CRC when deleting files from cache */
   if ((value = scr_param_get("SCR_CRC_ON_DELETE")) != NULL) {
     scr_crc_on_delete = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CRC_ON_DELETE=%d" , scr_crc_on_delete);
   }
 
   /* override default checkpoint interval
@@ -1007,10 +1260,16 @@ static int scr_get_params()
   if ((value = scr_param_get("SCR_CHECKPOINT_INTERVAL")) != NULL) {
     scr_checkpoint_interval = atoi(value);
   }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CHECKPOINT_INTERVAL=%d", scr_checkpoint_interval);
+  }
 
   /* override default minimum number of seconds between checkpoints */
   if ((value = scr_param_get("SCR_CHECKPOINT_SECONDS")) != NULL) {
     scr_checkpoint_seconds = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CHECKPOINT_SECONDS=%d", scr_checkpoint_seconds); 
   }
 
   /* override default maximum allowed checkpointing overhead */
@@ -1022,6 +1281,22 @@ static int scr_get_params()
         __FILE__, __LINE__
       );
     }
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_CHECKPOINT_OVERHEAD=%f", scr_checkpoint_overhead);
+  }
+
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "Group descriptors:");
+    kvtree_print_mode(scr_groupdesc_hash, 4, KVTREE_PRINT_KEYVAL);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "Store descriptors:");
+    kvtree_print_mode(scr_storedesc_hash, 4, KVTREE_PRINT_KEYVAL);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "Redundancy descriptors:");
+    kvtree_print_mode(scr_reddesc_hash, 4, KVTREE_PRINT_KEYVAL);
   }
 
   return SCR_SUCCESS;
@@ -1249,18 +1524,38 @@ static int scr_start_output(const char* name, int flags)
     }
   }
 
-  /* if we still don't have room and we're flushing, the dataset we need to delete
-   * must be flushing, so wait for it to finish */
+  /* if we still don't have room and we're flushing,
+   * the dataset we need to delete must be flushing, so wait for it to finish */
   if (nckpts_base >= size && flushing != -1) {
-    /* TODO: we could increase the transfer bandwidth to reduce our wait time */
+    /* in case there are ongoing flush operations from other cache
+     * base locations, finalize datasets in order up to our target id
+     * so that we don't mess up our current pointer */
 
-    /* wait for this dataset to complete its flush */
-    int flush_rc = scr_flush_async_wait(scr_cindex);
-    if (flush_rc != SCR_SUCCESS) {
-      scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-        scr_flush_async_dataset_id, __FILE__, __LINE__
-      );
+    /* get full list of ids for ongoing flushes */
+    int flush_num = 0;
+    int* flush_ids = NULL;
+    scr_flush_async_get_list(scr_cindex, &flush_num, &flush_ids);
+
+    /* wait for each dataset up to and including the one we need
+     * to complete */
+    for (i = 0; i < flush_num; i++) {
+      /* wait for this dataset to complete its flush */
+      int id = flush_ids[i];
+      int flush_rc = scr_flush_async_wait(scr_cindex, id);
+      if (flush_rc != SCR_SUCCESS) {
+        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
+          id, __FILE__, __LINE__
+        );
+      }
+
+      /* can break once the target id is done */
+      if (id == flushing) {
+        break;
+      }
     }
+
+    /* free list of flush ids */
+    scr_free(&flush_ids);
 
     /* now dataset is no longer flushing, we can delete it and continue on */
     scr_cache_delete(scr_cindex, flushing);
@@ -1526,6 +1821,7 @@ static int scr_complete_output(int valid)
     rc = SCR_FAILURE;
   }
   scr_cache_index_set_dataset(scr_cindex, scr_dataset_id, dataset);
+  scr_cache_index_write(scr_cindex_file, scr_cindex);
 
   /* write out info to filemap */
   scr_cache_set_map(scr_cindex, scr_dataset_id, scr_map);
@@ -1646,22 +1942,9 @@ static int scr_complete_output(int valid)
   }
 
   /* if we have an async flush ongoing, take this chance to check whether it's completed */
-  if (scr_flush_async_in_progress) {
+  if (scr_flush_async_in_progress()) {
     /* got an outstanding async flush, let's check it */
-    if (scr_flush_async_test(scr_cindex, scr_flush_async_dataset_id) == SCR_SUCCESS) {
-      /* async flush has finished, go ahead and complete it */
-      int flush_rc = scr_flush_async_complete(scr_cindex, scr_flush_async_dataset_id);
-      if (flush_rc != SCR_SUCCESS) {
-        scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-          scr_flush_async_dataset_id, __FILE__, __LINE__
-        );
-      }
-    } else {
-      /* not done yet, just print a progress message to the screen */
-      if (scr_my_rank_world == 0) {
-        scr_dbg(1, "Flush of dataset %d is ongoing", scr_flush_async_dataset_id);
-      }
-    }
+    scr_flush_async_progall(scr_cindex);
   }
 
   /* done with dataset */
@@ -1815,81 +2098,85 @@ int SCR_Init()
   }
 
   /* coonfigure used libraries */
+  kvtree* axl_config = kvtree_new();
+  if (kvtree_util_set_bytecount(axl_config,
+      AXL_KEY_CONFIG_FILE_BUF_SIZE, scr_file_buf_size) != KVTREE_SUCCESS)
   {
-    kvtree* axl_config = kvtree_new();
-    assert(axl_config);
-
-    if (kvtree_util_set_bytecount(axl_config, AXL_KEY_CONFIG_FILE_BUF_SIZE,
-                                  scr_file_buf_size) != KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
-        AXL_KEY_CONFIG_FILE_BUF_SIZE, __FILE__, __LINE__
-      );
-    }
-    if (kvtree_util_set_int(axl_config, AXL_KEY_CONFIG_DEBUG,
-                            scr_debug) != KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
-        AXL_KEY_CONFIG_DEBUG, __FILE__, __LINE__
-      );
-    }
-    if (kvtree_util_set_int(axl_config, AXL_KEY_CONFIG_MKDIR,
-                            scr_axl_mkdir) != KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
-        AXL_KEY_CONFIG_MKDIR, __FILE__, __LINE__
-      );
-    }
-    if (kvtree_util_set_int(axl_config, AXL_KEY_CONFIG_COPY_METADATA,
-                            scr_copy_metadata) != KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
-        AXL_KEY_CONFIG_COPY_METADATA, __FILE__, __LINE__
-      );
-    }
-
-    if (AXL_Config(axl_config) == NULL) {
-      scr_abort(-1, "Failed to configure AXL @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
-
-    kvtree_delete(&axl_config);
+    scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
+      AXL_KEY_CONFIG_FILE_BUF_SIZE, __FILE__, __LINE__
+    );
   }
+  if (kvtree_util_set_int(axl_config,
+      AXL_KEY_CONFIG_DEBUG, scr_debug) != KVTREE_SUCCESS)
   {
-    kvtree* er_config = kvtree_new();
-    assert(er_config);
-
-    if (kvtree_util_set_int(er_config, ER_KEY_CONFIG_DEBUG,
-                            scr_debug) != KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set ER config option %s @ %s:%d",
-        ER_KEY_CONFIG_DEBUG, __FILE__, __LINE__
-      );
-    }
-    if (kvtree_util_set_int(er_config, ER_KEY_CONFIG_SET_SIZE, scr_set_size) !=
-        KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set ER config option %s @ %s:%d",
-        ER_KEY_CONFIG_SET_SIZE, __FILE__, __LINE__
-      );
-    }
-    if (kvtree_util_set_int(er_config, ER_KEY_CONFIG_MPI_BUF_SIZE,
-                            scr_mpi_buf_size) != KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set ER config option %s @ %s:%d",
-        ER_KEY_CONFIG_MPI_BUF_SIZE, __FILE__, __LINE__
-      );
-    }
-    if (kvtree_util_set_int(er_config, ER_KEY_CONFIG_CRC_ON_COPY,
-                            scr_crc_on_copy) != KVTREE_SUCCESS) {
-      scr_abort(-1, "Failed to set ER config option %s @ %s:%d",
-        ER_KEY_CONFIG_CRC_ON_COPY, __FILE__, __LINE__
-      );
-    }
-
-    if (ER_Config(er_config) == NULL)
-    {
-      scr_abort(-1, "Failed to configure ER @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
-
-    kvtree_delete(&er_config);
+    scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
+      AXL_KEY_CONFIG_DEBUG, __FILE__, __LINE__
+    );
   }
+  if (kvtree_util_set_int(axl_config,
+      AXL_KEY_CONFIG_MKDIR, scr_axl_mkdir) != KVTREE_SUCCESS)
+  {
+    scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
+      AXL_KEY_CONFIG_MKDIR, __FILE__, __LINE__
+    );
+  }
+  if (kvtree_util_set_int(axl_config,
+      AXL_KEY_CONFIG_COPY_METADATA, scr_copy_metadata) != KVTREE_SUCCESS)
+  {
+    scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
+      AXL_KEY_CONFIG_COPY_METADATA, __FILE__, __LINE__
+    );
+  }
+  if (kvtree_util_set_int(axl_config,
+      AXL_KEY_CONFIG_RANK, scr_my_rank_world) != KVTREE_SUCCESS)
+  {
+    scr_abort(-1, "Failed to set AXL config option %s @ %s:%d",
+      AXL_KEY_CONFIG_RANK, __FILE__, __LINE__
+    );
+  }
+  if (AXL_Config(axl_config) == NULL) {
+    scr_abort(-1, "Failed to configure AXL @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  kvtree_delete(&axl_config);
+
+  kvtree* er_config = kvtree_new();
+  if (kvtree_util_set_int(er_config,
+      ER_KEY_CONFIG_DEBUG, scr_debug) != KVTREE_SUCCESS)
+  {
+    scr_abort(-1, "Failed to set ER config option %s @ %s:%d",
+      ER_KEY_CONFIG_DEBUG, __FILE__, __LINE__
+    );
+  }
+  if (kvtree_util_set_int(er_config,
+      ER_KEY_CONFIG_SET_SIZE, scr_set_size) != KVTREE_SUCCESS)
+  {
+    scr_abort(-1, "Failed to set ER config option %s @ %s:%d",
+      ER_KEY_CONFIG_SET_SIZE, __FILE__, __LINE__
+    );
+  }
+  if (kvtree_util_set_int(er_config,
+      ER_KEY_CONFIG_MPI_BUF_SIZE, scr_mpi_buf_size) != KVTREE_SUCCESS)
+  {
+    scr_abort(-1, "Failed to set ER config option %s @ %s:%d",
+      ER_KEY_CONFIG_MPI_BUF_SIZE, __FILE__, __LINE__
+    );
+  }
+  if (kvtree_util_set_int(er_config,
+      ER_KEY_CONFIG_CRC_ON_COPY, scr_crc_on_copy) != KVTREE_SUCCESS)
+  {
+    scr_abort(-1, "Failed to set ER config option %s @ %s:%d",
+      ER_KEY_CONFIG_CRC_ON_COPY, __FILE__, __LINE__
+    );
+  }
+  if (ER_Config(er_config) == NULL)
+  {
+    scr_abort(-1, "Failed to configure ER @ %s:%d",
+      __FILE__, __LINE__
+    );
+  }
+  kvtree_delete(&er_config);
 
   /* check that some required parameters are set */
   if (scr_username == NULL || scr_jobid == NULL) {
@@ -2175,19 +2462,9 @@ int SCR_Init()
        * if the rebuild failed, we'll delete the flush file after purging the cache below */
       scr_flush_file_rebuild(scr_cindex);
 
-      /* check whether we need to flush data */
-      if (scr_flush_on_restart) {
-        /* always flush on restart if scr_flush_on_restart is set */
-        int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
-        if (flush_rc != SCR_SUCCESS) {
-          scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-            scr_ckpt_dset_id, __FILE__, __LINE__
-          );
-        }
-      } else {
-        /* otherwise, flush only if we need to flush */
-        scr_check_flush(scr_cindex);
-      }
+      /* iterate over all datasets in cache and
+       * check whether each needs to be flushed */
+      scr_flush_restart(scr_cindex);
     }
   }
 
@@ -2303,56 +2580,8 @@ int SCR_Finalize()
     scr_halt(SCR_FINALIZE_CALLED);
   }
 
-  /* handle any async flush */
-  if (scr_flush_async_in_progress) {
-    /* there's an async flush ongoing, see which dataset is being flushed */
-    int flush_rc;
-    if (scr_flush_async_dataset_id == scr_dataset_id) {
-#ifdef HAVE_LIBCPPR
-      /* if we have CPPR, async flush is faster than sync flush, so let it finish */
-      flush_rc = scr_flush_async_wait(scr_cindex);
-#else
-      /* we're going to sync flush this same checkpoint below, so kill it if it's from POSIX */
-      /* else wait */
-      /* get the TYPE of the store for checkpoint */
-      /* neither strdup nor free */
-      const scr_storedesc* storedesc = scr_cache_get_storedesc(scr_cindex, scr_dataset_id);
-      const char* type = storedesc->xfer;
-      if (strcmp(type, "DATAWARP") == 0) {
-        /* wait for datawarp flushes to finish */
-        flush_rc = scr_flush_async_wait(scr_cindex);
-      } else {
-        /* kill the async flush, we'll get this with a sync flush instead */
-        scr_flush_async_stop();
-      }
-#endif
-    } else {
-      /* the async flush is flushing a different checkpoint, so wait for it */
-      flush_rc = scr_flush_async_wait(scr_cindex);
-    }
-    if (flush_rc != SCR_SUCCESS) {
-      scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-        scr_flush_async_dataset_id, __FILE__, __LINE__
-      );
-    }
-  }
-
-  /* flush checkpoint set if we need to */
-  if (scr_flush > 0 && scr_flush_file_need_flush(scr_ckpt_dset_id)) {
-    if (scr_my_rank_world == 0) {
-      scr_dbg(2, "Sync flush in SCR_Finalize @ %s:%d", __FILE__, __LINE__);
-    }
-    int flush_rc = scr_flush_sync(scr_cindex, scr_ckpt_dset_id);
-    if (flush_rc != SCR_SUCCESS) {
-      scr_abort(-1, "Flush of dataset %d failed @ %s:%d",
-        scr_ckpt_dset_id, __FILE__, __LINE__
-      );
-    }
-  }
-
-  if(scr_flush_async){
-    scr_flush_async_finalize();
-  }
+  /* flush any pending datasets and shut down flush methods */
+  scr_flush_finalize();
 
   /* free off the memory allocated for our descriptors */
   scr_reddescs_free();
@@ -2400,8 +2629,8 @@ int SCR_Finalize()
   int axl_rc = AXL_Finalize_comm(scr_comm_world);
   if (axl_rc != AXL_SUCCESS) {
     scr_abort(-1, "Failed to finalize AXL library @ %s:%d",
-      __FILE__, __LINE__
-    );
+        __FILE__, __LINE__
+        );
   }
 
   /* shut down the ER library */
@@ -2462,11 +2691,6 @@ int SCR_Finalize()
 /* sets or gets a configuration option */
 const char* SCR_Config(const char* config_string)
 {
-  /* manage state transition */
-  if (scr_state != SCR_STATE_UNINIT) {
-    scr_state_transition_error(scr_state, "SCR_Config()", __FILE__, __LINE__);
-  }
-
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return NULL;
@@ -2688,11 +2912,23 @@ const char* SCR_Config(const char* config_string)
     if (toplevel_value == NULL) {
       /* user is trying to query for the value of a simple key/value pair,
        * given a parameter name like "SCR_PREFIX" */
-      const char* value = scr_param_get(toplevel_key);
-      if (value != NULL) {
-        /* found a setting for this parameter, strdup and return it */
-        retval = strdup(value);
+      kvtree* toplevel_hash = (kvtree*) scr_param_get_hash(toplevel_key);
+      if (kvtree_size(toplevel_hash) <= 1) {
+        /* the value string is well defined if we have at most one value */
+        const char* value = scr_param_get(toplevel_key);
+        if (value != NULL) {
+          /* found a setting for this parameter, strdup and return it */
+          retval = strdup(value);
+        }
+      } else {
+        /* this key has multiple values set, so it's not clear which to return */
+        if (scr_my_rank_world == 0) {
+          scr_err("Multiple values are set for '%s', so query return value is ill-defined @ %s:%d",
+            toplevel_key, __FILE__, __LINE__
+          );
+        }
       }
+      kvtree_delete(&toplevel_hash);
     } else {
       /* user is trying to query the subvalue of a two-level parameter
        * given an input like "CKPT=0 TYPE" with
@@ -2713,7 +2949,13 @@ const char* SCR_Config(const char* config_string)
       kvtree_delete(&toplevel_hash);
     }
   } else {
-    /* user wants to set or unset a parameter */
+    /* user wants to set or unset a parameter,
+     * only allow changing parameters before SCR_Init */
+    if (scr_state != SCR_STATE_UNINIT) {
+      scr_state_transition_error(scr_state, "SCR_Config()", __FILE__, __LINE__);
+    }
+
+    /* determine whether we have a simple key/value pair or a two-level param */
     if (value_hash == NULL) {
       /* dealing with a simple key/value parameter pair */
 
@@ -2790,11 +3032,6 @@ const char* SCR_Config(const char* config_string)
 
 const char* SCR_Configf(const char* format, ...)
 {
-  /* manage state transition */
-  if (scr_state != SCR_STATE_UNINIT) {
-    scr_state_transition_error(scr_state, "SCR_Configf()", __FILE__, __LINE__);
-  }
-
   /* if not enabled, bail with an error */
   if (! scr_enabled) {
     return NULL;

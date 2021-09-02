@@ -1,0 +1,119 @@
+#!/bin/bash
+
+print_usage() {
+    echo "Usage: builddist <tag>"
+    echo ""
+    echo "Tags:"
+    echo "  develop - build tarball of latest"
+#    echo "  v3.0rc1"
+}
+
+# check that we got an argument or print usage
+if [ $# -ne 1 ] ; then
+    print_usage
+    exit 1
+fi
+
+# for a given release, define tags for each component
+if [ "$1" == "develop" ] ; then
+    # to build from latest branch of all repos
+    ORGS=(
+        "lwgrp"    "llnl"       "main"
+        "dtcmp"    "llnl"       "main"
+        "kvtree"   "ecp-veloc"  "main"
+        "axl"      "ecp-veloc"  "main"
+        "spath"    "ecp-veloc"  "main"
+        "shuffile" "ecp-veloc"  "main"
+        "redset"   "ecp-veloc"  "main"
+        "er"       "ecp-veloc"  "main"
+        "rankstr"  "ecp-veloc"  "main"
+        "scr"      "llnl"       "develop"
+    )
+#elif [ "$1" == "v3.0rc1" ] ; then
+#    # to build the scr-v3.0rc1 release
+#    ORGS=(
+#        "lwgrp"    "llnl"      "v1.0.3"
+#        "dtcmp"    "llnl"      "v1.1.2"
+#        "kvtree"   "ecp-veloc" "v1.1.1"
+#        "axl"      "ecp-veloc" "v0.4.0"
+#        "spath"    "ecp-veloc" "v0.0.2"
+#        "shuffile" "ecp-veloc" "v0.0.4"
+#        "redset"   "ecp-veloc" "v0.0.5"
+#        "er"       "ecp-veloc" "v0.0.4"
+#        "rankstr"  "ecp-veloc" "v0.0.3"
+#        "scr"      "llnl"      "v3.0rc1"
+#    )
+else
+    echo "Error: unknown tag: $1"
+    echo ""
+    print_usage
+    exit 1
+fi
+
+set -x
+
+# we assume everything is hosted at github
+REPOHOST=https://github.com
+
+# create a temporary directory to package things up
+rm -rf dist
+mkdir dist
+cd dist
+
+ARCH_DIR="archive"
+rm -rf $ARCH_DIR
+mkdir -p $ARCH_DIR
+
+len=${#ORGS[@]}
+for (( i=0; i<${len}; i=$(($i + 3)) )); do
+    # component name
+    component=${ORGS[$i]}
+
+    # github path to component
+    j=$(($i + 1))
+    repo=$REPOHOST/${ORGS[$j]}/$component
+
+    # repo tag to checkout
+    j=$(($i + 2))
+    TAG=${ORGS[$j]}
+
+    # clone the repo
+    git clone --depth 1 --branch $TAG $repo
+
+    # git archive the source files into a tarfile
+    cd $component
+        #TAG=`git describe --tags $(git rev-list --tags --max-count=1)`
+        git archive --format=tar --prefix=$component/ $TAG | gzip > $component-$TAG.tar.gz 2> /dev/null
+    cd ..
+
+    # unpack source files for this component in a directory with other components
+    cd $ARCH_DIR
+        tar -zxf ../$component/$component-$TAG.tar.gz
+
+        # hack out include of autotools config.h (not used anyway)
+        if [ "$component" == "lwgrp" ] ; then
+            sed -i 's@#include "../config/config.h"@@g' lwgrp/src/lwgrp_internal.h
+        fi
+
+        # remove doc and test directories for a smaller tarball
+        rm -rf ${component}/doc
+        rm -rf ${component}/doc-dev
+        if [ "$component" != "scr" ] ; then
+          rm -rf ${component}/test
+        fi
+    cd ..
+done
+
+# NOTE: last TAG is from SCR
+# rename archive directory to scr-top-TAG
+mv $ARCH_DIR scr-top-$TAG
+
+# copy in top-level CMake files
+cp -r ../CMakeLists.txt ../NOTICE ../cmake scr-top-$TAG
+
+# zip up release tarball
+tar -czf ../scr-top-${TAG}.tgz scr-top-$TAG
+
+# delete prep directory
+cd ..
+rm -rf dist

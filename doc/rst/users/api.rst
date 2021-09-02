@@ -43,6 +43,12 @@ Applications written in C should include :code:`scr.h`,
 and Fortran applications should include :code:`scrf.h`.
 Unless otherwise noted, all functions return :code:`SCR_SUCCESS` if successful.
 
+For Python applications, an :code:`scr.py` Python module wraps the functions of the C interface.
+This module is located in the :code:`share/scr/python` directory of an SCR installation.
+A :code:`README.md` file and an :code:`scr_example.py` program in the same directory
+illustrate how one uses the :code:`scr.py` module.
+Python users should also be familiar with the API documentation in this section.
+
 Startup and Shutdown API
 ------------------------
 
@@ -103,13 +109,18 @@ SCR_Config
     INTEGER IERROR
 
 Configure the SCR library.
-Most of the SCR configuration parameters listed in :ref:`sec-config` can be set at run time using :code:`SCR_Config`.
-The syntax to set parameters matches the syntax used in SCR configuration files.
-The application can make multiple calls to :code:`SCR_Config`.
-All calls to :code:`SCR_Config` must come before the application calls :code:`SCR_Init`.
+Most of the SCR configuration parameters listed in :ref:`sec-config` can be set, queried,
+and unset at run time using :code:`SCR_Config`.
+The application can make multiple calls to :code:`SCR_Config`, including for the same SCR configuration parameter.
+All calls to :code:`SCR_Config` to set or unset parameter values must occur before the application calls :code:`SCR_Init`.
+One may call :code:`SCR_Config` to query parameter values before and after :code:`SCR_Init` has been called.
 This function is collective, and all processes must provide identical values for :code:`config`.
 
-To set a parameter,
+There are two forms of SCR configuration parameters:
+a simple form that consists of a single key/value pair
+and a multi-item form that consists of a parent key/value pair and set of child key/value pairs.
+
+To set a simple parameter,
 one specifies a parameter name and its value in the form of a :code:`key=value` string as the :code:`config` argument.
 For example, passing the string :code:`SCR_FLUSH=10` sets :code:`SCR_FLUSH` to the value of 10.
 If one sets the same parameter with multiple calls to :code:`SCR_Config`,
@@ -117,7 +128,7 @@ SCR applies the most recent value.
 When setting a parameter, for C applications, :code:`SCR_Config` always returns :code:`NULL`.
 For Fortran applications, :code:`IERROR` is always set to :code:`SCR_SUCCESS`.
 
-To query a value, one specifies just the parameter name as the string in :code:`config`.
+To query the value of a simple parameter, one specifies just the parameter name as the string in :code:`config`.
 For example, one can specify the string :code:`SCR_FLUSH` to query its current value.
 When querying a value, for C applications,
 the call allocates and returns a pointer to a string holding the value of the parameter.
@@ -125,22 +136,22 @@ The caller is responsible for calling :code:`free` to release the returned strin
 If the parameter has not been set, :code:`NULL` is returned.
 For Fortran applications, the value is returned as a string in the :code:`VAL` argument.
 
-To unset a value, one specifies the parameter name with an empty value
+To unset the value of a simple parameter, one specifies the parameter name with an empty value
 in the form of a :code:`key=` string as the :code:`config` argument.
 For example, to unset the value assigned to :code:`SCR_FLUSH`, specify the string :code:`SCR_FLUSH=`.
 Unsetting a parameter removes any value that was assigned by a prior call to :code:`SCR_Config`,
-but it does not unset the parameter value that may have been set through other means,
+but it does not unset the parameter value that has been set through other means,
 like an environment variable or in a configuration file (see :ref:`sec-config`).
 When unsetting a value, for C applications, :code:`SCR_Config` always returns :code:`NULL`.
 For Fortran applications, :code:`IERROR` is always set to :code:`SCR_SUCCESS`.
 
-Multi-item SCR configuration parameters like :code:`CKPT` can be set using a
+Multi-item parameters like :code:`CKPT` can be set using a
 sequence of :code:`key=value` pairs that are separated by spaces.
 For example, to define a :code:`CKPT` redundancy descriptor,
 one can pass a string such as :code:`CKPT=0 TYPE=XOR SET_SIZE=16`.
 
-To query a subvalue, one must specify the top level :code:`key=value` pair followed
-by the name of the key being queried.
+To query a subvalue of a multi-item parameter, one must specify the parent level :code:`key=value` pair followed
+by the name of the child key being queried.
 For instance, to get the type of the redundancy scheme of redundancy descriptor :code:`0`,
 one can specify the string :code:`CKPT=0 TYPE`.
 

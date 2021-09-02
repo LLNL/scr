@@ -7,8 +7,8 @@ LIST(APPEND example_files
 	test_api_multiple.c
 	test_ckpt.cpp
 	test_ckpt.F
+	test_ckpt.F90
 	test_config.c
-	scr.moab
 	README.md
 )
 INSTALL(FILES ${example_files} DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/examples)
@@ -42,7 +42,6 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
 
 ## Move test cleanup script to build directory
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_cleanup.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test.conf DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 ## Move test wrapper script
 ## Each test needs the wrapper script so it can do the cleanup as part of the test, to ensure it gets
@@ -83,15 +82,22 @@ IF(ENABLE_FORTRAN)
 	    ADD_EXECUTABLE(test_ckpt_F test_ckpt.F)
         SET_TARGET_PROPERTIES(test_ckpt_F PROPERTIES LINKER_LANGUAGE Fortran)
 
+	SET_SOURCE_FILES_PROPERTIES(test_ckpt.F90 PROPERTIES LANGUAGE Fortran)
+	    ADD_EXECUTABLE(test_ckpt_F90 test_ckpt.F90)
+        SET_TARGET_PROPERTIES(test_ckpt_F90 PROPERTIES LINKER_LANGUAGE Fortran)
+
         IF(SCR_LINK_STATIC)
                 # needed for LANL cray
                 SET(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
                 TARGET_LINK_LIBRARIES(test_ckpt_F scrf-static ${MPI_Fortran_LIBRARIES})
+                TARGET_LINK_LIBRARIES(test_ckpt_F90 scrf-static ${MPI_Fortran_LIBRARIES})
         ELSE(SCR_LINK_STATIC)
                 TARGET_LINK_LIBRARIES(test_ckpt_F scrf ${MPI_Fortran_LIBRARIES})
+                TARGET_LINK_LIBRARIES(test_ckpt_F90 scrf ${MPI_Fortran_LIBRARIES})
         ENDIF(SCR_LINK_STATIC)
 
 	SCR_ADD_TEST(test_ckpt_F "" "rank_00000.ckpt")
+	SCR_ADD_TEST(test_ckpt_F90 "" "rank_00000.ckpt")
 ENDIF(ENABLE_FORTRAN)
 
 # add target: "make check"

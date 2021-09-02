@@ -1,0 +1,82 @@
+#!/bin/bash
+#
+# This script generates checkpoints on the IBM burst buffer disk, and then
+# starts transferring them to GPFS before exiting.  Then, the scr_poststage
+# script gets run after the transfers finish, and finalizes them.
+#
+# Example:
+#
+# # Allocate one node with 100GB burst buffer, run test_scr_poststag to
+# # create and begin transferring checkpoints, and after the transfers finish
+# # (after the job ends), call scr_poststage to finalize them.
+# bsub -nnodes 4 -stage storage=10:out=,scr_poststage test_scr_poststage
+#
+
+# Where do you want to write your checkpoints to?  This should be somewhere in
+# on the burst buffer filesystem.
+
+# Where do you want your checkpoints to transfer to in GPFS?
+GPFS_DIR="/p/gpfs1/$(whoami)"
+
+if [ -z "$BBPATH" ] ; then
+    echo "BBPATH isn't set in the script, please set it"
+    exit
+fi
+
+if [ -z "$GPFS_DIR" ] ; then
+    echo "Please set \$GPFS_DIR in test_scr_poststage"
+    exit
+fi
+
+# Absolute path to SCR's 'test_api' and 'test_multiple' binaries
+BINDIR=""
+
+if [[ ! -x $BINDIR/test_api ]] ; then
+    echo "Please add the absolute path to SCR's 'test_api' binary into BINDIR in this script"
+    exit
+fi
+
+function make_scr_conf {
+    echo "
+SCR_COPY_TYPE=FILE
+
+SCR_FLUSH=1
+SCR_FLUSH_ASYNC=1
+SCR_FLUSH_POSTSTAGE=1
+SCR_CACHE_BYPASS=0
+
+# Make our burst buffer a cache device
+STORE=$BBPATH GROUP=NODE COUNT=1 FLUSH=BBAPI
+
+CKPT=0 INTERVAL=1 GROUP=NODE   STORE=$BBPATH TYPE=PARTNER
+
+SCR_DEBUG=10"
+}
+
+mkdir -p $GPFS_DIR
+
+make_scr_conf > $BBPATH/test_scr_poststage.config
+
+cd $GPFS_DIR
+
+# Double check we're using GPFS
+FS="$(stat --file-system --format=%T $GPFS_DIR)"
+if [ "$FS" != "gpfs" ] ; then
+    echo "GPFS_DIR must be on a GFPS filesystem (got $FS filesystem)"
+    exit 1
+fi
+
+# Start the checkpoints
+jsrun -r 4 bash -c "SCR_CONF_FILE=$BBPATH/test_scr_poststage.config $BINDIR/test_api --times=9 --size=100M --output=2"
+
+# To simulate a job crashing while doing a sync flush, remove the
+# 'SCR_FLUSH_ASYNC=1' line, and uncomment the line below:
+# echo "running command"
+# jsrun -r 1 bash -c "SCR_CONF_FILE=$BBPATH/test_scr_poststage.config timeout --foreground -s KILL 13 $BINDIR/test_api --times=1 --size=1G"
+
+#
+# Another test you can run using test_api_multiple
+# jsrun -r 4 bash -c "SCR_CONF_FILE=$BBPATH/test_scr_poststage.config $BINDIR/test_api_multiple 1GB 10 0"
+
+# Create a dataset that is both a checkpoint and output
+# jsrun -r 4 bash -c "SCR_CONF_FILE=$BBPATH/test_scr_poststage.config $BINDIR/test_api --times=2 --size=1G --flush=3"

@@ -11,7 +11,7 @@ if [ $# -gt 1 ]; then
 fi
 
 rm -rf /dev/shm/$USER/scr.*/
-rm -rf .scr/
+
 if [ $# -eq 1 ]; then
 	rm -rf $1
 fi

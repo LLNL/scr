@@ -12,43 +12,24 @@ corresponding SCR functionality is disabled.
 
 Required:
 
+* C and C++ compilers
 * CMake, Version 2.8+
-* Compilers (C, C++, and Fortran)
 * MPI 3.0+
-* pdsh (https://github.com/chaos/pdsh)
-* DTCMP (https://github.com/llnl/dtcmp)
-* LWGRP (https://github.com/llnl/lwgrp)
-* AXL (https://github.com/ECP-VeloC/AXL)
-* er (https://github.com/ECP-VeloC/er)
-* KVTree (https://github.com/ECP-VeloC/KVTree)
-* rankstr (https://github.com/ECP-VeloC/rankstr)
-* redset (https://github.com/ECP-VeloC/redset)
-* shuffile (https://github.com/ECP-VeloC/shuffile)
-* spath (https://github.com/ECP-VeloC/spath)
 
 Optional:
 
+* Fortran compiler (for Fortran bindings)
+* pdsh (for scalable restart and scavenge) (https://github.com/chaos/pdsh)
 * libyogrt (for time remaining in a job allocation) (https://github.com/llnl/libyogrt)
 * MySQL (for logging SCR activities)
 
 To simplify the install process,
-one can use the SCR :code:`bootstrap.sh` script with CMake or use Spack.
+one can use CMake to build a release tarball or use Spack.
 
 The CMake and Spack sections below assume that one is installing SCR on a system with
 existing compilers, a resource manager (like SLURM or LSF), and an MPI environment.
 These base software packages are typically preinstalled and configured
 for users by the support staff of HPC clusters.
-
-For those who are installing SCR outside of an HPC cluster,
-are using Fedora, and have sudo access,
-the following steps install and activate most of the necessary base dependencies:
-
-.. code-block:: bash
-
-    sudo dnf groupinstall "Development Tools"
-    sudo dnf install cmake gcc-c++ mpi mpi-devel environment-modules zlib-devel pdsh
-    [restart shell]
-    module load mpi
 
 .. _sec-build-cmake:
 
@@ -60,32 +41,33 @@ The SCR build uses the CMake FindMPI module to link with MPI.
 This module looks for the standard :code:`mpicc` compiler wrapper,
 which must be in your :code:`PATH`.
 
-The quick version of building SCR with CMake is:
+One can download an SCR release tarball from the `GitHub release page <https://github.com/llnl/scr/releases>`_.
+To build SCR from a release tarball:
 
 .. code-block:: bash
 
-  git clone git@github.com:llnl/scr.git
-  cd scr
-  git checkout v3.0rc1
-
-  ./bootstrap.sh
+  wget https://github.com/LLNL/scr/releases/download/v3.0rc1/scr-top-v3.0rc1.tgz
+  tar -zxf scr-top-v3.0rc1.tgz
+  cd scr-top-v3.0rc1
 
   mkdir build
   cd build
   cmake -DCMAKE_INSTALL_PREFIX=../install ..
-  make install
+  make -j install
 
-Some useful CMake command line options are:
+Some common CMake command line options:
 
 * :code:`-DCMAKE_INSTALL_PREFIX=[path]`: Place to install the SCR library
-* :code:`-DCMAKE_BUILD_TYPE=[Debug/Release]`: Build with debugging or optimizations
+* :code:`-DCMAKE_BUILD_TYPE=[Debug/Release]`: Build with debugging or optimizations, defaults to :code:`Release`
+* :code:`-DBUILD_SHARED_LIBS=[ON/OFF]`: Whether to build shared libraries, defaults to :code:`ON`
 
-* :code:`-DSCR_RESOURCE_MANAGER=[SLURM/APRUN/PMIX/LSF/NONE]`
-* :code:`-DSCR_ASYNC_API=[INTEL_CPPR/NONE]`
+* :code:`-DSCR_RESOURCE_MANAGER=[SLURM/APRUN/PMIX/LSF/NONE]` : Resource manager for job allocations, defaults to :code:`SLURM`
 
 * :code:`-DSCR_CNTL_BASE=[path]` : Path to SCR Control directory, defaults to :code:`/dev/shm`
 * :code:`-DSCR_CACHE_BASE=[path]` : Path to SCR Cache directory, defaults to :code:`/dev/shm`
 * :code:`-DSCR_CONFIG_FILE=[path]` : Path to SCR system configuration file, defaults to :code:`/etc/scr/scr.conf`
+
+* :code:`-DSCR_FILE_LOCK=[FLOCK/FCNTL/NONE]` : Specify type of file locking to use, defaults to :code:`FLOCK`
 
 For setting the default logging parameters:
 
@@ -96,22 +78,24 @@ For setting the default logging parameters:
 * :code:`-DSCR_LOG_SYSLOG_PREFIX=[str]` : Prefix string to prepend to syslog messages, defaults to :code:`SCR`
 * :code:`-DSCR_LOG_TXT_ENABLE=[0/1]` : Whether to enable SCR logging to a text file (1) or not (0), defaults to :code:`1`
 
-If one has installed SCR dependencies in different directories,
-there are CMake options to specify the path to each as needed, e.g.,:
+One can disable portions of the SCR build if they are not needed:
 
-* :code:`-DBUILD_PDSH=[OFF/ON]`: CMake can automatically download and build the PDSH dependency
+* :code:`-DENABLE_FORTRAN=[ON/OFF]` : Whether to build library for Fortran bindings, defaults to :code:`ON`
+* :code:`-DENABLE_EXAMPLES=[ON/OFF]` : Whether to build programs in :code:`examples` directory, defaults to :code:`ON`
+* :code:`-DENABLE_TESTS=[ON/OFF]` : Whether to support :code:`make check` tests, defaults to :code:`ON`
+
+* :code:`-DENABLE_IBM_BBAPI[ON/OFF]` : Whether to enable IBM Burst Buffer support for file transfers, defaults to :code:`ON`
+* :code:`-DENABLE_CRAY_DW[ON/OFF]` : Whether to enable Cray DataWarp support for file transfers, defaults to :code:`OFF`
+* :code:`-DENABLE_INTEL_CPPR[ON/OFF]` : Whether to enable Intel CPPR support for file transfers, defaults to :code:`OFF`
+
+* :code:`-DENABLE_PDSH=[ON/OFF]` : Whether to use pdsh, defalts to :code:`ON`
+* :code:`-DBUILD_PDSH=[OFF/ON]`: CMake can automatically download and build the PDSH dependency, defaults to :code:`OFF`
 * :code:`-DWITH_PDSH_PREFIX=[path to PDSH]`: Path to an existing PDSH installation (should not be used with :code:`BUILD_PDSH`)
 
-* :code:`-DWITH_DTCMP_PREFIX=[path to DTCMP]`
-* :code:`-DWITH_AXL_PREFIX=[path to AXL]`
-* :code:`-DWITH_ER_PREFIX=[path to er]`
-* :code:`-DWITH_KVTREE_PREFIX=[path to KVTree]`
-* :code:`-DWITH_RANKSTR_PREFIX=[path to rankstr]`
-* :code:`-DWITH_REDSET_PREFIX=[path to redset]`
-* :code:`-DWITH_SHUFFILE_PREFIX=[path to shuffile]`
-* :code:`-DWITH_SPATH_PREFIX:PATH=[path to spath]`
-
+* :code:`-DENABLE_YOGRT=[ON/OFF]` : Whether to use libyogrt, defaults to :code:`ON`
 * :code:`-DWITH_YOGRT_PREFIX:PATH=[path to libyogrt]`
+
+* :code:`-DENABLE_MYSQL=[ON/OFF]` : Whether to use MySQL, defaults to :code:`OFF`
 * :code:`-DWITH_MYSQL_PREFIX=[path to MySQL]`
 
 .. _sec-build-spack:

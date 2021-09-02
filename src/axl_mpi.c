@@ -14,11 +14,6 @@
 
 #include "scr_globals.h"
 #define AXL_FAILURE (1)
-//#define HAVE_LIBDTCMP 1
-
-#ifdef HAVE_LIBDTCMP
-#include "dtcmp.h"
-#endif
 
 static int axl_alltrue(int valid, MPI_Comm comm)
 {
@@ -63,14 +58,6 @@ int AXL_Init_comm (
         return AXL_FAILURE;
     }
 
-#ifdef HAVE_LIBDTCMP
-    int dtcmp_rc = DTCMP_Init();
-    if (dtcmp_rc != DTCMP_SUCCESS) {
-        /* failed to initialize DTCMP */
-        rc = AXL_FAILURE;
-    }
-#endif
-
     return rc;
 }
 
@@ -78,14 +65,6 @@ int AXL_Finalize_comm (
     MPI_Comm comm)    /**< [IN]  - communicator used for coordination and flow control */
 {
     int rc = AXL_SUCCESS;
-
-#ifdef HAVE_LIBDTCMP
-    int dtcmp_rc = DTCMP_Finalize();
-    if (dtcmp_rc != DTCMP_SUCCESS) {
-        /* failed to shut down DTCMP */
-        rc = AXL_FAILURE;
-    }
-#endif
 
     int axl_rc = AXL_Finalize();
     if (axl_rc != AXL_SUCCESS) {
@@ -130,6 +109,36 @@ int AXL_Create_comm (
     }
 
     return id;
+}
+
+int AXL_Add_comm (
+  int id,           /**< [IN]  - transfer hander ID returned from AXL_Create */
+  int num,          /**< [IN]  - number of files in src and dst file lists */
+  const char** src, /**< [IN]  - list of source paths of length num */
+  const char** dst, /**< [IN]  - list of destination paths of length num */
+  MPI_Comm comm)    /**< [IN]  - communicator used for coordination and flow control */
+{
+    /* assume we'll succeed */
+    int rc = AXL_SUCCESS;
+
+    /* add files to transfer list */
+    int i;
+    for (i = 0; i < num; i++) {
+      const char* src_file  = src[i];
+      const char* dest_file = dst[i];
+      if (AXL_Add(id, src_file, dest_file) != AXL_SUCCESS) {
+        /* remember that we failed to add a file */
+        rc = AXL_FAILURE;
+      }
+    }
+
+    /* return same value on all ranks */
+    if (! axl_alltrue(rc == AXL_SUCCESS, comm)) {
+        /* someone failed, so everyone fails */
+        rc = AXL_FAILURE;
+    }
+
+    return rc;
 }
 
 int AXL_Dispatch_comm (

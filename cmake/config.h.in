@@ -1,7 +1,6 @@
 // System Specific
 
 // Optional Libs
-#cmakedefine HAVE_LIBDTCMP
 #cmakedefine HAVE_LIBYOGRT
 #cmakedefine HAVE_LIBMYSQLCLIENT
 
@@ -31,10 +30,7 @@
 // Resource Manager
 #define SCR_RESOURCE_MANAGER_@SCR_RESOURCE_MANAGER@
 
-// Flush ASYNC API
-#define SCR_FLUSH_ASYNC_@SCR_ASYNC_API@
-
-/* Special BGQ stuffs */
+/* Special BGQ stuff */
 #cmakedefine SCR_BGQ
 
 #define X_BINDIR "@CMAKE_INSTALL_FULL_BINDIR@"

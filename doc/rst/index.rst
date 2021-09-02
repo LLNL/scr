@@ -24,6 +24,8 @@ SCR provides the following capabilities:
 * automated tracking and restart from the most recent checkpoint,
 * automated job relaunch within an allocation after hangs or failures.
 
+SCR provides API bindings for C/C++, Fortran, and Python applications.
+
 SCR originated as a production-level implementation of a multi-level checkpoint system
 of the type analyzed by [Vaidya]_
 SCR caches checkpoints in scalable storage,
@@ -51,6 +53,8 @@ The SCR commands are typically invoked from the job batch script.
 They are used to prepare the cache before a job starts,
 automate the process of restarting a job,
 and copy datasets from cache to the parallel file system upon a failure.
+Though one gains the most benefit when using both,
+one may use the SCR library without the SCR commands.
 
 .. [Vaidya] "A Case for Two-Level Recovery Schemes", Nitin H. Vaidya, IEEE Transactions on Computers, 1998, http://doi.ieeecomputersociety.org/10.1109/12.689645.
 

@@ -10,6 +10,7 @@
 */
 
 #include "scr_globals.h"
+#include "scr_flush_nompi.h"
 
 #include "kvtree.h"
 #include "kvtree_util.h"
@@ -84,18 +85,7 @@ int scr_flush_file_dataset_remove(int id)
 {
   /* only rank 0 needs to write the file */
   if (scr_my_rank_world == 0) {
-    /* read the flush file into hash */
-    kvtree* hash = kvtree_new();
-    kvtree_read_path(scr_flush_file, hash);
-
-    /* delete this dataset id from the flush file */
-    kvtree_unset_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-
-    /* write the hash back to the flush file */
-    kvtree_write_path(scr_flush_file, hash);
-
-    /* delete the hash */
-    kvtree_delete(&hash);
+    scr_flush_file_dataset_remove_with_path(id, scr_flush_file);
   }
   return SCR_SUCCESS;
 }
@@ -155,19 +145,9 @@ int scr_flush_file_location_unset(int id, const char* location)
 {
   /* only rank 0 updates the file */
   if (scr_my_rank_world == 0) {
-    /* read the flush file into hash */
-    kvtree* hash = kvtree_new();
-    kvtree_read_path(scr_flush_file, hash);
-
-    /* unset the location for this dataset */
-    kvtree* dset_hash = kvtree_get_kv_int(hash, SCR_FLUSH_KEY_DATASET, id);
-    kvtree_unset_kv(dset_hash, SCR_FLUSH_KEY_LOCATION, location);
-
-    /* write the hash back to the flush file */
-    kvtree_write_path(scr_flush_file, hash);
-
-    /* delete the hash */
-    kvtree_delete(&hash);
+    char* scr_flush_path = spath_strdup(scr_flush_file);
+    scr_flush_file_location_unset_with_path(id, location, scr_flush_path);
+    scr_free(&scr_flush_path);
   }
   return SCR_SUCCESS;
 }

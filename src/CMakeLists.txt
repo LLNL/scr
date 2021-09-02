@@ -8,18 +8,23 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
 # Install header files
 LIST(APPEND libscr_install_headers
 	scr.h
-	scrf.h
 )
+IF(ENABLE_FORTRAN)
+    LIST(APPEND libscr_install_headers scrf.h)
+ENDIF(ENABLE_FORTRAN)
 INSTALL(FILES ${libscr_install_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 ## CLI should build without MPI dependence
 LIST(APPEND cliscr_noMPI_srcs
+	scr_cache_index.c
+	scr_cache_index_serial.c
 	scr_config.c
 	scr_config_serial.c
 	scr_dataset.c
 	scr_env.c
 	scr_err_serial.c
 	scr_filemap.c
+	scr_flush_nompi.c
 	scr_halt.c
 	scr_index_api.c
 	scr_io.c
@@ -37,6 +42,7 @@ LIST(APPEND libscr_srcs
 	scr_cache.c
 	scr_cache_rebuild.c
 	scr_cache_index.c
+	scr_cache_index_mpi.c
 	scr_config.c
 	scr_config_mpi.c
 	scr_dataset.c
@@ -47,6 +53,7 @@ LIST(APPEND libscr_srcs
 	scr_filemap.c
 	scr_flush.c
 	scr_flush_file_mpi.c
+	scr_flush_nompi.c
 	scr_flush_sync.c
 	scr_flush_async.c
 	scr_globals.c
@@ -66,15 +73,15 @@ LIST(APPEND libscr_srcs
 	axl_mpi.c
 )
 
-# Add vendor specific code based on SCR_ASYNC_API
-
 # SCR Library
 ADD_LIBRARY(scr_o OBJECT ${libscr_srcs})
 
-ADD_LIBRARY(scr SHARED $<TARGET_OBJECTS:scr_o>)
-TARGET_LINK_LIBRARIES(scr ${SCR_EXTERNAL_LIBS})
-SET_TARGET_PROPERTIES(scr PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 1)
-INSTALL(TARGETS scr DESTINATION ${CMAKE_INSTALL_LIBDIR})
+IF(BUILD_SHARED_LIBS)
+   ADD_LIBRARY(scr SHARED $<TARGET_OBJECTS:scr_o>)
+   TARGET_LINK_LIBRARIES(scr ${SCR_EXTERNAL_LIBS})
+   SET_TARGET_PROPERTIES(scr PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 1)
+   INSTALL(TARGETS scr DESTINATION ${CMAKE_INSTALL_LIBDIR})
+ENDIF()
 
 ADD_LIBRARY(scr-static STATIC $<TARGET_OBJECTS:scr_o>)
 IF(SCR_LINK_STATIC)
@@ -92,21 +99,21 @@ TARGET_LINK_LIBRARIES(scr_base ${SCR_EXTERNAL_SERIAL_LIBS})
 
 # Fortran
 IF(ENABLE_FORTRAN)
-        ADD_LIBRARY(scrf SHARED scrf.c $<TARGET_OBJECTS:scr_o>)
-        TARGET_LINK_LIBRARIES(scrf ${SCR_EXTERNAL_LIBS})
-        SET_TARGET_PROPERTIES(scrf PROPERTIES OUTPUT_NAME scrf CLEAN_DIRECT_OUTPUT 1)
-        INSTALL(TARGETS scrf DESTINATION ${CMAKE_INSTALL_LIBDIR})
+        IF(BUILD_SHARED_LIBS)
+           ADD_LIBRARY(scrf SHARED scrf.c $<TARGET_OBJECTS:scr_o>)
+           TARGET_LINK_LIBRARIES(scrf ${SCR_EXTERNAL_LIBS})
+           SET_TARGET_PROPERTIES(scrf PROPERTIES OUTPUT_NAME scrf CLEAN_DIRECT_OUTPUT 1)
+           INSTALL(TARGETS scrf DESTINATION ${CMAKE_INSTALL_LIBDIR})
+        ENDIF()
 
         ADD_LIBRARY(scrf-static STATIC scrf.c $<TARGET_OBJECTS:scr_o>)
         IF(SCR_LINK_STATIC)
-            FOREACH(lib IN ITEMS ${SCR_EXTERNAL_LIBS})
-                STRING(REGEX REPLACE "so$" "a" lib_st ${lib})
-                LIST(APPEND SCR_EXTERNAL_LIBS_ST ${lib_st})
-            ENDFOREACH(lib IN ITEMS ${SCR_EXTERNAL_LIBS})
-            TARGET_LINK_LIBRARIES(scrf-static ${SCR_EXTERNAL_LIBS_ST})
-        ELSE(SCR_LINK_STATIC)
+            SET_TARGET_PROPERTIES(scrf-static PROPERTIES LINK_SEARCH_START_STATIC 1)
+            SET_TARGET_PROPERTIES(scrf-static PROPERTIES LINK_SEARCH_END_STATIC 1)
             TARGET_LINK_LIBRARIES(scrf-static ${SCR_EXTERNAL_LIBS})
         ENDIF(SCR_LINK_STATIC)
+        TARGET_LINK_LIBRARIES(scrf-static ${SCR_EXTERNAL_LIBS})
+
         SET_TARGET_PROPERTIES(scrf-static PROPERTIES OUTPUT_NAME scrf CLEAN_DIRECT_OUTPUT 1)
         INSTALL(TARGETS scrf-static DESTINATION ${CMAKE_INSTALL_LIBDIR})
 ENDIF(ENABLE_FORTRAN)

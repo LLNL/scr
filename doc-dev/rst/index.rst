@@ -117,6 +117,7 @@ Contents
    developers/scheme_xor.rst
    developers/containers.rst
    developers/drain.rst
+   developers/logging.rst
 
 .. toctree::
    :maxdepth: 2
@@ -144,8 +145,7 @@ Contents
 .. toctree::
    :maxdepth: 2
    :caption: Testing
-   
+
    developers/testing_new_systems.rst
    developers/testing_bamboo.rst
    developers/testing_gitlab.rst
-   

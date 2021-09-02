@@ -128,14 +128,13 @@ my $cmd = undef;
 `$bindir/scr_log_event -i $jobid -p $prefixdir -T 'SCAVENGE_START' -D $dset -S $start_time`;
 
 # gather files via pdsh
-my $partner_flag = "";
-#$cmd = "srun -n 1 -N 1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $partner_flag $downnodes_spaced";
+#$cmd = "srun -n 1 -N 1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced";
 print "$prog: ", scalar(localtime), "\n";
 # Does not work with "$cmd" for some reason using -Rexec
 #print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' \"$cmd\" >$output 2>$error\n";
 #             `$pdsh -Rexec-f 256 -S -w '$upnodes'  "$cmd"  >$output 2>$error`;
-print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $partner_flag $downnodes_spaced";
-             `$pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $partner_flag $downnodes_spaced`;
+print "$prog: $pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced";
+             `$pdsh -Rexec -f 256 -S -w '$upnodes' srun -n1 -N1 -w %h $bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $downnodes_spaced`;
 
 # print pdsh output to screen
 if ($conf{verbose}) {
@@ -149,133 +148,6 @@ if ($conf{verbose}) {
     print "$prog: stderr: cat $error\n";
     print `cat $error`;
     print "\n";
-  }
-}
-
-# scan output file for list of partners and failed copies
-my %partner = ();
-my @copy_failed = ();
-if (-r $output) {
-  open(OUT, $output);
-  while (my $line = <OUT>) {
-    chomp $line;
-    if ($line =~ /(\S+): Partners: (.*)$/) {
-      #atlas693: atlas693: Partners: atlas690 atlas692
-      my $current_node = $1;
-      my @partner_list = split(/\s+/, $2);
-      foreach my $p (@partner_list) {
-        push @{$partner{$p}}, $current_node;
-      }
-    } elsif ($line =~ /(\S+): Return code: (\d+)/) {
-      #atlas692: atlas692: Return code: 256
-      if ($2 != 0) {
-        push @copy_failed, $1;
-      }
-    }
-  }
-  close(OUT);
-}
-
-# scan error file for pdsh errors
-my %pdsh_failed_nodes = ();
-if (-r $error) {
-  open(ERR, $error);
-  while (my $line = <ERR>) {
-    #pdsh@atlas156: atlas193: mcmd: connect failed: No route to host
-    if ($line =~ /pdsh\@\S+: (\S+):/) {
-      $pdsh_failed_nodes{$1} = 1;
-    }
-    #atlas193: mcmd: connect failed: No route to host
-    if ($line =~ /^(\S+):/) {
-      $pdsh_failed_nodes{$1} = 1;
-    }
-  }
-  close(ERR);
-}
-my @pdsh_failed = (keys %pdsh_failed_nodes);
-
-# if first pdsh failed, try again with new 'failed' nodes list
-if (@copy_failed > 0 or @pdsh_failed > 0) {
-  # consolidate all failed nodes into a single hash
-  my %all_failures = ();
-  foreach my $node (@downnodes) {
-    $all_failures{$node} = 1;
-  }
-  foreach my $node (@pdsh_failed) {
-    $all_failures{$node} = 1;
-  }
-  foreach my $node (@copy_failed) {
-    $all_failures{$node} = 1;
-  }
-
-  # list all failed nodes in stdout
-  my @failed = (keys %all_failures);
-
-  # for each failed node, try to find a partner
-  my $missing_partner_for_failed_node = 0;
-  my %partner_nodes = ();
-  foreach my $node (@failed) {
-    if (defined $partner{$node}) {
-      # scan for a partner which has not failed
-      my $found_one = 0;
-      foreach my $p (@{$partner{$node}}) {
-        if (not defined $all_failures{$p}) {
-          $found_one = 1;
-          $partner_nodes{$p} = 1;
-        }
-      }
-      if (!$found_one) {
-        $missing_partner_for_failed_node = 1;
-      }
-    } else {
-      # don't know any partners for this node
-      $missing_partner_for_failed_node = 1;
-    }
-  }
-
-  # get list of partner nodes
-  my @partners = (keys %partner_nodes);
-
-  print "$prog: pdsh failed on: ", scalar(scr_hostlist::compress(@failed));
-  print ", trying partners: ", scalar(scr_hostlist::compress(@partners)), "\n\n";
-
-  # run pdsh scr_copy --partner with updated 'failed' list
-  my $new_downnodes_spaced = join(" ", @failed);
-  my $output2 = $output . ".2";
-  my $error2  = $error  . ".2";
-  my $new_upnodes = $upnodes;
-  if ($missing_partner_for_failed_node) {
-    # TODO: when using spare nodes, this will produce a lot of noise
-    # -- just remove an attempt in this case?
-    # we don't know all partners, so run on everyone (subtract out failed nodes)
-    my @new_upnodes = scr_hostlist::diff(\@upnodes, \@failed);
-    $new_upnodes = scr_hostlist::compress(@new_upnodes);
-  } else {
-    # we identified a partner for each failed node, just run on partners
-    $new_upnodes = scr_hostlist::compress(@partners);
-  }
-  $partner_flag = "--partner";
-  $cmd = "$bindir/scr_copy --cntldir $cntldir --id $dset --prefix $prefixdir --buf $buf_size $crc_flag $partner_flag $new_downnodes_spaced";
-  if ($new_upnodes ne "") {
-    print "$prog: $pdsh -f 256 -S -w '$new_upnodes' \"$cmd\" >$output2 2>$error2\n";
-                 `$pdsh -f 256 -S -w '$new_upnodes'  "$cmd"  >$output2 2>$error2`;
-
-    # print pdsh output to screen
-    if ($conf{verbose}) {
-      if (-r $output2) {
-        print "$prog: stdout: cat $output2\n";
-        print `cat $output2`;
-        print "\n";
-      }
-
-      if (-r $error2) {
-        print "$prog: stderr: cat $error2\n";
-        print `cat $error2`;
-        print "\n";
-      }
-    }
-  } else {
-    print "$prog: No partner nodes identified\n";
   }
 }
 

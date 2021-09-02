@@ -15,9 +15,25 @@ static void print_usage(void)
   printf("Usage: scr_print [options] <file>\n");
   printf("\n");
   printf("  Options:\n");
-  printf("    -m, --mode <mode>  Specify print format: \"tree\" or \"keyval\" (default tree)\n");
+  printf("    -m, --mode <mode>  Specify print format: \"tree\" or \"keyval\" (default keyval)\n");
   printf("    -h, --help         Print usage\n");
   printf("\n");
+}
+
+void kvtree_sort_recursive(kvtree* hash)
+{
+  kvtree_sort(hash, KVTREE_SORT_ASCENDING);
+
+  kvtree_elem* elem;
+  for (elem = kvtree_elem_first(hash);
+       elem != NULL;
+       elem = kvtree_elem_next(elem))
+  {
+    kvtree* child = kvtree_elem_hash(elem);
+    kvtree_sort_recursive(child);
+  }
+
+  return;
 }
 
 int main(int argc, char* argv[])
@@ -65,7 +81,7 @@ int main(int argc, char* argv[])
   }
 
   /* parse the print mode option, if one is given */
-  int print_mode = KVTREE_PRINT_TREE;
+  int print_mode = KVTREE_PRINT_KEYVAL;
   if (mode != NULL) {
     if (strcmp(mode, "tree") == 0) {
       print_mode = KVTREE_PRINT_TREE;
@@ -91,6 +107,7 @@ int main(int argc, char* argv[])
   kvtree* hash = kvtree_new();
   if (kvtree_read_file(filename, hash) == KVTREE_SUCCESS) {
     /* we read the file, now print it out */
+    kvtree_sort_recursive(hash);
     kvtree_print_mode(hash, 0, print_mode);
   } else {
     printf("ERROR: Failed to read file: `%s'\n", filename);

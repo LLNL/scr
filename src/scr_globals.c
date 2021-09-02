@@ -132,9 +132,8 @@ int   scr_drop_after_current = 0;                  /* whether to drop datasets f
 int    scr_flush_async             = SCR_FLUSH_ASYNC;         /* whether to use asynchronous flush */
 double scr_flush_async_bw          = SCR_FLUSH_ASYNC_BW;      /* bandwidth limit imposed during async flush */
 double scr_flush_async_percent     = SCR_FLUSH_ASYNC_PERCENT; /* runtime limit imposed during async flush */
-int    scr_flush_async_in_progress = 0;                       /* tracks whether an async flush is currently underway */
-int    scr_flush_async_dataset_id  = -1;                      /* tracks the id of the checkpoint being flushed */
-double scr_flush_async_bytes       = 0.0;                     /* records the total number of bytes to be flushed */
+
+int scr_flush_poststage = SCR_FLUSH_POSTSTAGE; /* Use scr_poststage to finalize transfers */
 
 int scr_prefix_size  = SCR_PREFIX_SIZE; /* max number of checkpoints to keep in prefix directory */
 int scr_prefix_purge = 0;               /* whether to delete all datasets listed in index file during SCR_Init */

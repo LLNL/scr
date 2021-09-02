@@ -11,16 +11,18 @@ If this is the case, or if you have any questions, please notify the SCR develop
 The goal is to expand the implementation to support a large number of applications.
 
 * The code must be an MPI application.
-* For best performance, the code must read and write datasets as a file-per-process in a globally-coordinated fashion.
+* For best performance, the code must read and write datasets
+  as a file-per-process in a globally-coordinated fashion.
   There is support for reading and writing shared files,
   but one cannot utilize the fastest storage methods in that case.
+  See Section :ref:`sec-config-common` for details.
 * To use the scalable restart capability,
   a job must be restarted with the same number of processes it ran with when it wrote the checkpoint,
   and each process must only access the files it wrote during the checkpoint.
   Note that this may limit the effectiveness of the library for codes that can restart
   from a checkpoint with a different number of processes than were used to write the checkpoint.
-  Such codes can often still benefit from the scalable checkpoint capability,
-  but not the scalable restart -- they must fall back to restarting from the parallel file system.
+  Such codes may still benefit from the scalable checkpoint capability,
+  but they must configure SCR to restart from the parallel file system.
 * It must be possible to store the dataset files from all processes in the same directory.
   In particular, all files belonging to a given dataset must have distinct names.
 * Files cannot contain data that span multiple datasets.
