@@ -1299,6 +1299,9 @@ static int scr_get_params()
     kvtree_print_mode(scr_reddesc_hash, 4, KVTREE_PRINT_KEYVAL);
   }
 
+  /* store parameters set by app code for use by post-run scripts */
+  scr_param_save();
+
   return SCR_SUCCESS;
 }
 
@@ -2960,19 +2963,18 @@ const char* SCR_Config(const char* config_string)
       /* dealing with a simple key/value parameter pair */
 
       /* SCR_PREFIX and SCR_CONF_FILE are a special in that they are needed to
-       * construct the path to find user config and apps config files which are
+       * construct the path to find user config file which is
        * needed for SCR_Config itself.  */
       if (strcmp(toplevel_key, "SCR_PREFIX") == 0 ||
           strcmp(toplevel_key, "SCR_CONF_FILE") == 0) {
-        if (scr_app_hash != NULL) {
-          scr_warn("Late attempt to set %s, will not be acted on @ %s:%d",
-            toplevel_key, __FILE__, __LINE__
-          );
-        } else {
+        /* allocate an app hash if needed so we can set SCR_PREFIX
+         * or SCR_CONF_FILE in the call to scr_param_set below */
+        if (scr_app_hash == NULL) {
           scr_app_hash = kvtree_new();
-          assert(scr_app_hash);
         }
-        /* temporarily set value so that scr_param_init can use it */
+
+        /* we temporarily set SCR_PREFIX or SCR_CONF_FILE
+         * so that scr_param_init can use it */
         if (toplevel_value) {
           scr_param_set(toplevel_key, toplevel_value);
         } else {
@@ -2984,12 +2986,12 @@ const char* SCR_Config(const char* config_string)
       scr_param_init();
 
       if (toplevel_value) {
-        /* user want to set a value has given a
-         * string like "SCR_PREFIX=/path/to/prefix" */
+        /* user wants to set a value,
+         * has given a string like "SCR_PREFIX=/path/to/prefix" */
         scr_param_set(toplevel_key, toplevel_value);
       } else {
-        /* user wants to unset a value has given
-         * a string like "SCR_PREFIX=" */
+        /* user wants to unset a value,
+         * has given a string like "SCR_PREFIX=" */
         scr_param_unset(toplevel_key);
       }
     } else {
