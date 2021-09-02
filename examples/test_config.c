@@ -160,7 +160,7 @@ int main (int argc, char* argv[])
 
   /* STORE has been set with both /dev/shm/foo and /dev/shm at this point,
    * so a query should print an error and return NULL */
-  tests_passed &= test_cfg("STORE", NULL);
+  tests_passed &= test_cfg("STORE", NULL, __LINE__);
 
   /* delete values */
   SCR_Config("STORE=");
