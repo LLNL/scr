@@ -203,14 +203,9 @@ int main (int argc, char* argv[])
   tests_passed &= test_env("$VAR_A ${VAR_B>}", "value a ${VAR_B>}", __LINE__);
   tests_passed &= test_env("$VAR_C", "", __LINE__);
 
-  /* test reading in values from app.conf file */
+  /* test that value has been forgotten since finalize was called */
   scr_param_finalize(); /* de-initialize all set parameters */
-  SCR_Config("SCR_PREFIX=.scr/test_config.d"); /* no app.conf there */
   tests_passed &= test_cfg("SCR_COPY_TYPE", NULL, __LINE__);
-  scr_param_finalize();
-  SCR_Config("SCR_PREFIX="); /* undo setting SCR_PREFIX */
-  scr_param_finalize();
-  tests_passed &= test_cfg("SCR_COPY_TYPE", "SINGLE", __LINE__);
   scr_param_finalize();
 
   /* test setting SCR_PREFIX from various sources */
@@ -223,27 +218,23 @@ int main (int argc, char* argv[])
     /* from a user config file */
     setenv("SCR_CONF_FILE", usrcfgfn, 1);
     tests_passed &= test_cfg("SCR_COPY_TYPE", NULL, __LINE__);
+    tests_passed &= test_cfg("SCR_PREFIX", ".scr/test_config.d", __LINE__);
     scr_param_finalize();
     unsetenv("SCR_CONF_FILE");
 
     /* from a user config file with path from app */
     SCR_Configf("SCR_CONF_FILE=%s", usrcfgfn);
     tests_passed &= test_cfg("SCR_COPY_TYPE", NULL, __LINE__);
-    scr_param_finalize();
-    SCR_Config("SCR_CONF_FILE="); /* undo setting SCR_CONF_FILE */
+    tests_passed &= test_cfg("SCR_PREFIX", ".scr/test_config.d", __LINE__);
     scr_param_finalize();
 
     /* from env overriding user config file */
     setenv("SCR_CONF_FILE", usrcfgfn, 1);
     SCR_Config("SCR_PREFIX=.");
     tests_passed &= test_cfg("SCR_COPY_TYPE", NULL, __LINE__);
+    tests_passed &= test_cfg("SCR_PREFIX", ".scr/test_config.d", __LINE__);
     scr_param_finalize();
-    SCR_Config("SCR_PREFIX="); /* undo setting SCR_PREFIX */
     unsetenv("SCR_CONF_FILE");
-    scr_param_finalize();
-
-    /* check that values are back to normal */
-    tests_passed &= test_cfg("SCR_COPY_TYPE", "SINGLE", __LINE__);
   } else {
     fprintf(stderr, "Failed to create file: %s: %s\n", usrcfgfn,
             strerror(errno));

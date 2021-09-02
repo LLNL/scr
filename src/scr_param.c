@@ -451,12 +451,6 @@ int scr_param_init(void)
       kvtree_set(scr_no_app_hash, no_app_params[i], kvtree_new());
     }
 
-    /* read in app config file which records any parameters set
-     * by application through calls to SCR_Config */
-    char* app_file = app_config_path();
-    scr_config_read(app_file, scr_app_hash);
-    scr_free(&app_file);
-
     /* allocate hash object to store values from system config file */
     scr_config_read(scr_config_file, scr_system_hash);
 
@@ -495,6 +489,8 @@ int scr_param_finalize()
      * it will be freed in SCR_Finalize instead */
     /* write out scr_app_hash and free it */
     
+    /* TODO: write app hash to file in SCR_Init after processing params,
+     * since run may die before calling SCR_Finalize */
     /* store parameters set by app code for use by post-run scripts */
     char* app_file = app_config_path();
     if (app_file != NULL) {
