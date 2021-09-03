@@ -58,7 +58,7 @@ buildjob-catalyst:
     - ln -s ${TMP_DIR_BASE}/build build-tmp
     - mkdir -p ${TMP_DIR_BASE}/deps
     - ln -s ${TMP_DIR_BASE}/deps deps
-    - ${SRC_DIR}/bootstrap.sh --dev
+    - ${SRC_DIR}/bootstrap.sh
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${WORK_DIR}/install -DCMAKE_PREFIX_PATH=${WORK_DIR}/install ${SRC_DIR}
     - make
@@ -173,7 +173,7 @@ TESTING-script-catalyst:
     - cd ${WORK_DIR_BASE}
     - git clone file://${SRC_DIR} scr-test
     - cd scr-test
-    - ./bootstrap.sh --dev
+    - ./bootstrap.sh
     - csh testing/TESTING.csh
 
 testdist-catalyst:
@@ -250,7 +250,7 @@ buildjob-quartz:
     - ln -s ${TMP_DIR_BASE}/build build-tmp
     - mkdir -p ${TMP_DIR_BASE}/deps
     - ln -s ${TMP_DIR_BASE}/deps deps
-    - ${SRC_DIR}/bootstrap.sh --dev
+    - ${SRC_DIR}/bootstrap.sh
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${WORK_DIR}/install -DCMAKE_PREFIX_PATH=${WORK_DIR}/install ${SRC_DIR}
     - make
@@ -366,7 +366,7 @@ TESTING-script-quartz:
     - cd ${WORK_DIR_BASE}
     - git clone file://${SRC_DIR} scr-test
     - cd scr-test
-    - ./bootstrap.sh --dev
+    - ./bootstrap.sh
     - csh testing/TESTING.csh
 
 testdist-quartz:
@@ -447,7 +447,7 @@ buildjob-lassen:
     - export CXX=xlc++_r
     - export F77=xlf_r
     - export F90=xlf90_r
-    - ${SRC_DIR}/bootstrap.sh --dev
+    - ${SRC_DIR}/bootstrap.sh
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${WORK_DIR}/install -DCMAKE_PREFIX_PATH=${WORK_DIR}/install -DSCR_RESOURCE_MANAGER=LSF ${SRC_DIR}
     - make
@@ -591,7 +591,7 @@ TESTING-script-lassen:
     - cd ${WORK_DIR_BASE}
     - git clone file://${SRC_DIR} scr-test
     - cd scr-test
-    - ./bootstrap.sh --dev
+    - ./bootstrap.sh
     - csh testing/TESTING.csh
 
 testdist-lassen:
