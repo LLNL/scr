@@ -81,6 +81,7 @@ For setting the default logging parameters:
 One can disable portions of the SCR build if they are not needed:
 
 * :code:`-DENABLE_FORTRAN=[ON/OFF]` : Whether to build library for Fortran bindings, defaults to :code:`ON`
+* :code:`-DENABLE_FORTRAN_TRAILING_UNDERSCORES=[AUTO/ON/OFF]` : Whether to append underscores to symbol names in the Fortran bindings, defaults to :code:`AUTO`
 * :code:`-DENABLE_EXAMPLES=[ON/OFF]` : Whether to build programs in :code:`examples` directory, defaults to :code:`ON`
 * :code:`-DENABLE_TESTS=[ON/OFF]` : Whether to support :code:`make check` tests, defaults to :code:`ON`
 
