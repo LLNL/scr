@@ -569,9 +569,7 @@ spack-scr-lassen:
     - spack cd -i scr
     - cd share/scr/examples
     - export MPIF77=`which mpif77`
-    - export F77FLAGS="-qextname"
     - export MPIF90=`which mpif90`
-    - export F90FLAGS="-qextname"
     - make
 
 TESTING-script-lassen:
