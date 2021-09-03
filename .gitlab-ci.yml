@@ -424,6 +424,7 @@ buildjob-lassen:
   tags: 
     - lassen
   script:
+    - set -x
     - export WORK_DIR=${WORK_DIR_BASE}/lassen
     - mkdir -p ${WORK_DIR}
     - cd ${WORK_DIR}
@@ -446,7 +447,6 @@ buildjob-lassen:
     - export CXX=xlc++_r
     - export F77=xlf_r
     - export F90=xlf90_r
-    - export FFLAGS=-qextname
     - ${SRC_DIR}/bootstrap.sh --dev
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${WORK_DIR}/install -DCMAKE_PREFIX_PATH=${WORK_DIR}/install -DSCR_RESOURCE_MANAGER=LSF ${SRC_DIR}
