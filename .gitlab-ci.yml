@@ -186,9 +186,10 @@ testdist-catalyst:
   variables:
     LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
   script:
+    - set -x
     - echo "Running in" `pwd`
-    - cd ${WORK_DIR_BASE}
-    - git clone file://${SRC_DIR} scr-testdist
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist
     - cd scr-testdist/dist
     - ./builddist develop
     - mkdir temp
@@ -197,7 +198,7 @@ testdist-catalyst:
     - cd scr-top-develop
     - mkdir build
     - cd build
-    - cmake ..
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install ..
     - make -j install
 
 testdist-static-catalyst:
@@ -210,9 +211,10 @@ testdist-static-catalyst:
   variables:
     LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
   script:
+    - set -x
     - echo "Running in" `pwd`
-    - cd ${WORK_DIR_BASE}
-    - git clone file://${SRC_DIR} scr-testdist-static
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist-static
     - cd scr-testdist-static/dist
     - ./builddist develop
     - mkdir temp
@@ -221,7 +223,7 @@ testdist-static-catalyst:
     - cd scr-top-develop
     - mkdir build
     - cd build
-    - cmake -DBUILD_SHARED_LIBS=OFF ..
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DBUILD_SHARED_LIBS=OFF ..
     - make -j install
 
 buildjob-quartz:
@@ -377,6 +379,7 @@ testdist-quartz:
   variables:
     LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
   script:
+    - set -x
     - echo "Running in" `pwd`
     - cd ${TMP_DIR_BASE}
     - git clone --depth 1 file://${SRC_DIR} scr-testdist
@@ -402,8 +405,8 @@ testdist-static-quartz:
     LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
   script:
     - echo "Running in" `pwd`
-    - cd ${WORK_DIR_BASE}
-    - git clone file://${SRC_DIR} scr-testdist-static
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist-static
     - cd scr-testdist-static/dist
     - ./builddist develop
     - mkdir temp
@@ -412,7 +415,7 @@ testdist-static-quartz:
     - cd scr-top-develop
     - mkdir build
     - cd build
-    - cmake -DBUILD_SHARED_LIBS=OFF ..
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DBUILD_SHARED_LIBS=OFF ..
     - make -j install
 
 buildjob-lassen:
@@ -601,9 +604,10 @@ testdist-lassen:
   variables:
     LLNL_LSF_SCHEDULER_PARAMETERS: '-nnodes 4 -W 10 /bin/bash'
   script:
+    - set -x
     - echo "Running in" `pwd`
-    - cd ${WORK_DIR_BASE}
-    - git clone file://${SRC_DIR} scr-testdist
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist
     - cd scr-testdist/dist
     - ./builddist develop
     - mkdir temp
@@ -612,7 +616,7 @@ testdist-lassen:
     - cd scr-top-develop
     - mkdir build
     - cd build
-    - cmake ..
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DSCR_RESOURCE_MANAGER=LSF ..
     - make -j install
 
 testdist-static-lassen:
@@ -625,9 +629,10 @@ testdist-static-lassen:
   variables:
     LLNL_LSF_SCHEDULER_PARAMETERS: '-nnodes 4 -W 10 /bin/bash'
   script:
+    - set -x
     - echo "Running in" `pwd`
-    - cd ${WORK_DIR_BASE}
-    - git clone file://${SRC_DIR} scr-testdist-static
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist-static
     - cd scr-testdist-static/dist
     - ./builddist develop
     - mkdir temp
@@ -636,6 +641,6 @@ testdist-static-lassen:
     - cd scr-top-develop
     - mkdir build
     - cd build
-    - cmake -DBUILD_SHARED_LIBS=OFF ..
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DBUILD_SHARED_LIBS=OFF -DSCR_RESOURCE_MANAGER=LSF ..
     - make -j install
 
