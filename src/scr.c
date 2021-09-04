@@ -390,40 +390,6 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
      * runtime kills others after timeout) */
     MPI_Barrier(scr_comm_world);
 
-#ifdef HAVE_LIBPMIX
-    /* sync procs in pmix before shutdown */
-    int retval = PMIx_Fence(NULL, 0, NULL, 0);
-    if (retval != PMIX_SUCCESS) {
-      scr_err("PMIx_Fence failed: rc=%d, rank: %d @ %s:%d",
-        retval, scr_pmix_proc.rank, __FILE__, __LINE__
-      );
-    }
-
-/*
-    scr_dbg(0, "about to call pmix notify in HALT: pmix rank: %d", scr_pmix_proc.rank);
-    retval = PMIx_Notify_event(-1,
-                      &scr_pmix_proc,
-                      PMIX_RANGE_GLOBAL,
-                      NULL, 0,
-                      NULL, (void *)NULL);
-    if (retval != PMIX_SUCCESS) {
-      scr_dbg(0, "error calling pmix_notify_event: %d", retval);
-    }
-*/
-
-    /* shutdown pmix */
-    retval = PMIx_Finalize(NULL, 0);
-    if (retval != PMIX_SUCCESS) {
-      scr_err("PMIx_Finalize failed: rc=%d, rank: %d @ %s:%d",
-        retval, scr_pmix_proc.rank, __FILE__, __LINE__
-      );
-    }
-
-    /* TODO: remove this once ompi has a fix?? */
-    MPI_Barrier(scr_comm_world);
-    MPI_Finalize();
-#endif /* HAVE_LIBPMIX */
-
     /* and exit the job */
     exit(0);
   }
@@ -2612,24 +2578,6 @@ int SCR_Finalize()
   if (scr_my_rank_world == 0 && scr_log_enable) {
     scr_log_finalize();
   }
-
-#ifdef HAVE_LIBPMIX
-  /* sync procs in pmix before shutdown */
-  int retval = PMIx_Fence(NULL, 0, NULL, 0);
-  if (retval != PMIX_SUCCESS) {
-    scr_err("PMIx_Fence failed: rc=%d, rank: %d @ %s:%d",
-      retval, scr_pmix_proc.rank, __FILE__, __LINE__
-    );
-  }
-
-  /* shutdown pmix */
-  retval = PMIx_Finalize(NULL, 0);
-  if (retval != PMIX_SUCCESS) {
-    scr_err("PMIx_Finalize failed: rc=%d, rank: %d @ %s:%d",
-      retval, scr_pmix_proc.rank, __FILE__, __LINE__
-    );
-  }
-#endif /* HAVE_LIBPMIX */
 
   /* shut down the AXL library */
   int axl_rc = AXL_Finalize_comm(scr_comm_world);

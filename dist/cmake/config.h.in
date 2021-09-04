@@ -12,9 +12,6 @@
 #cmakedefine HAVE_LIBYOGRT
 #cmakedefine HAVE_LIBMYSQLCLIENT
 
-// Machine Specific Libs
-#cmakedefine HAVE_LIBPMIX
-
 // Build Options
 #cmakedefine HAVE_FORTRAN_API
 

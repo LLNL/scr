@@ -103,10 +103,6 @@
 #include "scr_flush_sync.h"
 #include "scr_flush_async.h"
 
-#ifdef HAVE_LIBPMIX
-#include "pmix.h"
-#endif
-
 /*
 =========================================
 Globals
@@ -231,9 +227,5 @@ extern scr_storedesc* scr_storedesc_cntl; /* store descriptor struct for control
 
 extern int scr_nreddescs;         /* number of redundancy descriptors in scr_reddescs list */
 extern scr_reddesc* scr_reddescs; /* pointer to list of redundancy descriptors */
-
-#ifdef HAVE_LIBPMIX
-extern pmix_proc_t scr_pmix_proc; /*process handle for pmix */
-#endif
 
 #endif
