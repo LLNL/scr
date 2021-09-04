@@ -87,7 +87,6 @@ One can disable portions of the SCR build if they are not needed:
 
 * :code:`-DENABLE_IBM_BBAPI[ON/OFF]` : Whether to enable IBM Burst Buffer support for file transfers, defaults to :code:`ON`
 * :code:`-DENABLE_CRAY_DW[ON/OFF]` : Whether to enable Cray DataWarp support for file transfers, defaults to :code:`OFF`
-* :code:`-DENABLE_INTEL_CPPR[ON/OFF]` : Whether to enable Intel CPPR support for file transfers, defaults to :code:`OFF`
 
 * :code:`-DENABLE_PDSH=[ON/OFF]` : Whether to use pdsh, defalts to :code:`ON`
 * :code:`-DBUILD_PDSH=[OFF/ON]`: CMake can automatically download and build the PDSH dependency, defaults to :code:`OFF`

@@ -6,7 +6,6 @@
 
 // Machine Specific Libs
 #cmakedefine HAVE_LIBPMIX
-#cmakedefine HAVE_LIBCPPR
 
 // Build Options
 #cmakedefine HAVE_FORTRAN_API
