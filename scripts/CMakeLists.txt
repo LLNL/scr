@@ -31,11 +31,6 @@ IF(${SCR_RESOURCE_MANAGER} STREQUAL "APRUN")
 	SET(cliscr_run_name "scr_aprun")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "APRUN")
 
-IF(${SCR_RESOURCE_MANAGER} STREQUAL "PMIX")
-	SET(cliscr_dir_name "PMIX")
-	SET(cliscr_run_name "scr_pmix_run_bash")
-ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "PMIX")
-
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
 	SET(cliscr_dir_name "LSF")
 	SET(cliscr_run_name "scr_jsrun")
