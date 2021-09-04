@@ -46,9 +46,6 @@ MESSAGE(STATUS "ENABLE_IBM_BBAPI: ${ENABLE_IBM_BBAPI}")
 OPTION(ENABLE_CRAY_DW "Whether to enable Cray Datawarp support" OFF)
 MESSAGE(STATUS "ENABLE_CRAY_DW: ${ENABLE_CRAY_DW}")
 
-OPTION(ENABLE_INTEL_CPPR "Whether to enable Intel CPPR support" OFF)
-MESSAGE(STATUS "ENABLE_INTEL_CPPR: ${ENABLE_INTEL_CPPR}")
-
 SET(SCR_CACHE_BASE "/dev/shm" CACHE PATH "Default base path for SCR cache directory")
 SET(SCR_CNTL_BASE "/dev/shm" CACHE PATH "Default base path for SCR control directory")
 SET(SCR_CONFIG_FILE "/etc/scr/scr.conf" CACHE FILEPATH "Default full path and filename for SCR config file")
