@@ -3092,15 +3092,6 @@ int SCR_Need_checkpoint(int* flag)
         }
       }
     }
-
-    /* no way to determine whether we need to checkpoint, so always say yes */
-    if (!*flag &&
-        scr_checkpoint_interval <= 0 &&
-        scr_checkpoint_seconds  <= 0 &&
-        scr_checkpoint_overhead <= 0)
-    {
-      *flag = 1;
-    }
   }
 
   /* rank 0 broadcasts the decision */

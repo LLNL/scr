@@ -271,6 +271,11 @@ Upon returning from :code:`SCR_Need_checkpoint`,
 and it is set to :code:`0` otherwise.
 The call returns the same value in :code:`flag` on all processes.
 
+Various configuration settings determine the conditions
+in which :code:`SCR_Need_checkpoint` sets :code:`flag` to 1.
+See :code:`SCR_CHECKPOINT_INTERVAL`, :code:`SCR_CHECKPOINT_SECONDS`,
+and :code:`SCR_CHECKPOINT_OVERHEAD` in :ref:`sec-config`.
+
 SCR_Start_output
 ^^^^^^^^^^^^^^^^
 
