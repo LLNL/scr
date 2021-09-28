@@ -2788,10 +2788,6 @@ const char* SCR_Config(const char* config_string)
           state = done;
         } else if (*conf == ' ') {
           state = before_value;
-        } else if (*conf == '=') {
-          scr_abort(-1, "Invalid configuration string '%s' @ %s:%d",
-            config_string, __FILE__, __LINE__
-          );
         } else {
           value = conf;
           if (toplevel_value == NULL) {
@@ -2813,10 +2809,6 @@ const char* SCR_Config(const char* config_string)
         } else if (*conf == ' ') {
           *conf = '\0';
           state = before_key;
-        } else if (*conf == '=') {
-          scr_abort(-1, "Invalid configuration string '%s' @ %s:%d",
-            config_string, __FILE__, __LINE__
-          );
         } else {
           state = in_value;
         }
