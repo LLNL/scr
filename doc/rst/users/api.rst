@@ -122,7 +122,10 @@ and a multi-item form that consists of a parent key/value pair and set of child 
 
 To set a simple parameter,
 one specifies a parameter name and its value in the form of a :code:`key=value` string as the :code:`config` argument.
-For example, passing the string :code:`SCR_FLUSH=10` sets :code:`SCR_FLUSH` to the value of 10.
+For example, passing the string :code:`SCR_FLUSH=10` sets :code:`SCR_FLUSH` to the value of 10. The `=` character
+is allowed as part of the value if the value is a string.  For example, passing the string
+:code:`SCR_PREFIX="/my/dir/with/=/sign"` sets :code:`SCR_PREFIX` to the value of "/my/dir/with/=/sign".
+
 If one sets the same parameter with multiple calls to :code:`SCR_Config`,
 SCR applies the most recent value.
 When setting a parameter, for C applications, :code:`SCR_Config` always returns :code:`NULL`.

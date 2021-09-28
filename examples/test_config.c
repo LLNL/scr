@@ -279,6 +279,16 @@ int main (int argc, char* argv[])
   SCR_Config("DEBUG=1");
   tests_passed &= test_cfg("DEBUG", "1", __LINE__);
 
+  /* test setting SCR_CACHE_BASE from with various names */
+  tests_passed &= test_cfg("SCR_CACHE_BASE=/dev/shm/boring_name", NULL, __LINE__);
+  tests_passed &= test_cfg("SCR_CACHE_BASE", "/dev/shm/boring_name", __LINE__);
+
+  tests_passed &= test_cfg("SCR_CACHE_BASE==/dev/shm/name_contains_preceding_=", NULL, __LINE__);
+  tests_passed &= test_cfg("SCR_CACHE_BASE", "=/dev/shm/name_contains_preceding_=", __LINE__);
+
+  tests_passed &= test_cfg("SCR_CACHE_BASE= =/dev/shm/==name_contains_=_signs_everywhere", NULL, __LINE__);
+  tests_passed &= test_cfg("SCR_CACHE_BASE", "=/dev/shm/==name_contains_=_signs_everywhere", __LINE__);
+
   SCR_Config("SCR_COPY_TYPE=RS");
   if (SCR_Init() == SCR_SUCCESS) {
 
