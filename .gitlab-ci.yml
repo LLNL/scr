@@ -194,8 +194,8 @@ testdist-catalyst:
     - ./builddist develop
     - mkdir temp
     - cd temp
-    - tar -zxf ../scr-top-develop.tgz
-    - cd scr-top-develop
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
     - mkdir build
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install ..
@@ -219,8 +219,8 @@ testdist-static-catalyst:
     - ./builddist develop
     - mkdir temp
     - cd temp
-    - tar -zxf ../scr-top-develop.tgz
-    - cd scr-top-develop
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
     - mkdir build
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DBUILD_SHARED_LIBS=OFF ..
@@ -387,8 +387,8 @@ testdist-quartz:
     - ./builddist develop
     - mkdir temp
     - cd temp
-    - tar -zxf ../scr-top-develop.tgz
-    - cd scr-top-develop
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
     - mkdir build
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install ..
@@ -411,8 +411,8 @@ testdist-static-quartz:
     - ./builddist develop
     - mkdir temp
     - cd temp
-    - tar -zxf ../scr-top-develop.tgz
-    - cd scr-top-develop
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
     - mkdir build
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DBUILD_SHARED_LIBS=OFF ..
@@ -610,8 +610,8 @@ testdist-lassen:
     - ./builddist develop
     - mkdir temp
     - cd temp
-    - tar -zxf ../scr-top-develop.tgz
-    - cd scr-top-develop
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
     - mkdir build
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DSCR_RESOURCE_MANAGER=LSF ..
@@ -635,8 +635,8 @@ testdist-static-lassen:
     - ./builddist develop
     - mkdir temp
     - cd temp
-    - tar -zxf ../scr-top-develop.tgz
-    - cd scr-top-develop
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
     - mkdir build
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DBUILD_SHARED_LIBS=OFF -DSCR_RESOURCE_MANAGER=LSF ..
