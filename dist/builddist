@@ -120,14 +120,14 @@ for (( i=0; i<${len}; i=$(($i + 3)) )); do
 done
 
 # NOTE: last TAG is from SCR
-# rename archive directory to scr-top-TAG
-mv $ARCH_DIR scr-top-$TAG
+# rename archive directory to scr-TAG
+mv $ARCH_DIR scr-$TAG
 
 # copy in top-level CMake files
-cp -r ../CMakeLists.txt ../NOTICE ../cmake scr-top-$TAG
+cp -r ../CMakeLists.txt ../NOTICE ../cmake scr-$TAG
 
 # zip up release tarball
-tar -czf ../scr-top-${TAG}.tgz scr-top-$TAG
+tar -czf ../scr-${TAG}.tgz scr-$TAG
 
 # delete prep directory
 cd ..
