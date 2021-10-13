@@ -5,8 +5,12 @@
 # installed to scr/install/
 #
 # Optional flags:
+#   --ssh    clone dependency repos with git ssh instead of https
 #   --debug  compiles dependencies with full debug "-g -O0"
-#   --dev    builds most recent version of each dependency
+#   --opt    compiles dependencies with optimization (non-debug)
+#   --dev    builds each dependency from its latest commit
+#   --tag    builds each dependency from a hardcoded tag
+#   --clean  deletes deps and install directories before build
 #
 
 set -x 
@@ -27,6 +31,8 @@ while [ $# -ge 1 ]; do
       build_debug=0 ;;
     "--dev" )
       build_dev=1 ;;
+    "--tag" )
+      build_dev=0 ;;
     "--clean" )
       build_clean=1 ;;
     *)
@@ -49,15 +55,15 @@ mkdir -p install
 
 cd deps
 
-lwgrp=lwgrp-1.0.3
-dtcmp=dtcmp-1.1.2
+lwgrp=lwgrp-1.0.4
+dtcmp=dtcmp-1.1.3
 pdsh=pdsh-2.34
 
 if [ ! -f ${lwgrp}.tar.gz ] ; then
-  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.3/${lwgrp}.tar.gz
+  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.4/${lwgrp}.tar.gz
 fi
 if [ ! -f ${dtcmp}.tar.gz ] ; then
-  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.2/${dtcmp}.tar.gz
+  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.3/${dtcmp}.tar.gz
 fi
 if [ ! -f ${pdsh}.tar.gz ] ; then
   wget https://github.com/chaos/pdsh/releases/download/${pdsh}/${pdsh}.tar.gz
@@ -136,7 +142,7 @@ popd
 
 pushd KVTree
   if [ $build_dev -eq 0 ] ; then
-    git checkout v1.1.1
+    git checkout v1.2.0
   fi
   rm -rf build
   mkdir -p build
@@ -157,7 +163,7 @@ popd
 
 pushd AXL
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.4.0
+    git checkout v0.5.0
   fi
   rm -rf build
   mkdir -p build
@@ -177,7 +183,7 @@ popd
 
 pushd spath
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.0.2
+    git checkout v0.1.0
   fi
   rm -rf build
   mkdir -p build
@@ -198,7 +204,7 @@ popd
 
 pushd rankstr
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.0.3
+    git checkout v0.1.0
   fi
   rm -rf build
   mkdir -p build
@@ -218,7 +224,7 @@ popd
 
 pushd redset
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.0.5
+    git checkout v0.1.0
   fi
   rm -rf build
   mkdir -p build
@@ -239,7 +245,7 @@ popd
 
 pushd shuffile
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.0.4
+    git checkout v0.1.0
   fi
   rm -rf build
   mkdir -p build
@@ -260,7 +266,7 @@ popd
 
 pushd er
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.0.4
+    git checkout v0.1.0
   fi
   rm -rf build
   mkdir -p build

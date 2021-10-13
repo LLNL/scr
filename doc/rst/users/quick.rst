@@ -32,9 +32,9 @@ To download and build SCR with CMake:
 
 .. code-block:: bash
 
-  wget https://github.com/LLNL/scr/releases/download/v3.0rc1/scr-top-v3.0rc1.tgz
-  tar -zxf scr-top-v3.0rc1.tgz
-  cd scr-top-v3.0rc1
+  wget https://github.com/LLNL/scr/releases/download/v3.0rc2/scr-top-v3.0rc2.tgz
+  tar -zxf scr-top-v3.0rc2.tgz
+  cd scr-top-v3.0rc2
 
   mkdir build install
   cd build
@@ -61,7 +61,7 @@ SCR can then be installed for SLURM systems with:
 
 .. code-block:: bash
 
-  spack install scr@3.0rc1
+  spack install scr@3.0rc2
 
 This downloads, builds, and installs SCR and its dependencies.
 
