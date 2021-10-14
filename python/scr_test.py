@@ -17,7 +17,7 @@ timestep = 1
 # optionally set and get SCR parameters with scr.config() before scr.init()
 val = scr.config("SCR_DEBUG")
 if test == 0: assert val is None, "SCR_DEBUG should not be set on first run"
-if test > 0:  assert val == "1", "SCR_DEBUG should remember its value from earlier runs"
+if test > 0:  assert val is None, "SCR_DEBUG should assume its default value even after being changed in an earlier run"
 
 val = scr.config("SCR_DEBUG=1")
 assert val is None, "scr.config should not return a value when setting a param"
@@ -25,6 +25,9 @@ assert val is None, "scr.config should not return a value when setting a param"
 val = scr.config("SCR_DEBUG")
 assert val == "1", "SCR_DEBUG should now be 1"
 print("SCR_DEBUG:", val)
+
+# enable scr.need_checkpoint() so that it returns True
+scr.config("SCR_CHECKPOINT_INTERVAL=1")
 
 # check that scr.init can throw an exception
 if test == 5:
@@ -121,7 +124,7 @@ while timestep < laststep:
 
   # save checkpoint if needed
   rc = scr.need_checkpoint()
-  assert rc is True, "scr.need_checkpoint should return True since we're not configuring SCR to do otherwise"
+  assert rc is True, "scr.need_checkpoint should always return True since SCR_CHECKPOINT_INTERVAL=1"
   if rc:
     # define name of checkpoint to be something like "timestep_10"
     name = 'timestep_' + str(timestep)
