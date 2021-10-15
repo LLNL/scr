@@ -4,12 +4,13 @@
 ## MPI
 INCLUDE(SetupMPI)
 IF(MPI_C_FOUND)
-        INCLUDE_DIRECTORIES(${MPI_C_INCLUDE_PATH})
-        LIST(APPEND SCR_EXTERNAL_LIBS ${MPI_C_LIBRARIES})
+    INCLUDE_DIRECTORIES(${MPI_C_INCLUDE_PATH})
+    LIST(APPEND SCR_EXTERNAL_LIBS ${MPI_C_LIBRARIES})
 ELSE(MPI_C_FOUND)
-        MESSAGE("WARNING: Could not find MPI!")
-        MESSAGE("         Either add an MPI compiler to your path (using modules)")
-        MESSAGE("         Or force CMake to build using the correct compiler (`export CC=mpicc`)")
+    MESSAGE(FATAL_ERROR
+        "Could not find MPI! "
+        "Either add an MPI compiler to your path "
+        "or force CMake to build using the correct compiler (`export CC=mpicc`).")
 ENDIF(MPI_C_FOUND)
 
 ## DataWarp
