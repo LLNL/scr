@@ -531,7 +531,7 @@ int scr_param_save(void)
   return SCR_SUCCESS;
 }
 
-static int scr_param_update_user_path(const char* name)
+static void scr_param_update_user_path(const char* name)
 {
   /* if one is setting either SCR_PREFIX or SCR_CONF_FILE,
    * we clear the current user file hash and reload in case
