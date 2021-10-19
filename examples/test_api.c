@@ -204,26 +204,22 @@ double getbw(char* name, char* buf, size_t size, int times)
       if (need_checkpoint) {
 */
 
-      /* instruct SCR we are starting the next checkpoint */
-      char label[SCR_MAX_FILENAME];
-      int flags = SCR_FLAG_NONE;
+      double time_start_output;
+      if (rank == 0) {
+        time_start_output = MPI_Wtime();
+      }
 
+      /* instruct SCR we are starting the next checkpoint */
+      int flags = SCR_FLAG_NONE;
+      char outname[SCR_MAX_FILENAME];
       if (output > 0 && timestep % output == 0) {
         /* if output is enabled, mark every Nth as pure output */
         flags |= SCR_FLAG_OUTPUT;
-        if (path == NULL) {
-          sprintf(label, "output.%d", timestep);
-        } else {
-          sprintf(label, "%s/output.%d", path, timestep);
-        }
+        sprintf(outname, "output.%d", timestep);
       } else {
         /* otherwise we have a checkpoint */
         flags |= SCR_FLAG_CHECKPOINT;
-        if (path == NULL) {
-          sprintf(label, "ckpt.%d", timestep);
-        } else {
-          sprintf(label, "%s/ckpt.%d", path, timestep);
-        }
+        sprintf(outname, "ckpt.%d", timestep);
       }
 
       /* if ckptout is enabled, mark every Nth write as output also */
@@ -231,9 +227,17 @@ double getbw(char* name, char* buf, size_t size, int times)
         flags |= SCR_FLAG_OUTPUT;
       }
 
+      /* compute directory path to hold output files */
+      char outpath[SCR_MAX_FILENAME];
+      if (path != NULL) {
+        sprintf(outpath, "%s/%s", path, outname);
+      } else {
+        sprintf(outpath, "%s", outname);
+      }
+
       if (use_scr) {
         /* using scr, start our output */
-        scr_retval = SCR_Start_output(label, flags);
+        scr_retval = SCR_Start_output(outname, flags);
         if (scr_retval != SCR_SUCCESS) {
           printf("%d: failed calling SCR_Start_checkpoint(): %d: @%s:%d\n",
                  rank, scr_retval, __FILE__, __LINE__
@@ -243,10 +247,10 @@ double getbw(char* name, char* buf, size_t size, int times)
         /* not using SCR, writing to file system instead,
          * need to create our directory */
         if (rank == 0) {
-           rc = mkdir(label, S_IRUSR | S_IWUSR | S_IXUSR);
+           rc = mkdir(outpath, S_IRUSR | S_IWUSR | S_IXUSR);
            if (rc != 0) {
              printf("%d: mkdir failed: %s %d %s @%s:%d\n",
-                    rank, label, errno, strerror(errno), __FILE__, __LINE__
+                    rank, outpath, errno, strerror(errno), __FILE__, __LINE__
              );
            }
         }
@@ -255,7 +259,7 @@ double getbw(char* name, char* buf, size_t size, int times)
 
       /* define name of our file */
       char newname[SCR_MAX_FILENAME];
-      safe_snprintf(newname, sizeof(newname), "%s/%s", label, name);
+      safe_snprintf(newname, sizeof(newname), "%s/%s", outpath, name);
 
       /* get the file name to write our file to */
       if (use_scr) {
@@ -318,7 +322,11 @@ double getbw(char* name, char* buf, size_t size, int times)
         MPI_Barrier(MPI_COMM_WORLD);
       }
       if (rank == 0) {
-        printf("Completed checkpoint %d.\n", timestep);
+        double time_end_output = MPI_Wtime();
+        double time_secs = time_end_output - time_start_output;
+        double bytes = size * ranks;
+        bw = bytes / time_secs;
+        printf("Completed checkpoint %d:  %f secs, %e bytes, %e bytes/sec\n", timestep, time_secs, bytes, bw);
         fflush(stdout);
       }
 
@@ -385,7 +393,8 @@ void print_usage()
   printf("    -f, --flush=<COUNT>  Mark every Nth write as checkpoint+output (default %d)\n", ckptout);
   printf("    -o, --output=<COUNT> Mark every Nth write as pure output (default %d)\n", output);
   printf("    -a, --config-api=<BOOL> Use SCR_Config to set values (default %s)\n", btoa(use_config_api));
-  printf("    -c, --conf-file=<BOOL> Use SCR_CONF_FILE file to set values (default %s)\n", btoa(use_conf_file));
+  printf("    -c, --conf-file=<BOOL>  Use SCR_CONF_FILE file to set values (default %s)\n", btoa(use_conf_file));
+  printf("    -x, --noscr          Disable SCR calls\n");
   printf("    -h, --help           Print usage\n");
   printf("\n");
   return;
@@ -407,7 +416,8 @@ int main (int argc, char* argv[])
     {"flush",   required_argument, NULL, 'f'},
     {"output",  required_argument, NULL, 'o'},
     {"config-api", required_argument, NULL, 'a'},
-    {"conf-file", required_argument, NULL, 'c'},
+    {"conf-file",  required_argument, NULL, 'c'},
+    {"noscr",   no_argument,       NULL, 'x'},
     {"help",    no_argument,       NULL, 'h'},
     {NULL,      no_argument,       NULL,   0}
   };
@@ -433,7 +443,6 @@ int main (int argc, char* argv[])
         break;
       case 'p':
         path = strdup(optarg);
-        use_scr = 0;
         break;
       case 'f':
         ckptout = atoi(optarg);
@@ -446,6 +455,9 @@ int main (int argc, char* argv[])
         break;
       case 'c':
         use_conf_file = atob(optarg);
+        break;
+      case 'x':
+        use_scr = 0;
         break;
       case 'h':
       default:
