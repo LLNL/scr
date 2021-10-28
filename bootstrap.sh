@@ -9,6 +9,7 @@
 #   --debug  compiles dependencies with full debug "-g -O0"
 #   --opt    compiles dependencies with optimization (non-debug)
 #   --dev    builds each dependency from its latest commit
+#   --static build each dependency statically
 #   --tag    builds each dependency from a hardcoded tag
 #   --clean  deletes deps and install directories before build
 #
@@ -16,10 +17,11 @@
 set -x 
 
 # optional builds
-clone_ssh=0   # whether to clone with https (0) or ssh (1)
-build_debug=1 # whether to build optimized (0) or debug "-g -O0" (1)
-build_dev=1   # whether to checkout fixed version tags (0) or use latest (1)
-build_clean=0 # whether to keep deps directory (0) or delete and recreate (1)
+clone_ssh=0    # whether to clone with https (0) or ssh (1)
+build_debug=1  # whether to build optimized (0) or debug "-g -O0" (1)
+build_dev=1    # whether to checkout fixed version tags (0) or use latest (1)
+build_clean=0  # whether to keep deps directory (0) or delete and recreate (1)
+build_static=0 # whether to build shared (0) or static (1)
 
 while [ $# -ge 1 ]; do
   case "$1" in
@@ -31,6 +33,8 @@ while [ $# -ge 1 ]; do
       build_debug=0 ;;
     "--dev" )
       build_dev=1 ;;
+    "--static" )
+      build_static=1 ;;
     "--tag" )
       build_dev=0 ;;
     "--clean" )
@@ -101,11 +105,19 @@ if [ $build_debug -eq 1 ] ; then
   buildtype="Debug"
 fi
 
+autotools_shared="--enable"
+cmake_shared="ON"
+if [ $build_static -eq 1 ] ; then
+    autotools_shared="--disable"
+    cmake_shared="OFF"
+fi
+
 rm -rf ${lwgrp}
 tar -zxf ${lwgrp}.tar.gz
 pushd ${lwgrp}
   ./configure \
-    --prefix=${INSTALL_DIR} && \
+    --prefix=${INSTALL_DIR} \
+    ${autotools_shared}-shared && \
   make && \
   make install
   if [ $? -ne 0 ]; then
@@ -119,7 +131,8 @@ tar -zxf ${dtcmp}.tar.gz
 pushd ${dtcmp}
   ./configure \
     --prefix=${INSTALL_DIR} \
-    --with-lwgrp=${INSTALL_DIR} && \
+    --with-lwgrp=${INSTALL_DIR} \
+    ${autotools_shared}-shared && \
   make && \
   make install
   if [ $? -ne 0 ]; then
@@ -150,6 +163,7 @@ pushd KVTree
     cmake \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+      -DBUILD_SHARED_LIBS=$cmake_shared \
       -DMPI=ON \
       .. && \
     make -j `nproc` && \
@@ -171,6 +185,8 @@ pushd AXL
     cmake \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+      -DBUILD_SHARED_LIBS=$cmake_shared \
+      -DENABLE_IBM_BBAPI=$cmake_shared \
       .. && \
     make -j `nproc` && \
     make install
@@ -191,6 +207,7 @@ pushd spath
     cmake \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+      -DBUILD_SHARED_LIBS=$cmake_shared \
       -DMPI=ON \
       .. && \
     make -j `nproc` && \
@@ -212,6 +229,7 @@ pushd rankstr
     cmake \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+      -DBUILD_SHARED_LIBS=$cmake_shared \
       .. && \
     make -j `nproc` && \
     make install
@@ -233,6 +251,7 @@ pushd redset
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DWITH_KVTREE_PREFIX=$INSTALL_DIR \
+      -DBUILD_SHARED_LIBS=$cmake_shared \
       .. && \
     make -j `nproc` && \
     make install
@@ -254,6 +273,7 @@ pushd shuffile
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DWITH_KVTREE_PREFIX=$INSTALL_DIR \
+      -DBUILD_SHARED_LIBS=$cmake_shared \
       .. && \
     make -j `nproc` && \
     make install
@@ -277,6 +297,7 @@ pushd er
       -DWITH_KVTREE_PREFIX=$INSTALL_DIR \
       -DWITH_REDSET_PREFIX=$INSTALL_DIR \
       -DWITH_SHUFFILE_PREFIX=$INSTALL_DIR \
+      -DBUILD_SHARED_LIBS=$cmake_shared \
       .. && \
     make -j `nproc` && \
     make install
