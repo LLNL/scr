@@ -48,6 +48,13 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_cleanup.sh DESTINATION ${CMAKE_CURREN
 ## run on the same parallel nodes
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+IF(NOT(${SCR_RESOURCE_MANAGER} STREQUAL "NONE"))
+  MESSAGE("I WILL BE TESTING ALLOCATION")
+  FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_allocation.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+  ADD_TEST(NAME test_allocation COMMAND ./test_allocation.sh)
+ENDIF(NOT(${SCR_RESOURCE_MANAGER} STREQUAL "NONE"))
+
+
 ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api "" "ckpt.*")
@@ -102,4 +109,4 @@ ENDIF(ENABLE_FORTRAN)
 
 # add target: "make check"
 # prints output from the ctests
-ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND} --verbose)
+ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND} --verbose --stop-on-failure)

@@ -14,6 +14,8 @@ FUNCTION(SCR_ADD_TEST name args outputs)
 
     IF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
         SET_PROPERTY(TEST serial_${name}_restart APPEND PROPERTY ENVIRONMENT "SCR_JOB_ID=439")
+    ELSE(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
+        SET_PROPERTY(TEST serial_${name}_restart APPEND PROPERTY DEPENDS allocation_test)
     ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
     # Multi-process, multi-node tests
@@ -30,6 +32,8 @@ FUNCTION(SCR_ADD_TEST name args outputs)
 
     IF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
         SET_PROPERTY(TEST parallel_${name}_restart APPEND PROPERTY ENVIRONMENT "SCR_JOB_ID=439")
+    ELSE(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
+        SET_PROPERTY(TEST parallel_${name}_restart APPEND PROPERTY DEPENDS allocation_test)
     ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
 ENDFUNCTION(SCR_ADD_TEST name args outputs)
