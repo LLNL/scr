@@ -2271,6 +2271,12 @@ int SCR_Init()
   int num_nodes;
   rankstr_mpi(scr_my_hostname, scr_comm_world, 0, 1, &num_nodes, &scr_my_hostid);
 
+  /* print number of processes and nodes in debug mode to capture run configuration */
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "NPROCS=%d", scr_ranks_world);
+    scr_dbg(1, "NNODES=%d", num_nodes);
+  }
+
   /* check that scr_prefix is set */
   if (scr_prefix == NULL || strcmp(scr_prefix, "") == 0) {
     if (scr_my_rank_world == 0) {
