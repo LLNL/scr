@@ -586,10 +586,13 @@ int scr_reddesc_apply(
     return SCR_FAILURE;
   }
 
-  /* we only need to protect the filemap for bypass datasets */
+  /* assume we'll succeed from this point */
+  int rc = SCR_SUCCESS;
+
+  /* we only need to protect the filemap for bypass datasets, so we can skip out early */
   if (desc->bypass) {
-    /* TODO: want to print and log timing in this case? */
-    return SCR_SUCCESS;
+    /* we jump to the end to print and log timing info */
+    goto print_timing;
   }
 
   /* define path for hidden directory */
@@ -647,7 +650,6 @@ int scr_reddesc_apply(
   }
 
   /* apply the redundancy scheme */
-  int rc = SCR_SUCCESS;
   if (ER_Dispatch(set_id) != ER_SUCCESS) {
     scr_err("ER_Dispatch failed @ %s:%d", __FILE__, __LINE__);
     rc = SCR_FAILURE;
@@ -671,6 +673,7 @@ int scr_reddesc_apply(
   int all_valid_copy = scr_alltrue(valid_copy, scr_comm_world);
   rc = all_valid_copy ? SCR_SUCCESS : SCR_FAILURE;
 
+print_timing:
   /* stop timer and report performance info */
   if (scr_my_rank_world == 0) {
     double time_end = MPI_Wtime();
