@@ -682,8 +682,8 @@ print_timing:
     if (time_diff > 0.0) {
       bw = bytes / (1024.0 * 1024.0 * time_diff);
     }
-    scr_dbg(1, "scr_reddesc_apply: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-            time_diff, bytes, bw, bw/scr_ranks_world
+    scr_dbg(1, "scr_reddesc_apply: %f secs, %d files, %e bytes, %f MB/s, %f MB/s per proc",
+            time_diff, files, bytes, bw, bw/scr_ranks_world
     );
 
     /* log data on the copy in the database */

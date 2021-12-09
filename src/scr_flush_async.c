@@ -376,8 +376,8 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
     /* stop timer and compute bandwidth */
     double time_end = MPI_Wtime();
     double time_diff = time_end - time_start;
-    scr_dbg(1, "scr_flush_async_start: %f secs, %e bytes, %d files",
-            time_diff, total_bytes, total_files
+    scr_dbg(1, "scr_flush_async_start: %f secs, %d files, %e bytes",
+            time_diff, total_files, total_bytes
     );
   }
 
@@ -517,8 +517,8 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
     if (time_diff > 0.0) {
       bw = total_bytes / (1024.0 * 1024.0 * time_diff);
     }
-    scr_dbg(1, "scr_flush_async_complete: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-      time_diff, total_bytes, bw, bw/scr_ranks_world
+    scr_dbg(1, "scr_flush_async_complete: %f secs, %d files, %e bytes, %f MB/s, %f MB/s per proc",
+      time_diff, total_files, total_bytes, bw, bw/scr_ranks_world
     );
 
     /* log messages about flush */
