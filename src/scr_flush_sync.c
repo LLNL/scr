@@ -258,8 +258,8 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
     if (time_diff > 0.0) {
       bw = total_bytes / (1024.0 * 1024.0 * time_diff);
     }
-    scr_dbg(1, "scr_flush_sync: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-            time_diff, total_bytes, bw, bw/scr_ranks_world
+    scr_dbg(1, "scr_flush_sync: %f secs, %d files, %e bytes, %f MB/s, %f MB/s per proc",
+            time_diff, total_files, total_bytes, bw, bw/scr_ranks_world
     );
 
     /* log messages about flush */

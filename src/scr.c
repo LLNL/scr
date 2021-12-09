@@ -1831,8 +1831,8 @@ static int scr_complete_output(int valid)
     if (time_diff > 0.0) {
       bw = bytes / (1024.0 * 1024.0 * time_diff);
     }
-    scr_dbg(1, "app write stats: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-            time_diff, bytes, bw, bw/scr_ranks_world
+    scr_dbg(1, "app write stats: %f secs, %d files, %e bytes, %f MB/s, %f MB/s per proc",
+            time_diff, files, bytes, bw, bw/scr_ranks_world
     );
 
     /* stop the clock for this output */
@@ -1845,8 +1845,8 @@ static int scr_complete_output(int valid)
     if (time_diff > 0.0) {
       bw = bytes / (1024.0 * 1024.0 * time_diff);
     }
-    scr_dbg(1, "scr write stats: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-            time_diff, bytes, bw, bw/scr_ranks_world
+    scr_dbg(1, "scr write stats: %f secs, %d files, %e bytes, %f MB/s, %f MB/s per proc",
+            time_diff, files, bytes, bw, bw/scr_ranks_world
     );
 
     /* log data on the output */
