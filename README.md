@@ -35,10 +35,18 @@ one can use the bootstrap.sh script:
     git clone https://github.com/LLNL/scr.git
     cd scr
 
-    ./bootstrap.sh --dev --debug
+    ./bootstrap.sh
 
     cd build
     cmake -DCMAKE_INSTALL_PREFIX=../install ..
+    make install
+
+When using a debugger with SCR, one can build with the following flags to disable compiler optimizations:
+
+    ./bootstrap.sh --debug
+
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=Debug ..
     make install
 
 One can then run a test program:
