@@ -40,7 +40,7 @@ ELSE()
     MESSAGE(FATAL_ERROR "SCR_RESOURCE_MANAGER: ${SCR_RESOURCE_MANAGER} is invalid, pick one of: ${RMLIST}")
 ENDIF()
 
-OPTION(ENABLE_IBM_BBAPI "Whether to enable IBM Burst Buffer support" ON)
+OPTION(ENABLE_IBM_BBAPI "Whether to enable IBM Burst Buffer support" OFF)
 MESSAGE(STATUS "ENABLE_IBM_BBAPI: ${ENABLE_IBM_BBAPI}")
 
 OPTION(ENABLE_CRAY_DW "Whether to enable Cray Datawarp support" OFF)
