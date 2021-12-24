@@ -46,9 +46,12 @@ MESSAGE(STATUS "ENABLE_IBM_BBAPI: ${ENABLE_IBM_BBAPI}")
 OPTION(ENABLE_CRAY_DW "Whether to enable Cray Datawarp support" OFF)
 MESSAGE(STATUS "ENABLE_CRAY_DW: ${ENABLE_CRAY_DW}")
 
+# define CMAKE_INSTALL_SYSCONFDIR for SCR_CONFIG_FILE path
+INCLUDE(GNUInstallDirs)
+
 SET(SCR_CACHE_BASE "/dev/shm" CACHE PATH "Default base path for SCR cache directory")
 SET(SCR_CNTL_BASE "/dev/shm" CACHE PATH "Default base path for SCR control directory")
-SET(SCR_CONFIG_FILE "/etc/scr/scr.conf" CACHE FILEPATH "Default full path and filename for SCR config file")
+SET(SCR_CONFIG_FILE ${CMAKE_INSTALL_FULL_SYSCONFDIR}/scr.conf CACHE FILEPATH "Default full path and filename for SCR config file")
 MESSAGE(STATUS "SCR_CACHE_BASE: ${SCR_CACHE_BASE}")
 MESSAGE(STATUS "SCR_CNTL_BASE: ${SCR_CNTL_BASE}")
 MESSAGE(STATUS "SCR_CONFIG_FILE: ${SCR_CONFIG_FILE}")
