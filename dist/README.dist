@@ -1,0 +1,23 @@
+###########################################
+Scalable Checkpoint / Restart (SCR) Library
+###########################################
+
+This is a release package of SCR.
+It contains source for SCR and many of its dependencies.
+All source files are compiled into a single libscr library.
+
+For documentation, refer to:
+
+    https://scr.readthedocs.io
+
+For a simple build on SLURM systems, one may run the following commands:
+
+    mkdir build
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=../install ..
+    make -j install
+
+For details on available build flags and for builds on non-SLURM systems,
+refer to the "CMake" section of the "Build SCR" page in the documentation:
+
+    https://scr.readthedocs.io/en/latest/users/build.html#cmake
