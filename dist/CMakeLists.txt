@@ -165,13 +165,22 @@ LIST(APPEND librankstr_srcs
 LIST(APPEND libaxl_srcs
     axl/src/axl.c
     axl/src/axl_sync.c
-    axl/src/axl_async_datawarp.c
-    axl/src/axl_async_bbapi.c
     axl/src/axl_err.c
     axl/src/axl_io.c
     axl/src/axl_util.c
-    axl/src/axl_pthread.c
 )
+
+IF(HAVE_PTHREADS)
+   LIST(APPEND libaxl_srcs axl/src/axl_pthread.c)
+ ENDIF(HAVE_PTHREADS)
+
+IF(BBAPI_FOUND)
+    LIST(APPEND libaxl_srcs axl/src/axl_async_bbapi.c)
+ENDIF(BBAPI_FOUND)
+
+IF(HAVE_DATAWARP)
+    LIST(APPEND libaxl_srcs axl/src/axl_async_datawarp.c)
+ENDIF(HAVE_DATAWARP)
 
 LIST(APPEND libshuffile_srcs
     shuffile/src/shuffile_util.c
