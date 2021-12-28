@@ -126,6 +126,9 @@ mv $ARCH_DIR scr-$TAG
 # copy in top-level CMake files
 cp -r ../CMakeLists.txt ../NOTICE ../cmake scr-$TAG
 
+# copy in README file
+cp -r ../README.dist scr-$TAG/README
+
 # zip up release tarball
 tar -czf ../scr-${TAG}.tgz scr-$TAG
 
