@@ -85,6 +85,7 @@ One can disable portions of the SCR build if they are not needed:
 * :code:`-DENABLE_EXAMPLES=[ON/OFF]` : Whether to build programs in :code:`examples` directory, defaults to :code:`ON`
 * :code:`-DENABLE_TESTS=[ON/OFF]` : Whether to support :code:`make check` tests, defaults to :code:`ON`
 
+* :code:`-DENABLE_PTHREADS=[ON/OFF]` : Whether to enable pthreads support for file transfers, defaults to :code:`ON`
 * :code:`-DENABLE_IBM_BBAPI=[ON/OFF]` : Whether to enable IBM Burst Buffer support for file transfers, defaults to :code:`OFF`
 * :code:`-DENABLE_CRAY_DW=[ON/OFF]` : Whether to enable Cray DataWarp support for file transfers, defaults to :code:`OFF`
 
