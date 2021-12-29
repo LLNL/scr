@@ -119,6 +119,17 @@ char* scr_env_jobid()
   char* jobid = NULL;
 
   char* value;
+  #ifdef SCR_RESOURCE_MANAGER_FLUX
+    /* read $FLUX_JOB_ID environment variable for jobid string */
+    if ((value = getenv("FLUX_JOB_ID")) != NULL) {
+      jobid = strdup(value);
+      if (jobid == NULL) {
+        scr_err("Failed to allocate memory to record jobid (%s) @ %s:%d",
+                value, __FILE__, __LINE__
+        );
+      }
+    }
+  #endif
   #ifdef SCR_RESOURCE_MANAGER_SLURM
     /* read $SLURM_JOBID environment variable for jobid string */
     if ((value = getenv("SLURM_JOBID")) != NULL) {

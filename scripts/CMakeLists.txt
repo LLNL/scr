@@ -30,6 +30,11 @@ IF(${SCR_RESOURCE_MANAGER} STREQUAL "APRUN")
 	SET(cliscr_run_name "scr_aprun")
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "APRUN")
 
+IF(${SCR_RESOURCE_MANAGER} STREQUAL "FLUX")
+	SET(cliscr_dir_name "FLUX")
+	SET(cliscr_run_name "scr_fluxrun")
+ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "FLUX")
+
 IF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
 	SET(cliscr_dir_name "LSF")
 	SET(cliscr_run_name "scr_jsrun")
