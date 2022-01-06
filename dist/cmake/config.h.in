@@ -4,6 +4,7 @@
 // File Locking
 #define KVTREE_FILE_LOCK_USE_@KVTREE_FILE_LOCK@
 
+#cmakedefine HAVE_PTHREADS
 #cmakedefine HAVE_DATAWARP
 #cmakedefine HAVE_BBAPI
 #cmakedefine HAVE_BBAPI_FALLBACK
