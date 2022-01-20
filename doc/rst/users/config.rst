@@ -44,7 +44,7 @@ by setting the :code:`SCR_CONF_FILE` environment variable at run time, e.g.,::
   export SCR_CONF_FILE=~/myscr.conf
 
 The location of the system configuration file is hard-coded into SCR at build time.
-This defaults to :code:`/etc/scr/scr.conf`.
+This defaults to :code:`<install>/etc/scr.conf`.
 One may choose a different path using the :code:`SCR_CONFIG_FILE` CMake option, e.g.,::
 
   cmake -DSCR_CONFIG_FILE=/path/to/scr.conf ...

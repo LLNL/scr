@@ -11,6 +11,9 @@ print("SCR_DEBUG:", scr.config("SCR_DEBUG"))
 scr.config("SCR_DEBUG=1")
 print("SCR_DEBUG:", scr.config("SCR_DEBUG"))
 
+# configure scr.need_checkpoint() to return True every second time it's called
+scr.config("SCR_CHECKPOINT_INTERVAL=2")
+
 # initialize library, rebuild cached datasets, fetch latest checkpoint
 scr.init()
 

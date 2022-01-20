@@ -221,9 +221,11 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   kvtree_util_set_int(dset_hash, ASYNC_KEY_OUT_STATUS, SCR_SUCCESS);
 
   /* start timer */
+  time_t timestamp_start;
+  double time_start;
   if (scr_my_rank_world == 0) {
-    time_t timestamp_start = scr_log_seconds();
-    double time_start = MPI_Wtime();
+    timestamp_start = scr_log_seconds();
+    time_start = MPI_Wtime();
     kvtree_util_set_unsigned_long(dset_hash, ASYNC_KEY_OUT_TIME, (unsigned long)timestamp_start);
     kvtree_util_set_double(dset_hash, ASYNC_KEY_OUT_WTIME, time_start);
 
@@ -358,6 +360,27 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
   /* free our file list */
   scr_flush_list_free(numfiles, &src_filelist, &dst_filelist);
 
+  /* stop timer, compute bandwidth, and report performance */
+  if (scr_my_rank_world == 0) {
+    /* get the number of bytes in the dataset */
+    double total_bytes = 0.0;
+    unsigned long dataset_bytes;
+    if (scr_dataset_get_size(dataset, &dataset_bytes) == SCR_SUCCESS) {
+      total_bytes = (double) dataset_bytes;
+    }
+
+    /* get the number of files in the dataset */
+    int total_files = 0.0;
+    scr_dataset_get_files(dataset, &total_files);
+
+    /* stop timer and compute bandwidth */
+    double time_end = MPI_Wtime();
+    double time_diff = time_end - time_start;
+    scr_dbg(1, "scr_flush_async_start: %f secs, %d files, %e bytes",
+            time_diff, total_files, total_bytes
+    );
+  }
+
   /* free the dataset */
   scr_dataset_delete(&dataset);
 
@@ -369,6 +392,15 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
  * can be completed with either success or error without waiting */
 int scr_flush_async_test(scr_cache_index* cindex, int id)
 {
+  /* make sure all processes make it this far before progressing */
+  MPI_Barrier(scr_comm_world);
+
+  /* start timer */
+  double time_start;
+  if (scr_my_rank_world == 0) {
+    time_start = MPI_Wtime();
+  }
+
   /* if the transfer failed, indicate that transfer has completed */
   int status = SCR_FAILURE;
   kvtree* dset_hash = kvtree_get_kv_int(scr_flush_async_list, ASYNC_KEY_OUT_DSET, id);
@@ -393,6 +425,13 @@ int scr_flush_async_test(scr_cache_index* cindex, int id)
   int rc = SCR_SUCCESS;
   if (scr_axl_test(id, scr_comm_world) != SCR_SUCCESS) {
     rc = SCR_FAILURE;
+  }
+
+  /* stop timer and report cost */
+  if (scr_my_rank_world == 0) {
+    double time_end = MPI_Wtime();
+    double time_diff = time_end - time_start;
+    scr_dbg(1, "scr_flush_async_test: %f secs", time_diff);
   }
 
   /* free the dataset */
@@ -478,8 +517,8 @@ int scr_flush_async_complete(scr_cache_index* cindex, int id)
     if (time_diff > 0.0) {
       bw = total_bytes / (1024.0 * 1024.0 * time_diff);
     }
-    scr_dbg(1, "scr_flush_async_complete: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-      time_diff, total_bytes, bw, bw/scr_ranks_world
+    scr_dbg(1, "scr_flush_async_complete: %f secs, %d files, %e bytes, %f MB/s, %f MB/s per proc",
+      time_diff, total_files, total_bytes, bw, bw/scr_ranks_world
     );
 
     /* log messages about flush */

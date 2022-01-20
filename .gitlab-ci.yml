@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - testdist
     
 default:
   before_script:
@@ -42,7 +43,7 @@ buildjob-catalyst:
     - export WORK_DIR=${WORK_DIR_BASE}/catalyst
     - mkdir -p ${WORK_DIR}
     - cd ${WORK_DIR}
-    - mkdir install
+    - mkdir -p install
     - uname -a
     - pwd
     - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
@@ -53,9 +54,9 @@ buildjob-catalyst:
     - echo "Working dir " `pwd`
     # The build directory needs to be called build because the testing scripts pick up the name,
     # so make sure the build directory is called "build" even though its in /dev/shm
-    - mkdir ${TMP_DIR_BASE}/build
+    - mkdir -p ${TMP_DIR_BASE}/build
     - ln -s ${TMP_DIR_BASE}/build build-tmp
-    - mkdir ${TMP_DIR_BASE}/deps
+    - mkdir -p ${TMP_DIR_BASE}/deps
     - ln -s ${TMP_DIR_BASE}/deps deps
     - ${SRC_DIR}/bootstrap.sh
     - cd build
@@ -65,7 +66,7 @@ buildjob-catalyst:
     # Move build from /dev/shm to work directory.
     - cd ${WORK_DIR}
     - mv build build-shm
-    - mkdir build && cd build
+    - mkdir -p  build && cd build
     - (cd ../build-shm; tar cf - .) | tar xvf -
 
   #artifacts:
@@ -74,6 +75,8 @@ buildjob-catalyst:
 
 testserial-catalyst:
   stage: test
+  needs:
+    - buildjob-catalyst
   when: manual
   tags:
     - catalyst
@@ -100,6 +103,8 @@ testserial-catalyst:
 testparallel-catalyst:
   stage: test
   when: manual
+  needs:
+    - buildjob-catalyst
   tags:
     - catalyst
     - batch
@@ -121,8 +126,9 @@ testparallel-catalyst:
     - cd build
     - ctest --verbose -T Test -R parallel*
     - pwd
-    - mkdir -p Testing/Tests
-    - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
+    - export RESULTSDIR="Testing/Tests-${CI_JOB_ID}"
+    - mkdir -p ${RESULTSDIR}
+    - cp `grep -rl '.xml$' Testing/*` Testing/*/* ${RESULTSDIR}
 
 spack-scr-catalyst:
   stage: build
@@ -153,7 +159,73 @@ spack-scr-catalyst:
     - export MPIF77=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif77
     - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
     - make
-    
+
+TESTING-script-catalyst:
+  stage: test
+  when: manual
+  tags:
+    - catalyst
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pbatch'
+  script:
+    - cd ${WORK_DIR_BASE}
+    - git clone file://${SRC_DIR} scr-test
+    - cd scr-test
+    - ./bootstrap.sh
+    - csh testing/TESTING.csh
+
+testdist-catalyst:
+  stage: testdist
+  when: manual
+  tags:
+    - catalyst
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
+  script:
+    - set -x
+    - echo "Running in" `pwd`
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist
+    - cd scr-testdist/dist
+    - ./builddist develop
+    - mkdir temp
+    - cd temp
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install ..
+    - make -j install
+
+testdist-static-catalyst:
+  stage: testdist
+  when: manual
+  tags:
+    - catalyst
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
+  script:
+    - set -x
+    - echo "Running in" `pwd`
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist-static
+    - cd scr-testdist-static/dist
+    - ./builddist develop
+    - mkdir temp
+    - cd temp
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DBUILD_SHARED_LIBS=OFF ..
+    - make -j install
+
 buildjob-quartz:
   stage: build
   when: manual
@@ -163,7 +235,7 @@ buildjob-quartz:
     - export WORK_DIR=${WORK_DIR_BASE}/quartz
     - mkdir -p ${WORK_DIR}
     - cd ${WORK_DIR}
-    - mkdir install
+    - mkdir -p install
     - uname -a
     - pwd
     - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
@@ -174,9 +246,9 @@ buildjob-quartz:
     - echo "Working dir " `pwd`
     # The build directory needs to be called build because the testing scripts pick up the name,
     # so make sure the build directory is called "build" even though its in /dev/shm
-    - mkdir ${TMP_DIR_BASE}/build
+    - mkdir -p ${TMP_DIR_BASE}/build
     - ln -s ${TMP_DIR_BASE}/build build-tmp
-    - mkdir ${TMP_DIR_BASE}/deps
+    - mkdir -p ${TMP_DIR_BASE}/deps
     - ln -s ${TMP_DIR_BASE}/deps deps
     - ${SRC_DIR}/bootstrap.sh
     - cd build
@@ -186,7 +258,7 @@ buildjob-quartz:
     # Move build from /dev/shm to work directory.
     - cd ${WORK_DIR}
     - mv build build-shm
-    - mkdir build && cd build
+    - mkdir -p build && cd build
     - (cd ../build-shm; tar cf - .) | tar xvf -
 
   #artifacts:
@@ -196,6 +268,8 @@ buildjob-quartz:
 testserial-quartz:
   stage: test
   when: manual
+  needs:
+    - buildjob-quartz
   tags:
     - quartz
     - batch
@@ -221,6 +295,8 @@ testserial-quartz:
 testparallel-quartz:
   stage: test
   when: manual
+  needs:
+    - buildjob-quartz
   tags:
     - quartz
     - batch
@@ -243,8 +319,9 @@ testparallel-quartz:
     - cd build
     - ctest --verbose -T Test -R parallel*
     - pwd
-    - mkdir -p Testing/Tests
-    - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
+    - export RESULTSDIR="Testing/Tests-${CI_JOB_ID}"
+    - mkdir -p ${RESULTSDIR}
+    - cp `grep -rl '.xml$' Testing/*` Testing/*/* ${RESULTSDIR}
 
 spack-scr-quartz:
   stage: build
@@ -275,17 +352,83 @@ spack-scr-quartz:
     - export MPIF77=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif77
     - export MPIF90=/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/bin/mpif90
     - make
-        
+    
+TESTING-script-quartz:
+  stage: test
+  when: manual
+  tags:
+    - quartz
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=4 -p pbatch'
+  script:
+    - cd ${WORK_DIR_BASE}
+    - git clone file://${SRC_DIR} scr-test
+    - cd scr-test
+    - ./bootstrap.sh
+    - csh testing/TESTING.csh
+
+testdist-quartz:
+  stage: testdist
+  when: manual
+  tags:
+    - quartz
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
+  script:
+    - set -x
+    - echo "Running in" `pwd`
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist
+    - cd scr-testdist/dist
+    - ./builddist develop
+    - mkdir temp
+    - cd temp
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install ..
+    - make -j install
+
+testdist-static-quartz:
+  stage: testdist
+  when: manual
+  tags:
+    - quartz
+    - batch
+    - slurm
+  variables:
+    LLNL_SLURM_SCHEDULER_PARAMETERS: '--nodes=1 -p pbatch'
+  script:
+    - echo "Running in" `pwd`
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist-static
+    - cd scr-testdist-static/dist
+    - ./builddist develop
+    - mkdir temp
+    - cd temp
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DBUILD_SHARED_LIBS=OFF ..
+    - make -j install
+
 buildjob-lassen:
   stage: build
   when: manual
   tags: 
     - lassen
   script:
+    - set -x
     - export WORK_DIR=${WORK_DIR_BASE}/lassen
     - mkdir -p ${WORK_DIR}
     - cd ${WORK_DIR}
-    - mkdir install
+    - mkdir -p install
     - uname -a
     - pwd
     - echo "CI_BUILDS_DIR is $CI_BUILDS_DIR"
@@ -296,15 +439,14 @@ buildjob-lassen:
     - echo "Working dir " `pwd`
     # The build directory needs to be called build because the testing scripts pick up the name,
     # so make sure the build directory is called "build" even though its in /dev/shm
-    - mkdir ${TMP_DIR_BASE}/build
+    - mkdir -p ${TMP_DIR_BASE}/build
     - ln -s ${TMP_DIR_BASE}/build build-tmp
-    - mkdir ${TMP_DIR_BASE}/deps
+    - mkdir -p ${TMP_DIR_BASE}/deps
     - ln -s ${TMP_DIR_BASE}/deps deps
     - export CC=xlc_r
     - export CXX=xlc++_r
     - export F77=xlf_r
     - export F90=xlf90_r
-    - export FFLAGS=-qextname
     - ${SRC_DIR}/bootstrap.sh
     - cd build
     - cmake -DCMAKE_INSTALL_PREFIX=${WORK_DIR}/install -DCMAKE_PREFIX_PATH=${WORK_DIR}/install -DSCR_RESOURCE_MANAGER=LSF ${SRC_DIR}
@@ -313,7 +455,7 @@ buildjob-lassen:
     # Move build from /dev/shm to work directory.
     - cd ${WORK_DIR}
     - mv build build-shm
-    - mkdir build && cd build
+    - mkdir -p build && cd build
     - (cd ../build-shm; tar cf - .) | tar xvf -
   #artifacts:
   #  paths:
@@ -322,6 +464,8 @@ buildjob-lassen:
 testserial-lassen:
   stage: test
   when: manual
+  needs:
+    - buildjob-lassen
   tags:
     - lassen
     - batch
@@ -347,6 +491,8 @@ testserial-lassen:
 testparallel-lassen:
   stage: test
   when: manual
+  needs:
+    - buildjob-lassen
   tags:
     - lassen
     - batch
@@ -368,8 +514,9 @@ testparallel-lassen:
     - cd build
     - ctest --verbose -T Test -R parallel*
     - pwd
-    - mkdir -p Testing/Tests
-    - cp `grep -rl '.xml$' Testing/*` Testing/*/* Testing/Tests/
+    - export RESULTSDIR="Testing/Tests-${CI_JOB_ID}"
+    - mkdir -p ${RESULTSDIR}
+    - cp `grep -rl '.xml$' Testing/*` Testing/*/* ${RESULTSDIR}
 
 spack-scr-lassen:
   stage: build
@@ -379,27 +526,27 @@ spack-scr-lassen:
     - shell
   before_script:
     - pwd
-    - |+
-        cat > fixcompiler.py <<EOF
-        import os, sys, yaml
-        xlf = os.popen('which xlf').read().strip()
-        xlfr = os.popen('which xlf_r').read().strip()
-        cfile = sys.argv[1]
+    # - |+
+    #     cat > fixcompiler.py <<EOF
+    #     import os, sys, yaml
+    #     xlf = os.popen('which xlf').read().strip()
+    #     xlfr = os.popen('which xlf_r').read().strip()
+    #     cfile = sys.argv[1]
         
-        with open(cfile, 'r') as f:
-            compilers = yaml.safe_load(f)
-            for elem in compilers['compilers']:
-                for k, v in elem.items():
-                    if ('xl@' in v['spec']):
-                        v['paths']['fc'] = 'xlf'
-                    elif ('xl_r@' in v['spec']):
-                        v['paths']['fc'] = 'xlf_r'
+    #     with open(cfile, 'r') as f:
+    #         compilers = yaml.safe_load(f)
+    #         for elem in compilers['compilers']:
+    #             for k, v in elem.items():
+    #                 if ('xl@' in v['spec']):
+    #                     v['paths']['fc'] = 'xlf'
+    #                 elif ('xl_r@' in v['spec']):
+    #                     v['paths']['fc'] = 'xlf_r'
         
-        with open(cfile, 'w') as f:
-           f.write(yaml.dump(compilers))
+    #     with open(cfile, 'w') as f:
+    #        f.write(yaml.dump(compilers))
            
-        EOF
-    - cat fixcompiler.py
+    #     EOF
+    # - cat fixcompiler.py
   script:
     - mkdir -p lassen
     - cd lassen
@@ -415,15 +562,83 @@ spack-scr-lassen:
     - cd spack
     - . share/spack/setup-env.sh
     - spack compiler find --scope site
-    - mv ../../fixcompiler.py .
-    - cat fixcompiler.py
-    - EDITOR="python fixcompiler.py" spack config --scope site edit compilers
-    - spack install --keep-stage scr@develop%xl_r resource_manager=LSF fflags="-qextname" ^spectrum-mpi
+    # - mv ../../fixcompiler.py .
+    # - cat fixcompiler.py
+    # - EDITOR="python fixcompiler.py" spack config --scope site edit compilers
+    - spack install --keep-stage scr@develop resource_manager=LSF ^spectrum-mpi
     - spack cd -i scr
     - cd share/scr/examples
     - export MPIF77=`which mpif77`
-    - export F77FLAGS="-qextname"
     - export MPIF90=`which mpif90`
-    - export F90FLAGS="-qextname"
     - make
-  
+
+TESTING-script-lassen:
+  stage: test
+  when: manual
+  tags:
+    - lassen
+    - batch
+    - lsf
+  variables:
+    LLNL_LSF_SCHEDULER_PARAMETERS: '-nnodes 4 -W 10 /bin/bash'
+  script:
+    - export CC=xlc
+    - export CXX=xlc++
+    - export F77=xlf
+    - export F90=xlf90
+    - cd ${WORK_DIR_BASE}
+    - git clone file://${SRC_DIR} scr-test
+    - cd scr-test
+    - ./bootstrap.sh
+    - csh testing/TESTING.csh
+
+testdist-lassen:
+  stage: testdist
+  when: manual
+  tags:
+    - lassen
+    - batch
+    - lsf
+  variables:
+    LLNL_LSF_SCHEDULER_PARAMETERS: '-nnodes 4 -W 10 /bin/bash'
+  script:
+    - set -x
+    - echo "Running in" `pwd`
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist
+    - cd scr-testdist/dist
+    - ./builddist develop
+    - mkdir temp
+    - cd temp
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DSCR_RESOURCE_MANAGER=LSF ..
+    - make -j install
+
+testdist-static-lassen:
+  stage: testdist
+  when: manual
+  tags:
+    - lassen
+    - batch
+    - lsf
+  variables:
+    LLNL_LSF_SCHEDULER_PARAMETERS: '-nnodes 4 -W 10 /bin/bash'
+  script:
+    - set -x
+    - echo "Running in" `pwd`
+    - cd ${TMP_DIR_BASE}
+    - git clone --depth 1 file://${SRC_DIR} scr-testdist-static
+    - cd scr-testdist-static/dist
+    - ./builddist develop
+    - mkdir temp
+    - cd temp
+    - tar -zxf ../scr-develop.tgz
+    - cd scr-develop
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_INSTALL_PREFIX=${TMP_DIR_BASE}/install -DBUILD_SHARED_LIBS=OFF -DSCR_RESOURCE_MANAGER=LSF ..
+    - make -j install
+

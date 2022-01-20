@@ -36,6 +36,7 @@ IF(ENABLE_IBM_BBAPI)
 
         INCLUDE_DIRECTORIES(${BBAPI_INCLUDE_DIRS})
         LIST(APPEND SCR_EXTERNAL_LIBS ${BBAPI_LIBRARIES})
+        LIST(APPEND SCR_EXTERNAL_SERIAL_LIBS ${BBAPI_LIBRARIES})
         LIST(APPEND SCR_LINK_LINE " -L${WITH_BBAPI_PREFIX}/lib -lbbAPI")
     ENDIF(BBAPI_FOUND)
 ENDIF(ENABLE_IBM_BBAPI)
@@ -164,14 +165,22 @@ LIST(APPEND librankstr_srcs
 LIST(APPEND libaxl_srcs
     axl/src/axl.c
     axl/src/axl_sync.c
-    axl/src/axl_async_datawarp.c
-    axl/src/axl_async_bbapi.c
-#    axl/src/axl_async_cppr.c
     axl/src/axl_err.c
     axl/src/axl_io.c
     axl/src/axl_util.c
-    axl/src/axl_pthread.c
 )
+
+IF(HAVE_PTHREADS)
+   LIST(APPEND libaxl_srcs axl/src/axl_pthread.c)
+ ENDIF(HAVE_PTHREADS)
+
+IF(BBAPI_FOUND)
+    LIST(APPEND libaxl_srcs axl/src/axl_async_bbapi.c)
+ENDIF(BBAPI_FOUND)
+
+IF(HAVE_DATAWARP)
+    LIST(APPEND libaxl_srcs axl/src/axl_async_datawarp.c)
+ENDIF(HAVE_DATAWARP)
 
 LIST(APPEND libshuffile_srcs
     shuffile/src/shuffile_util.c
@@ -366,7 +375,7 @@ LIST(APPEND cliscr_c_bins
 # Build and install C binaries
 FOREACH(bin IN ITEMS ${cliscr_c_bins})
     ADD_EXECUTABLE(${bin} scr/src/${bin}.c)
-    TARGET_LINK_LIBRARIES(${bin} scr_base)
+    TARGET_LINK_LIBRARIES(${bin} scr_base ${SCR_EXTERNAL_SERIAL_LIBS})
     INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
 ENDFOREACH(bin IN ITEMS ${cliscr_c_bins})
 

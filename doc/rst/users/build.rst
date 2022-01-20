@@ -46,9 +46,9 @@ To build SCR from a release tarball:
 
 .. code-block:: bash
 
-  wget https://github.com/LLNL/scr/releases/download/v3.0rc1/scr-top-v3.0rc1.tgz
-  tar -zxf scr-top-v3.0rc1.tgz
-  cd scr-top-v3.0rc1
+  wget https://github.com/LLNL/scr/releases/download/v3.0rc2/scr-v3.0rc2.tgz
+  tar -zxf scr-v3.0rc2.tgz
+  cd scr-v3.0rc2
 
   mkdir build
   cd build
@@ -61,11 +61,11 @@ Some common CMake command line options:
 * :code:`-DCMAKE_BUILD_TYPE=[Debug/Release]`: Build with debugging or optimizations, defaults to :code:`Release`
 * :code:`-DBUILD_SHARED_LIBS=[ON/OFF]`: Whether to build shared libraries, defaults to :code:`ON`
 
-* :code:`-DSCR_RESOURCE_MANAGER=[SLURM/APRUN/PMIX/LSF/NONE]` : Resource manager for job allocations, defaults to :code:`SLURM`
+* :code:`-DSCR_RESOURCE_MANAGER=[SLURM/APRUN/LSF/NONE]` : Resource manager for job allocations, defaults to :code:`SLURM`
 
 * :code:`-DSCR_CNTL_BASE=[path]` : Path to SCR Control directory, defaults to :code:`/dev/shm`
 * :code:`-DSCR_CACHE_BASE=[path]` : Path to SCR Cache directory, defaults to :code:`/dev/shm`
-* :code:`-DSCR_CONFIG_FILE=[path]` : Path to SCR system configuration file, defaults to :code:`/etc/scr/scr.conf`
+* :code:`-DSCR_CONFIG_FILE=[path]` : Path to SCR system configuration file, defaults to :code:`<install>/etc/scr.conf`
 
 * :code:`-DSCR_FILE_LOCK=[FLOCK/FCNTL/NONE]` : Specify type of file locking to use, defaults to :code:`FLOCK`
 
@@ -81,21 +81,22 @@ For setting the default logging parameters:
 One can disable portions of the SCR build if they are not needed:
 
 * :code:`-DENABLE_FORTRAN=[ON/OFF]` : Whether to build library for Fortran bindings, defaults to :code:`ON`
+* :code:`-DENABLE_FORTRAN_TRAILING_UNDERSCORES=[AUTO/ON/OFF]` : Whether to append underscores to symbol names in the Fortran bindings, defaults to :code:`AUTO`
 * :code:`-DENABLE_EXAMPLES=[ON/OFF]` : Whether to build programs in :code:`examples` directory, defaults to :code:`ON`
 * :code:`-DENABLE_TESTS=[ON/OFF]` : Whether to support :code:`make check` tests, defaults to :code:`ON`
 
-* :code:`-DENABLE_IBM_BBAPI[ON/OFF]` : Whether to enable IBM Burst Buffer support for file transfers, defaults to :code:`ON`
-* :code:`-DENABLE_CRAY_DW[ON/OFF]` : Whether to enable Cray DataWarp support for file transfers, defaults to :code:`OFF`
-* :code:`-DENABLE_INTEL_CPPR[ON/OFF]` : Whether to enable Intel CPPR support for file transfers, defaults to :code:`OFF`
+* :code:`-DENABLE_PTHREADS=[ON/OFF]` : Whether to enable pthreads support for file transfers, defaults to :code:`ON`
+* :code:`-DENABLE_IBM_BBAPI=[ON/OFF]` : Whether to enable IBM Burst Buffer support for file transfers, defaults to :code:`OFF`
+* :code:`-DENABLE_CRAY_DW=[ON/OFF]` : Whether to enable Cray DataWarp support for file transfers, defaults to :code:`OFF`
 
-* :code:`-DENABLE_PDSH=[ON/OFF]` : Whether to use pdsh, defalts to :code:`ON`
-* :code:`-DBUILD_PDSH=[OFF/ON]`: CMake can automatically download and build the PDSH dependency, defaults to :code:`OFF`
+* :code:`-DENABLE_PDSH=[ON/OFF]` : Whether to use pdsh to check node health and scavenge files, defalts to :code:`ON`
+* :code:`-DBUILD_PDSH=[ON/OFF]`: CMake can automatically download and build the PDSH dependency, defaults to :code:`OFF`
 * :code:`-DWITH_PDSH_PREFIX=[path to PDSH]`: Path to an existing PDSH installation (should not be used with :code:`BUILD_PDSH`)
 
-* :code:`-DENABLE_YOGRT=[ON/OFF]` : Whether to use libyogrt, defaults to :code:`ON`
+* :code:`-DENABLE_YOGRT=[ON/OFF]` : Whether to use libyogrt for determining allocation end time, defaults to :code:`ON`
 * :code:`-DWITH_YOGRT_PREFIX:PATH=[path to libyogrt]`
 
-* :code:`-DENABLE_MYSQL=[ON/OFF]` : Whether to use MySQL, defaults to :code:`OFF`
+* :code:`-DENABLE_MYSQL=[ON/OFF]` : Whether to use MySQL for logging, defaults to :code:`OFF`
 * :code:`-DWITH_MYSQL_PREFIX=[path to MySQL]`
 
 .. _sec-build-spack:
@@ -201,13 +202,13 @@ For SLURM systems, SCR can be installed with:
 
 .. code-block:: bash
 
-  spack install scr@3.0rc1 resource_manager=SLURM
+  spack install scr@3.0rc2 resource_manager=SLURM
 
 For LSF, systems, SCR can be installed with:
 
 .. code-block:: bash
 
-  spack install scr@3.0rc1 resource_manager=LSF
+  spack install scr@3.0rc2 resource_manager=LSF
 
 The SCR Spack package provides other variants that may be useful.
 To see the full list, type:

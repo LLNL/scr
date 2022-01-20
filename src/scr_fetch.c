@@ -524,8 +524,8 @@ int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, 
     if (time_diff > 0.0) {
       bw = total_bytes / (1024.0 * 1024.0 * time_diff);
     }
-    scr_dbg(1, "scr_fetch_dset: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-      time_diff, total_bytes, bw, bw/scr_ranks_world
+    scr_dbg(1, "scr_fetch_dset: %f secs, %d files, %e bytes, %f MB/s, %f MB/s per proc",
+      time_diff, files, total_bytes, bw, bw/scr_ranks_world
     );
 
     /* log data on the fetch to the database */

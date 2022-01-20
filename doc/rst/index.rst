@@ -102,3 +102,8 @@ Contents
    users/run.rst
    users/halt.rst
    users/manage.rst
+
+.. toctree::
+   :hidden:
+
+   users/directories_example.rst

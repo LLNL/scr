@@ -6,10 +6,14 @@ bandwidth for checkpointing, restarting, and output in large-scale jobs.
 With SCR, jobs run more efficiently, recompute less work upon a failure,
 and reduce load on critical shared resources such as the parallel file system.
 
-Instructions to build and use are hosted at [SCR.ReadTheDocs.io](https://scr.readthedocs.io/en/latest/).
+## Users
+
+Instructions to build and use SCR are hosted at [scr.readthedocs.io](https://scr.readthedocs.io/en/latest/).
 
 For new users, the [Quick Start guide](https://scr.readthedocs.io/en/latest/users/quick.html)
 shows one how to build and run an example using SCR.
+
+For more detailed build instructions, refer to [Build SCR](https://scr.readthedocs.io/en/latest/users/build.html).
 
 [![User Docs Status](https://readthedocs.org/projects/scr/badge/?version=latest)](https://scr.readthedocs.io/en/latest/?badge=latest)
 
@@ -29,16 +33,29 @@ SCR uses components from [ECP-VeloC](https://github.com/ECP-VeloC),
 which have their own [user](https://github.com/ECP-VeloC/component-user-docs)
 and [developer](https://github.com/ECP-VeloC/component-dev-docs) docs.
 
+A development build is useful for those who wish to modify how SCR works.
+It checks out and builds SCR and many of its dependencies separately.
+The process is more complicated than the user build described above,
+but the development build is helpful when one intends to commit changes back to the project.
+
 For a development build of SCR and its dependencies on SLURM systems,
 one can use the bootstrap.sh script:
 
     git clone https://github.com/LLNL/scr.git
     cd scr
 
-    ./bootstrap.sh --dev --debug
+    ./bootstrap.sh
 
     cd build
     cmake -DCMAKE_INSTALL_PREFIX=../install ..
+    make install
+
+When using a debugger with SCR, one can build with the following flags to disable compiler optimizations:
+
+    ./bootstrap.sh --debug
+
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=Debug ..
     make install
 
 One can then run a test program:

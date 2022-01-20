@@ -57,15 +57,21 @@ static scr_filemap* scr_map = NULL;
 /* tracks redundancy descriptor for current dataset */
 static scr_reddesc* scr_rd = NULL;
 
+/* tracks whether a checkpoint is available for restart */
+static int scr_have_restart;
+
 static double scr_time_compute_start;     /* records the start time of the current compute phase */
 static double scr_time_compute_end;       /* records the end time of the current compute phase */
 
 static double scr_time_checkpoint_start;  /* records the start time of the current checkpoint */
 static double scr_time_checkpoint_end;    /* records the end time of the current checkpoint */
 
-static time_t scr_timestamp_output_start; /* record timestamp of start of output phase */
 static double scr_time_output_start;      /* records the start time of the current output phase */
 static double scr_time_output_end;        /* records the end time of the current output phase */
+
+static double scr_time_write_start;       /* records the start time of the application write portion of the output phase */
+
+static time_t scr_timestamp_output_start; /* record timestamp of start of output phase */
 
 /* look up redundancy descriptor we should use for this dataset */
 static scr_reddesc* scr_get_reddesc(const scr_dataset* dataset, int ndescs, scr_reddesc* descs)
@@ -387,40 +393,6 @@ static int scr_bool_check_halt_and_decrement(int halt_cond, int decrement)
      * runtime kills others after timeout) */
     MPI_Barrier(scr_comm_world);
 
-#ifdef HAVE_LIBPMIX
-    /* sync procs in pmix before shutdown */
-    int retval = PMIx_Fence(NULL, 0, NULL, 0);
-    if (retval != PMIX_SUCCESS) {
-      scr_err("PMIx_Fence failed: rc=%d, rank: %d @ %s:%d",
-        retval, scr_pmix_proc.rank, __FILE__, __LINE__
-      );
-    }
-
-/*
-    scr_dbg(0, "about to call pmix notify in HALT: pmix rank: %d", scr_pmix_proc.rank);
-    retval = PMIx_Notify_event(-1,
-                      &scr_pmix_proc,
-                      PMIX_RANGE_GLOBAL,
-                      NULL, 0,
-                      NULL, (void *)NULL);
-    if (retval != PMIX_SUCCESS) {
-      scr_dbg(0, "error calling pmix_notify_event: %d", retval);
-    }
-*/
-
-    /* shutdown pmix */
-    retval = PMIx_Finalize(NULL, 0);
-    if (retval != PMIX_SUCCESS) {
-      scr_err("PMIx_Finalize failed: rc=%d, rank: %d @ %s:%d",
-        retval, scr_pmix_proc.rank, __FILE__, __LINE__
-      );
-    }
-
-    /* TODO: remove this once ompi has a fix?? */
-    MPI_Barrier(scr_comm_world);
-    MPI_Finalize();
-#endif /* HAVE_LIBPMIX */
-
     /* and exit the job */
     exit(0);
   }
@@ -657,6 +629,7 @@ static int scr_get_params()
   double d;
   unsigned long long ull;
 
+  /* TODO: move these into scr_param_init so that scr_enabled is available eg in SCR_Config */
   /* user may want to disable SCR at runtime, read env var to avoid reading config files */
   if ((value = getenv("SCR_ENABLE")) != NULL) {
     scr_enabled = atoi(value);
@@ -1298,23 +1271,8 @@ static int scr_get_params()
     kvtree_print_mode(scr_reddesc_hash, 4, KVTREE_PRINT_KEYVAL);
   }
 
-  /* TODO: allow someone to silence this if they are not using scripts? */
-  /* check that user didn't set something different in $SCR_PREFIX or current working dir */
-  value = getenv("SCR_PREFIX");
-  spath* prefix_path = scr_get_prefix(value);
-  char* prefix_str = spath_strdup(prefix_path);
-  if (strcmp(prefix_str, scr_prefix) != 0) {
-    if (scr_my_rank_world == 0) {
-      scr_warn("SCR_PREFIX in environment or cwd `%s' does not match value from config `%s' @ %s:%d",
-        prefix_str, scr_prefix, __FILE__, __LINE__
-      );
-    }
-  }
-  scr_free(&prefix_str);
-  spath_delete(&prefix_path);
-
-  /* done reading parameters, can release the data structures now */
-  scr_param_finalize();
+  /* store parameters set by app code for use by post-run scripts */
+  scr_param_save();
 
   return SCR_SUCCESS;
 }
@@ -1348,14 +1306,24 @@ static int scr_start_output(const char* name, int flags)
   /* if we have a checkpoint, stop clock recording compute time,
    * we count normal output cost as part of compute time for
    * computing optimal checkpoint frequency */
+  double time_start;
   if (is_ckpt && scr_my_rank_world == 0) {
     /* stop the clock for measuring the compute time */
     scr_time_compute_end = MPI_Wtime();
+    time_start = scr_time_compute_end;
 
     /* log the end of this compute phase */
     if (scr_log_enable) {
       double time_diff = scr_time_compute_end - scr_time_compute_start;
       scr_log_event("COMPUTE_END", NULL, NULL, NULL, NULL, &time_diff);
+    }
+  }
+
+  /* start the clock to record how long it takes to write output */
+  if (scr_my_rank_world == 0) {
+    scr_time_output_start = MPI_Wtime();
+    if (is_ckpt) {
+      scr_time_checkpoint_start = scr_time_output_start;
     }
   }
 
@@ -1465,14 +1433,8 @@ static int scr_start_output(const char* name, int flags)
   /* get the redundancy descriptor for this dataset */
   scr_rd = scr_get_reddesc(dataset, scr_nreddescs, scr_reddescs);
 
-  /* start the clock to record how long it takes to write output */
+  /* log the start of this output phase */
   if (scr_my_rank_world == 0) {
-    scr_time_output_start = MPI_Wtime();
-    if (is_ckpt) {
-      scr_time_checkpoint_start = scr_time_output_start;
-    }
-
-    /* log the start of this output phase */
     if (scr_log_enable) {
       scr_timestamp_output_start = scr_log_seconds();
       if (is_ckpt) {
@@ -1611,6 +1573,12 @@ static int scr_start_output(const char* name, int flags)
   /* print a debug message to indicate we've started the dataset */
   if (scr_my_rank_world == 0) {
     scr_dbg(1, "Starting dataset %d `%s'", scr_dataset_id, dataset_name);
+
+    /* start a timer to measure just the application write time,
+     * also report the total time we spent in scr_start_output */ 
+    scr_time_write_start = MPI_Wtime();
+    double time_diff = scr_time_write_start - time_start;
+    scr_dbg(1, "scr_start_output: %f secs", time_diff);
   }
 
   return SCR_SUCCESS;
@@ -1745,6 +1713,14 @@ static int scr_complete_output(int valid)
   /* assume we'll succeed */
   int rc = SCR_SUCCESS;
 
+  /* capture time to mark start of complete output and 
+   * to note stop timer for measuring app write performance */
+  MPI_Barrier(scr_comm_world);
+  double time_start;
+  if (scr_my_rank_world == 0) {
+    time_start = MPI_Wtime();
+  }
+
   /* When using bypass mode, we allow different procs to write to the same file,
    * in which case, both should have registered the file in Route_file and thus
    * have an entry in the file map.  The proper thing to do here is to list the
@@ -1847,15 +1823,30 @@ static int scr_complete_output(int valid)
   int files    = (int) total_files;
   double bytes = (double) total_bytes;
   if (scr_my_rank_world == 0) {
-    /* stop the clock for this output */
-    double end = MPI_Wtime();
-    double time_diff = end - scr_time_output_start;
+    /* report stats for app just to write its files,
+     * the timers here measure from the end of scr_start_output
+     * to the start of scr_complete_output */
+    double time_diff = time_start - scr_time_write_start;
     double bw = 0.0;
     if (time_diff > 0.0) {
       bw = bytes / (1024.0 * 1024.0 * time_diff);
     }
-    scr_dbg(1, "scr_complete_output: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-            time_diff, bytes, bw, bw/scr_ranks_world
+    scr_dbg(1, "app write stats: %f secs, %d files, %e bytes, %f MB/s, %f MB/s per proc",
+            time_diff, files, bytes, bw, bw/scr_ranks_world
+    );
+
+    /* stop the clock for this output */
+    double end = MPI_Wtime();
+
+    /* report stats for app to write its files including overhead
+     * to prepare cache and capture metadata data for application files */
+    time_diff = end - scr_time_output_start;
+    bw = 0.0;
+    if (time_diff > 0.0) {
+      bw = bytes / (1024.0 * 1024.0 * time_diff);
+    }
+    scr_dbg(1, "scr write stats: %f secs, %d files, %e bytes, %f MB/s, %f MB/s per proc",
+            time_diff, files, bytes, bw, bw/scr_ranks_world
     );
 
     /* log data on the output */
@@ -1975,6 +1966,17 @@ static int scr_complete_output(int valid)
 
   /* make sure everyone is ready before we exit */
   MPI_Barrier(scr_comm_world);
+
+  /* report cost of scr_complete_output */
+  if (scr_my_rank_world == 0) {
+    double time_end = MPI_Wtime();
+    double time_diff = time_end - time_start;
+    scr_dbg(1, "scr_complete_output: %f secs", time_diff);
+
+    /* cost from start of scr_start_output to end of scr_complete_output */
+    time_diff = time_end - scr_time_output_start;
+    scr_dbg(1, "start to complete: %f secs", time_diff);
+  }
 
   /* unset the output flag to indicate we have exited the current output phase */
   scr_in_output = 0;
@@ -2268,6 +2270,12 @@ int SCR_Init()
    * scr_node_file variable computed later */
   int num_nodes;
   rankstr_mpi(scr_my_hostname, scr_comm_world, 0, 1, &num_nodes, &scr_my_hostid);
+
+  /* print number of processes and nodes in debug mode to capture run configuration */
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "NPROCS=%d", scr_ranks_world);
+    scr_dbg(1, "NNODES=%d", num_nodes);
+  }
 
   /* check that scr_prefix is set */
   if (scr_prefix == NULL || strcmp(scr_prefix, "") == 0) {
@@ -2577,6 +2585,8 @@ int SCR_Finalize()
     return SCR_FAILURE;
   }
 
+  scr_param_finalize();
+
   /* bail out if not initialized -- will get bad results */
   if (! scr_initialized) {
     scr_abort(-1, "SCR has not been initialized @ %s:%d", __FILE__, __LINE__);
@@ -2586,11 +2596,6 @@ int SCR_Finalize()
   /* this is not required, but it helps ensure apps
    * are calling this as a collective */
   MPI_Barrier(scr_comm_world);
-
-#if 0
-  /* free user hash if one was allocated */
-  kvtree_delete(&scr_app_hash);
-#endif
 
   if (scr_my_rank_world == 0) {
     /* stop the clock for measuring the compute time */
@@ -2626,24 +2631,6 @@ int SCR_Finalize()
   if (scr_my_rank_world == 0 && scr_log_enable) {
     scr_log_finalize();
   }
-
-#ifdef HAVE_LIBPMIX
-  /* sync procs in pmix before shutdown */
-  int retval = PMIx_Fence(NULL, 0, NULL, 0);
-  if (retval != PMIX_SUCCESS) {
-    scr_err("PMIx_Fence failed: rc=%d, rank: %d @ %s:%d",
-      retval, scr_pmix_proc.rank, __FILE__, __LINE__
-    );
-  }
-
-  /* shutdown pmix */
-  retval = PMIx_Finalize(NULL, 0);
-  if (retval != PMIX_SUCCESS) {
-    scr_err("PMIx_Finalize failed: rc=%d, rank: %d @ %s:%d",
-      retval, scr_pmix_proc.rank, __FILE__, __LINE__
-    );
-  }
-#endif /* HAVE_LIBPMIX */
 
   /* shut down the AXL library */
   int axl_rc = AXL_Finalize_comm(scr_comm_world);
@@ -2748,37 +2735,6 @@ const char* SCR_Config(const char* config_string)
   if (config_string == NULL || strlen(config_string) == 0) {
     return NULL;
   }
-
-#if 0
-  /* allocate a hash to record params set through SCR_Config */
-  if (scr_app_hash == NULL) {
-    scr_app_hash = kvtree_new();
-  }
-#endif
-
-  /* create directory to hold app config file */
-  if (scr_my_rank_world == 0) {
-    /* get the prefix directory */
-    char* value = getenv("SCR_PREFIX");
-    spath* prefix_path = scr_get_prefix(value);
-    spath_append_str(prefix_path, ".scr");
-    const char* dirname = spath_strdup(prefix_path);
-    spath_delete(&prefix_path);
-
-    /* create the directory */
-    mode_t mode_dir = scr_getmode(1, 1, 1);
-    if (scr_mkdir(dirname, mode_dir) != SCR_SUCCESS) {
-      scr_abort(-1, "Failed to create directory %s @ %s:%d",
-        dirname, __FILE__, __LINE__
-      );
-    }
-
-    scr_free(&dirname);
-  }
-  MPI_Barrier(scr_comm_world);
-
-  /* read in our configuration parameters */
-  scr_param_init();
 
   /* after parsing these values will hold values like the following:
    *
@@ -2885,10 +2841,6 @@ const char* SCR_Config(const char* config_string)
           state = done;
         } else if (*conf == ' ') {
           state = before_value;
-        } else if (*conf == '=') {
-          scr_abort(-1, "Invalid configuration string '%s' @ %s:%d",
-            config_string, __FILE__, __LINE__
-          );
         } else {
           value = conf;
           if (toplevel_value == NULL) {
@@ -2899,6 +2851,7 @@ const char* SCR_Config(const char* config_string)
              * so we're at a point like "CKPT=0 TYPE=<char>", need to create
              * a hash to hold the rest */
             value_hash = kvtree_new();
+            kvtree_set(value_hash, key, kvtree_new());
           }
           state = in_value;
         }
@@ -2909,10 +2862,6 @@ const char* SCR_Config(const char* config_string)
         } else if (*conf == ' ') {
           *conf = '\0';
           state = before_key;
-        } else if (*conf == '=') {
-          scr_abort(-1, "Invalid configuration string '%s' @ %s:%d",
-            config_string, __FILE__, __LINE__
-          );
         } else {
           state = in_value;
         }
@@ -2954,6 +2903,9 @@ const char* SCR_Config(const char* config_string)
       );
     }
     assert(value_hash == NULL);
+
+    /* read in our configuration parameters */
+    scr_param_init();
 
     /* lookup the value for the given parameter */
     if (toplevel_value == NULL) {
@@ -3005,18 +2957,45 @@ const char* SCR_Config(const char* config_string)
     /* determine whether we have a simple key/value pair or a two-level param */
     if (value_hash == NULL) {
       /* dealing with a simple key/value parameter pair */
+
+      /* SCR_PREFIX and SCR_CONF_FILE are a special in that they are needed to
+       * construct the path to find user config file which is
+       * needed for SCR_Config itself.  */
+      if (strcmp(toplevel_key, "SCR_PREFIX") == 0 ||
+          strcmp(toplevel_key, "SCR_CONF_FILE") == 0) {
+        /* allocate an app hash if needed so we can set SCR_PREFIX
+         * or SCR_CONF_FILE in the call to scr_param_set below */
+        if (scr_app_hash == NULL) {
+          scr_app_hash = kvtree_new();
+        }
+
+        /* we temporarily set SCR_PREFIX or SCR_CONF_FILE
+         * so that scr_param_init can use it */
+        if (toplevel_value) {
+          scr_param_set(toplevel_key, toplevel_value);
+        } else {
+          scr_param_unset(toplevel_key);
+        }
+      }
+
+      /* read in our configuration parameters */
+      scr_param_init();
+
       if (toplevel_value) {
-        /* user want to set a value has given a
-         * string like "SCR_PREFIX=/path/to/prefix" */
+        /* user wants to set a value,
+         * has given a string like "SCR_PREFIX=/path/to/prefix" */
         scr_param_set(toplevel_key, toplevel_value);
       } else {
-        /* user wants to unset a value has given
-         * a string like "SCR_PREFIX=" */
-        scr_param_set_hash(toplevel_key, NULL);
+        /* user wants to unset a value,
+         * has given a string like "SCR_PREFIX=" */
+        scr_param_unset(toplevel_key);
       }
     } else {
       /* user wants to set or unset a two-level parameter
        * as in CKPT=0 TYPE=XOR */
+
+      /* read in our configuration parameters */
+      scr_param_init();
 
       /* lookup hash for top level key, as in "CKPT" */
       kvtree* toplevel_hash = (kvtree*)scr_param_get_hash(toplevel_key);
@@ -3045,8 +3024,6 @@ const char* SCR_Config(const char* config_string)
   }
 
   free(writable_config_string);
-
-  scr_param_finalize();
 
   return retval;
 }
@@ -3159,15 +3136,6 @@ int SCR_Need_checkpoint(int* flag)
           *flag = 1;
         }
       }
-    }
-
-    /* no way to determine whether we need to checkpoint, so always say yes */
-    if (!*flag &&
-        scr_checkpoint_interval <= 0 &&
-        scr_checkpoint_seconds  <= 0 &&
-        scr_checkpoint_overhead <= 0)
-    {
-      *flag = 1;
     }
   }
 

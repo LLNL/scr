@@ -4,7 +4,7 @@
 // File Locking
 #define KVTREE_FILE_LOCK_USE_@KVTREE_FILE_LOCK@
 
-#cmakedefine HAVE_LIBCPPR
+#cmakedefine HAVE_PTHREADS
 #cmakedefine HAVE_DATAWARP
 #cmakedefine HAVE_BBAPI
 #cmakedefine HAVE_BBAPI_FALLBACK
@@ -13,12 +13,14 @@
 #cmakedefine HAVE_LIBYOGRT
 #cmakedefine HAVE_LIBMYSQLCLIENT
 
-// Machine Specific Libs
-#cmakedefine HAVE_LIBPMIX
-#cmakedefine HAVE_LIBCPPR
-
 // Build Options
 #cmakedefine HAVE_FORTRAN_API
+
+// cpp hackery to evaluate to false if USE_FORTRAN_TRAILING_UNDERSCORES is
+// the empty string and true if it is 0 or 1
+#if (1 - @USE_FORTRAN_TRAILING_UNDERSCORES@ -1 != 2)
+#define USE_FORTRAN_TRAILING_UNDERSCORES @USE_FORTRAN_TRAILING_UNDERSCORES@
+#endif
 
 // SCR-Specific Configured Paths
 #define SCR_CACHE_BASE "@SCR_CACHE_BASE@"
