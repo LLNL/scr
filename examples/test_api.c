@@ -217,11 +217,11 @@ double getbw(char* name, char* buf, size_t size, int times)
       if (output > 0 && timestep % output == 0) {
         /* if output is enabled, mark every Nth as pure output */
         flags |= SCR_FLAG_OUTPUT;
-        sprintf(outname, "output.%d", timestep);
+        safe_snprintf(outname, sizeof(outname), "output.%d", timestep);
       } else {
         /* otherwise we have a checkpoint */
         flags |= SCR_FLAG_CHECKPOINT;
-        sprintf(outname, "ckpt.%d", timestep);
+        safe_snprintf(outname, sizeof(outname), "ckpt.%d", timestep);
       }
 
       /* if ckptout is enabled, mark every Nth write as output also */
@@ -232,9 +232,9 @@ double getbw(char* name, char* buf, size_t size, int times)
       /* compute directory path to hold output files */
       char outpath[SCR_MAX_FILENAME];
       if (path != NULL) {
-        sprintf(outpath, "%s/%s", path, outname);
+        safe_snprintf(outpath, sizeof(outpath), "%s/%s", path, outname);
       } else {
-        sprintf(outpath, "%s", outname);
+        safe_snprintf(outpath, sizeof(outpath), "%s", outname);
       }
 
       if (use_scr) {
@@ -529,7 +529,7 @@ int main (int argc, char* argv[])
 
   /* define base name for our checkpoint files */
   char name[256];
-  sprintf(name, "rank_%d.ckpt", rank);
+  safe_snprintf(name, sizeof(name), "rank_%d.ckpt", rank);
 
   /* get the name of our checkpoint file to open for read on restart */
   int scr_retval;
