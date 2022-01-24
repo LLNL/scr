@@ -31,6 +31,8 @@ int output = 0;
 int use_config_api = 0;
 int use_conf_file = 1;
 
+int use_fsync = 1; /* whether to fsync files after writing */
+
 char* path = NULL;
 int use_scr = 1;
 
@@ -288,10 +290,12 @@ double getbw(char* name, char* buf, size_t size, int times)
         }
 
         /* force the data to storage */
-        rc = fsync(fd_me);
-        if (rc < 0) {
-          valid = 0;
-          printf("%d: Error fsync %s\n", rank, file);
+        if (use_fsync) {
+          rc = fsync(fd_me);
+          if (rc < 0) {
+            valid = 0;
+            printf("%d: Error fsync %s\n", rank, file);
+          }
         }
 
         /* make sure the close is without error */
@@ -394,7 +398,8 @@ void print_usage()
   printf("    -o, --output=<COUNT> Mark every Nth write as pure output (default %d)\n", output);
   printf("    -a, --config-api=<BOOL> Use SCR_Config to set values (default %s)\n", btoa(use_config_api));
   printf("    -c, --conf-file=<BOOL>  Use SCR_CONF_FILE file to set values (default %s)\n", btoa(use_conf_file));
-  printf("    -x, --noscr          Disable SCR calls\n");
+  printf("        --nofsync        Disable fsync after writing files\n");
+  printf("        --noscr          Disable SCR calls\n");
   printf("    -h, --help           Print usage\n");
   printf("\n");
   return;
@@ -417,6 +422,7 @@ int main (int argc, char* argv[])
     {"output",  required_argument, NULL, 'o'},
     {"config-api", required_argument, NULL, 'a'},
     {"conf-file",  required_argument, NULL, 'c'},
+    {"nofsync", no_argument,       NULL, 'S'},
     {"noscr",   no_argument,       NULL, 'x'},
     {"help",    no_argument,       NULL, 'h'},
     {NULL,      no_argument,       NULL,   0}
@@ -455,6 +461,9 @@ int main (int argc, char* argv[])
         break;
       case 'c':
         use_conf_file = atob(optarg);
+        break;
+      case 'S':
+        use_fsync = 0;
         break;
       case 'x':
         use_scr = 0;
