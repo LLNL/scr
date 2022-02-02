@@ -33,13 +33,18 @@ which is faster but less reliable than the parallel file system.
 It applies a redundancy scheme to the cache such that checkpoints can be recovered after common system failures.
 It copies a subset of checkpoints to the parallel file system to recover from less common but more severe failures.
 In many failure cases, a job can be restarted from a cached checkpoint.
-Reading and writing datasets to cache may be orders of magnitude faster than the parallel file system.
+Reading and writing datasets to cache can be orders of magnitude faster than the parallel file system
+as shown in the figure below.
 
 .. _fig-aggr_bw:
 
 .. figure:: users/fig/scr_lassen.png
 
-   Aggregate write bandwidth on Lassen
+   Aggregate write bandwidth with SCR on the Lassen system at LLNL.
+   Each test runs with 40 processes per node,
+   where each process writes a 1GB file and calls fsync.
+   The RAM and SSD plots show the effective bandwidth achieved when
+   writing to node-local storage and applying a given SCR redundancy scheme.
 
 When writing a cached dataset to the parallel file system, SCR can transfer data asynchronously.
 The application may continue once the data has been written to the cache
