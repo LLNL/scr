@@ -1258,15 +1258,15 @@ static int scr_get_params()
     scr_dbg(1, "SCR_CHECKPOINT_OVERHEAD=%f", scr_checkpoint_overhead);
   }
 
-  if (scr_my_rank_world == 0) {
+  if (scr_debug > 0 && scr_my_rank_world == 0) {
     scr_dbg(1, "Group descriptors:");
     kvtree_print_mode(scr_groupdesc_hash, 4, KVTREE_PRINT_KEYVAL);
   }
-  if (scr_my_rank_world == 0) {
+  if (scr_debug > 0 && scr_my_rank_world == 0) {
     scr_dbg(1, "Store descriptors:");
     kvtree_print_mode(scr_storedesc_hash, 4, KVTREE_PRINT_KEYVAL);
   }
-  if (scr_my_rank_world == 0) {
+  if (scr_debug > 0 && scr_my_rank_world == 0) {
     scr_dbg(1, "Redundancy descriptors:");
     kvtree_print_mode(scr_reddesc_hash, 4, KVTREE_PRINT_KEYVAL);
   }
