@@ -55,15 +55,15 @@ mkdir -p install
 
 cd deps
 
-lwgrp=lwgrp-1.0.4
-dtcmp=dtcmp-1.1.3
+lwgrp=lwgrp-1.0.5
+dtcmp=dtcmp-1.1.4
 pdsh=pdsh-2.34
 
 if [ ! -f ${lwgrp}.tar.gz ] ; then
-  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.4/${lwgrp}.tar.gz
+  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.5/${lwgrp}.tar.gz
 fi
 if [ ! -f ${dtcmp}.tar.gz ] ; then
-  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.3/${dtcmp}.tar.gz
+  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.4/${dtcmp}.tar.gz
 fi
 if [ ! -f ${pdsh}.tar.gz ] ; then
   wget https://github.com/chaos/pdsh/releases/download/${pdsh}/${pdsh}.tar.gz
