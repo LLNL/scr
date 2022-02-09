@@ -405,9 +405,11 @@ int main (int argc, char *argv[])
   /* read in our flush file */
   if (kvtree_read_path(file_path, hash) != KVTREE_SUCCESS) {
     /* failed to read the flush file */
+    char* file_path_str = spath_strdup(file_path);
     scr_err("%s: Failed to read flush file '%s' @ %s:%d",
       PROG, file_path, __FILE__, __LINE__
     );
+    scr_free(&file_path_str);
     goto cleanup;
   }
 
