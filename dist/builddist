@@ -64,13 +64,13 @@ elif [ "$1" == "v3.0" ] ; then
     ORGS=(
         "lwgrp"    "llnl"      "v1.0.5"
         "dtcmp"    "llnl"      "v1.1.4"
-        "kvtree"   "ecp-veloc" "v1.2.0"
-        "axl"      "ecp-veloc" "v0.5.0"
-        "spath"    "ecp-veloc" "v0.1.0"
-        "shuffile" "ecp-veloc" "v0.1.0"
-        "redset"   "ecp-veloc" "v0.1.0"
-        "er"       "ecp-veloc" "v0.1.0"
-        "rankstr"  "ecp-veloc" "v0.1.0"
+        "kvtree"   "ecp-veloc" "v1.3.0"
+        "axl"      "ecp-veloc" "v0.6.0"
+        "spath"    "ecp-veloc" "v0.2.0"
+        "shuffile" "ecp-veloc" "v0.2.0"
+        "redset"   "ecp-veloc" "v0.2.0"
+        "er"       "ecp-veloc" "v0.2.0"
+        "rankstr"  "ecp-veloc" "v0.2.0"
         "scr"      "llnl"      "v3.0"
     )
 else
