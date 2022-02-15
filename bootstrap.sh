@@ -142,7 +142,7 @@ popd
 
 pushd KVTree
   if [ $build_dev -eq 0 ] ; then
-    git checkout v1.2.0
+    git checkout v1.3.0
   fi
   rm -rf build
   mkdir -p build
@@ -163,7 +163,7 @@ popd
 
 pushd AXL
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.5.0
+    git checkout v0.6.0
   fi
   rm -rf build
   mkdir -p build
@@ -183,7 +183,7 @@ popd
 
 pushd spath
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.1.0
+    git checkout v0.2.0
   fi
   rm -rf build
   mkdir -p build
@@ -204,7 +204,7 @@ popd
 
 pushd rankstr
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.1.0
+    git checkout v0.2.0
   fi
   rm -rf build
   mkdir -p build
@@ -224,7 +224,7 @@ popd
 
 pushd redset
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.1.0
+    git checkout v0.2.0
   fi
   rm -rf build
   mkdir -p build
@@ -245,7 +245,7 @@ popd
 
 pushd shuffile
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.1.0
+    git checkout v0.2.0
   fi
   rm -rf build
   mkdir -p build
@@ -266,7 +266,7 @@ popd
 
 pushd er
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.1.0
+    git checkout v0.2.0
   fi
   rm -rf build
   mkdir -p build
