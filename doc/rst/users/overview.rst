@@ -322,8 +322,6 @@ By default, SCR inspects the cache for existing checkpoints when a run starts.
 It attempts to rebuild all datasets in cache,
 and then it attempts to restart the job from the most recent checkpoint.
 If a dataset fails to rebuild, SCR deletes it from cache.
-To disable restarting from cache, set the :code:`SCR_DISTRIBUTE` parameter to 0.
-When disabled, SCR deletes all files from cache and restarts from a checkpoint on the parallel file system.
 
 An example restart scenario is illustrated in Figure :ref:`sec-restart`
 in which a 4-node job using the :code:`Partner` scheme allocates 5 nodes
