@@ -10,6 +10,16 @@ Sections below describe each case.
 Additionally, there is a section describing how to configure SCR
 based on application settings.
 
+The presentation here is a good way in practice to integrate SCR in steps.
+First, one can add calls to Init and Finalize and stop to check that the
+application successfully compiles, links, and runs with the SCR library.
+One can run the application with :code:`SCR_DEBUG=1` set to verify that :code:`SCR_Init` is being called.
+Second, one can then add Output API calls and stop to verify
+that the application properly writes its checkpoints with SCR.
+Third, one can then add Restart API calls and stop to verify
+that the application successfully reads its checkpoints through SCR.
+Finally, one can add any necessary calls to configure SCR based on application options.
+
 Using the SCR API
 -----------------
 
@@ -167,7 +177,10 @@ For example, one can modify the source to look something like this:
     return 0;
   }
 
-First, as shown in change #1,
+First, as noted in change #0,
+include the SCR header in any source file where SCR calls are added.
+
+As shown in change #1,
 one must call :code:`SCR_Init()` to initialize the SCR library before it can be used.
 SCR uses MPI, so SCR must be initialized after MPI has been initialized.
 Internally, SCR duplicates :code:`MPI_COMM_WORLD` during :code:`SCR_Init`,
@@ -177,7 +190,7 @@ Additionally, one may configure SCR with calls to :code:`SCR_Config`.
 Any calls to :code:`SCR_Config` must come before :code:`SCR_Init`.
 Because it is common to configure SCR based on application command line options provided by the user,
 it is typical to call :code:`SCR_Init` after application command line processing.
-For a few common examples with :code:`SCR_Config`, see :ref:`sec-integration-config`.
+For some common examples with :code:`SCR_Config`, see :ref:`sec-integration-config`.
 
 Then, as shown in change #4,
 one should shut down the SCR library by calling :code:`SCR_Finalize()`.
@@ -209,9 +222,6 @@ time remaining to copy datasets from cache to the parallel file system
 before the allocation expires.
 It is recommended to call this function after completing a checkpoint.
 
-As noted in change #0,
-include the SCR header in any source file where SCR calls are added.
-
 Checkpoint
 ^^^^^^^^^^
 
@@ -240,14 +250,14 @@ Some example SCR checkpoint code looks like the following:
   void checkpoint(int timestep) {
     /* each process saves its state to a file */
 
-    /* define checkpoint directory for the timestep */
-    char checkpoint_dir[256];
-    sprintf(checkpoint_dir, "timestep.%d", timestep);
-
     /**** change #5 ****/
     char ckpt_name[SCR_MAX_FILENAME];
     snprintf(ckpt_name, sizeof(ckpt_name), "timestep.%d", timestep);
     SCR_Start_output(ckpt_name, SCR_FLAG_CHECKPOINT);
+
+    /* define checkpoint directory for the timestep */
+    char checkpoint_dir[256];
+    sprintf(checkpoint_dir, "timestep.%d", timestep);
 
     /* get rank of this process */
     int rank;
@@ -310,7 +320,7 @@ by calling :code:`SCR_Start_output()` with the :code:`SCR_FLAG_CHECKPOINT`.
 The application should provide a name for the checkpoint,
 and all processes must provide the same name and the same flags values.
 In this example, the application timestep is used to name the checkpoint.
-For applications that create a dictory to hold all files of a checkpoint,
+For applications that create a directory to hold all files of a checkpoint,
 the name of the directory often serves as a good value for the SCR checkpoint name.
 
 The application must inform SCR when it has completed the checkpoint
@@ -343,7 +353,7 @@ its checkpoint file.
 Restart with SCR
 ^^^^^^^^^^^^^^^^
 
-To use SCR for restart, the application can call :code:`SCR_Have_restart`
+To use SCR for restart, the application must call :code:`SCR_Have_restart`
 to determine whether SCR has a previous checkpoint loaded.
 If there is a checkpoint available, the application
 can call :code:`SCR_Start_restart` to tell SCR that it is initiating a restart operation.
