@@ -3469,6 +3469,12 @@ int SCR_Have_restart(int* flag, char* name)
   /* TODO: a more proper check would be to examine the filemap, perhaps across ranks */
 
   if (! scr_have_restart) {
+    /* clear our ids which may have been set by a call to SCR_Current,
+     * we'll reset these during the search for a checkpoint below */
+    scr_dataset_id    = 0;
+    scr_checkpoint_id = 0;
+    scr_ckpt_dset_id  = 0;
+
     /* get ordered list of datasets we have in our cache */
     int ndsets;
     int* dsets;
