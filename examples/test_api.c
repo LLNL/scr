@@ -35,6 +35,7 @@ int use_fsync = 1; /* whether to fsync files after writing */
 
 char* path = NULL;
 int use_scr = 1;
+int use_scr_restart = 1;
 
 int rank  = -1;
 int ranks = 0;
@@ -384,6 +385,139 @@ const char *btoa(const int b)
   }
 }
 
+int restart_scr(char* name, char* buf, size_t filesize)
+{
+  /* get the name of our checkpoint file to open for read on restart */
+  int scr_retval;
+  int found_checkpoint = 0;
+  char dset[SCR_MAX_FILENAME];
+
+  int have_restart = 0;
+  int restarted = 0;
+  do {
+    scr_retval = SCR_Have_restart(&have_restart, dset);
+    if (scr_retval != SCR_SUCCESS) {
+      printf("%d: failed calling SCR_Have_restart: %d: @%s:%d\n",
+             rank, scr_retval, __FILE__, __LINE__
+      );
+    }
+
+    if (have_restart) {
+      if (rank == 0) {
+        printf("Restarting from checkpoint named %s\n", dset);
+      }
+
+      /* indicate to library that we're start to read our restart */
+      scr_retval = SCR_Start_restart(dset);
+      if (scr_retval != SCR_SUCCESS) {
+        printf("%d: failed calling SCR_Start_restart: %d: @%s:%d\n",
+               rank, scr_retval, __FILE__, __LINE__
+        );
+      }
+
+      /* include checkpoint directory path in name */
+      char newname[SCR_MAX_FILENAME];
+      safe_snprintf(newname, sizeof(newname), "%s/%s", dset, name);
+
+      /* compute directory path to hold output files */
+      char outpath[SCR_MAX_FILENAME];
+      if (path != NULL) {
+        safe_snprintf(outpath, sizeof(outpath), "%s/%s", path, newname);
+      } else {
+        safe_snprintf(outpath, sizeof(outpath), "%s", newname);
+      }
+
+      /* get our file name */
+      char file[SCR_MAX_FILENAME];
+      scr_retval = SCR_Route_file(outpath, file);
+      if (scr_retval != SCR_SUCCESS) {
+        printf("%d: failed calling SCR_Route_file: %d: @%s:%d\n",
+               rank, scr_retval, __FILE__, __LINE__
+        );
+      }
+
+      /* read the data */
+      if (read_checkpoint(file, &timestep, buf, filesize)) {
+        /* read the file ok, now check that contents are good */
+        found_checkpoint = 1;
+        if (!check_buffer(buf, filesize, rank, timestep)) {
+          printf("%d: Invalid value in buffer\n", rank);
+          found_checkpoint = 0;
+        }
+      } else {
+        printf("%d: Could not read checkpoint %d from %s\n", rank, timestep, file);
+        found_checkpoint = 0;
+      }
+
+      /* indicate to library that we're done with restart, tell it whether we read our data ok */
+      scr_retval = SCR_Complete_restart(found_checkpoint);
+      if (scr_retval == SCR_SUCCESS) {
+        /* all procs succeeded in reading their checkpoint file,
+         * we've successfully restarted */
+        restarted = 1;
+      } else {
+        printf("%d: failed calling SCR_Complete_restart: %d: @%s:%d\n",
+               rank, scr_retval, __FILE__, __LINE__
+        );
+      }
+    }
+  } while (have_restart && !restarted);
+
+  /* determine whether all tasks successfully read their checkpoint file */
+  if (!restarted) {
+    /* failed to read restart, reset timestep counter */
+    timestep = 0;
+    if (rank == 0) {
+      printf("At least one rank (perhaps all) did not find its checkpoint\n");
+    }
+  }
+}
+
+int restart(char* dset, char* name, char* buf, size_t filesize)
+{
+  if (rank == 0) {
+    printf("Restarting from checkpoint named %s\n", dset);
+  }
+
+  /* include checkpoint directory path in name */
+  char newname[SCR_MAX_FILENAME];
+  safe_snprintf(newname, sizeof(newname), "%s/%s", dset, name);
+
+  /* compute directory path to hold output files */
+  char outpath[SCR_MAX_FILENAME];
+  if (path != NULL) {
+    safe_snprintf(outpath, sizeof(outpath), "%s/%s", path, newname);
+  } else {
+    safe_snprintf(outpath, sizeof(outpath), "%s", newname);
+  }
+
+  /* read the data */
+  int found_checkpoint = 0;
+  if (read_checkpoint(outpath, &timestep, buf, filesize)) {
+    /* read the file ok, now check that contents are good */
+    found_checkpoint = 1;
+    if (!check_buffer(buf, filesize, rank, timestep)) {
+      printf("%d: Invalid value in buffer\n", rank);
+      found_checkpoint = 0;
+    }
+  } else {
+    printf("%d: Could not read checkpoint %d from %s\n", rank, timestep, outpath);
+    found_checkpoint = 0;
+  }
+
+  int restarted;
+  MPI_Allreduce(&found_checkpoint, &restarted, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
+
+  /* determine whether all tasks successfully read their checkpoint file */
+  if (!restarted) {
+    /* failed to read restart, reset timestep counter */
+    timestep = 0;
+    if (rank == 0) {
+      printf("At least one rank (perhaps all) did not find its checkpoint\n");
+    }
+  }
+}
+
 void print_usage()
 {
   printf("\n");
@@ -398,8 +532,10 @@ void print_usage()
   printf("    -o, --output=<COUNT> Mark every Nth write as pure output (default %d)\n", output);
   printf("    -a, --config-api=<BOOL> Use SCR_Config to set values (default %s)\n", btoa(use_config_api));
   printf("    -c, --conf-file=<BOOL>  Use SCR_CONF_FILE file to set values (default %s)\n", btoa(use_conf_file));
+  printf("        --current=<CKPT> Specify checkpoint name to load on restart\n");
   printf("        --nofsync        Disable fsync after writing files\n");
   printf("        --noscr          Disable SCR calls\n");
+  printf("        --noscrrestart   Disable SCR restart calls\n");
   printf("    -h, --help           Print usage\n");
   printf("\n");
   return;
@@ -422,8 +558,10 @@ int main (int argc, char* argv[])
     {"output",  required_argument, NULL, 'o'},
     {"config-api", required_argument, NULL, 'a'},
     {"conf-file",  required_argument, NULL, 'c'},
+    {"current", required_argument, NULL, 'C'},
     {"nofsync", no_argument,       NULL, 'S'},
     {"noscr",   no_argument,       NULL, 'x'},
+    {"noscrrestart", no_argument,  NULL, 'X'},
     {"help",    no_argument,       NULL, 'h'},
     {NULL,      no_argument,       NULL,   0}
   };
@@ -431,6 +569,7 @@ int main (int argc, char* argv[])
   int usage = 0;
   int long_index = 0;
   int opt = getopt_long(argc, argv, opt_string, long_options, &long_index);
+  char* current = NULL;
   unsigned long long val;
   while (opt != -1) {
     switch(opt) {
@@ -462,11 +601,17 @@ int main (int argc, char* argv[])
       case 'c':
         use_conf_file = atob(optarg);
         break;
+      case 'C':
+        current = strdup(optarg);
+        break;
       case 'S':
         use_fsync = 0;
         break;
       case 'x':
         use_scr = 0;
+        break;
+      case 'X':
+        use_scr_restart = 0;
         break;
       case 'h':
       default:
@@ -508,6 +653,13 @@ int main (int argc, char* argv[])
     }
   }
 
+  /* specify name of checkpoint to load if given */
+  if (use_scr) {
+    if (current != NULL) {
+      SCR_Current(current);
+    }
+  }
+
   double init_end = MPI_Wtime();
   double secs = init_end - init_start;
   MPI_Barrier(MPI_COMM_WORLD);
@@ -532,80 +684,11 @@ int main (int argc, char* argv[])
   safe_snprintf(name, sizeof(name), "rank_%d.ckpt", rank);
 
   /* get the name of our checkpoint file to open for read on restart */
-  int scr_retval;
-  int found_checkpoint = 0;
-  char dset[SCR_MAX_FILENAME];
-  if (use_scr) {
-    int have_restart = 0;
-    int restarted = 0;
-    do {
-      scr_retval = SCR_Have_restart(&have_restart, dset);
-      if (scr_retval != SCR_SUCCESS) {
-        printf("%d: failed calling SCR_Have_restart: %d: @%s:%d\n",
-               rank, scr_retval, __FILE__, __LINE__
-        );
-      }
-
-      if (have_restart) {
-        if (rank == 0) {
-          printf("Restarting from checkpoint named %s\n", dset);
-        }
-
-        /* indicate to library that we're start to read our restart */
-        scr_retval = SCR_Start_restart(dset);
-        if (scr_retval != SCR_SUCCESS) {
-          printf("%d: failed calling SCR_Start_restart: %d: @%s:%d\n",
-                 rank, scr_retval, __FILE__, __LINE__
-          );
-        }
-
-        /* include checkpoint directory path in name */
-        char newname[SCR_MAX_FILENAME];
-        safe_snprintf(newname, sizeof(newname), "%s/%s", dset, name);
-
-        /* get our file name */
-        char file[SCR_MAX_FILENAME];
-        scr_retval = SCR_Route_file(newname, file);
-        if (scr_retval != SCR_SUCCESS) {
-          printf("%d: failed calling SCR_Route_file: %d: @%s:%d\n",
-                 rank, scr_retval, __FILE__, __LINE__
-          );
-        }
-
-        /* read the data */
-        if (read_checkpoint(file, &timestep, buf, filesize)) {
-          /* read the file ok, now check that contents are good */
-          found_checkpoint = 1;
-          if (!check_buffer(buf, filesize, rank, timestep)) {
-            printf("%d: Invalid value in buffer\n", rank);
-            found_checkpoint = 0;
-          }
-        } else {
-          printf("%d: Could not read checkpoint %d from %s\n", rank, timestep, file);
-          found_checkpoint = 0;
-        }
-
-        /* indicate to library that we're done with restart, tell it whether we read our data ok */
-        scr_retval = SCR_Complete_restart(found_checkpoint);
-        if (scr_retval == SCR_SUCCESS) {
-          /* all procs succeeded in reading their checkpoint file,
-           * we've successfully restarted */
-          restarted = 1;
-        } else {
-          printf("%d: failed calling SCR_Complete_restart: %d: @%s:%d\n",
-                 rank, scr_retval, __FILE__, __LINE__
-          );
-        }
-      }
-    } while (have_restart && !restarted);
-
-    /* determine whether all tasks successfully read their checkpoint file */
-    if (!restarted) {
-      /* failed to read restart, reset timestep counter */
-      timestep = 0;
-      if (rank == 0) {
-        printf("At least one rank (perhaps all) did not find its checkpoint\n");
-      }
+  if (use_scr && use_scr_restart) {
+    restart_scr(name, buf, filesize);
+  } else {
+    if (current) {
+      restart(current, name, buf, filesize);
     }
   }
 
@@ -642,6 +725,11 @@ int main (int argc, char* argv[])
              bwmin, bwmax, bwsum/ranks, bwsum
       );
     }
+  }
+
+  if (current != NULL) {
+    free(current);
+    current = NULL;
   }
 
   if (path != NULL) {
