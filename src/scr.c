@@ -1024,6 +1024,7 @@ static int scr_get_params()
   /* whether to fetch files from the parallel file system */
   if ((value = scr_param_get("SCR_FETCH")) != NULL) {
     scr_fetch = atoi(value);
+    scr_fetch_bypass = !scr_fetch;
   }
   if (scr_my_rank_world == 0) {
     scr_dbg(1, "SCR_FETCH=%d", scr_fetch);
@@ -3528,7 +3529,7 @@ int SCR_Have_restart(int* flag, char* name)
     scr_free(&dsets);
 
     /* attempt to fetch files from parallel file system */
-    if (!found_checkpoint && scr_fetch) {
+    if (!found_checkpoint) {
       /* sets scr_dataset_id and scr_checkpoint_id upon success */
       int fetch_attempted = 0;
       int rc = scr_fetch_latest(scr_cindex, &fetch_attempted);
