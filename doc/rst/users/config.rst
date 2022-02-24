@@ -574,7 +574,7 @@ The table in this section specifies the full set of SCR configuration parameters
      - Set to 1 to delete all datasets from the prefix directory (both checkpoint and output) during :code:`SCR_Init`.
    * - :code:`SCR_CURRENT`
      - N/A
-     - Name of checkpoint to mark as current and attempt to fetch in a new run during :code:`SCR_Init`.
+     - Name of checkpoint to mark as current and attempt to load during a new run during :code:`SCR_Init`.
    * - :code:`SCR_DISTRIBUTE`
      - 1
      - Set to 0 to disable cache rebuild during :code:`SCR_Init`.
@@ -613,7 +613,7 @@ The table in this section specifies the full set of SCR configuration parameters
        Typically, one should also set :code:`SCR_FETCH=0` when enabling this option.
    * - :code:`SCR_GLOBAL_RESTART`
      - 0
-     - Set to 1 to flush checkpoints to the prefix directory during :code:`SCR_Init` and internally switch fetch to use cache bypass mode.
+     - Set to 1 to flush checkpoints to and restart from the prefix directory during :code:`SCR_Init`.
        This is needed by applications that use the SCR Restart API but require a global file system to restart,
        e.g., because multiple processes read the same file.
    * - :code:`SCR_RUNS`

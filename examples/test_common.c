@@ -160,9 +160,18 @@ int read_checkpoint(char* file, int* ckpt, char* buf, size_t size)
     n = reliable_read(fd, ckpt_buf, sizeof(ckpt_buf));
 
     /* read the checkpoint data, and check the file size */
-    n = reliable_read(fd, buf, size+1);
+    n = reliable_read(fd, buf, size);
     if (n != size) {
       printf("Filesize not correct. Expected %lu, got %lu\n", size, n);
+      close(fd);
+      return 0;
+    }
+
+    /* read one byte past the expected size to verify we've hit the end of the file */
+    char endbuf[1];
+    n = reliable_read(fd, endbuf, 1);
+    if (n != 0) {
+      printf("Filesize not correct. Expected %lu, got %lu\n", size, size+1);
       close(fd);
       return 0;
     }

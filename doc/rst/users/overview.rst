@@ -322,8 +322,6 @@ By default, SCR inspects the cache for existing checkpoints when a run starts.
 It attempts to rebuild all datasets in cache,
 and then it attempts to restart the job from the most recent checkpoint.
 If a dataset fails to rebuild, SCR deletes it from cache.
-To disable restarting from cache, set the :code:`SCR_DISTRIBUTE` parameter to 0.
-When disabled, SCR deletes all files from cache and restarts from a checkpoint on the parallel file system.
 
 An example restart scenario is illustrated in Figure :ref:`sec-restart`
 in which a 4-node job using the :code:`Partner` scheme allocates 5 nodes
@@ -396,25 +394,22 @@ latest checkpoint and any output datasets are copied to the parallel file system
 We say that these scripts scavenge those datasets.
 
 Each time an SCR job starts,
-SCR first inspects the cache and attempts to distribute files for a scalable restart
+SCR first inspects the cache and attempts to rebuild files for a scalable restart
 as discussed in :ref:`sec-restart`.
-If the cache is empty or the distribute operation fails or is disabled,
-SCR attempts to fetch a checkpoint from the prefix directory to fill the cache.
-SCR reads the index file and attempts to fetch the most recent checkpoint,
-or otherwise the checkpoint that is marked as current within the index file.
-For a given checkpoint, SCR records whether the fetch attempt succeeds or fails in the index file.
-SCR does not attempt to fetch a checkpoint that is marked as being incomplete
-nor does it attempt to fetch a checkpoint for which a previous fetch attempt has failed.
-If SCR attempts but fails to fetch a checkpoint, it prints an error and
-it will attempt to fetch the next most recent checkpoint if one is available.
+If the cache is empty or the rebuild fails,
+SCR attempts to load a checkpoint from the prefix directory.
+SCR reads the index file and attempts to load the checkpoint that is marked as current.
+If no checkpoint is designated as current, SCR attempts to load the most recent checkpoint.
+When restarting from a checkpoint, SCR records whether the restart attempt succeeds or fails in the index file.
+SCR does not attempt to load a checkpoint that is marked as being incomplete
+nor does SCR attempt to load a checkpoint for which a previous restart attempt has failed.
+If SCR attempts but fails to load a checkpoint, it prints an error and
+it will attempt to load the next most recent checkpoint if one is available.
 
+By default, SCR fetches the checkpoint into cache and applies a redundancy scheme.
 To disable the fetch operation, set the :code:`SCR_FETCH` parameter to 0.
-If an application disables the fetch feature,
-the application is responsible for reading its checkpoint directly from
-the parallel file system upon a restart.
-In this case, the application should call :code:`SCR_Current` to notify SCR
-which checkpoint it loaded.
-This enables SCR to set its internal state to maintain proper ordering in the checkpoint sequence.
+If the fetch is disabled, SCR directs the application to read its
+checkpoint files directly from the prefix directory.
 
 To withstand catastrophic failures,
 it is necessary to write checkpoints out to the parallel file system with some moderate frequency.
@@ -424,9 +419,7 @@ This frequency can be configured by setting the :code:`SCR_FLUSH` parameter.
 When this parameter is set, SCR decrements a counter with each successful checkpoint.
 When the counter hits 0, SCR writes the current checkpoint out to the file system and resets the counter
 to the value specified in :code:`SCR_FLUSH`.
-SCR preserves this counter between scalable restarts,
-and when used in conjunction with :code:`SCR_FETCH` or :code:`SCR_Current`,
-it also preserves this counter between fetch and flush operations
+SCR can preserve this counter between restarts 
 such that it is possible to maintain periodic checkpoint writes across runs.
 Set :code:`SCR_FLUSH` to 0 to disable periodic writes in SCR.
 If an application disables the periodic flush feature,

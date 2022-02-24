@@ -1024,6 +1024,7 @@ static int scr_get_params()
   /* whether to fetch files from the parallel file system */
   if ((value = scr_param_get("SCR_FETCH")) != NULL) {
     scr_fetch = atoi(value);
+    scr_fetch_bypass = !scr_fetch;
   }
   if (scr_my_rank_world == 0) {
     scr_dbg(1, "SCR_FETCH=%d", scr_fetch);
@@ -1241,7 +1242,7 @@ static int scr_get_params()
     scr_checkpoint_seconds = atoi(value);
   }
   if (scr_my_rank_world == 0) {
-    scr_dbg(1, "SCR_CHECKPOINT_SECONDS=%d", scr_checkpoint_seconds); 
+    scr_dbg(1, "SCR_CHECKPOINT_SECONDS=%d", scr_checkpoint_seconds);
   }
 
   /* override default maximum allowed checkpointing overhead */
@@ -1258,15 +1259,15 @@ static int scr_get_params()
     scr_dbg(1, "SCR_CHECKPOINT_OVERHEAD=%f", scr_checkpoint_overhead);
   }
 
-  if (scr_my_rank_world == 0) {
+  if (scr_debug > 0 && scr_my_rank_world == 0) {
     scr_dbg(1, "Group descriptors:");
     kvtree_print_mode(scr_groupdesc_hash, 4, KVTREE_PRINT_KEYVAL);
   }
-  if (scr_my_rank_world == 0) {
+  if (scr_debug > 0 && scr_my_rank_world == 0) {
     scr_dbg(1, "Store descriptors:");
     kvtree_print_mode(scr_storedesc_hash, 4, KVTREE_PRINT_KEYVAL);
   }
-  if (scr_my_rank_world == 0) {
+  if (scr_debug > 0 && scr_my_rank_world == 0) {
     scr_dbg(1, "Redundancy descriptors:");
     kvtree_print_mode(scr_reddesc_hash, 4, KVTREE_PRINT_KEYVAL);
   }
@@ -1575,7 +1576,7 @@ static int scr_start_output(const char* name, int flags)
     scr_dbg(1, "Starting dataset %d `%s'", scr_dataset_id, dataset_name);
 
     /* start a timer to measure just the application write time,
-     * also report the total time we spent in scr_start_output */ 
+     * also report the total time we spent in scr_start_output */
     scr_time_write_start = MPI_Wtime();
     double time_diff = scr_time_write_start - time_start;
     scr_dbg(1, "scr_start_output: %f secs", time_diff);
@@ -1713,7 +1714,7 @@ static int scr_complete_output(int valid)
   /* assume we'll succeed */
   int rc = SCR_SUCCESS;
 
-  /* capture time to mark start of complete output and 
+  /* capture time to mark start of complete output and
    * to note stop timer for measuring app write performance */
   MPI_Barrier(scr_comm_world);
   double time_start;
@@ -2510,41 +2511,6 @@ int SCR_Init()
     scr_flush_file_rebuild(scr_cindex);
   }
 
-  /* attempt to fetch files from parallel file system */
-  int fetch_attempted = 0;
-  if ((rc != SCR_SUCCESS || scr_global_restart) && scr_fetch) {
-    /* sets scr_dataset_id and scr_checkpoint_id upon success */
-    rc = scr_fetch_latest(scr_cindex, &fetch_attempted);
-    if (scr_my_rank_world == 0) {
-      scr_dbg(2, "scr_fetch_latest attempted on restart");
-    }
-  }
-
-  /* TODO: there is some risk here of cleaning the cache when we shouldn't
-   * if given a badly placed nodeset for a restart job step within an
-   * allocation with lots of spares. */
-
-  /* if the fetch fails, lets clear the cache */
-  if (rc != SCR_SUCCESS) {
-    /* clear the cache of all files */
-    scr_cache_purge(scr_cindex);
-    scr_dataset_id    = 0;
-    scr_checkpoint_id = 0;
-    scr_ckpt_dset_id  = 0;
-  }
-
-  /* both the distribute and the fetch failed */
-  if (rc != SCR_SUCCESS) {
-    /* if a fetch was attempted but failed, print a warning */
-    if (scr_my_rank_world == 0 && fetch_attempted) {
-      scr_err("Failed to fetch checkpoint set into cache. Restarting from the beginning @ %s:%d",
-        __FILE__, __LINE__
-      );
-    }
-    /* We are restarting from the trivial checkpoint (full restart) */
-    rc = SCR_SUCCESS;
-  }
-
   /* set flag depending on whether checkpoint_id is greater than 0,
    * we'll take this to mean that we have a checkpoint in cache */
   scr_have_restart = (scr_checkpoint_id > 0);
@@ -2568,7 +2534,7 @@ int SCR_Init()
   }
 
   /* all done, ready to go */
-  return rc;
+  return SCR_SUCCESS;
 }
 
 /* Close down and clean up */
@@ -3503,8 +3469,87 @@ int SCR_Have_restart(int* flag, char* name)
 
   /* TODO: a more proper check would be to examine the filemap, perhaps across ranks */
 
-  /* set flag depending on whether checkpoint_id is greater than 0,
-   * we'll take this to mean that we have a checkpoint in cache */
+  if (! scr_have_restart) {
+    /* clear our ids which may have been set by a call to SCR_Current,
+     * we'll reset these during the search for a checkpoint below */
+    scr_dataset_id    = 0;
+    scr_checkpoint_id = 0;
+    scr_ckpt_dset_id  = 0;
+
+    /* get ordered list of datasets we have in our cache */
+    int ndsets;
+    int* dsets;
+    scr_cache_index_list_datasets(scr_cindex, &ndsets, &dsets);
+
+    int found_checkpoint = 0;
+
+    /* loop backwards through datasets looking for most recent checkpoint */
+    int idx = ndsets - 1;
+    while (idx >= 0 && scr_checkpoint_id == 0) {
+      /* get next most recent dataset */
+      int current_id = dsets[idx];
+
+      /* get dataset for this id */
+      scr_dataset* dataset = scr_dataset_new();
+      scr_cache_index_get_dataset(scr_cindex, current_id, dataset);
+
+      /* see if we have a checkpoint */
+      int is_ckpt = scr_dataset_is_ckpt(dataset);
+      if (is_ckpt) {
+        /* if we rebuild any checkpoint, return success */
+        found_checkpoint = 1;
+
+        /* if id of dataset we just rebuilt is newer,
+         * update scr_dataset_id */
+        if (current_id > scr_dataset_id) {
+          scr_dataset_id = current_id;
+        }
+
+        /* get checkpoint id for dataset */
+        int ckpt_id;
+        scr_dataset_get_ckpt(dataset, &ckpt_id);
+
+        /* if checkpoint id of dataset we just rebuilt is newer,
+         * update scr_checkpoint_id and scr_ckpt_dset_id */
+        if (ckpt_id > scr_checkpoint_id) {
+          /* got a more recent checkpoint, update our checkpoint info */
+          scr_checkpoint_id = ckpt_id;
+          scr_ckpt_dset_id = current_id;
+        }
+      }
+
+      /* release the dataset object */
+      scr_dataset_delete(&dataset);
+
+      /* move on to next most recent dataset */
+      idx--;
+    }
+
+    /* free our list of dataset ids */
+    scr_free(&dsets);
+
+    /* attempt to fetch files from parallel file system */
+    if (!found_checkpoint) {
+      /* sets scr_dataset_id and scr_checkpoint_id upon success */
+      int fetch_attempted = 0;
+      int rc = scr_fetch_latest(scr_cindex, &fetch_attempted);
+
+      /* if the fetch fails, lets clear the cache */
+      if (rc != SCR_SUCCESS) {
+        /* clear the cache of all files */
+        scr_cache_purge(scr_cindex);
+        scr_dataset_id    = 0;
+        scr_checkpoint_id = 0;
+        scr_ckpt_dset_id  = 0;
+      }
+    }
+
+    /* set flag depending on whether checkpoint_id is greater than 0,
+     * we'll take this to mean that we have a checkpoint in cache */
+    scr_have_restart = (scr_checkpoint_id > 0);
+  }
+
+  /* inform caller whether we have identified a checkpoint to restart from */
   *flag = scr_have_restart;
 
   /* read dataset name from filemap */
@@ -3554,14 +3599,6 @@ int SCR_Start_restart(char* name)
   /* this is not required, but it helps ensure apps
    * are calling this as a collective */
   MPI_Barrier(scr_comm_world);
-
-  /* bail out if there is no checkpoint to restart from */
-  if (! scr_have_restart) {
-    scr_abort(-1, "SCR has no checkpoint for restart @ %s:%d",
-      __FILE__, __LINE__
-    );
-    return SCR_FAILURE;
-  }
 
   /* read dataset name from filemap */
   if (name != NULL) {
@@ -3655,70 +3692,6 @@ int SCR_Complete_restart(int valid)
     scr_dataset_id    = 0;
     scr_checkpoint_id = 0;
     scr_ckpt_dset_id  = 0;
-
-    /* get ordered list of datasets we have in our cache */
-    int ndsets;
-    int* dsets;
-    scr_cache_index_list_datasets(scr_cindex, &ndsets, &dsets);
-
-    int found_checkpoint = 0;
-
-    /* loop backwards through datasets looking for most recent checkpoint */
-    int idx = ndsets - 1;
-    while (idx >= 0 && scr_checkpoint_id == 0) {
-      /* get next most recent dataset */
-      int current_id = dsets[idx];
-
-      /* get dataset for this id */
-      scr_dataset* dataset = scr_dataset_new();
-      scr_cache_index_get_dataset(scr_cindex, current_id, dataset);
-
-      /* see if we have a checkpoint */
-      int is_ckpt = scr_dataset_is_ckpt(dataset);
-      if (is_ckpt) {
-        /* if we rebuild any checkpoint, return success */
-        found_checkpoint = 1;
-
-        /* if id of dataset we just rebuilt is newer,
-         * update scr_dataset_id */
-        if (current_id > scr_dataset_id) {
-          scr_dataset_id = current_id;
-        }
-
-        /* get checkpoint id for dataset */
-        int ckpt_id;
-        scr_dataset_get_ckpt(dataset, &ckpt_id);
-
-        /* if checkpoint id of dataset we just rebuilt is newer,
-         * update scr_checkpoint_id and scr_ckpt_dset_id */
-        if (ckpt_id > scr_checkpoint_id) {
-          /* got a more recent checkpoint, update our checkpoint info */
-          scr_checkpoint_id = ckpt_id;
-          scr_ckpt_dset_id = current_id;
-        }
-      }
-
-      /* release the dataset object */
-      scr_dataset_delete(&dataset);
-
-      /* move on to next most recent dataset */
-      idx--;
-    }
-
-    /* free our list of dataset ids */
-    scr_free(&dsets);
-
-    /* if we still don't have a checkpoint and fetch is enabled,
-     * attempt to fetch files from parallel file system */
-    if (!found_checkpoint && scr_fetch) {
-      /* sets scr_dataset_id and scr_checkpoint_id upon success */
-      int fetch_attempted = 0;
-      scr_fetch_latest(scr_cindex, &fetch_attempted);
-    }
-
-    /* set flag depending on whether checkpoint_id is greater than 0,
-     * we'll take this to mean that we have a checkpoint in cache */
-    scr_have_restart = (scr_checkpoint_id > 0);
   }
 
   return rc;
@@ -3885,8 +3858,8 @@ int SCR_Current(const char* name)
     /* free list of dataset ids */
     scr_free(&dsets);
 
-    /* we don't want to support a restart from this since it is not
-     * loaded, we just allow the user to initialize the counters */
+    /* forget about any loaded checkpoint in case the
+     * user intends to skip calling the restart API */
     scr_have_restart = 0;
   }
 
