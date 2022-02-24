@@ -15,7 +15,7 @@ if 'pyfe' not in sys.path:
 import argparse
 from pyfe.postrun import postrun
 from pyfe.scr_environment import SCR_Env
-from pyfe.resmgr import AutoResourceManager
+from pyfe.resmgrs import AutoResourceManager
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(add_help=False,

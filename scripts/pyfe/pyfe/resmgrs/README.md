@@ -38,7 +38,7 @@ Users often create new resource manager objects through the `AutoResourceManager
 
 Add lines to import the new class and create an object to `auto.py`.
 
-    from pyfe.resmgr import (
+    from pyfe.resmgrs import (
       ...
       NewRM
     )

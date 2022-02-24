@@ -23,7 +23,7 @@ import os, sys
 import time
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
 import pyfe
-from pyfe.resmgr import AutoResourceManager
+from pyfe.resmgrs import AutoResourceManager
 
 time.sleep(2)
 

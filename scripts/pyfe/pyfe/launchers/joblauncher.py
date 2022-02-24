@@ -1,7 +1,5 @@
 #! /usr/bin/env python3
 """
-joblauncher/joblauncher.py
-
 JobLauncher is the super class for the job launcher family.
 The clustershell_exec method is provided by this class, other methods should be overridden.
 If the constant, USE_CLUSTERSHELL, is not '0' and the module ClusterShell is available

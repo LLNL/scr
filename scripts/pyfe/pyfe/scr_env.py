@@ -12,9 +12,9 @@ if 'pyfe' not in sys.path:
 
 import argparse
 from pyfe.scr_environment import SCR_Env
-from pyfe.resmgr import AutoResourceManager
+from pyfe.resmgrs import AutoResourceManager
 from pyfe.scr_param import SCR_Param
-from pyfe.joblauncher import AutoJobLauncher
+from pyfe.launchers import AutoJobLauncher
 
 
 def printobject(obj, objname):

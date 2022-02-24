@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 """
-joblauncher/__init__.py
 Job Launcher classes provide an interface to specific launcher programs.
 
 The job launcher is determined by:

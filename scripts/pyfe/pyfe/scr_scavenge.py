@@ -14,8 +14,8 @@ from time import time
 from pyfe import scr_const
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_environment import SCR_Env
-from pyfe.resmgr import AutoResourceManager
-from pyfe.joblauncher import AutoJobLauncher
+from pyfe.resmgrs import AutoResourceManager
+from pyfe.launchers import AutoJobLauncher
 
 # check for pdsh / (clustershell) errors in case any nodes should be retried
 

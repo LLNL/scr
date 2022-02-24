@@ -1,7 +1,5 @@
 #! /usr/bin/env python3
 """
-resmgr/resourcemanager.py
-
 ResourceManager is the super class for the resource manager family.
 Node set methods (compress, expand, diff, intersect) are provided by this class.
 If the constant, USE_CLUSTERSHELL, is not '0' and the module ClusterShell is available

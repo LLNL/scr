@@ -9,8 +9,8 @@ if 'pyfe' not in sys.path:
   import pyfe
 
 from pyfe.scr_environment import SCR_Env
-from pyfe.resmgr import AutoResourceManager
-from pyfe.joblauncher import AutoJobLauncher
+from pyfe.resmgrs import AutoResourceManager
+from pyfe.launchers import AutoJobLauncher
 
 # This script attempts to get the job step id for the last srun command that
 # was launched. The argument to this script is the PID of the srun command.

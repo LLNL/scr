@@ -24,7 +24,7 @@ from pyfe import scr_const
 from pyfe.list_dir import list_dir
 from pyfe.scr_environment import SCR_Env
 from pyfe.scr_param import SCR_Param
-from pyfe.resmgr import AutoResourceManager
+from pyfe.resmgrs import AutoResourceManager
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(add_help=False,

@@ -1,30 +1,19 @@
 #! /usr/bin/env python3
 
-#srun.py
-# The SRUN class provides interpretation for the srun launcher
-
-from time import sleep
+# lrun.py
+# The LRUN class provides interpretation for the lrun launcher
 
 from pyfe import scr_const
+from pyfe.launchers import JobLauncher
 from pyfe.scr_common import runproc, pipeproc
-from pyfe.joblauncher import JobLauncher
 
 
-class SRUN(JobLauncher):
-  def __init__(self, launcher='srun'):
-    super(SRUN, self).__init__(launcher=launcher)
-    # The Popen.kill() seems to work for srun
+class LRUN(JobLauncher):
+  def __init__(self, launcher='lrun'):
+    super(LRUN, self).__init__(launcher=launcher)
     if scr_const.USE_JOBLAUNCHER_KILL == '1':
-      self.watchprocess = True
-
-  # a command to run immediately before prerun is ran
-  # NOP srun to force every node to run prolog to delete files from cache
-  # TODO: remove this if admins find a better place to clear cache
-  def prepareforprerun(self):
-    # NOP srun to force every node to run prolog to delete files from cache
-    # TODO: remove this if admins find a better place to clear cache
-    argv = ['srun', '/bin/hostname']  # ,'>','/dev/null']
-    runproc(argv=argv)
+      #self.watchprocess = True
+      pass
 
   # returns the process and PID of the launched process
   # as returned by runproc(argv=argv, wait=False)
@@ -35,7 +24,7 @@ class SRUN(JobLauncher):
       return None, -1
     argv = [self.launcher]
     if len(down_nodes) > 0:
-      argv.extend(['--exclude', down_nodes])
+      argv.append('--exclude_hosts=' + down_nodes)
     argv.extend(launcher_args)
     return runproc(argv=argv, wait=False)
 
@@ -74,26 +63,3 @@ class SRUN(JobLauncher):
     output = self.parallel_exec(argv=argv, runnodes=upnodes,
                                 use_dshbak=False)[0]
     return output
-
-  # query SLURM for the most recent jobstep in current allocation
-  def get_jobstep_id(self, user='', allocid='', pid=-1):
-    # allow launched job to show in squeue
-    sleep(10)
-    if user == '' or allocid == '':
-      return None
-
-    # get job steps for this user and job, order by decreasing job step
-    # so first one should be the one we are looking for
-    #   squeue -h -s -u $user -j $jobid -S "-i"
-    # -h means print no header, so just the data in this order:
-    # STEPID         NAME PARTITION     USER      TIME NODELIST
-    cmd = "squeue -h -s -u " + user + " -j " + allocid + " -S \"-i\""
-    output = runproc(cmd, getstdout=True)[0]
-    output = re.search('\d+', output)
-    if output is None:
-      return None
-    return output[0]
-
-  def scr_kill_jobstep(self, jobstepid=None):
-    if jobstepid is not None:
-      runproc(argv=['scancel', jobstepid])

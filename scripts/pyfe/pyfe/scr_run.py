@@ -22,8 +22,8 @@ from pyfe.scr_common import tracefunction, runproc, scr_prefix
 from pyfe.scr_prerun import scr_prerun
 from pyfe.scr_watchdog import SCR_Watchdog
 from pyfe.scr_environment import SCR_Env
-from pyfe.joblauncher import AutoJobLauncher
-from pyfe.resmgr import AutoResourceManager
+from pyfe.launchers import AutoJobLauncher
+from pyfe.resmgrs import AutoResourceManager
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_glob_hosts import scr_glob_hosts
 from pyfe.cli import SCRLog

@@ -17,8 +17,8 @@ if 'pyfe' not in sys.path:
 import argparse, re, subprocess
 from pyfe import scr_const, scr_hostlist
 from pyfe.scr_environment import SCR_Env
-from pyfe.resmgr import AutoResourceManager
-from pyfe.joblauncher import AutoJobLauncher
+from pyfe.resmgrs import AutoResourceManager
+from pyfe.launchers import AutoJobLauncher
 
 
 def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):

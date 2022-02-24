@@ -14,7 +14,7 @@ if 'pyfe' not in sys.path:
 import argparse
 from pyfe import scr_const
 from pyfe.scr_common import runproc
-from pyfe.joblauncher import AutoJobLauncher
+from pyfe.launchers import AutoJobLauncher
 
 
 def scr_kill_jobstep(bindir=None, jobid=None):

@@ -1,12 +1,11 @@
 #! /usr/bin/env python3
 """
-resmgr/auto.py
 AutoResourceManager is called to return the appropriate ResourceManager class
 
 This is the class called to obtain an instance of a resource manager.
 
 To add a new resource manager:
-* Insert the new class name at the end of pyfe.resmgr import statement
+* Insert the new class name at the end of pyfe.resmgrs import statement
 * Insert the condition and return statement for your new resource manager within __new__
 
 The resmgr string normally comes from the value of scr_const.SCR_RESOURCE_MANAGER
@@ -14,7 +13,7 @@ The resmgr string normally comes from the value of scr_const.SCR_RESOURCE_MANAGE
 
 from pyfe import scr_const
 
-from pyfe.resmgr import (
+from pyfe.resmgrs import (
     ResourceManager,
     LSF,
     PBSALPS,

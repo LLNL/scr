@@ -6,7 +6,7 @@
 from time import sleep
 
 from pyfe import scr_const
-from pyfe.joblauncher import JobLauncher
+from pyfe.launchers import JobLauncher
 from pyfe.scr_common import runproc, pipeproc
 
 

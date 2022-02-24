@@ -18,8 +18,8 @@ import multiprocessing as mp
 
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
 import pyfe
-from pyfe.resmgr import AutoResourceManager
-from pyfe.joblauncher import AutoJobLauncher
+from pyfe.resmgrs import AutoResourceManager
+from pyfe.launchers import AutoJobLauncher
 from pyfe.scr_param import SCR_Param
 from pyfe.scr_environment import SCR_Env
 from pyfe.scr_watchdog import SCR_Watchdog

@@ -13,7 +13,7 @@ import argparse
 from pyfe.list_down_nodes import list_down_nodes
 from pyfe.scr_environment import SCR_Env
 from pyfe.scr_param import SCR_Param
-from pyfe.resmgr import AutoResourceManager
+from pyfe.resmgrs import AutoResourceManager
 from pyfe.cli import SCRLog
 
 if __name__ == '__main__':

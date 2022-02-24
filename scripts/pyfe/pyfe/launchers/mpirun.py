@@ -5,7 +5,7 @@
 
 import os
 from pyfe import scr_hostlist, scr_const
-from pyfe.joblauncher import JobLauncher
+from pyfe.launchers import JobLauncher
 from pyfe.scr_common import runproc, pipeproc
 
 

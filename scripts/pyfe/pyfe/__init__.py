@@ -2,5 +2,5 @@
 
 __version__ = '0.0'
 
-from .resmgr import *
-from .joblauncher import *
+from .resmgrs import *
+from .launchers import *

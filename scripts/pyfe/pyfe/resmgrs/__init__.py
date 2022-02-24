@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 """
-resmgr/__init__.py
 Resource Manager classes provide an interface to the resource manager in use.
 
 The resource manager is determined by:

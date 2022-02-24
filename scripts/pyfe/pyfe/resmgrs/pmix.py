@@ -6,7 +6,7 @@
 import os
 from pyfe import scr_const
 from pyfe.scr_common import runproc, pipeproc
-from pyfe.resmgr import nodetests, ResourceManager
+from pyfe.resmgrs import nodetests, ResourceManager
 
 class PMIX(ResourceManager):
   # init initializes vars from the environment

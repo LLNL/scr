@@ -32,7 +32,7 @@ Users often create new job launcher objects through the `AutoJobLauncher` functi
 
 Add lines to import the new class and create an object to `auto.py`.
 
-    from pyfe.joblauncher import (
+    from pyfe.launchers import (
       ...
       NewLauncher
     )
