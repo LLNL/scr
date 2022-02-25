@@ -39,6 +39,8 @@ class FLUX(ResourceManager):
   def getjobid(self):
     if self.jobid is not None:
       return self.jobid
+    if scr_const.SCR_RESOURCE_MANAGER == 'FLUX':
+      return os.environ.get('FLUX_JOB_ID')
     if scr_const.SCR_RESOURCE_MANAGER == 'SLURM':
       return os.environ.get('SLURM_JOBID')
     if scr_const.SCR_RESOURCE_MANAGER == 'LSF':
