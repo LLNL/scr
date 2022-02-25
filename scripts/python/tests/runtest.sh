@@ -32,7 +32,7 @@ fi
 
 export TESTDIR=$(pwd)
 cd ..
-export PATH=$(pwd)/pyfe:${PATH}
+export PATH=$(pwd)/scrjob:${PATH}
 cd ../../../
 export SCR_PKG=$(pwd)
 export SCR_BUILD=${SCR_PKG}/build
