@@ -1,4 +1,3 @@
-
 # Function to configure binaries (file.in -> file) and install into bin directory
 # Called from the subdirectories added below
 FUNCTION(SCR_INSTALL_BIN file)
@@ -11,6 +10,7 @@ ENDFUNCTION(SCR_INSTALL_BIN file)
 
 # Common Binaries
 ADD_SUBDIRECTORY(common)
+ADD_SUBDIRECTORY(python)
 
 # Tests
 ADD_SUBDIRECTORY(test)
