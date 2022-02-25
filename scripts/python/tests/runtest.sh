@@ -24,7 +24,7 @@ MPICC="mpicc"
 
 export TESTDIR=$(pwd)
 cd ..
-export PATH=$(pwd)/pyfe:${PATH}
+export PATH=$(pwd)/scrjob:${PATH}
 cd ../../../
 export SCR_PKG=$(pwd)
 export SCR_BUILD=${SCR_PKG}/build
@@ -79,7 +79,7 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
   export SCR_FLUSH=6
   scr_${launcher}.py ${singleargs} ${SCR_BUILD}/examples/test_api --output 4
   sleep 1
-  # Run any scripts in pyfe/tests/test*.py
+  # Run any scripts in scrpy/tests/test*.py
   for testscript in ${TESTDIR}/test*.py; do
     echo ""
     echo "----------------------"

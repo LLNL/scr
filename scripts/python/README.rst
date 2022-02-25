@@ -4,31 +4,31 @@ Python equivalents of perl/bash scripts in scr/scripts/*
 
 | *(Initial / tentative stage)*  
 |  
-| After doing the scr make install the scrjob scripts will be in scr/install/bin/pyfe  
+| After doing the scr make install the scrjob scripts will be in install/bin/scrpy  
 |  
 | scrjob can be installed using pip for the following usage:  
-| Make a virtual environment somewhere and use pip install in scr/install/bin/pyfe  
-| ``$ cd ~/scr/install/bin/pyfe``
+| Make a virtual environment somewhere and use pip install in install/bin/scrpy  
+| ``$ cd install/bin/scrpy``
 | ``$ python3 -m venv venv``  
 | ``$ source venv/bin/activate``  
 | ``$ pip3 install -e .``  
 | ``$ python -m scrjob.scr_srun [args]``  
 |  
 | scripts can be run without installing the package:  
-| python3 ~/scr/install/bin/pyfe/scrjob/scr_srun.py [args]  
+| python3 install/bin/scrpy/scrjob/scr_srun.py [args]  
 |  
-| or ~/scr/install/bin/pyfe/scrjob can be added to the PATH and scripts ran directly:  
+| or install/bin/scrpy/scrjob can be added to the PATH and scripts ran directly:  
 | ``$ scr_srun.py [args]``  
 |  
-| For testing, the directory ~/scr/install/bin/pyfe/tests/ will be created  
+| For testing, the directory install/bin/scrpy/tests/ will be created  
 | Ensure these variables at the top of runtest.sh are appropriate values:  
 | *launcher, numnodes, MPICC*  
 | *(There is a sleep in scr_run.py (~line 308) which can be reduced for testing)*  
 | From an allocation, run the test script:  
-| ``$ cd ~/scr/install/bin/pyfe``  
+| ``$ cd install/bin/scrpy``  
 | ``$ ./runtest.sh``  
 | To add additional test scripts, place a file whose name matches: test*.py  
-| in ~/scr/install/bin/pyfe/tests/  
+| in install/bin/scrpy/tests/  
 |  
 | The scrjob scripts will try to use the ClusterShell module  
 | *this can be disabled by setting USE_CLUSTERSHELL='0' in scrjob/scr_const.py*  

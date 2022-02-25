@@ -151,7 +151,7 @@ def check_dir_capacity(nodes=[],
   upnodes = scr_env.resmgr.compress_hosts(nodes)
 
   # run scr_check_node on each node specifying control and cache directories to check
-  argv = [bindir + '/pyfe/scrjob/scr_check_node.py']
+  argv = [bindir + '/scrpy/scrjob/scr_check_node.py']
   if free:
     argv.append('--free')
   argv.extend(cntldir_flag)
