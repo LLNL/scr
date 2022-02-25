@@ -14,6 +14,7 @@ from scrjob.list_down_nodes import list_down_nodes
 from scrjob.scr_environment import SCR_Env
 from scrjob.scr_param import SCR_Param
 from scrjob.resmgrs import AutoResourceManager
+from scrjob.launchers import AutoJobLauncher
 from scrjob.cli import SCRLog
 
 if __name__ == '__main__':
@@ -23,18 +24,22 @@ if __name__ == '__main__':
   parser.add_argument('--help',
                       action='store_true',
                       help='Show this help message and exit.')
+  parser.add_argument('-j',
+                      '--joblauncher',
+                      type=str,
+                      help='Required: Specify the job launcher.')
   parser.add_argument('-r',
                       '--reason',
                       action='store_true',
                       default=False,
                       help='Print reason node is down.')
   parser.add_argument(
-      '-f',
-      '--free',
-      action='store_true',
-      default=False,
-      help=
-      'Test required drive space based on free amount, rather than capacity.')
+        '-f',
+        '--free',
+        action='store_true',
+        default=False,
+        help=
+        'Test required drive space based on free amount, rather than capacity.')
   parser.add_argument('-d',
                       '--down',
                       metavar='<nodeset>',
@@ -52,18 +57,19 @@ if __name__ == '__main__':
                       type=str,
                       default=None,
                       help='Specify the job\'s runtime seconds for SCR log.')
-  parser.add_argument(
-      '[nodeset]',
-      nargs='*',
-      default=None,
-      help='Specify the complete set of nodes to check within.')
+  parser.add_argument('[nodeset]',
+                      nargs='*',
+                      default=None,
+                      help='Specify the complete set of nodes to check within.')
   args = vars(parser.parse_args())
-  if 'help' in args:
+  if 'help' in args or 'joblauncher' not in args:
     parser.print_help()
+    sys.exit(0)
   else:
     scr_env = SCR_Env()
     scr_env.resmgr = AutoResourceManager()
     scr_env.param = SCR_Param()
+    scr_env.launcher = AutoJobLauncher(args['joblauncher'])
 
     # create log object if asked to log down nodes
     log = None
@@ -80,4 +86,7 @@ if __name__ == '__main__':
                           nodeset=args['[nodeset]'],
                           scr_env=scr_env,
                           log=log)
-    sys.exit(ret)
+    if ret == 0:
+      print('scr_list_down_nodes.py: No down nodes')
+    elif ret != 1:
+      print(ret)

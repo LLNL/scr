@@ -13,10 +13,6 @@ from scrjob.scr_common import runproc, pipeproc
 class APRUN(JobLauncher):
   def __init__(self, launcher='aprun'):
     super(APRUN, self).__init__(launcher=launcher)
-    # unconditionally set it True if it is needed
-    #self.watchprocess = True
-    if scr_const.USE_JOBLAUNCHER_KILL == '1':
-      self.watchprocess = True
 
   # a command to run immediately before prerun is ran
   # NOP srun to force every node to run prolog to delete files from cache
@@ -38,22 +34,26 @@ class APRUN(JobLauncher):
     argv = [self.launcher]
     argv.extend(['-L', up_nodes])
     argv.extend(launcher_args)
-    return runproc(argv=argv, wait=False)
+    ### TODO: #ensure the Popen.terminate() works here too.
+    if scr_const.USE_JOBLAUNCHER_KILL != '1':
+      return runproc(argv=argv, wait=False)
+    proc = runproc(argv=argv, wait=False)[0]
+    jobstepid = self.get_jobstep_id(pid = proc.pid)
+    if jobstepid is not None:
+      return proc, jobstepid
+    else:
+      return proc, proc
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
-  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
+  def parallel_exec(self, argv=[], runnodes=''):
     if len(argv) == 0:
       return [['', ''], 0]
     if self.clustershell_task != False:
       return self.clustershell_exec(argv=argv,
-                                    runnodes=runnodes,
-                                    use_dshbak=use_dshbak)
+                                    runnodes=runnodes)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
-    if use_dshbak:
-      argv = [pdshcmd, [scr_const.DSHBAK_EXE, '-c']]
-      return pipeproc(argvs=argv, getstdout=True, getstderr=True)
     return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
 
   # perform the scavenge files operation for scr_scavenge
@@ -73,11 +73,10 @@ class APRUN(JobLauncher):
         dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag
     ]
     argv.append(downnodes_spaced)
-    output = self.parallel_exec(argv=argv, runnodes=upnodes,
-                                use_dshbak=False)[0]
+    output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
     return output
 
-  def get_jobstep_id(self, user='', allocid='', pid=-1):
+  def get_jobstep_id(self, pid=-1):
     # allow launched job to show in apstat
     sleep(10)
     output = runproc(['apstat', '-avv'], getstdout=True)[0].split('\n')
@@ -106,6 +105,10 @@ class APRUN(JobLauncher):
         currApid = None
     return currApid
 
-  def scr_kill_jobstep(self, jobstepid=None):
-    if jobstepid is not None:
-      runproc(argv=['apkill', jobid])
+  # Only use akill to kill the jobstep if desired and get_jobstep_id was successful
+  def scr_kill_jobstep(self, jobstep=None):
+    # it looks like the Popen.terminate is working with srun
+    if type(jobstep) is str:
+      runproc(argv=['apkill', jobstep])
+    else:
+      super().scr_kill_jobstep(jobstep)

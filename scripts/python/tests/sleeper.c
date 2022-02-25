@@ -36,6 +36,7 @@ int main(int argc, char**argv) {
     sleep(5);
     secs-=5;
   }
+  fclose(outfile);
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
   return 0;

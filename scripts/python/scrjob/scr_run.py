@@ -14,6 +14,7 @@ if 'scrjob' not in sys.path:
 
 from datetime import datetime
 from time import time, sleep
+
 from scrjob import scr_const, scr_common
 from scrjob.postrun import postrun
 from scrjob.list_dir import list_dir
@@ -71,7 +72,6 @@ def scr_run(launcher='',
             restart_args=[]):
   prog = 'scr_' + launcher
 
-  libdir = scr_const.X_LIBDIR
   bindir = scr_const.X_BINDIR
 
   val = os.environ.get('SCR_ENABLE')
@@ -82,8 +82,8 @@ def scr_run(launcher='',
     sys.exit(returncode)
 
   # turn on verbosity
-  val = os.environ.get('SCR_DEBUG')
   verbose = False
+  val = os.environ.get('SCR_DEBUG')
   if val is not None and int(val) > 0:
     verbose = True
 
@@ -104,29 +104,33 @@ def scr_run(launcher='',
 
   param = SCR_Param()
 
+  # resource manager (SLURM/LSF/ ...) set by argument or compile constant
+  resmgr = AutoResourceManager()
+
+  # launcher contains attributes unique to launcher (srun/jsrun/ ...)
+  launcher = AutoJobLauncher(launcher)
+
   # env contains general environment infos independent of resmgr/launcher
   scr_env = SCR_Env(prefix=prefix)
 
-  # resource manager (SLURM/LSF/ ...) set by argument or compile constant
-  resmgr = AutoResourceManager()
-  # launcher contains attributes unique to launcher (srun/jsrun/ ...)
-  launcher = AutoJobLauncher(launcher)
   # give scr_env a pointer to the objects for calling other methods
   scr_env.param = param
   scr_env.resmgr = resmgr
   scr_env.launcher = launcher
+
   # this may be used by a launcher to store a list of hosts
-  launcher.hostfile = prefix + '/.scr/hostfile'
+  launcher.hostfile = os.path.join(scr_env.dir_scr(), 'hostfile')
+
   # jobid will come from resource manager.
   jobid = resmgr.getjobid()
   user = scr_env.get_user()
 
   # TODO: check that we have a valid jobid and bail if not
-  # pmix always returns None
-  # others return None when it can't be found
-  # previously they returned 'defjobid' with the comment to assume testing
-  if jobid is None:  #### pmix always returns none.
+  if jobid is None:
     jobid = 'defjobid'
+
+  # create object to write log messages
+  log = SCRLog(prefix, jobid, user=user, jobstart=start_secs)
 
   # get the nodeset of this job
   nodelist = scr_env.get_scr_nodelist()
@@ -135,6 +139,7 @@ def scr_run(launcher='',
     if nodelist is None:
       print(prog + ': ERROR: Could not identify nodeset')
       sys.exit(1)
+  nodelist = ','.join(resmgr.expand_hosts(nodelist))
 
   watchdog = None
   val = os.environ.get('SCR_WATCHDOG')
@@ -144,17 +149,7 @@ def scr_run(launcher='',
     resmgr.usewatchdog(True)
     watchdog = SCR_Watchdog(prefix, scr_env)
 
-
-  # get the control directory
-  cntldir = list_dir(user=user,
-                     jobid=resmgr.getjobid(),
-                     runcmd='control',
-                     scr_env=scr_env,
-                     bindir=bindir)
-  if cntldir == 1:
-    print(prog + ': ERROR: Could not determine control directory')
-    sys.exit(1)
-
+  # TODO: define resmgr.prerun() and launcher.prerun() hooks, call from scr_prerun?
   # run a NOP with srun, other launchers could do any preamble work here
   launcher.prepareforprerun()
 
@@ -162,25 +157,22 @@ def scr_run(launcher='',
   timestamp = datetime.now()
   print(prog + ': prerun: ' + str(timestamp))
 
-  log = SCRLog(prefix, jobid, user=user, jobstart=start_secs)
-
-  # test runtime, ensure filepath exists,
+  # test runtime, ensure filepath exists
   if scr_prerun(scr_env=scr_env) != 0:
     print(prog + ': ERROR: Command failed: scr_prerun -p ' + prefix)
     sys.exit(1)
 
+  # look up allocation end time, record in SCR_END_TIME
   endtime = resmgr.get_scr_end_time()
   if endtime == 0:
-    # no function to get end time for pmix / aprun (crayxt)
     if verbose == True:
       print(prog + ': WARNING: Unable to get end time.')
   elif endtime == -1:  # no end time / limit
     pass
+  #else:
   os.environ['SCR_END_TIME'] = str(endtime)
 
-  # enter the run loop
-  down_nodes = ''
-  attempts = 0
+  # determine number of times to run application
   runs = os.environ.get('SCR_RUNS')
   if runs is None:
     runs = os.environ.get('SCR_RETRIES')
@@ -191,33 +183,34 @@ def scr_run(launcher='',
     runs += 1
   else:
     runs = int(runs)
+
   # totalruns printed when runs are exhausted
   totalruns = str(runs)
 
-  # this loop breaks when runs hits zero (or some other conditions)
+  # the run loop breaks when runs hits zero (or some other conditions)
   # we can protect against an invalid input for number of runs here
   if runs < 1:
     runs = 1
 
+  # enter the run loop
+  down_nodes = ''
+  attempts = 0
   while True:
     # once we mark a node as bad, leave it as bad (even if it comes back healthy)
     # TODO: This hacks around the problem of accidentally deleting a checkpoint set during distribute
     #       when a relaunch lands on previously down nodes, which are healthy again.
     #       A better way would be to remember the last set used, or to provide a utility to run on *all*
     #       nodes to distribute files (also useful for defragging the machine) -- for now this works.
-
     keep_down = down_nodes
-    # if this is our first run, check that the free space on the drive meets requirement
-    # (make sure data from job of previous user was cleaned up ok)
-    # otherwise, we'll just check the total capacity
-    free_flag = False
-    if attempts == 0:
-      free_flag = True
+
+    # set "first run" flag, let individual tests decide how to handle that
+    first_run = (attempts == 0)
 
     # are there enough nodes to continue?
-    down_nodes = list_down_nodes(free=free_flag,
+    down_nodes = list_down_nodes(free=first_run,
                                  nodeset_down=down_nodes,
                                  scr_env=scr_env)
+
     # list_down_nodes returns 0 for none, 1 for error
     # could handle an error here, or just continue
     if type(down_nodes) is int:
@@ -227,7 +220,7 @@ def scr_run(launcher='',
       # print the reason for the down nodes, and log them
       # when reason == True a string formatted for printing will be returned
       printstring = list_down_nodes(reason=True,
-                      free=free_flag,
+                      free=first_run,
                       nodeset_down=down_nodes,
                       runtime_secs='0',
                       scr_env=scr_env,
@@ -235,15 +228,11 @@ def scr_run(launcher='',
       print(printstring)
 
       # if this is the first run, we hit down nodes right off the bat, make a record of them
-      if attempts == 0:
+      if first_run:
         start_secs = int(time())
         print('SCR: Failed node detected: JOBID=' + jobid +
               ' ATTEMPT=0 TIME=' + str(start_secs) +
               ' NNODES=-1 RUNTIME=0 FAILED=' + down_nodes)
-
-      ##### Unless this value may change at some point in an allocation
-      ##### This could be moved outside of this loop, this value is not changed within the loop
-      ##### *  num_needed  *
 
       # determine how many nodes are needed
       num_needed = nodes_needed(scr_env, nodelist)
@@ -253,9 +242,6 @@ def scr_run(launcher='',
 
       # determine number of nodes remaining in allocation
       num_left = nodes_remaining(resmgr, nodelist, down_nodes)
-      if num_left <= 0:
-        print(prog + ': ERROR: Unable to determine number of nodes remaining')
-        break
 
       # check that we have enough nodes after excluding down nodes
       if num_left < num_needed:
@@ -263,19 +249,18 @@ def scr_run(launcher='',
               ') < (Nodes needed=' + str(num_needed) + '), ending run.')
         break
 
-    # make a record of when each run is started
-    attempts += 1
-    timestamp = datetime.now()
-    print(prog + ': RUN ' + str(attempts) + ': ' + str(timestamp))
-
     launch_cmd = launcher_args.copy()
     if run_cmd != '':
       launch_cmd.append(run_cmd)
 
+    # If restarting and restart_cmd is defined,
+    # Run scr_have_restart on all nodes to rebuild checkpoint
+    # and identify most recent checkpoint name.
+    # Then replace SCR_CKPT_NAME with restart name in user's restart command.
     if restart_cmd != '':
       argv = [launcher]
       argv.extend(launcher_args)
-      argv.append(bindir + '/scr_have_restart')
+      argv.append(os.path.join(bindir, 'scr_have_restart'))
       restart_name = runproc(argv=argv, getstdout=True)[0]
       if restart_name is not None and restart_name != '':
         restart_name = restart_name.strip()
@@ -283,23 +268,26 @@ def scr_run(launcher='',
         launch_cmd = launcher_args.copy()
         launch_cmd.extend(my_restart_cmd.split(' '))
 
-    # launch the job, make sure we include the script node and exclude down nodes
+    # make a record of when each run is started
+    attempts += 1
+    timestamp = datetime.now()
     start_secs = int(time())
     log.event('RUN_START', note='run=' + str(attempts))
+    print(prog + ': RUN ' + str(attempts) + ': ' + str(timestamp))
+
+    # launch the job, make sure we include the script node and exclude down nodes
     print(prog + ': Launching ' + str(launch_cmd))
-    proc, pid = launcher.launchruncmd(up_nodes=nodelist,
+    proc, jobstep = launcher.launchruncmd(up_nodes=nodelist,
                                       down_nodes=down_nodes,
                                       launcher_args=launch_cmd)
     if watchdog is None:
-      proc.communicate(timeout=None)
+      launcher.waitonprocess(proc)
     else:
       print(prog + ': Entering watchdog method')
       # watchdog returned error or a watcher process was launched
-      if watchdog.watchproc(proc) != 0:
+      if watchdog.watchproc(proc, jobstep) != 0:
         print(prog + ': Error launching watchdog')
-        proc.communicate(timeout=None)
-      elif watchdog.process is not None:
-        watchdog.process.join()
+        launcher.waitonprocess(proc)
       # else the watchdog returned because the process has finished/been killed
 
     #print('Process has finished or has been terminated.')
@@ -325,18 +313,20 @@ def scr_run(launcher='',
     if runs == 0:
       print(prog + ': ' + totalruns + ' launches exhausted, ending run.')
       break
+
     # is there a halt condition instructing us to stop?
-    elif should_halt(bindir, prefix):
+    if should_halt(bindir, prefix):
       print(prog + ': Halt condition detected, ending run.')
       break
+
     ##### Reduce this sleep time when testing scripts #####
     # give nodes a chance to clean up
-    else:
-      sleep(60)
-      # check for halt condition again after sleep
-      if should_halt(bindir, prefix):
-        print(prog + ': Halt condition detected, ending run.')
-        break
+    sleep(60)
+
+    # check for halt condition again after sleep
+    if should_halt(bindir, prefix):
+      print(prog + ': Halt condition detected, ending run.')
+      break
 
   # make a record of time postrun is started
   timestamp = datetime.now()
@@ -464,6 +454,7 @@ if __name__ == '__main__':
   else:
     launcher, launcher_args, run_cmd, restart_cmd, restart_args = parseargs(
         sys.argv[1:])
+    #if launcher=='flux', remove 'mini' 'submit' 'run' from front of args
     scr_run(launcher_args=launcher_args,
             run_cmd=run_cmd,
             restart_cmd=restart_cmd,

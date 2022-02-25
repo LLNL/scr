@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 
-# slurm.py
 # SLURM is a subclass of ResourceManager
 
 import os, re
@@ -8,15 +7,21 @@ import datetime
 
 from scrjob import scr_const
 from scrjob.scr_common import runproc, pipeproc
-from scrjob.resmgrs import nodetests, ResourceManager
-
-# AutoResourceManager class holds the configuration
-
+from scrjob.resmgrs import ResourceManager
 
 class SLURM(ResourceManager):
-  # init initializes vars from the environment
   def __init__(self):
     super(SLURM, self).__init__(resmgr='SLURM')
+    ### need default configs.
+    if 'ping' not in self.nodetests.tests:
+      self.nodetests.tests.append('ping')
+    if 'dir_capacity' not in self.nodetests.tests:
+      self.nodetests.tests.append('dir_capacity')
+
+  # get a list of tests, methods that exist in the class SCR_Test_Runtime
+  # these tests will be ran during scr_prerun
+  def get_prerun_tests(self):
+    return ['check_clustershell','check_pdsh']
 
   # get SLURM jobid of current allocation
   def getjobid(self):
@@ -28,14 +33,20 @@ class SLURM(ResourceManager):
 
   # use sinfo to query SLURM for the list of nodes it thinks to be down
   def get_downnodes(self):
+    downnodes = {}
     nodelist = self.get_job_nodes()
     if nodelist is not None:
       down, returncode = runproc("sinfo -ho %N -t down -n " + nodelist,
                                  getstdout=True)
       if returncode == 0:
         down = down.strip()
-        return down
-    return None
+        #### verify this format, comma separated list
+        ### if nodes may be duplicated convert list to set then to list again
+        nodelist = list(set(down.split(',')))
+        for node in nodelist:
+          if node != '':
+            downnodes[node] = 'Reported down by resource manager'
+    return downnodes
 
   # query SLURM for allocation endtime, expressed as secs since epoch
   def get_scr_end_time(self):
@@ -56,29 +67,3 @@ class SLURM(ResourceManager):
     dt = datetime.datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S")
     timestamp = int(dt.strftime("%s"))
     return timestamp
-
-  # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,
-                                  nodes=[],
-                                  scr_env=None,
-                                  free=False,
-                                  cntldir_string=None,
-                                  cachedir_string=None):
-    unavailable = nodetests.list_resmgr_down_nodes(
-        nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_downnodes()))
-    nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
-    unavailable.update(nextunavail)
-    if scr_env is not None and scr_env.param is not None:
-      exclude_nodes = self.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
-      nextunavail = nodetests.list_param_excluded_nodes(
-          nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
-      unavailable.update(nextunavail)
-      # assert scr_env.resmgr == self
-      nextunavail = nodetests.check_dir_capacity(
-          nodes=nodes,
-          free=free,
-          scr_env=scr_env,
-          cntldir_string=cntldir_string,
-          cachedir_string=cachedir_string)
-      unavailable.update(nextunavail)
-    return unavailable

@@ -1,6 +1,7 @@
 SET(RESOURCEMANAGERS
   __init__.py
   auto.py
+  flux.py
   lsf.py
   nodetests.py
   pbsalps.py

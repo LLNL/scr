@@ -1,15 +1,5 @@
 #! /usr/bin/env python3
 
-# list_dir.py
-
-# This script returns info on the SCR control, cache, and prefix directories
-# for the current user and jobid, it returns "INVALID" if something
-# is not set.
-
-# Better to have this directory construction in one place
-# rather than having it duplicated over a number of different
-# scripts
-
 from scrjob import scr_const
 
 
@@ -19,8 +9,29 @@ def list_dir(user=None,
              runcmd=None,
              scr_env=None,
              bindir=''):
+  """This method returns info on the SCR control/cache/prefix directories
+  for the current user and jobid
+
+  Required Parameters
+  ----------
+  runcmd     string, 'control' or 'cache'
+  scr_env    class, an instance of SCR_Env with valid references to
+             scr_env.resmgr and scr_env.param
+
+  Returns
+  -------
+  string
+    A space separated list of directories
+
+  Error
+  -----
+    This method will print 'list_dir: INVALID: %s', where %s is an error
+    string representing the error.
+    The method will then return the integer 1
+  """
   # check that user specified "control" or "cache"
   if runcmd != 'control' and runcmd != 'cache':
+    print('list_dir: INVALID: \'control\' or \'cache\' must be specified.')
     return 1
 
   # TODO: read cache directory from config file
@@ -28,6 +39,7 @@ def list_dir(user=None,
 
   # ensure scr_env is set
   if scr_env is None or scr_env.resmgr is None or scr_env.param is None:
+    print('list_dir: INVALID: Unknown environment.')
     return 1
 
   # get the base directory
@@ -42,7 +54,8 @@ def list_dir(user=None,
     elif cachedesc is not None:
       bases = [cachedesc]
     else:
-      bases = []
+      print('list_dir: INVALID: Unable to get parameter CACHE.')
+      return 1
   else:
     # lookup cntl base
     bases = scr_env.param.get('SCR_CNTL_BASE')
@@ -51,9 +64,10 @@ def list_dir(user=None,
     elif type(bases) is not None:
       bases = [bases]
     else:
-      bases = []
+      print('list_dir: INVALID: Unable to get parameter SCR_CNTL_BASE.')
+      return 1
   if len(bases) == 0:
-    print('INVALID')
+    print('list_dir: INVALID: Length of bases [] is zero.')
     return 1
 
   # get the user/job directory
@@ -68,7 +82,7 @@ def list_dir(user=None,
     # check that the required environment variables are set
     if user is None or jobid is None:
       # something is missing, print invalid dir and exit with error
-      print('INVALID')
+      print('list_dir: INVALID: Unable to determine user or jobid.')
       return 1
     suffix = user + '/scr.' + jobid
 

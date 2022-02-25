@@ -2,12 +2,6 @@
 
 # scr_inspect.py
 
-# This file runs scr_inspect_cache on each node using pdsh.
-# It lists the ids of all cached datasets for which there
-# may be a chance to flush and rebuild data.
-
-# requires: pdsh
-
 import os, sys
 
 if 'scrjob' not in sys.path:
@@ -22,6 +16,14 @@ from scrjob.launchers import AutoJobLauncher
 
 
 def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
+  """this method runs scr_inspect_cache on each node using Joblauncher.parallel_exec
+
+  Returns
+  -------
+  string   A space separated list of cached datasets which may be able to flush and rebuild
+  
+  On error this method returns the integer 1
+  """
   bindir = scr_const.X_BINDIR
   pdsh = scr_const.PDSH_EXE
 
@@ -39,10 +41,12 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
     return 1
 
   # read node set of job
-  jobset = scr_env.resmgr.get_job_nodes()
+  jobset = scr_env.get_scr_nodelist()
   if jobset is None:
-    print('scr_inspect: ERROR: Could not determine nodeset.')
-    return 1
+    jobset = scr_env.resmgr.get_job_nodes()
+    if jobset is None:
+      print('scr_inspect: ERROR: Could not determine nodeset.')
+      return 1
 
   # can't get directories
   if cntldir is None:
@@ -66,8 +70,8 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
   else:
     upnodes = jobnodes
 
-  # format up and down node sets for pdsh command
-  upnodes = scr_hostlist.compress(upnodes)
+  # make the list a comma separated string
+  upnodes = ','.join(upnodes)
 
   # build the output filenames
   pwd = os.getcwd()
@@ -78,8 +82,7 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
   # run scr_inspect_cache via pdsh / clustershell
   argv = [bindir + '/scr_inspect_cache', cntldir + '/filemap.scrinfo']
   out = scr_env.launcher.parallel_exec(argv=argv,
-                                       runnodes=upnodes,
-                                       use_dshbak=False)[0]
+                                       runnodes=upnodes)[0]
   try:
     with open(output, 'w') as outfile:
       outfile.write(out[0])

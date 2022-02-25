@@ -92,10 +92,10 @@ def do_poststage(prefix=None, logfile=None):
       failed_id = cid
       break
 
-# Finalize each checkpoint listed in the flush file.  If there are any
-# failed output files (FAILED_ID > 0) then only finalize checkpoints
-# up to the last good output file.  If there are no failures
-# (FAILED_ID = 0) then all checkpoints are iterated over.
+  # Finalize each checkpoint listed in the flush file.  If there are any
+  # failed output files (FAILED_ID > 0) then only finalize checkpoints
+  # up to the last good output file.  If there are no failures
+  # (FAILED_ID = 0) then all checkpoints are iterated over.
   logfile.write('--- Processing checkpoints ---\n')
   dsets = scr_flush_file.list_dsets_ckpt(before=failed_id)
   for cid in dsets:

@@ -8,6 +8,8 @@ import re, sys
 
 
 def print_usage(prog):
+  """this method prints a description of usage of the parsetime method of this script"""
+
   print('Time parser')
   print('Returns the time between now and the argument.')
   print('Argument time should be within one year (don\'t specify the year)')
@@ -34,23 +36,33 @@ def print_usage(prog):
   print(prog + ' 42:10:36:30')
 
 
-# return True if a year is a leap year
 def isleapyear(year):
+  """returns true if a given year is a leap year"""
   if year % 400 == 0 or (year % 4 == 0 and year % 100 != 0):
     return True
   return False
 
 
-# get number of days in the future from the timedate.weekday value
 def numdays(current, future):
+  """returns a number of days in the future one weekday is from another"""
+  # Wednesday to Tuesday
   if future < current:
+    # 7 - Wednesday + Tuesday
     return 7 - current + future
+  # Tuesday to Wednesday is Wednesday - Tuesday
   return future - current
 
 
-# returns a time delta from datetime
-# completely invalid input will end up becoming about +24 hours
 def parsetime(timestr):
+  """returns an int( posix time ) from a provided input string
+  
+  Interpreted strings can have relative offsets from the current time.
+
+  This method will interpret many time strings and attempt to return
+  the number of seconds until a future time.
+
+  An invalid input will likely return a timedelta of about 24 hours in the future.
+  """
   weekdays = {
       'mon': 0,
       'tue': 1,
@@ -236,6 +248,8 @@ def parsetime(timestr):
 
 
 if __name__ == '__main__':
+  """this script may be called as main to test output"""
+
   now = datetime.now()
   #print(now)
   if len(sys.argv) < 2:

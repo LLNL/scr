@@ -34,7 +34,9 @@ def list_down_nodes(reason=False,
   if type(nodeset) is list:
     nodeset = ','.join(nodeset)
   if not nodeset:
-    nodeset = resourcemgr.get_job_nodes()
+    nodeset = scr_env.get_scr_nodelist()
+    if nodeset is None:
+      nodeset = resourcemgr.get_job_nodes()
   if nodeset is None or nodeset == '':
     print(
         'scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.'
@@ -51,29 +53,14 @@ def list_down_nodes(reason=False,
   ### There is no use to keep track of them in the unavailable dictionary
   #unavailable = list_argument_excluded_nodes(nodes=nodes,nodeset_down=nodeset_down)
   if nodeset_down != '':
-    remove_argument_excluded_nodes(
-        nodes=nodes, nodeset_down=scr_env.resmgr.expand_hosts(nodeset_down))
-
-  # get strings here for the resmgr/nodetests.py
-  # these are space separated strings with paths
-  cntldir_string = list_dir(base=True,
-                            runcmd='control',
-                            scr_env=scr_env,
-                            bindir=bindir)
-  cachedir_string = list_dir(base=True,
-                             runcmd='cache',
-                             scr_env=scr_env,
-                             bindir=bindir)
+    remove_argument_excluded_nodes(nodes=nodes,
+                                   nodeset_down=scr_env.resmgr.expand_hosts(nodeset_down))
 
   # get a hash of all unavailable (down or excluded) nodes and reason
   # keys are nodes and the values are the reasons
   unavailable = resourcemgr.list_down_nodes_with_reason(
       nodes=nodes,
-      scr_env=scr_env,
-      free=free,
-      cntldir_string=cntldir_string,
-      cachedir_string=cachedir_string)
-
+      scr_env=scr_env)
   # TODO: read exclude list from a file, as well?
 
   # print any failed nodes to stdout and exit with non-zero
@@ -95,6 +82,8 @@ def list_down_nodes(reason=False,
       # simply print the list of down node in range syntax
       # cast unavailable to a list to get only the keys of the dictionary
       return scr_env.resmgr.compress_hosts(list(unavailable))
-
+  # if we are returning a print string, just return a blank string if no down nodes
+  elif reason:
+    return ''
   # otherwise, don't print anything and exit with 0
   return 0

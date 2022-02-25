@@ -233,21 +233,17 @@ def expand(nodelist):
   for chunk in chunks:
     # this chunk has a prefix and at least one number
     if '[' in chunk:
-      # we were building somewhere else already
-      if prefix != '':
-        prefixes.append(prefix)
-        numstrings.append(numstring)
-        suffixes.append(suffix)
-        prefix = ''
-        numstring = ''
-        suffix = ''
       pieces = chunk.split('[')
       # if we have the closing bracket this chunk is complete
       if ']' in pieces[1]:
         prefixes.append(pieces[0])
+        prefix = ''
         pieces = pieces[1].split(']')
         numstrings.append(pieces[0])
-        suffixes.append(pieces[1])
+        if len(pieces) > 1:
+          suffixes.append(pieces[1])
+        else:
+          suffixes.append('')
       # otherwise there is only the prefix and some number/range
       else:
         prefix = pieces[0]
@@ -258,12 +254,16 @@ def expand(nodelist):
       if len(numstring) > 0:
         numstring += ','
       numstring += pieces[0]
-      suffix = pieces[1]  # this is either the suffix or an empty string
-      prefixes.append(prefix)
+      if len(pieces) > 1:
+        suffix = pieces[1]
+      else:
+        suffix = ''
+      if prefix != '':
+        prefixes.append(prefix)
+        prefix = ''
       numstrings.append(numstring)
-      suffixes.append(suffix)
-      prefix = ''
       numstring = ''
+      suffixes.append(suffix)
       suffix = ''
     # this chunk is a single machine and has no bracket
     elif prefix == '':
@@ -274,9 +274,19 @@ def expand(nodelist):
       # ['', 'rhea', '42']
       if len(pieces) > 3:
         suffix = pieces[3]
-      prefixes.append(pieces[1])
-      numstrings.append(pieces[2])
+      else:
+        suffix = ''
+      if len(pieces) > 1:
+        prefix = pieces[1]
+      else:
+        prefix = ''
+      if len(pieces) > 2:
+        numstring = pieces[2]
+      prefixes.append(prefix)
+      numstrings.append(numstring)
       suffixes.append(suffix)
+      prefix = ''
+      numstring = ''
       suffix = ''
     # otherwise we must be in a number section (or malformed / mismatched brackets)
     else:
@@ -288,7 +298,12 @@ def expand(nodelist):
   # the lists are ready
   ret = []
   for i in range(len(prefixes)):
-    nums = numbersfromrange(numstrings[i])
+    nums = []
+    # no prefix, the number is stored in the prefix
+    if numstrings[i] == '':
+      nums = numbersfromrange(prefixes[i])
+    else:
+      nums = numbersfromrange(numstrings[i])
     for num in nums:
       ret.append(prefixes[i] + num + suffixes[i])
   return ret

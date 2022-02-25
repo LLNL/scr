@@ -1,7 +1,10 @@
 #! /usr/bin/env python3
 
-# vars can be set in this file to serve as compile time constants
-# other scripts can just reference scr_const.SCR_CNTL_BASE (etc) without modification
+# scr_const.py
+
+"""
+compile time constants
+"""
 
 SCR_CNTL_BASE = '@SCR_CNTL_BASE@'
 SCR_CACHE_BASE = '@SCR_CACHE_BASE@'
@@ -11,19 +14,46 @@ X_DATADIR = '@X_DATADIR@'
 X_BINDIR = '@X_BINDIR@'
 X_LIBDIR = '@X_LIBDIR@'
 PDSH_EXE = '@PDSH_EXE@'
-DSHBAK_EXE = '@DSHBAK_EXE@'
 SCR_RESOURCE_MANAGER = '@SCR_RESOURCE_MANAGER@'
-### PMIX constants
+"""
+PMIX constants
+"""
 CPPR_LDFLAGS = '@CPPR_LDFLAGS@'
 HAVE_LIBCPPR = '@HAVE_LIBCPPR@'
-### Explicitly disable attempt to use clustershell, set to '1'
+"""
+Nodetests to run during list_down_nodes
+Tests must be methods of class Nodetests in resmgr/nodetests.py
+ping: remove remove nodes that don't respond to a ping from the root node
+pdsh_echo: remove nodes that don't respond to pdsh echo UP
+dir_capacity: remove nodes that fail scr_check_node.py
+"""
+### TODO : Currently the resource managers ensure the tests they ran before
+###        are in the test list, the Nodetests class still does look here for
+###        initialization values.
+# A comma separated list, e.g., 'ping,pdsh_echo,dir_capacity'
+SCR_NODE_TESTS = '@SCR_NODE_TESTS@'
+# A file with each line a comma separated list of tests
+SCR_NODE_TESTS_FILE = '@SCR_NODE_TESTS_FILE@'
+"""
+ClusterShell
+"""
+# Enable use of the ClusterShell module, set to '1'
 USE_CLUSTERSHELL = '@USE_CLUSTERSHELL@'
-### Enable Python function tracing, set to '1'
+"""
+Python tracing
+"""
+# Very verbose, set to '1'
 PYFE_TRACE_FUNC = '@PYFE_TRACE_FUNC@'
-### Prefer job launcher's method to kill a jobstep, set to '1'
+"""
+Joblauncher scr_kill_jobstep strategy
+"""
+# Prefer to use job launcher's method to kill a jobstep, e.g., scancel, set to '1'
 USE_JOBLAUNCHER_KILL = '@USE_JOBLAUNCHER_KILL@'
 
+
 if __name__ == '__main__':
+  """running this script will print compiled values"""
+
   print('SCR_CNTL_BASE = \"' + SCR_CNTL_BASE + '\"')
   print('SCR_CACHE_BASE = \"' + SCR_CACHE_BASE + '\"')
   print('SCR_CACHE_SIZE = \"' + SCR_CACHE_SIZE + '\"')
@@ -31,8 +61,11 @@ if __name__ == '__main__':
   print('X_BINDIR = \"' + X_BINDIR + '\"')
   print('X_LIBDIR = \"' + X_LIBDIR + '\"')
   print('PDSH_EXE = \"' + PDSH_EXE + '\"')
-  print('DSHBAK_EXE = \"' + DSHBAK_EXE + '\"')
   print('SCR_RESOURCE_MANAGER = \"' + SCR_RESOURCE_MANAGER + '\"')
+  print('CPPR_LDFLAGS = \"' + CPPR_LDFLAGS + '\"')
+  print('HAVE_LIBCPPR = \"' + HAVE_LIBCPPR + '\"')
+  print('SCR_NODE_TESTS = \"' + SCR_NODE_TESTS + '\"')
+  print('SCR_NODE_TESTS_FILE = \"' + SCR_NODE_TESTS_FILE + '\"')
   print('USE_CLUSTERSHELL = \"' + USE_CLUSTERSHELL + '\"')
   print('PYFE_TRACE_FUNC = \"' + PYFE_TRACE_FUNC + '\"')
   print('USE_JOBLAUNCHER_KILL = \"' + USE_JOBLAUNCHER_KILL + '\"')

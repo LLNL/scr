@@ -13,7 +13,7 @@ SET(PYFE_EXEC
   scr_check_node.py
   scr_common.py
   scr_env.py
-  scr_get_jobstep_id.py
+  scr_flux.py
   scr_glob_hosts.py
   scr_halt.py
   scr_inspect.py

@@ -13,61 +13,41 @@ from scrjob.scr_common import runproc, pipeproc
 class JSRUN(JobLauncher):
   def __init__(self, launcher='jsrun'):
     super(JSRUN, self).__init__(launcher=launcher)
-    # it looks like the Popen.terminate is working with jsrun
-    if scr_const.USE_JOBLAUNCHER_KILL == '1':
-      self.watchprocess = True
 
-  # returns the process and PID of the launched process
+  # returns the subprocess.Popen object as left and right elements of a tuple,
   # as returned by runproc(argv=argv, wait=False)
   def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
     if type(launcher_args) is str:
       launcher_args = launcher_args.split()
     if len(launcher_args) == 0:
-      return None, -1
+      return None, None
     argv = [self.launcher]
-    if len(down_nodes) > 0:
+    if down_nodes != '':
       argv.append('--exclude_hosts ' + down_nodes)
     argv.extend(launcher_args)
-    return runproc(argv=argv, wait=False)
+    # it looks like the Popen.terminate is working with jsrun
+    if scr_const.USE_JOBLAUNCHER_KILL != '1':
+      return runproc(argv=argv, wait=False)
+    proc = runproc(argv=argv, wait=False)[0]
+    jobstepid = self.get_jobstep_id()
+    if jobstepid != '-1':
+      return proc, jobstepid
+    else:
+      return proc, proc
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
-  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
+  def parallel_exec(self, argv=[], runnodes=''):
     if len(argv) == 0:
       return [['', ''], 0]
     if self.clustershell_task != False:
-      return self.clustershell_exec(argv=argv,
-                                    runnodes=runnodes,
-                                    use_dshbak=use_dshbak)
+      return self.clustershell_exec(argv=argv,runnodes=runnodes)
     pdshcmd = [scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
-    if use_dshbak:
-      argv = [pdshcmd, [scr_const.DSHBAK_EXE, '-c']]
-      return pipeproc(argvs=argv, getstdout=True, getstderr=True)
     return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
 
-  # perform the scavenge files operation for scr_scavenge
-  # uses either pdsh or clustershell
-  # returns a list -> [ 'stdout', 'stderr' ]
-  def scavenge_files(self,
-                     prog='',
-                     upnodes='',
-                     downnodes_spaced='',
-                     cntldir='',
-                     dataset_id='',
-                     prefixdir='',
-                     buf_size='',
-                     crc_flag=''):
-    argv = [
-        prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir,
-        '--buf', buf_size, crc_flag, downnodes_spaced
-    ]
-    output = self.parallel_exec(argv=argv, runnodes=upnodes,
-                                use_dshbak=False)[0]
-    return output
-
   # query jslist for the most recent jobstep in current allocation
-  def get_jobstep_id(self, user='', allocid='', pid=-1):
+  def get_jobstep_id(self):
     # allow launched job to show in jslist
     sleep(10)
     # track the highest number running job
@@ -85,6 +65,10 @@ class JSRUN(JobLauncher):
         jobstepid = int(line[0])
     return str(jobstepid)
 
-  def scr_kill_jobstep(self, jobstepid=None):
-    if jobstepid is not None:
-      runproc(argv=['jskill', jobstepid])
+  # Only use jskill to kill the jobstep if desired and get_jobstep_id was successful
+  def scr_kill_jobstep(self, jobstep=None):
+    # it looks like the Popen.terminate is working with jsrun
+    if type(jobstep) is str:
+      runproc(argv=['jskill', jobstep])
+    else:
+      super().scr_kill_jobstep(jobstep)

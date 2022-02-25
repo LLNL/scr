@@ -13,6 +13,8 @@ See the `JobLauncher` class in `joblauncher.py`
 for the interface definitions that one must implement, e.g.:
 
     >>: cat newlauncher.py
+    from pyfe.joblauncher import JobLauncher
+
     class NewLauncher(JobLauncher):
       def launchruncmd():
         pass
@@ -21,6 +23,8 @@ for the interface definitions that one must implement, e.g.:
         pass
 
 ## Import the new class in `__init__.py`
+Add the new import after the JobLauncher and before the AutoJobLauncher imports
+
 Add a line to import the new class in the `__init__.py` file:
 
     from .newlauncher import NewLauncher
@@ -37,10 +41,29 @@ Add lines to import the new class and create an object to `auto.py`.
       NewLauncher
     )
 
-And create an object of that class in :
+And create an object of that class in the `__new__` method of `AutoJobLauncher`:
 
     class AutoJobLauncher:
       def __new__(cls,joblauncher=None):
         ...
         if joblauncher == 'NewLauncher':
           return NewLauncher()
+
+Usage for your new job launcher will be: `scr_run.py NewLauncher <launcher args> <cmd> <cmd args>`
+
+You may also provide a named script to shorten the usage:
+
+    cp pyfe/scr_srun.py pyfe/scr_newlauncher.py
+    sed -i 's/srun/NewLauncher/g' scr_newlauncher.py
+
+This will allow your launcher to be ran as: `scr_newlauncher.py <launcher args> <cmd> <cmd args>`
+
+_If a new named script is created ensure to add it to pyfe/CMakeLists.txt as well_
+
+## Add class file to `CMakeLists.txt`
+Include the new job launcher in the list of files to be installed by CMake in `CMakeLists.txt`:
+
+    SET(JOBLAUNCHERS
+      ...
+      newlauncher.py
+    )

@@ -1,0 +1,26 @@
+#! /bin/bash
+if [ "${FLUXTESTSVPATH}" != "" ]; then
+  export PATH=${FLUXTESTSVPATH}
+  unset FLUXTESTSVPATH
+fi
+if [ "${FLUXTESTSVLDPATH}" != "" ]; then
+  export LD_LIBRARY_PATH=${FLUXTESTSVLDPATH}
+  unset FLUXTESTSVLDPATH
+fi
+
+unset SCR_FETCH
+unset SCR_DEBUG
+
+unset SCR_JOB_NAME
+unset SCR_PREFIX
+
+unset SCR_CNTL_BASE
+unset SCR_CACHE_BASE
+unset SCR_CACHE_BYPASS
+unset SCR_CACHE_SIZE
+unset SCR_FLUSH
+
+unset SCR_WATCHDOG
+unset SCR_WATCHDOG_TIMEOUT
+unset SCR_WATCHDOG_TIMEOUT_PFS
+unset SCR_LOG_ENABLE

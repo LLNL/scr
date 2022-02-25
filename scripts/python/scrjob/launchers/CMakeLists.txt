@@ -7,5 +7,6 @@ SET(JOBLAUNCHERS
   lrun.py
   mpirun.py
   srun.py
+  flux.py
 )
 INSTALL(FILES ${JOBLAUNCHERS} DESTINATION ${CMAKE_INSTALL_BINDIR}/scrpy/scrjob/launchers)

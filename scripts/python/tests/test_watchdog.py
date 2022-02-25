@@ -14,7 +14,6 @@
 import os, sys
 import time
 from subprocess import TimeoutExpired
-import multiprocessing as mp
 
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
 import scrjob
@@ -51,7 +50,7 @@ def checkfiletimes():
   return good
 
 def testwatchdog(launcher, launcher_args):
-  mp.set_start_method('fork')
+  timeout = 15
   os.environ['SCR_WATCHDOG_TIMEOUT'] = '15'
   os.environ['SCR_WATCHDOG_TIMEOUT_PFS'] = '15'
   scr_env = SCR_Env()
@@ -66,17 +65,18 @@ def testwatchdog(launcher, launcher_args):
   watchdog = SCR_Watchdog(prefix, scr_env)
 
   if down_nodes is None:
-    down_nodes = ''
-  launcher_args.append('./sleeper')
+    down_nodes = {}
 
   print('Nodelist = ' + str(nodelist))
   print('Down nodes = ' + str(down_nodes))
+  down_nodes = list(down_nodes.keys())
 
-  proc, pid = launcher.launchruncmd(up_nodes=nodelist,
+  print('Launching command ' + ' '.join(launcher_args))
+  proc, jobstep = launcher.launchruncmd(up_nodes=nodelist,
                                     down_nodes=down_nodes,
                                     launcher_args=launcher_args)
 
-  if proc is None:
+  if proc is None or jobstep is None:
     print('Error launching the sleeper process!')
     return
 
@@ -84,18 +84,13 @@ def testwatchdog(launcher, launcher_args):
   #else:
 
   print('Each launched sleeper process will output the posix time every 5 seconds.')
-  print('We\'ve set the watchdog timer to 15 seconds.')
   print('Calling watchdog watchprocess . . .')
-  if watchdog.watchproc(proc) != 0:
+  if watchdog.watchproc(proc, jobstep) != 0:
     print('The watchdog failed to start')
-    print('Waiting for the original process to terminate now . . .')
-    proc.communicate(timeout=None)
-  elif watchdog.process is not None:
-    print('The watchdog launched a separate process launched for a launcher')
-    print('  that requires a specific method to kill a launched job')
-    print('Waiting for that process to terminate now . . .')
-    watchdog.process.join()
-    jobstepid = launcher.get_jobstep_id()
+    print('Waiting for the original process for 15 seconds')
+    if launcher.waitonprocess(proc=proc,timeout=timeout) == 1:
+      print('The process is still running, asking the launcher to kill it . . .')
+      launcher.scr_kill_jobstep(jobstep=jobstep)
 
   print('The process has now been terminated')
   print('Sleeping for 45 seconds before checking the output files . . .')

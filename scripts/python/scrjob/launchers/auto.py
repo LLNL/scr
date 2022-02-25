@@ -16,6 +16,7 @@ from scrjob.launchers import (
     LRUN,
     MPIRUN,
     SRUN,
+    FLUX,
 )
 
 
@@ -31,6 +32,8 @@ class AutoJobLauncher:
       return LRUN()
     if launcher == 'aprun':
       return APRUN()
+    if launcher == 'flux':
+      return FLUX()
     return JobLauncher()
 
 
