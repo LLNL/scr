@@ -1,2 +1,2 @@
 include LICENSE README.rst setup.py
-graft pyfe
+graft scrjob

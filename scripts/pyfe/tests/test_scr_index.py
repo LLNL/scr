@@ -17,7 +17,7 @@ print('This script should produce output like the following:')
 print('')
 print('python test_scr_index.py')
 print('')
-print('<pyfe.cli.scr_index.SCRIndex object at 0x2aaaac14b3c8>')
+print('<scrjob.cli.scr_index.SCRIndex object at 0x2aaaac14b3c8>')
 print('False')
 print('True')
 print('False')
@@ -26,8 +26,8 @@ print('--------------------------------------------------------')
 
 import os, sys, time
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-import pyfe
-from pyfe.cli import SCRIndex
+import scrjob
+from scrjob.cli import SCRIndex
 
 time.sleep(2)
 

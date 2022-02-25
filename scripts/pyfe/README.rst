@@ -4,20 +4,20 @@ Python equivalents of perl/bash scripts in scr/scripts/*
 
 | *(Initial / tentative stage)*  
 |  
-| After doing the scr make install the pyfe scripts will be in scr/install/bin/pyfe  
+| After doing the scr make install the scrjob scripts will be in scr/install/bin/pyfe  
 |  
-| pyfe can be installed using pip for the following usage:  
+| scrjob can be installed using pip for the following usage:  
 | Make a virtual environment somewhere and use pip install in scr/install/bin/pyfe  
 | ``$ cd ~/scr/install/bin/pyfe``
 | ``$ python3 -m venv venv``  
 | ``$ source venv/bin/activate``  
 | ``$ pip3 install -e .``  
-| ``$ python -m pyfe.scr_srun [args]``  
+| ``$ python -m scrjob.scr_srun [args]``  
 |  
-| scripts can be ran without installing the package:  
-| python3 ~/scr/install/bin/pyfe/pyfe/scr_srun.py [args]  
+| scripts can be run without installing the package:  
+| python3 ~/scr/install/bin/pyfe/scrjob/scr_srun.py [args]  
 |  
-| or ~/scr/install/bin/pyfe/pyfe can be added to the PATH and scripts ran directly:  
+| or ~/scr/install/bin/pyfe/scrjob can be added to the PATH and scripts ran directly:  
 | ``$ scr_srun.py [args]``  
 |  
 | For testing, the directory ~/scr/install/bin/pyfe/tests/ will be created  
@@ -30,8 +30,8 @@ Python equivalents of perl/bash scripts in scr/scripts/*
 | To add additional test scripts, place a file whose name matches: test*.py  
 | in ~/scr/install/bin/pyfe/tests/  
 |  
-| The pyfe scripts will try to use the ClusterShell module  
-| *this can be disabled by setting USE_CLUSTERSHELL='0' in pyfe/scr_const.py*  
+| The scrjob scripts will try to use the ClusterShell module  
+| *this can be disabled by setting USE_CLUSTERSHELL='0' in scrjob/scr_const.py*  
 | ClusterShell will not be used if it is not found or it is disabled  
 |  
 | **To use clustershell instead of pdsh**  

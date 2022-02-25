@@ -17,12 +17,12 @@ from subprocess import TimeoutExpired
 import multiprocessing as mp
 
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-import pyfe
-from pyfe.resmgrs import AutoResourceManager
-from pyfe.launchers import AutoJobLauncher
-from pyfe.scr_param import SCR_Param
-from pyfe.scr_environment import SCR_Env
-from pyfe.scr_watchdog import SCR_Watchdog
+import scrjob
+from scrjob.resmgrs import AutoResourceManager
+from scrjob.launchers import AutoJobLauncher
+from scrjob.scr_param import SCR_Param
+from scrjob.scr_environment import SCR_Env
+from scrjob.scr_watchdog import SCR_Watchdog
 
 def checkfiletimes():
   good = True

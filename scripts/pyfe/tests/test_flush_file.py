@@ -36,8 +36,8 @@ print('--------------------------------------------------------')
 
 import os, sys, time
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-import pyfe
-from pyfe.cli import SCRFlushFile
+import scrjob
+from scrjob.cli import SCRFlushFile
 
 time.sleep(2)
 

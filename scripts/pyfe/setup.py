@@ -3,14 +3,14 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='pyfe',
+    name='scrjob',
     version='0.0',
     description='SCR Python Front End',
     url='https://github.com/LLNL/scr/',
     author='LLNL',
     author_email='pao@llnl.gov',
     license='BSD 3-clause + addendum',
-    packages=find_packages(), #['pyfe'],
+    packages=find_packages(), #['scrjob'],
     install_requires=[#'mpi4py>=2.0',
                       #'numpy',
                       ],

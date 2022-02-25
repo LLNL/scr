@@ -23,10 +23,10 @@ import os, sys
 from datetime import datetime
 import time
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-import pyfe
-from pyfe.scr_env import SCR_Env
-from pyfe.resmgrs import AutoResourceManager
-from pyfe.cli import SCRLog
+import scrjob
+from scrjob.scr_env import SCR_Env
+from scrjob.resmgrs import AutoResourceManager
+from scrjob.cli import SCRLog
 
 time.sleep(2)
 
