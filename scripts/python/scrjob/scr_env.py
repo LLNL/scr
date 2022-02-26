@@ -49,6 +49,10 @@ if __name__ == '__main__':
                       '--jobid',
                       action='store_true',
                       help='List the job id of the current job.')
+  parser.add_argument('-e',
+                      '--endtime',
+                      action='store_true',
+                      help='List the end time of the current job.')
   parser.add_argument('-n',
                       '--nodes',
                       action='store_true',
@@ -86,6 +90,8 @@ if __name__ == '__main__':
       print(str(scr_env.get_user()), end='')
     if 'jobid' in args:
       print(str(scr_env.resmgr.getjobid()), end='')
+    if 'endtime' in args:
+      print(str(scr_env.resmgr.get_scr_end_time()), end='')
     if 'nodes' in args:
       nodelist = scr_env.get_scr_nodelist()
       if nodelist is None:
