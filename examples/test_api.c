@@ -470,7 +470,9 @@ int restart_scr(char* name, char* buf, size_t filesize)
     if (rank == 0) {
       printf("At least one rank (perhaps all) did not find its checkpoint\n");
     }
+    return -1;
   }
+  return 0;
 }
 
 int restart(char* dset, char* name, char* buf, size_t filesize)
@@ -515,7 +517,9 @@ int restart(char* dset, char* name, char* buf, size_t filesize)
     if (rank == 0) {
       printf("At least one rank (perhaps all) did not find its checkpoint\n");
     }
+    return -1;
   }
+  return 0;
 }
 
 void print_usage()
