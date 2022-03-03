@@ -23,8 +23,8 @@ struct timeval tv0[1];
 struct timeval tv1[1];
 struct timeval rv[1];
 
-size_t total_filesize = 512*1024;
-size_t my_filesize = 0;
+size_t my_filesize = 512*1024;
+size_t total_filesize = 0;
 size_t my_bufsize = 0;
 size_t my_file_offset = 0;
 
@@ -198,7 +198,7 @@ size_t get_my_file_offset()
     uint64_t send_buf;
 
     if (rank == 0) {
-      send_buf = total_filesize % ranks;
+      send_buf = 0;
     }
     else {
       send_buf = my_filesize;
@@ -206,10 +206,6 @@ size_t get_my_file_offset()
 
     int count = 1;
     MPI_Scan(&send_buf, &file_offset, count, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
-
-    if (rank == 0) {
-      file_offset = 0;
-    }
   }
 
   return file_offset;
@@ -605,7 +601,7 @@ void print_usage()
   printf("  Usage: test_api [options]\n");
   printf("\n");
   printf("  Options:\n");
-  printf("    -s, --size=<SIZE>    Filesize in bytes, e.g., 1MB (default %lu)\n", (unsigned long) total_filesize);
+  printf("    -s, --size=<SIZE>    Rank checkpoint size in bytes, e.g., 1MB (default %lu)\n", (unsigned long) my_filesize);
   printf("    -t, --times=<COUNT>  Number of iterations (default %d)\n", times);
   printf("    -z, --seconds=<SECS> Sleep for SECS seconds between iterations (default %d)\n", seconds);
   printf("    -p, --path=<DIR>     Directory to create and write files to\n");
@@ -658,7 +654,7 @@ int main (int argc, char* argv[])
     switch(opt) {
       case 's':
         if (test_abtoull(optarg, &val) == SCR_SUCCESS) {
-          total_filesize = (size_t) val;
+          my_filesize = (size_t) val;
         } else {
           usage = 1;
         }
@@ -773,22 +769,12 @@ int main (int argc, char* argv[])
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  if (!use_shared_file) {
-    /* allocate space for the checkpoint data (make total_filesize a function of rank for some variation) */
-    total_filesize = total_filesize + rank;
-    my_bufsize = my_filesize = total_filesize;
-  }
-  else {
-    my_filesize = total_filesize / ranks;
+  /* allocate space for the checkpoint data (make my_filesize a function of rank for some variation) */
+  my_filesize = my_filesize + rank;
+  my_bufsize = my_filesize;
 
-    if (rank == 0) {
-      my_filesize += (total_filesize % ranks);  // rank 0 handles any residual bytes
-    }
-
-    my_bufsize = my_filesize;
-
-    my_filesize += checkpoint_timestep_size();  // Account for header
-  }
+  /* also account for the checkpoint header that is written (no need to adjust bufsize) */
+  my_filesize += checkpoint_timestep_size();
 
   MPI_Reduce(&my_filesize, &total_filesize, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
 
