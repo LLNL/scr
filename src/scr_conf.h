@@ -144,12 +144,12 @@
 /* buffer size to use for MPI send / recv operations */
 #ifndef SCR_MPI_BUF_SIZE
 /* #define SCR_MPI_BUF_SIZE (1*1024*1024) */
-#define SCR_MPI_BUF_SIZE (128*1024)  /* very strange that this lower number beats the upper one, but whatever ... */
+#define SCR_MPI_BUF_SIZE (1024*1024)  /* very strange that this lower number beats the upper one, but whatever ... */
 #endif
 
 /* buffer size to use for file I/O operations */
 #ifndef SCR_FILE_BUF_SIZE
-#define SCR_FILE_BUF_SIZE (1024*1024)
+#define SCR_FILE_BUF_SIZE (1024*1024*32)
 #endif
 
 /* whether file metadata should also be copied */
