@@ -203,6 +203,45 @@ size_t get_my_file_offset()
   return file_offset;
 }
 
+int create_file(char* file)
+{
+  int fd;
+
+  if (use_shared_file) {
+    if (rank == 0) {
+      if ( (fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) > 0) {
+        if (truncate(file, total_filesize) < 0) {
+          printf("%d: Could not truncate file %s : %s\n", rank, file, strerror(errno));
+          close(fd);
+          fd = -1;
+        }
+      }
+      else {
+        printf("%d: Could not create file %s : %s\n", rank, file, strerror(errno));
+      }
+
+      if (fd > 0) {
+        close(fd);
+      };
+    }
+
+    MPI_Bcast(&fd, 1, MPI_INT, 0, MPI_COMM_WORLD); /* Wait for rank 0 to complete creation */
+
+    if (fd > 0) {
+      if ((fd = open(file, O_WRONLY)) < 0) {
+        printf("%d: Could not open file %s : %s\n", rank, file, strerror(errno));
+      }
+    }
+  }
+  else {
+    if ( (fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) < 0) {
+      printf("%d: Could not create file %s : %s\n", rank, file, strerror(errno));
+    }
+  }
+
+  return fd;
+}
+
 double getbw(char* name, char* buf, int times)
 {
   char file[SCR_MAX_FILENAME];
@@ -289,65 +328,36 @@ double getbw(char* name, char* buf, int times)
         strcpy(file, newname);
       }
 
-      int fd_me;
-      int root_create_result = -1;
-
-      if (rank == 0) {
-        if ( (fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) < 0) {
-          printf("%d: Could not open file %s\n", rank, file);
-        }
-
-        if (fd_me > 0 && truncate(file, total_filesize) < 0) {
-          printf("%d: Could not truncate file %s\n", rank, file);
-        }
-        else {
-          root_create_result = fd_me;
-        }
-
-        if (fd_me > 0) {
-          close(fd_me);
-        }
-      }
-
-      MPI_Bcast(&root_create_result, 1, MPI_INT, 0, MPI_COMM_WORLD); /* Wait for rank 0 to complete the file creation */
-
-      if (root_create_result > 0) {
-        int oflags = use_shared_file ? O_WRONLY : O_WRONLY | O_CREAT | O_TRUNC;
-        int mode = use_shared_file ? 0 : S_IRUSR | S_IWUSR; /* Note: ignored if O_CREAT not set in oflags */
-
-        /* open the file */
-        if ( (fd_me = open(file, oflags, mode)) < 0) {
-          printf("%d: Could not open file %s\n", rank, file);
-        }
-      }
+      int my_fd = create_file(file);
 
       /* write the checkpoint and close */
-      if (fd_me > 0) {
+      if (my_fd > 0) {
         count++;
         valid = 1;
 
-        if (lseek(fd_me, my_file_offset, SEEK_SET) < 0) {
-            printf("%d: Failed to seek to 0x%08lx in file\n", rank, my_file_offset);
-        }
-        else {
+        if (lseek(my_fd, my_file_offset, SEEK_SET) >= 0) {
           /* write the checkpoint data */
-          if (!write_checkpoint(fd_me, timestep, buf, my_bufsize)) {
-            valid = 0;
-            printf("%d: Error writing to %s\n", rank, file);
-          }
-          else {
+          if (write_checkpoint(my_fd, timestep, buf, my_bufsize)) {
             /* force the data to storage */
             if (use_fsync) {
-              if (fsync(fd_me) < 0) {
+              if (fsync(my_fd) < 0) {
                 valid = 0;
                 printf("%d: Error fsync %s\n", rank, file);
               }
             }
           }
+          else {
+            valid = 0;
+            printf("%d: Error writing checkpoint %s\n", rank, file);
+          }
+        }
+        else {
+            printf("%d: Failed to seek to 0x%08lx in %s : %s\n", rank, my_file_offset, file, strerror(errno));
+            valid = 0;
         }
 
         /* make sure the close is without error */
-        if (close(fd_me) < 0) {
+        if (close(my_fd) < 0) {
           valid = 0;
           printf("%d: Error closing %s\n", rank, file);
         }
