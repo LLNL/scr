@@ -15,8 +15,17 @@ int check_buffer(char* buf, size_t size, int rank, int ckpt);
 /* write the checkpoint data to fd, and return whether the write was successful */
 int write_checkpoint(int fd, int ckpt, char* buf, size_t size);
 
+/* write the checkpoint data to shared fd, and return whether the write was successful */
+int write_shared_checkpoint(int fd, int ckpt, char* buf, size_t size, size_t offset);
+
 /* read the checkpoint data from file into buf, and return whether the read was successful */
 int read_checkpoint(char* file, int* ckpt, char* buf, size_t size);
 
+/* read the checkpoint data from shared file into buf, and return whether the read was successful */
+int read_shared_checkpoint(char* file, int* ckpt, char* buf, size_t size, size_t offset);
+
 /* check for truncation on snprintf */
 int safe_snprintf(char* buf, size_t size, const char* fmt, ...);
+
+/* return size of buffer used to store checkpoint timestep */
+ssize_t checkpoint_timestep_size();
