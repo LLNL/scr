@@ -216,8 +216,6 @@ double getbw(char* name, char* buf, int times)
   char file[SCR_MAX_FILENAME];
   double bw = 0.0;
 
-  my_file_offset = get_my_file_offset();
-
   int scr_retval;
   if (times > 0) {
     /* start the timer */
@@ -273,7 +271,7 @@ double getbw(char* name, char* buf, int times)
          * need to create our directory */
         if (rank == 0) {
            rc = mkdir(outpath, S_IRUSR | S_IWUSR | S_IXUSR);
-           if (rc != 0) {
+           if (rc != 0 && errno != EEXIST) {
              printf("%d: mkdir failed: %s %d %s @%s:%d\n",
                     rank, outpath, errno, strerror(errno), __FILE__, __LINE__
              );
@@ -467,8 +465,6 @@ int restart_scr(char* name, char* buf)
     }
 
     if (have_restart) {
-      my_file_offset = get_my_file_offset();
-
       if (rank == 0) {
         printf("Restarting from checkpoint named %s\n", dset);
       }
@@ -568,7 +564,13 @@ int restart(char* dset, char* name, char* buf)
 
   /* read the data */
   int found_checkpoint = 0;
-  if (read_checkpoint(outpath, &timestep, buf, my_bufsize)) {
+  int rc;
+
+  rc = use_shared_file
+        ? read_shared_checkpoint(outpath, &timestep, buf, my_bufsize, my_file_offset)
+        : read_checkpoint(outpath, &timestep, buf, my_bufsize);
+
+  if (rc) {
     /* read the file ok, now check that contents are good */
     found_checkpoint = 1;
     if (!check_buffer(buf, my_bufsize, rank, timestep)) {
@@ -714,14 +716,6 @@ int main (int argc, char* argv[])
     return 1;
   }
 
-  if (use_shared_file && (!use_scr || !use_scr_restart)) {
-    if (rank == 0) {
-      printf("Shared file support must be run with SCR enabled\n");
-    }
-    MPI_Finalize();
-    return 1;
-  }
-
   /* time how long it takes to get through init */
   MPI_Barrier(MPI_COMM_WORLD);
   double init_start = MPI_Wtime();
@@ -745,10 +739,8 @@ int main (int argc, char* argv[])
       printf("Failed initializing SCR\n");
       return 1;
     }
-  }
 
-  /* specify name of checkpoint to load if given */
-  if (use_scr) {
+    /* specify name of checkpoint to load if given */
     if (current != NULL) {
       SCR_Current(current);
     }
@@ -777,6 +769,7 @@ int main (int argc, char* argv[])
   my_filesize += checkpoint_timestep_size();
 
   MPI_Reduce(&my_filesize, &total_filesize, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
+  my_file_offset = get_my_file_offset();
 
   char* buf = (char*) malloc(my_filesize);
 
