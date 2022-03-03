@@ -150,32 +150,6 @@ int write_checkpoint(int fd, int ckpt, char* buf, size_t size)
   return 1;
 }
 
-/* write the checkpoint data to shared fd, and return whether the write was successful */
-int write_shared_checkpoint(int fd, int ckpt, char* buf, size_t size, size_t offset)
-{
-  ssize_t rc;
-  int rank;
-
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-  if (lseek(fd, offset, SEEK_SET) < 0) {
-      printf("%d: Failed to seek to 0x%08lx in file\n", rank, offset);
-      return 0;
-  }
-
-  /* write the checkpoint id (application timestep) */
-  checkpoint_buf_t ckpt_buf;
-  sprintf(ckpt_buf.buf, "%06d", ckpt);
-  rc = reliable_write(fd, ckpt_buf.buf, sizeof(ckpt_buf));
-  if (rc < 0) return 0;
-
-  /* write the checkpoint data */
-  rc = reliable_write(fd, buf, size);
-  if (rc < 0) return 0;
-
-  return 1;
-}
-
 ssize_t checkpoint_timestep_size()
 {
   return sizeof(checkpoint_buf_t);
