@@ -290,51 +290,33 @@ double getbw(char* name, char* buf, int times)
       }
 
       int fd_me;
+      int root_create_result = -1;
 
-      if (use_shared_file) {
-        /* open the file and write the checkpoint */
-        if (rank == 0) {
-          fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-          if (fd_me > 0) {
-            if (ftruncate(fd_me, total_filesize) < 0) {
-              printf("%d: Could not truncate file %s\n", rank, file);
-              close(fd_me);
-              fd_me = -1;
-            }
-            else {
-              if (lseek(fd_me, total_filesize-1, SEEK_SET) >= 0) {
-                char c = 'X';
-                if (write(fd_me, &c, 1) < 0) {
-                  printf("%d: Failed to resize file %s\n", rank, file);
-                  close(fd_me);
-                  fd_me = -1;
-                }
-              }
-              else {
-                  printf("%d: Failed to seek to 0x%08lx in file %s for resize\n", rank, total_filesize-1, file);
-                  close(fd_me);
-                  fd_me = -1;
-              }
-            }
-          }
-          else {
-            printf("%d: Could not create file %s\n", rank, file);
-          }
-          close(fd_me);
-        }
-
-        /* Wait for rank 0 to complete the file creation */
-        MPI_Barrier(MPI_COMM_WORLD);
-
-        fd_me = open(file, O_WRONLY);
-        if (fd_me < 0) {
+      if (rank == 0) {
+        if ( (fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) < 0) {
           printf("%d: Could not open file %s\n", rank, file);
         }
+
+        if (fd_me > 0 && truncate(file, total_filesize) < 0) {
+          printf("%d: Could not truncate file %s\n", rank, file);
+        }
+        else {
+          root_create_result = fd_me;
+        }
+
+        if (fd_me > 0) {
+          close(fd_me);
+        }
       }
-      else {
+
+      MPI_Bcast(&root_create_result, 1, MPI_INT, 0, MPI_COMM_WORLD); /* Wait for rank 0 to complete the file creation */
+
+      if (root_create_result > 0) {
+        int oflags = use_shared_file ? O_WRONLY : O_WRONLY | O_CREAT | O_TRUNC;
+        int mode = use_shared_file ? 0 : S_IRUSR | S_IWUSR; /* Note: ignored if O_CREAT not set in oflags */
+
         /* open the file */
-        fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-        if (fd_me < 0) {
+        if ( (fd_me = open(file, oflags, mode)) < 0) {
           printf("%d: Could not open file %s\n", rank, file);
         }
       }
