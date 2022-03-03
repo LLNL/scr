@@ -11,6 +11,8 @@
 #include <stdarg.h>
 #include "mpi.h"
 
+typedef struct checkpoint_buf_t { char buf[7]; } checkpoint_buf_t;
+
 /* reliable read from file descriptor (retries, if necessary, until hard error) */
 ssize_t reliable_read(int fd, void* buf, size_t size)
 {
@@ -136,9 +138,9 @@ int write_checkpoint(int fd, int ckpt, char* buf, size_t size)
   ssize_t rc;
 
   /* write the checkpoint id (application timestep) */
-  char ckpt_buf[7];
-  sprintf(ckpt_buf, "%06d", ckpt);
-  rc = reliable_write(fd, ckpt_buf, sizeof(ckpt_buf));
+  checkpoint_buf_t ckpt_buf;
+  sprintf(ckpt_buf.buf, "%06d", ckpt);
+  rc = reliable_write(fd, ckpt_buf.buf, sizeof(ckpt_buf));
   if (rc < 0) return 0;
 
   /* write the checkpoint data */
@@ -148,16 +150,47 @@ int write_checkpoint(int fd, int ckpt, char* buf, size_t size)
   return 1;
 }
 
+/* write the checkpoint data to shared fd, and return whether the write was successful */
+int write_shared_checkpoint(int fd, int ckpt, char* buf, size_t size, size_t offset)
+{
+  ssize_t rc;
+  int rank;
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  if (lseek(fd, offset, SEEK_SET) < 0) {
+      printf("%d: Failed to seek to 0x%08lx in file\n", rank, offset);
+      return 0;
+  }
+
+  /* write the checkpoint id (application timestep) */
+  checkpoint_buf_t ckpt_buf;
+  sprintf(ckpt_buf.buf, "%06d", ckpt);
+  rc = reliable_write(fd, ckpt_buf.buf, sizeof(ckpt_buf));
+  if (rc < 0) return 0;
+
+  /* write the checkpoint data */
+  rc = reliable_write(fd, buf, size);
+  if (rc < 0) return 0;
+
+  return 1;
+}
+
+ssize_t checkpoint_timestep_size()
+{
+  return sizeof(checkpoint_buf_t);
+}
+
 /* read the checkpoint data from file into buf, and return whether the read was successful */
 int read_checkpoint(char* file, int* ckpt, char* buf, size_t size)
 {
   ssize_t n;
-  char ckpt_buf[7];
+  checkpoint_buf_t ckpt_buf;
 
   int fd = open(file, O_RDONLY);
   if (fd > 0) {
     /* read the checkpoint id */
-    n = reliable_read(fd, ckpt_buf, sizeof(ckpt_buf));
+    n = reliable_read(fd, ckpt_buf.buf, sizeof(ckpt_buf));
 
     /* read the checkpoint data, and check the file size */
     n = reliable_read(fd, buf, size);
@@ -177,7 +210,62 @@ int read_checkpoint(char* file, int* ckpt, char* buf, size_t size)
     }
 
     /* if the file looks good, set the timestep and return */
-    (*ckpt) = atoi(ckpt_buf);
+    (*ckpt) = atoi(ckpt_buf.buf);
+
+    close(fd);
+
+    return 1;
+  }
+  else {
+  	printf("Could not open file %s\n", file);
+  }
+
+  return 0;
+}
+
+/* read the checkpoint data from shared file into buf, and return whether the read was successful */
+int read_shared_checkpoint(char* file, int* ckpt, char* buf, size_t size, size_t offset)
+{
+  ssize_t n;
+  checkpoint_buf_t ckpt_buf;
+  int rank;
+  int ranks;
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &ranks);
+
+  int fd = open(file, O_RDONLY);
+  if (fd > 0) {
+    if (lseek(fd, offset, SEEK_SET) < 0) {
+        printf("%d: Failed to seek to 0x%08lx in file %s for reading\n", rank, offset, file);
+        close(fd);
+        return 0;
+    }
+
+    /* read the checkpoint id */
+    n = reliable_read(fd, ckpt_buf.buf, sizeof(ckpt_buf));
+
+    /* read the checkpoint data, and check the file size */
+    n = reliable_read(fd, buf, size);
+    if (n != size) {
+      printf("Filesize not correct. Expected %lu, got %lu\n", size, n);
+      close(fd);
+      return 0;
+    }
+
+    /* read one byte past the expected size to verify we've hit the end of the file */
+    if (rank == ranks-1) {
+      char endbuf[1];
+      n = reliable_read(fd, endbuf, sizeof(endbuf));
+      if (n != 0) {
+        printf("Filesize not correct. Expected %lu, got %lu\n", size, size+n);
+        close(fd);
+        return 0;
+      }
+    }
+
+    /* if the file looks good, set the timestep and return */
+    (*ckpt) = atoi(ckpt_buf.buf);
 
     close(fd);
 
