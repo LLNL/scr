@@ -51,6 +51,10 @@ ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api "" "ckpt.*")
 
+ADD_EXECUTABLE(test_api_shared_file test_common.c test_api.c)
+TARGET_LINK_LIBRARIES(test_api_shared_file ${SCR_LINK_TO})
+SCR_ADD_TEST(test_api_shared_file "--shared" "ckpt.*")
+
 ADD_EXECUTABLE(test_config test_config.c)
 TARGET_LINK_LIBRARIES(test_config ${SCR_LINK_TO})
 SCR_ADD_TEST(test_config "" "test_config.d")
