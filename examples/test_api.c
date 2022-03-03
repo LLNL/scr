@@ -192,8 +192,8 @@ int test_abtoull(char* str, unsigned long long* val)
 
 size_t get_my_shared_file_offset()
 {
-  size_t file_offset;
-  size_t send_buf;
+  uint64_t file_offset;
+  uint64_t send_buf;
 
   if (rank == 0) {
     send_buf = total_filesize % ranks;
