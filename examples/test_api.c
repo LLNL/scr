@@ -190,24 +190,28 @@ int test_abtoull(char* str, unsigned long long* val)
   return SCR_SUCCESS;
 }
 
-size_t get_my_shared_file_offset()
+size_t get_my_file_offset()
 {
-  uint64_t file_offset;
-  uint64_t send_buf;
+  uint64_t file_offset = 0;
 
-  if (rank == 0) {
-    send_buf = total_filesize % ranks;
-  }
-  else {
-    send_buf = my_filesize;
+  if (use_shared_file) {
+    uint64_t send_buf;
+
+    if (rank == 0) {
+      send_buf = total_filesize % ranks;
+    }
+    else {
+      send_buf = my_filesize;
+    }
+
+    int count = 1;
+    MPI_Scan(&send_buf, &file_offset, count, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+      file_offset = 0;
+    }
   }
 
-  int count = 1;
-  MPI_Scan(&send_buf, &file_offset, count, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
-
-  if (rank == 0) {
-    file_offset = 0;
-  }
   return file_offset;
 }
 
@@ -216,9 +220,7 @@ double getbw(char* name, char* buf, int times)
   char file[SCR_MAX_FILENAME];
   double bw = 0.0;
 
-  if (use_shared_file) {
-    my_file_offset = get_my_shared_file_offset();
-  }
+  my_file_offset = get_my_file_offset();
 
   int scr_retval;
   if (times > 0) {
@@ -335,6 +337,7 @@ double getbw(char* name, char* buf, int times)
           close(fd_me);
         }
 
+        /* Wait for rank 0 to complete the file creation */
         MPI_Barrier(MPI_COMM_WORLD);
 
         fd_me = open(file, O_WRONLY);
@@ -349,35 +352,34 @@ double getbw(char* name, char* buf, int times)
           printf("%d: Could not open file %s\n", rank, file);
         }
       }
-      MPI_Barrier(MPI_COMM_WORLD);
 
       /* write the checkpoint and close */
       if (fd_me > 0) {
         count++;
         valid = 1;
 
-        /* write the checkpoint data */
-        rc = use_shared_file
-          ? write_shared_checkpoint(fd_me, timestep, buf, my_bufsize, my_file_offset)
-          : write_checkpoint(fd_me, timestep, buf, my_bufsize);
-
-        if (rc < 0) {
-          valid = 0;
-          printf("%d: Error writing to %s\n", rank, file);
+        if (lseek(fd_me, my_file_offset, SEEK_SET) < 0) {
+            printf("%d: Failed to seek to 0x%08lx in file\n", rank, my_file_offset);
         }
-
-        /* force the data to storage */
-        if (use_fsync) {
-          rc = fsync(fd_me);
-          if (rc < 0) {
+        else {
+          /* write the checkpoint data */
+          if (!write_checkpoint(fd_me, timestep, buf, my_bufsize)) {
             valid = 0;
-            printf("%d: Error fsync %s\n", rank, file);
+            printf("%d: Error writing to %s\n", rank, file);
+          }
+          else {
+            /* force the data to storage */
+            if (use_fsync) {
+              if (fsync(fd_me) < 0) {
+                valid = 0;
+                printf("%d: Error fsync %s\n", rank, file);
+              }
+            }
           }
         }
 
         /* make sure the close is without error */
-        rc = close(fd_me);
-        if (rc < 0) {
+        if (close(fd_me) < 0) {
           valid = 0;
           printf("%d: Error closing %s\n", rank, file);
         }
@@ -395,6 +397,7 @@ double getbw(char* name, char* buf, int times)
         /* wait for all tasks to finish */
         MPI_Barrier(MPI_COMM_WORLD);
       }
+
       if (rank == 0) {
         double time_end_output = MPI_Wtime();
         double time_secs = time_end_output - time_start_output;
@@ -468,9 +471,7 @@ int restart_scr(char* name, char* buf)
     }
 
     if (have_restart) {
-      if (use_shared_file) {
-        my_file_offset = get_my_shared_file_offset();
-      }
+      my_file_offset = get_my_file_offset();
 
       if (rank == 0) {
         printf("Restarting from checkpoint named %s\n", dset);

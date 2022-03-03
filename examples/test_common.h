@@ -15,9 +15,6 @@ int check_buffer(char* buf, size_t size, int rank, int ckpt);
 /* write the checkpoint data to fd, and return whether the write was successful */
 int write_checkpoint(int fd, int ckpt, char* buf, size_t size);
 
-/* write the checkpoint data to shared fd, and return whether the write was successful */
-int write_shared_checkpoint(int fd, int ckpt, char* buf, size_t size, size_t offset);
-
 /* read the checkpoint data from file into buf, and return whether the read was successful */
 int read_checkpoint(char* file, int* ckpt, char* buf, size_t size);
 
