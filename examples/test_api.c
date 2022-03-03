@@ -195,17 +195,9 @@ size_t get_my_file_offset()
   uint64_t file_offset = 0;
 
   if (use_shared_file) {
-    uint64_t send_buf;
-
-    if (rank == 0) {
-      send_buf = 0;
-    }
-    else {
-      send_buf = my_filesize;
-    }
-
-    int count = 1;
-    MPI_Scan(&send_buf, &file_offset, count, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+    uint64_t send_buf = my_filesize;
+    MPI_Scan(&send_buf, &file_offset, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+    file_offset -= my_filesize;
   }
 
   return file_offset;
