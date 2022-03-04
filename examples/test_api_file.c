@@ -72,27 +72,27 @@ double getbw(char* name, char* buf, size_t size, int times)
       }
 
       /* open the file and write the checkpoint */
-      int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-      if (fd_me >= 0) {
+      int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+      if (fd >= 0) {
         count++;
         valid = 1;
 
         /* write the checkpoint data */
-        rc = write_checkpoint(fd_me, timestep, buf, size);
+        rc = write_checkpoint(fd, timestep, buf, size);
         if (rc < 0) {
           valid = 0;
           printf("%d: Error writing to %s\n", rank, file);
         }
 
         /* force the data to storage */
-        rc = fsync(fd_me);
+        rc = fsync(fd);
         if (rc < 0) {
           valid = 0;
           printf("%d: Error fsync %s\n", rank, file);
         }
 
         /* make sure the close is without error */
-        rc = close(fd_me);
+        rc = close(fd);
         if (rc < 0) {
           valid = 0;
           printf("%d: Error closing %s\n", rank, file);
