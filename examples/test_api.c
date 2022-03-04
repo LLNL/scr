@@ -209,7 +209,7 @@ int create_file(char* file)
 
   if (use_shared_file) {
     if (rank == 0) {
-      if ( (fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) > 0) {
+      if ( (fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) >= 0) {
         if (truncate(file, total_filesize) < 0) {
           printf("%d: Could not truncate file %s : %s\n", rank, file, strerror(errno));
           close(fd);
@@ -220,14 +220,14 @@ int create_file(char* file)
         printf("%d: Could not create file %s : %s\n", rank, file, strerror(errno));
       }
 
-      if (fd > 0) {
+      if (fd >= 0) {
         close(fd);
       };
     }
 
     MPI_Bcast(&fd, 1, MPI_INT, 0, MPI_COMM_WORLD); /* Wait for rank 0 to complete creation */
 
-    if (fd > 0) {
+    if (fd >= 0) {
       if ((fd = open(file, O_WRONLY)) < 0) {
         printf("%d: Could not open file %s : %s\n", rank, file, strerror(errno));
       }
@@ -331,7 +331,7 @@ double getbw(char* name, char* buf, int times)
       int my_fd = create_file(file);
 
       /* write the checkpoint and close */
-      if (my_fd > 0) {
+      if (my_fd >= 0) {
         count++;
         valid = 1;
 
