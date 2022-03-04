@@ -73,7 +73,7 @@ double getbw(char* name, char* buf, size_t size, int times)
 
       /* open the file and write the checkpoint */
       int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-      if (fd_me > 0) {
+      if (fd_me >= 0) {
         count++;
         valid = 1;
 

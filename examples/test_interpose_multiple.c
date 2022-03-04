@@ -161,7 +161,7 @@ int main (int argc, char* argv[])
   for (i=0; i < num_files; i++) {
     char* file = files[i];
     int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fd_me > 0) {
+    if (fd_me >= 0) {
       // write the checkpoint
       write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
 
@@ -183,7 +183,7 @@ int main (int argc, char* argv[])
   for (i=0; i < num_files; i++) {
     char* file = files[i];
     int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fd_me > 0) {
+    if (fd_me >= 0) {
       count++;
 
       // write the checkpoint

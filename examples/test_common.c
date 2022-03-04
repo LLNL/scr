@@ -23,7 +23,7 @@ ssize_t reliable_read(int fd, void* buf, size_t size)
   while (n < size)
   {
     ssize_t rc = read(fd, (char*) buf + n, size - n);
-    if (rc  > 0) { 
+    if (rc > 0) { 
       n += rc;
     } else if (rc == 0) {
       /* EOF */
@@ -162,7 +162,7 @@ int read_checkpoint(char* file, int* ckpt, char* buf, size_t size)
   checkpoint_buf_t ckpt_buf;
 
   int fd = open(file, O_RDONLY);
-  if (fd > 0) {
+  if (fd >= 0) {
     /* read the checkpoint id */
     n = reliable_read(fd, ckpt_buf.buf, sizeof(ckpt_buf));
 
@@ -209,7 +209,7 @@ int read_shared_checkpoint(char* file, int* ckpt, char* buf, size_t size, size_t
   MPI_Comm_size(MPI_COMM_WORLD, &ranks);
 
   int fd = open(file, O_RDONLY);
-  if (fd > 0) {
+  if (fd >= 0) {
     if (lseek(fd, offset, SEEK_SET) < 0) {
         printf("%d: Failed to seek to 0x%08lx in file %s for reading\n", rank, offset, file);
         close(fd);
