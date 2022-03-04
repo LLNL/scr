@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <string.h>
+#include <stdint.h>
 
 /* pull in things like ULLONG_MAX */
 #include <limits.h>
