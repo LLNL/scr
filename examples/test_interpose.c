@@ -71,7 +71,7 @@ int main (int argc, char* argv[])
     }
     MPI_Barrier(MPI_COMM_WORLD);
     int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fd_me > 0) {
+    if (fd_me >= 0) {
       write(fd_me, buf, filesize);
       close(fd_me);
     }
@@ -89,7 +89,7 @@ int main (int argc, char* argv[])
     }
     MPI_Barrier(MPI_COMM_WORLD);
     int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fd_me > 0) {
+    if (fd_me >= 0) {
       count++;
       write(fd_me, buf, filesize);
       close(fd_me);
