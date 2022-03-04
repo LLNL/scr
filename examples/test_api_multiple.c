@@ -214,19 +214,19 @@ int main (int argc, char* argv[])
       }
 
       // open file and write checkpoint
-      int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-      if (fd_me >= 0) {
+      int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+      if (fd >= 0) {
         valid = 1;
         
         // write the checkpoint
-        rc = write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
+        rc = write_checkpoint(fd, timestep, bufs[i], filesizes[i]);
         if (rc < 0) { valid = 0; }
         
-        rc = fsync(fd_me);
+        rc = fsync(fd);
         if (rc < 0) { valid = 0; }
         
         // make sure the close is without error
-        rc = close(fd_me);
+        rc = close(fd);
         if (rc < 0) { valid = 0; }
       }
       if (!valid) { all_valid = 0; }
@@ -281,20 +281,20 @@ int main (int argc, char* argv[])
         }
 
         // open file and write checkpoint
-        int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-        if (fd_me >= 0) {
+        int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+        if (fd >= 0) {
           count++;
           valid = 1;
           
           // write the checkpoint
-          rc = write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
+          rc = write_checkpoint(fd, timestep, bufs[i], filesizes[i]);
           if (rc < 0) { valid = 0; }
           
-          rc = fsync(fd_me);
+          rc = fsync(fd);
           if (rc < 0) { valid = 0; }
           
           // make sure the close is without error
-          rc = close(fd_me);
+          rc = close(fd);
           if (rc < 0) { valid = 0; }
         }
         if (!valid) { all_valid = 0; }

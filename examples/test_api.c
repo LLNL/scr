@@ -328,19 +328,18 @@ double getbw(char* name, char* buf, int times)
         strcpy(file, newname);
       }
 
-      int my_fd = create_file(file);
-
       /* write the checkpoint and close */
-      if (my_fd >= 0) {
+      int fd = create_file(file);
+      if (fd >= 0) {
         count++;
         valid = 1;
 
-        if (lseek(my_fd, my_file_offset, SEEK_SET) >= 0) {
+        if (lseek(fd, my_file_offset, SEEK_SET) >= 0) {
           /* write the checkpoint data */
-          if (write_checkpoint(my_fd, timestep, buf, my_bufsize)) {
+          if (write_checkpoint(fd, timestep, buf, my_bufsize)) {
             /* force the data to storage */
             if (use_fsync) {
-              if (fsync(my_fd) < 0) {
+              if (fsync(fd) < 0) {
                 valid = 0;
                 printf("%d: Error fsync %s\n", rank, file);
               }
@@ -357,7 +356,7 @@ double getbw(char* name, char* buf, int times)
         }
 
         /* make sure the close is without error */
-        if (close(my_fd) < 0) {
+        if (close(fd) < 0) {
           valid = 0;
           printf("%d: Error closing %s\n", rank, file);
         }
