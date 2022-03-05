@@ -207,7 +207,7 @@ int main (int argc, char* argv[])
   sprintf(name, "rank_%d.ckpt", rank);
   int found_checkpoint = 0;
   if (SCR_Route_file(name, file) == SCR_SUCCESS) {
-    if (read_checkpoint(file, &timestep, buf, filesize)) {
+    if (read_checkpoint_file(file, &timestep, buf, filesize)) {
       /* read the file ok, now check that contents are good */
       found_checkpoint = 1;
       printf("%d: Successfully read checkpoint from %s\n", rank, file);

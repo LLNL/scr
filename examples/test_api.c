@@ -27,7 +27,7 @@ struct timeval rv[1];
 size_t my_filesize = 512*1024;
 size_t total_filesize = 0;
 size_t my_bufsize = 0;
-size_t my_file_offset = 0;
+off_t my_file_offset = 0;
 
 int times = 5;
 int seconds = 0;
@@ -46,7 +46,7 @@ int use_scr_restart = 1;
 int rank  = -1;
 int ranks = 0;
 
-int  timestep = 0;
+int timestep = 0;
 
 static unsigned long long kilo  =                1024ULL;
 static unsigned long long mega  =             1048576ULL;
@@ -191,17 +191,17 @@ int test_abtoull(char* str, unsigned long long* val)
   return SCR_SUCCESS;
 }
 
-size_t get_my_file_offset()
+off_t get_my_file_offset()
 {
-  uint64_t file_offset = 0;
+  uint64_t offset = 0;
 
   if (use_shared_file) {
-    uint64_t send_buf = my_filesize;
-    MPI_Scan(&send_buf, &file_offset, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
-    file_offset -= my_filesize;
+    uint64_t bytes = my_filesize;
+    MPI_Scan(&bytes, &offset, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+    offset -= bytes;
   }
 
-  return file_offset;
+  return (off_t) offset;
 }
 
 int create_file(char* file)
@@ -210,7 +210,7 @@ int create_file(char* file)
 
   if (use_shared_file) {
     if (rank == 0) {
-      if ( (fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) >= 0) {
+      if ((fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) >= 0) {
         if (truncate(file, total_filesize) < 0) {
           printf("%d: Could not truncate file %s : %s\n", rank, file, strerror(errno));
           close(fd);
@@ -235,12 +235,52 @@ int create_file(char* file)
     }
   }
   else {
-    if ( (fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) < 0) {
+    if ((fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) < 0) {
       printf("%d: Could not create file %s : %s\n", rank, file, strerror(errno));
     }
   }
 
   return fd;
+}
+
+int read_file(const char* file, off_t expected_size, off_t offset, char* buf, size_t bufsize, int* tstep)
+{
+  int success = 1;
+
+  int fd = open(file, O_RDONLY);
+  if (fd >= 0) {
+    if (lseek(fd, offset, SEEK_SET) < 0) {
+      printf("%d: Failed to seek to 0x%08lx in file %s for reading\n", rank, offset, file);
+      success = 0;
+    } else {
+      /* read the data */
+      int rc = read_checkpoint(fd, tstep, buf, bufsize);
+      if (rc) {
+        /* read the file, now check that its contents are good */
+        if (!check_buffer(buf, bufsize, rank, *tstep)) {
+          printf("%d: Invalid value in buffer\n", rank);
+          success = 0;
+        }
+
+        /* verify that file is the expected size */
+        unsigned long size = get_filesize(file);
+        if (size != expected_size) {
+          printf("%d: Filesize %s not correct. Expected %lu, got %lu\n", rank, file, expected_size, size);
+          success = 0;
+        }
+      } else {
+        printf("%d: Could not read checkpoint from %s\n", rank, file);
+        success = 0;
+      }
+    }
+
+    close(fd);
+  } else {
+    printf("%d: Could not open file %s\n", rank, file);
+    success = 0;
+  }
+
+  return success;
 }
 
 double getbw(char* name, char* buf, int times)
@@ -435,7 +475,6 @@ int restart_scr(char* name, char* buf)
 {
   /* get the name of our checkpoint file to open for read on restart */
   int scr_retval;
-  int found_checkpoint = 0;
   char dset[SCR_MAX_FILENAME];
 
   int have_restart = 0;
@@ -482,28 +521,11 @@ int restart_scr(char* name, char* buf)
         );
       }
 
-
-      /* read the data */
-      int rc;
-
-      rc = use_shared_file ?
-          read_shared_checkpoint(file, &timestep, buf, my_bufsize, my_file_offset)
-        : read_checkpoint(file, &timestep, buf, my_bufsize);
-
-      if (rc) {
-        /* read the file ok, now check that contents are good */
-        found_checkpoint = 1;
-        if (!check_buffer(buf, my_bufsize, rank, timestep)) {
-          printf("%d: Invalid value in buffer\n", rank);
-          found_checkpoint = 0;
-        }
-      } else {
-        printf("%d: Could not read checkpoint %d from %s\n", rank, timestep, file);
-        found_checkpoint = 0;
-      }
+      /* read checkpoint file */
+      int valid = read_file(file, total_filesize, my_file_offset, buf, my_bufsize, &timestep);
 
       /* indicate to library that we're done with restart, tell it whether we read our data ok */
-      scr_retval = SCR_Complete_restart(found_checkpoint);
+      scr_retval = SCR_Complete_restart(valid);
       if (scr_retval == SCR_SUCCESS) {
         /* all procs succeeded in reading their checkpoint file,
          * we've successfully restarted */
@@ -534,40 +556,24 @@ int restart(char* dset, char* name, char* buf)
     printf("Restarting from checkpoint named %s\n", dset);
   }
 
-  /* include checkpoint directory path in name */
-  char newname[SCR_MAX_FILENAME];
+  /* prepend dataset directory to the file name */
+  char newname[1024];
   safe_snprintf(newname, sizeof(newname), "%s/%s", dset, name);
 
-  /* compute directory path to hold output files */
-  char outpath[SCR_MAX_FILENAME];
+  /* compute path to the checkpoint file */
+  char file[1024];
   if (path != NULL) {
-    safe_snprintf(outpath, sizeof(outpath), "%s/%s", path, newname);
+    safe_snprintf(file, sizeof(file), "%s/%s", path, newname);
   } else {
-    safe_snprintf(outpath, sizeof(outpath), "%s", newname);
+    safe_snprintf(file, sizeof(file), "%s", newname);
   }
 
-  /* read the data */
-  int found_checkpoint = 0;
-  int rc;
+  /* read checkpoint file */
+  int valid = read_file(file, total_filesize, my_file_offset, buf, my_bufsize, &timestep);
 
-  rc = use_shared_file
-        ? read_shared_checkpoint(outpath, &timestep, buf, my_bufsize, my_file_offset)
-        : read_checkpoint(outpath, &timestep, buf, my_bufsize);
-
-  if (rc) {
-    /* read the file ok, now check that contents are good */
-    found_checkpoint = 1;
-    if (!check_buffer(buf, my_bufsize, rank, timestep)) {
-      printf("%d: Invalid value in buffer\n", rank);
-      found_checkpoint = 0;
-    }
-  } else {
-    printf("%d: Could not read checkpoint %d from %s\n", rank, timestep, outpath);
-    found_checkpoint = 0;
-  }
-
+  /* check that all procs read successfully */
   int restarted;
-  MPI_Allreduce(&found_checkpoint, &restarted, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
+  MPI_Allreduce(&valid, &restarted, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
 
   /* determine whether all tasks successfully read their checkpoint file */
   if (!restarted) {
@@ -752,7 +758,12 @@ int main (int argc, char* argv[])
   /* also account for the checkpoint header that is written (no need to adjust bufsize) */
   my_filesize += checkpoint_timestep_size();
 
-  MPI_Reduce(&my_filesize, &total_filesize, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
+  if (use_shared_file) {
+    MPI_Allreduce(&my_filesize, &total_filesize, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+  } else {
+    total_filesize = my_filesize;
+  }
+
   my_file_offset = get_my_file_offset();
 
   char* buf = (char*) malloc(my_filesize);

@@ -117,7 +117,7 @@ int main (int argc, char* argv[])
         );
       }
 
-      if (read_checkpoint(file, &timestep, buf, filesizes[i])) {
+      if (read_checkpoint_file(file, &timestep, buf, filesizes[i])) {
         // check that contents are good
         if (! check_buffer(buf, filesizes[i], rank + 2*i, timestep)) {
           printf("!!!!CORRUPTION!!!! Rank %d, File %s: Invalid value in buffer\n", rank, file);
