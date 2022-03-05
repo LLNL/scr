@@ -1654,11 +1654,13 @@ static int scr_assign_ownership(scr_filemap* map, int bypass)
    * for which we are not rank 0 */
   int multiple_owner = 0;
   for (i = 0; i < count; i++) {
+#if 0
     /* check whether this file exists on multiple ranks */
     if (group_ranks[i] > 1) {
       /* found the same file on more than one rank */
       multiple_owner = 1;
 
+      // TODO: must be in bypass of use a cache location with WORLD access
       /* print error if we're not in bypass */
       if (! bypass) {
         scr_err("Multiple procs registered file while not in bypass mode: `%s' @ %s:%d",
@@ -1666,6 +1668,7 @@ static int scr_assign_ownership(scr_filemap* map, int bypass)
         );
       }
     }
+#endif
 
     /* only keep entry for this file in filemap if we're the
      * first rank in the set of ranks that have this file */
@@ -1674,6 +1677,8 @@ static int scr_assign_ownership(scr_filemap* map, int bypass)
     }
   }
 
+  // TODO: must be in bypass of use a cache location with WORLD access
+#if 0
   /* fatal error if any file is on more than one rank and not in bypass */
   int any_multiple_owner = 0;
   MPI_Allreduce(&multiple_owner, &any_multiple_owner, 1, MPI_INT, MPI_LOR, scr_comm_world);
@@ -1682,6 +1687,7 @@ static int scr_assign_ownership(scr_filemap* map, int bypass)
       __FILE__, __LINE__
     );
   }
+#endif
 
   /* free dtcmp buffers */
   scr_free(&group_id);
