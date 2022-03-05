@@ -329,6 +329,22 @@ int scr_reddesc_create_from_hash(
     d->copy_type = SCR_COPY_SINGLE;
   }
 
+  // TODO: want to do this?
+  /* CONVENIENCE: if writing to a cache location having WORLD access, change
+   * type to SINGLE */
+  const scr_storedesc* storedesc = scr_reddesc_get_store(d);
+  if (storedesc != NULL && storedesc->ranks == scr_ranks_world) {
+    if (scr_my_rank_world == 0) {
+      if (d->copy_type != SCR_COPY_SINGLE) {
+        /* print a warning if we changed things on the user */
+        scr_dbg(1, "Forcing copy type to SINGLE in redundancy descriptor %d @ %s:%d",
+          d->index, __FILE__, __LINE__
+        );
+      }
+    }
+    d->copy_type = SCR_COPY_SINGLE;
+  }
+
   /* ER uses XOR internally when set_failures == 1, so warn user if they also selected RS */
   if (set_failures == 1 && d->copy_type == SCR_COPY_RS) {
     if (scr_my_rank_world == 0) {
