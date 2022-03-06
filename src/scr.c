@@ -1587,7 +1587,7 @@ static int scr_start_output(const char* name, int flags)
 
 /* detect files that have been registered by more than one process,
  * drop filemap entries from all but one process */
-static int scr_assign_ownership(scr_filemap* map, int bypass)
+static int scr_assign_ownership(scr_filemap* map, const scr_reddesc* rd)
 {
   int rc = SCR_SUCCESS;
 
@@ -1650,25 +1650,28 @@ static int scr_assign_ownership(scr_filemap* map, int bypass)
     rc = SCR_FAILURE;
   }
 
+  /* determine whether shared files are allowed,
+   * we can use shared files if in bypass mode or if
+   * all procs in the job access the same storage */
+  scr_storedesc* store = scr_reddesc_get_store(rd);
+  int shared = (rd->bypass || store->ranks == scr_ranks_world);
+
   /* keep rank 0 for each file as its owner, remove any entry from the filemap
    * for which we are not rank 0 */
   int multiple_owner = 0;
   for (i = 0; i < count; i++) {
-#if 0
     /* check whether this file exists on multiple ranks */
     if (group_ranks[i] > 1) {
       /* found the same file on more than one rank */
       multiple_owner = 1;
 
-      // TODO: must be in bypass of use a cache location with WORLD access
-      /* print error if we're not in bypass */
-      if (! bypass) {
+      /* for shared files, must be in bypass of use a cache location with WORLD access */
+      if (! shared) {
         scr_err("Multiple procs registered file while not in bypass mode: `%s' @ %s:%d",
           filelist[i], __FILE__, __LINE__
         );
       }
     }
-#endif
 
     /* only keep entry for this file in filemap if we're the
      * first rank in the set of ranks that have this file */
@@ -1677,17 +1680,15 @@ static int scr_assign_ownership(scr_filemap* map, int bypass)
     }
   }
 
-  // TODO: must be in bypass of use a cache location with WORLD access
-#if 0
-  /* fatal error if any file is on more than one rank and not in bypass */
+  /* fatal error if any file is on more than one rank
+   * but we can't support shared files */
   int any_multiple_owner = 0;
   MPI_Allreduce(&multiple_owner, &any_multiple_owner, 1, MPI_INT, MPI_LOR, scr_comm_world);
-  if (any_multiple_owner && !bypass) {
+  if (any_multiple_owner && !shared) {
     scr_abort(-1, "Shared file access detected while not in bypass mode @ %s:%d",
       __FILE__, __LINE__
     );
   }
-#endif
 
   /* free dtcmp buffers */
   scr_free(&group_id);
@@ -1728,13 +1729,13 @@ static int scr_complete_output(int valid)
     time_start = MPI_Wtime();
   }
 
-  /* When using bypass mode, we allow different procs to write to the same file,
+  /* When using bypass mode or shared cache, we allow different procs to write to the same file,
    * in which case, both should have registered the file in Route_file and thus
    * have an entry in the file map.  The proper thing to do here is to list the
    * set of ranks that share a file, however, that requires fixing up lots of
    * other parts of the code.  For now, ensure that at most one file lists the
    * file in their file map. */
-  rc = scr_assign_ownership(scr_map, scr_rd->bypass);
+  rc = scr_assign_ownership(scr_map, scr_rd);
 
   /* count number of files, number of bytes, and record filesize for each file
    * as written by this process */
