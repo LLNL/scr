@@ -721,9 +721,9 @@ int main (int argc, char* argv[])
       SCR_Config("SCR_DEBUG=1");
     }
 
-    if (use_shared_file) {
-      SCR_Config("SCR_CACHE_BYPASS=1");
-    }
+    // For a global cache, one must define a STORE descriptor
+    // and declare the path to have WORLD access, e.g.,
+    //   SCR_Config("STORE=/p/lustre1/$USER/scrcache GROUP=WORLD");
 
     if (SCR_Init() != SCR_SUCCESS){
       printf("Failed initializing SCR\n");
