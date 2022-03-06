@@ -133,7 +133,7 @@ int check_buffer(char* buf, size_t size, int rank, int ckpt)
 }
 
 /* get size of specified file */
-unsigned long get_filesize(char* file)
+unsigned long get_filesize(const char* file)
 {
   /* stat the file to get its size and other metadata */
   unsigned long filesize = 0;

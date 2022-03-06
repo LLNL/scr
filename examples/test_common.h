@@ -13,7 +13,7 @@ int init_buffer(char* buf, size_t size, int rank, int ckpt);
 int check_buffer(char* buf, size_t size, int rank, int ckpt);
 
 /* get size of specified file */
-unsigned long get_filesize(char* file);
+unsigned long get_filesize(const char* file);
 
 /* return size of buffer used to store checkpoint timestep */
 ssize_t checkpoint_timestep_size();
