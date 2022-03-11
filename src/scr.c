@@ -1169,6 +1169,14 @@ static int scr_get_params()
     scr_dbg(1, "SCR_FLUSH_ASYNC_PERCENT=%f", scr_flush_async_percent);
   }
 
+  /* number of microseconds to sleep between polling async flush status */
+  if ((value = scr_param_get("SCR_FLUSH_ASYNC_USLEEP")) != NULL) {
+    scr_flush_async_usleep = atoi(value);
+  }
+  if (scr_my_rank_world == 0) {
+    scr_dbg(1, "SCR_FLUSH_ASYNC_USLEEP=%d", scr_flush_async_usleep);
+  }
+
   /* set file copy buffer size (file chunk size) */
   if ((value = scr_param_get("SCR_FILE_BUF_SIZE")) != NULL) {
     if (scr_abtoull(value, &ull) == SCR_SUCCESS) {
