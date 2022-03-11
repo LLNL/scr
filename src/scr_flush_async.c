@@ -590,8 +590,8 @@ int scr_flush_async_wait(scr_cache_index* cindex, int id)
         /* complete the flush */
         scr_flush_async_complete(cindex, id);
       } else {
-        /* otherwise, sleep to get out of the way */
-        usleep(10*1000*1000);
+        /* otherwise, sleep for a bit to get out of the way */
+        usleep(scr_flush_async_usleep);
       }
     }
   }

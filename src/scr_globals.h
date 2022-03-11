@@ -188,6 +188,7 @@ extern int scr_prefix_purge; /* whether to delete all datasets listed in index f
 extern int scr_flush_async;            /* whether to use asynchronous flush */
 extern double scr_flush_async_bw;      /* bandwidth limit imposed during async flush */
 extern double scr_flush_async_percent; /* runtime limit imposed during async flush */
+extern int scr_flush_async_usleep;     /* number of microsecs to sleep between polling async transfer */
 
 extern int scr_flush_poststage; /* whether to use scr_poststage.sh to finalize transfers */
 
