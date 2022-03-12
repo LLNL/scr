@@ -395,12 +395,6 @@ int scr_flush_async_test(scr_cache_index* cindex, int id)
   /* make sure all processes make it this far before progressing */
   MPI_Barrier(scr_comm_world);
 
-  /* start timer */
-  double time_start;
-  if (scr_my_rank_world == 0) {
-    time_start = MPI_Wtime();
-  }
-
   /* if the transfer failed, indicate that transfer has completed */
   int status = SCR_FAILURE;
   kvtree* dset_hash = kvtree_get_kv_int(scr_flush_async_list, ASYNC_KEY_OUT_DSET, id);
@@ -409,33 +403,11 @@ int scr_flush_async_test(scr_cache_index* cindex, int id)
     return SCR_SUCCESS;
   }
 
-  /* get the dataset corresponding to this id */
-  scr_dataset* dataset = scr_dataset_new();
-  scr_cache_index_get_dataset(cindex, id, dataset);
-
-  /* lookup dataset name */
-  char* dset_name = NULL;
-  scr_dataset_get_name(dataset, &dset_name);
-
-  if (scr_my_rank_world == 0) {
-    scr_dbg(1, "Testing async flush of dataset %d `%s'", id, dset_name);
-  }
-
   /* test whether transfer is done */
   int rc = SCR_SUCCESS;
   if (scr_axl_test(id, scr_comm_world) != SCR_SUCCESS) {
     rc = SCR_FAILURE;
   }
-
-  /* stop timer and report cost */
-  if (scr_my_rank_world == 0) {
-    double time_end = MPI_Wtime();
-    double time_diff = time_end - time_start;
-    scr_dbg(1, "scr_flush_async_test: %f secs", time_diff);
-  }
-
-  /* free the dataset */
-  scr_dataset_delete(&dataset);
 
   return rc;
 }
