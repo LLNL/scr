@@ -1,5 +1,7 @@
 #!/bin/bash
 
+SCRTAG="v3.0.1"
+
 print_usage() {
     echo "Usage: builddist <tag>"
     echo ""
@@ -7,7 +9,7 @@ print_usage() {
     echo "  develop - build tarball of latest"
 #    echo "  v3.0rc1"
 #    echo "  v3.0rc2"
-    echo "  v3.0"
+    echo "  v3.0.1"
 }
 
 # check that we got an argument or print usage
@@ -29,7 +31,7 @@ if [ "$1" == "develop" ] ; then
         "redset"   "ecp-veloc"  "main"
         "er"       "ecp-veloc"  "main"
         "rankstr"  "ecp-veloc"  "main"
-        "scr"      "llnl"       "develop"
+        "scr"      "llnl"       "v3"
     )
 #elif [ "$1" == "v3.0rc1" ] ; then
 #    # to build the scr-v3.0rc1 release
@@ -59,19 +61,19 @@ if [ "$1" == "develop" ] ; then
 #        "rankstr"  "ecp-veloc" "v0.1.0"
 #        "scr"      "llnl"      "v3.0rc2"
 #    )
-elif [ "$1" == "v3.0" ] ; then
+elif [ "$1" == "v3.0.1" ] ; then
     # to build the scr-v3.0 release
     ORGS=(
         "lwgrp"    "llnl"      "v1.0.5"
         "dtcmp"    "llnl"      "v1.1.4"
         "kvtree"   "ecp-veloc" "v1.3.0"
-        "axl"      "ecp-veloc" "v0.6.0"
+        "axl"      "ecp-veloc" "v0.7.0"
         "spath"    "ecp-veloc" "v0.2.0"
         "shuffile" "ecp-veloc" "v0.2.0"
         "redset"   "ecp-veloc" "v0.2.0"
-        "er"       "ecp-veloc" "v0.2.0"
+        "er"       "ecp-veloc" "v0.3.0"
         "rankstr"  "ecp-veloc" "v0.2.0"
-        "scr"      "llnl"      "v3.0"
+        "scr"      "llnl"      "v3"
     )
 else
     echo "Error: unknown tag: $1"
@@ -134,18 +136,17 @@ for (( i=0; i<${len}; i=$(($i + 3)) )); do
     cd ..
 done
 
-# NOTE: last TAG is from SCR
-# rename archive directory to scr-TAG
-mv $ARCH_DIR scr-$TAG
+# rename archive directory to scr-SCRTAG
+mv $ARCH_DIR scr-$SCRTAG
 
 # copy in top-level CMake files
-cp -r ../CMakeLists.txt ../NOTICE ../cmake scr-$TAG
+cp -r ../CMakeLists.txt ../NOTICE ../cmake scr-$SCRTAG
 
 # copy in README file
-cp -r ../README.dist scr-$TAG/README
+cp -r ../README.dist scr-$SCRTAG/README
 
 # zip up release tarball
-tar -czf ../scr-${TAG}.tgz scr-$TAG
+tar -czf ../scr-${SCRTAG}.tgz scr-$SCRTAG
 
 # delete prep directory
 cd ..

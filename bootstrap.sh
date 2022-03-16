@@ -163,7 +163,7 @@ popd
 
 pushd AXL
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.6.0
+    git checkout v0.7.0
   fi
   rm -rf build
   mkdir -p build
@@ -266,7 +266,7 @@ popd
 
 pushd er
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    git checkout v0.3.0
   fi
   rm -rf build
   mkdir -p build
