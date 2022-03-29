@@ -80,3 +80,9 @@ doc/Makefile
 examples/Makefile
 examples/makefile.examples
 man/Makefile
+
+build
+deps
+install
+python/scr.py
+tags
