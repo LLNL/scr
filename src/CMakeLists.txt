@@ -70,7 +70,6 @@ LIST(APPEND libscr_srcs
 	scr_summary.c
 	scr_util.c
 	scr_util_mpi.c
-	axl_mpi.c
 )
 
 # SCR Library
