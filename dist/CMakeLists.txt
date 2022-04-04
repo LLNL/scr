@@ -180,7 +180,6 @@ LIST(APPEND libscr_srcs
     scr/src/scr_summary.c
     scr/src/scr_util.c
     scr/src/scr_util_mpi.c
-    scr/src/axl_mpi.c
     scr/src/scr_flush_nompi.c
 )
 
@@ -199,20 +198,20 @@ ADD_LIBRARY(scr_o OBJECT
 )
 
 LIST(APPEND scr_tpl_objects
-  $<TARGET_OBJECTS:axl_o>
-  $<TARGET_OBJECTS:er_o>
-  $<TARGET_OBJECTS:kvtree_o>
-  $<TARGET_OBJECTS:rankstr_o>
-  $<TARGET_OBJECTS:redset_o>
-  $<TARGET_OBJECTS:shuffile_o>
-  $<TARGET_OBJECTS:spath_o>
+    $<TARGET_OBJECTS:axl_mpi_o>
+    $<TARGET_OBJECTS:er_o>
+    $<TARGET_OBJECTS:kvtree_o>
+    $<TARGET_OBJECTS:rankstr_o>
+    $<TARGET_OBJECTS:redset_o>
+    $<TARGET_OBJECTS:shuffile_o>
+    $<TARGET_OBJECTS:spath_o>
 )
 
 LIST(APPEND scr_tpl_noMPI_objects
-  $<TARGET_OBJECTS:axl_o>
-  $<TARGET_OBJECTS:kvtree_noMPI_o>
-  $<TARGET_OBJECTS:redset_noMPI_o>
-  $<TARGET_OBJECTS:spath_base_o>
+    $<TARGET_OBJECTS:axl_o>
+    $<TARGET_OBJECTS:kvtree_noMPI_o>
+    $<TARGET_OBJECTS:redset_noMPI_o>
+    $<TARGET_OBJECTS:spath_base_o>
 )
 
 # Install header files
