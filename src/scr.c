@@ -1741,7 +1741,7 @@ static int scr_complete_output(int valid)
    * in which case, both should have registered the file in Route_file and thus
    * have an entry in the file map.  The proper thing to do here is to list the
    * set of ranks that share a file, however, that requires fixing up lots of
-   * other parts of the code.  For now, ensure that at most one file lists the
+   * other parts of the code.  For now, ensure that at most one rank lists the
    * file in their file map. */
   rc = scr_assign_ownership(scr_map, scr_rd);
 

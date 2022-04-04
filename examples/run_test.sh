@@ -15,13 +15,13 @@ if [ "$1" != "" ]; then
     shift
 fi
 
-echo "Running $launch $test $@ restart=$restart"
-
+echo "Run: $launch $test $@"
 $launch $test "$@"
 RC=$?
 
+# only attempt a restart if requested and if first run succeeded
 if [ "$restart" = "restart" -a $RC -eq 0 ]; then
-    echo "Restarting"
+    echo "Restart: $launch $test $@"
     $launch $test "$@"
     RC=$?
 fi
