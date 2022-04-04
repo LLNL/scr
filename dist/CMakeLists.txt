@@ -80,6 +80,10 @@ IF(ENABLE_EXAMPLES)
     ADD_SUBDIRECTORY(scr/examples)
 ENDIF()
 
+#
+# TODO: Add proper lwgrp/src/CMakeLists.txt file so that the following
+# lists of source may be replaced with add_subdirectory
+#
 LIST(APPEND lwgrp_srcs
     lwgrp/src/lwgrp.c
     lwgrp/src/lwgrp_util.c
@@ -120,101 +124,6 @@ LIST(APPEND dtcmp_srcs
     dtcmp/src/dtcmp_sortz_samplesort.c
     dtcmp/src/dtcmp_rankv_sort.c
     dtcmp/src/dtcmp_seg_exscan.c
-)
-
-LIST(APPEND libkvtree_noMPI_srcs
-    kvtree/src/kvtree.c
-    kvtree/src/kvtree_util.c
-    kvtree/src/kvtree_io.c
-    kvtree/src/kvtree_helpers.c
-    kvtree/src/kvtree_err.c
-)
-LIST(APPEND libkvtree_srcs
-    kvtree/src/kvtree.c
-    kvtree/src/kvtree_util.c
-    kvtree/src/kvtree_io.c
-    kvtree/src/kvtree_helpers.c
-    kvtree/src/kvtree_err.c
-)
-LIST(APPEND libkvtree_srcs
-    kvtree/src/kvtree_mpi.c
-    kvtree/src/kvtree_mpi_io.c
-)
-
-#IF(TVDISPLAY)
-#    LIST(APPEND libkvtree_srcs
-#        kvtree/src/tv_data_display.c
-#    )
-#ENDIF(TVDISPLAY)
-
-LIST(APPEND libspath_noMPI_srcs
-    spath/src/spath.c
-    spath/src/spath_util.c
-)
-LIST(APPEND libspath_srcs
-    spath/src/spath.c
-    spath/src/spath_util.c
-)
-LIST(APPEND libspath_srcs spath/src/spath_mpi.c)
-
-LIST(APPEND librankstr_srcs
-    rankstr/src/rankstr_mpi.c
-)
-
-LIST(APPEND libaxl_srcs
-    axl/src/axl.c
-    axl/src/axl_sync.c
-    axl/src/axl_err.c
-    axl/src/axl_io.c
-    axl/src/axl_util.c
-)
-
-IF(HAVE_PTHREADS)
-   LIST(APPEND libaxl_srcs axl/src/axl_pthread.c)
- ENDIF(HAVE_PTHREADS)
-
-IF(BBAPI_FOUND)
-    LIST(APPEND libaxl_srcs axl/src/axl_async_bbapi.c)
-ENDIF(BBAPI_FOUND)
-
-IF(HAVE_DATAWARP)
-    LIST(APPEND libaxl_srcs axl/src/axl_async_datawarp.c)
-ENDIF(HAVE_DATAWARP)
-
-LIST(APPEND libshuffile_srcs
-    shuffile/src/shuffile_util.c
-    shuffile/src/shuffile_io.c
-    shuffile/src/shuffile.c
-)
-
-LIST(APPEND redset_noMPI_srcs
-    redset/src/redset_err_serial.c
-    redset/src/redset_util.c
-    redset/src/redset_io.c
-    redset/src/redset_lofi.c
-    redset/src/redset_partner_serial.c
-    redset/src/redset_xor_serial.c
-    redset/src/redset_reedsolomon_common.c
-    redset/src/redset_reedsolomon_serial.c
-)
-
-LIST(APPEND libredset_srcs
-    redset/src/redset_err_mpi.c
-    redset/src/redset_util.c
-    redset/src/redset_util_mpi.c
-    redset/src/redset_io.c
-    redset/src/redset_lofi.c
-    redset/src/redset.c
-    redset/src/redset_single.c
-    redset/src/redset_partner.c
-    redset/src/redset_xor.c
-    redset/src/redset_reedsolomon_common.c
-    redset/src/redset_reedsolomon.c
-)
-
-LIST(APPEND liber_srcs
-    er/src/er.c
-    er/src/er_util.c
 )
 
 LIST(APPEND cliscr_noMPI_srcs
@@ -275,17 +184,35 @@ LIST(APPEND libscr_srcs
     scr/src/scr_flush_nompi.c
 )
 
+ADD_SUBDIRECTORY(axl/src EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(er/src EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(kvtree/src EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(rankstr/src EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(redset/src EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(shuffile/src EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(spath/src EXCLUDE_FROM_ALL)
+
 ADD_LIBRARY(scr_o OBJECT
     ${lwgrp_srcs}
     ${dtcmp_srcs}
-    ${libkvtree_srcs}
-    ${libspath_srcs}
-    ${librankstr_srcs}
-    ${libaxl_srcs}
-    ${libshuffile_srcs}
-    ${libredset_srcs}
-    ${liber_srcs}
     ${libscr_srcs}
+)
+
+LIST(APPEND scr_tpl_objects
+  $<TARGET_OBJECTS:axl_o>
+  $<TARGET_OBJECTS:er_o>
+  $<TARGET_OBJECTS:kvtree_o>
+  $<TARGET_OBJECTS:rankstr_o>
+  $<TARGET_OBJECTS:redset_o>
+  $<TARGET_OBJECTS:shuffile_o>
+  $<TARGET_OBJECTS:spath_o>
+)
+
+LIST(APPEND scr_tpl_noMPI_objects
+  $<TARGET_OBJECTS:axl_o>
+  $<TARGET_OBJECTS:kvtree_noMPI_o>
+  $<TARGET_OBJECTS:redset_noMPI_o>
+  $<TARGET_OBJECTS:spath_base_o>
 )
 
 # Install header files
@@ -298,13 +225,13 @@ ENDIF(ENABLE_FORTRAN)
 INSTALL(FILES ${libscr_install_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 IF(BUILD_SHARED_LIBS)
-    ADD_LIBRARY(scr SHARED $<TARGET_OBJECTS:scr_o>)
+    ADD_LIBRARY(scr SHARED $<TARGET_OBJECTS:scr_o> ${scr_tpl_objects})
     TARGET_LINK_LIBRARIES(scr ${SCR_EXTERNAL_LIBS})
     SET_TARGET_PROPERTIES(scr PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 1)
     INSTALL(TARGETS scr DESTINATION ${CMAKE_INSTALL_LIBDIR})
 ENDIF()
 
-ADD_LIBRARY(scr-static STATIC $<TARGET_OBJECTS:scr_o>)
+ADD_LIBRARY(scr-static STATIC $<TARGET_OBJECTS:scr_o> ${scr_tpl_objects})
 IF(SCR_LINK_STATIC)
     SET_TARGET_PROPERTIES(scr-static PROPERTIES LINK_SEARCH_START_STATIC 1)
     SET_TARGET_PROPERTIES(scr-static PROPERTIES LINK_SEARCH_END_STATIC 1)
@@ -317,13 +244,13 @@ INSTALL(TARGETS scr-static DESTINATION ${CMAKE_INSTALL_LIBDIR})
 # Fortran
 IF(ENABLE_FORTRAN)
     IF(BUILD_SHARED_LIBS)
-        ADD_LIBRARY(scrf SHARED scr/src/scrf.c $<TARGET_OBJECTS:scr_o>)
+        ADD_LIBRARY(scrf SHARED scr/src/scrf.c $<TARGET_OBJECTS:scr_o> ${scr_tpl_objects})
         TARGET_LINK_LIBRARIES(scrf ${SCR_EXTERNAL_LIBS})
         SET_TARGET_PROPERTIES(scrf PROPERTIES OUTPUT_NAME scrf CLEAN_DIRECT_OUTPUT 1)
         INSTALL(TARGETS scrf DESTINATION ${CMAKE_INSTALL_LIBDIR})
     ENDIF()
 
-    ADD_LIBRARY(scrf-static STATIC scr/src/scrf.c $<TARGET_OBJECTS:scr_o>)
+    ADD_LIBRARY(scrf-static STATIC scr/src/scrf.c $<TARGET_OBJECTS:scr_o> ${scr_tpl_objects})
     IF(SCR_LINK_STATIC)
         SET_TARGET_PROPERTIES(scrf-static PROPERTIES LINK_SEARCH_START_STATIC 1)
         SET_TARGET_PROPERTIES(scrf-static PROPERTIES LINK_SEARCH_END_STATIC 1)
@@ -340,11 +267,8 @@ ENDIF(ENABLE_FORTRAN)
 
 # Non-MPI library for CLI
 ADD_LIBRARY(scr_base STATIC
-    ${libkvtree_noMPI_srcs}
-    ${libspath_noMPI_srcs}
-    ${redset_noMPI_srcs}
     ${cliscr_noMPI_srcs}
-    ${libaxl_srcs}
+    ${scr_tpl_noMPI_objects}
 )
 TARGET_LINK_LIBRARIES(scr_base ${SCR_EXTERNAL_SERIAL_LIBS})
 
@@ -382,9 +306,9 @@ ENDFOREACH(bin IN ITEMS ${cliscr_c_bins})
 FOREACH(bin IN ITEMS ${cliscr_scr_bins})
     ADD_EXECUTABLE(${bin} scr/src/${bin}.c)
     IF(SCR_LINK_STATIC)
-        TARGET_LINK_LIBRARIES(${bin} scr-static)
+      TARGET_LINK_LIBRARIES(${bin} scr-static)
     ELSE(SCR_LINK_STATIC)
-        TARGET_LINK_LIBRARIES(${bin} scr)
+      TARGET_LINK_LIBRARIES(${bin} scr)
     ENDIF(SCR_LINK_STATIC)
     INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
 ENDFOREACH(bin IN ITEMS ${cliscr_scr_bins})
