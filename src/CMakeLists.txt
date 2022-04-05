@@ -70,11 +70,11 @@ LIST(APPEND libscr_srcs
 	scr_summary.c
 	scr_util.c
 	scr_util_mpi.c
-	axl_mpi.c
 )
 
 # SCR Library
 ADD_LIBRARY(scr_o OBJECT ${libscr_srcs})
+ADD_LIBRARY(scr_base_o OBJECT ${cliscr_noMPI_srcs})
 
 IF(BUILD_SHARED_LIBS)
    ADD_LIBRARY(scr SHARED $<TARGET_OBJECTS:scr_o>)
@@ -94,7 +94,7 @@ SET_TARGET_PROPERTIES(scr-static PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 
 INSTALL(TARGETS scr-static DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # Non-MPI library for CLI
-ADD_LIBRARY(scr_base STATIC ${cliscr_noMPI_srcs})
+ADD_LIBRARY(scr_base STATIC $<TARGET_OBJECTS:scr_base_o>)
 TARGET_LINK_LIBRARIES(scr_base ${SCR_EXTERNAL_SERIAL_LIBS})
 
 # Fortran

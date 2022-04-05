@@ -167,7 +167,7 @@ static int scr_fetch_data(
   /* get the list of files to read */
   kvtree* filelist = kvtree_new();
   if (kvtree_read_scatter(rank2file, filelist, scr_comm_world) != KVTREE_SUCCESS) {
-    scr_err("Failed to rank2file map: `%s' @ %s:%d",
+    scr_err("Failed to read rank2file map: `%s' @ %s:%d",
       rank2file, __FILE__, __LINE__
     );
     kvtree_delete(&filelist);

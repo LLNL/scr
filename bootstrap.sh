@@ -171,6 +171,7 @@ pushd AXL
     cmake \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+      -DMPI=ON \
       .. && \
     make -j `nproc` && \
     make install
