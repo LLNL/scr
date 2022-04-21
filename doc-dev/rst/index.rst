@@ -115,7 +115,6 @@ Contents
    developers/redundancy_descriptors.rst
    developers/schemes.rst
    developers/scheme_xor.rst
-   developers/containers.rst
    developers/drain.rst
    developers/logging.rst
 
