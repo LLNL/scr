@@ -15,13 +15,13 @@ if [ "$1" != "" ]; then
     shift
 fi
 
-echo "Running $launch $test $@ restart=$restart"
-
+echo "Run: $launch $test $@"
 $launch $test "$@"
 RC=$?
 
+# only attempt a restart if requested and if first run succeeded
 if [ "$restart" = "restart" -a $RC -eq 0 ]; then
-    echo "Restarting"
+    echo "Restart: $launch $test $@"
     $launch $test "$@"
     RC=$?
 fi
@@ -30,6 +30,13 @@ fi
 $launch ./test_cleanup.sh
 
 # delete files in prefix directory
-rm -rf .scr/
+
+# In the hope of working better with NFS, lets rename the directory
+# first and then remove the newly named file.  This should (hopefully)
+# allow subsequent tests not to fail when/if compute nodes have stale
+# references to the old prefix directory.
+#
+mv .scr .scr.remove.me/
+rm -rf .scr.remove.me/
 
 exit $RC

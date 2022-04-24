@@ -111,7 +111,7 @@ int main (int argc, char* argv[])
   int found_checkpoint = 1;
   for (i=0; i < num_files; i++) {
     char* file = files[i];
-    if (read_checkpoint(file, &timestep, buf, filesizes[i])) {
+    if (read_checkpoint_file(file, &timestep, buf, filesizes[i])) {
       // check that contents are good
       if (!check_buffer(buf, filesizes[i], rank + 2*i, timestep)) {
         printf("!!!!CORRUPTION!!!! Rank %d, File %s: Invalid value in buffer\n", rank, file);
@@ -160,14 +160,14 @@ int main (int argc, char* argv[])
   for(t=0; t < 1; t++) {
   for (i=0; i < num_files; i++) {
     char* file = files[i];
-    int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fd_me > 0) {
+    int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (fd >= 0) {
       // write the checkpoint
-      write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
+      write_checkpoint(fd, timestep, bufs[i], filesizes[i]);
 
-      fsync(fd_me);
+      fsync(fd);
 
-      close(fd_me);
+      close(fd);
     }
   }
     if (rank == 0) { printf("Completed checkpoint %d.\n", timestep); fflush(stdout); }
@@ -182,16 +182,16 @@ int main (int argc, char* argv[])
   for(t=0; t < times; t++) {
   for (i=0; i < num_files; i++) {
     char* file = files[i];
-    int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fd_me > 0) {
+    int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (fd >= 0) {
       count++;
 
       // write the checkpoint
-      write_checkpoint(fd_me, timestep, bufs[i], filesizes[i]);
+      write_checkpoint(fd, timestep, bufs[i], filesizes[i]);
 
-      fsync(fd_me);
+      fsync(fd);
 
-      close(fd_me);
+      close(fd);
     }
   }
     if (rank == 0) { printf("Completed checkpoint %d.\n", timestep); fflush(stdout); }

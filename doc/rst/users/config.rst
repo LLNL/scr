@@ -44,7 +44,7 @@ by setting the :code:`SCR_CONF_FILE` environment variable at run time, e.g.,::
   export SCR_CONF_FILE=~/myscr.conf
 
 The location of the system configuration file is hard-coded into SCR at build time.
-This defaults to :code:`/etc/scr/scr.conf`.
+This defaults to :code:`<install>/etc/scr.conf`.
 One may choose a different path using the :code:`SCR_CONFIG_FILE` CMake option, e.g.,::
 
   cmake -DSCR_CONFIG_FILE=/path/to/scr.conf ...
@@ -241,6 +241,8 @@ e.g., to cache up to two datasets::
 
   SCR_CACHE_SIZE=2
 
+It is recommended to use a cache size of at least 2 when possible.
+
 Change redundancy schemes
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -256,6 +258,9 @@ its asynchronous flush capability rather than for its fault tolerance,
 it may be best to use :code:`SINGLE`::
 
   SCR_COPY_TYPE=SINGLE
+
+It is possible to use multiple redundancy schemes in a single job.
+For this, one must specify checkpoint descriptors as described in :ref:`sec-descriptors`.
 
 Enable asynchronous flush
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -455,6 +460,41 @@ If those parameters are not set otherwise, this defaults to the following::
 
   CKPT=0 INTERVAL=1 GROUP=NODE STORE=/dev/shm TYPE=XOR SET_SIZE=8 BYPASS=1
 
+.. _sec-config-single-and-xor:
+
+Example using SINGLE and XOR
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On many systems, application failures are more common than node failures.
+The :code:`SINGLE` redundancy scheme is sufficient to recover from application failures,
+and it is much faster than other redundancy schemes like :code:`XOR`.
+If there is room to store multiple checkpoints in cache,
+one can configure SCR to use :code:`SINGLE` and :code:`XOR` in the same run.
+For an application failure, SCR can restart the job from the most recent checkpoint,
+but if a node fails, SCR can fallback to the most recent :code:`XOR` checkpoint.
+The following entries configure SCR to encode every 10th checkpoint with :code:`XOR`
+but use :code:`SINGLE` for all others::
+
+  # instruct SCR to use the CKPT descriptors from the config file
+  SCR_COPY_TYPE=FILE
+  
+  # enable datasets to be stored in cache
+  SCR_CACHE_BYPASS=0
+
+  # define distinct paths for SINGLE and XOR
+  STORE=/dev/shm/single COUNT=1
+  STORE=/dev/shm/xor    COUNT=1
+
+  # save every 10th checkpoint using XOR
+  # save all other checkpoints using SINGLE
+  CKPT=0 INTERVAL=1  STORE=/dev/shm/single TYPE=SINGLE
+  CKPT=1 INTERVAL=10 STORE=/dev/shm/xor    TYPE=XOR
+
+This configures SCR to write all checkpoints within :code:`/dev/shm`,
+but separate directories are used for :code:`SINGLE` and :code:`XOR`.
+By defining distinct :code:`STORE` locations for each redundancy type,
+SCR always deletes an older checkpoint of the same type before writing a new checkpoint.
+
 .. _sec-variables:
 
 SCR parameters
@@ -574,7 +614,7 @@ The table in this section specifies the full set of SCR configuration parameters
      - Set to 1 to delete all datasets from the prefix directory (both checkpoint and output) during :code:`SCR_Init`.
    * - :code:`SCR_CURRENT`
      - N/A
-     - Name of checkpoint to mark as current and attempt to fetch in a new run during :code:`SCR_Init`.
+     - Name of checkpoint to mark as current and attempt to load during a new run during :code:`SCR_Init`.
    * - :code:`SCR_DISTRIBUTE`
      - 1
      - Set to 0 to disable cache rebuild during :code:`SCR_Init`.
@@ -613,7 +653,7 @@ The table in this section specifies the full set of SCR configuration parameters
        Typically, one should also set :code:`SCR_FETCH=0` when enabling this option.
    * - :code:`SCR_GLOBAL_RESTART`
      - 0
-     - Set to 1 to flush checkpoints to the prefix directory during :code:`SCR_Init` and internally switch fetch to use cache bypass mode.
+     - Set to 1 to flush checkpoints to and restart from the prefix directory during :code:`SCR_Init`.
        This is needed by applications that use the SCR Restart API but require a global file system to restart,
        e.g., because multiple processes read the same file.
    * - :code:`SCR_RUNS`

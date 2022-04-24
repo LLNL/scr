@@ -5,6 +5,7 @@ scr.user.conf
 *.o
 *.lo
 *.la
+*.swp
 
 src/Makefile
 src/scr_copy
@@ -79,3 +80,9 @@ doc/Makefile
 examples/Makefile
 examples/makefile.examples
 man/Makefile
+
+build
+deps
+install
+python/scr.py
+tags

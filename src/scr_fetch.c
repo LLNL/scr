@@ -167,7 +167,7 @@ static int scr_fetch_data(
   /* get the list of files to read */
   kvtree* filelist = kvtree_new();
   if (kvtree_read_scatter(rank2file, filelist, scr_comm_world) != KVTREE_SUCCESS) {
-    scr_err("Failed to rank2file map: `%s' @ %s:%d",
+    scr_err("Failed to read rank2file map: `%s' @ %s:%d",
       rank2file, __FILE__, __LINE__
     );
     kvtree_delete(&filelist);
@@ -524,8 +524,8 @@ int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, 
     if (time_diff > 0.0) {
       bw = total_bytes / (1024.0 * 1024.0 * time_diff);
     }
-    scr_dbg(1, "scr_fetch_dset: %f secs, %e bytes, %f MB/s, %f MB/s per proc",
-      time_diff, total_bytes, bw, bw/scr_ranks_world
+    scr_dbg(1, "scr_fetch_dset: %f secs, %d files, %e bytes, %f MB/s, %f MB/s per proc",
+      time_diff, files, total_bytes, bw, bw/scr_ranks_world
     );
 
     /* log data on the fetch to the database */

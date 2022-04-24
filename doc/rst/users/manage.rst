@@ -12,11 +12,11 @@ The library updates the index file as an application runs and during scavenge op
 While restarting a job, the SCR library reads the index file during :code:`SCR_Init`
 to determine which checkpoints are available.
 The library attempts to restart with the most recent checkpoint and works backwards
-until it successfully fetches a valid checkpoint.
-SCR does not fetch any checkpoint marked as "incomplete" or "failed".
+until it successfully loads a valid checkpoint.
+SCR does not restart from any checkpoint marked as "incomplete" or "failed".
 A checkpoint is marked as incomplete if it was determined to be invalid during the flush or scavenge.
 Additionally, the library marks a checkpoint as failed if it detected a problem
-during a previous fetch attempt (e.g., detected data corruption).
+during a previous restart attempt (e.g., detected data corruption).
 In this way, the library avoids invalid or problematic checkpoints.
 
 One may list or modify the contents of the index file via the :code:`scr_index` command.
@@ -43,7 +43,7 @@ providing the dataset name as an argument::
   scr_index --current ckpt.12
 
 If no dataset is marked as current,
-SCR starts with most recent checkpoint that is valid.
+SCR starts with most recent valid checkpoint.
 
 One may drop entries from the index file using the :code:`--drop` option.
 This operation does not delete the corresponding dataset files.

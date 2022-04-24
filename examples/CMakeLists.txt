@@ -24,7 +24,6 @@ ENDIF(SCR_LINK_STATIC)
 
 ## Configure & install makefile
 CONFIGURE_FILE(makefile.examples.in makefile.examples @ONLY)
-SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/makefile.examples.in PROPERTIES GENERATED FALSE)
 SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/makefile.examples PROPERTIES GENERATED TRUE)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/makefile.examples DESTINATION ${CMAKE_INSTALL_DATADIR}/scr/examples RENAME makefile)
 
@@ -51,6 +50,10 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh DESTINATION ${CMAKE_CURRENT_BI
 ADD_EXECUTABLE(test_api test_common.c test_api.c)
 TARGET_LINK_LIBRARIES(test_api ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api "" "ckpt.*")
+
+ADD_EXECUTABLE(test_api_shared_file test_common.c test_api.c)
+TARGET_LINK_LIBRARIES(test_api_shared_file ${SCR_LINK_TO})
+SCR_ADD_TEST(test_api_shared_file "--shared" "ckpt.*")
 
 ADD_EXECUTABLE(test_config test_config.c)
 TARGET_LINK_LIBRARIES(test_config ${SCR_LINK_TO})

@@ -72,27 +72,27 @@ double getbw(char* name, char* buf, size_t size, int times)
       }
 
       /* open the file and write the checkpoint */
-      int fd_me = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-      if (fd_me > 0) {
+      int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+      if (fd >= 0) {
         count++;
         valid = 1;
 
         /* write the checkpoint data */
-        rc = write_checkpoint(fd_me, timestep, buf, size);
+        rc = write_checkpoint(fd, timestep, buf, size);
         if (rc < 0) {
           valid = 0;
           printf("%d: Error writing to %s\n", rank, file);
         }
 
         /* force the data to storage */
-        rc = fsync(fd_me);
+        rc = fsync(fd);
         if (rc < 0) {
           valid = 0;
           printf("%d: Error fsync %s\n", rank, file);
         }
 
         /* make sure the close is without error */
-        rc = close(fd_me);
+        rc = close(fd);
         if (rc < 0) {
           valid = 0;
           printf("%d: Error closing %s\n", rank, file);
@@ -207,7 +207,7 @@ int main (int argc, char* argv[])
   sprintf(name, "rank_%d.ckpt", rank);
   int found_checkpoint = 0;
   if (SCR_Route_file(name, file) == SCR_SUCCESS) {
-    if (read_checkpoint(file, &timestep, buf, filesize)) {
+    if (read_checkpoint_file(file, &timestep, buf, filesize)) {
       /* read the file ok, now check that contents are good */
       found_checkpoint = 1;
       printf("%d: Successfully read checkpoint from %s\n", rank, file);

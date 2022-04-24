@@ -17,7 +17,7 @@ set -x
 
 # optional builds
 clone_ssh=0   # whether to clone with https (0) or ssh (1)
-build_debug=1 # whether to build optimized (0) or debug "-g -O0" (1)
+build_debug=0 # whether to build optimized (0) or debug "-g -O0" (1)
 build_dev=1   # whether to checkout fixed version tags (0) or use latest (1)
 build_clean=0 # whether to keep deps directory (0) or delete and recreate (1)
 
@@ -55,15 +55,15 @@ mkdir -p install
 
 cd deps
 
-lwgrp=lwgrp-1.0.4
-dtcmp=dtcmp-1.1.3
+lwgrp=lwgrp-1.0.5
+dtcmp=dtcmp-1.1.4
 pdsh=pdsh-2.34
 
 if [ ! -f ${lwgrp}.tar.gz ] ; then
-  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.4/${lwgrp}.tar.gz
+  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.5/${lwgrp}.tar.gz
 fi
 if [ ! -f ${dtcmp}.tar.gz ] ; then
-  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.3/${dtcmp}.tar.gz
+  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.4/${dtcmp}.tar.gz
 fi
 if [ ! -f ${pdsh}.tar.gz ] ; then
   wget https://github.com/chaos/pdsh/releases/download/${pdsh}/${pdsh}.tar.gz
@@ -142,7 +142,7 @@ popd
 
 pushd KVTree
   if [ $build_dev -eq 0 ] ; then
-    git checkout v1.2.0
+    git checkout v1.3.0
   fi
   rm -rf build
   mkdir -p build
@@ -163,7 +163,7 @@ popd
 
 pushd AXL
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.5.0
+    git checkout v0.6.0
   fi
   rm -rf build
   mkdir -p build
@@ -171,6 +171,7 @@ pushd AXL
     cmake \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+      -DMPI=ON \
       .. && \
     make -j `nproc` && \
     make install
@@ -183,7 +184,7 @@ popd
 
 pushd spath
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.1.0
+    git checkout v0.2.0
   fi
   rm -rf build
   mkdir -p build
@@ -204,7 +205,7 @@ popd
 
 pushd rankstr
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.1.0
+    git checkout v0.2.0
   fi
   rm -rf build
   mkdir -p build
@@ -224,7 +225,7 @@ popd
 
 pushd redset
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.1.0
+    git checkout v0.2.0
   fi
   rm -rf build
   mkdir -p build
@@ -245,7 +246,7 @@ popd
 
 pushd shuffile
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.1.0
+    git checkout v0.2.0
   fi
   rm -rf build
   mkdir -p build
@@ -266,7 +267,7 @@ popd
 
 pushd er
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.1.0
+    git checkout v0.2.0
   fi
   rm -rf build
   mkdir -p build

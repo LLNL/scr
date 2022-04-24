@@ -11,6 +11,8 @@
 #include <stdarg.h>
 #include "mpi.h"
 
+typedef struct checkpoint_buf_t { char buf[7]; } checkpoint_buf_t;
+
 /* reliable read from file descriptor (retries, if necessary, until hard error) */
 ssize_t reliable_read(int fd, void* buf, size_t size)
 {
@@ -21,7 +23,7 @@ ssize_t reliable_read(int fd, void* buf, size_t size)
   while (n < size)
   {
     ssize_t rc = read(fd, (char*) buf + n, size - n);
-    if (rc  > 0) { 
+    if (rc > 0) {
       n += rc;
     } else if (rc == 0) {
       /* EOF */
@@ -130,15 +132,33 @@ int check_buffer(char* buf, size_t size, int rank, int ckpt)
   return 1;
 }
 
+/* get size of specified file */
+unsigned long get_filesize(const char* file)
+{
+  /* stat the file to get its size and other metadata */
+  unsigned long filesize = 0;
+  struct stat stat_buf;
+  int stat_rc = stat(file, &stat_buf);
+  if (stat_rc == 0) {
+    filesize = (unsigned long) stat_buf.st_size;
+  }
+  return filesize;
+}
+
+ssize_t checkpoint_timestep_size()
+{
+  return sizeof(checkpoint_buf_t);
+}
+
 /* write the checkpoint data to fd, and return whether the write was successful */
 int write_checkpoint(int fd, int ckpt, char* buf, size_t size)
 {
   ssize_t rc;
 
   /* write the checkpoint id (application timestep) */
-  char ckpt_buf[7];
-  sprintf(ckpt_buf, "%06d", ckpt);
-  rc = reliable_write(fd, ckpt_buf, sizeof(ckpt_buf));
+  checkpoint_buf_t ckpt_buf;
+  sprintf(ckpt_buf.buf, "%06d", ckpt);
+  rc = reliable_write(fd, ckpt_buf.buf, sizeof(ckpt_buf));
   if (rc < 0) return 0;
 
   /* write the checkpoint data */
@@ -149,33 +169,57 @@ int write_checkpoint(int fd, int ckpt, char* buf, size_t size)
 }
 
 /* read the checkpoint data from file into buf, and return whether the read was successful */
-int read_checkpoint(char* file, int* ckpt, char* buf, size_t size)
+int read_checkpoint(int fd, int* ckpt, char* buf, size_t size)
+{
+  /* read the checkpoint id */
+  checkpoint_buf_t ckpt_buf;
+  ssize_t n = reliable_read(fd, ckpt_buf.buf, sizeof(ckpt_buf));
+
+  /* read the checkpoint data, and check the file size */
+  n = reliable_read(fd, buf, size);
+  if (n != size) {
+    printf("Filesize not correct. Expected %lu, got %lu\n", size, n);
+    return 0;
+  }
+
+  /* if the file looks good, set the timestep and return */
+  *ckpt = atoi(ckpt_buf.buf);
+
+  return 1;
+}
+
+/* read the checkpoint data from file into buf, and return whether the read was successful */
+int read_checkpoint_file(char* file, int* ckpt, char* buf, size_t size)
 {
   ssize_t n;
-  char ckpt_buf[7];
 
   int fd = open(file, O_RDONLY);
-  if (fd > 0) {
-    /* read the checkpoint id */
-    n = reliable_read(fd, ckpt_buf, sizeof(ckpt_buf));
+  if (fd >= 0) {
+    int timestep;
+    int rc = read_checkpoint(fd, &timestep, buf, size);
+    if (rc != 1) {
+      printf("Failed to read checkpoint data\n");
+      close(fd);
+      return 0;
+    }
 
-    /* read the checkpoint data, and check the file size */
-    n = reliable_read(fd, buf, size+1);
-    if (n != size) {
-      printf("Filesize not correct. Expected %lu, got %lu\n", size, n);
+    /* read one byte past the expected size to verify we've hit the end of the file */
+    char endbuf[1];
+    n = reliable_read(fd, endbuf, 1);
+    if (n != 0) {
+      printf("Filesize not correct. Expected %lu, got %lu\n", size, size+1);
       close(fd);
       return 0;
     }
 
     /* if the file looks good, set the timestep and return */
-    (*ckpt) = atoi(ckpt_buf);
+    *ckpt = timestep;
 
     close(fd);
 
     return 1;
-  }
-  else {
-  	printf("Could not open file %s\n", file);
+  } else {
+    printf("Could not open file %s\n", file);
   }
 
   return 0;

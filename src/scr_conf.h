@@ -143,13 +143,12 @@
 
 /* buffer size to use for MPI send / recv operations */
 #ifndef SCR_MPI_BUF_SIZE
-/* #define SCR_MPI_BUF_SIZE (1*1024*1024) */
-#define SCR_MPI_BUF_SIZE (128*1024)  /* very strange that this lower number beats the upper one, but whatever ... */
+#define SCR_MPI_BUF_SIZE (1*1024*1024)
 #endif
 
 /* buffer size to use for file I/O operations */
 #ifndef SCR_FILE_BUF_SIZE
-#define SCR_FILE_BUF_SIZE (1024*1024)
+#define SCR_FILE_BUF_SIZE (32*1024*1024)
 #endif
 
 /* whether file metadata should also be copied */
@@ -235,6 +234,11 @@
 /* maximum percent cpu time allowed during asynchronous flushes (does not yet work well) */
 #ifndef SCR_FLUSH_ASYNC_PERCENT
 #define SCR_FLUSH_ASYNC_PERCENT (0.0) /* TODO: the fsync complicates this throttling, disable it for now */
+#endif
+
+/* sleep time when polling for an async flush to complete */
+#ifndef SCR_FLUSH_ASYNC_USLEEP
+#define SCR_FLUSH_ASYNC_USLEEP (1000)
 #endif
 
 /* max number of checkpoints to keep in prefix (0 disables) */

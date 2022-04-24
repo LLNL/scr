@@ -31,7 +31,7 @@ enabling an application to specify its limits on when and where it needs to acce
 The API is designed to be simple, scalable, and portable.
 It consists of a small number of function calls to wrap existing application I/O logic.
 Unless otherwise stated, SCR functions are collective,
-meaning all processes must call the function synchronously.
+meaning all processes in :code:`MPI_COMM_WORLD` must call the function synchronously.
 The underlying implementation may or may not be synchronous,
 but to be portable, an application must treat a collective call as though it is synchronous.
 This constraint enables the SCR implementation to utilize the full resources of the job
@@ -69,9 +69,9 @@ This function must be called after :code:`MPI_Init`.
 A process should only call :code:`SCR_Init` once during its execution.
 It is not valid to call any SCR function before calling :code:`SCR_Init`, except for :code:`SCR_Config`.
 
-On new runs, if :code:`SCR_FETCH` is enabled, :code:`SCR_Init` reads the index file to identify
-a checkpoint to load.
-On runs restarted within an allocation, :code:`SCR_Init` inspects and attempts to rebuild any cached datasets.
+The SCR library applies its configuration settings during :code:`SCR_Init`,
+so any SCR parameters must be specified before calling :code:`SCR_Init`.
+On runs restarted within an allocation, :code:`SCR_Init` rebuilds any cached datasets.
 
 SCR_Finalize
 ^^^^^^^^^^^^
@@ -210,6 +210,9 @@ The process must use the character string returned in :code:`file` to access the
 If :code:`SCR_Route_file` is called outside of output and restart phases, i.e., outside of a Start/Complete pair,
 the string in :code:`name` is copied verbatim into the output buffer :code:`file`.
 
+The application does not need to create any directories in the path returned in :code:`file`.
+The SCR library creates any needed directories before returning from :code:`SCR_Route_file`.
+
 In the current implementation,
 SCR only changes the directory portion of :code:`name` when storing files in cache.
 It extracts the base name of the file by removing any directory components in :code:`name`.
@@ -221,7 +224,7 @@ Checkpoint/Output API
 
 Here we describe the SCR API functions that are used for writing 
 checkpoint and output datasets.
-In addition to checkpoints, it may be useful for an application to write its pure output (non-checkpoint) datasets
+In addition to checkpoints, it may be useful for an application to write its output datasets
 through SCR to utilize asynchronous transfers to the parallel file system.
 This lets the application return to computation while the SCR library migrates
 the dataset to the parallel file system in the background.
@@ -236,13 +239,13 @@ without having first copied the older checkpoint to the prefix directory.
 SCR may thus discard some checkpoints from cache without persisting them to the parallel file system.
 In cases where one can write checkpoints to cache much faster than one can write checkpoints to the parallel file system,
 discarding defensive checkpoints in this way allows the application to checkpoint more frequently,
-which in turn can significantly improve run time efficiency.
+which can significantly improve run time efficiency.
 
 If a user specifies that a dataset is for output only,
 the dataset will first be cached and protected with its corresponding redundancy scheme.
 Then the dataset will be copied to the prefix directory.
 When the transfer to the prefix directory is complete,
-the cached copy of the output dataset is deleted.
+the cached copy of the output dataset can be deleted.
 
 If the user specifies that the dataset is both a checkpoint and output,
 then SCR uses a hybrid approach.  
@@ -314,8 +317,7 @@ In Fortran, these values can be added together using the :code:`+` sum operator.
 Note that with Fortran, the values should be used at most once in the addition.
 All processes must provide identical values in :code:`flags`.
 
-This function should be called as soon as possible when initiating a dataset output.
-It is used internally within SCR for timing the cost of output operations.
+This function should be called as soon as possible when initiating a new output dataset.
 The SCR implementation uses this call as the starting point to time the cost of the
 checkpoint in order to optimize the checkpoint frequency via :code:`SCR_Need_checkpoint`.
 
@@ -369,8 +371,8 @@ and it may no longer access its dataset files upon calling :code:`SCR_Complete_o
 :code:`SCR_Complete_output` must be called by all processes,
 including processes that did not write any files as part of the output.
 
-The parameter :code:`valid` should be set to :code:`1` if either the calling process wrote
-all of its files successfully or it wrote no files during the output phase.
+The parameter :code:`valid` should be set to :code:`1` either if the calling process wrote
+all of its files successfully or if it wrote no files during the output phase.
 Otherwise, the process should call :code:`SCR_Complete_output` with :code:`valid` set to :code:`0`.
 SCR determines whether all processes wrote their output files successfully.
 :code:`SCR_Complete_output` only returns :code:`SCR_SUCCESS` if all processes called with :code:`valid` set to :code:`1`,
@@ -589,15 +591,20 @@ SCR_Current
     CHARACTER*(*) NAME
     INTEGER VALID, IERROR
 
-It is recommended for an application to restart using the SCR Restart API.
-However, it is not required to do so.
-If an application restarts without using the SCR Restart API,
-it can call :code:`SCR_Current` to notify SCR about which checkpoint it loaded.
+There are two reasons an application might call :code:`SCR_Current`:
+to request a particular checkpoint before calling the Restart API,
+and to inform SCR about which checkpoint the application loaded if it does not call the Restart API.
+
+An application can call :code:`SCR_Current` to set the current
+marker within the SCR index file before it calls :code:`SCR_Have_restart`.
+Any cached datasets that were created after the named checkpoint are deleted from cache.
+SCR will then load the specified checkpoint to restart the application.
+
+For applications that opt to not call the SCR Restart API,
+it is recommended to call :code:`SCR_Current` to notify SCR about which checkpoint it loaded.
 The application should pass the name of the checkpoint it restarted from in the :code:`name` argument.
 This enables SCR to initialize its internal state to properly order
 any new datasets that the application creates after it restarts.
-
-An application should not call :code:`SCR_Current` if it restarts using the SCR Restart API.
 
 SCR_Delete
 ^^^^^^^^^^
@@ -648,7 +655,7 @@ SCR imposes the following semantics which enable an application to limit where a
   a process of a given MPI rank may only access files previously written by itself
   or by processes having the same MPI rank in prior runs.
   We say that a rank "owns" the files it writes.
-  Shared access to files is permitted, though that may reduce performance and functionality.
+  Shared access to files is permitted, though that may reduce performance.
 * During a checkpoint/output phase,
   a process may only access files of the dataset
   between calls to :code:`SCR_Start_output` and :code:`SCR_Complete_output`.

@@ -128,9 +128,10 @@ int   scr_flush_on_restart = SCR_FLUSH_ON_RESTART; /* specify whether to flush c
 int   scr_global_restart   = SCR_GLOBAL_RESTART;   /* set if code must be restarted from parallel file system */
 int   scr_drop_after_current = 0;                  /* whether to drop datasets from index that come after dataset named in SCR_Current */
 
-int    scr_flush_async             = SCR_FLUSH_ASYNC;         /* whether to use asynchronous flush */
-double scr_flush_async_bw          = SCR_FLUSH_ASYNC_BW;      /* bandwidth limit imposed during async flush */
-double scr_flush_async_percent     = SCR_FLUSH_ASYNC_PERCENT; /* runtime limit imposed during async flush */
+int    scr_flush_async         = SCR_FLUSH_ASYNC;         /* whether to use asynchronous flush */
+double scr_flush_async_bw      = SCR_FLUSH_ASYNC_BW;      /* bandwidth limit imposed during async flush */
+double scr_flush_async_percent = SCR_FLUSH_ASYNC_PERCENT; /* runtime limit imposed during async flush */
+int    scr_flush_async_usleep  = SCR_FLUSH_ASYNC_USLEEP;  /* number of microsecs to sleep between polling async transfer */
 
 int scr_flush_poststage = SCR_FLUSH_POSTSTAGE; /* Use scr_poststage to finalize transfers */
 
