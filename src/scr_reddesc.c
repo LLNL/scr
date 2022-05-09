@@ -553,6 +553,11 @@ int scr_reddesc_apply(
     /* get the filename */
     char* file = kvtree_elem_key(file_elem);
 
+    /* Skip over shared files that we are not leaders of */
+    if ( ! scr_leader_rank(map, file) ) {
+        continue;
+    }
+
     /* check the file */
     if (! scr_bool_have_file(map, file)) {
       scr_dbg(2, "File determined to be invalid: %s", file);
@@ -637,6 +642,11 @@ int scr_reddesc_apply(
   {
     /* get the filename */
     char* file = kvtree_elem_key(file_elem);
+
+    /* Skip over shared files that we are not leaders of */
+    if ( ! scr_leader_rank(map, file) ) {
+        continue;
+    }
 
     /* add file to the set */
     if (ER_Add(set_id, file) != ER_SUCCESS) {

@@ -282,6 +282,10 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
     /* get the filename */
     char* file = kvtree_elem_key(file_elem); 
   
+    if (! scr_leader_rank(map, file) ) {
+        continue;
+    }
+
     /* verify that file mtime and ctime have not changed since scr_complete_output,
      * which could idenitfy a bug in the user's code */
     struct stat statbuf;
@@ -652,6 +656,10 @@ int scr_cache_check_files(const scr_cache_index* cindex, int id)
   {
     /* get the filename */
     char* file = kvtree_elem_key(file_elem);
+
+    if ( ! scr_leader_rank(map, file) ) {
+        continue;
+    }
 
     /* check that we can read the file */
     if (scr_file_is_readable(file) != SCR_SUCCESS) {

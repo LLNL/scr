@@ -177,6 +177,8 @@ Define common hash key strings
 #define SCR_META_KEY_CKPT     ("CKPT")
 #define SCR_META_KEY_RANKS    ("RANKS")
 #define SCR_META_KEY_RANK     ("RANK")
+#define SCR_META_KEY_GROUP_RANKS    ("GROUP_RANKS")
+#define SCR_META_KEY_GROUP_RANK     ("GROUP_RANK")
 #define SCR_META_KEY_ORIG     ("ORIG")
 #define SCR_META_KEY_PATH     ("PATH")
 #define SCR_META_KEY_NAME     ("NAME")

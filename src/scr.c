@@ -1593,9 +1593,11 @@ static int scr_start_output(const char* name, int flags)
   return SCR_SUCCESS;
 }
 
-/* detect files that have been registered by more than one process,
- * drop filemap entries from all but one process */
-static int scr_assign_ownership(scr_filemap* map, const scr_reddesc* rd)
+/* rank ralative ownership of the filemap since multiple processes may
+ * have been writing to it.  The rankings are used later for portions of
+ * the SCR implementation that require access to be made in the context of a
+ * single process. */
+static int scr_rank_ownership(scr_filemap* map, const scr_reddesc* rd)
 {
   int rc = SCR_SUCCESS;
 
@@ -1667,7 +1669,14 @@ static int scr_assign_ownership(scr_filemap* map, const scr_reddesc* rd)
   /* keep rank 0 for each file as its owner, remove any entry from the filemap
    * for which we are not rank 0 */
   int multiple_owner = 0;
+
   for (i = 0; i < count; i++) {
+    scr_meta* meta = scr_meta_new();
+
+    scr_filemap_get_meta(map, mapfiles[i], meta);
+    scr_meta_set_group_ranks(meta, group_ranks[i]);
+    scr_meta_set_group_rank(meta, group_rank[i]);
+
     /* check whether this file exists on multiple ranks */
     if (group_ranks[i] > 1) {
       /* found the same file on more than one rank */
@@ -1681,11 +1690,8 @@ static int scr_assign_ownership(scr_filemap* map, const scr_reddesc* rd)
       }
     }
 
-    /* only keep entry for this file in filemap if we're the
-     * first rank in the set of ranks that have this file */
-    if (group_rank[i] != 0) {
-      scr_filemap_remove_file(map, mapfiles[i]);
-    }
+    scr_filemap_set_meta(map, mapfiles[i], meta);
+    scr_meta_delete(&meta);
   }
 
   /* fatal error if any file is on more than one rank
@@ -1737,13 +1743,16 @@ static int scr_complete_output(int valid)
     time_start = MPI_Wtime();
   }
 
-  /* When using bypass mode or shared cache, we allow different procs to write to the same file,
-   * in which case, both should have registered the file in Route_file and thus
-   * have an entry in the file map.  The proper thing to do here is to list the
-   * set of ranks that share a file, however, that requires fixing up lots of
-   * other parts of the code.  For now, ensure that at most one rank lists the
-   * file in their file map. */
-  rc = scr_assign_ownership(scr_map, scr_rd);
+  /* When using bypass mode or shared cache, we allow different procs to write
+   * to the same file, in which case, both should have registered the file in
+   * Route_file and thus have an entry in the file map.
+   *
+   * Calling scr_rank_ownership allow us to distinguish between the files that
+   * were created by a single process versus the ones that are shared between
+   * many.  Further, this function also designate a single process (rank) that
+   * may be used in the cases where there needs to be only once process
+   * doing work on the file. */
+  rc = scr_rank_ownership(scr_map, scr_rd);
 
   /* count number of files, number of bytes, and record filesize for each file
    * as written by this process */
@@ -1756,6 +1765,15 @@ static int scr_complete_output(int valid)
   {
     /* get the filename */
     char* file = kvtree_elem_key(elem);
+
+    /*
+     * For now, we continue to process files as if they are only written by
+     * a single process.  We will open this up soon once we have updated
+     * AXL to take advantage of it. */
+    if ( ! scr_leader_rank(scr_map, file) ) {
+        continue;
+    }
+
     my_counts[0]++;
 
     /* start with valid flag from caller for this file */
@@ -1787,6 +1805,7 @@ static int scr_complete_output(int valid)
     /* fill in filesize and complete flag in the meta data for the file */
     scr_meta* meta = scr_meta_new();
     scr_filemap_get_meta(scr_map, file, meta);
+    
     scr_meta_set_filesize(meta, filesize);
     scr_meta_set_complete(meta, file_valid);
     if (stat_rc == 0) {
@@ -1879,6 +1898,7 @@ static int scr_complete_output(int valid)
   }
 
   /* apply redundancy scheme if we're still valid */
+
   if (rc == SCR_SUCCESS) {
     rc = scr_reddesc_apply(scr_map, scr_rd, scr_dataset_id);
   }

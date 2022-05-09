@@ -270,6 +270,10 @@ int scr_flush_prepare(const scr_cache_index* cindex, int id, kvtree* file_list)
     /* get the filename */
     char* file = kvtree_elem_key(elem);
 
+    if ( ! scr_leader_rank(map, file) ) {
+        continue;
+    }
+
     /* read meta data for file and attach it to file list */
     scr_meta* meta = scr_meta_new();
     if (scr_filemap_get_meta(map, file, meta) == SCR_SUCCESS) {

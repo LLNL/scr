@@ -41,6 +41,7 @@
 
 #include "spath.h"
 #include "kvtree.h"
+#include "scr_filemap.h"
 
 /* given a string, convert it to a double and write that value to val */
 int scr_atod(const char* str, double* val);
@@ -81,5 +82,8 @@ int kvtree_write_path(const spath* path, const kvtree* tree);
 /* given a string defining SCR_PREFIX value as given by user
  * return spath of fully qualified path, user should free */
 spath* scr_get_prefix(const char* prefix);
+
+/* TODO: This needs to be moved somewhere else and probabbly renamed as well */
+int scr_leader_rank(scr_filemap* map, const char *file);
 
 #endif

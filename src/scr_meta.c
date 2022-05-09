@@ -157,6 +157,20 @@ int scr_meta_set_crc32(scr_meta* meta, uLong crc)
   return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
 }
 
+/* set the ranks in the group for file */
+int scr_meta_set_group_ranks(scr_meta* meta, int group_ranks)
+{
+  int rc = kvtree_util_set_int(meta, SCR_META_KEY_GROUP_RANKS, group_ranks);
+  return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
+}
+
+/* set the rank relative to the group for file */
+int scr_meta_set_group_rank(scr_meta* meta, int group_rank)
+{
+  int rc = kvtree_util_set_int(meta, SCR_META_KEY_GROUP_RANK, group_rank);
+  return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
+}
+
 static void scr_stat_get_atimes(const struct stat* sb, uint64_t* secs, uint64_t* nsecs)
 {
     *secs = (uint64_t) sb->st_atime;
@@ -303,6 +317,20 @@ int scr_meta_get_complete(const scr_meta* meta, int* complete)
 int scr_meta_get_crc32(const scr_meta* meta, uLong* crc)
 {
   int rc = kvtree_util_get_crc32(meta, SCR_META_KEY_CRC, crc);
+  return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
+}
+
+/* get the ranks in the group for file */
+int scr_meta_get_group_ranks(const scr_meta* meta, int* group_ranks)
+{
+  int rc = kvtree_util_get_int(meta, SCR_META_KEY_GROUP_RANKS, group_ranks);
+  return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
+}
+
+/* get the rank relative to the group for file */
+int scr_meta_get_group_rank(const scr_meta* meta, int* group_rank)
+{
+  int rc = kvtree_util_get_int(meta, SCR_META_KEY_GROUP_RANK, group_rank);
   return (rc == KVTREE_SUCCESS) ? SCR_SUCCESS : SCR_FAILURE;
 }
 
