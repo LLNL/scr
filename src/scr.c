@@ -1674,7 +1674,6 @@ static int scr_rank_ownership(scr_filemap* map, const scr_reddesc* rd)
     scr_meta* meta = scr_meta_new();
 
     scr_filemap_get_meta(map, mapfiles[i], meta);
-    scr_meta_set_group_ranks(meta, group_ranks[i]);
     scr_meta_set_group_rank(meta, group_rank[i]);
 
     /* check whether this file exists on multiple ranks */
@@ -1770,7 +1769,7 @@ static int scr_complete_output(int valid)
      * For now, we continue to process files as if they are only written by
      * a single process.  We will open this up soon once we have updated
      * AXL to take advantage of it. */
-    if ( ! scr_leader_rank(scr_map, file) ) {
+    if ( ! scr_filemap_leader_rank(scr_map, file) ) {
         continue;
     }
 

@@ -97,9 +97,6 @@ int scr_meta_set_stat(scr_meta* meta, struct stat* statbuf);
 /* set the crc32 field on meta */
 int scr_meta_set_crc32(scr_meta* meta, uLong crc);
 
-/* set the ranks in the group for file */
-int scr_meta_set_group_ranks(scr_meta* meta, int group_ranks);
-
 /* set the rank relative to the group for file */
 int scr_meta_set_group_rank(scr_meta* meta, int group_rank);
 
@@ -135,9 +132,6 @@ int scr_meta_get_complete(const scr_meta* meta, int* complete);
 
 /* get the crc32 field in meta data, returns SCR_SUCCESS if a field is set */
 int scr_meta_get_crc32(const scr_meta* meta, uLong* crc);
-
-/* get the ranks in the group for file */
-int scr_meta_get_group_ranks(const scr_meta* meta, int* group_ranks);
 
 /* get the rank relative to the group for file */
 int scr_meta_get_group_rank(const scr_meta* meta, int* group_rank);

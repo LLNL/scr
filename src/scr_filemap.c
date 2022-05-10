@@ -311,3 +311,18 @@ int scr_filemap_write(const spath* file, const scr_filemap* map)
 
   return SCR_SUCCESS;
 }
+
+/* True if calling rank is designated leader for file */
+int scr_filemap_leader_rank(scr_filemap* map, const char *file)
+{
+    scr_meta* meta = scr_meta_new();
+    int group_rank;
+
+    scr_filemap_get_meta(map, file, meta);
+    scr_meta_get_group_rank(meta, &group_rank);
+
+    scr_meta_delete(&meta);
+
+    return group_rank == 0;
+}
+

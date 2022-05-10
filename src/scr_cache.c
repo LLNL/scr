@@ -282,7 +282,7 @@ int scr_cache_delete(scr_cache_index* cindex, int id)
     /* get the filename */
     char* file = kvtree_elem_key(file_elem); 
   
-    if (! scr_leader_rank(map, file) ) {
+    if (! scr_filemap_leader_rank(map, file) ) {
         continue;
     }
 
@@ -657,7 +657,7 @@ int scr_cache_check_files(const scr_cache_index* cindex, int id)
     /* get the filename */
     char* file = kvtree_elem_key(file_elem);
 
-    if ( ! scr_leader_rank(map, file) ) {
+    if ( ! scr_filemap_leader_rank(map, file) ) {
         continue;
     }
 

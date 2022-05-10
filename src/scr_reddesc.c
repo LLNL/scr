@@ -554,7 +554,7 @@ int scr_reddesc_apply(
     char* file = kvtree_elem_key(file_elem);
 
     /* Skip over shared files that we are not leaders of */
-    if ( ! scr_leader_rank(map, file) ) {
+    if ( ! scr_filemap_leader_rank(map, file) ) {
         continue;
     }
 
@@ -644,7 +644,7 @@ int scr_reddesc_apply(
     char* file = kvtree_elem_key(file_elem);
 
     /* Skip over shared files that we are not leaders of */
-    if ( ! scr_leader_rank(map, file) ) {
+    if ( ! scr_filemap_leader_rank(map, file) ) {
         continue;
     }
 

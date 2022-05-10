@@ -83,7 +83,4 @@ int kvtree_write_path(const spath* path, const kvtree* tree);
  * return spath of fully qualified path, user should free */
 spath* scr_get_prefix(const char* prefix);
 
-/* TODO: This needs to be moved somewhere else and probabbly renamed as well */
-int scr_leader_rank(scr_filemap* map, const char *file);
-
 #endif

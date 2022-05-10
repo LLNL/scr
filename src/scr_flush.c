@@ -270,7 +270,7 @@ int scr_flush_prepare(const scr_cache_index* cindex, int id, kvtree* file_list)
     /* get the filename */
     char* file = kvtree_elem_key(elem);
 
-    if ( ! scr_leader_rank(map, file) ) {
+    if ( ! scr_filemap_leader_rank(map, file) ) {
         continue;
     }
 

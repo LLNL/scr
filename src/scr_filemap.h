@@ -131,4 +131,7 @@ scr_filemap* scr_filemap_new(void);
 /* free memory resources assocaited with filemap */
 int scr_filemap_delete(scr_filemap** ptr_map);
 
+/* True if calling rank is designated leader for file */
+int scr_filemap_leader_rank(scr_filemap* map, const char *file);
+
 #endif

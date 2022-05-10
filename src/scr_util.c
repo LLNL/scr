@@ -390,23 +390,3 @@ spath* scr_get_prefix(const char* str)
 
   return prefix_path;
 }
-
-/* TODO: This needs to be moved somewhere else and probabbly renamed as well
- */
-int scr_leader_rank(scr_filemap* map, const char *file)
-{
-    scr_meta* meta = scr_meta_new();
-    int group_ranks;
-    int group_rank;
-
-    scr_filemap_get_meta(map, file, meta);
-    scr_meta_get_group_ranks(meta, &group_ranks);
-    scr_meta_get_group_rank(meta, &group_rank);
-
-    scr_meta_delete(&meta);
-
-    int rc = group_ranks == 1 || group_rank == 0;
-
-    return rc;
-}
-
