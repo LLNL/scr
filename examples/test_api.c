@@ -606,7 +606,7 @@ void print_usage()
   printf("        --noscr          Disable SCR calls\n");
   printf("        --noscrrestart   Disable SCR restart calls\n");
   printf("        --shared-file    Use single shared file instead of file per rank");
-  printf("        --global-store=<DIR> Specify DIR as a global storage location for cache");
+  printf("        --global-cache=<DIR> Specify DIR as a global storage location for cache");
   printf("    -h, --help           Print usage\n");
   printf("\n");
   return;
@@ -634,7 +634,7 @@ int main (int argc, char* argv[])
     {"noscr",   no_argument,       NULL, 'x'},
     {"noscrrestart", no_argument,  NULL, 'X'},
     {"shared-file", no_argument,   NULL, 'y'},
-    {"global-store", required_argument,  NULL, 'Y'},
+    {"global-cache", required_argument,  NULL, 'Y'},
     {"help",    no_argument,       NULL, 'h'},
     {NULL,      no_argument,       NULL,   0}
   };
@@ -643,7 +643,7 @@ int main (int argc, char* argv[])
   int long_index = 0;
   int opt = getopt_long(argc, argv, opt_string, long_options, &long_index);
   char* current = NULL;
-  char* global_store = NULL;
+  char* global_cache = NULL;
   unsigned long long val;
   while (opt != -1) {
     switch(opt) {
@@ -691,7 +691,7 @@ int main (int argc, char* argv[])
         use_shared_file = 1;
         break;
       case 'Y':
-        global_store = strdup(optarg);
+        global_cache = strdup(optarg);
         break;
       case 'h':
       default:
@@ -730,8 +730,10 @@ int main (int argc, char* argv[])
     /* For a global cache, one must define a STORE descriptor
      * and declare the path to have WORLD access, e.g.,
      * SCR_Config("STORE=/lustre/$USER/scrcache GROUP=WORLD"); */
-    if (global_store != NULL) {
-      SCR_Configf("STORE=%s GROUP=WORLD", global_store);
+    if (global_cache != NULL) {
+      SCR_Configf("STORE=%s GROUP=WORLD", global_cache);
+      SCR_Configf("SCR_CACHE_BASE=%s", global_cache);
+      SCR_Config("SCR_CACHE_BYPASS=0");
     }
 
     if (SCR_Init() != SCR_SUCCESS){
@@ -830,9 +832,9 @@ int main (int argc, char* argv[])
     }
   }
 
-  if (global_store != NULL) {
-    free(global_store);
-    global_store = NULL;
+  if (global_cache != NULL) {
+    free(global_cache);
+    global_cache = NULL;
   }
 
   if (current != NULL) {
