@@ -605,8 +605,8 @@ void print_usage()
   printf("        --nofsync        Disable fsync after writing files\n");
   printf("        --noscr          Disable SCR calls\n");
   printf("        --noscrrestart   Disable SCR restart calls\n");
-  printf("        --shared-file    Use single shared file instead of file per rank");
-  printf("        --global-store=<DIR> Specify DIR as a global storage location for cache");
+  printf("        --shared-file    Use single shared file instead of file per rank\n");
+  printf("        --global-store=<DIR> Specify DIR as a global storage location for cache\n");
   printf("    -h, --help           Print usage\n");
   printf("\n");
   return;
