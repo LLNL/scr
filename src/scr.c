@@ -2372,29 +2372,6 @@ int SCR_Init()
             reddesc->directory, __FILE__, __LINE__
           );
         }
-
-        /* set up artificially node-local directories if the store view is global */
-        if (! strcmp(store->view, "GLOBAL")) {
-          /* make sure we can create directories */
-          if (! store->can_mkdir) {
-            scr_abort(-1, "Cannot use global view storage %s without mkdir enabled: @%s:%d",
-              store->name, __FILE__, __LINE__
-            );
-          }
-
-          /* create directory on rank 0 of each node */
-          int node_rank;
-          MPI_Comm_rank(scr_comm_node, &node_rank);
-          if(node_rank == 0) {
-            spath* path = spath_from_str(reddesc->directory);
-            spath_append_strf(path, "node.%d", scr_my_hostid);
-            spath_reduce(path);
-            char* path_str = spath_strdup(path);
-            spath_delete(&path);
-            scr_mkdir(path_str, S_IRWXU | S_IRWXG);
-            scr_free(&path_str);
-          }
-        }
       } else {
         scr_abort(-1, "Invalid store for redundancy descriptor @ %s:%d",
           __FILE__, __LINE__

@@ -22,13 +22,10 @@ Dataset cache functions
 =========================================
 */
 
-static char* scr_cache_dir_from_str(const char* dir, const char* storage_view, int id)
+static char* scr_cache_dir_from_str(const char* dir, int id)
 {
   /* build the dataset directory name */
   spath* path = spath_from_str(dir);
-  if(! strcmp(storage_view, "GLOBAL")) {
-    spath_append_strf(path, "node.%d", scr_my_hostid);
-  }
   spath_append_strf(path, "scr.dataset.%d", id);
   spath_reduce(path);
   char* str = spath_strdup(path);
@@ -36,13 +33,10 @@ static char* scr_cache_dir_from_str(const char* dir, const char* storage_view, i
   return str;
 }
 
-static char* scr_cache_dir_hidden_from_str(const char* dir, const char* storage_view, int id)
+static char* scr_cache_dir_hidden_from_str(const char* dir, int id)
 {
   /* build the dataset directory name */
   spath* path = spath_from_str(dir);
-  if(! strcmp(storage_view, "GLOBAL")) {
-    spath_append_strf(path, "node.%d", scr_my_hostid);
-  }
   spath_append_strf(path, "scr.dataset.%d", id);
   spath_append_str(path, ".scr");
   spath_reduce(path);
@@ -71,7 +65,7 @@ char* scr_cache_dir_get(const scr_reddesc* red, int id)
   }
 
   /* build the dataset directory name */
-  char* str = scr_cache_dir_from_str(red->directory, store->view, id);
+  char* str = scr_cache_dir_from_str(red->directory, id);
   return str;
 }
 
@@ -96,7 +90,7 @@ char* scr_cache_dir_hidden_get(const scr_reddesc* red, int id)
   }
 
   /* build the hidden directory name */
-  char* str = scr_cache_dir_hidden_from_str(red->directory, store->view, id);
+  char* str = scr_cache_dir_hidden_from_str(red->directory, id);
   return str;
 }
 

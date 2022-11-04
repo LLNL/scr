@@ -45,7 +45,6 @@ static int scr_storedesc_init(scr_storedesc* s)
   s->max_count = 0;
   s->can_mkdir = 0;
   s->xfer      = NULL;
-  s->view      = NULL;
   s->comm      = MPI_COMM_NULL;
   s->rank      = MPI_PROC_NULL;
   s->ranks     = 0;
@@ -60,7 +59,6 @@ static int scr_storedesc_free(scr_storedesc* s)
     /* free the strings we strdup'd */
     scr_free(&s->name);
     scr_free(&s->xfer);
-    scr_free(&s->view);
 
     /* free the communicator we created */
     if (s->comm != MPI_COMM_NULL) {
@@ -92,7 +90,6 @@ static int scr_storedesc_copy(scr_storedesc* out, const scr_storedesc* in)
   out->max_count = in->max_count;
   out->can_mkdir = in->can_mkdir;
   out->xfer      = strdup(in->xfer);
-  out->view      = strdup(in->view);
   MPI_Comm_dup(in->comm, &out->comm);
   out->rank      = in->rank;
   out->ranks     = in->ranks;
@@ -162,16 +159,6 @@ static int scr_storedesc_create_from_hash(
   kvtree_util_get_str(hash, SCR_CONFIG_KEY_FLUSH, &flush_type);
   s->xfer = strdup(flush_type);
 
-  /* set the view of the store. Default to PRIVATE */
-  /* strdup the view if one exists */
-  char* tmp_view = NULL;
-  kvtree_util_get_str(hash, SCR_CONFIG_KEY_VIEW, &tmp_view);
-  if (tmp_view != NULL) {
-    s->view = strdup(tmp_view);
-  } else {
-    s->view = strdup("PRIVATE");
-  }
-
   /* get communicator of ranks that can access this storage device,
    * assume node-local storage unless told otherwise  */
   char* group = SCR_GROUP_NODE;
@@ -212,10 +199,7 @@ int scr_storedesc_dir_create(const scr_storedesc* store, const char* dir)
 
   /* rank 0 creates the directory */
   int rc = SCR_SUCCESS;
-  if (!strcmp(store->view, "GLOBAL") && store->can_mkdir && scr_my_rank_host == 0) {
-    scr_dbg(2, "Creating directory: %s", dir);
-    rc = scr_mkdir(dir, S_IRWXU | S_IRWXG);
-  } else if (store->rank == 0 && store->can_mkdir) {
+  if (store->rank == 0 && store->can_mkdir) {
     scr_dbg(2, "Creating directory: %s", dir);
     rc = scr_mkdir(dir, S_IRWXU | S_IRWXG);
   }
@@ -244,9 +228,7 @@ int scr_storedesc_dir_delete(const scr_storedesc* store, const char* dir)
 
   /* rank 0 deletes the directory */
   int rc = SCR_SUCCESS;
-  if ((store->rank == 0 || (scr_my_rank_host == 0 && !strcmp(store->view, "GLOBAL")))
-      && store->can_mkdir)
-  {
+  if (store->rank == 0 && store->can_mkdir) {
     /* delete directory */
     if (scr_rmdir(dir) != SCR_SUCCESS) {
       /* whoops, something failed when we tried to delete our directory */
