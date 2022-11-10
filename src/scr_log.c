@@ -1055,7 +1055,7 @@ int scr_log_run(time_t start, int procs, int nodes)
         buf[sizeof(buf)-2] = '\n';
         buf[sizeof(buf)-1] = '\0';
     }
-    syslog(SCR_LOG_SYSLOG_LEVEL, buf);
+    syslog(SCR_LOG_SYSLOG_LEVEL, "%s", buf);
   }
 
   if (db_enable) {
@@ -1117,7 +1117,7 @@ int scr_log_halt(const char* reason)
         buf[sizeof(buf)-2] = '\n';
         buf[sizeof(buf)-1] = '\0';
     }
-    syslog(LOG_INFO, buf);
+    syslog(LOG_INFO, "%s", buf);
   }
 
   if (db_enable) {
@@ -1212,7 +1212,7 @@ int scr_log_event(
         buf[sizeof(buf)-2] = '\n';
         buf[sizeof(buf)-1] = '\0';
     }
-    syslog(LOG_INFO, buf);
+    syslog(LOG_INFO, "%s", buf);
   }
 
   if (db_enable) {
@@ -1335,7 +1335,7 @@ int scr_log_transfer(
         buf[sizeof(buf)-2] = '\n';
         buf[sizeof(buf)-1] = '\0';
     }
-    syslog(LOG_INFO, buf);
+    syslog(LOG_INFO, "%s", buf);
   }
 
   if (db_enable) {

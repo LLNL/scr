@@ -576,7 +576,6 @@ int main (int argc, char *argv[])
       /* get pointer to name of entry */
       const char* entryname = de->d_name;
 
-      int rank;
       char* value = NULL;
       size_t nmatch = 5;
       regmatch_t pmatch[5];
@@ -586,16 +585,16 @@ int main (int argc, char *argv[])
         /* get the MPI rank of the file */
         value = strndup(entryname + pmatch[1].rm_so, (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so));
         if (value != NULL) {
-          rank = atoi(value);
+          int rank = atoi(value);
           scr_free(&value);
-        }
 
-        /* found a filemap, copy its files */
-        int tmp_rc = copy_files_for_filemap(path_prefix, path_scr, cache_path, entryname, rank, &args, hostname);
-        if (tmp_rc != 0) {
-          rc = tmp_rc;
+          /* found a filemap, copy its files */
+          int tmp_rc = copy_files_for_filemap(path_prefix, path_scr, cache_path, entryname, rank, &args, hostname);
+          if (tmp_rc != 0) {
+            rc = tmp_rc;
+          }
+          continue;
         }
-        continue;
       }
 
       /* look for file names like: "reddescmap.er.0.redset" */
