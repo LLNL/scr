@@ -1,0 +1,36 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(er REQUIRED)
+find_dependency(redset REQUIRED)
+find_dependency(shuffile REQUIRED)
+find_dependency(axl REQUIRED)
+find_dependency(kvtree REQUIRED)
+find_dependency(rankstr REQUIRED)
+find_dependency(spath REQUIRED)
+find_dependency(MPI REQUIRED)
+
+# The packages below do not have cmake package config files.
+# Instead, we provide cmake find module files, like FindDTCMP.cmake.
+# This way users who build with cmake don't have to write their own.
+# The line below registers the current working directory with cmake
+# so that it can find the Find*.cmake module files.
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+
+find_dependency(DTCMP REQUIRED)
+find_dependency(LWGRP REQUIRED)
+
+IF(@MYSQL_FOUND@)
+    find_dependency(MySQL REQUIRED)
+ENDIF()
+
+IF(@PDSH_FOUND@)
+    find_dependency(PDSH REQUIRED)
+ENDIF()
+
+IF(@YOGRT_FOUND@)
+    find_dependency(YOGRT REQUIRED)
+ENDIF()
+
+include("${CMAKE_CURRENT_LIST_DIR}/scrTargets.cmake")
