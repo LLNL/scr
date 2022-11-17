@@ -8,6 +8,9 @@ FUNCTION(SCR_LAUNCHER_PARMS procs)
     ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "LSF")
         SET(test_launcher "jsrun" PARENT_SCOPE)
         SET(test_param "--nrs ${procs} -r 1" PARENT_SCOPE)
+    ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "FLUX")
+        SET(test_launcher "flux" PARENT_SCOPE)
+        SET(test_param "mini run --nodes ${procs} --ntasks ${procs}" PARENT_SCOPE)
     ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 ENDFUNCTION(SCR_LAUNCHER_PARMS procs)
 
@@ -18,13 +21,27 @@ FUNCTION(SCR_LAUNCHER_JOBID testname)
 ENDFUNCTION(SCR_LAUNCHER_JOBID name)
 
 FUNCTION(SCR_ADD_TEST name args outputs)
+    # First run bash based tests; these scripts were not written for flux
+    IF(NOT ${SCR_RESOURCE_MANAGER} STREQUAL "FLUX")
+        # Single process tests
+        SCR_LAUNCHER_PARMS(1)
+        ADD_TEST(NAME serial_${name}_restart COMMAND run_test.sh ${test_launcher} ${test_param} ./${name} restart ${args})
+        SCR_LAUNCHER_JOBID("serial_${name}_restart")
+
+        # Multi-process, multi-node tests
+        SCR_LAUNCHER_PARMS(4)
+        ADD_TEST(NAME parallel_${name}_restart COMMAND run_test.sh ${test_launcher} ${test_param} ./${name} restart ${args})
+        SCR_LAUNCHER_JOBID("parallel_${name}_restart")
+    ENDIF(NOT ${SCR_RESOURCE_MANAGER} STREQUAL "FLUX")
+
+    # Then run python based tests
     # Single process tests
     SCR_LAUNCHER_PARMS(1)
-    ADD_TEST(NAME serial_${name}_restart COMMAND run_test.sh ${test_launcher} ${test_param} ./${name} restart ${args})
-    SCR_LAUNCHER_JOBID("serial_${name}_restart")
+    ADD_TEST(NAME serial_${name}_restart_py COMMAND run_test_py.sh ${test_launcher} ${test_param} ./${name} restart ${args})
+    SCR_LAUNCHER_JOBID("serial_${name}_restart_py")
 
     # Multi-process, multi-node tests
     SCR_LAUNCHER_PARMS(4)
-    ADD_TEST(NAME parallel_${name}_restart COMMAND run_test.sh ${test_launcher} ${test_param} ./${name} restart ${args})
-    SCR_LAUNCHER_JOBID("parallel_${name}_restart")
+    ADD_TEST(NAME parallel_${name}_restart_py COMMAND run_test_py.sh ${test_launcher} ${test_param} ./${name} restart ${args})
+    SCR_LAUNCHER_JOBID("parallel_${name}_restart_py")
 ENDFUNCTION(SCR_ADD_TEST name args outputs)
