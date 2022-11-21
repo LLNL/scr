@@ -6,6 +6,11 @@ if [  "$1" != "" ]; then
 fi
 
 if [  "$1" != "" ]; then
+    launch_args=$1
+    shift
+fi
+
+if [  "$1" != "" ]; then
     test=$1
     shift
 fi
@@ -15,14 +20,14 @@ if [ "$1" != "" ]; then
     shift
 fi
 
-echo "Run: $launch $test $@"
-$launch $test "$@"
+echo "Run: $launch $launch_args $test $@"
+$launch $launch_args $test "$@"
 RC=$?
 
 # only attempt a restart if requested and if first run succeeded
 if [ "$restart" = "restart" -a $RC -eq 0 ]; then
-    echo "Restart: $launch $test $@"
-    $launch $test "$@"
+    echo "Restart: $launch $launch_args $test $@"
+    $launch $launch_args $test "$@"
     RC=$?
 fi
 
