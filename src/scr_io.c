@@ -902,6 +902,8 @@ int scr_file_copy(
   unsigned long buf_size,
   uLong* crc)
 {
+  scr_dbg(1, "scr_file_copy(%s --> %s)", src_file, dst_file);
+
   /* check that we got something for a source file */
   if (src_file == NULL || strcmp(src_file, "") == 0) {
     scr_err("Invalid source file @ %s:%d",
