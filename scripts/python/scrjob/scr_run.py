@@ -343,7 +343,7 @@ def scr_run(launcher='',
 
 
 def print_usage(launcher=''):
-  available_launchers = '[srun/jsrun/mpirun]'
+  available_launchers = '[' + '/'.join(valid_launchers) + ']'
   print('USAGE:')
   # the original parsing in SLURM/scr_run.in combines all [launcher args]
   # (no matter whether they appear in the front or at the end)
@@ -382,12 +382,19 @@ def print_usage(launcher=''):
   print('then the restart command will be appended to the ' + launcher +
         ' arguments when a restart file is present.')
 
+valid_launchers = ['aprun', 'flux', 'jsrun', 'lrun', 'mpirun', 'srun']
+def validate_launcher(launcher):
+  if launcher not in valid_launchers:
+    print(f'invalid launcher {launcher} not in {valid_launchers}')
+    print_usage()
+    sys.exit(1)
 
 def parseargs(argv, launcher=''):
   starti = 0
   if launcher == '':
     launcher = argv[0]
     starti = 1
+  validate_launcher(launcher)
   launcher_args = []
   run_cmd = ''
   restart_cmd = ''
@@ -450,7 +457,9 @@ if __name__ == '__main__':
       or arg.startswith('-rs') or arg.startswith('--restart-cmd')
       for arg in sys.argv):
     # then we were called with: scr_run launcher [args]
-    scr_run(launcher=sys.argv[1], launcher_args=sys.argv[2:])
+    launcher=sys.argv[1]
+    validate_launcher(launcher)
+    scr_run(launcher, launcher_args=sys.argv[2:])
   else:
     launcher, launcher_args, run_cmd, restart_cmd, restart_args = parseargs(
         sys.argv[1:])
