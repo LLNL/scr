@@ -97,8 +97,6 @@ def scr_run(launcher='',
   start_secs = int(time())
   print(prog + ': Started: ' + str(timestamp))
 
-  # TODO: if not in job allocation, bail out
-
   # get prefix directory
   prefix = scr_prefix()
 
@@ -125,9 +123,11 @@ def scr_run(launcher='',
   jobid = resmgr.getjobid()
   user = scr_env.get_user()
 
-  # TODO: check that we have a valid jobid and bail if not
+  # We need the jobid for logging, and need to be running within an allocation
+  # for operations such as scavenge.  This test serves both purposes.
   if jobid is None:
-    jobid = 'defjobid'
+    print(prog + f': ERROR: No valid job ID or not in an allocation.')
+    sys.exit(1)
 
   # create object to write log messages
   log = SCRLog(prefix, jobid, user=user, jobstart=start_secs)
@@ -137,7 +137,7 @@ def scr_run(launcher='',
   if nodelist is None:
     nodelist = resmgr.get_job_nodes()
     if nodelist is None:
-      print(prog + ': ERROR: Could not identify nodeset')
+      print(prog + f': ERROR: Could not identify nodeset for job {jobid}')
       sys.exit(1)
   nodelist = ','.join(resmgr.expand_hosts(nodelist))
 
