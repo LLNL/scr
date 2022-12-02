@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # scr_common.py
 """Defines for common methods shared across scripts"""

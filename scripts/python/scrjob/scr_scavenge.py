@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # scr_scavenge.py
 # scavenge checkpoint files from cache to PFS

@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # SLURM is a subclass of ResourceManager
 

@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # Test the scr_watchdog
 # This script emulates the same instructions as scr_run/watchdog

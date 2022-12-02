@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # mpirun.py
 # The MPIRUN class provides interpretation for the mpirun launcher

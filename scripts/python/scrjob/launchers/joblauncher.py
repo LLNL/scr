@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 import os
 from subprocess import TimeoutExpired
 from scrjob import scr_const

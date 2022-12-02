@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # The flux launcher args:
 # --nodes=2 --ntasks=2 --cores-per-task=1

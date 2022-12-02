@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # jsrun.py
 # The jsrun class provides interpretation for the jsrun launcher

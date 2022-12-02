@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 """
 Resource Manager classes provide an interface to the resource manager in use.
 

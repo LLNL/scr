@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 import os, sys
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))

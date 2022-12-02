@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # scr_list_down_nodes.py
 # this is a launcher script for list_down_nodes.py

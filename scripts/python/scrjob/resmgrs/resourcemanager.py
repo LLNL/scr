@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 import os
 from scrjob import scr_const, scr_hostlist

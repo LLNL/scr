@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # lrun.py
 # The LRUN class provides interpretation for the lrun launcher

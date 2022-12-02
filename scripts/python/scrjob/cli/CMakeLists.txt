@@ -6,7 +6,7 @@ SET(SCRCLI
 )
 
 FOREACH(pyscript IN ITEMS ${SCRCLI})
-	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
+	CONFIGURE_FILE(${pyscript} ${pyscript} @ONLY)
 ENDFOREACH(pyscript IN ITEMS ${SCRCLI})
 
 INSTALL(FILES ${SCRCLI} DESTINATION ${CMAKE_INSTALL_BINDIR}/scrpy/scrjob/cli)

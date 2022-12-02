@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # scr_env.py
 # this is a standalone script which queries the class SCR_Env

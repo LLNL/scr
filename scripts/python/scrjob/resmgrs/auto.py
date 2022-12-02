@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 """
 AutoResourceManager is called to return the appropriate ResourceManager class
 

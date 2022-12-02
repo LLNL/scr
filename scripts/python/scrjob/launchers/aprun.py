@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 # aprun.py
 # The APRUN class provides interpretation for the aprun launcher

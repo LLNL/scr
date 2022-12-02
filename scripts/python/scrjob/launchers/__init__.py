@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 """
 Job Launcher classes provide an interface to specific launcher programs.
 

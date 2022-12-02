@@ -9,7 +9,7 @@ SET(PYFE
 )
 
 FOREACH(pyscript IN ITEMS ${PYFE})
-	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
+	CONFIGURE_FILE(${pyscript} ${pyscript} @ONLY)
 ENDFOREACH(pyscript IN ITEMS ${PYFE})
 
 INSTALL(FILES ${PYFE} DESTINATION ${CMAKE_INSTALL_BINDIR}/scrpy/scrjob)
@@ -40,7 +40,7 @@ SET(PYFE_EXEC
 )
 
 FOREACH(pyscript IN ITEMS ${PYFE_EXEC})
-	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
+	CONFIGURE_FILE(${pyscript} ${pyscript} @ONLY)
 ENDFOREACH(pyscript IN ITEMS ${PYFE_EXEC})
 
 INSTALL(FILES ${PYFE_EXEC}

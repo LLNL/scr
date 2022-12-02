@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! @Python_EXECUTABLE@
 
 #srun.py
 # The SRUN class provides interpretation for the srun launcher
