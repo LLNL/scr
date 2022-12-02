@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import io, os, re
+import io, os, re, argparse
 from time import sleep, time
 
 from scrjob.scr_common import scr_prefix
@@ -47,38 +47,37 @@ class FLUX(JobLauncher):
     return 0
 
   def parsefluxargs(self, launcher_args):
-    # if scr_flux.py is called these can be trimmed there.
-    # if scr_run.py flux <launcher_args> is called
-    #   then these will not be trimmed yet.
-    #   could add this trim in scr_run's main if launcher=='flux'
-    if launcher_args[0] == 'mini':
-      launcher_args = launcher_args[1:]
-    if launcher_args[0] == 'run' or launcher_args[0] == 'submit':
-      launcher_args = launcher_args[1:]
-    # default values if none are specified in launcher_args
-    nodes = 1
-    ntasks = 1
-    corespertask = 1
-    argv = []
-    for arg in launcher_args:
-      if arg.startswith('--nodes'):
-        nodes = int(arg.split('=')[1])
-      elif arg.startswith('--ntasks'):
-        ntasks = int(arg.split('=')[1])
-      elif arg.startswith('--cores-per-task'):
-        corespertask = int(arg.split('=')[1])
-      else:
-        argv.append(arg)
-    return nodes, ntasks, corespertask, argv
+    parser = argparse.ArgumentParser( prog = 'launcher/flux.py',
+      description = 'launch scr enabled applications under flux')
+
+    # These arguments are discarded.  We must name them here so they are
+    # not included in "remaining" which collects the user script and args.
+    parser.add_argument('mini', choices=['mini'])
+    parser.add_argument('subcmd', choices=['run','submit'])
+
+    # flux interface from_command() requires we specify these values
+    # so we must extract them from the args provided by the user
+    parser.add_argument('-N', '--nodes', default=1, type=int)
+    parser.add_argument('-n', '--ntasks', default=1, type=int)
+    parser.add_argument('-c', '--cores-per-task', default=1, type=int)
+    parser.add_argument('-g', '--gpus-per-task', default=0, type=int)
+    parser.add_argument('-x', '--exclusive', action='store_true')
+
+    # depends on python >= 3.7
+    args, remaining = parser.parse_known_intermixed_args(launcher_args)
+
+    return args.nodes, args.ntasks, args.cores_per_task, args.gpus_per_task, args.exclusive, remaining
 
   def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
     if type(launcher_args) is str:
       launcher_args = launcher_args.split(' ')
-    nnodes, ntasks, ncores, argv = self.parsefluxargs(launcher_args)
+    nnodes, ntasks, ncores, ngpus, excl, argv = self.parsefluxargs(launcher_args)
     compute_jobreq = JobspecV1.from_command(command=argv,
                                             num_tasks=ntasks,
                                             num_nodes=nnodes,
-                                            cores_per_task=ncores)
+                                            cores_per_task=ncores,
+                                            gpus_per_task=ngpus,
+                                            exclusive=excl)
     compute_jobreq.cwd = os.getcwd()
     compute_jobreq.environment = dict(os.environ)
     job = flux.job.submit(self.flux,
