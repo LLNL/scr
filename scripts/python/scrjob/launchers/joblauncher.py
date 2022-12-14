@@ -18,6 +18,8 @@ class JobLauncher(object):
   launchruncmd() may return scr_common.runproc(argv, wait=False) and use the
   provided waitonprocess() and scr_kill_jobstep() methods
 
+  waitonprocess() returns a tuple of 2 boolean values: (completed, success)
+
   Default methods
   ---------------
   clustershell_exec()
@@ -67,18 +69,26 @@ class JobLauncher(object):
 
     Returns
     -------
-    integer
-        0 - indicates the process is no longer running, or if some exception occured
-        1 - indicates we waited for the timeout and the process is still running
+       A tuple containing (completed, success)
+       completed:
+           None -  an exception occurred
+           True -  the process is no longer running
+           False - we waited for the timeout and the process is still running
+       success:
+           None -  the job wasn't found or has not finished, no status
+           True -  the process exited 0
+           False - the process failed (exit code nonzero)
     """
     if proc is not None:
       try:
         proc.communicate(timeout=timeout)
       except TimeoutExpired:
-        return 1
-      except:
-        pass
-    return 0
+        return (False, None)
+      except e:
+        print(f'waitonprocess for proc {proc} failed with exception {e}')
+        return (None, None)
+
+    return (True, proc.returncode)
 
   def prepareforprerun(self):
     """This method is called (without arguments) before scr_prerun.py

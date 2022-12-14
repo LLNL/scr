@@ -88,7 +88,8 @@ def testwatchdog(launcher, launcher_args):
   if watchdog.watchproc(proc, jobstep) != 0:
     print('The watchdog failed to start')
     print('Waiting for the original process for 15 seconds')
-    if launcher.waitonprocess(proc=proc,timeout=timeout) == 1:
+    (finished, success) = launcher.waitonprocess(proc=proc,timeout=timeout)
+    if finished == True:
       print('The process is still running, asking the launcher to kill it . . .')
       launcher.scr_kill_jobstep(jobstep=jobstep)
 

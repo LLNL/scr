@@ -52,7 +52,8 @@ class SCR_Watchdog:
     lastCheckpointLoc = None
     while True:
       # wait up to 'timeToSleep' to see if the process terminates normally
-      if self.launcher.waitonprocess(proc, timeout=timeToSleep) == 0:
+      (finished, success) = self.launcher.waitonprocess(proc, timeout=timeToSleep)
+      if finished == True:
         # when the wait returns zero the process is no longer running
         return 0
 

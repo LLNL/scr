@@ -29,22 +29,24 @@ class FLUX(JobLauncher):
       raise ImportError('Error importing flux, ensure that the flux daemon is running.')
 
   def waitonprocess(self, proc, timeout=None):
-    if timeout is not None:
-      # waiting throws a TimeoutError exception when process still running
-      try:
-        flux.job.wait_async(self.flux, proc).wait_for(int(timeout))
-      except TimeoutError:
-        # return 1 to indicate the process is still running and timeout has expired
-        return 1
-      except Exception as e:
-        # it can also throw an exception if there is no job to wait for
-        print(e)
-    else:
-      # wait without a timeout
+    try:
       future = flux.job.wait_async(self.flux, proc)
-      status = future.get_status()
-    # return 0 to indicate the program is no longer running (or there was some exception)
-    return 0
+      if timeout is None:
+        (jobid, success, errstr) = future.get_status()
+      else:
+        (jobid, success, errstr) = future.wait_for(int(timeout))
+        # TODO: verify return values of wait_for()
+    except TimeoutError:
+      # The process is still running, the timeout expired
+      return False, None
+    except Exception as e:
+      # it can also throw an exception if there is no job to wait for
+      print(e)
+      return False, None
+
+    if success == False:
+        print(f'flux job {proc} failed: {errstr}')
+    return True, success
 
   def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
     if type(launcher_args) is str:
@@ -63,6 +65,7 @@ class FLUX(JobLauncher):
     if compute_jobreq == None:
         return None, None
 
+    # waitable=True is required by the call to wait_async() in waitonprocess()
     jobid = flux.job.submit(self.flux,
                           compute_jobreq,
                           waitable=True)
