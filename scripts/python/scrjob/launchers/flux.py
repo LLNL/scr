@@ -3,7 +3,7 @@
 import io, os, re
 from time import sleep, time
 
-from scrjob.scr_common import scr_prefix
+from scrjob.scr_common import scr_prefix, runproc
 from scrjob.launchers import JobLauncher
 from scrjob.scr_glob_hosts import scr_glob_hosts
 
@@ -46,46 +46,27 @@ class FLUX(JobLauncher):
     # return 0 to indicate the program is no longer running (or there was some exception)
     return 0
 
-  def parsefluxargs(self, launcher_args):
-    # if scr_flux.py is called these can be trimmed there.
-    # if scr_run.py flux <launcher_args> is called
-    #   then these will not be trimmed yet.
-    #   could add this trim in scr_run's main if launcher=='flux'
-    if launcher_args[0] == 'mini':
-      launcher_args = launcher_args[1:]
-    if launcher_args[0] == 'run' or launcher_args[0] == 'submit':
-      launcher_args = launcher_args[1:]
-    # default values if none are specified in launcher_args
-    nodes = 1
-    ntasks = 1
-    corespertask = 1
-    argv = []
-    for arg in launcher_args:
-      if arg.startswith('--nodes'):
-        nodes = int(arg.split('=')[1])
-      elif arg.startswith('--ntasks'):
-        ntasks = int(arg.split('=')[1])
-      elif arg.startswith('--cores-per-task'):
-        corespertask = int(arg.split('=')[1])
-      else:
-        argv.append(arg)
-    return nodes, ntasks, corespertask, argv
-
   def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
     if type(launcher_args) is str:
       launcher_args = launcher_args.split(' ')
-    nnodes, ntasks, ncores, argv = self.parsefluxargs(launcher_args)
-    compute_jobreq = JobspecV1.from_command(command=argv,
-                                            num_tasks=ntasks,
-                                            num_nodes=nnodes,
-                                            cores_per_task=ncores)
-    compute_jobreq.cwd = os.getcwd()
-    compute_jobreq.environment = dict(os.environ)
-    job = flux.job.submit(self.flux,
+    if len(launcher_args) == 0:
+      return None, None
+    argv = [self.launcher]
+    argv.extend(launcher_args)
+
+    ### TODO: figure out how to exclude down_nodes
+
+    # A jobspec is a yaml description of job and its resource requirements.
+    # Building one lets us submit the job and get back the assigned jobid.
+    argv.insert(3, '--dry-run')
+    compute_jobreq, exitcode = runproc(argv=argv, getstdout=True)
+    if compute_jobreq == None:
+        return None, None
+
+    jobid = flux.job.submit(self.flux,
                           compute_jobreq,
                           waitable=True)
-    # job is an integer representing the job id, this is all we need
-    return job, job
+    return jobid, jobid
 
   def parallel_exec(self, argv=[], runnodes=''):
     if type(argv) is str:
