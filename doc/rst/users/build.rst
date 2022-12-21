@@ -61,7 +61,7 @@ Some common CMake command line options:
 * :code:`-DCMAKE_BUILD_TYPE=[Debug/Release]`: Build with debugging or optimizations, defaults to :code:`Release`
 * :code:`-DBUILD_SHARED_LIBS=[ON/OFF]`: Whether to build shared libraries, defaults to :code:`ON`
 
-* :code:`-DSCR_RESOURCE_MANAGER=[SLURM/APRUN/LSF/NONE]` : Resource manager for job allocations, defaults to :code:`SLURM`
+* :code:`-DSCR_RESOURCE_MANAGER=[SLURM/FLUX/APRUN/LSF/NONE]` : Resource manager for job allocations, defaults to :code:`SLURM`
 
 * :code:`-DSCR_CNTL_BASE=[path]` : Path to SCR Control directory, defaults to :code:`/dev/shm`
 * :code:`-DSCR_CACHE_BASE=[path]` : Path to SCR Cache directory, defaults to :code:`/dev/shm`
