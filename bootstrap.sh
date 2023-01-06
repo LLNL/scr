@@ -169,6 +169,7 @@ pushd AXL
   mkdir -p build
   pushd build
     cmake \
+      -DCMAKE_PREFIX_PATH=/usr/global/tools/nnfdm_x86_64/nnfdm.2022-12-27 \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DMPI=ON \
