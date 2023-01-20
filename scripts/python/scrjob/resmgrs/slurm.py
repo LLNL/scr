@@ -62,8 +62,13 @@ class SLURM(ResourceManager):
     if not m:
       return 0
 
-    # parse time string like "2021-07-16T14:05:12" into secs since epoch
+    # 'Unknown' is returned when no time limit was set
     timestr = m.group(1)
+    if timestr == 'Unknown':
+      return 0
+
+    # TODO: we can probably get this from a library to avoid fork/exec/parsing
+    # parse time string like "2021-07-16T14:05:12" into secs since epoch
     dt = datetime.datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S")
     timestamp = int(dt.strftime("%s"))
     return timestamp

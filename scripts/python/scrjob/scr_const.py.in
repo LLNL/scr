@@ -10,6 +10,7 @@ SCR_CNTL_BASE = '@SCR_CNTL_BASE@'
 SCR_CACHE_BASE = '@SCR_CACHE_BASE@'
 SCR_CACHE_SIZE = '1'  # '@SCR_CACHE_SIZE@'
 SCR_CONFIG_FILE = '@SCR_CONFIG_FILE@'
+CMAKE_BINARY_DIR = '@CMAKE_BINARY_DIR@'
 X_DATADIR = '@X_DATADIR@'
 X_BINDIR = '@X_BINDIR@'
 X_LIBDIR = '@X_LIBDIR@'
@@ -58,6 +59,7 @@ if __name__ == '__main__':
   print('SCR_CACHE_BASE = \"' + SCR_CACHE_BASE + '\"')
   print('SCR_CACHE_SIZE = \"' + SCR_CACHE_SIZE + '\"')
   print('SCR_CONFIG_FILE = \"' + SCR_CONFIG_FILE + '\"')
+  print('CMAKE_BINARY_DIR = \"' + CMAKE_BINARY_DIR + '\"')
   print('X_BINDIR = \"' + X_BINDIR + '\"')
   print('X_LIBDIR = \"' + X_LIBDIR + '\"')
   print('PDSH_EXE = \"' + PDSH_EXE + '\"')

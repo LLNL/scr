@@ -243,6 +243,26 @@ def pipeproc(argvs, wait=True, getstdout=False, getstderr=False):
     return None, 1
 
 
+def choose_bindir():
+  """Determine appropriate location of binaries.
+
+  Testing using "make test" or "make check" must operate based on the contents
+  of the build directory.
+
+  If the script is being run from the install directory, then return X_BINDIR
+  as defined by cmake so installed scripts use installed binaries.  Otherwise,
+  determine the appropriate build directory.
+  """
+  # Needed to find binaries in build dir when testing
+  parent_of_this_module = '/'.join(os.path.realpath(__file__).split('/')[:-1])
+  if scr_const.X_BINDIR in parent_of_this_module:
+      bindir = scr_const.X_BINDIR  # path to install bin directory
+  else:
+      bindir = os.path.join(scr_const.CMAKE_BINARY_DIR + "/src/")
+
+  return bindir
+
+
 def log(bindir=None,
         prefix=None,
         username=None,

@@ -20,14 +20,17 @@ if [ "$1" != "" ]; then
     shift
 fi
 
-echo "Run: $launch $launch_args $test $@"
-$launch $launch_args $test "$@"
+scr_run="../scripts/python/scrjob/scr_run.py"
+export PYTHON_PATH=$PYTHON_PATH:$(realpath $(dirname $scr_run) )
+
+echo "Run: $scr_run $launch $launch_args $test $@"
+$scr_run $launch $launch_args $test \"$@\"
 RC=$?
 
 # only attempt a restart if requested and if first run succeeded
 if [ "$restart" = "restart" -a $RC -eq 0 ]; then
-    echo "Restart: $launch $launch_args $test $@"
-    $launch $launch_args $test "$@"
+    echo "Restart: $scr_run $launch $launch_args $test $@"
+    $scr_run $launch $launch_args $test \"$@\"
     RC=$?
 fi
 
