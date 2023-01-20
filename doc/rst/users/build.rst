@@ -13,7 +13,7 @@ corresponding SCR functionality is disabled.
 Required:
 
 * C and C++ compilers
-* CMake, Version 2.8+
+* CMake, Version 3.14.5+
 * MPI 3.0+
 
 Optional:
@@ -36,7 +36,7 @@ for users by the support staff of HPC clusters.
 CMake
 -----
 
-SCR requires CMake version 2.8 or higher.
+SCR requires CMake version 3.14.5 or higher.
 The SCR build uses the CMake FindMPI module to link with MPI.
 This module looks for the standard :code:`mpicc` compiler wrapper,
 which must be in your :code:`PATH`.
