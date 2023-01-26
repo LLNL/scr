@@ -4,12 +4,12 @@ import os
 
 from scrjob import scr_const
 from scrjob.scr_common import runproc
+from scrjob.scr_common import choose_bindir
 
 
 class SCRLog:
   def __init__(self, prefix, jobid, jobname=None, user=None, jobstart=None, verbose=False):
-    self.bindir = scr_const.X_BINDIR  # path to SCR bin directory
-
+    self.bindir = choose_bindir()
     self.prefix = prefix  # path to SCR_PREFIX
     self.user = user
     self.jobid = jobid

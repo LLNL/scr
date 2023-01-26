@@ -15,6 +15,7 @@ try:
   from flux.hostlist import Hostlist
   from flux.resource import ResourceSet
   from flux.rpc import RPC
+  from flux.job import JobID, JobInfo, JobList
 except:
   pass
 
@@ -39,14 +40,14 @@ class FLUX(ResourceManager):
   def getjobid(self):
     if self.jobid is not None:
       return self.jobid
-    if scr_const.SCR_RESOURCE_MANAGER == 'SLURM':
-      return os.environ.get('SLURM_JOBID')
-    if scr_const.SCR_RESOURCE_MANAGER == 'LSF':
-      return os.environ.get('LSB_JOBID')
-    if scr_const.SCR_RESOURCE_MANAGER == 'APRUN':
-      return os.environ.get('PBS_JOBID')
-    timestamp = str(int(time()))
-    return timestamp
+
+    jobid_str = os.environ.get('FLUX_JOB_ID')
+    if jobid_str is None:
+      jobid = JobID(self.flux.attr_get("jobid"))
+    else:
+      jobid = self.flux.job.JobID.id_parse(jobid_str)
+
+    return jobid
 
   # get node list
   def get_job_nodes(self):
@@ -71,11 +72,12 @@ class FLUX(ResourceManager):
     return downnodes
 
   def get_scr_end_time(self):
-    resp = RPC(self.flux, "resource.status").get()
-    rset = ResourceSet(resp["R"])
-    endtime = 0
-    try:
-      endtime = int(rset.expiration)
-    except:
-      pass
+    jobid_str = os.environ.get('FLUX_JOB_ID')
+    if jobid_str is None:
+      parent = flux.Flux(self.flux.attr_get("parent-uri"))
+      info = JobList(parent, ids=[self.jobid]).fetch_jobs().get_jobs()[0]
+    else:
+      info = JobList(self.flux, ids=[self.jobid]).fetch_jobs().get_jobs()[0]
+    endtime = info["expiration"]
+
     return endtime

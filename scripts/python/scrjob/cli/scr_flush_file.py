@@ -4,11 +4,12 @@ import os
 
 from scrjob import scr_const
 from scrjob.scr_common import runproc
+from scrjob.scr_common import choose_bindir
 
 
 class SCRFlushFile:
   def __init__(self, prefix, verbose=False):
-    self.bindir = scr_const.X_BINDIR  # path to SCR bin directory
+    self.bindir = choose_bindir()
     self.prefix = prefix  # path to SCR_PREFIX
     self.verbose = verbose
     self.exe = os.path.join(self.bindir, "scr_flush_file") + " --dir " + str(prefix)

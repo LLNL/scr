@@ -7,6 +7,11 @@ SET(PYFE
   scr_environment.py
   scr_hostlist.py
 )
+
+FOREACH(pyscript IN ITEMS ${PYFE})
+	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
+ENDFOREACH(pyscript IN ITEMS ${PYFE})
+
 INSTALL(FILES ${PYFE} DESTINATION ${CMAKE_INSTALL_BINDIR}/scrpy/scrjob)
 
 SET(PYFE_EXEC
@@ -33,6 +38,11 @@ SET(PYFE_EXEC
   scr_test_runtime.py
   scr_watchdog.py
 )
+
+FOREACH(pyscript IN ITEMS ${PYFE_EXEC})
+	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
+ENDFOREACH(pyscript IN ITEMS ${PYFE_EXEC})
+
 INSTALL(FILES ${PYFE_EXEC}
 PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
         DESTINATION ${CMAKE_INSTALL_BINDIR}/scrpy/scrjob)

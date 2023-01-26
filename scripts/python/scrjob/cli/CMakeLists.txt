@@ -4,4 +4,9 @@ SET(SCRCLI
   scr_flush_file.py
   scr_log.py
 )
+
+FOREACH(pyscript IN ITEMS ${SCRCLI})
+	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
+ENDFOREACH(pyscript IN ITEMS ${SCRCLI})
+
 INSTALL(FILES ${SCRCLI} DESTINATION ${CMAKE_INSTALL_BINDIR}/scrpy/scrjob/cli)
