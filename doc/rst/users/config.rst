@@ -621,6 +621,9 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_FETCH`
      - 1
      - Set to 0 to disable SCR from fetching files from the parallel file system during :code:`SCR_Init`.
+   * - :code:`SCR_FETCH_BYPASS`
+     - 0
+     - Set to 1 to read files directly from the parallel file system during fetch.
    * - :code:`SCR_FETCH_WIDTH`
      - 256
      - Specify the number of processes that may read simultaneously from the parallel file system.
