@@ -171,7 +171,7 @@ extern int scr_halt_exit;    /* whether SCR will call exit if halt condition is 
 
 extern int   scr_purge;            /* delete all datasets from cache on restart for debugging */
 extern int   scr_distribute;       /* whether to call scr_distribute_files during SCR_Init */
-extern int   scr_fetch;            /* whether to call scr_fetch_files during SCR_Init */
+extern int   scr_fetch_enable;     /* whether to call scr_fetch_files during SCR_Init */
 extern int   scr_fetch_width;      /* specify number of processes to read files simultaneously */
 extern int   scr_fetch_bypass;     /* whether to use implied bypass on fetch operations */
 extern char* scr_fetch_current;    /* specify name of checkpoint to start with in fetch_latest */

@@ -1023,11 +1023,11 @@ static int scr_get_params()
 
   /* whether to fetch files from the parallel file system */
   if ((value = scr_param_get("SCR_FETCH")) != NULL) {
-    scr_fetch = atoi(value);
-    scr_fetch_bypass = !scr_fetch;
+    scr_fetch_enable = atoi(value);
+    scr_fetch_bypass = !scr_fetch_enable;
   }
   if (scr_my_rank_world == 0) {
-    scr_dbg(1, "SCR_FETCH=%d", scr_fetch);
+    scr_dbg(1, "SCR_FETCH=%d", scr_fetch_enable);
   }
 
   /* specify number of processes to read files simultaneously */
