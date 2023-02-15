@@ -117,7 +117,7 @@ int scr_halt_exit        = SCR_HALT_EXIT;    /* whether SCR will call exit if ha
 
 int   scr_purge            = 0;                    /* whether to delete all datasets from cache during SCR_Init */
 int   scr_distribute       = SCR_DISTRIBUTE;       /* whether to call scr_distribute_files during SCR_Init */
-int   scr_fetch            = SCR_FETCH;            /* whether to call scr_fetch_files during SCR_Init */
+int   scr_fetch_enable     = SCR_FETCH;            /* whether to call scr_fetch_files during SCR_Init */
 int   scr_fetch_width      = SCR_FETCH_WIDTH;      /* specify number of processes to read files simultaneously */
 int   scr_fetch_bypass     = SCR_FETCH_BYPASS;     /* whether to use implied bypass mode on fetch */
 char* scr_fetch_current    = NULL;                 /* name of checkpoint to start with during fetch */
