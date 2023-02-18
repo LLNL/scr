@@ -307,6 +307,7 @@ axl_xfer_t scr_xfer_str_to_axl_type(const char* str)
     {"SYNC",     AXL_XFER_SYNC},
     {"DATAWARP", AXL_XFER_ASYNC_DW},
     {"BBAPI",    AXL_XFER_ASYNC_BBAPI},
+    {"NNFDM",    AXL_XFER_ASYNC_NNFDM},
   };
 
   int i;
