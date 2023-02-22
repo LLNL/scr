@@ -407,9 +407,17 @@ If SCR attempts but fails to load a checkpoint, it prints an error and
 it will attempt to load the next most recent checkpoint if one is available.
 
 By default, SCR fetches the checkpoint into cache and applies a redundancy scheme.
-To disable the fetch operation, set the :code:`SCR_FETCH` parameter to 0.
-If the fetch is disabled, SCR directs the application to read its
-checkpoint files directly from the prefix directory.
+This is useful on systems where failures are likely,
+since SCR may be able to restart the application from the cached checkpoint
+if the application fails before it writes its next checkpoint.
+One can configure SCR to avoid copying the checkpoint to
+cache by setting the :code:`SCR_FETCH_BYPASS` parameter to 0.
+This may provide for faster restart when reading from the cache is slow.
+
+An application may elect not to use SCR for restart.
+In this case, one should set the :code:`SCR_FETCH` parameter to 0.
+If the fetch is disabled, the application is responsible for
+identifying and reading its checkpoint.
 
 To withstand catastrophic failures,
 it is necessary to write checkpoints out to the parallel file system with some moderate frequency.

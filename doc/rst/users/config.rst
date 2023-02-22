@@ -278,6 +278,16 @@ and specify a flush type like :code:`PTHREAD`::
   SCR_FLUSH_ASYNC=1
   SCR_FLUSH_TYPE=PTHREAD
 
+Restart with a different number of processes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To restart an application with a different number of processes than used to save the checkpoint,
+one must follow the steps listed in :ref:`scr-integration-restart-without`.
+Additionally, one should set the following::
+
+  SCR_FLUSH_ON_RESTART=1
+  SCR_FETCH=0
+
 .. _sec-descriptors:
 
 Group, store, and checkpoint descriptors
