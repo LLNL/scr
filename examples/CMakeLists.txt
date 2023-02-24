@@ -31,9 +31,9 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/makefile.examples DESTINATION ${CMAKE_
 
 ## Prefer static?
 IF(SCR_LINK_STATIC)
-        SET(SCR_LINK_TO scr::scr-static ${SCR_EXTERNAL_LIBS})
+        SET(SCR_LINK_TO scr::scr-static)
 ELSE(SCR_LINK_STATIC)
-        SET(SCR_LINK_TO scr::scr ${SCR_EXTERNAL_LIBS})
+        SET(SCR_LINK_TO scr::scr)
 ENDIF(SCR_LINK_STATIC)
 
 
@@ -93,11 +93,11 @@ IF(ENABLE_FORTRAN)
         IF(SCR_LINK_STATIC)
                 # needed for LANL cray
                 SET(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
-                TARGET_LINK_LIBRARIES(test_ckpt_F PRIVATE scr::scrf-static ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
-                TARGET_LINK_LIBRARIES(test_ckpt_F90 PRIVATE scr::scrf-static ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
+                TARGET_LINK_LIBRARIES(test_ckpt_F PRIVATE scr::scrf-static ${MPI_Fortran_LIBRARIES})
+                TARGET_LINK_LIBRARIES(test_ckpt_F90 PRIVATE scr::scrf-static ${MPI_Fortran_LIBRARIES})
         ELSE(SCR_LINK_STATIC)
-                TARGET_LINK_LIBRARIES(test_ckpt_F PRIVATE scr::scrf ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
-                TARGET_LINK_LIBRARIES(test_ckpt_F90 PRIVATE scr::scrf ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
+                TARGET_LINK_LIBRARIES(test_ckpt_F PRIVATE scr::scrf ${MPI_Fortran_LIBRARIES})
+                TARGET_LINK_LIBRARIES(test_ckpt_F90 PRIVATE scr::scrf ${MPI_Fortran_LIBRARIES})
         ENDIF(SCR_LINK_STATIC)
 
 	SCR_ADD_TEST(test_ckpt_F "" "rank_00000.ckpt")
