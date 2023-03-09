@@ -233,7 +233,6 @@ pushd redset
     cmake \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      -DWITH_KVTREE_PREFIX=$INSTALL_DIR \
       .. && \
     make -j `nproc` && \
     make install
@@ -254,7 +253,6 @@ pushd shuffile
     cmake \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      -DWITH_KVTREE_PREFIX=$INSTALL_DIR \
       .. && \
     make -j `nproc` && \
     make install
@@ -275,9 +273,6 @@ pushd er
     cmake \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      -DWITH_KVTREE_PREFIX=$INSTALL_DIR \
-      -DWITH_REDSET_PREFIX=$INSTALL_DIR \
-      -DWITH_SHUFFILE_PREFIX=$INSTALL_DIR \
       .. && \
     make -j `nproc` && \
     make install
