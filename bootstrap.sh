@@ -14,6 +14,8 @@
 #
 
 set -x 
+echo "CC is ${CC}"
+echo "CXX is ${CXX}"
 
 # optional builds
 clone_ssh=0   # whether to clone with https (0) or ssh (1)
@@ -168,8 +170,8 @@ pushd AXL
   rm -rf build
   mkdir -p build
   pushd build
+    CMAKE_PREFIX_PATH="/usr/global/tools/nnfdm_x86_64/current" \
     cmake \
-      -DCMAKE_PREFIX_PATH=/usr/global/tools/nnfdm_x86_64/current \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DMPI=ON \
