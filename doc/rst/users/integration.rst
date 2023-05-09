@@ -587,3 +587,31 @@ If Spack was used to build SCR, the :code:`SCR_INSTALL_DIR` can be found with:
 .. code-block:: bash
 
   spack location -i scr
+
+For applications built with CMake,
+SCR provides an :code:`scrConfig.cmake` package configuration file
+that defines C and Fortran targets for its shared and static libraries.
+
+====================== ============================================================================
+C Shared Library       :code:`scr::scr`
+C Static Library       :code:`scr::scr-static`
+Fortran Shared Library :code:`scr::scrf`
+Fortran Static Library :code:`scr::scrf-static`
+====================== ============================================================================
+
+These targets define the compile and link flags necessary for SCR and its dependencies.
+For example, to compile and link to the SCR shared library,
+the :code:`CMakeLists.txt` of a C application can use statements like:
+
+.. code-block:: cmake
+
+  FIND_PACKAGE(scr REQUIRED)
+  ADD_EXECUTABLE(myapp myapp.c)
+  TARGET_LINK_LIBRARIES(myapp PRIVATE scr::scr)
+
+The SCR package configuration file is installed to :code:`${SCR_INSTALL_DIR}/share/scr/cmake`.
+One should include this path in the CMake module search path, e.g.,:
+
+.. code-block:: bash
+
+  export CMAKE_MODULE_PATH=${SCR_INSTALL_DIR}/share
