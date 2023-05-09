@@ -505,6 +505,8 @@ Under this mode, SCR flushes any cached checkpoint to the prefix directory durin
 and it configures its restart operation to use cache bypass mode so that :code:`SCR_Route_file`
 directs the application to read its files directly from the parallel file system.
 
+.. _sec-integration-restart-without:
+
 Restart without SCR
 ^^^^^^^^^^^^^^^^^^^
 

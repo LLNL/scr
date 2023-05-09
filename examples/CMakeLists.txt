@@ -31,9 +31,9 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/makefile.examples DESTINATION ${CMAKE_
 
 ## Prefer static?
 IF(SCR_LINK_STATIC)
-        SET(SCR_LINK_TO scr-static ${SCR_EXTERNAL_LIBS})
+        SET(SCR_LINK_TO scr::scr-static ${SCR_EXTERNAL_LIBS})
 ELSE(SCR_LINK_STATIC)
-        SET(SCR_LINK_TO scr ${SCR_EXTERNAL_LIBS})
+        SET(SCR_LINK_TO scr::scr ${SCR_EXTERNAL_LIBS})
 ENDIF(SCR_LINK_STATIC)
 
 
@@ -49,15 +49,15 @@ FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh DESTINATION ${CMAKE_CURRENT_BI
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_test_py.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 ADD_EXECUTABLE(test_api test_common.c test_api.c)
-TARGET_LINK_LIBRARIES(test_api ${SCR_LINK_TO})
+TARGET_LINK_LIBRARIES(test_api PRIVATE ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api "" "ckpt.*")
 
 ADD_EXECUTABLE(test_api_shared_file test_common.c test_api.c)
-TARGET_LINK_LIBRARIES(test_api_shared_file ${SCR_LINK_TO})
+TARGET_LINK_LIBRARIES(test_api_shared_file PRIVATE ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api_shared_file "--shared" "ckpt.*")
 
 ADD_EXECUTABLE(test_config test_config.c)
-TARGET_LINK_LIBRARIES(test_config ${SCR_LINK_TO})
+TARGET_LINK_LIBRARIES(test_config PRIVATE ${SCR_LINK_TO})
 SCR_ADD_TEST(test_config "" "test_config.d")
 
 #ADD_EXECUTABLE(test_api_file test_common.c test_api_file.c)
@@ -65,7 +65,7 @@ SCR_ADD_TEST(test_config "" "test_config.d")
 #SCR_ADD_TEST: proper usage is unknown
 
 ADD_EXECUTABLE(test_api_multiple test_common.c test_api_multiple.c)
-TARGET_LINK_LIBRARIES(test_api_multiple ${SCR_LINK_TO})
+TARGET_LINK_LIBRARIES(test_api_multiple PRIVATE ${SCR_LINK_TO})
 SCR_ADD_TEST(test_api_multiple "" "")
 
 #ADD_EXECUTABLE(test_api_multiple_file test_common.c test_api_multiple_file.c)
@@ -75,9 +75,9 @@ SCR_ADD_TEST(test_api_multiple "" "")
 ADD_EXECUTABLE(test_ckpt test_ckpt.cpp)
 IF(MPI_CXX_FOUND)
     TARGET_INCLUDE_DIRECTORIES(test_ckpt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${MPI_CXX_INCLUDE_PATH})
-    TARGET_LINK_LIBRARIES(test_ckpt ${SCR_LINK_TO} ${MPI_CXX_LIBRARIES})
+    TARGET_LINK_LIBRARIES(test_ckpt PRIVATE ${SCR_LINK_TO} ${MPI_CXX_LIBRARIES})
 ELSE(MPI_CXX_FOUND)
-    TARGET_LINK_LIBRARIES(test_ckpt ${SCR_LINK_TO})
+    TARGET_LINK_LIBRARIES(test_ckpt PRIVATE ${SCR_LINK_TO})
 ENDIF(MPI_CXX_FOUND)
 SCR_ADD_TEST(test_ckpt "" "rank_0.ckpt")
 
@@ -93,11 +93,11 @@ IF(ENABLE_FORTRAN)
         IF(SCR_LINK_STATIC)
                 # needed for LANL cray
                 SET(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
-                TARGET_LINK_LIBRARIES(test_ckpt_F scrf-static ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
-                TARGET_LINK_LIBRARIES(test_ckpt_F90 scrf-static ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
+                TARGET_LINK_LIBRARIES(test_ckpt_F PRIVATE scr::scrf-static ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
+                TARGET_LINK_LIBRARIES(test_ckpt_F90 PRIVATE scr::scrf-static ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
         ELSE(SCR_LINK_STATIC)
-                TARGET_LINK_LIBRARIES(test_ckpt_F scrf ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
-                TARGET_LINK_LIBRARIES(test_ckpt_F90 scrf ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
+                TARGET_LINK_LIBRARIES(test_ckpt_F PRIVATE scr::scrf ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
+                TARGET_LINK_LIBRARIES(test_ckpt_F90 PRIVATE scr::scrf ${SCR_EXTERNAL_LIBS} ${MPI_Fortran_LIBRARIES})
         ENDIF(SCR_LINK_STATIC)
 
 	SCR_ADD_TEST(test_ckpt_F "" "rank_00000.ckpt")

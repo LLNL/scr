@@ -53,8 +53,8 @@ For instance, the name :code:`1234.5` refers to step id 5 of job id 1234.
 On ALPS, each job step within an allocation has a unique id that can be obtained
 through :code:`apstat`.
 
-Ignoring node failures
-----------------------
+Tolerating node failures
+------------------------
 
 Before running an SCR job, it is recommended to configure the job allocation to withstand node failures.
 By default, most resource managers terminate the job allocation if a node fails,
@@ -65,12 +65,12 @@ one must specify the appropriate flags from the table below.
 SCR job allocation flags
 
 ================== ================================================================
+LSF batch script   :code:`#BSUB -env "all, LSB_DJOB_COMMFAIL_ACTION=KILL_TASKS"`
+LSF interactive    :code:`bsub -env "all, LSB_DJOB_COMMFAIL_ACTION=KILL_TASKS" ...`
 MOAB batch script  :code:`#MSUB -l resfailpolicy=ignore`
 MOAB interactive   :code:`qsub -I ... -l resfailpolicy=ignore`
 SLURM batch script :code:`#SBATCH --no-kill`
 SLURM interactive  :code:`salloc --no-kill ...`
-LSF batch script   :code:`#BSUB -env "all, LSB_DJOB_COMMFAIL_ACTION=KILL_TASKS"`
-LSF interactive    :code:`bsub -env "all, LSB_DJOB_COMMFAIL_ACTION=KILL_TASKS" ...`
 ================== ================================================================
 
 The SCR wrapper script
@@ -120,9 +120,8 @@ An example SLURM batch script with :code:`scr_srun` is shown below
 .. code-block:: bash
 
   #!/bin/bash
-  #SBATCH --partition pbatch
-  #SBATCH --nodes 66
   #SBATCH --no-kill
+  #SBATCH --nodes 66
   
   # above, tell SLURM to not kill the job allocation upon a node failure
   # also note that the job requested 2 spares -- it uses 64 nodes but allocated 66

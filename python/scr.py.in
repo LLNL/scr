@@ -357,7 +357,7 @@ def start_restart():
     raise RuntimeError("SCR_Start_restart failed")
   return _pystr(ptr)
 
-def complete_restart(valid):
+def complete_restart(valid=True):
   """Close a restart phase after reading checkpoint files.
 
   Each calling process must indicate whether it restarted successfully.
@@ -366,9 +366,9 @@ def complete_restart(valid):
 
   Parameters
   ----------
-  valid : bool
+  valid : bool, optional
       pass True if calling process read restart successfully,
-      False otherwise
+      False otherwise (default True)
 
   Returns
   -------
@@ -448,7 +448,7 @@ def start_output(name, flags):
   if rc != _libscr.SCR_SUCCESS:
     raise RuntimeError("SCR_Start_output failed")
 
-def complete_output(valid):
+def complete_output(valid=True):
   """Close an output phase.
 
   Each calling process must indicate whether it wrote its portion
@@ -458,9 +458,9 @@ def complete_output(valid):
 
   Parameters
   ----------
-  valid : bool
+  valid : bool, optional
       pass True if calling process wrote its output successfully,
-      False otherwise
+      False otherwise (default True)
 
   Returns
   -------

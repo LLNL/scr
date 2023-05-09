@@ -278,6 +278,16 @@ and specify a flush type like :code:`PTHREAD`::
   SCR_FLUSH_ASYNC=1
   SCR_FLUSH_TYPE=PTHREAD
 
+Restart with a different number of processes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To restart an application with a different number of processes than used to save the checkpoint,
+one must follow the steps listed in :ref:`scr-integration-restart-without`.
+Additionally, one should set the following::
+
+  SCR_FLUSH_ON_RESTART=1
+  SCR_FETCH=0
+
 .. _sec-descriptors:
 
 Group, store, and checkpoint descriptors
@@ -621,6 +631,9 @@ The table in this section specifies the full set of SCR configuration parameters
    * - :code:`SCR_FETCH`
      - 1
      - Set to 0 to disable SCR from fetching files from the parallel file system during :code:`SCR_Init`.
+   * - :code:`SCR_FETCH_BYPASS`
+     - 0
+     - Set to 1 to read files directly from the parallel file system during fetch.
    * - :code:`SCR_FETCH_WIDTH`
      - 256
      - Specify the number of processes that may read simultaneously from the parallel file system.
