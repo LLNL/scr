@@ -610,8 +610,8 @@ the :code:`CMakeLists.txt` of a C application can use statements like:
   TARGET_LINK_LIBRARIES(myapp PRIVATE scr::scr)
 
 The SCR package configuration file is installed to :code:`${SCR_INSTALL_DIR}/share/scr/cmake`.
-One should include this path in the CMake module search path, e.g.,:
+One should include this path in the CMake prefix search path, e.g.,:
 
 .. code-block:: bash
 
-  export CMAKE_MODULE_PATH=${SCR_INSTALL_DIR}/share
+  export CMAKE_PREFIX_PATH=${SCR_INSTALL_DIR}
