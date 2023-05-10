@@ -5,12 +5,14 @@
 # installed to scr/install/
 #
 # Optional flags:
-#   --ssh    clone dependency repos with git ssh instead of https
-#   --debug  compiles dependencies with full debug "-g -O0"
-#   --opt    compiles dependencies with optimization (non-debug)
-#   --dev    builds each dependency from its latest commit
-#   --tag    builds each dependency from a hardcoded tag
-#   --clean  deletes deps and install directories before build
+#   --ssh     clone dependency repos with git ssh instead of https
+#   --debug   compiles dependencies with full debug "-g -O0"
+#   --opt     compiles dependencies with optimization (non-debug)
+#   --dev     builds each dependency from its latest commit
+#   --tag     builds each dependency from a hardcoded tag
+#   --clean   deletes deps and install directories before build
+#   --verbose build with VERBOSE=1 flag set to capture more build output
+#   --static  build static libraries instead of shared libraries
 #
 
 set -x 
@@ -18,10 +20,12 @@ echo "CC is ${CC}"
 echo "CXX is ${CXX}"
 
 # optional builds
-clone_ssh=0   # whether to clone with https (0) or ssh (1)
-build_debug=0 # whether to build optimized (0) or debug "-g -O0" (1)
-build_dev=1   # whether to checkout fixed version tags (0) or use latest (1)
-build_clean=0 # whether to keep deps directory (0) or delete and recreate (1)
+clone_ssh=0     # whether to clone with https (0) or ssh (1)
+build_debug=0   # whether to build optimized (0) or debug "-g -O0" (1)
+build_dev=1     # whether to checkout fixed version tags (0) or use latest (1)
+build_clean=0   # whether to keep deps directory (0) or delete and recreate (1)
+make_verbose="" # whether to run make with "VERBOSE=1" or not
+shared_flags="-DBUILD_SHARED_LIBS=ON"
 
 while [ $# -ge 1 ]; do
   case "$1" in
@@ -37,6 +41,10 @@ while [ $# -ge 1 ]; do
       build_dev=0 ;;
     "--clean" )
       build_clean=1 ;;
+    "--verbose" )
+      make_verbose="VERBOSE=1" ;;
+    "--static" )
+      shared_flags="-DBUILD_SHARED_LIBS=OFF" ;;
     *)
       echo "USAGE ERROR: unknown option $1"
       exit 1 ;;
@@ -108,8 +116,8 @@ tar -zxf ${lwgrp}.tar.gz
 pushd ${lwgrp}
   ./configure \
     --prefix=${INSTALL_DIR} && \
-  make && \
-  make install
+  make ${make_verbose} && \
+  make ${make_verbose} install
   if [ $? -ne 0 ]; then
     echo "failed to configure, build, or install liblwgrp"
     exit 1
@@ -122,8 +130,8 @@ pushd ${dtcmp}
   ./configure \
     --prefix=${INSTALL_DIR} \
     --with-lwgrp=${INSTALL_DIR} && \
-  make && \
-  make install
+  make ${make_verbose} && \
+  make ${make_verbose} install
   if [ $? -ne 0 ]; then
     echo "failed to configure, build, or install libdtcmp"
     exit 1
@@ -134,8 +142,8 @@ rm -rf ${pdsh}
 tar -zxf ${pdsh}.tar.gz
 pushd ${pdsh}
   ./configure --prefix=$INSTALL_DIR && \
-  make && \
-  make install
+  make ${make_verbose} && \
+  make ${make_verbose} install
   if [ $? -ne 0 ]; then
     echo "failed to configure, build, or install pdsh"
     exit 1
@@ -150,12 +158,13 @@ pushd KVTree
   mkdir -p build
   pushd build
     cmake \
+      ${shared_flags} \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DMPI=ON \
       .. && \
-    make -j `nproc` && \
-    make install
+    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install kvtree"
       exit 1
@@ -172,12 +181,13 @@ pushd AXL
   pushd build
     CMAKE_PREFIX_PATH="/usr/global/tools/nnfdm_x86_64/current" \
     cmake \
+      ${shared_flags} \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DMPI=ON \
       .. && \
-    make -j `nproc` && \
-    make install
+    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install axl"
       exit 1
@@ -193,12 +203,13 @@ pushd spath
   mkdir -p build
   pushd build
     cmake \
+      ${shared_flags} \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DMPI=ON \
       .. && \
-    make -j `nproc` && \
-    make install
+    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install spath"
       exit 1
@@ -214,11 +225,12 @@ pushd rankstr
   mkdir -p build
   pushd build
     cmake \
+      ${shared_flags} \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       .. && \
-    make -j `nproc` && \
-    make install
+    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install rankstr"
       exit 1
@@ -234,11 +246,12 @@ pushd redset
   mkdir -p build
   pushd build
     cmake \
+      ${shared_flags} \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       .. && \
-    make -j `nproc` && \
-    make install
+    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install redset"
       exit 1
@@ -254,11 +267,12 @@ pushd shuffile
   mkdir -p build
   pushd build
     cmake \
+      ${shared_flags} \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       .. && \
-    make -j `nproc` && \
-    make install
+    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install shuffile"
       exit 1
@@ -274,11 +288,12 @@ pushd er
   mkdir -p build
   pushd build
     cmake \
+      ${shared_flags} \
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       .. && \
-    make -j `nproc` && \
-    make install
+    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install er"
       exit 1
