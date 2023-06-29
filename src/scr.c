@@ -1527,6 +1527,8 @@ static int scr_start_output(const char* name, int flags)
      * base locations, finalize datasets in order up to our target id
      * so that we don't mess up our current pointer */
 
+    double scr_time_wait_start = MPI_Wtime();
+
     /* get full list of ids for ongoing flushes */
     int flush_num = 0;
     int* flush_ids = NULL;
@@ -1556,6 +1558,14 @@ static int scr_start_output(const char* name, int flags)
     /* now dataset is no longer flushing, we can delete it and continue on */
     scr_cache_delete(scr_cindex, flushing);
     nckpts_base--;
+
+    /* report time spent waiting on async flush to complete
+     * it's useful to separate this time from SCR overhead */
+    if (scr_my_rank_world == 0) {
+      double scr_time_wait_end = MPI_Wtime();
+      double wait_time = scr_time_wait_end - scr_time_wait_start;
+      scr_dbg(1, "wait async flush: %f secs", wait_time);
+    }
   }
 
   /* free the list of datasets */
