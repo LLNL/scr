@@ -13,19 +13,17 @@
 #   --clean   deletes deps and install directories before build
 #   --verbose build with VERBOSE=1 flag set to capture more build output
 #   --static  build static libraries instead of shared libraries
+#   --noshelldbg run script without "-x"
 #
-
-set -x 
-echo "CC is ${CC}"
-echo "CXX is ${CXX}"
 
 # optional builds
 clone_ssh=0     # whether to clone with https (0) or ssh (1)
 build_debug=0   # whether to build optimized (0) or debug "-g -O0" (1)
 build_dev=1     # whether to checkout fixed version tags (0) or use latest (1)
 build_clean=0   # whether to keep deps directory (0) or delete and recreate (1)
-make_verbose="" # whether to run make with "VERBOSE=1" or not
+make_verbose=0  # whether to run make with "VERBOSE=1" or not
 shared_flags="-DBUILD_SHARED_LIBS=ON"
+build_with_shell_dbg=1
 
 while [ $# -ge 1 ]; do
   case "$1" in
@@ -42,9 +40,11 @@ while [ $# -ge 1 ]; do
     "--clean" )
       build_clean=1 ;;
     "--verbose" )
-      make_verbose="VERBOSE=1" ;;
+      make_verbose=1 ;;
     "--static" )
       shared_flags="-DBUILD_SHARED_LIBS=OFF" ;;
+    "--noshelldbg" )
+      build_with_shell_dbg=0 ;;
     *)
       echo "USAGE ERROR: unknown option $1"
       exit 1 ;;
@@ -52,31 +52,43 @@ while [ $# -ge 1 ]; do
   shift
 done
 
+if [ ${build_with_shell_dbg} = 1 ]; then
+    set -x 
+fi
+
+run_cmd() {
+    echo $1
+    if ! eval $1 ; then
+        echo "FAIL: See ${log_file} for details"
+        exit 1
+    fi
+}
+
 ROOT="$(pwd)"
 INSTALL_DIR=$ROOT/install
 
 if [ $build_clean -eq 1 ] ; then
-  rm -rf deps
-  rm -rf install
+  run_cmd "rm -rf deps"
+  run_cmd "rm -rf install"
 fi
 
-mkdir -p deps
-mkdir -p install
+run_cmd "mkdir -p deps"
+run_cmd "mkdir -p install"
 
-cd deps
+run_cmd "cd deps"
 
 lwgrp=lwgrp-1.0.5
 dtcmp=dtcmp-1.1.4
 pdsh=pdsh-2.34
 
 if [ ! -f ${lwgrp}.tar.gz ] ; then
-  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.5/${lwgrp}.tar.gz
+  run_cmd "wget https://github.com/LLNL/lwgrp/releases/download/v1.0.5/${lwgrp}.tar.gz"
 fi
 if [ ! -f ${dtcmp}.tar.gz ] ; then
-  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.4/${dtcmp}.tar.gz
+  run_cmd "wget https://github.com/LLNL/dtcmp/releases/download/v1.1.4/${dtcmp}.tar.gz"
 fi
 if [ ! -f ${pdsh}.tar.gz ] ; then
-  wget https://github.com/chaos/pdsh/releases/download/${pdsh}/${pdsh}.tar.gz
+  run_cmd "wget https://github.com/chaos/pdsh/releases/download/${pdsh}/${pdsh}.tar.gz"
 fi
 
 if [ $clone_ssh -eq 0 ] ; then
@@ -101,7 +113,7 @@ for i in "${repos[@]}" ; do
   if [ -d $name ] ; then
     echo "$name already exists, skipping it"
   else
-    git clone $i
+    run_cmd "git clone $i"
   fi
 done
 
@@ -111,203 +123,117 @@ if [ $build_debug -eq 1 ] ; then
   buildtype="Debug"
 fi
 
-rm -rf ${lwgrp}
-tar -zxf ${lwgrp}.tar.gz
-pushd ${lwgrp}
-  ./configure \
-    --prefix=${INSTALL_DIR} && \
-  make ${make_verbose} && \
-  make ${make_verbose} install
-  if [ $? -ne 0 ]; then
-    echo "failed to configure, build, or install liblwgrp"
-    exit 1
-  fi
-popd
+make_cmd=""
+if [ ${make_verbose} = 1 ]; then
+    make_cmd="make VERBOSE=1 install"
+else
+    make_cmd="make -j $( nproc ) install"
+fi
 
-rm -rf ${dtcmp}
-tar -zxf ${dtcmp}.tar.gz
-pushd ${dtcmp}
-  ./configure \
-    --prefix=${INSTALL_DIR} \
-    --with-lwgrp=${INSTALL_DIR} && \
-  make ${make_verbose} && \
-  make ${make_verbose} install
-  if [ $? -ne 0 ]; then
-    echo "failed to configure, build, or install libdtcmp"
-    exit 1
-  fi
-popd
+run_cmd "rm -rf ${lwgrp}"
+run_cmd "tar -zxf ${lwgrp}.tar.gz"
+run_cmd "pushd ${lwgrp}"
+  run_cmd "./configure --prefix=${INSTALL_DIR} && ${make_cmd}"
+run_cmd "popd"
 
-rm -rf ${pdsh}
-tar -zxf ${pdsh}.tar.gz
-pushd ${pdsh}
-  ./configure --prefix=$INSTALL_DIR && \
-  make ${make_verbose} && \
-  make ${make_verbose} install
-  if [ $? -ne 0 ]; then
-    echo "failed to configure, build, or install pdsh"
-    exit 1
-  fi
-popd
+run_cmd "rm -rf ${dtcmp}"
+run_cmd "tar -zxf ${dtcmp}.tar.gz"
+run_cmd "pushd ${dtcmp}"
+  run_cmd "./configure --prefix=${INSTALL_DIR} --with-lwgrp=${INSTALL_DIR} && ${make_cmd}"
+run_cmd "popd"
 
-pushd KVTree
+run_cmd "rm -rf ${pdsh}"
+run_cmd "tar -zxf ${pdsh}.tar.gz"
+run_cmd "pushd ${pdsh}"
+  run_cmd "./configure --prefix=$INSTALL_DIR && ${make_cmd}"
+run_cmd "popd"
+
+run_cmd "pushd KVTree"
   if [ $build_dev -eq 0 ] ; then
-    git checkout v1.3.0
+    run_cmd "git checkout v1.3.0"
   fi
-  rm -rf build
-  mkdir -p build
-  pushd build
-    cmake \
-      ${shared_flags} \
-      -DCMAKE_BUILD_TYPE=$buildtype \
-      -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      -DMPI=ON \
-      .. && \
-    make ${make_verbose} -j `nproc` && \
-    make ${make_verbose} install
-    if [ $? -ne 0 ]; then
-      echo "failed to configure, build, or install kvtree"
-      exit 1
-    fi
-  popd
-popd
+  run_cmd "rm -rf build"
+  run_cmd "mkdir -p build"
+  run_cmd "pushd build"
+    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON .. && ${make_cmd}"
+  run_cmd "popd"
+run_cmd "popd"
 
 pushd AXL
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.6.0
+    run_cmd "git checkout v0.6.0"
   fi
-  rm -rf build
-  mkdir -p build
-  pushd build
-    CMAKE_PREFIX_PATH="/usr/global/tools/nnfdm_x86_64/current" \
-    cmake \
-      ${shared_flags} \
-      -DCMAKE_BUILD_TYPE=$buildtype \
-      -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      -DMPI=ON \
-      .. && \
-    make ${make_verbose} -j `nproc` && \
-    make ${make_verbose} install
-    if [ $? -ne 0 ]; then
-      echo "failed to configure, build, or install axl"
-      exit 1
-    fi
-  popd
-popd
+  run_cmd "rm -rf build"
+  run_cmd "mkdir -p build"
+  run_cmd "pushd build"
+    run_cmd "CMAKE_PREFIX_PATH='/usr/global/tools/nnfdm_x86_64/current' cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON .. && ${make_cmd}"
+  run_cmd "popd"
+run_cmd "popd"
 
-pushd spath
+run_cmd "pushd spath"
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    run_cmd "git checkout v0.2.0"
   fi
-  rm -rf build
-  mkdir -p build
-  pushd build
-    cmake \
-      ${shared_flags} \
-      -DCMAKE_BUILD_TYPE=$buildtype \
-      -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      -DMPI=ON \
-      .. && \
-    make ${make_verbose} -j `nproc` && \
-    make ${make_verbose} install
-    if [ $? -ne 0 ]; then
-      echo "failed to configure, build, or install spath"
-      exit 1
-    fi
-  popd
-popd
+  run_cmd "rm -rf build"
+  run_cmd "mkdir -p build"
+  run_cmd "pushd build"
+    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON .. && ${make_cmd}"
+  run_cmd "popd"
+run_cmd "popd"
 
-pushd rankstr
+run_cmd "pushd rankstr"
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    run_cmd "git checkout v0.2.0"
   fi
-  rm -rf build
-  mkdir -p build
-  pushd build
-    cmake \
-      ${shared_flags} \
-      -DCMAKE_BUILD_TYPE=$buildtype \
-      -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      .. && \
-    make ${make_verbose} -j `nproc` && \
-    make ${make_verbose} install
-    if [ $? -ne 0 ]; then
-      echo "failed to configure, build, or install rankstr"
-      exit 1
-    fi
-  popd
-popd
+  run_cmd "rm -rf build"
+  run_cmd "mkdir -p build"
+  run_cmd "pushd build"
+    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
+  run_cmd "popd"
+run_cmd "popd"
 
-pushd redset
+run_cmd "pushd redset"
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    run_cmd "git checkout v0.2.0"
   fi
-  rm -rf build
-  mkdir -p build
-  pushd build
-    cmake \
-      ${shared_flags} \
-      -DCMAKE_BUILD_TYPE=$buildtype \
-      -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      .. && \
-    make ${make_verbose} -j `nproc` && \
-    make ${make_verbose} install
-    if [ $? -ne 0 ]; then
-      echo "failed to configure, build, or install redset"
-      exit 1
-    fi
-  popd
-popd
+  run_cmd "rm -rf build"
+  run_cmd "mkdir -p build"
+  run_cmd "pushd build"
+    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
+  run_cmd "popd"
+run_cmd "popd"
 
-pushd shuffile
+run_cmd "pushd shuffile"
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    run_cmd "git checkout v0.2.0"
   fi
-  rm -rf build
-  mkdir -p build
-  pushd build
-    cmake \
-      ${shared_flags} \
-      -DCMAKE_BUILD_TYPE=$buildtype \
-      -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      .. && \
-    make ${make_verbose} -j `nproc` && \
-    make ${make_verbose} install
-    if [ $? -ne 0 ]; then
-      echo "failed to configure, build, or install shuffile"
-      exit 1
-    fi
-  popd
-popd
+  run_cmd "rm -rf build"
+  run_cmd "mkdir -p build"
+  run_cmd "pushd build"
+    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
+  run_cmd "popd"
+run_cmd "popd"
 
-pushd er
+run_cmd "pushd er"
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    run_cmd "git checkout v0.2.0"
   fi
-  rm -rf build
-  mkdir -p build
-  pushd build
-    cmake \
-      ${shared_flags} \
-      -DCMAKE_BUILD_TYPE=$buildtype \
-      -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      .. && \
-    make ${make_verbose} -j `nproc` && \
-    make ${make_verbose} install
-    if [ $? -ne 0 ]; then
-      echo "failed to configure, build, or install er"
-      exit 1
-    fi
-  popd
-popd
+  run_cmd "rm -rf build"
+  run_cmd "mkdir -p build"
+  run_cmd "pushd build"
+    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
+  run_cmd "popd"
+run_cmd "popd"
 
-set +x
-cd "$ROOT"
-mkdir -p build
+if [ ${build_with_shell_dbg} = 1 ]; then
+  set +x
+fi
+run_cmd "cd "$ROOT""
+run_cmd "mkdir -p build"
 echo "*************************************************************************"
 echo "Dependencies are all built.  You can now build SCR with:"
 echo ""
 echo "  mkdir -p build && cd build"
 echo "  cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .."
-echo "  make && make install"
+echo "  ${make_cmd}"
 echo "*************************************************************************"
