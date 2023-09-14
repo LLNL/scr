@@ -282,7 +282,7 @@ Restart with a different number of processes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To restart an application with a different number of processes than used to save the checkpoint,
-one must follow the steps listed in :ref:`scr-integration-restart-without`.
+one must follow the steps listed in :ref:`sec-integration-restart-without`.
 Additionally, one should set the following::
 
   SCR_FLUSH_ON_RESTART=1
