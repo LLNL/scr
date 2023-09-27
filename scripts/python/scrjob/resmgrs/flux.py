@@ -47,7 +47,7 @@ class FLUX(ResourceManager):
     else:
       jobid = self.flux.job.JobID.id_parse(jobid_str)
 
-    return jobid
+    return str(jobid)
 
   # get node list
   def get_job_nodes(self):
