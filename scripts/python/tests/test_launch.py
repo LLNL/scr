@@ -117,14 +117,15 @@ def dolaunch(launcher, launch_cmd):
   print('proc = ' + str(proc))
   print('pid = ' + str(jobstep))
   print('testing : Entering watchdog method')
+  success = False
   if watchdog.watchproc(proc, jobstep) != 0:
     print('watchdog.watchproc returned nonzero')
     print('calling launcher.waitonprocess . . .')
-    launcher.waitonprocess(proc)
+    (finished, success) = launcher.waitonprocess(proc)
   else:
     print('watchdog returned zero and didn\'t launch another process')
     print('this means the process is terminated')
-  print('Process has finished or has been terminated.')
+  print(f'Process has finished or has been terminated with success == {success}.')
 
 if __name__ == '__main__':
   if len(sys.argv) < 3:
