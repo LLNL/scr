@@ -344,6 +344,12 @@ def scr_run(launcher='',
   timestamp = datetime.now()
   print(prog + ': Ended: ' + str(timestamp))
 
+  if finished == True and success == True:
+    returncode = 0
+  else:
+    returncode = 1
+
+  sys.exit(returncode)
 
 def print_usage(launcher=''):
   available_launchers = '[' + '/'.join(valid_launchers) + ']'
