@@ -10,7 +10,7 @@ FUNCTION(SCR_LAUNCHER_PARMS procs)
         SET(test_param "--nrs ${procs} -r 1" PARENT_SCOPE)
     ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "FLUX")
         SET(test_launcher "flux" PARENT_SCOPE)
-        SET(test_param "mini run --nodes ${procs} --ntasks ${procs}" PARENT_SCOPE)
+        SET(test_param "run --nodes ${procs} --ntasks ${procs}" PARENT_SCOPE)
     ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 ENDFUNCTION(SCR_LAUNCHER_PARMS procs)
 
