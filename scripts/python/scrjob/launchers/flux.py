@@ -60,7 +60,7 @@ class FLUX(JobLauncher):
 
     # A jobspec is a yaml description of job and its resource requirements.
     # Building one lets us submit the job and get back the assigned jobid.
-    argv.insert(3, '--dry-run')
+    argv.insert(2, '--dry-run')
     compute_jobreq, exitcode = runproc(argv=argv, getstdout=True)
     if compute_jobreq == None:
         return None, None
