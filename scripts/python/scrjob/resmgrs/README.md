@@ -19,13 +19,13 @@ for the interface definitions that one must implement, e.g.:
       def get_job_id():
         pass
 
-      def get_scr_end_time():
+      def get_end_time():
         pass
 
-      def get_jobnodes():
+      def get_job_nodes():
         pass
 
-      def get_downnodes():
+      def get_down_nodes():
         pass
 
 ## Import the new class in `__init__.py`

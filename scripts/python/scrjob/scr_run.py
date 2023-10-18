@@ -120,7 +120,7 @@ def scr_run(launcher='',
     launcher.hostfile = os.path.join(scr_env.dir_scr(), 'hostfile')
 
     # jobid will come from resource manager.
-    jobid = resmgr.getjobid()
+    jobid = resmgr.get_job_id()
     user = scr_env.get_user()
 
     # We need the jobid for logging, and need to be running within an allocation
@@ -164,7 +164,7 @@ def scr_run(launcher='',
         sys.exit(1)
 
     # look up allocation end time, record in SCR_END_TIME
-    endtime = resmgr.get_scr_end_time()
+    endtime = resmgr.get_end_time()
     if endtime == 0:
         if verbose == True:
             print(prog + ': WARNING: Unable to get end time.')

@@ -40,8 +40,8 @@ os.environ['SCR_LOG_ENABLE'] = '1'
 scr_env = SCR_Env()
 user = scr_env.get_user()
 
-rm = AutoResourceManager()
-jobid = rm.getjobid()
+resmgr = AutoResourceManager()
+jobid = resmgr.get_job_id()
 
 pwd = os.getcwd()
 log = SCRLog(pwd, jobid, user)

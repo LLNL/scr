@@ -58,13 +58,13 @@ def testwatchdog(launcher, launcher_args):
     os.environ['SCR_WATCHDOG_TIMEOUT_PFS'] = '15'
     scr_env = SCR_Env()
     param = SCR_Param()
-    rm = AutoResourceManager()
+    resmgr = AutoResourceManager()
     launcher = AutoJobLauncher(launcher)
     prefix = scr_env.get_prefix()
     scr_env.param = param
     scr_env.launcher = launcher
-    nodelist = rm.get_job_nodes()
-    down_nodes = rm.get_downnodes()
+    nodelist = resmgr.get_job_nodes()
+    down_nodes = resmgr.get_down_nodes()
     watchdog = SCR_Watchdog(prefix, scr_env)
 
     if down_nodes is None:

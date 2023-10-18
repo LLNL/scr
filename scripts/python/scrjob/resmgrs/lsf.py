@@ -19,7 +19,7 @@ class LSF(ResourceManager):
             self.nodetests.tests.append('pdsh_echo')
 
     # get LSF jobid
-    def getjobid(self):
+    def get_job_id(self):
         return os.environ.get('LSB_JOBID')
 
     # get node list
@@ -53,11 +53,11 @@ class LSF(ResourceManager):
             hosts = self.compress_hosts(hosts)
         return hosts
 
-    def get_downnodes(self):
+    def get_down_nodes(self):
         # TODO : any way to get list of down nodes in LSF?
         return {}
 
-    def get_scr_end_time(self):
+    def get_end_time(self):
         # run bjobs to get time remaining in current allocation
         bjobs, rc = runproc("bjobs -o time_left", getstdout=True)
         if rc != 0:

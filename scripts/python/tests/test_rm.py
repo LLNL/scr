@@ -30,14 +30,14 @@ from scrjob.resmgrs import AutoResourceManager
 
 time.sleep(2)
 
-rm = AutoResourceManager()
+resmgr = AutoResourceManager()
 
-print(str(type(rm)))
-print("jobid:", rm.getjobid())
-print("nodes:", rm.get_job_nodes())
-print("downnodes:", rm.get_downnodes())
+print(str(type(resmgr)))
+print("jobid:", resmgr.get_job_id())
+print("nodes:", resmgr.get_job_nodes())
+print("downnodes:", resmgr.get_down_nodes())
 
-endtime = rm.get_scr_end_time()
+endtime = resmgr.get_end_time()
 print("endsecs:", endtime)
 
 now = int(time.time())

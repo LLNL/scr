@@ -20,7 +20,7 @@ class PBSALPS(ResourceManager):
             self.nodetests.tests.append('dir_capacity')
 
     # get job id, setting environment flag here
-    def getjobid(self):
+    def get_job_id(self):
         if self.jobid is not None:
             return self.jobid
         # val may be None
@@ -43,7 +43,7 @@ class PBSALPS(ResourceManager):
                     return shortnodes
         return None
 
-    def get_downnodes(self):
+    def get_down_nodes(self):
         downnodes = {}
         snodes = self.get_job_nodes()
         if snodes is not None:

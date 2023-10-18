@@ -26,7 +26,7 @@ class SLURM(ResourceManager):
         return ['check_clustershell', 'check_pdsh']
 
     # get SLURM jobid of current allocation
-    def getjobid(self):
+    def get_job_id(self):
         return os.environ.get('SLURM_JOBID')
 
     # get node list
@@ -34,7 +34,7 @@ class SLURM(ResourceManager):
         return os.environ.get('SLURM_NODELIST')
 
     # use sinfo to query SLURM for the list of nodes it thinks to be down
-    def get_downnodes(self):
+    def get_down_nodes(self):
         downnodes = {}
         nodelist = self.get_job_nodes()
         if nodelist is not None:
@@ -51,9 +51,9 @@ class SLURM(ResourceManager):
         return downnodes
 
     # query SLURM for allocation endtime, expressed as secs since epoch
-    def get_scr_end_time(self):
+    def get_end_time(self):
         # get jobid
-        jobid = self.getjobid()
+        jobid = self.get_job_id()
         if jobid is None:
             return 0
 

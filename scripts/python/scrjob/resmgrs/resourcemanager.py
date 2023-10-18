@@ -96,7 +96,7 @@ class ResourceManager(object):
             return self.use_watchdog
         self.use_watchdog = use_scr_watchdog
 
-    def getjobid(self):
+    def get_job_id(self):
         """Return current job allocation id
 
     This value is used in logging and is used in building paths for output files.
@@ -122,7 +122,7 @@ class ResourceManager(object):
     """
         return None
 
-    def get_downnodes(self):
+    def get_down_nodes(self):
         """Return allocation compute nodes the resource manager identifies as down
 
     Some resource managers can report nodes it has determined to be down.
@@ -137,7 +137,7 @@ class ResourceManager(object):
     """
         return {}
 
-    def get_scr_end_time(self):
+    def get_end_time(self):
         """Return expected allocation end time
 
     The end time must be expressed as seconds since
