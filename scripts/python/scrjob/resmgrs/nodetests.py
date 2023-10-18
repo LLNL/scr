@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 import os
 from scrjob import scr_const
 from scrjob.scr_common import runproc

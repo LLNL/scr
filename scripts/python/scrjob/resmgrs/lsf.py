@@ -1,8 +1,3 @@
-#! /usr/bin/env python3
-
-# lsf.py
-# LSF is a subclass of ResourceManager
-
 import os, re
 from time import time
 

@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 '''
 # pmix.py
 # PMIX is a subclass if ResourceManager

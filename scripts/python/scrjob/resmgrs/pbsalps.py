@@ -1,9 +1,3 @@
-#! /usr/bin/env python3
-
-# pbsalps.py
-# cray xt
-# PBSALPS is a subclass of ResourceManager
-
 import os, re
 from scrjob import scr_const
 from scrjob.scr_common import runproc, pipeproc

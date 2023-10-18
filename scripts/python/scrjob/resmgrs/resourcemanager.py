@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 import os
 from scrjob import scr_const, scr_hostlist
 from scrjob.scr_common import scr_prefix

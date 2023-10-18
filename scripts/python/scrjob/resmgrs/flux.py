@@ -1,7 +1,3 @@
-#! /usr/bin/env python3
-
-# FLUX is a subclass of ResourceManager
-
 import os, re
 import datetime
 from time import time
@@ -23,16 +19,14 @@ except:
 class FLUX(ResourceManager):
     # init initializes vars from the environment
     def __init__(self):
+        # the super.init() calls resmgr.job_nodes, we must set self.flux first
         try:
             self.flux = flux.Flux()
         except:
             raise ImportError(
                 'Error importing flux, ensure that the flux daemon is running.'
             )
-        # the super.init() calls resmgr.job_nodes, we must set self.flux first
         super(FLUX, self).__init__(resmgr='FLUX')
-        ### set the jobid once at init
-        self.jobid = None
         self.jobid = self.job_id()
 
     ####
@@ -49,7 +43,6 @@ class FLUX(ResourceManager):
             jobid = JobID(self.flux.attr_get("jobid"))
         else:
             jobid = self.flux.job.JobID.id_parse(jobid_str)
-
         return str(jobid)
 
     # get node list
@@ -83,5 +76,4 @@ class FLUX(ResourceManager):
             info = JobList(self.flux,
                            ids=[self.jobid]).fetch_jobs().get_jobs()[0]
         endtime = info["expiration"]
-
         return endtime
