@@ -5,7 +5,7 @@
 #   salloc -N1 -ppdebug
 #
 # Within allocation, run test_api with following settings:
-#   
+#
 #   export SCR_CACHE_BYPASS=0
 #   export SCR_CACHE_SIZE=6
 #   export SCR_FLUSH=6
@@ -25,6 +25,7 @@ print('True')
 print('--------------------------------------------------------')
 
 import os, sys, time
+
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
 import scrjob
 from scrjob.cli import SCRIndex

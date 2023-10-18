@@ -23,6 +23,7 @@ print('--------------------------------------------------------')
 
 import os, sys
 import time
+
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
 import scrjob
 from scrjob.resmgrs import AutoResourceManager
@@ -42,7 +43,7 @@ print("endsecs:", endtime)
 now = int(time.time())
 secs = endtime - now
 if secs < 0:
-  secs = 0
+    secs = 0
 print("now:", now, "end:", endtime, "secs left:", secs)
 
 time.sleep(2)

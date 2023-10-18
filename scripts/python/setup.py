@@ -10,15 +10,14 @@ setup(
     author='LLNL',
     author_email='pao@llnl.gov',
     license='BSD 3-clause + addendum',
-    packages=find_packages(), #['scrjob'],
-    install_requires=[#'mpi4py>=2.0',
-                      #'numpy',
-                      ],
-
+    packages=find_packages(),  #['scrjob'],
+    install_requires=[  #'mpi4py>=2.0',
+        #'numpy',
+    ],
     classifiers=[
         #'Intended Audience :: Science/Research',
-        #'License :: OSI Approved :: BSD License',  
-        #'Operating System :: POSIX :: Linux',        
+        #'License :: OSI Approved :: BSD License',
+        #'Operating System :: POSIX :: Linux',
         #'Programming Language :: Python :: 3',
     ],
 )
