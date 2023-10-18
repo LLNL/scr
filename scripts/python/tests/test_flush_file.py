@@ -5,7 +5,7 @@
 #   salloc -N1 -ppdebug
 #
 # Within allocation, run test_api with following settings:
-#   
+#
 #   export SCR_CACHE_BYPASS=0
 #   export SCR_CACHE_SIZE=6
 #   export SCR_FLUSH=6
@@ -35,6 +35,7 @@ print('latest: 6')
 print('--------------------------------------------------------')
 
 import os, sys, time
+
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
 import scrjob
 from scrjob.cli import SCRFlushFile
@@ -43,24 +44,24 @@ time.sleep(2)
 
 pwd = os.getcwd()
 if __name__ == '__main__' and len(sys.argv) == 2:
-  pwd = sys.argv[1]
+    pwd = sys.argv[1]
 ff = SCRFlushFile(pwd)
 
 dsets = ff.list_dsets_output()
 print('output:', dsets)
 for d in dsets:
-  name = ff.name(d)
-  needflush = ff.need_flush(d)
-  location = ff.location(d)
-  print(d, name, needflush, location)
+    name = ff.name(d)
+    needflush = ff.need_flush(d)
+    location = ff.location(d)
+    print(d, name, needflush, location)
 
 dsets = ff.list_dsets_ckpt()
 print('ckpt:', dsets)
 for d in dsets:
-  name = ff.name(d)
-  needflush = ff.need_flush(d)
-  location = ff.location(d)
-  print(d, name, needflush, location)
+    name = ff.name(d)
+    needflush = ff.need_flush(d)
+    location = ff.location(d)
+    print(d, name, needflush, location)
 
 print('latest:', ff.latest())
 
