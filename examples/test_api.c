@@ -333,6 +333,41 @@ void work_allreduce(int timestep, int iters)
   return;
 }
 
+void work_allreduce_iters(int timestep, int iters)
+{
+  double* times = (double*) malloc(iters * sizeof(double));
+
+  double inval = (double) rank;
+  double outval;
+
+  int i;
+  double start;
+  for (i = 0; i < iters; i++) {
+    if (rank == 0) {
+      start = MPI_Wtime();
+    }
+
+    MPI_Allreduce(&inval, &outval, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+      double end = MPI_Wtime();
+      times[i] = end - start;
+    }
+  }
+
+  if (rank == 0) {
+    printf("Allreduce iteration times start (secs):\n");
+    for (i = 0; i < iters; i++) {
+      printf("%0.10f\n", times[i]);
+    }
+    printf("Allreduce iteration times end\n");
+  }
+
+  free(times);
+
+  return;
+}
+
 void work_memcpy(int timestep, int iters, size_t bufsize)
 {
   double start = MPI_Wtime();
@@ -520,7 +555,8 @@ double getbw(char* name, char* buf, int times)
        * Timing how long this takes can be used to estimate
        * interference from a background flush. */
       if (reduce > 0) {
-        work_cpu(timestep, reduce);
+//        work_cpu(timestep, reduce);
+        work_allreduce_iters(timestep, reduce);
 //        work_allreduce(timestep, reduce);
 //        work_memcpy(timestep, reduce, 1024L * 1024L * 1024L);
       }
