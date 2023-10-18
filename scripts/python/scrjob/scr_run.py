@@ -120,7 +120,7 @@ def scr_run(launcher='',
     launcher.hostfile = os.path.join(scr_env.dir_scr(), 'hostfile')
 
     # jobid will come from resource manager.
-    jobid = resmgr.get_job_id()
+    jobid = resmgr.job_id()
     user = scr_env.get_user()
 
     # We need the jobid for logging, and need to be running within an allocation
@@ -135,7 +135,7 @@ def scr_run(launcher='',
     # get the nodeset of this job
     nodelist = scr_env.get_scr_nodelist()
     if nodelist is None:
-        nodelist = resmgr.get_job_nodes()
+        nodelist = resmgr.job_nodes()
         if nodelist is None:
             print(prog +
                   f': ERROR: Could not identify nodeset for job {jobid}')
@@ -164,7 +164,7 @@ def scr_run(launcher='',
         sys.exit(1)
 
     # look up allocation end time, record in SCR_END_TIME
-    endtime = resmgr.get_end_time()
+    endtime = resmgr.end_time()
     if endtime == 0:
         if verbose == True:
             print(prog + ': WARNING: Unable to get end time.')

@@ -20,14 +20,14 @@ class PBSALPS(ResourceManager):
             self.nodetests.tests.append('dir_capacity')
 
     # get job id, setting environment flag here
-    def get_job_id(self):
+    def job_id(self):
         if self.jobid is not None:
             return self.jobid
         # val may be None
         return os.environ.get('PBS_JOBID')
 
     # get node list
-    def get_job_nodes(self):
+    def job_nodes(self):
         val = os.environ.get('PBS_NUM_NODES')
         if val is not None:
             cmd = "aprun -n " + val + " -N 1 cat /proc/cray_xt/nid"  # $nidfile
@@ -43,9 +43,9 @@ class PBSALPS(ResourceManager):
                     return shortnodes
         return None
 
-    def get_down_nodes(self):
+    def down_nodes(self):
         downnodes = {}
-        snodes = self.get_job_nodes()
+        snodes = self.job_nodes()
         if snodes is not None:
             snodes = self.expand_hosts(snodes)
             for node in snodes:

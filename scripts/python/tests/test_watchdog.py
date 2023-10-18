@@ -63,8 +63,8 @@ def testwatchdog(launcher, launcher_args):
     prefix = scr_env.get_prefix()
     scr_env.param = param
     scr_env.launcher = launcher
-    nodelist = resmgr.get_job_nodes()
-    down_nodes = resmgr.get_down_nodes()
+    nodelist = resmgr.job_nodes()
+    down_nodes = resmgr.down_nodes()
     watchdog = SCR_Watchdog(prefix, scr_env)
 
     if down_nodes is None:

@@ -59,14 +59,14 @@ def getpdshout(launcher, launch_cmd):
     scr_env.param = param
     scr_env.resmgr = resmgr
     scr_env.launcher = launcher
-    jobid = resmgr.get_job_id()
+    jobid = resmgr.job_id()
     user = scr_env.get_user()
     print('jobid = ' + str(jobid))
     print('user = ' + str(user))
     # get the nodeset of this job
     nodelist = scr_env.get_scr_nodelist()
     if nodelist is None:
-        nodelist = resmgr.get_job_nodes()
+        nodelist = resmgr.job_nodes()
         if nodelist is None:
             nodelist = ''
     nodelist = ','.join(resmgr.expand_hosts(nodelist))
@@ -82,14 +82,14 @@ def getpdshout(launcher, launch_cmd):
         print('This would terminate run')
     else:
         print('prerun returned success')
-    endtime = resmgr.get_end_time()
+    endtime = resmgr.end_time()
     print('endtime = ' + str(endtime))
     if endtime == 0:
         print('testing : WARNING: Unable to get end time.')
     elif endtime == -1:  # no end time / limit
-        print('testing : get_end_time returned no end time / limit')
+        print('testing : end_time returned no end time / limit')
     else:
-        print('testing : get_end_time returned ' + str(endtime))
+        print('testing : end_time returned ' + str(endtime))
     down_nodes = list_down_nodes(free=True, nodeset_down='', scr_env=scr_env)
     if type(down_nodes) is int:
         print('there were no downnodes from list_down_nodes')

@@ -60,7 +60,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
     # get our nodeset for this job
     scr_nodelist = scr_env.get_scr_nodelist()
     if scr_nodelist is None:
-        scr_nodelist = scr_env.resmgr.get_job_nodes()
+        scr_nodelist = scr_env.resmgr.job_nodes()
         if scr_nodelist is None:
             print('scr_postrun: ERROR: Could not identify nodeset')
             return 1

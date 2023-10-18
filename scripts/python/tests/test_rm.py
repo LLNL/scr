@@ -33,11 +33,11 @@ time.sleep(2)
 resmgr = AutoResourceManager()
 
 print(str(type(resmgr)))
-print("jobid:", resmgr.get_job_id())
-print("nodes:", resmgr.get_job_nodes())
-print("downnodes:", resmgr.get_down_nodes())
+print("jobid:", resmgr.job_id())
+print("nodes:", resmgr.job_nodes())
+print("downnodes:", resmgr.down_nodes())
 
-endtime = resmgr.get_end_time()
+endtime = resmgr.end_time()
 print("endsecs:", endtime)
 
 now = int(time.time())

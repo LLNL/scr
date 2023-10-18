@@ -16,16 +16,16 @@ for the interface definitions that one must implement, e.g.:
     from pyfe.resmgr import ResourceManager
 
     class NewRM(ResourceManager):
-      def get_job_id():
+      def job_id():
         pass
 
-      def get_end_time():
+      def end_time():
         pass
 
-      def get_job_nodes():
+      def job_nodes():
         pass
 
-      def get_down_nodes():
+      def down_nodes():
         pass
 
 ## Import the new class in `__init__.py`

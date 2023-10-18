@@ -43,7 +43,7 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
     # read node set of job
     jobset = scr_env.get_scr_nodelist()
     if jobset is None:
-        jobset = scr_env.resmgr.get_job_nodes()
+        jobset = scr_env.resmgr.job_nodes()
         if jobset is None:
             print('scr_inspect: ERROR: Could not determine nodeset.')
             return 1

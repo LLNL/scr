@@ -41,7 +41,7 @@ scr_env = SCR_Env()
 user = scr_env.get_user()
 
 resmgr = AutoResourceManager()
-jobid = resmgr.get_job_id()
+jobid = resmgr.job_id()
 
 pwd = os.getcwd()
 log = SCRLog(pwd, jobid, user)

@@ -14,7 +14,7 @@ class PMIX(ResourceManager):
     super(PMIX, self).__init__(resmgr='PMIX')
 
   # get job id, setting environment flag here
-  def get_job_id(self):
+  def job_id(self):
     if self.jobid is not None:
       return self.jobid
     #####
@@ -38,7 +38,7 @@ class PMIX(ResourceManager):
     return currjobid
 
   # get node list
-  def get_job_nodes(self):
+  def job_nodes(self):
     val = os.environ.get('PMIX_NODELIST')
     if val is not None:
       node_list = val.split(',')
@@ -46,7 +46,7 @@ class PMIX(ResourceManager):
       return nodeset
     return None
 
-  def get_down_nodes(self):
+  def down_nodes(self):
     # if the resource manager knows any nodes to be down out of the job's
     # nodeset, print this list in 'atlas[30-33,35,45-53]' form
     # if there are none, print nothing, not even a newline
@@ -63,7 +63,7 @@ class PMIX(ResourceManager):
   def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
     unavailable = {}
     ### is theres way to get a list of down nodes in pmix?
-    #unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes, resmgr_nodes=self.expand_hosts(self.get_down_nodes()))
+    #unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes, resmgr_nodes=self.expand_hosts(self.down_nodes()))
     nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)
     if scr_env is not None and scr_env.param is not None:
@@ -106,6 +106,6 @@ class PMIX(ResourceManager):
       argv.append('CPPR_PREFIX='+cppr_prefix)
     argv.extend([prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag])
     argv.append(downnodes_spaced)
-    output = self.parallel_exec(argv=argv,runnodes=self.get_job_nodes(),use_dshbak=False)[0]
+    output = self.parallel_exec(argv=argv,runnodes=self.job_nodes(),use_dshbak=False)[0]
     return output
 '''

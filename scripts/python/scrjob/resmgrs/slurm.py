@@ -22,21 +22,21 @@ class SLURM(ResourceManager):
 
     # get a list of tests, methods that exist in the class SCR_Test_Runtime
     # these tests will be ran during scr_prerun
-    def get_prerun_tests(self):
+    def prerun_tests(self):
         return ['check_clustershell', 'check_pdsh']
 
     # get SLURM jobid of current allocation
-    def get_job_id(self):
+    def job_id(self):
         return os.environ.get('SLURM_JOBID')
 
     # get node list
-    def get_job_nodes(self):
+    def job_nodes(self):
         return os.environ.get('SLURM_NODELIST')
 
     # use sinfo to query SLURM for the list of nodes it thinks to be down
-    def get_down_nodes(self):
+    def down_nodes(self):
         downnodes = {}
-        nodelist = self.get_job_nodes()
+        nodelist = self.job_nodes()
         if nodelist is not None:
             down, returncode = runproc("sinfo -ho %N -t down -n " + nodelist,
                                        getstdout=True)
@@ -51,9 +51,9 @@ class SLURM(ResourceManager):
         return downnodes
 
     # query SLURM for allocation endtime, expressed as secs since epoch
-    def get_end_time(self):
+    def end_time(self):
         # get jobid
-        jobid = self.get_job_id()
+        jobid = self.job_id()
         if jobid is None:
             return 0
 
