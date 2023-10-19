@@ -54,7 +54,7 @@ class PMIX(ResourceManager):
     #  my $nodeset = ""; #get nodeset with pmixhelper
     return None
 
-  def scr_kill_jobstep(self,jobid=-1):
+  def kill_jobstep(self,jobid=-1):
     print('pmix does not support this')
     return 1
 

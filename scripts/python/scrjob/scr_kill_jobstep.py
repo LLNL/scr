@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 
-# scr_kill_jobstep.py
 """
 This script can use the 'scancel' or equivalent command
 to kill a jobstep with the jobstep id supplied via the command line.
@@ -54,5 +53,5 @@ if __name__ == '__main__':
         print('Joblauncher:')
         print(str(type(launcher)))
         print('Jobstep id: ' + args['jobStepId'])
-        print('Calling launcher.scr_kill_jobstep . . .')
-        launcher.scr_kill_jobstep(jobstep=args['jobStepId'])
+        print('Calling launcher.kill_jobstep . . .')
+        launcher.kill_jobstep(jobstep=args['jobStepId'])

@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """
 Job Launcher classes provide an interface to specific launcher programs.
 
@@ -14,11 +13,9 @@ The auto class, AutoJobLauncher, should remain located at the bottom of this fil
 New job launcher classes must be inserted in the middle 'Job launcher' section
 """
 
-####
 # Parent JobLauncher class
 from .joblauncher import JobLauncher
-####
-####
+
 # Job launcher section
 from .srun import SRUN
 from .aprun import APRUN
@@ -27,8 +24,5 @@ from .lrun import LRUN
 from .mpirun import MPIRUN
 from .flux import FLUX
 
-####
-####
 # The AutoJobLauncher returns one of the above classes
 from .auto import AutoJobLauncher
-####

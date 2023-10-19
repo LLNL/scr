@@ -85,11 +85,11 @@ class SCR_Watchdog:
                 timeToSleep = self.timeout
         # forward progress not observed in an expected timeframe
         # kill the watched process and return
-        self.launcher.scr_kill_jobstep(jobstep)
+        self.launcher.kill_jobstep(jobstep)
         return 0
 
     def watchproc(self, watched_process=None, jobstep=None):
-        """watchproc is the method called after launcher.launchruncmd()
+        """watchproc is the method called after launcher.launch_run_cmd()
 
     Parameters
     ----------

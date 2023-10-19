@@ -74,9 +74,9 @@ def dolaunch(launcher, launch_cmd):
     nodelist = ','.join(resmgr.expand_hosts(nodelist))
     print('nodelist = ' + str(nodelist))
     watchdog = SCR_Watchdog(prefix, scr_env)
-    print('calling prepareforprerun . . .')
-    launcher.prepareforprerun()
-    print('returned from prepareforprerun')
+    print('calling prepare_prerun . . .')
+    launcher.prepare_prerun()
+    print('returned from prepare_prerun')
     if scr_prerun(scr_env=scr_env) != 0:
         print('testing: ERROR: Command failed: scr_prerun -p ' + prefix)
         print('This would terminate run')
@@ -111,9 +111,9 @@ def dolaunch(launcher, launch_cmd):
     num_left = nodes_remaining(resmgr, nodelist, down_nodes)
     print('num_left = ' + str(num_left))
     print('testing: Launching ' + str(launch_cmd))
-    proc, jobstep = launcher.launchruncmd(up_nodes=nodelist,
-                                          down_nodes=down_nodes,
-                                          launcher_args=launch_cmd)
+    proc, jobstep = launcher.launch_run_cmd(up_nodes=nodelist,
+                                            down_nodes=down_nodes,
+                                            launcher_args=launch_cmd)
     print('type(proc) = ' + str(type(proc)) + ', type(jobstep) = ' +
           str(type(jobstep)))
     print('proc = ' + str(proc))

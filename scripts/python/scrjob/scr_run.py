@@ -152,7 +152,7 @@ def scr_run(launcher='',
 
     # TODO: define resmgr.prerun() and launcher.prerun() hooks, call from scr_prerun?
     # run a NOP with srun, other launchers could do any preamble work here
-    launcher.prepareforprerun()
+    launcher.prepare_prerun()
 
     # make a record of time prerun is started
     timestamp = datetime.now()
@@ -281,9 +281,9 @@ def scr_run(launcher='',
 
         # launch the job, make sure we include the script node and exclude down nodes
         print(prog + ': Launching ' + str(launch_cmd))
-        proc, jobstep = launcher.launchruncmd(up_nodes=nodelist,
-                                              down_nodes=down_nodes,
-                                              launcher_args=launch_cmd)
+        proc, jobstep = launcher.launch_run_cmd(up_nodes=nodelist,
+                                                down_nodes=down_nodes,
+                                                launcher_args=launch_cmd)
         if watchdog is None:
             (finished, success) = launcher.waitonprocess(proc)
         else:

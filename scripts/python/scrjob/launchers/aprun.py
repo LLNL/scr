@@ -1,8 +1,3 @@
-#! /usr/bin/env python3
-
-# aprun.py
-# The APRUN class provides interpretation for the aprun launcher
-
 from time import sleep
 
 from scrjob import scr_const
@@ -18,7 +13,7 @@ class APRUN(JobLauncher):
     # a command to run immediately before prerun is ran
     # NOP srun to force every node to run prolog to delete files from cache
     # TODO: remove this if admins find a better place to clear cache
-    def prepareforprerun(self):
+    def prepare_prerun(self):
         # NOP aprun to force every node to run prolog to delete files from cache
         # TODO: remove this if admins find a better place to clear cache
         argv = ['aprun', '/bin/hostname']  # ,'>','/dev/null']
@@ -26,18 +21,21 @@ class APRUN(JobLauncher):
 
     # returns the process and PID of the launched process
     # as returned by runproc(argv=argv, wait=False)
-    def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
+    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
         if type(launcher_args) is str:
             launcher_args = launcher_args.split()
-        # ap run needs to specify nodes to use
+
+        # aprun needs to specify nodes to use
         if len(launcher_args) == 0 or len(up_nodes) == 0:
             return None, -1
         argv = [self.launcher]
         argv.extend(['-L', up_nodes])
         argv.extend(launcher_args)
+
         ### TODO: #ensure the Popen.terminate() works here too.
         if scr_const.USE_JOBLAUNCHER_KILL != '1':
             return runproc(argv=argv, wait=False)
+
         proc = runproc(argv=argv, wait=False)[0]
         jobstepid = self.get_jobstep_id(pid=proc.pid)
         if jobstepid is not None:
@@ -108,9 +106,9 @@ class APRUN(JobLauncher):
         return currApid
 
     # Only use akill to kill the jobstep if desired and get_jobstep_id was successful
-    def scr_kill_jobstep(self, jobstep=None):
+    def kill_jobstep(self, jobstep=None):
         # it looks like the Popen.terminate is working with srun
         if type(jobstep) is str:
             runproc(argv=['apkill', jobstep])
         else:
-            super().scr_kill_jobstep(jobstep)
+            super().kill_jobstep(jobstep)

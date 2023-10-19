@@ -74,9 +74,9 @@ def getpdshout(launcher, launch_cmd):
     resmgr.usewatchdog(True)
     watchdog = SCR_Watchdog(prefix, scr_env)
     if launcher == 'srun':
-        print('calling prepareforprerun . . .')
-        launcher.prepareforprerun()
-        print('returned from prepareforprerun')
+        print('calling prepare_prerun . . .')
+        launcher.prepare_prerun()
+        print('returned from prepare_prerun')
     if scr_prerun(scr_env=scr_env) != 0:
         print('testing: ERROR: Command failed: scr_prerun -p ' + prefix)
         print('This would terminate run')

@@ -1,8 +1,3 @@
-#! /usr/bin/env python3
-
-# mpirun.py
-# The MPIRUN class provides interpretation for the mpirun launcher
-
 import os
 from scrjob import scr_hostlist, scr_const
 from scrjob.launchers import JobLauncher
@@ -16,11 +11,12 @@ class MPIRUN(JobLauncher):
 
     # returns the subprocess.Popen object as left and right elements of a tuple,
     # as returned by runproc(argv=argv, wait=False)
-    def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
+    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
         if type(launcher_args) is str:
             launcher_args = launcher_args.split()
         if len(launcher_args) == 0:
             return None, None
+
         # split the node string into a node per line
         up_nodes = '/n'.join(up_nodes.split(','))
         try:

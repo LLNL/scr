@@ -16,7 +16,7 @@ for the interface definitions that one must implement, e.g.:
     from pyfe.joblauncher import JobLauncher
 
     class NewLauncher(JobLauncher):
-      def launchruncmd():
+      def launch_run_cmd():
         pass
 
       def killrun():

@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """
 AutoJobLauncher is called to return the appropriate JobLauncher class
 

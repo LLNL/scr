@@ -1,8 +1,3 @@
-#! /usr/bin/env python3
-
-# lrun.py
-# The LRUN class provides interpretation for the lrun launcher
-
 from scrjob import scr_const
 from scrjob.launchers import JobLauncher
 from scrjob.scr_common import runproc, pipeproc
@@ -15,7 +10,7 @@ class LRUN(JobLauncher):
 
     # returns the subprocess.Popen object as left and right elements of a tuple,
     # as returned by runproc(argv=argv, wait=False)
-    def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
+    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
         if type(launcher_args) is str:
             launcher_args = launcher_args.split()
         if len(launcher_args) == 0:

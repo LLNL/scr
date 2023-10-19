@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 import io, os, re
 from time import sleep, time
 
@@ -23,6 +21,7 @@ class FLUX(JobLauncher):
 
     def __init__(self, launcher='flux'):
         super(FLUX, self).__init__(launcher=launcher)
+
         # connect to the running Flux instance
         try:
             self.flux = flux.Flux()
@@ -51,7 +50,7 @@ class FLUX(JobLauncher):
             print(f'flux job {proc} failed: {errstr}')
         return True, success
 
-    def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
+    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
         if type(launcher_args) is str:
             launcher_args = launcher_args.split(' ')
         if len(launcher_args) == 0:
@@ -76,6 +75,7 @@ class FLUX(JobLauncher):
         if type(argv) is str:
             argv = argv.split(' ')
         nnodes, ntasks, ncores, argv = self.parsefluxargs(argv)
+
         ### Need to determine number of nodes to set nnodes and nntasks to N
         ### without specifying it is set above to just launch 1 task on 1 cpu on 1 node
         ### glob_hosts defaults to scr_hostlist.expand(hosts)
@@ -89,6 +89,7 @@ class FLUX(JobLauncher):
                                                 num_tasks=ntasks,
                                                 num_nodes=nnodes,
                                                 cores_per_task=ncores)
+
         ### create a yaml 'file' stream from a string to get JobspecV1.from_yaml_stream()
         #   This may allow to explicitly specify the nodes to run on
         # string = 'yaml spec'
@@ -100,6 +101,7 @@ class FLUX(JobLauncher):
         compute_jobreq.setattr_shell_option("output.stderr.label", True)
         prefix = scr_prefix()
         timestamp = str(time())
+
         # time will return posix timestamp like -> '1628179160.1724932'
         # some unique filename to send stdout/stderr to
         ### the script prepends the rank to stdout, not stderr.
@@ -107,15 +109,18 @@ class FLUX(JobLauncher):
         errfilename = 'err' + timestamp
         outfilename = os.path.join(prefix, outfilename)
         errfilename = os.path.join(prefix, errfilename)
+
         # all tasks will write their stdout to this file
         compute_jobreq.stdout = outfilename
         compute_jobreq.stderr = errfilename
         job = flux.job.submit(self.flux, compute_jobreq, waitable=True)
+
         # get the hostlist to swap ranks for hosts
         nodelist = rset.nodelist
         future = flux.job.wait_async(self.flux, job)
         status = future.get_status()
         ret = [['', ''], 0]
+
         # don't fail if can't open a file, just leave output blank
         try:
             with open(outfilename, 'r') as infile:
@@ -131,6 +136,7 @@ class FLUX(JobLauncher):
             os.remove(outfilename)
         except:
             pass
+
         try:
             with open(errfilename, 'r') as infile:
                 lines = infile.readlines()
@@ -147,15 +153,17 @@ class FLUX(JobLauncher):
                 ret[0][1] = status.errstr.decode('UTF-8')
             except:
                 pass
+
         # stderr set in a nested try, remove the errfile here
         try:
             os.remove(errfilename)
         except:
             pass
+
         ret[1] = 0 if status.success == True else 1
         return ret
 
-    def scr_kill_jobstep(self, jobstep=None):
+    def kill_jobstep(self, jobstep=None):
         if jobstep is not None:
             try:
                 flux.job.cancel(self.flux, jobstep)
