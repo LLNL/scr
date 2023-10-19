@@ -1,8 +1,3 @@
-#! /usr/bin/env python3
-
-#srun.py
-# The SRUN class provides interpretation for the srun launcher
-
 import os
 from time import sleep
 
@@ -19,7 +14,7 @@ class SRUN(JobLauncher):
     # a command to run immediately before prerun is ran
     # NOP srun to force every node to run prolog to delete files from cache
     # TODO: remove this if admins find a better place to clear cache
-    def prepareforprerun(self):
+    def prepare_prerun(self):
         # NOP srun to force every node to run prolog to delete files from cache
         # TODO: remove this if admins find a better place to clear cache
         argv = ['srun', '/bin/hostname']  # ,'>','/dev/null']
@@ -27,7 +22,7 @@ class SRUN(JobLauncher):
 
     # returns the process and PID of the launched process
     # as returned by runproc(argv=argv, wait=False)
-    def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
+    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
         if type(launcher_args) is str:
             launcher_args = launcher_args.split()
         if len(launcher_args) == 0:
@@ -36,10 +31,12 @@ class SRUN(JobLauncher):
         if len(down_nodes) > 0:
             argv.extend(['--exclude', down_nodes])
         argv.extend(launcher_args)
+
         # The Popen.terminate() seems to work for srun
         if scr_const.USE_JOBLAUNCHER_KILL != '1':
             return runproc(argv=argv, wait=False)
         proc = runproc(argv=argv, wait=False)[0]
+
         ### TODO: If we allow this to be toggled, we have to get the user and allocid below!
         jobstepid = self.get_jobstep_id(pid=proc.pid)
         if jobstepid is not None:
@@ -68,6 +65,7 @@ class SRUN(JobLauncher):
         allocid = os.environ.get('SLURM_JOBID')
         if user == '' or allocid == '':
             return None
+
         # allow launched job to show in squeue
         sleep(10)
 
@@ -86,9 +84,9 @@ class SRUN(JobLauncher):
             return None
 
     # Only use scancel to kill the jobstep if desired and get_jobstep_id was successful
-    def scr_kill_jobstep(self, jobstep=None):
+    def kill_jobstep(self, jobstep=None):
         # it looks like the Popen.terminate is working with srun
         if type(jobstep) is str:
             runproc(argv=['scancel', jobstep])
         else:
-            super().scr_kill_jobstep(jobstep)
+            super().kill_jobstep(jobstep)

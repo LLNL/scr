@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 import os
 from scrjob import scr_const, scr_hostlist
 from scrjob.scr_common import scr_prefix
@@ -28,7 +26,7 @@ class ResourceManager(object):
     returns the intersection of 2 node lists
   list_down_nodes_with_reason()
     returns a dictionary of nodes reported down according to tests in self.nodetests
-  get_scavenge_nodelists()
+  scavenge_nodelists()
     returns upnodes and downnodes formatted for scr_scavenge
 
   Other Methods
@@ -57,7 +55,7 @@ class ResourceManager(object):
         self.use_watchdog = False
         self.nodetests = Nodetests()
 
-    def get_prerun_tests(self):
+    def prerun_tests(self):
         """This method returns a list of tests to perform during scr_prerun
 
     Test methods must be defined in the SCR_Test_Runtime class in scr_test_runtime.py.
@@ -96,7 +94,7 @@ class ResourceManager(object):
             return self.use_watchdog
         self.use_watchdog = use_scr_watchdog
 
-    def getjobid(self):
+    def job_id(self):
         """Return current job allocation id
 
     This value is used in logging and is used in building paths for output files.
@@ -109,7 +107,7 @@ class ResourceManager(object):
     """
         return None
 
-    def get_job_nodes(self):
+    def job_nodes(self):
         """Return compute nodes in the allocation
 
     Each node should be specified once and in order.
@@ -122,7 +120,7 @@ class ResourceManager(object):
     """
         return None
 
-    def get_downnodes(self):
+    def down_nodes(self):
         """Return allocation compute nodes the resource manager identifies as down
 
     Some resource managers can report nodes it has determined to be down.
@@ -137,7 +135,7 @@ class ResourceManager(object):
     """
         return {}
 
-    def get_scr_end_time(self):
+    def end_time(self):
         """Return expected allocation end time
 
     The end time must be expressed as seconds since
@@ -276,7 +274,7 @@ class ResourceManager(object):
         return unavailable
 
     # each scavenge operation needs upnodes and downnodes_spaced
-    def get_scavenge_nodelists(self, upnodes='', downnodes=''):
+    def scavenge_nodelists(self, upnodes='', downnodes=''):
         """Return formatted upnodes and downnodes for joblaunchers' scavenge operation
 
     Input parameters upnodes and downnodes are comma separated strings or lists.
@@ -291,7 +289,7 @@ class ResourceManager(object):
         if type(downnodes) is list:
             downnodes = ','.join(downnodes)
         # get nodesets
-        jobnodes = self.get_job_nodes()
+        jobnodes = self.job_nodes()
         if jobnodes is None:
             ### error handling
             print('scr_scavenge: ERROR: Could not determine nodeset.')

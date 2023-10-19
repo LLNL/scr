@@ -77,7 +77,7 @@ if __name__ == '__main__':
         log = None
         if args['log']:
             prefix = scr_env.get_prefix()
-            jobid = scr_env.resmgr.getjobid()
+            jobid = scr_env.resmgr.job_id()
             user = scr_env.get_user()
             log = SCRLog(prefix, jobid, user=user)
 

@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 import os
 from scrjob import scr_const
 from scrjob.scr_common import runproc
@@ -50,7 +48,7 @@ class Nodetests:
                 nodes.remove(node)
             unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
         # mark the set of nodes the resource manager thinks is down
-        nodelist = scr_env.resmgr.get_downnodes()
+        nodelist = scr_env.resmgr.down_nodes()
         for node in nodelist:
             if node == '':
                 continue

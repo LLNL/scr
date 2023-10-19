@@ -75,7 +75,7 @@ def scr_scavenge(nodeset_job=None,
     start_time = int(time())
 
     # tag output files with jobid
-    jobid = scr_env.resmgr.getjobid()
+    jobid = scr_env.resmgr.job_id()
     if jobid is None:
         print('scr_scavenge: ERROR: Could not determine jobid.')
         return 1
@@ -90,7 +90,7 @@ def scr_scavenge(nodeset_job=None,
         print('scr_scavenge: nodeset_down = ' + nodeset_down)
 
     # format up and down nodesets for the scavenge command
-    nodeset_up, nodeset_down = scr_env.resmgr.get_scavenge_nodelists(
+    nodeset_up, nodeset_down = scr_env.resmgr.scavenge_nodelists(
         upnodes=nodeset_up, downnodes=nodeset_down)
 
     if verbose:

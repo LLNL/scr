@@ -1,7 +1,3 @@
-#! /usr/bin/env python3
-
-# FLUX is a subclass of ResourceManager
-
 import os, re
 import datetime
 from time import time
@@ -23,24 +19,22 @@ except:
 class FLUX(ResourceManager):
     # init initializes vars from the environment
     def __init__(self):
+        # the super.init() calls resmgr.job_nodes, we must set self.flux first
         try:
             self.flux = flux.Flux()
         except:
             raise ImportError(
                 'Error importing flux, ensure that the flux daemon is running.'
             )
-        # the super.init() calls resmgr.get_job_nodes, we must set self.flux first
         super(FLUX, self).__init__(resmgr='FLUX')
-        ### set the jobid once at init
-        self.jobid = None
-        self.jobid = self.getjobid()
+        self.jobid = self.job_id()
 
     ####
     # the job id of the allocation is needed in postrun/list_dir
     # the job id is a component of the path.
     # We can either copy methods from existing resource managers . . .
     # or we can use the POSIX timestamp and set the value at __init__
-    def getjobid(self):
+    def job_id(self):
         if self.jobid is not None:
             return self.jobid
 
@@ -49,16 +43,15 @@ class FLUX(ResourceManager):
             jobid = JobID(self.flux.attr_get("jobid"))
         else:
             jobid = self.flux.job.JobID.id_parse(jobid_str)
-
         return str(jobid)
 
     # get node list
-    def get_job_nodes(self):
+    def job_nodes(self):
         resp = RPC(self.flux, "resource.status").get()
         rset = ResourceSet(resp["R"])
         return str(rset.nodelist)
 
-    def get_downnodes(self):
+    def down_nodes(self):
         downnodes = {}
         resp = RPC(self.flux, "resource.status").get()
         rset = ResourceSet(resp["R"])
@@ -74,7 +67,7 @@ class FLUX(ResourceManager):
                 downnodes[node] = 'Excluded by resource manager'
         return downnodes
 
-    def get_scr_end_time(self):
+    def end_time(self):
         jobid_str = os.environ.get('FLUX_JOB_ID')
         if jobid_str is None:
             parent = flux.Flux(self.flux.attr_get("parent-uri"))
@@ -83,5 +76,4 @@ class FLUX(ResourceManager):
             info = JobList(self.flux,
                            ids=[self.jobid]).fetch_jobs().get_jobs()[0]
         endtime = info["expiration"]
-
         return endtime

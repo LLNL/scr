@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """
 Resource Manager classes provide an interface to the resource manager in use.
 
@@ -11,15 +10,11 @@ The base class, ResourceManager, should remain located at the top of this file.
 The auto class, AutoResourceManager, should remain located at the bottom of this file.
 New resource manager classes must be inserted in the middle section.
 """
-####
-# Nodetests class
+
 from .nodetests import Nodetests
-####
-# Parent ResourceManager class
+
 from .resourcemanager import ResourceManager
-####
-####
-# Resource manager section
+
 from .slurm import SLURM
 from .lsf import LSF
 from .pbsalps import PBSALPS
@@ -27,8 +22,5 @@ from .flux import FLUX
 #from .pmix import PMIX
 #from .newfile import NewResourceManager
 
-####
-####
 # The AutoResourceManager returns one of the above classes
 from .auto import AutoResourceManager
-####

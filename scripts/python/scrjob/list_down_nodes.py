@@ -30,13 +30,13 @@ def list_down_nodes(reason=False,
     bindir = scr_const.X_BINDIR
 
     # check that we have a nodeset before going any further
-    resourcemgr = scr_env.resmgr
+    resmgr = scr_env.resmgr
     if type(nodeset) is list:
         nodeset = ','.join(nodeset)
     if not nodeset:
         nodeset = scr_env.get_scr_nodelist()
         if nodeset is None:
-            nodeset = resourcemgr.get_job_nodes()
+            nodeset = resmgr.job_nodes()
     if nodeset is None or nodeset == '':
         print(
             'scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.'
@@ -59,7 +59,7 @@ def list_down_nodes(reason=False,
 
     # get a hash of all unavailable (down or excluded) nodes and reason
     # keys are nodes and the values are the reasons
-    unavailable = resourcemgr.list_down_nodes_with_reason(nodes=nodes,
+    unavailable = resmgr.list_down_nodes_with_reason(nodes=nodes,
                                                           scr_env=scr_env)
     # TODO: read exclude list from a file, as well?
 

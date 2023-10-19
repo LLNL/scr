@@ -58,13 +58,13 @@ def testwatchdog(launcher, launcher_args):
     os.environ['SCR_WATCHDOG_TIMEOUT_PFS'] = '15'
     scr_env = SCR_Env()
     param = SCR_Param()
-    rm = AutoResourceManager()
+    resmgr = AutoResourceManager()
     launcher = AutoJobLauncher(launcher)
     prefix = scr_env.get_prefix()
     scr_env.param = param
     scr_env.launcher = launcher
-    nodelist = rm.get_job_nodes()
-    down_nodes = rm.get_downnodes()
+    nodelist = resmgr.job_nodes()
+    down_nodes = resmgr.down_nodes()
     watchdog = SCR_Watchdog(prefix, scr_env)
 
     if down_nodes is None:
@@ -75,9 +75,9 @@ def testwatchdog(launcher, launcher_args):
     down_nodes = list(down_nodes.keys())
 
     print('Launching command ' + ' '.join(launcher_args))
-    proc, jobstep = launcher.launchruncmd(up_nodes=nodelist,
-                                          down_nodes=down_nodes,
-                                          launcher_args=launcher_args)
+    proc, jobstep = launcher.launch_run_cmd(up_nodes=nodelist,
+                                            down_nodes=down_nodes,
+                                            launcher_args=launcher_args)
 
     if proc is None or jobstep is None:
         print('Error launching the sleeper process!')
@@ -99,7 +99,7 @@ def testwatchdog(launcher, launcher_args):
             print(
                 'The process is still running, asking the launcher to kill it . . .'
             )
-            launcher.scr_kill_jobstep(jobstep=jobstep)
+            launcher.kill_jobstep(jobstep=jobstep)
 
     print('The process has now been terminated')
     print('Sleeping for 45 seconds before checking the output files . . .')

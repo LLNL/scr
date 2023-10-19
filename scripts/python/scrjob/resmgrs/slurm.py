@@ -1,7 +1,3 @@
-#! /usr/bin/env python3
-
-# SLURM is a subclass of ResourceManager
-
 import os, re
 import datetime
 
@@ -14,6 +10,7 @@ class SLURM(ResourceManager):
 
     def __init__(self):
         super(SLURM, self).__init__(resmgr='SLURM')
+
         ### need default configs.
         if 'ping' not in self.nodetests.tests:
             self.nodetests.tests.append('ping')
@@ -22,28 +19,28 @@ class SLURM(ResourceManager):
 
     # get a list of tests, methods that exist in the class SCR_Test_Runtime
     # these tests will be ran during scr_prerun
-    def get_prerun_tests(self):
+    def prerun_tests(self):
         return ['check_clustershell', 'check_pdsh']
 
     # get SLURM jobid of current allocation
-    def getjobid(self):
+    def job_id(self):
         return os.environ.get('SLURM_JOBID')
 
     # get node list
-    def get_job_nodes(self):
+    def job_nodes(self):
         return os.environ.get('SLURM_NODELIST')
 
     # use sinfo to query SLURM for the list of nodes it thinks to be down
-    def get_downnodes(self):
+    def down_nodes(self):
         downnodes = {}
-        nodelist = self.get_job_nodes()
+        nodelist = self.job_nodes()
         if nodelist is not None:
             down, returncode = runproc("sinfo -ho %N -t down -n " + nodelist,
                                        getstdout=True)
             if returncode == 0:
-                down = down.strip()
                 #### verify this format, comma separated list
                 ### if nodes may be duplicated convert list to set then to list again
+                down = down.strip()
                 nodelist = list(set(down.split(',')))
                 for node in nodelist:
                     if node != '':
@@ -51,9 +48,9 @@ class SLURM(ResourceManager):
         return downnodes
 
     # query SLURM for allocation endtime, expressed as secs since epoch
-    def get_scr_end_time(self):
+    def end_time(self):
         # get jobid
-        jobid = self.getjobid()
+        jobid = self.job_id()
         if jobid is None:
             return 0
 

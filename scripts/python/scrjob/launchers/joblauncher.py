@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 import os
 from subprocess import TimeoutExpired
 from scrjob import scr_const
@@ -12,12 +11,12 @@ class JobLauncher(object):
   -------
   Methods whose functionality is not provided or compatible must be overridden.
 
-  launchruncmd() should be overridden, and should return a tuple of 2 values.
+  launch_run_cmd() should be overridden, and should return a tuple of 2 values.
   The first value will be passed to waitonprocess().
-  The second value will be passed to scr_kill_jobstep().
+  The second value will be passed to kill_jobstep().
 
-  launchruncmd() may return scr_common.runproc(argv, wait=False) and use the
-  provided waitonprocess() and scr_kill_jobstep() methods
+  launch_run_cmd() may return scr_common.runproc(argv, wait=False) and use the
+  provided waitonprocess() and kill_jobstep() methods
 
   waitonprocess() returns a tuple of 2 boolean values: (completed, success)
 
@@ -27,7 +26,7 @@ class JobLauncher(object):
     If the constant, USE_CLUSTERSHELL, is not '0', and the module ClusterShell is available,
     then the clustershell_exec method will be used instead of parallel_exec.
 
-  waitonprocess(), scr_kill_jobstep()
+  waitonprocess(), kill_jobstep()
   These may both be used if the overridden launchcmd method returns scr_common.runproc(argv, wait=False).
   These each expect the Popen object returned from scr_common.runproc(wait=False).
 
@@ -60,10 +59,10 @@ class JobLauncher(object):
                 pass
 
     def waitonprocess(self, proc=None, timeout=None):
-        """This method is called after a jobstep is launched with the return values of launchruncmd
+        """This method is called after a jobstep is launched with the return values of launch_run_cmd
 
-    The base class method may be used when launchruncmd returns runproc(argv=argv,wait=False).
-    Override this implementation in any base class whose launchruncmd returns a different value,
+    The base class method may be used when launch_run_cmd returns runproc(argv=argv,wait=False).
+    Override this implementation in any base class whose launch_run_cmd returns a different value,
     or if there is a different method used to wait on a process (blocking or with a timeout).
     The timeout will be none (wait until process terminates) or a numeric value indicating seconds.
     A timeout value will exist when using SCR_Watchdog.
@@ -92,7 +91,7 @@ class JobLauncher(object):
 
         return (True, proc.returncode)
 
-    def prepareforprerun(self):
+    def prepare_prerun(self):
         """This method is called (without arguments) before scr_prerun.py
 
     Any necessary preamble work can be inserted into this method.
@@ -100,7 +99,7 @@ class JobLauncher(object):
     """
         pass
 
-    def launchruncmd(self, up_nodes='', down_nodes='', launcher_args=[]):
+    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
         """This method is called to launch a jobstep
 
     This method must be overridden.
@@ -109,11 +108,11 @@ class JobLauncher(object):
     Returns
     -------
     tuple (process, id)
-        When using the provided base class methods: waitonprocess() and scr_kill_jobstep(),
+        When using the provided base class methods: waitonprocess() and kill_jobstep(),
         return scr_common.runproc(argv, wait=False).
 
         The first return value is used as the argument for waiting on the process in launcher.waitonprocess().
-        The second return value is used as the argument to kill a jobstep in launcher.scr_kill_jobstep().
+        The second return value is used as the argument to kill a jobstep in launcher.kill_jobstep().
     """
         return None, None
 
@@ -141,12 +140,14 @@ class JobLauncher(object):
       where output is a list: [stdout, stderr],
       so the full return value is then: [[stdout, stderr], returncode].
     """
-        task = self.clustershell_task.task_self()
         # launch the task
+        task = self.clustershell_task.task_self()
         task.run(' '.join(argv), nodes=runnodes)
         ret = [['', ''], 0]
+
         # ensure all of the tasks have completed
         self.clustershell_task.task_wait()
+
         # iterate through the task.iter_retcodes() to get (return code, [nodes])
         # to get msg objects, output must be retrieved by individual node using task.node_buffer or .key_error
         # retrieved outputs are bytes, convert with .decode('utf-8')
@@ -228,10 +229,10 @@ class JobLauncher(object):
         output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
         return output
 
-    def scr_kill_jobstep(self, jobstep=None):
+    def kill_jobstep(self, jobstep=None):
         """Kills task identified by jobstep parameter.
 
-    When launcher.launchruncmd() returns scr_common.runproc(argv, wait=False),
+    When launcher.launch_run_cmd() returns scr_common.runproc(argv, wait=False),
     then this method may be used to send the terminate signal through the Popen object.
     """
         if jobstep is not None:
@@ -239,6 +240,7 @@ class JobLauncher(object):
                 # if jobstep.returncode is None:
                 # send the SIGTERM message to the subprocess.Popen object
                 jobstep.terminate()
+
                 # ensure complete
                 jobstep.communicate()
             except:

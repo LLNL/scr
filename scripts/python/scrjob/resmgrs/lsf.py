@@ -1,8 +1,3 @@
-#! /usr/bin/env python3
-
-# lsf.py
-# LSF is a subclass of ResourceManager
-
 import os, re
 from time import time
 
@@ -19,11 +14,11 @@ class LSF(ResourceManager):
             self.nodetests.tests.append('pdsh_echo')
 
     # get LSF jobid
-    def getjobid(self):
+    def job_id(self):
         return os.environ.get('LSB_JOBID')
 
     # get node list
-    def get_job_nodes(self):
+    def job_nodes(self):
         hostfile = os.environ.get('LSB_DJOB_HOSTFILE')
         if hostfile is not None:
             try:
@@ -41,7 +36,7 @@ class LSF(ResourceManager):
                 return hostlist
             except Exception as e:
                 # failed to read file
-                print('ERROR: LSF.get_job_nodes')
+                print('ERROR: LSF.job_nodes')
                 print(e)
         return None
 
@@ -53,11 +48,11 @@ class LSF(ResourceManager):
             hosts = self.compress_hosts(hosts)
         return hosts
 
-    def get_downnodes(self):
+    def down_nodes(self):
         # TODO : any way to get list of down nodes in LSF?
         return {}
 
-    def get_scr_end_time(self):
+    def end_time(self):
         # run bjobs to get time remaining in current allocation
         bjobs, rc = runproc("bjobs -o time_left", getstdout=True)
         if rc != 0:

@@ -90,15 +90,15 @@ if __name__ == '__main__':
         if 'user' in args:
             print(str(scr_env.get_user()), end='')
         if 'jobid' in args:
-            print(str(scr_env.resmgr.getjobid()), end='')
+            print(str(scr_env.resmgr.job_id()), end='')
         if 'endtime' in args:
-            print(str(scr_env.resmgr.get_scr_end_time()), end='')
+            print(str(scr_env.resmgr.end_time()), end='')
         if 'nodes' in args:
             nodelist = scr_env.get_scr_nodelist()
             if nodelist is None:
-                nodelist = scr_env.resmgr.get_job_nodes()
+                nodelist = scr_env.resmgr.job_nodes()
             print(str(nodelist), end='')
         if 'down' in args:
-            print(str(scr_env.resmgr.get_downnodes()), end='')
+            print(str(scr_env.resmgr.down_nodes()), end='')
         if 'runnodes' in args:
             print(str(scr_env.get_runnode_count()), end='')

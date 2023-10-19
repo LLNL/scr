@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """
 AutoResourceManager is called to return the appropriate ResourceManager class
 

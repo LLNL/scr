@@ -60,7 +60,7 @@ def dolaunch(launcher, launch_cmd):
     scr_env.param = param
     scr_env.resmgr = resmgr
     scr_env.launcher = launcher
-    jobid = resmgr.getjobid()
+    jobid = resmgr.job_id()
     user = scr_env.get_user()
     launcher.hostfile = os.path.join(scr_env.dir_scr(), 'hostfile')
     print('jobid = ' + str(jobid))
@@ -68,28 +68,28 @@ def dolaunch(launcher, launch_cmd):
     # get the nodeset of this job
     nodelist = scr_env.get_scr_nodelist()
     if nodelist is None:
-        nodelist = resmgr.get_job_nodes()
+        nodelist = resmgr.job_nodes()
         if nodelist is None:
             nodelist = ''
     nodelist = ','.join(resmgr.expand_hosts(nodelist))
     print('nodelist = ' + str(nodelist))
     watchdog = SCR_Watchdog(prefix, scr_env)
-    print('calling prepareforprerun . . .')
-    launcher.prepareforprerun()
-    print('returned from prepareforprerun')
+    print('calling prepare_prerun . . .')
+    launcher.prepare_prerun()
+    print('returned from prepare_prerun')
     if scr_prerun(scr_env=scr_env) != 0:
         print('testing: ERROR: Command failed: scr_prerun -p ' + prefix)
         print('This would terminate run')
     else:
         print('prerun returned success')
-    endtime = resmgr.get_scr_end_time()
+    endtime = resmgr.end_time()
     print('endtime = ' + str(endtime))
     if endtime == 0:
         print('testing : WARNING: Unable to get end time.')
     elif endtime == -1:  # no end time / limit
-        print('testing : get_scr_end_time returned no end time / limit')
+        print('testing : end_time returned no end time / limit')
     else:
-        print('testing : get_scr_end_time returned ' + str(endtime))
+        print('testing : end_time returned ' + str(endtime))
     down_nodes = list_down_nodes(free=True, nodeset_down='', scr_env=scr_env)
     if type(down_nodes) is int:
         print('there were no downnodes from list_down_nodes')
@@ -111,9 +111,9 @@ def dolaunch(launcher, launch_cmd):
     num_left = nodes_remaining(resmgr, nodelist, down_nodes)
     print('num_left = ' + str(num_left))
     print('testing: Launching ' + str(launch_cmd))
-    proc, jobstep = launcher.launchruncmd(up_nodes=nodelist,
-                                          down_nodes=down_nodes,
-                                          launcher_args=launch_cmd)
+    proc, jobstep = launcher.launch_run_cmd(up_nodes=nodelist,
+                                            down_nodes=down_nodes,
+                                            launcher_args=launch_cmd)
     print('type(proc) = ' + str(type(proc)) + ', type(jobstep) = ' +
           str(type(jobstep)))
     print('proc = ' + str(proc))
