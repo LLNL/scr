@@ -38,7 +38,7 @@ class SRUN(JobLauncher):
         proc = runproc(argv=argv, wait=False)[0]
 
         ### TODO: If we allow this to be toggled, we have to get the user and allocid below!
-        jobstepid = self.get_jobstep_id(pid=proc.pid)
+        jobstepid = self.jobstep_id(pid=proc.pid)
         if jobstepid is not None:
             return proc, jobstepid
         else:
@@ -58,7 +58,7 @@ class SRUN(JobLauncher):
         return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
 
     # query SLURM for the most recent jobstep in current allocation
-    def get_jobstep_id(self, pid):
+    def jobstep_id(self, pid):
         ### TODO: If we allow this to be toggled, we have to get the user and allocid!
         ### Or, the command ran could possibly be changed . . .
         user = os.environ.get('USER')
@@ -83,7 +83,7 @@ class SRUN(JobLauncher):
         except:
             return None
 
-    # Only use scancel to kill the jobstep if desired and get_jobstep_id was successful
+    # Only use scancel to kill the jobstep if desired and jobstep_id was successful
     def kill_jobstep(self, jobstep=None):
         # it looks like the Popen.terminate is working with srun
         if type(jobstep) is str:

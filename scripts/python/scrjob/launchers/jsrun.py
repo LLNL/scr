@@ -26,7 +26,7 @@ class JSRUN(JobLauncher):
         if scr_const.USE_JOBLAUNCHER_KILL != '1':
             return runproc(argv=argv, wait=False)
         proc = runproc(argv=argv, wait=False)[0]
-        jobstepid = self.get_jobstep_id()
+        jobstepid = self.jobstep_id()
         if jobstepid != '-1':
             return proc, jobstepid
         else:
@@ -46,7 +46,7 @@ class JSRUN(JobLauncher):
         return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
 
     # query jslist for the most recent jobstep in current allocation
-    def get_jobstep_id(self):
+    def jobstep_id(self):
         # allow launched job to show in jslist
         sleep(10)
 
@@ -67,7 +67,7 @@ class JSRUN(JobLauncher):
                 jobstepid = int(line[0])
         return str(jobstepid)
 
-    # Only use jskill to kill the jobstep if desired and get_jobstep_id was successful
+    # Only use jskill to kill the jobstep if desired and jobstep_id was successful
     def kill_jobstep(self, jobstep=None):
         # it looks like the Popen.terminate is working with jsrun
         if type(jobstep) is str:

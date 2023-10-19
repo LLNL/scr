@@ -37,7 +37,7 @@ class APRUN(JobLauncher):
             return runproc(argv=argv, wait=False)
 
         proc = runproc(argv=argv, wait=False)[0]
-        jobstepid = self.get_jobstep_id(pid=proc.pid)
+        jobstepid = self.jobstep_id(pid=proc.pid)
         if jobstepid is not None:
             return proc, jobstepid
         else:
@@ -76,7 +76,7 @@ class APRUN(JobLauncher):
         output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
         return output
 
-    def get_jobstep_id(self, pid=-1):
+    def jobstep_id(self, pid=-1):
         # allow launched job to show in apstat
         sleep(10)
         output = runproc(['apstat', '-avv'], getstdout=True)[0].split('\n')
@@ -105,7 +105,7 @@ class APRUN(JobLauncher):
                 currApid = None
         return currApid
 
-    # Only use akill to kill the jobstep if desired and get_jobstep_id was successful
+    # Only use akill to kill the jobstep if desired and jobstep_id was successful
     def kill_jobstep(self, jobstep=None):
         # it looks like the Popen.terminate is working with srun
         if type(jobstep) is str:

@@ -23,7 +23,7 @@ class PMIX(ResourceManager):
     return None
 
   # TODO: cppr/pmix notes - this script is only used when launching the watchdog process.  Have not tested this
-  def get_jobstep_id(self,user='',pid=-1):
+  def jobstep_id(self,user='',pid=-1):
     # get job steps for this user and job, order by decreasing job step
     # so first one should be the one we are looking for
     # -h means print no header, so just the data in this order:
