@@ -16,14 +16,15 @@ from scrjob.launchers import AutoJobLauncher
 
 
 def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
-    """this method runs scr_inspect_cache on each node using Joblauncher.parallel_exec
+    """This method runs scr_inspect_cache on each node using
+    Joblauncher.parallel_exec.
 
-  Returns
-  -------
-  string   A space separated list of cached datasets which may be able to flush and rebuild
-  
-  On error this method returns the integer 1
-  """
+    Returns
+    -------
+    string   A space separated list of cached datasets which may be able to flush and rebuild
+
+    On error this method returns the integer 1
+    """
     bindir = scr_const.X_BINDIR
     pdsh = scr_const.PDSH_EXE
 

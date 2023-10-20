@@ -1,4 +1,4 @@
-""" Implements an interface around the SCR C library.
+"""Implements an interface around the SCR C library.
 
 This module implements a python interface around the SCR C API.
 This documentation describes specifics about the python interface.
@@ -189,35 +189,35 @@ def _pystr(val):
 def config(conf):
     """Query, set, or unset an SCR configuration parameter.
 
-  Must be called before init().
+    Must be called before init().
 
-  To query a value, provide the name of the parameter, e.g.,:
-      scr.config("SCR_DEBUG")
+    To query a value, provide the name of the parameter, e.g.,:
+        scr.config("SCR_DEBUG")
 
-  To set a value, provide the name and its value as a
-  key=value string, e.g.,:
-      scr.config("SCR_DEBUG=1")
+    To set a value, provide the name and its value as a
+    key=value string, e.g.,:
+        scr.config("SCR_DEBUG=1")
 
-  To unset a value, provide the name without a value, e.g.,:
-      scr.config("SCR_DEBUG=")
+    To unset a value, provide the name without a value, e.g.,:
+        scr.config("SCR_DEBUG=")
 
-  On query, config() returns the current parameter value as a str if set.
-  It returns None otherwise.
+    On query, config() returns the current parameter value as a str if set.
+    It returns None otherwise.
 
-  It returns None when setting or unsetting a parameter.
+    It returns None when setting or unsetting a parameter.
 
-  Maps to SCR_Config in libscr.
+    Maps to SCR_Config in libscr.
 
-  Parameters
-  ----------
-  config : str
-      string to query, set, or unset an SCR configuration parameter
+    Parameters
+    ----------
+    config : str
+        string to query, set, or unset an SCR configuration parameter
 
-  Returns
-  -------
-  str
-      current value of SCR configuration parameter if set
-  """
+    Returns
+    -------
+    str
+        current value of SCR configuration parameter if set
+    """
     val = _libscr.SCR_Config(_cstr(conf))
     if val != _ffi.NULL:
         return _pystr(val)
@@ -227,21 +227,21 @@ def config(conf):
 def init():
     """Initialize the SCR library.
 
-  Must be called before any other SCR method, except config().
-  When restarting a job, this method rebuilds any cached datasets.
-  SCR also identifies and loads the most recent checkpoint.
+    Must be called before any other SCR method, except config().
+    When restarting a job, this method rebuilds any cached datasets.
+    SCR also identifies and loads the most recent checkpoint.
 
-  Maps to SCR_Init in libscr.
+    Maps to SCR_Init in libscr.
 
-  Returns
-  -------
-  None
+    Returns
+    -------
+    None
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Init returns an error
-  """
+    Raises
+    ------
+    RuntimeError
+        if SCR_Init returns an error
+    """
     rc = _libscr.SCR_Init()
     if rc != _libscr.SCR_SUCCESS:
         raise RuntimeError("SCR_Init failed")
@@ -250,21 +250,21 @@ def init():
 def finalize():
     """Shut down the SCR library.
 
-  Should be called before exiting a program, and no other SCR methods
-  can be called after calling finalize().
-  This enables SCR to flush any cached datasets to the prefix directory.
+    Should be called before exiting a program, and no other SCR methods
+    can be called after calling finalize().
+    This enables SCR to flush any cached datasets to the prefix directory.
 
-  Maps to SCR_Finalize in libscr.
+    Maps to SCR_Finalize in libscr.
 
-  Returns
-  -------
-  None
+    Returns
+    -------
+    None
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Finalize returns an error
-  """
+    Raises
+    ------
+    RuntimeError
+        if SCR_Finalize returns an error
+    """
     rc = _libscr.SCR_Finalize()
     if rc != _libscr.SCR_SUCCESS:
         raise RuntimeError("SCR_Finalize failed")
@@ -273,37 +273,37 @@ def finalize():
 def route_file(fname):
     """Acquire the SCR path to a given file.
 
-  During a restart phase, returns the path that the calling process must use
-  to open the file named in fname for reading.
+    During a restart phase, returns the path that the calling process must use
+    to open the file named in fname for reading.
 
-  During an output phase, this registers the file names in fname as a member
-  of the current output set, and it returns the path that the calling process
-  must use to open the file.
+    During an output phase, this registers the file names in fname as a member
+    of the current output set, and it returns the path that the calling process
+    must use to open the file.
 
-  Outside of restart and output phases, route_file() returns the same value
-  that is passed in fname unchanged.
+    Outside of restart and output phases, route_file() returns the same value
+    that is passed in fname unchanged.
 
-  The calling process should not create any directories listed in the path
-  returned by route_file().
-  SCR creates all directories as needed.
+    The calling process should not create any directories listed in the path
+    returned by route_file().
+    SCR creates all directories as needed.
 
-  Maps to SCR_Route_file in libscr.
-  
-  Parameters
-  ----------
-  fname : str
-      relative or absolute path to file
+    Maps to SCR_Route_file in libscr.
 
-  Returns
-  -------
-  str
-      path that caller must use to open the file specified in fname
+    Parameters
+    ----------
+    fname : str
+        relative or absolute path to file
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Route_file returns an error
-  """
+    Returns
+    -------
+    str
+        path that caller must use to open the file specified in fname
+
+    Raises
+    ------
+    RuntimeError
+        if SCR_Route_file returns an error
+    """
     ptr = _ffi.new("char[1024]")
     rc = _libscr.SCR_Route_file(_cstr(fname), ptr)
     if rc != _libscr.SCR_SUCCESS:
@@ -312,27 +312,28 @@ def route_file(fname):
 
 
 def have_restart():
-    """Determines whether SCR has loaded a checkpoint that the application can read.
+    """Determines whether SCR has loaded a checkpoint that the application can
+    read.
 
-  An application does not need to read a checkpoint, even if have_restart()
-  indicates that a checkpoint has been loaded.
+    An application does not need to read a checkpoint, even if have_restart()
+    indicates that a checkpoint has been loaded.
 
-  However, an application must call have_restart() before it is valid to read a
-  checkpoint using the SCR Restart API.
+    However, an application must call have_restart() before it is valid to read a
+    checkpoint using the SCR Restart API.
 
-  Maps to SCR_Have_restart in libscr.
+    Maps to SCR_Have_restart in libscr.
 
-  Returns
-  -------
-  str
-      Returns the name of the loaded checkpoint,
-      or None if no checkpoint was loaded.
+    Returns
+    -------
+    str
+        Returns the name of the loaded checkpoint,
+        or None if no checkpoint was loaded.
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Have_restart returns an error
-  """
+    Raises
+    ------
+    RuntimeError
+        if SCR_Have_restart returns an error
+    """
     flag_ptr = _ffi.new("int[1]")
     name_ptr = _ffi.new("char[1024]")
     rc = _libscr.SCR_Have_restart(flag_ptr, name_ptr)
@@ -345,21 +346,21 @@ def have_restart():
 def start_restart():
     """Opens a restart phase for reading checkpoint files.
 
-  Can only be called if have_restart() indicates that a
-  checkpoint is loaded.
+    Can only be called if have_restart() indicates that a
+    checkpoint is loaded.
 
-  Maps to SCR_Start_restart in libscr.
+    Maps to SCR_Start_restart in libscr.
 
-  Returns
-  -------
-  str
-      Returns the name of loaded checkpoint.
+    Returns
+    -------
+    str
+        Returns the name of loaded checkpoint.
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Start_restart returns an error
-  """
+    Raises
+    ------
+    RuntimeError
+        if SCR_Start_restart returns an error
+    """
     ptr = _ffi.new("char[1024]")
     rc = _libscr.SCR_Start_restart(ptr)
     if rc != _libscr.SCR_SUCCESS:
@@ -370,22 +371,22 @@ def start_restart():
 def complete_restart(valid=True):
     """Close a restart phase after reading checkpoint files.
 
-  Each calling process must indicate whether it restarted successfully.
+    Each calling process must indicate whether it restarted successfully.
 
-  Maps to SCR_Complete_restart in libscr.
+    Maps to SCR_Complete_restart in libscr.
 
-  Parameters
-  ----------
-  valid : bool, optional
-      pass True if calling process read restart successfully,
-      False otherwise (default True)
+    Parameters
+    ----------
+    valid : bool, optional
+        pass True if calling process read restart successfully,
+        False otherwise (default True)
 
-  Returns
-  -------
-  bool
-      Returns True if all processes restarted successfully,
-      and False if any process indicated that it failed.
-  """
+    Returns
+    -------
+    bool
+        Returns True if all processes restarted successfully,
+        and False if any process indicated that it failed.
+    """
     rc = _libscr.SCR_Complete_restart(int(valid))
     return rc == _libscr.SCR_SUCCESS
 
@@ -393,24 +394,24 @@ def complete_restart(valid=True):
 def need_checkpoint():
     """Ask SCR whether a checkpoint should be taken.
 
-  It is optional for an application to call need_checkpoint(),
-  and an application is free to ignore the value it returns.
-  This method is provided to guide an application to optimal
-  checkpoint frequencies.
+    It is optional for an application to call need_checkpoint(),
+    and an application is free to ignore the value it returns.
+    This method is provided to guide an application to optimal
+    checkpoint frequencies.
 
-  Maps to SCR_Need_checkpoint in libscr.
+    Maps to SCR_Need_checkpoint in libscr.
 
-  Returns
-  -------
-  bool
-      Returns True if a checkpoint should be taken,
-      and False if a checkpoint is not required.
+    Returns
+    -------
+    bool
+        Returns True if a checkpoint should be taken,
+        and False if a checkpoint is not required.
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Need_checkpoint returns an error
-  """
+    Raises
+    ------
+    RuntimeError
+        if SCR_Need_checkpoint returns an error
+    """
     ptr = _ffi.new("int[1]")
     rc = _libscr.SCR_Need_checkpoint(ptr)
     if rc != _libscr.SCR_SUCCESS:
@@ -421,41 +422,41 @@ def need_checkpoint():
 def start_output(name, flags):
     """Open an output phase.
 
-  The caller provides the name of the dataset and a set of flags.
-  The flags value is a bitmask of the flag attributes, e.g.,:
+    The caller provides the name of the dataset and a set of flags.
+    The flags value is a bitmask of the flag attributes, e.g.,:
 
-    # indicate that dataset can be used to restart application
-    flags = scr.FLAG_CHECKPOINT
+      # indicate that dataset can be used to restart application
+      flags = scr.FLAG_CHECKPOINT
 
-    # indicate that dataset must be written to prefix directory
-    flags = scr.FLAG_OUTPUT
+      # indicate that dataset must be written to prefix directory
+      flags = scr.FLAG_OUTPUT
 
-    # dataset can be used to restart application but must also be saved
-    flags = scr.FLAG_CHECKPOINT | sr.FLAG_OUTPUT
+      # dataset can be used to restart application but must also be saved
+      flags = scr.FLAG_CHECKPOINT | sr.FLAG_OUTPUT
 
-  One can also sum these values, but be careful to only include
-  each flag once in the sum, e.g.,:
+    One can also sum these values, but be careful to only include
+    each flag once in the sum, e.g.,:
 
-    flags = scr.FLAG_CHECKPOINT + sr.FLAG_OUTPUT
-  
-  Maps to SCR_Start_output in libscr.
+      flags = scr.FLAG_CHECKPOINT + sr.FLAG_OUTPUT
 
-  Parameters
-  ----------
-  name : str
-      name to assign to the dataset to be written
-  flags : int
-      bitmask combination of various FLAG attributes
+    Maps to SCR_Start_output in libscr.
 
-  Returns
-  -------
-  None
+    Parameters
+    ----------
+    name : str
+        name to assign to the dataset to be written
+    flags : int
+        bitmask combination of various FLAG attributes
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Start_output returns an error
-  """
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    RuntimeError
+        if SCR_Start_output returns an error
+    """
     rc = _libscr.SCR_Start_output(_cstr(name), int(flags))
     if rc != _libscr.SCR_SUCCESS:
         raise RuntimeError("SCR_Start_output failed")
@@ -464,23 +465,23 @@ def start_output(name, flags):
 def complete_output(valid=True):
     """Close an output phase.
 
-  Each calling process must indicate whether it wrote its portion
-  of the output successfully.
+    Each calling process must indicate whether it wrote its portion
+    of the output successfully.
 
-  Maps to SCR_Complete_output in libscr.
+    Maps to SCR_Complete_output in libscr.
 
-  Parameters
-  ----------
-  valid : bool, optional
-      pass True if calling process wrote its output successfully,
-      False otherwise (default True)
+    Parameters
+    ----------
+    valid : bool, optional
+        pass True if calling process wrote its output successfully,
+        False otherwise (default True)
 
-  Returns
-  -------
-  bool
-      Returns True if all processes wrote their output successfully,
-      and False if any process indicated that it failed.
-  """
+    Returns
+    -------
+    bool
+        Returns True if all processes wrote their output successfully,
+        and False if any process indicated that it failed.
+    """
     rc = _libscr.SCR_Complete_output(int(valid))
     return rc == _libscr.SCR_SUCCESS
 
@@ -488,25 +489,25 @@ def complete_output(valid=True):
 def should_exit():
     """Ask SCR whether the application should exit early.
 
-  This method indicates whether the application should stop early.
-  This condition may arise when the job allocation is about to expire
-  or when instructed to exit through an external command like scr_halt.
+    This method indicates whether the application should stop early.
+    This condition may arise when the job allocation is about to expire
+    or when instructed to exit through an external command like scr_halt.
 
-  Even if stopping early, the application should call finalize().
+    Even if stopping early, the application should call finalize().
 
-  Maps to SCR_Should_exit in libscr.
+    Maps to SCR_Should_exit in libscr.
 
-  Returns
-  -------
-  bool
-      Returns True if the application should exit early,
-      and False otherwise.
+    Returns
+    -------
+    bool
+        Returns True if the application should exit early,
+        and False otherwise.
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Should_exit returns an error
-  """
+    Raises
+    ------
+    RuntimeError
+        if SCR_Should_exit returns an error
+    """
     ptr = _ffi.new("int[1]")
     rc = _libscr.SCR_Should_exit(ptr)
     if rc != _libscr.SCR_SUCCESS:
@@ -517,34 +518,34 @@ def should_exit():
 def current(name):
     """Indicate from which checkpoint an application restarted.
 
-  It is preferred for an application to restart using the SCR Restart API.
-  However, not all applications can do so.
-  For applications that do not use the SCR Restart API,
-  they may inform SCR about the checkpoint they restarted from by
-  calling current().  Doing so enables SCR to track proper ordering of
-  checkpoints.
+    It is preferred for an application to restart using the SCR Restart API.
+    However, not all applications can do so.
+    For applications that do not use the SCR Restart API,
+    they may inform SCR about the checkpoint they restarted from by
+    calling current().  Doing so enables SCR to track proper ordering of
+    checkpoints.
 
-  The provided name must be a dataset that was created during a previous
-  call to start_output().
+    The provided name must be a dataset that was created during a previous
+    call to start_output().
 
-  Applications that do use the SCR Restart API must not call current().
+    Applications that do use the SCR Restart API must not call current().
 
-  Maps to SCR_Current in libscr.
+    Maps to SCR_Current in libscr.
 
-  Parameters
-  ----------
-  name : str
-      name of dataset that was loaded
+    Parameters
+    ----------
+    name : str
+        name of dataset that was loaded
 
-  Returns
-  -------
-  None
+    Returns
+    -------
+    None
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Current returns an error
-  """
+    Raises
+    ------
+    RuntimeError
+        if SCR_Current returns an error
+    """
     rc = _libscr.SCR_Current(_cstr(name))
     if rc != _libscr.SCR_SUCCESS:
         raise RuntimeError("SCR_Current failed")
@@ -553,29 +554,29 @@ def current(name):
 def delete(name):
     """Request SCR to delete a dataset.
 
-  SCR deletes all data files associated with the dataset.
-  SCR also deletes any directories up to the prefix directory
-  that become empty after deleting files.
+    SCR deletes all data files associated with the dataset.
+    SCR also deletes any directories up to the prefix directory
+    that become empty after deleting files.
 
-  The provided name must be a dataset that was created during a previous
-  call to start_output().
+    The provided name must be a dataset that was created during a previous
+    call to start_output().
 
-  Maps to SCR_Delete in libscr.
+    Maps to SCR_Delete in libscr.
 
-  Parameters
-  ----------
-  name : str
-      name of dataset to be deleted
+    Parameters
+    ----------
+    name : str
+        name of dataset to be deleted
 
-  Returns
-  -------
-  None
+    Returns
+    -------
+    None
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Delete returns an error
-  """
+    Raises
+    ------
+    RuntimeError
+        if SCR_Delete returns an error
+    """
     rc = _libscr.SCR_Delete(_cstr(name))
     if rc != _libscr.SCR_SUCCESS:
         raise RuntimeError("SCR_Delete failed")
@@ -584,28 +585,28 @@ def delete(name):
 def drop(name):
     """Inform SCR to forget about a dataset.
 
-  SCR drops information about the named dataset from its internal metadata.
-  However, SCR does not attempt to delete files for that dataset.
+    SCR drops information about the named dataset from its internal metadata.
+    However, SCR does not attempt to delete files for that dataset.
 
-  The provided name must be a dataset that was created during a previous
-  call to start_output().
+    The provided name must be a dataset that was created during a previous
+    call to start_output().
 
-  Maps to SCR_Drop in libscr.
+    Maps to SCR_Drop in libscr.
 
-  Parameters
-  ----------
-  name : str
-      name of dataset to be dropped
+    Parameters
+    ----------
+    name : str
+        name of dataset to be dropped
 
-  Returns
-  -------
-  None
+    Returns
+    -------
+    None
 
-  Raises
-  ------
-  RuntimeError
-      if SCR_Drop returns an error
-  """
+    Raises
+    ------
+    RuntimeError
+        if SCR_Drop returns an error
+    """
     rc = _libscr.SCR_Drop(_cstr(name))
     if rc != _libscr.SCR_SUCCESS:
         raise RuntimeError("SCR_Drop failed")

@@ -1,9 +1,7 @@
 #! /usr/bin/env python3
 
 # scr_const.py
-"""
-compile time constants
-"""
+"""Compile time constants."""
 
 SCR_CNTL_BASE = '@SCR_CNTL_BASE@'
 SCR_CACHE_BASE = '@SCR_CACHE_BASE@'
@@ -15,9 +13,7 @@ X_BINDIR = '@X_BINDIR@'
 X_LIBDIR = '@X_LIBDIR@'
 PDSH_EXE = '@PDSH_EXE@'
 SCR_RESOURCE_MANAGER = '@SCR_RESOURCE_MANAGER@'
-"""
-PMIX constants
-"""
+"""PMIX constants."""
 CPPR_LDFLAGS = '@CPPR_LDFLAGS@'
 HAVE_LIBCPPR = '@HAVE_LIBCPPR@'
 """
@@ -34,24 +30,18 @@ dir_capacity: remove nodes that fail scr_check_node.py
 SCR_NODE_TESTS = '@SCR_NODE_TESTS@'
 # A file with each line a comma separated list of tests
 SCR_NODE_TESTS_FILE = '@SCR_NODE_TESTS_FILE@'
-"""
-ClusterShell
-"""
+"""ClusterShell."""
 # Enable use of the ClusterShell module, set to '1'
 USE_CLUSTERSHELL = '@USE_CLUSTERSHELL@'
-"""
-Python tracing
-"""
+"""Python tracing."""
 # Very verbose, set to '1'
 PYFE_TRACE_FUNC = '@PYFE_TRACE_FUNC@'
-"""
-Joblauncher scr_kill_jobstep strategy
-"""
+"""Joblauncher scr_kill_jobstep strategy."""
 # Prefer to use job launcher's method to kill a jobstep, e.g., scancel, set to '1'
 USE_JOBLAUNCHER_KILL = '@USE_JOBLAUNCHER_KILL@'
 
 if __name__ == '__main__':
-    """running this script will print compiled values"""
+    """Running this script will print compiled values."""
 
     print('SCR_CNTL_BASE = \"' + SCR_CNTL_BASE + '\"')
     print('SCR_CACHE_BASE = \"' + SCR_CACHE_BASE + '\"')
