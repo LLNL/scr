@@ -166,7 +166,7 @@ static int scr_reddesc_type_int_from_str(const char* value, int* type)
 {
   int rc = SCR_SUCCESS;
 
-  int copy_type;
+  int copy_type = SCR_COPY_NULL;
   if (strcasecmp(value, "SINGLE") == 0) {
     copy_type = SCR_COPY_SINGLE;
   } else if (strcasecmp(value, "PARTNER") == 0) {

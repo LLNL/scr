@@ -49,7 +49,6 @@ typedef struct {
   int      max_count; /* maximum number of datasets to be stored in device */
   int      can_mkdir; /* flag indicating whether mkdir/rmdir work */
   char*    xfer;      /* AXL xfer type string (bbapi, sync, pthread, etc..) */
-  char*    view;      /* indicates whether store is node-local or global */
   MPI_Comm comm;      /* communicator of processes that can access storage */
   int      rank;      /* local rank of process in communicator */
   int      ranks;     /* number of ranks in communicator */

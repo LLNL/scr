@@ -172,7 +172,6 @@ Define common hash key strings
 #define SCR_CONFIG_KEY_GROUP_RANK ("GROUP_RANK")
 #define SCR_CONFIG_KEY_MKDIR      ("MKDIR")
 #define SCR_CONFIG_KEY_FLUSH      ("FLUSH")
-#define SCR_CONFIG_KEY_VIEW       ("VIEW")
 
 #define SCR_META_KEY_CKPT     ("CKPT")
 #define SCR_META_KEY_RANKS    ("RANKS")
