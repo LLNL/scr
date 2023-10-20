@@ -123,7 +123,7 @@ class JobLauncher(object):
     # clustershell exec can be called from any sub-resource manager
     # the sub-resource manager is responsible for ensuring clustershell is available
     ### TODO: different ssh programs may need different parameters added to remove the 'tput: ' from the output
-    def clustershell_exec(self, argv=[], runnodes=''):
+    def clustershell_exec(self, argv=[], runnodes=[]):
         """This method implements the functionality of parallel_exec using
         clustershell.
 
@@ -143,6 +143,9 @@ class JobLauncher(object):
           where output is a list: [stdout, stderr],
           so the full return value is then: [[stdout, stderr], returncode].
         """
+        if runnodes:
+            runnodes = self.join_hosts(runnodes)
+
         # launch the task
         task = self.clustershell_task.task_self()
         task.run(' '.join(argv), nodes=runnodes)
@@ -169,7 +172,7 @@ class JobLauncher(object):
         return ret
 
     # perform a generic pdsh / clustershell command
-    def parallel_exec(self, argv=[], runnodes=''):
+    def parallel_exec(self, argv=[], runnodes=[]):
         """Job launchers should override this method to run the command in the
         manner of pdsh.
 
@@ -192,8 +195,8 @@ class JobLauncher(object):
     # returns a list -> [ 'stdout', 'stderr' ]
     def scavenge_files(self,
                        prog='',
-                       upnodes='',
-                       downnodes_spaced='',
+                       nodes_up=[],
+                       nodes_down=[],
                        cntldir='',
                        dataset_id='',
                        prefixdir='',
@@ -207,8 +210,8 @@ class JobLauncher(object):
         Arguments
         ---------
         prog               string, the location of the scr_copy program.
-        upnodes            string, comma separated lists of nodes.
-        downnodes_spaced   string, a space separated string of down nodes.
+        nodes_up           list(string), list of up nodes.
+        nodes_down         list(string), list of down nodes.
         cntldir            string, the control directory path, obtained from SCR_Param.
         dataset_id         string, the dataset id.
         prefixdir          string, the prefix directory path.
@@ -227,11 +230,12 @@ class JobLauncher(object):
               The text output (first element of the list) of launcher.parallel_exec()
               ['stdout', 'stderr']
         """
+        downnodes = ' '.join(nodes_down)
         argv = [
             prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix',
-            prefixdir, '--buf', buf_size, crc_flag, downnodes_spaced
+            prefixdir, '--buf', buf_size, crc_flag, downnodes
         ]
-        output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
+        output = self.parallel_exec(argv=argv, runnodes=nodes_up)[0]
         return output
 
     def kill_jobstep(self, jobstep=None):

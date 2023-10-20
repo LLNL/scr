@@ -27,17 +27,19 @@ class LSF(ResourceManager):
                 lines = []
                 with open(hostfile, 'r') as f:
                     lines = [line.strip() for line in f.readlines()]
-                if len(lines) == 0:
-                    raise ValueError('Hostfile empty')
 
-                # get a set of unique hostnames, convert list to set and back
+                if len(lines) == 0:
+                    raise RuntimeError('LSF: ERROR: $LSB_DJOB_HOSTFILE empty')
+
+                # get a set of unique hostnames
                 hostlist = list(set(lines[1:]))
-                hostlist = self.compress_hosts(hostlist)
                 return hostlist
             except Exception as e:
                 # failed to read file
-                print('ERROR: LSF.job_nodes')
+                print('LSF: ERROR: failed to process $LSB_DJOB_HOSTFILE')
                 print(e)
+                raise e
+
         return None
 
         # fall back to try LSB_HOSTS
@@ -45,7 +47,6 @@ class LSF(ResourceManager):
         if hosts is not None:
             hosts = hosts.split(' ')
             hosts = list(set(hosts[1:]))
-            hosts = self.compress_hosts(hosts)
         return hosts
 
     def down_nodes(self):

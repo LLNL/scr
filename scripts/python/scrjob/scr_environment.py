@@ -46,7 +46,8 @@ class SCR_Env:
 
     def get_scr_nodelist(self):
         """Return the SCR_NODELIST, if set, or None."""
-        return os.environ.get('SCR_NODELIST')
+        nodelist = os.environ.get('SCR_NODELIST')
+        return self.resmgr.expand_hosts(nodelist)
 
     def get_prefix(self):
         """Return the scr prefix."""

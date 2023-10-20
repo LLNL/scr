@@ -1,9 +1,7 @@
 SET(PYFE
   __init__.py
   list_dir.py
-  list_down_nodes.py
   parsetime.py
-  postrun.py
   scr_environment.py
   scr_hostlist.py
 )
