@@ -18,19 +18,20 @@ from scrjob.resmgrs import AutoResourceManager
 
 
 def scr_prerun(scr_env=None):
-    """this script is called after initialization to ensure verify the environment
+    """This script is called after initialization to ensure verify the
+    environment.
 
-  Prerun Operations
-  -----------------
-  Call SCR_Test_Runtime with a list of tests provided by the resmgr
-  Ensures the .scr directory exists
-  Remove existing flush or nodes files
+    Prerun Operations
+    -----------------
+    Call SCR_Test_Runtime with a list of tests provided by the resmgr
+    Ensures the .scr directory exists
+    Remove existing flush or nodes files
 
-  Returns
-  -------
-  int   0 - no error
-        1 - error
-  """
+    Returns
+    -------
+    int   0 - no error
+          1 - error
+    """
     # bail out if not enabled
     val = os.environ.get('SCR_ENABLE')
     if val == '0':

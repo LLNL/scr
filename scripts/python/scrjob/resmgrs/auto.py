@@ -1,5 +1,5 @@
-"""
-AutoResourceManager is called to return the appropriate ResourceManager class
+"""AutoResourceManager is called to return the appropriate ResourceManager
+class.
 
 This is the class called to obtain an instance of a resource manager.
 

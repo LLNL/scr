@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 # scr_common.py
-"""Defines for common methods shared across scripts"""
+"""Defines for common methods shared across scripts."""
 
 import os, sys
 
@@ -16,18 +16,18 @@ from scrjob import scr_const
 
 
 def tracefunction(frame, event, arg):
-    """This method provides a hook for tracing python calls
+    """This method provides a hook for tracing python calls.
 
-  Usage:  sys.settrace(scr_common.tracefunction)
-  Prints: filename:function:linenum -> event
+    Usage:  sys.settrace(scr_common.tracefunction)
+    Prints: filename:function:linenum -> event
 
-  The method below will be called on events as scripts execute.
-  The print message in the try block attempts to print the filename.
-  If the filename could not be obtained, an exception is thrown.
+    The method below will be called on events as scripts execute.
+    The print message in the try block attempts to print the filename.
+    If the filename could not be obtained, an exception is thrown.
 
-  This output is very verbose. Filters could be added for event type,
-  and print messages could be suppressed when the filename is not known.
-  """
+    This output is very verbose. Filters could be added for event type,
+    and print messages could be suppressed when the filename is not known.
+    """
     try:
         print(
             inspect.getfile(frame).split('/')[-1] + ':' +
@@ -40,14 +40,14 @@ def tracefunction(frame, event, arg):
 
 
 def interpolate_variables(varstr):
-    """This method will expand a string, including paths
+    """This method will expand a string, including paths.
 
-  This method allows interpretation of path strings such as:
-  ~ . ../ ../../
+    This method allows interpretation of path strings such as:
+    ~ . ../ ../../
 
-  Environment variables in the string will also be expanded.
-  The input need not be a path.
-  """
+    Environment variables in the string will also be expanded.
+    The input need not be a path.
+    """
     if varstr is None or len(varstr) == 0:
         return ''
     # replace ~ and . symbols from front of path
@@ -68,13 +68,13 @@ def interpolate_variables(varstr):
 
 
 def scr_prefix():
-    """This method will return the prefix for SCR
+    """This method will return the prefix for SCR.
 
-  If the environment variable is not set,
-  it will return the current working directory.
-  Allows the environment variable to contain relative paths by returning
-  the string after passing through interpolate_variables
-  """
+    If the environment variable is not set, it will return the current
+    working directory. Allows the environment variable to contain
+    relative paths by returning the string after passing through
+    interpolate_variables
+    """
     prefix = os.environ.get('SCR_PREFIX')
     if prefix is None:
         return os.getcwd()
@@ -90,44 +90,44 @@ def runproc(argv,
             getstderr=False,
             verbose=False,
             shell=False):
-    """This method will execute a command using subprocess.Popen
+    """This method will execute a command using subprocess.Popen.
 
-  Required argument
-  -----------------
-  argv        a string or a list, the command to be ran
+    Required argument
+    -----------------
+    argv        a string or a list, the command to be ran
 
-  Returns
-  -------
-  tuple       2 values are returned as a tuple, the values depend on optional parameters
-              When getting output (waiting, default):
-                The first return value is the output, the second is the returncode
-                If only getting stdout OR stderr, the first element will be a string
-                If getting stdout AND stderr, the first element will be a list,
-                where the first element of the list is stdout and the second is stderr
-                The return code will be an integer
-              When not getting output, when wait = False:
-                When wait is False, this method immediately returns after calling Popen.
-                The Popen object will be both the first and second return values
-              On ERROR:
-                On error this method returns None, None
-                This has an exception if getstderr is True, then the first return value
-                will contain stderr in the expected position, and the second value will be None
+    Returns
+    -------
+    tuple       2 values are returned as a tuple, the values depend on optional parameters
+                When getting output (waiting, default):
+                  The first return value is the output, the second is the returncode
+                  If only getting stdout OR stderr, the first element will be a string
+                  If getting stdout AND stderr, the first element will be a list,
+                  where the first element of the list is stdout and the second is stderr
+                  The return code will be an integer
+                When not getting output, when wait = False:
+                  When wait is False, this method immediately returns after calling Popen.
+                  The Popen object will be both the first and second return values
+                On ERROR:
+                  On error this method returns None, None
+                  This has an exception if getstderr is True, then the first return value
+                  will contain stderr in the expected position, and the second value will be None
 
-  Optional parameters
-  -------------------
-    All optional parameters are True/False boolean values
-    The parameters getstdout and getstderr require waiting for the program to complete,
-    and should not be used in combination with wait=True
+    Optional parameters
+    -------------------
+      All optional parameters are True/False boolean values
+      The parameters getstdout and getstderr require waiting for the program to complete,
+      and should not be used in combination with wait=True
 
-  wait        If wait is False this method returns the Popen object as both elements of the tuple
-  getstdout   If getstdout is True then this method will include stdout in the first return value
-  getstderr   If getstderr is True then this method will include stderr in the first return value
-  verbose     If verbose is True then this method will print the command to be executed
-  shell       If shell is True, then argv is transformed into -> 'bash -c ' + shlex.quote(argv)
+    wait        If wait is False this method returns the Popen object as both elements of the tuple
+    getstdout   If getstdout is True then this method will include stdout in the first return value
+    getstderr   If getstderr is True then this method will include stderr in the first return value
+    verbose     If verbose is True then this method will print the command to be executed
+    shell       If shell is True, then argv is transformed into -> 'bash -c ' + shlex.quote(argv)
 
-  The shell option is passed into the Popen call, and is supposed to prepend commands (?) with
-    '/bin/sh -c', although when I tried simply using shell=True for 'which pdsh' I had errors.
-  """
+    The shell option is passed into the Popen call, and is supposed to prepend commands (?) with
+      '/bin/sh -c', although when I tried simply using shell=True for 'which pdsh' I had errors.
+    """
     if shell:
         if type(argv) is list:
             argv = ' '.join(argv)
@@ -184,16 +184,17 @@ def runproc(argv,
 # the first subprocess is opened and from there stdout is chained to stdin
 # values returned (returncode/pid/stdout/stderr) will be from the final process
 def pipeproc(argvs, wait=True, getstdout=False, getstderr=False):
-    """This method is an extension of the above runproc method
+    """This method is an extension of the above runproc method.
 
-  This is essentially duplicated code from the runproc.
-   ### TODO : This functionality could be put into runproc, increasing
-    the complexity slightly, or it could be kept separate.
+    This is essentially duplicated code from the runproc.  ### TODO :
+    This functionality could be put into runproc, increasing   the
+    complexity slightly, or it could be kept separate.
 
-  This method will loop through search argv in a list of argvs.
-  The output of each previous 'runproc' will be piped to the next as stdin.
-  Any return values will come from the result of the final Popen command
-  """
+    This method will loop through search argv in a list of argvs. The
+    output of each previous 'runproc' will be piped to the next as
+    stdin. Any return values will come from the result of the final
+    Popen command
+    """
     if len(argvs) < 1:
         return None, None
     if len(argvs) == 1:
@@ -251,13 +252,13 @@ def pipeproc(argvs, wait=True, getstdout=False, getstderr=False):
 def choose_bindir():
     """Determine appropriate location of binaries.
 
-  Testing using "make test" or "make check" must operate based on the contents
-  of the build directory.
+    Testing using "make test" or "make check" must operate based on the
+    contents of the build directory.
 
-  If the script is being run from the install directory, then return X_BINDIR
-  as defined by cmake so installed scripts use installed binaries.  Otherwise,
-  determine the appropriate build directory.
-  """
+    If the script is being run from the install directory, then return
+    X_BINDIR as defined by cmake so installed scripts use installed
+    binaries.  Otherwise, determine the appropriate build directory.
+    """
     # Needed to find binaries in build dir when testing
     parent_of_this_module = '/'.join(
         os.path.realpath(__file__).split('/')[:-1])
@@ -281,21 +282,21 @@ def log(bindir=None,
         event_name=None,
         event_start=None,
         event_secs=None):
-    """This method is a wrapper for commong logging operations
+    """This method is a wrapper for commong logging operations.
 
-  Logging operations call the scr_log_event program with formatted arguments.
+    Logging operations call the scr_log_event program with formatted arguments.
 
-  This method formats an argv, then calls the scr_log_event method.
+    This method formats an argv, then calls the scr_log_event method.
 
-  Parameters
-  ----------
-  All input parameters are optional, with each just extending the log entry
-  Input parameters should (with one exception) be string values
+    Parameters
+    ----------
+    All input parameters are optional, with each just extending the log entry
+    Input parameters should (with one exception) be string values
 
-  event_note   may be a string or a dictionary, if a dictionary is passed then
-               the remaining arguments are duplicated
-               This allows several runproc calls without rebuilding argv each time
-  """
+    event_note   may be a string or a dictionary, if a dictionary is passed then
+                 the remaining arguments are duplicated
+                 This allows several runproc calls without rebuilding argv each time
+    """
     if prefix is None:
         prefix = scr_prefix()
         #print('log: prefix is required')
@@ -333,10 +334,11 @@ def log(bindir=None,
 
 
 if __name__ == '__main__':
-    """This script allows being called as a standalone script
+    """This script allows being called as a standalone script.
 
-  This is meant for testing purposes, to directly call scr_common methods.
-  """
+    This is meant for testing purposes, to directly call scr_common
+    methods.
+    """
     parser = argparse.ArgumentParser(add_help=False,
                                      argument_default=argparse.SUPPRESS,
                                      prog='scr_common')

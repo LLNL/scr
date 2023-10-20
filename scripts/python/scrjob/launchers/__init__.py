@@ -1,5 +1,4 @@
-"""
-Job Launcher classes provide an interface to specific launcher programs.
+"""Job Launcher classes provide an interface to specific launcher programs.
 
 The job launcher is determined by:
 * The particular scr_{ }run.py script which is invoked.

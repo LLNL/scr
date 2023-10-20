@@ -1,5 +1,4 @@
-"""
-AutoJobLauncher is called to return the appropriate JobLauncher class
+"""AutoJobLauncher is called to return the appropriate JobLauncher class.
 
 This is the class called to obtain an instance of a job launcher.
 

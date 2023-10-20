@@ -29,19 +29,20 @@ def scr_scavenge(nodeset_job=None,
                  verbose=False,
                  scr_env=None,
                  log=None):
-    """This script is invoked to perform a scavenge operation
+    """This script is invoked to perform a scavenge operation.
 
-  scr_scavenge.py is a wrapper to gather values and arrange parameters needed for
-  a scavenge operation.
+    scr_scavenge.py is a wrapper to gather values and arrange parameters
+    needed for a scavenge operation.
 
-  When ready, the scavenge parameters are passed to the Joblauncher class to perform
-  the scavenge operation.
+    When ready, the scavenge parameters are passed to the Joblauncher
+    class to perform the scavenge operation.
 
-  The output of the scavenge operation is both written to file and printed to screen.
+    The output of the scavenge operation is both written to file and
+    printed to screen.
 
-  This script returns 1 if a needed value or parameter could not be determined,
-  and returns 0 otherwise
-  """
+    This script returns 1 if a needed value or parameter could not be
+    determined, and returns 0 otherwise
+    """
     # check that we have a nodeset for the job and directories to read from / write to
     if nodeset_job is None or dataset_id is None or cntldir is None or prefixdir is None:
         return 1

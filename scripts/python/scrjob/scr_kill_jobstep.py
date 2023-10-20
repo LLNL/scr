@@ -1,8 +1,6 @@
 #! /usr/bin/env python3
-
-"""
-This script can use the 'scancel' or equivalent command
-to kill a jobstep with the jobstep id supplied via the command line.
+"""This script can use the 'scancel' or equivalent command to kill a jobstep
+with the jobstep id supplied via the command line.
 
 This requires specifying both the joblauncher and a jobstep id.
 """

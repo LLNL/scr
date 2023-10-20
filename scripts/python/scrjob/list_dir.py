@@ -9,26 +9,26 @@ def list_dir(user=None,
              runcmd=None,
              scr_env=None,
              bindir=''):
-    """This method returns info on the SCR control/cache/prefix directories
-  for the current user and jobid
+    """This method returns info on the SCR control/cache/prefix directories for
+    the current user and jobid.
 
-  Required Parameters
-  ----------
-  runcmd     string, 'control' or 'cache'
-  scr_env    class, an instance of SCR_Env with valid references to
-             scr_env.resmgr and scr_env.param
+    Required Parameters
+    ----------
+    runcmd     string, 'control' or 'cache'
+    scr_env    class, an instance of SCR_Env with valid references to
+               scr_env.resmgr and scr_env.param
 
-  Returns
-  -------
-  string
-    A space separated list of directories
+    Returns
+    -------
+    string
+      A space separated list of directories
 
-  Error
-  -----
-    This method will print 'list_dir: INVALID: %s', where %s is an error
-    string representing the error.
-    The method will then return the integer 1
-  """
+    Error
+    -----
+      This method will print 'list_dir: INVALID: %s', where %s is an error
+      string representing the error.
+      The method will then return the integer 1
+    """
     # check that user specified "control" or "cache"
     if runcmd != 'control' and runcmd != 'cache':
         print('list_dir: INVALID: \'control\' or \'cache\' must be specified.')

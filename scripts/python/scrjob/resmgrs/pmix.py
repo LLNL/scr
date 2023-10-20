@@ -1,6 +1,4 @@
-'''
-# pmix.py
-# PMIX is a subclass if ResourceManager
+"""# pmix.py # PMIX is a subclass if ResourceManager
 
 import os
 from scrjob import scr_const
@@ -107,4 +105,4 @@ class PMIX(ResourceManager):
     argv.append(downnodes_spaced)
     output = self.parallel_exec(argv=argv,runnodes=self.job_nodes(),use_dshbak=False)[0]
     return output
-'''
+"""

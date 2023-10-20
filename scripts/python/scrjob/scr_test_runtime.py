@@ -16,50 +16,52 @@ from scrjob.resmgrs import AutoResourceManager
 
 
 class SCR_Test_Runtime:
-    """SCR_Test_Runtime class contains methods to determine whether we should launch with SCR
+    """SCR_Test_Runtime class contains methods to determine whether we should
+    launch with SCR.
 
-  This class contains methods to test the environment, to ensure SCR will be able to function.
-  These tests are called in scr_prerun.py, immediately after checking if scr is enabled.
-  Not all methods are appropriate to test in every environment.
-  Additional test methods may be added to this class to integrate into the pre-run tests.
-  Test methods should run without arguments and return an integer representing PASS / FAIL.
+    This class contains methods to test the environment, to ensure SCR will be able to function.
+    These tests are called in scr_prerun.py, immediately after checking if scr is enabled.
+    Not all methods are appropriate to test in every environment.
+    Additional test methods may be added to this class to integrate into the pre-run tests.
+    Test methods should run without arguments and return an integer representing PASS / FAIL.
 
-  We could receive a list of applicable tests through:
-    A configuration file.
-    A compile constant (scr_const.py).
-    Environment variables.
-    Querying the ResourceManager and/or Joblauncher classes.
+    We could receive a list of applicable tests through:
+      A configuration file.
+      A compile constant (scr_const.py).
+      Environment variables.
+      Querying the ResourceManager and/or Joblauncher classes.
 
-  Currently the ResourceManager is queried, which aligns with the original bash/perl scripts.
+    Currently the ResourceManager is queried, which aligns with the original bash/perl scripts.
 
-  Each test in the list, that is a callable method in this class, will be called during scr_prerun.
-  If any indicated test fails then scr_prerun will fail.
+    Each test in the list, that is a callable method in this class, will be called during scr_prerun.
+    If any indicated test fails then scr_prerun will fail.
 
-  This class is currently a 'static' class, not intended to be instantiated.
-  The __new__ method is used to launch the tests, this method returns the success value.
-  Methods other than `__new__` should be decorated with `@staticmethod`.
+    This class is currently a 'static' class, not intended to be instantiated.
+    The __new__ method is used to launch the tests, this method returns the success value.
+    Methods other than `__new__` should be decorated with `@staticmethod`.
 
-  Test Return Values
-  ------------------
-  Each test should return an integer:
-  0 - PASS
-  1 - FAIL
-  """
+    Test Return Values
+    ------------------
+    Each test should return an integer:
+    0 - PASS
+    1 - FAIL
+    """
 
     def __new__(cls, tests=[]):
-        """This method collects the return codes of all static methods declared in SCR_Test_Runtime
+        """This method collects the return codes of all static methods declared
+        in SCR_Test_Runtime.
 
-    This method receives a list.
-      Each element is a string and is the name of a method of the SCR_Test_Runtime class
+        This method receives a list.
+          Each element is a string and is the name of a method of the SCR_Test_Runtime class
 
-    Returns
-    -------
-      This method returns an integer.
-      This method does not return an instance of a class.
+        Returns
+        -------
+          This method returns an integer.
+          This method does not return an instance of a class.
 
-      This method returns 0 if all tests succeed,
-      Otherwise this method returns the 1, indicating a test has failed.
-    """
+          This method returns 0 if all tests succeed,
+          Otherwise this method returns the 1, indicating a test has failed.
+        """
         #tests = [
         #    attr for attr in dir(SCR_Test_Runtime) if not attr.startswith('__')
         #    and callable(getattr(SCR_Test_Runtime, attr))
@@ -84,11 +86,11 @@ class SCR_Test_Runtime:
 
     @staticmethod
     def check_clustershell():
-        """This method tests if the ClusterShell module is available
+        """This method tests if the ClusterShell module is available.
 
-    This test will return failure if the option USE_CLUSTERSHELL
-    enables ClusterShell and the module is not available.
-    """
+        This test will return failure if the option USE_CLUSTERSHELL
+        enables ClusterShell and the module is not available.
+        """
         if scr_const.USE_CLUSTERSHELL == '1':
             try:
                 import ClusterShell
@@ -101,16 +103,18 @@ class SCR_Test_Runtime:
 
     @staticmethod
     def check_pdsh():
-        """This method tests the validity of the pdsh command
+        """This method tests the validity of the pdsh command.
 
-    The pdsh executable, whose path is determined by scr_const.PDSH_EXE,
-    is used in the Joblauncher.parallel_exec method to execute a command
-    in parallel on multiple nodes and retrieve each node's output and return code.
+        The pdsh executable, whose path is determined by
+        scr_const.PDSH_EXE, is used in the Joblauncher.parallel_exec
+        method to execute a command in parallel on multiple nodes and
+        retrieve each node's output and return code.
 
-    This test will return failure if we are unable to confirm PDSH_EXE is valid.
+        This test will return failure if we are unable to confirm
+        PDSH_EXE is valid.
 
-    If ClusterShell is enabled, this test does not apply.
-    """
+        If ClusterShell is enabled, this test does not apply.
+        """
         if scr_const.USE_CLUSTERSHELL == '1':
             return 0
         pdsh = scr_const.PDSH_EXE
@@ -141,10 +145,11 @@ class SCR_Test_Runtime:
 
 
 if __name__ == '__main__':
-    """Call sys.exit(result) When this is called as a standalone script
+    """Call sys.exit(result) When this is called as a standalone script.
 
-  This provides a compact illustration of usage of the test methods in scr_prerun.
-  """
+    This provides a compact illustration of usage of the test methods in
+    scr_prerun.
+    """
     resmgr = AutoResourceManager()
     tests = resmgr.get_prerun_tests()
     ret = SCR_Test_Runtime(tests)

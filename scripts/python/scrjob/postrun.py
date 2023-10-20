@@ -17,15 +17,16 @@ from scrjob.cli import SCRIndex, SCRFlushFile
 
 
 def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
-    """this method is called after all runs has completed, before scr_run.py exits
+    """This method is called after all runs has completed, before scr_run.py
+    exits.
 
-  Determine whether there are datasets to scavenge, and perform scavenge operations
+    Determine whether there are datasets to scavenge, and perform scavenge operations
 
-  Returns
-  -------
-  int     0 on success
-          1 on error
-  """
+    Returns
+    -------
+    int     0 on success
+            1 on error
+    """
     if scr_env is None or scr_env.resmgr is None:
         return 1
 

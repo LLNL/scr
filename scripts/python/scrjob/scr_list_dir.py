@@ -16,12 +16,13 @@ from scrjob.scr_param import SCR_Param
 from scrjob.resmgrs import AutoResourceManager
 
 if __name__ == '__main__':
-    """this is an external driver for the internal list_dir method
+    """This is an external driver for the internal list_dir method.
 
-  This script is for stand-alone purposes and is not used within other scripts
+    This script is for stand-alone purposes and is not used within other
+    scripts
 
-  This script can be used to test the list_dir method of list_dir.py
-  """
+    This script can be used to test the list_dir method of list_dir.py
+    """
     parser = argparse.ArgumentParser(add_help=False,
                                      argument_default=argparse.SUPPRESS,
                                      prog='scr_list_dir')
