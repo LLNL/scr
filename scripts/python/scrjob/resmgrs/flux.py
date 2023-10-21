@@ -49,7 +49,7 @@ class FLUX(ResourceManager):
     def job_nodes(self):
         resp = RPC(self.flux, "resource.status").get()
         rset = ResourceSet(resp["R"])
-        return str(rset.nodelist)
+        return list(rset.nodelist)
 
     def down_nodes(self):
         downnodes = {}

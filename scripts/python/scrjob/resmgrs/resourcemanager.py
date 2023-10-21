@@ -9,8 +9,8 @@ class ResourceManager(object):
 
     Provided Default Methods
     ------------------------
-    usewatchdog()
-      allows setting of self.use_watchdog and getting its value
+    use_watchdog()
+      allows setting of self.watchdog and getting its value
 
     If the constant, USE_CLUSTERSHELL, is not '0' and the module ClusterShell is available
     then ClusterShell.NodeSet will be used for these operations.
@@ -44,7 +44,7 @@ class ResourceManager(object):
     clustershell_nodeset - Either False or a pointer to the module ClusterShell.NodeSet
     prefix               - String returned from scr_prefix()
     resmgr               - String representation of the resource manager
-    use_watchdog         - A boolean indicating whether to use the watchdog method
+    watchdog             - A boolean indicating whether to use the watchdog method
     nodetests            - An instance of the Nodetests class
     """
 
@@ -58,7 +58,7 @@ class ResourceManager(object):
                 self.clustershell_nodeset = False
         self.prefix = scr_prefix()
         self.resmgr = resmgr
-        self.use_watchdog = False
+        self.watchdog = False
         self.nodetests = Nodetests()
 
     def prerun_tests(self):
@@ -77,8 +77,8 @@ class ResourceManager(object):
         # we are unable to import the ClusterShell module, this is a safe test for all managers
         return ['check_clustershell']
 
-    def usewatchdog(self, use_scr_watchdog=None):
-        """Set or get the use_scr_watchdog attribute.
+    def use_watchdog(self, watchdog=None):
+        """Set or get the watchdog attribute.
 
         When not using the SCR_Watchdog, a jobstep is launched and waited on.
 
@@ -87,18 +87,17 @@ class ResourceManager(object):
         the existence of output files. If no new output files exist, it will be assumed
         that the launched process is hanging and it will be terminated.
 
-        Given a boolean parameter, this method will set the use_scr_watchdog attribute.
+        Given a boolean parameter, this method will set the watchdog attribute.
         Called without a parameter, the value will be returned.
 
         Returns
         -------
         bool
-            use_scr_watchdog
-            or None if parameter given and attribute was set
+            indicates whether watchdog is active
         """
-        if use_scr_watchdog is None:
-            return self.use_watchdog
-        self.use_watchdog = use_scr_watchdog
+        if watchdog is None:
+            return self.watchdog
+        self.watchdog = watchdog
 
     def job_id(self):
         """Return current job allocation id.
@@ -120,11 +119,11 @@ class ResourceManager(object):
 
         Returns
         -------
-        str
-            list of allocation compute nodes in string format
-            or None if unknown or error
+        list(str)
+            list of allocation compute nodes
+            empty if error
         """
-        return None
+        return []
 
     def down_nodes(self):
         """Return allocation compute nodes the resource manager identifies as
@@ -151,11 +150,32 @@ class ResourceManager(object):
         Returns
         -------
         int
-            If end time is determined:       end time as secs since Unix epoch
-            If end time is unknown or error: 0
-            If there is no end time:         -1
+            end time as secs since Unix epoch, if end time is determined
+            0, if end time is unknown or error
+            -1, if there is no end time
         """
         return 0
+
+    def join_hosts(self, hostnames):
+        """Return hostlist string, where the hosts are joined with ','.
+
+        Input parameter, hostnames, is a list or a comma separated string.
+
+        Returns
+        -------
+        str
+            comma separated hostlist, e.g., 'node1,node2,node3,node4,node7'
+        """
+        if not hostnames:
+            return ''
+
+        if self.clustershell_nodeset != False:
+            nodeset = self.clustershell_nodeset.NodeSet.fromlist(hostnames)
+
+            # the type is a ClusterShell NodeSet, convert to a string
+            return str(nodeset)
+
+        return scr_hostlist.compress(hostnames)
 
     def compress_hosts(self, hostnames=[]):
         """Return hostlist string, where the hostlist is in a compressed form.
@@ -169,15 +189,19 @@ class ResourceManager(object):
         """
         if type(hostnames) is str:
             hostnames = hostnames.split(',')
+
         if hostnames is None or len(hostnames) == 0:
             return ''
+
         if self.clustershell_nodeset != False:
             nodeset = self.clustershell_nodeset.NodeSet.fromlist(hostnames)
+
             # the type is a ClusterShell NodeSet, convert to a string
             return str(nodeset)
+
         return scr_hostlist.compress_range(hostnames)
 
-    def expand_hosts(self, hostnames=''):
+    def expand_hosts(self, hostnames):
         """Return list of hosts, where each element is a single host.
 
         Input parameter, hostnames, is a comma separated string or a list.
@@ -189,13 +213,18 @@ class ResourceManager(object):
         """
         if type(hostnames) is list:
             hostnames = ','.join(hostnames)
-        if hostnames is None or hostnames == '':
+
+        if not hostnames:
             return []
+
         if self.clustershell_nodeset != False:
             nodeset = self.clustershell_nodeset.NodeSet(hostnames)
+
             # the type is a ClusterShell NodeSet, convert to a list
             nodeset = [node for node in nodeset]
+
             return nodeset
+
         return scr_hostlist.expand(hostnames)
 
     def diff_hosts(self, set1=[], set2=[]):
@@ -212,20 +241,25 @@ class ResourceManager(object):
             set1 = set1.split(',')
         if type(set2) is str:
             set2 = set2.split(',')
+
         if set1 is None or set1 == []:
             return set2 if set2 is not None else []
         if set2 is None or set2 == []:
             return set1
+
         if self.clustershell_nodeset != False:
             set1 = self.clustershell_nodeset.NodeSet.fromlist(set1)
             set2 = self.clustershell_nodeset.NodeSet.fromlist(set2)
-            # strict=False is default
+
+            # this should work like set1 -= set2
             # if strict true then raises error if something in set2 not in set1
             set1.difference_update(set2, strict=False)
-            # ( this should also work like set1 -= set2 )
+
             # the type is a ClusterShell NodeSet, convert to a list
             set1 = [node for node in set1]
+
             return set1
+
         return scr_hostlist.diff(set1=set1, set2=set2)
 
     def intersect_hosts(self, set1=[], set2=[]):
@@ -242,17 +276,22 @@ class ResourceManager(object):
             set1 = set1.split(',')
         if type(set2) is str:
             set2 = set2.split(',')
+
         if set1 is None or set1 == []:
             return []
         if set2 is None or set2 == []:
             return []
+
         if self.clustershell_nodeset != False:
             set1 = self.clustershell_nodeset.NodeSet.fromlist(set1)
             set2 = self.clustershell_nodeset.NodeSet.fromlist(set2)
             set1.intersection_update(set2)
+
             # the type is a ClusterShell NodeSet, convert to a list
             set1 = [node for node in set1]
+
             return set1
+
         return scr_hostlist.intersect(set1, set2)
 
     # return a hash to define all unavailable (down or excluded) nodes and reason
@@ -281,7 +320,7 @@ class ResourceManager(object):
         return unavailable
 
     # each scavenge operation needs upnodes and downnodes_spaced
-    def scavenge_nodelists(self, upnodes='', downnodes=''):
+    def scavenge_nodelists(self, upnodes=[], downnodes=[]):
         """Return formatted upnodes and downnodes for joblaunchers' scavenge
         operation.
 
@@ -292,28 +331,22 @@ class ResourceManager(object):
         upnodes     string, a comma separated list of up nodes
         downnodes   string, a space separated list of down nodes
         """
-        if type(upnodes) is list:
-            upnodes = ','.join(upnodes)
-        if type(downnodes) is list:
-            downnodes = ','.join(downnodes)
-        # get nodesets
+
+        # get nodes in job
         jobnodes = self.job_nodes()
-        if jobnodes is None:
-            ### error handling
-            print('scr_scavenge: ERROR: Could not determine nodeset.')
-            return '', ''
-        jobnodes = self.expand_hosts(jobnodes)
-        if downnodes != '':
-            downnodes = self.expand_hosts(downnodes)
+        if not jobnodes:
+            raise RuntimeError(
+                'scr_scavenge: ERROR: Could not determine nodeset.')
+
+        if downnodes:
             upnodes = self.diff_hosts(jobnodes, downnodes)
-        elif upnodes != '':
-            upnodes = self.expand_hosts(upnodes)
+        elif upnodes:
             downnodes = self.diff_hosts(jobnodes, upnodes)
         else:
             upnodes = jobnodes
-        ##############################
+            downnodes = []
+
         # format up and down node sets for scavenge command
-        #################
-        upnodes = ','.join(self.expand_hosts(upnodes))
-        downnodes_spaced = ' '.join(self.expand_hosts(downnodes))
-        return upnodes, downnodes_spaced
+        upnodes = self.join_hosts(upnodes)
+        downnodes = ' '.join(downnodes)
+        return upnodes, downnodes

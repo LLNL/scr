@@ -14,7 +14,7 @@ SET(PYFE_TESTS_EXE
   test_launch.py
   test_log.py
   test_pdsh.py
-  test_rm.py
+  test_resmgr.py
   test_scr_index.py
   test_watchdog.py
 )

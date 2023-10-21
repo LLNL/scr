@@ -28,14 +28,16 @@ class SLURM(ResourceManager):
 
     # get node list
     def job_nodes(self):
-        return os.environ.get('SLURM_NODELIST')
+        nodelist = os.environ.get('SLURM_NODELIST')
+        return self.expand_hosts(nodelist)
 
     # use sinfo to query SLURM for the list of nodes it thinks to be down
     def down_nodes(self):
         downnodes = {}
         nodelist = self.job_nodes()
-        if nodelist is not None:
-            down, returncode = runproc("sinfo -ho %N -t down -n " + nodelist,
+        if nodelist:
+            nodestr = self.join_hosts(nodelist)
+            down, returncode = runproc("sinfo -ho %N -t down -n " + nodestr,
                                        getstdout=True)
             if returncode == 0:
                 #### verify this format, comma separated list
@@ -54,11 +56,13 @@ class SLURM(ResourceManager):
         if jobid is None:
             return 0
 
+        # TODO: we can probably get this from a library to avoid fork/exec/parsing
         # ask scontrol for endtime of this job
         output = runproc("scontrol --oneliner show job " + jobid,
                          getstdout=True)[0]
         m = re.search('EndTime=(\\S*)', output)
         if not m:
+            # failed to parse output, return 0 to indicate unknown
             return 0
 
         # 'Unknown' is returned when no time limit was set
@@ -66,7 +70,6 @@ class SLURM(ResourceManager):
         if timestr == 'Unknown':
             return 0
 
-        # TODO: we can probably get this from a library to avoid fork/exec/parsing
         # parse time string like "2021-07-16T14:05:12" into secs since epoch
         dt = datetime.datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S")
         timestamp = int(dt.strftime("%s"))

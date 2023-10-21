@@ -16,11 +16,11 @@ from datetime import datetime
 from time import time, sleep
 
 from scrjob import scr_const, scr_common
-from scrjob.postrun import postrun
 from scrjob.list_dir import list_dir
-from scrjob.list_down_nodes import list_down_nodes
+from scrjob.scr_list_down_nodes import list_down_nodes
 from scrjob.scr_common import tracefunction, runproc, scr_prefix
 from scrjob.scr_prerun import scr_prerun
+from scrjob.scr_postrun import scr_postrun
 from scrjob.scr_watchdog import SCR_Watchdog
 from scrjob.scr_environment import SCR_Env
 from scrjob.launchers import AutoJobLauncher
@@ -28,6 +28,12 @@ from scrjob.resmgrs import AutoResourceManager
 from scrjob.scr_param import SCR_Param
 from scrjob.scr_glob_hosts import scr_glob_hosts
 from scrjob.cli import SCRLog
+
+
+# print the reason for any down nodes
+def print_failed(reasons):
+    for node in sorted(reasons.keys()):
+        print("FAILED: " + node + ': ' + reasons[node])
 
 
 # determine how many nodes are needed
@@ -39,23 +45,23 @@ def nodes_needed(scr_env, nodelist):
         num_needed = scr_env.get_runnode_count()
         if num_needed <= 0:
             # otherwise, assume we need all nodes in the allocation
-            num_needed = scr_glob_hosts(count=True,
-                                        hosts=nodelist,
-                                        resmgr=scr_env.resmgr)
-            if num_needed is None:
+            num_needed = len(nodelist)
+            if num_needed == 0:
                 # failed all methods to estimate the minimum number of nodes
                 return 0
     return int(num_needed)
 
 
 # return number of nodes left in allocation after excluding down nodes
-def nodes_remaining(resmgr, nodelist, down_nodes):
-    num_left = scr_glob_hosts(count=True,
-                              minus=nodelist + ':' + down_nodes,
-                              resmgr=resmgr)
-    if num_left is None:
-        return 0
-    return int(num_left)
+def nodes_subtract(nodes, nodes_remove):
+    temp = [n for n in nodes if n not in nodes_remove]
+    return temp
+
+
+# return number of nodes left in allocation after excluding down nodes
+def nodes_remaining(nodelist, down_nodes):
+    temp = nodes_subtract(nodelist, down_nodes)
+    return len(temp)
 
 
 # is there a halt condition instructing us to stop?
@@ -134,20 +140,16 @@ def scr_run(launcher='',
 
     # get the nodeset of this job
     nodelist = scr_env.get_scr_nodelist()
-    if nodelist is None:
+    if not nodelist:
         nodelist = resmgr.job_nodes()
-        if nodelist is None:
-            print(prog +
-                  f': ERROR: Could not identify nodeset for job {jobid}')
-            sys.exit(1)
-    nodelist = ','.join(resmgr.expand_hosts(nodelist))
+    if not nodelist:
+        print(prog + f': ERROR: Could not identify nodeset for job {jobid}')
+        sys.exit(1)
 
     watchdog = None
     val = os.environ.get('SCR_WATCHDOG')
-    if val != '1':
-        resmgr.usewatchdog(False)
-    else:
-        resmgr.usewatchdog(True)
+    if val == '1':
+        resmgr.use_watchdog(True)
         watchdog = SCR_Watchdog(prefix, scr_env)
 
     # TODO: define resmgr.prerun() and launcher.prerun() hooks, call from scr_prerun?
@@ -159,8 +161,11 @@ def scr_run(launcher='',
     print(prog + ': prerun: ' + str(timestamp))
 
     # test runtime, ensure filepath exists
-    if scr_prerun(scr_env=scr_env) != 0:
+    try:
+        scr_prerun(scr_env=scr_env, verbose=verbose)
+    except Exception as e:
         print(prog + ': ERROR: Command failed: scr_prerun -p ' + prefix)
+        print(e)
         sys.exit(1)
 
     # look up allocation end time, record in SCR_END_TIME
@@ -168,9 +173,6 @@ def scr_run(launcher='',
     if endtime == 0:
         if verbose == True:
             print(prog + ': WARNING: Unable to get end time.')
-    elif endtime == -1:  # no end time / limit
-        pass
-    #else:
     os.environ['SCR_END_TIME'] = str(endtime)
 
     # determine number of times to run application
@@ -194,7 +196,7 @@ def scr_run(launcher='',
         runs = 1
 
     # enter the run loop
-    down_nodes = ''
+    down_nodes = []
     attempts = 0
     while True:
         # once we mark a node as bad, leave it as bad (even if it comes back healthy)
@@ -207,33 +209,26 @@ def scr_run(launcher='',
         # set "first run" flag, let individual tests decide how to handle that
         first_run = (attempts == 0)
 
-        # are there enough nodes to continue?
-        down_nodes = list_down_nodes(free=first_run,
-                                     nodeset_down=down_nodes,
-                                     scr_env=scr_env)
+        # check for any down nodes
+        reasons = list_down_nodes(reason=True,
+                                  free=first_run,
+                                  nodes_down=keep_down,
+                                  runtime_secs='0',
+                                  scr_env=scr_env,
+                                  log=log)
+        print_failed(reasons)
 
-        # list_down_nodes returns 0 for none, 1 for error
-        # could handle an error here, or just continue
-        if type(down_nodes) is int:
-            down_nodes = ''
-        # a comma separated string of down nodes is returned otherwise
-        else:  #if down_nodes != '':
-            # print the reason for the down nodes, and log them
-            # when reason == True a string formatted for printing will be returned
-            printstring = list_down_nodes(reason=True,
-                                          free=first_run,
-                                          nodeset_down=down_nodes,
-                                          runtime_secs='0',
-                                          scr_env=scr_env,
-                                          log=log)
-            print(printstring)
+        down_nodes = sorted(reasons.keys())
+        down_str = ','.join(down_nodes)
 
+        # bail out if we don't have enough nodes to continue
+        if down_nodes:
             # if this is the first run, we hit down nodes right off the bat, make a record of them
             if first_run:
                 start_secs = int(time())
                 print('SCR: Failed node detected: JOBID=' + jobid +
                       ' ATTEMPT=0 TIME=' + str(start_secs) +
-                      ' NNODES=-1 RUNTIME=0 FAILED=' + down_nodes)
+                      ' NNODES=-1 RUNTIME=0 FAILED=' + down_str)
 
             # determine how many nodes are needed
             num_needed = nodes_needed(scr_env, nodelist)
@@ -243,7 +238,7 @@ def scr_run(launcher='',
                 break
 
             # determine number of nodes remaining in allocation
-            num_left = nodes_remaining(resmgr, nodelist, down_nodes)
+            num_left = nodes_remaining(nodelist, down_nodes)
 
             # check that we have enough nodes after excluding down nodes
             if num_left < num_needed:
@@ -282,7 +277,7 @@ def scr_run(launcher='',
         # launch the job, make sure we include the script node and exclude down nodes
         print(prog + ': Launching ' + str(launch_cmd))
         proc, jobstep = launcher.launch_run_cmd(up_nodes=nodelist,
-                                                down_nodes=down_nodes,
+                                                down_nodes=down_str,
                                                 launcher_args=launch_cmd)
         if watchdog is None:
             (finished, success) = launcher.waitonprocess(proc)
@@ -306,14 +301,12 @@ def scr_run(launcher='',
         log.event('RUN_END', note='run=' + str(attempts), secs=str(run_secs))
 
         # check for and log any down nodes
-        # logging happens within list_down_nodes
-        # a string formatted for printing is returned when reason == True
-        printstring = list_down_nodes(reason=True,
-                                      nodeset_down=keep_down,
-                                      runtime_secs=str(run_secs),
-                                      scr_env=scr_env,
-                                      log=log)
-        print(printstring)
+        reasons = list_down_nodes(reason=True,
+                                  nodes_down=keep_down,
+                                  runtime_secs=str(run_secs),
+                                  scr_env=scr_env,
+                                  log=log)
+        print_failed(reasons)
 
         # decrement retry counter
         runs -= 1
@@ -340,9 +333,15 @@ def scr_run(launcher='',
     print(prog + ': postrun: ' + str(timestamp))
 
     # scavenge files from cache to parallel file system
-    if postrun(prefix_dir=prefix, scr_env=scr_env, verbose=verbose,
-               log=log) != 0:
+    try:
+        scr_postrun(prefix_dir=prefix,
+                    scr_env=scr_env,
+                    verbose=verbose,
+                    log=log)
+    except Exception as e:
         print(prog + ': ERROR: Command failed: scr_postrun -p ' + prefix)
+        print(e)
+        success = False
 
     # make a record of end time
     timestamp = datetime.now()

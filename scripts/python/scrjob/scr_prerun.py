@@ -1,7 +1,5 @@
 #! /usr/bin/env python3
 
-# scr_prerun.py
-
 import os, sys
 
 if 'scrjob' not in sys.path:
@@ -17,38 +15,34 @@ from scrjob.scr_environment import SCR_Env
 from scrjob.resmgrs import AutoResourceManager
 
 
-def scr_prerun(scr_env=None):
-    """This script is called after initialization to ensure verify the
-    environment.
+def scr_prerun(scr_env=None, verbose=False):
+    """This is called to set up an SCR run.
 
-    Prerun Operations
-    -----------------
-    Call SCR_Test_Runtime with a list of tests provided by the resmgr
-    Ensures the .scr directory exists
-    Remove existing flush or nodes files
+    Calls SCR_Test_Runtime with a list of tests provided by the resmgr.
+    Ensures the .scr directory exists.
+    Removes existing flush or nodes files.
 
     Returns
     -------
-    int   0 - no error
-          1 - error
+    None
     """
+
     # bail out if not enabled
     val = os.environ.get('SCR_ENABLE')
     if val == '0':
-        return 0
-
-    if scr_env is None or scr_env.resmgr is None:
-        print('scr_prerun: ERROR: Unknown environment')
-        return 1
+        return
 
     start_time = datetime.now()
     start_secs = int(time())
-    print('scr_prerun: Started: ' + str(start_time))
+    if verbose:
+        print('scr_prerun: Started: ' + str(start_time))
+
+    if scr_env is None or scr_env.resmgr is None:
+        raise RuntimeError('scr_prerun: ERROR: Unknown environment')
 
     # check that we have all the runtime dependences we need
-    if SCR_Test_Runtime(scr_env.resmgr.get_prerun_tests()) != 0:
-        print('scr_prerun: exit code: 1')
-        return 1
+    if SCR_Test_Runtime(scr_env.resmgr.prerun_tests()) != 0:
+        raise RuntimeError('scr_prerun: ERROR: runtime test failed')
 
     # create the .scr subdirectory in the prefix directory
     dir_scr = scr_env.dir_scr()
@@ -58,8 +52,6 @@ def scr_prerun(scr_env=None):
     # here in preparation for the run.  However, a simple rm -rf is too
     # dangerous, since it's too easy to accidentally specify the wrong
     # base directory.
-    #
-    # For now, we just keep this script around as a place holder.
 
     # clear any existing flush or nodes files
     # NOTE: we *do not* clear the halt file, since the user may have
@@ -67,7 +59,7 @@ def scr_prerun(scr_env=None):
     # remove files: ${pardir}/.scr/{flush.scr,nodes.scr}
     try:
         os.remove(os.path.join(dir_scr, 'flush.scr'))
-    except:  # error on doesn't exist / etc ...
+    except:
         pass
 
     try:
@@ -78,34 +70,28 @@ def scr_prerun(scr_env=None):
     # report timing info
     end_time = datetime.now()
     run_secs = int(time()) - start_secs
-    print('scr_prerun: Ended: ' + str(end_time))
-    print('scr_prerun: secs: ' + str(run_secs))
-
-    # report exit code and exit
-    print('scr_prerun: exit code: 0')
-    return 0
+    if verbose:
+        print('scr_prerun: Ended: ' + str(end_time))
+        print('scr_prerun: secs: ' + str(run_secs))
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(add_help=False,
-                                     argument_default=argparse.SUPPRESS,
-                                     prog='scr_prerun')
-    parser.add_argument('-h',
-                        '--help',
-                        action='store_true',
-                        help='Show this help message and exit.')
+    parser = argparse.ArgumentParser()
     parser.add_argument('-p',
                         '--prefix',
                         metavar='<dir>',
                         type=str,
                         default=None,
                         help='Specify the prefix directory.')
-    args = vars(parser.parse_args())
+    parser.add_argument('-v',
+                        '--verbose',
+                        action='store_true',
+                        default=False,
+                        help='Verbose output.')
 
-    if 'help' in args:
-        parser.print_help()
-    else:
-        scr_env = SCR_Env(prefix=args['prefix'])
-        scr_env.resmgr = AutoResourceManager()
-        ret = scr_prerun(scr_env=scr_env)
-        sys.exit(ret)
+    args = parser.parse_args()
+
+    scr_env = SCR_Env(prefix=args.prefix)
+    scr_env.resmgr = AutoResourceManager()
+
+    scr_prerun(scr_env=scr_env, verbose=args.verbose)
