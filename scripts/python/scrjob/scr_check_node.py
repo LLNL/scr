@@ -1,11 +1,32 @@
 #! /usr/bin/env python3
 
-# scr_check_node.py
-
-# check health of current node
-#   control directory is available and of proper size
-#   cache directory is available and of proper size
-# print PASS if good, and FAIL if not
+# Runs on each compute node to check health of each node.
+# For example, this may verify that local storage is accessible
+# and has sufficient capactiy.
+#
+# The script prints PASS if all checks pass, and FAIL if any test fails.
+# The output is parsed by another script to verify that a node
+# is good and otherwise to report the reason the node failed.
+#
+# This currently checks:
+#   control directory
+#     is available,
+#     has the proper size,
+#     and is writable
+#   cache directory
+#     is available,
+#     has the proper size,
+#     and is writable
+#
+# TODO: generalize to support a configurable set of tests
+# To support modularity and user-defined tests, each test
+# should be implemented in its own python script.
+# This script should instantiate and execute each test as
+# specified by the user.
+#
+# Other tests that could be useful:
+#   run GPU tests to verify functionality
+#   run GPU/CPU performance tests to verify performance
 
 import os, sys
 
@@ -16,111 +37,114 @@ if 'scrjob' not in sys.path:
 import argparse
 
 
+def check_size(path, req_bytes, free):
+    """Verify path has specified bytes of total capacity or free space."""
+
+    # stat the path
+    try:
+        statvfs = os.statvfs(path)
+    except Exception as e:
+        raise RuntimeError('Could not access directory: ' + path + str(e))
+
+    # if --free was given, check free space on drive
+    # otherwise get total drive capacity
+    have_bytes = 0
+    if free:
+        # free bytes
+        have_bytes = statvfs.f_bsize * statvfs.f_bavail
+    else:
+        # max capacity
+        have_bytes = statvfs.f_bsize * statvfs.f_blocks
+
+    # compare to required number of bytes
+    if have_bytes < req_bytes:
+        raise RuntimeError('Insufficient space in directory: ' + path +
+                           ', expected ' + str(req_bytes) + ', found ' +
+                           str(have_bytes))
+
+
+def check_writable(path):
+    """Attempt to write and delete a small file to given path."""
+
+    # check that we can access the directory
+    # (perl code ran an ls)
+    # the docs suggest not to ask if access available, but to just try to access:
+    # https://docs.python.org/3/library/os.html?highlight=os%20access#os.access
+
+    testfile = os.path.join(path, 'testfile.txt')
+    try:
+        os.makedirs(path, exist_ok=True)
+        with open(testfile, 'w') as f:
+            f.write('test')
+    except PermissionError:
+        raise RuntimeError('Lack permission to write test file: ' + testfile)
+    except Exception as e:
+        raise RuntimeError('Could not touch test file: ' + testfile + str(e))
+
+    try:
+        os.remove(testfile)
+    except PermissionError:
+        raise RuntimeError('Lack permission to rm test file: ' + testfile)
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        raise RuntimeError('Could not rm test file: ' + testfile + str(e))
+
+
 def scr_check_node(free=False, cntl_list=None, cache_list=None):
-    types = ['cntl', 'cache']
-    # split up our lists of control directories / cache directories
+    # The control directory is where SCR stores data about the state of the run
+    # This is typically small and stored in fast storage like /dev/shm.
+    #
+    # The cache directory is where SCR stores dataset and redundancy data.
+
     checkdict = {}
+    types = ['cntl', 'cache']
     for atype in types:
-        if (atype == 'cntl' and cntl_list is None) or (atype == 'cache'
-                                                       and cache_list is None):
+        if ((atype == 'cntl' and cntl_list is None)
+                or (atype == 'cache' and cache_list is None)):
             types.remove(atype)
             continue
-        checkdict[atype] = {}
-        dirs = []
+
+        # multiple paths can be specified, separated by commas
         if atype == 'cntl':
             dirs = cntl_list.split(',')
         else:
             dirs = cache_list.split(',')
+
+        checkdict[atype] = {}
         for adir in dirs:
-            if adir[-1] == '/':
+            # drop any trailing slash from the path
+            if adir.endswith('/'):
                 adir = adir[:-1]
+
+            # TODO: support parsing of units, like 100GB
+            # path may optionally be followed by a required size
+            # like /ssd:100000000000
             if ':' in adir:
                 parts = adir.split(':')
                 checkdict[atype][parts[0]] = {}
-                checkdict[atype][parts[0]]['bytes'] = parts[1]
+                checkdict[atype][parts[0]]['bytes'] = int(parts[1])
             else:
                 checkdict[atype][adir] = {}
                 checkdict[atype][adir]['bytes'] = None
 
     # check that we can access the directory
     for atype in checkdict:
-        dirs = list(checkdict[atype])
-        # check that we can access the directory
-        # (perl code ran an ls)
-        # the docs suggest not to ask if access available, but to just try to access:
-        # https://docs.python.org/3/library/os.html?highlight=os%20access#os.access
-
         # if a size is defined, check that the total size is enough
+        dirs = list(checkdict[atype])
         for adir in dirs:
-            try:
-                if checkdict[atype][adir]['bytes'] is not None:
-                    # TODO: need to know which unit df is using
-                    # convert expected size from bytes to kilobytes
-                    kb = int(checkdict[atype][adir]['bytes']) // 1024
-
-                    # check total drive capacity, unless --free was given, then check free space on drive
-                    # ok, now get drive capacity
-                    statvfs = os.statvfs(adir)
-                    df_kb = 0
-                    if free:  # compare with usable free
-                        df_kb = statvfs.f_frsize * statvfs.f_bavail // 1024
-                    else:  # compare with total
-                        df_kb = statvfs.f_frsize * statvfs.f_blocks // 1024
-                    if df_kb < kb:
-                        print(
-                            'scr_check_node: FAIL: Insufficient space in directory: '
-                            + adir + ', expected ' + str(kb) + ' KB, found ' +
-                            str(df_kb) + ' KB')
-                        return 1
-            except Exception as e:
-                print('scr_check_node: FAIL: Could not access directory: ' +
-                      adir + str(e))
-                return 1
+            req_bytes = checkdict[atype][adir]['bytes']
+            if req_bytes is not None:
+                check_size(adir, req_bytes, free)
 
         # attempt to write to directory
         for adir in dirs:
-            testfile = adir + '/testfile.txt'
-            try:
-                os.makedirs(adir, exist_ok=True)
-                with open(testfile, 'w') as outfile:
-                    outfile.write('test')
-            except PermissionError:
-                print(
-                    'scr_check_node: FAIL: Lack permission to write test file: '
-                    + testfile)
-                return 1
-            except Exception as e:  # PermissionError or (other error)
-                print('scr_check_node: FAIL: Could not touch test file: ' +
-                      testfile + str(e))
-                # return 1 # for some other error it may be ok ?
-            try:
-                os.remove(testfile)
-            except PermissionError:
-                print(
-                    'scr_check_node: FAIL: Lack permission to rm test file: ' +
-                    testfile)
-                return 1
-            except FileNotFoundError:
-                pass
-            except Exception as e:
-                print('scr_check_node: FAIL: Could not rm test file: ' +
-                      testfile + str(e))
-                return 1
-    print('PASS')
-    return 0
+            check_writable(adir)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        add_help=False,
-        argument_default=argparse.SUPPRESS,
-        prog='scr_check_node',
         description='Checks that the current node is healthy')
-    # default=None, required=True, nargs='+'
-    parser.add_argument('-h',
-                        '--help',
-                        action='store_true',
-                        help='Show this help message and exit.')
     parser.add_argument(
         '--free',
         action='store_true',
@@ -138,12 +162,14 @@ if __name__ == '__main__':
                         type=str,
                         default=None,
                         help='Specify the SCR cache directory.')
-    args = vars(parser.parse_args())
-    if 'help' in args:
-        parser.print_help()
-    else:
-        ret = scr_check_node(free=args['free'],
-                             cntl_list=args['cntl'],
-                             cache_list=args['cache'])
-        if ret == 0:
-            print('scr_check_node: PASS')
+
+    args = parser.parse_args()
+
+    try:
+        scr_check_node(free=args.free,
+                       cntl_list=args.cntl,
+                       cache_list=args.cache)
+        print('scr_check_node: PASS')
+    except Exception as e:
+        print('scr_check_node: FAIL: ' + str(e))
+        sys.exit(1)
