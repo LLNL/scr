@@ -6,12 +6,8 @@
 # if called directly the launcher to use (srun/jsrun/mpirun) should be specified as an argument
 # scr_{srun,jsrun,mpirun} scripts call this script with the launcher specified
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
+import sys
 from datetime import datetime
 from time import time, sleep
 

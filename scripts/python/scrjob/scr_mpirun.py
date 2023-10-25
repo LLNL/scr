@@ -1,15 +1,10 @@
 #! /usr/bin/env python3
 
-# scr_mpirun.py
-
 # calls scr_run specifying to use launcher 'mpirun'
 # the launcher object could be created here.
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
+import os
+import sys
 
 from scrjob.scr_run import *
 

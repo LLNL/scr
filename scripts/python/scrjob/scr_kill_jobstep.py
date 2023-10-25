@@ -5,12 +5,8 @@ with the jobstep id supplied via the command line.
 This requires specifying both the joblauncher and a jobstep id.
 """
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
+import sys
 import argparse
 
 from scrjob import scr_const

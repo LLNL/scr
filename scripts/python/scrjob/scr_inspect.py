@@ -1,12 +1,9 @@
 #! /usr/bin/env python3
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
+import sys
 import argparse, re, subprocess
+
 from scrjob import scr_const, scr_hostlist
 from scrjob.scr_environment import SCR_Env
 from scrjob.resmgrs import AutoResourceManager

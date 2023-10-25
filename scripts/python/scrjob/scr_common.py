@@ -1,15 +1,12 @@
 #! /usr/bin/env python3
 """Defines for common methods shared across scripts."""
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
+import sys
 import argparse, inspect
 from subprocess import Popen, PIPE
 import shlex
+
 from scrjob import scr_const
 
 

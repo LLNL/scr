@@ -2,11 +2,7 @@
 
 # scr_srun.py
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
+import sys
 
 from scrjob.scr_run import *
 

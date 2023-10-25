@@ -1,10 +1,8 @@
 #! /usr/bin/env python3
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
+# include path hosting scrjob subdirectory
+#import sys
+#sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 

@@ -8,7 +8,6 @@
 #
 #   setenv SCR_LOG_ENABLE=1
 #   python test_log.py
-#
 
 print('--------------------------------------------------------')
 print('We should get a file at .scr/log with contents like:')
@@ -23,12 +22,11 @@ print(
 )
 print('--------------------------------------------------------')
 
-import os, sys
+import os
+import sys
 from datetime import datetime
 import time
 
-sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-import scrjob
 from scrjob.scr_env import SCR_Env
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.cli import SCRLog

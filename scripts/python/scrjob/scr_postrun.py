@@ -3,12 +3,6 @@
 # Run this script after the final run in a job allocation
 # to scavenge files from cache to parallel file system.
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
 import argparse
 
 from scrjob.postrun import postrun
@@ -39,8 +33,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     scr_env = SCR_Env(prefix=args.prefix)
-    scr_env.resmgr = AutoResourceManager()
     scr_env.param = SCR_Param()
+    scr_env.resmgr = AutoResourceManager()
     scr_env.launcher = AutoJobLauncher(args.joblauncher)
 
     postrun(prefix_dir=args.prefix, scr_env=scr_env, verbose=args.verbose)

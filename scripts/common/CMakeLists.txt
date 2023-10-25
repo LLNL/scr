@@ -14,19 +14,19 @@ SET(common_libexec
 	scr_watchdog
 )
 
-#FOREACH(bin IN ITEMS ${common_bins})
-#	SCR_INSTALL_BIN(${bin})
-#ENDFOREACH(bin IN ITEMS ${common_bins})
-#
-#FOREACH(bin IN ITEMS ${common_libexec})
-#	SCR_INSTALL_LIBEXEC(${bin})
-#ENDFOREACH(bin IN ITEMS ${common_libexec})
-#
-### Configure & install .pm files
-#CONFIGURE_FILE(scr_param.pm.in scr_param.pm @ONLY)
-#SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/scr_param.pm PROPERTIES GENERATED TRUE)
-#INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/scr_param.pm DESTINATION ${CMAKE_INSTALL_DATADIR}/scr)
-#INSTALL(FILES scr_hostlist.pm DESTINATION ${CMAKE_INSTALL_DATADIR}/scr)
+FOREACH(bin IN ITEMS ${common_bins})
+	SCR_INSTALL_BIN(${bin})
+ENDFOREACH(bin IN ITEMS ${common_bins})
+
+FOREACH(bin IN ITEMS ${common_libexec})
+	SCR_INSTALL_LIBEXEC(${bin})
+ENDFOREACH(bin IN ITEMS ${common_libexec})
+
+## Configure & install .pm files
+CONFIGURE_FILE(scr_param.pm.in scr_param.pm @ONLY)
+SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/scr_param.pm PROPERTIES GENERATED TRUE)
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/scr_param.pm DESTINATION ${CMAKE_INSTALL_DATADIR}/scr)
+INSTALL(FILES scr_hostlist.pm DESTINATION ${CMAKE_INSTALL_DATADIR}/scr)
 
 ## Install python files
 INSTALL(FILES scrlog.py DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})

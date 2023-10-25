@@ -2,12 +2,6 @@
 
 # this is a launcher script for list_down_nodes.py
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
 import argparse
 
 from scrjob import scr_const
