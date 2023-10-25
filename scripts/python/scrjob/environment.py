@@ -35,16 +35,16 @@ class SCR_Env:
         self.nodes_file = os.path.join(scr_const.X_LIBEXECDIR,
                                        'scr_nodes_file')
 
-    def get_user(self):
+    def user(self):
         """Return the username from the environment."""
         return os.environ.get('USER')
 
-    def get_scr_nodelist(self):
+    def node_list(self):
         """Return the SCR_NODELIST, if set, or None."""
         nodelist = os.environ.get('SCR_NODELIST')
         return self.resmgr.expand_hosts(nodelist)
 
-    def get_prefix(self):
+    def dir_prefix(self):
         """Return the scr prefix."""
         return self.prefix
 
@@ -57,7 +57,7 @@ class SCR_Env:
         prefix/.scr/scr.dataset.<id>"""
         return os.path.join(self.dir_scr(), 'scr.dataset.' + str(d))
 
-    def get_runnode_count(self):
+    def runnode_count(self):
         """Return the number of nodes used in the last run, if known."""
         argv = [self.nodes_file, '--dir', self.prefix]
         out, returncode = runproc(argv=argv, getstdout=True)

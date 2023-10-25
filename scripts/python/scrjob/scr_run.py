@@ -17,7 +17,7 @@ from scrjob.scr_common import tracefunction, runproc, scr_prefix
 from scrjob.prerun import prerun
 from scrjob.postrun import postrun
 from scrjob.scr_watchdog import SCR_Watchdog
-from scrjob.scr_environment import SCR_Env
+from scrjob.environment import SCR_Env
 from scrjob.launchers import AutoJobLauncher
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.scr_param import SCR_Param
@@ -37,7 +37,7 @@ def nodes_needed(scr_env, nodelist):
     num_needed = os.environ.get('SCR_MIN_NODES')
     if num_needed is None or int(num_needed) <= 0:
         # otherwise, use value in nodes file if one exists
-        num_needed = scr_env.get_runnode_count()
+        num_needed = scr_env.runnode_count()
         if num_needed <= 0:
             # otherwise, assume we need all nodes in the allocation
             num_needed = len(nodelist)
@@ -122,7 +122,7 @@ def scr_run(launcher='',
 
     # jobid will come from resource manager.
     jobid = resmgr.job_id()
-    user = scr_env.get_user()
+    user = scr_env.user()
 
     # We need the jobid for logging, and need to be running within an allocation
     # for operations such as scavenge.  This test serves both purposes.
@@ -134,7 +134,7 @@ def scr_run(launcher='',
     log = SCRLog(prefix, jobid, user=user, jobstart=start_secs)
 
     # get the nodeset of this job
-    nodelist = scr_env.get_scr_nodelist()
+    nodelist = scr_env.node_list()
     if not nodelist:
         nodelist = resmgr.job_nodes()
     if not nodelist:

@@ -63,7 +63,7 @@ def list_dir(user=None, jobid=None, base=False, runcmd=None, scr_env=None):
     if base == False:
         # if not specified, read username from environment
         if user is None:
-            user = scr_env.get_user()
+            user = scr_env.user()
 
         # if not specified, read jobid from environment
         if jobid is None:

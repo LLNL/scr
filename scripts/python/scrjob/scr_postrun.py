@@ -6,7 +6,7 @@
 import argparse
 
 from scrjob.postrun import postrun
-from scrjob.scr_environment import SCR_Env
+from scrjob.environment import SCR_Env
 from scrjob.scr_param import SCR_Param
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher

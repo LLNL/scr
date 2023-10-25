@@ -5,7 +5,7 @@ import sys
 import argparse, re, subprocess
 
 from scrjob import scr_const, scr_hostlist
-from scrjob.scr_environment import SCR_Env
+from scrjob.environment import SCR_Env
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher
 
@@ -31,12 +31,12 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
         scr_env.launcher = AutoJobLauncher()
 
     # tag output files with jobid
-    jobid = scr_env.get_job_id()
+    jobid = scr_env.job_id()
     if jobid is None:
         raise RuntimeError('Could not determine jobid.')
 
     # read node set of job
-    jobset = scr_env.get_scr_nodelist()
+    jobset = scr_env.node_list()
     if jobset is None:
         jobset = scr_env.resmgr.job_nodes()
         if jobset is None:

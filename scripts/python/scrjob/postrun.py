@@ -80,7 +80,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
     # check that we have the SCR_PREFIX directory
     pardir = prefix_dir
     if not pardir:
-        pardir = scr_env.get_prefix()
+        pardir = scr_env.dir_prefix()
     if not pardir:
         raise RuntimeError(
             'scr_postrun: ERROR: SCR_PREFIX directory not specified')
@@ -89,7 +89,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
     scr_flush_file = SCRFlushFile(pardir)
 
     # get our nodeset for this job
-    scr_nodelist = scr_env.get_scr_nodelist()
+    scr_nodelist = scr_env.node_list()
     if not scr_nodelist:
         scr_nodelist = scr_env.resmgr.job_nodes()
         if not scr_nodelist:

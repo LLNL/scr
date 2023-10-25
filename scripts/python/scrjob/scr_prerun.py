@@ -7,7 +7,7 @@
 import argparse
 
 from scrjob.prerun import prerun
-from scrjob.scr_environment import SCR_Env
+from scrjob.environment import SCR_Env
 from scrjob.resmgrs import AutoResourceManager
 
 if __name__ == '__main__':

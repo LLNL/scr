@@ -6,7 +6,7 @@ import argparse
 
 from scrjob import scr_const
 from scrjob.list_down_nodes import list_down_nodes
-from scrjob.scr_environment import SCR_Env
+from scrjob.environment import SCR_Env
 from scrjob.scr_param import SCR_Param
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher
@@ -65,9 +65,9 @@ if __name__ == '__main__':
     # create log object if asked to log down nodes
     log = None
     if args.log:
-        prefix = scr_env.get_prefix()
+        prefix = scr_env.dir_prefix()
         jobid = scr_env.resmgr.job_id()
-        user = scr_env.get_user()
+        user = scr_env.user()
         log = SCRLog(prefix, jobid, user=user)
 
     node_list = scr_env.resmgr.expand_hosts(args.nodeset)

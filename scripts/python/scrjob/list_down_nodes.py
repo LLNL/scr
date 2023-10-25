@@ -14,7 +14,7 @@ def list_down_nodes(reason=False,
 
     # check that we have a list of nodes before going any further
     if not nodes:
-        nodes = scr_env.get_scr_nodelist()
+        nodes = scr_env.node_list()
     if not nodes:
         nodes = scr_env.resmgr.job_nodes()
     if not nodes:

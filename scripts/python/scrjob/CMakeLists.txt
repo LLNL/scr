@@ -2,7 +2,7 @@ SET(PYFE
   __init__.py
   list_dir.py
   parsetime.py
-  scr_environment.py
+  environment.py
   scr_hostlist.py
 )
 
