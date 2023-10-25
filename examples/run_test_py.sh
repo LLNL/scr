@@ -23,14 +23,16 @@ fi
 scr_run="../scripts/python/scrjob/scr_run.py"
 export PYTHON_PATH=$PYTHON_PATH:$(realpath $(dirname $scr_run) )
 
-echo "Run: $scr_run $launch $launch_args $test $@"
-$scr_run $launch $launch_args $test \"$@\"
+if [ -z ${@+x} ]; then QUOTED_ARGS=""; else QUOTED_ARGS=\"$@\"; fi
+
+echo "Run: $scr_run $launch $launch_args $test $QUOTED_ARGS"
+$scr_run $launch $launch_args $test $QUOTED_ARGS
 RC=$?
 
 # only attempt a restart if requested and if first run succeeded
 if [ "$restart" = "restart" -a $RC -eq 0 ]; then
-    echo "Restart: $scr_run $launch $launch_args $test $@"
-    $scr_run $launch $launch_args $test \"$@\"
+    echo "Restart: $scr_run $launch $launch_args $test $QUOTED_ARGS"
+    $scr_run $launch $launch_args $test $QUOTED_ARGS
     RC=$?
 fi
 

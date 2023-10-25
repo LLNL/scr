@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 import os
 
 from scrjob import scr_const
@@ -8,57 +6,64 @@ from scrjob.scr_common import choose_bindir
 
 
 class SCRLog:
-  def __init__(self, prefix, jobid, jobname=None, user=None, jobstart=None, verbose=False):
-    self.bindir = choose_bindir()
-    self.prefix = prefix  # path to SCR_PREFIX
-    self.user = user
-    self.jobid = jobid
-    self.jobname = jobname
-    self.jobstart = jobstart
-    self.verbose = verbose
 
-    self.exe_event = os.path.join(self.bindir, "scr_log_event")
-    self.eve_transfer = os.path.join(self.bindir, "scr_log_transfer")
+    def __init__(self,
+                 prefix,
+                 jobid,
+                 jobname=None,
+                 user=None,
+                 jobstart=None,
+                 verbose=False):
+        self.bindir = choose_bindir()
+        self.prefix = prefix  # path to SCR_PREFIX
+        self.user = user
+        self.jobid = jobid
+        self.jobname = jobname
+        self.jobstart = jobstart
+        self.verbose = verbose
 
-  # return list of output datasets
-  def event(self,
-            event_type,
-            dset=None,
-            name=None,
-            start=None,
-            secs=None,
-            note=None):
-    argv = [self.exe_event, '-p', self.prefix]
+        self.exe_event = os.path.join(self.bindir, "scr_log_event")
+        self.eve_transfer = os.path.join(self.bindir, "scr_log_transfer")
 
-    if self.user is not None:
-      argv.extend(['-u', str(self.user)])
+    # return list of output datasets
+    def event(self,
+              event_type,
+              dset=None,
+              name=None,
+              start=None,
+              secs=None,
+              note=None):
+        argv = [self.exe_event, '-p', self.prefix]
 
-    if self.jobid is not None:
-      argv.extend(['-i', str(self.jobid)])
+        if self.user is not None:
+            argv.extend(['-u', str(self.user)])
 
-    if self.jobname is not None:
-      argv.extend(['-j', str(self.jobname)])
+        if self.jobid is not None:
+            argv.extend(['-i', str(self.jobid)])
 
-    if self.jobstart is not None:
-      argv.extend(['-s', str(self.jobstart)])
+        if self.jobname is not None:
+            argv.extend(['-j', str(self.jobname)])
 
-    if event_type is not None:
-      argv.extend(['-T', str(event_type)])
+        if self.jobstart is not None:
+            argv.extend(['-s', str(self.jobstart)])
 
-    if dset is not None:
-      argv.extend(['-D', str(dset)])
+        if event_type is not None:
+            argv.extend(['-T', str(event_type)])
 
-    if name is not None:
-      argv.extend(['-n', str(name)])
+        if dset is not None:
+            argv.extend(['-D', str(dset)])
 
-    if start is not None:
-      argv.extend(['-S', str(start)])
+        if name is not None:
+            argv.extend(['-n', str(name)])
 
-    if secs is not None:
-      argv.extend(['-L', str(secs)])
+        if start is not None:
+            argv.extend(['-S', str(start)])
 
-    if note is not None:
-      argv.extend(['-N', str(note)])
+        if secs is not None:
+            argv.extend(['-L', str(secs)])
 
-    rc = runproc(argv, verbose=self.verbose)[1]
-    return (rc == 0)
+        if note is not None:
+            argv.extend(['-N', str(note)])
+
+        rc = runproc(argv, verbose=self.verbose)[1]
+        return (rc == 0)

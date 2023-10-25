@@ -11,7 +11,7 @@ print('This script should produce output like:')
 print('')
 print('<class \'pyfe.resmgr.flux.FLUX\'>')
 print('jobid: 7155402')
-print('nodes: quartz13')
+print('nodes: [\'quartz13\']')
 print('downnodes: {}')
 print('endsecs: 1627071990')
 print('now: 1627068746 end: 1627071990 secs left: 3244')
@@ -23,26 +23,27 @@ print('--------------------------------------------------------')
 
 import os, sys
 import time
+
 sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
 import scrjob
 from scrjob.resmgrs import AutoResourceManager
 
 time.sleep(2)
 
-rm = AutoResourceManager()
+resmgr = AutoResourceManager()
 
-print(str(type(rm)))
-print("jobid:", rm.getjobid())
-print("nodes:", rm.get_job_nodes())
-print("downnodes:", rm.get_downnodes())
+print(str(type(resmgr)))
+print("jobid:", resmgr.job_id())
+print("nodes:", resmgr.job_nodes())
+print("downnodes:", resmgr.down_nodes())
 
-endtime = rm.get_scr_end_time()
+endtime = resmgr.end_time()
 print("endsecs:", endtime)
 
 now = int(time.time())
 secs = endtime - now
 if secs < 0:
-  secs = 0
+    secs = 0
 print("now:", now, "end:", endtime, "secs left:", secs)
 
 time.sleep(2)

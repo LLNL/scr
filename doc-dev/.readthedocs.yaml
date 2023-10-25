@@ -1,0 +1,31 @@
+# .readthedocs.yaml
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+# Required
+version: 2
+
+formats:
+  - pdf
+  - epub
+
+# Set the version of Python and other tools you might need
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.12"
+
+# Build developer documentation in the doc-dev/ directory with Sphinx
+sphinx:
+  configuration: doc-dev/rst/conf.py
+  #fail_on_warning: true
+
+# We recommend specifying your dependencies to enable reproducible builds:
+# https://docs.readthedocs.io/en/stable/guides/reproducible-builds.html
+python:
+  install:
+  # Using same requirements file as user docs.
+  # If needing unique dependencies, either create unique requirements file
+  # or use layered requirements.
+  # https://pip-tools.readthedocs.io/en/latest/#workflow-for-layered-requirements
+  - requirements: doc/requirements.txt

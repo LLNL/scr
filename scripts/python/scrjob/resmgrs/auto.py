@@ -1,6 +1,5 @@
-#! /usr/bin/env python3
-"""
-AutoResourceManager is called to return the appropriate ResourceManager class
+"""AutoResourceManager is called to return the appropriate ResourceManager
+class.
 
 This is the class called to obtain an instance of a resource manager.
 
@@ -24,27 +23,28 @@ from scrjob.resmgrs import (
 
 
 class AutoResourceManager:
-  def __new__(cls, resmgr=None):
-    # see if we are in a flux instance
-    try:
-      fluxresmgr = FLUX()
-      return fluxresmgr
-    # not in a flux instance, just continue
-    except:
-      pass
-    if resmgr is None:
-      resmgr = scr_const.SCR_RESOURCE_MANAGER
-    if resmgr == 'SLURM':
-      return SLURM()
-    if resmgr == 'LSF':
-      return LSF()
-    if resmgr == 'APRUN':
-      return APRUN()
-    #if resmgr=='PMIX':
-    #  return PMIX()
-    return ResourceManager()
+
+    def __new__(cls, resmgr=None):
+        # see if we are in a flux instance
+        try:
+            fluxresmgr = FLUX()
+            return fluxresmgr
+        # not in a flux instance, just continue
+        except:
+            pass
+        if resmgr is None:
+            resmgr = scr_const.SCR_RESOURCE_MANAGER
+        if resmgr == 'SLURM':
+            return SLURM()
+        if resmgr == 'LSF':
+            return LSF()
+        if resmgr == 'APRUN':
+            return APRUN()
+        #if resmgr=='PMIX':
+        #  return PMIX()
+        return ResourceManager()
 
 
 if __name__ == '__main__':
-  resourcemgr = AutoResourceManager()
-  print(type(resourcemgr))
+    resourcemgr = AutoResourceManager()
+    print(type(resourcemgr))
