@@ -1,6 +1,7 @@
 import os
 from scrjob import scr_const
-from scrjob.scr_common import scr_prefix, runproc
+from scrjob.scr_common import scr_prefix
+from scrjob.cli.scr_nodes_file import SCRNodesFile
 
 
 class SCR_Env:
@@ -17,7 +18,6 @@ class SCR_Env:
     launcher   - class, a reference to Joblauncher
     resmgr     - class, a reference to ResourceManager
     prefix     - string, initialized upon init or through scr_prefix()
-    nodes_file - string, path to scr_nodes_file
     """
 
     def __init__(self, prefix=None):
@@ -30,10 +30,6 @@ class SCR_Env:
         if prefix is None:
             prefix = scr_prefix()
         self.prefix = prefix
-
-        # initialize paths
-        self.nodes_file = os.path.join(scr_const.X_LIBEXECDIR,
-                                       'scr_nodes_file')
 
     def user(self):
         """Return the username from the environment."""
@@ -59,8 +55,6 @@ class SCR_Env:
 
     def runnode_count(self):
         """Return the number of nodes used in the last run, if known."""
-        argv = [self.nodes_file, '--dir', self.prefix]
-        out, returncode = runproc(argv=argv, getstdout=True)
-        if returncode == 0:
-            return int(out)
-        return 0
+        nodes_file = SCRNodesFile(prefix=self.prefix)
+        num_nodes = nodes_file.last_num_nodes()
+        return num_nodes if num_nodes is not None else 0
