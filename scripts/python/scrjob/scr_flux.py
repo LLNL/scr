@@ -1,7 +1,5 @@
 #! /usr/bin/env python3
 
-# scr_flux.py
-
 # calls scr_run specifying to use launcher 'flux'
 
 import os, sys

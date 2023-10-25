@@ -1,7 +1,5 @@
 #! /usr/bin/env python3
 
-# scr_inspect.py
-
 import os, sys
 
 if 'scrjob' not in sys.path:
@@ -38,28 +36,25 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
     # tag output files with jobid
     jobid = scr_env.get_job_id()
     if jobid is None:
-        print('scr_inspect: ERROR: Could not determine jobid.')
-        return 1
+        raise RuntimeError('Could not determine jobid.')
 
     # read node set of job
     jobset = scr_env.get_scr_nodelist()
     if jobset is None:
         jobset = scr_env.resmgr.job_nodes()
         if jobset is None:
-            print('scr_inspect: ERROR: Could not determine nodeset.')
-            return 1
+            raise RuntimeError('Could not determine nodeset.')
 
     # can't get directories
     if cntldir is None:
-        print('scr_inspect: ERROR: Control directory must be specified.')
-        return 1
+        raise RuntimeError('Control directory must be specified.')
 
     # get nodesets
     if jobnodes is None:
-        print('scr_inspect: ERROR: Job nodes must be specified.')
-        return 1
+        raise RuntimeError('Job nodes must be specified.')
 
     jobnodes = scr_hostlist.expand(jobnodes)
+
     upnodes = []
     downnodes = []
     if down is not None:
@@ -76,25 +71,27 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
 
     # build the output filenames
     pwd = os.getcwd()
-    os.makedirs(pwd + '/.scr', exist_ok=True)
-    output = pwd + '/.scr/scr_inspect.pdsh.o.' + jobid
-    error = pwd + '/.scr/scr_inspect.pdsh.e.' + jobid
+    scr_dir = os.path.join(pwd, '.scr')
+    os.makedirs(scr_dir, exist_ok=True)
+    outfile = os.path.join(scr_dir, 'scr_inspect.pdsh.o.' + jobid)
+    errfile = os.path.join(scr_dir, 'scr_inspect.pdsh.e.' + jobid)
 
     # run scr_inspect_cache via pdsh / clustershell
-    argv = [bindir + '/scr_inspect_cache', cntldir + '/filemap.scrinfo']
+    argv = [os.path.join(bindir, 'scr_inspect_cache'), os.path.join(cntldir, 'filemap.scrinfo')]
     out = scr_env.launcher.parallel_exec(argv=argv, runnodes=upnodes)[0]
     try:
-        with open(output, 'w') as outfile:
-            outfile.write(out[0])
+        with open(outfile, 'w') as f:
+            f.write(out[0])
     except Exception as e:
-        print(e)
         print('scr_inspect: ERROR: Error writing scr_inspect_cache stdout')
-    try:
-        with open(error, 'w') as errfile:
-            errfile.write(out[1])
-    except Exception as e:
         print(e)
+
+    try:
+        with open(errfile, 'w') as f:
+            f.write(out[1])
+    except Exception as e:
         print('scr_inspect: ERROR: Error writing scr_inspect_cache stderr')
+        print(e)
 
     # scan output file for list of partners and failed copies
     groups = {}
@@ -103,10 +100,11 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
     # open the file, exit with error if we can't
     readout = False
     try:
-        with open(output, 'r') as infile:
+        with open(outfile, 'r') as f:
             readout = True
-            for line in infile.readlines():
+            for line in f.readlines():
                 line = line.rstrip()
+
                 search = re.search(
                     r'DSET=(\d+) RANK=(\d+) TYPE=(\w+) GROUPS=(\d+) GROUP_ID=(\d+) GROUP_SIZE=(\d+) GROUP_RANK=(\d+)',
                     line)
@@ -118,26 +116,27 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
                     group_id = int(search.group(5))
                     group_size = int(search.group(6))
                     group_rank = int(search.group(7))
+
                     if dset not in groups:
                         groups[dset] = {}
                         groups[dset]['ids'] = {}
+
                     if group_id not in groups[dset]['ids']:
                         groups[dset]['ids'][group_id] = {}
                         groups[dset]['ids'][group_id]['ranks'] = {}
+
                     groups[dset]['ids'][group_id]['ranks'][group_rank] = 1
                     groups[dset]['ids'][group_id]['size'] = group_size
                     groups[dset]['groups'] = ngroups
                     types[dset] = atype
+
     except Exception as e:
         print(e)
-        print('scr_inspect: ERROR: Reading and processing output file \"' +
-              output + '\"')
-        return 1
+        raise RuntimeError('Reading and processing output file \"' + output + '\"')
 
     # starting with the most recent dataset, check whether we have (or may be able to recover) all files
     possible_dsets = []
-    dsets = list(groups.keys())
-    dsets.sort()
+    dsets = sorted(list(groups.keys()))
     for dset in dsets:
         # get the expected number of groups and the dataset type
         expected_groups = groups[dset]['groups']
@@ -175,31 +174,19 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
         if num_groups == expected_groups and missing_groups == 0:
             possible_dsets.append(dset)
 
-    # failed to find a full dataset to even attempt
-    if len(possible_dsets) == 0:
-        return 1
-
     # return the list the datasets we have a shot of recovering
-    return ' '.join(possible_dsets)
+    return possible_dsets
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        add_help=False,
-        argument_default=argparse.SUPPRESS,
-        prog='scr_inspect',
-        epilog=
-        'The jobid and job node set must be able to be obtained from the environment.'
-    )
-    parser.add_argument('-h',
-                        '--help',
-                        action='store_true',
-                        help='Show this help message and exit.')
+        epilog='The jobid and job node set must be able to be obtained from the environment.')
     parser.add_argument('-j',
                         '--jobset',
                         default=None,
                         metavar='<nodeset>',
                         type=str,
+                        required=True,
                         help='Job nodes.')
     parser.add_argument('-u',
                         '--up',
@@ -218,16 +205,17 @@ if __name__ == '__main__':
                         default=None,
                         metavar='<ctrl dir>',
                         type=str,
+                        required=True,
                         help='Control directory.')
-    args = vars(parser.parse_args())
-    if 'help' in args:
-        parser.print_help()
-    elif args['jobset'] is None or args['from'] is None:
-        parser.print_help()
-        print('Job nodes and control directory must be specified.')
-    else:
-        ret = scr_inspect(jobnodes=args['jobset'],
-                          up=args['up'],
-                          down=args['down'],
+
+    args = parser.parse_args()
+
+    try:
+        dsets = scr_inspect(jobnodes=args.jobset,
+                          up=args.up,
+                          down=args.down,
                           cntldir=args['from'])
-        print('scr_inspect returned ' + str(ret))
+        print(' '.join(dsets))
+    except Exception as e:
+        print('scr_inspect: ERROR: ' + str(e))
+        sys.exit(1)

@@ -135,11 +135,9 @@ def scr_postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
     if not upnodes:
         raise RuntimeError('scr_postrun: ERROR: No remaining upnodes')
 
-    # list_dir returns 1 or a space separated list of directories
-    cntldir = list_dir(runcmd='control', scr_env=scr_env, bindir=bindir)
-    if cntldir == 1:
-        raise RuntimeError(
-            'scr_postrun: ERROR: Unable to determine a control directory')
+    # get list of control directories
+    cntldirs = list_dir(runcmd='control', scr_env=scr_env, bindir=bindir)
+    cntldir = cntldirs[0]
 
     # TODODSET: avoid scavenging things unless it's in this list
     # get list of possible datasets

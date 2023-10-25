@@ -3,6 +3,7 @@ SET(SCRCLI
   scr_index.py
   scr_flush_file.py
   scr_log.py
+  scr_halt_cntl.py
 )
 
 FOREACH(pyscript IN ITEMS ${SCRCLI})

@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+import os
 
 from scrjob import scr_const
 
@@ -25,22 +25,19 @@ def list_dir(user=None,
 
     Error
     -----
-      This method will print 'list_dir: INVALID: %s', where %s is an error
-      string representing the error.
-      The method will then return the integer 1
+      This method raises a RuntimeError
     """
+
     # check that user specified "control" or "cache"
     if runcmd != 'control' and runcmd != 'cache':
-        print('list_dir: INVALID: \'control\' or \'cache\' must be specified.')
-        return 1
+        raise RuntimeError('list_dir: INVALID: \'control\' or \'cache\' must be specified.')
 
     # TODO: read cache directory from config file
     bindir = scr_const.X_BINDIR
 
     # ensure scr_env is set
     if scr_env is None or scr_env.resmgr is None or scr_env.param is None:
-        print('list_dir: INVALID: Unknown environment.')
-        return 1
+        raise RuntimeError('list_dir: INVALID: Unknown environment.')
 
     # get the base directory
     bases = []
@@ -49,13 +46,10 @@ def list_dir(user=None,
         cachedesc = scr_env.param.get_hash('CACHE')
         if type(cachedesc) is dict:
             bases = list(cachedesc.keys())
-            #foreach my $index (keys %$cachedesc) {
-            #  push @bases, $index;
         elif cachedesc is not None:
             bases = [cachedesc]
         else:
-            print('list_dir: INVALID: Unable to get parameter CACHE.')
-            return 1
+            raise RuntimeError('list_dir: INVALID: Unable to get parameter CACHE.')
     else:
         # lookup cntl base
         bases = scr_env.param.get('SCR_CNTL_BASE')
@@ -64,11 +58,10 @@ def list_dir(user=None,
         elif type(bases) is not None:
             bases = [bases]
         else:
-            print('list_dir: INVALID: Unable to get parameter SCR_CNTL_BASE.')
-            return 1
+            raise RuntimeError('list_dir: INVALID: Unable to get parameter SCR_CNTL_BASE.')
+
     if len(bases) == 0:
-        print('list_dir: INVALID: Length of bases [] is zero.')
-        return 1
+        raise RuntimeError('list_dir: INVALID: Length of bases [] is zero.')
 
     # get the user/job directory
     suffix = ''
@@ -76,22 +69,23 @@ def list_dir(user=None,
         # if not specified, read username from environment
         if user is None:
             user = scr_env.get_user()
+
         # if not specified, read jobid from environment
         if jobid is None:
             jobid = scr_env.resmgr.job_id()
+
         # check that the required environment variables are set
         if user is None or jobid is None:
             # something is missing, print invalid dir and exit with error
-            print('list_dir: INVALID: Unable to determine user or jobid.')
-            return 1
-        suffix = user + '/scr.' + jobid
+            raise RuntimeError('list_dir: INVALID: Unable to determine user or jobid.')
+
+        suffix = os.path.join(user, 'scr.' + jobid)
 
     # ok, all values are here, print out the directory name and exit with success
     dirs = []
     for abase in bases:
         if suffix != '':
-            dirs.append(abase + '/' + suffix)
+            dirs.append(os.path.join(abase, suffix))
         else:
             dirs.append(abase)
-    dirs = ' '.join(dirs)
     return dirs
