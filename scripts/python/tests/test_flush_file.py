@@ -39,7 +39,6 @@ import time
 
 from scrjob.cli import SCRFlushFile
 
-
 if __name__ == '__main__':
     # in case flush file is on NFS, wait for a bit for it to show up
     time.sleep(2)
@@ -49,7 +48,7 @@ if __name__ == '__main__':
         pwd = sys.argv[1]
 
     ff = SCRFlushFile(pwd)
-    
+
     dsets = ff.list_dsets_output()
     print('output:', dsets)
     for d in dsets:
@@ -57,7 +56,7 @@ if __name__ == '__main__':
         needflush = ff.need_flush(d)
         location = ff.location(d)
         print(d, name, needflush, location)
-    
+
     dsets = ff.list_dsets_ckpt()
     print('ckpt:', dsets)
     for d in dsets:
@@ -65,7 +64,7 @@ if __name__ == '__main__':
         needflush = ff.need_flush(d)
         location = ff.location(d)
         print(d, name, needflush, location)
-    
+
     print('latest:', ff.latest())
-    
+
     time.sleep(2)

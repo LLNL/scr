@@ -22,7 +22,7 @@ from scrjob.launchers import AutoJobLauncher
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.scr_param import SCR_Param
 from scrjob.scr_glob_hosts import scr_glob_hosts
-from scrjob.cli import SCRLog
+from scrjob.cli import SCRLog, SCRRetriesHalt
 
 
 # print the reason for any down nodes
@@ -61,9 +61,8 @@ def nodes_remaining(nodelist, down_nodes):
 
 # is there a halt condition instructing us to stop?
 def should_halt(bindir, prefix):
-    argv = [os.path.join(bindir, 'scr_retries_halt'), '--dir', prefix]
-    returncode = runproc(argv=argv)[1]
-    return (returncode == 0)
+    retries_halt = SCRRetriesHalt(prefix)
+    return retries_halt.check()
 
 
 def scr_run(launcher='',
