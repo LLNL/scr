@@ -71,8 +71,8 @@ def scr_scavenge(nodes_job=None,
         print('scr_scavenge: ' + str(int(time())))
 
     # have the launcher class gather files via pdsh or clustershell
-    consoleout = scr_env.launcher.scavenge_files(prog=os.path.joion(
-        libexecdir, 'scr_copy'),
+    copy_exe = os.path.join(libexecdir, 'scr_copy')
+    consoleout = scr_env.launcher.scavenge_files(prog=copy_exe,
                                                  nodes_up=nodes_up,
                                                  nodes_down=nodes_down,
                                                  cntldir=cntldir,
