@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-
 """This script can use the 'scancel' or equivalent command to kill a jobstep
 with the jobstep id supplied via the command line.
 
@@ -17,7 +16,6 @@ import argparse
 from scrjob import scr_const
 from scrjob.scr_common import runproc
 from scrjob.launchers import AutoJobLauncher
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

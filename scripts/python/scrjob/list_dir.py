@@ -3,11 +3,7 @@ import os
 from scrjob import scr_const
 
 
-def list_dir(user=None,
-             jobid=None,
-             base=False,
-             runcmd=None,
-             scr_env=None):
+def list_dir(user=None, jobid=None, base=False, runcmd=None, scr_env=None):
     """This method returns info on the SCR control/cache/prefix directories for
     the current user and jobid.
 
@@ -29,7 +25,8 @@ def list_dir(user=None,
 
     # check that user specified "control" or "cache"
     if runcmd != 'control' and runcmd != 'cache':
-        raise RuntimeError('list_dir: INVALID: \'control\' or \'cache\' must be specified.')
+        raise RuntimeError(
+            'list_dir: INVALID: \'control\' or \'cache\' must be specified.')
 
     # ensure scr_env is set
     if scr_env is None or scr_env.resmgr is None or scr_env.param is None:
@@ -45,7 +42,8 @@ def list_dir(user=None,
         elif cachedesc is not None:
             bases = [cachedesc]
         else:
-            raise RuntimeError('list_dir: INVALID: Unable to get parameter CACHE.')
+            raise RuntimeError(
+                'list_dir: INVALID: Unable to get parameter CACHE.')
     else:
         # lookup cntl base
         bases = scr_env.param.get('SCR_CNTL_BASE')
@@ -54,7 +52,8 @@ def list_dir(user=None,
         elif type(bases) is not None:
             bases = [bases]
         else:
-            raise RuntimeError('list_dir: INVALID: Unable to get parameter SCR_CNTL_BASE.')
+            raise RuntimeError(
+                'list_dir: INVALID: Unable to get parameter SCR_CNTL_BASE.')
 
     if len(bases) == 0:
         raise RuntimeError('list_dir: INVALID: Length of bases [] is zero.')
@@ -73,7 +72,8 @@ def list_dir(user=None,
         # check that the required environment variables are set
         if user is None or jobid is None:
             # something is missing, print invalid dir and exit with error
-            raise RuntimeError('list_dir: INVALID: Unable to determine user or jobid.')
+            raise RuntimeError(
+                'list_dir: INVALID: Unable to determine user or jobid.')
 
         suffix = os.path.join(user, 'scr.' + jobid)
 

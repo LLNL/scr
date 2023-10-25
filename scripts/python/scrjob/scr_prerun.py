@@ -12,7 +12,6 @@ from scrjob.prerun import prerun
 from scrjob.scr_environment import SCR_Env
 from scrjob.resmgrs import AutoResourceManager
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-p',

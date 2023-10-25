@@ -28,6 +28,8 @@ SET(PYFE_EXEC
   list_down_nodes.py
   prerun.py
   postrun.py
+  scrlog.py
+  scr_ckpt_interval.py
   scr_check_node.py
   scr_common.py
   scr_env.py

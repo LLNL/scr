@@ -83,8 +83,7 @@ class SCRHaltFile:
             if output is not None:
                 print(output[0].strip())
             raise RuntimeError(
-                'scr_halt: ERROR: Failed to update halt file: ' +
-                self.fname)
+                'scr_halt: ERROR: Failed to update halt file: ' + self.fname)
 
         # return stdout from command
         if output is not None:

@@ -17,7 +17,6 @@ from scrjob.scr_param import SCR_Param
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-j',

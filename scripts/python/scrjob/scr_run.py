@@ -333,10 +333,7 @@ def scr_run(launcher='',
 
     # scavenge files from cache to parallel file system
     try:
-        postrun(prefix_dir=prefix,
-                scr_env=scr_env,
-                verbose=verbose,
-                log=log)
+        postrun(prefix_dir=prefix, scr_env=scr_env, verbose=verbose, log=log)
     except Exception as e:
         print(prog + ': ERROR: Command failed: scr_postrun -p ' + prefix)
         print(e)

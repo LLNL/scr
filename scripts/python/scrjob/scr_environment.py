@@ -32,7 +32,8 @@ class SCR_Env:
         self.prefix = prefix
 
         # initialize paths
-        self.nodes_file = os.path.join(scr_const.X_LIBEXECDIR, 'scr_nodes_file')
+        self.nodes_file = os.path.join(scr_const.X_LIBEXECDIR,
+                                       'scr_nodes_file')
 
     def get_user(self):
         """Return the username from the environment."""

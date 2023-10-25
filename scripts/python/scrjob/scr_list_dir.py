@@ -13,7 +13,6 @@ from scrjob.scr_environment import SCR_Env
 from scrjob.scr_param import SCR_Param
 from scrjob.resmgrs import AutoResourceManager
 
-
 if __name__ == '__main__':
     """This is an external driver for the internal list_dir method.
 
