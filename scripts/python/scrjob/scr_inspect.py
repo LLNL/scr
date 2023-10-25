@@ -23,7 +23,7 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
 
     On error this method returns the integer 1
     """
-    bindir = scr_const.X_BINDIR
+    libexecdir = scr_const.X_LIBEXECDIR
     pdsh = scr_const.PDSH_EXE
 
     if scr_env is None:
@@ -77,7 +77,7 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
     errfile = os.path.join(scr_dir, 'scr_inspect.pdsh.e.' + jobid)
 
     # run scr_inspect_cache via pdsh / clustershell
-    argv = [os.path.join(bindir, 'scr_inspect_cache'), os.path.join(cntldir, 'filemap.scrinfo')]
+    argv = [os.path.join(libexecdir, 'scr_inspect_cache'), os.path.join(cntldir, 'filemap.scrinfo')]
     out = scr_env.launcher.parallel_exec(argv=argv, runnodes=upnodes)[0]
     try:
         with open(outfile, 'w') as f:

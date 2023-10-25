@@ -59,9 +59,6 @@ if __name__ == '__main__':
         print('Control or cache must be specified.')
         sys.exit(1)
 
-    # TODO: read cache directory from config file
-    bindir = scr_const.X_BINDIR
-
     # ensure scr_env is set
     scr_env = SCR_Env(prefix=args['prefix'])
     scr_env.resmgr = AutoResourceManager()
@@ -71,6 +68,5 @@ if __name__ == '__main__':
                     jobid=args['jobid'],
                     base=args['base'],
                     runcmd=args['control/cache'],
-                    scr_env=scr_env,
-                    bindir=bindir)
+                    scr_env=scr_env)
     print(' '.join(dirs))

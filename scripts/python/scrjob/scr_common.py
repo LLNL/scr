@@ -283,15 +283,15 @@ def choose_bindir():
     contents of the build directory.
 
     If the script is being run from the install directory, then return
-    X_BINDIR as defined by cmake so installed scripts use installed
+    X_LIBEXECDIR as defined by cmake so installed scripts use installed
     binaries.  Otherwise, determine the appropriate build directory.
     """
     # Needed to find binaries in build dir when testing
     parent_of_this_module = '/'.join(
         os.path.realpath(__file__).split('/')[:-1])
 
-    if scr_const.X_BINDIR in parent_of_this_module:
-        bindir = scr_const.X_BINDIR  # path to install bin directory
+    if scr_const.X_LIBEXECDIR in parent_of_this_module:
+        bindir = scr_const.X_LIBEXECDIR  # path to install bin directory
     else:
         bindir = os.path.join(scr_const.CMAKE_BINARY_DIR + "/src/")
 
@@ -330,7 +330,7 @@ def log(bindir=None,
         #print('log: prefix is required')
 
     if bindir is None:
-        bindir = scr_const.X_BINDIR
+        bindir = scr_const.X_LIBEXECDIR
 
     argv = [bindir + '/scr_log_event', '-p', prefix]
 

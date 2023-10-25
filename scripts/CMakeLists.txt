@@ -7,6 +7,13 @@ FUNCTION(SCR_INSTALL_BIN file)
 	INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${file} DESTINATION ${CMAKE_INSTALL_BINDIR})
 ENDFUNCTION(SCR_INSTALL_BIN file)
 
+FUNCTION(SCR_INSTALL_LIBEXEC file)
+	CONFIGURE_FILE(${file}.in ${file} @ONLY)
+	SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/${file} PROPERTIES GENERATED TRUE)
+
+	INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${file} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
+ENDFUNCTION(SCR_INSTALL_LIBEXEC file)
+
 
 # Common Binaries
 ADD_SUBDIRECTORY(common)
@@ -53,20 +60,27 @@ ELSE(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 	# Each of the following must be implemented for all resource managers
 	LIST(APPEND resource_manager_bins
 		scr_run
+		scr_list_down_nodes
+		scr_halt
+	)
+
+	LIST(APPEND resource_manager_libexec
 		scr_env
 		scr_scavenge
 		scr_inspect
-		scr_list_down_nodes
-		scr_halt
 		scr_kill_jobstep
 		scr_get_jobstep_id
 	)
 
-	FOREACH(bin IN ITEMS ${resource_manager_bins})
-		SCR_INSTALL_BIN(${cliscr_dir_name}/${bin})
-	ENDFOREACH(bin IN ITEMS ${resource_manager_bins})
+	#FOREACH(bin IN ITEMS ${resource_manager_bins})
+	#	SCR_INSTALL_BIN(${cliscr_dir_name}/${bin})
+	#ENDFOREACH(bin IN ITEMS ${resource_manager_bins})
 
-	INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${cliscr_dir_name}/scr_run DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME ${cliscr_run_name})
+	#FOREACH(bin IN ITEMS ${resource_manager_libexec})
+	#	SCR_INSTALL_LIBEXEC(${cliscr_dir_name}/${bin})
+	#ENDFOREACH(bin IN ITEMS ${resource_manager_bins})
+
+	#INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${cliscr_dir_name}/scr_run DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME ${cliscr_run_name})
 ENDIF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
 
 

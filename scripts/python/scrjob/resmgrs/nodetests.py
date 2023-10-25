@@ -126,12 +126,10 @@ class Nodetests:
             scr_env=None):
         cntldir_string = list_dir(base=True,
                                   runcmd='control',
-                                  scr_env=scr_env,
-                                  bindir=scr_const.X_BINDIR)
+                                  scr_env=scr_env)
         cachedir_string = list_dir(base=True,
                                    runcmd='cache',
-                                   scr_env=scr_env,
-                                   bindir=scr_const.X_BINDIR)
+                                   scr_env=scr_env)
         unavailable = {}
         param = scr_env.param
         # specify whether to check total or free capacity in directories
@@ -194,7 +192,7 @@ class Nodetests:
         upnodes = scr_env.resmgr.compress_hosts(nodes)
 
         # run scr_check_node on each node specifying control and cache directories to check
-        argv = [scr_const.X_BINDIR + '/scrpy/scrjob/scr_check_node.py']
+        argv = [os.path.join(scr_const.X_LIBEXECDIR, 'python', 'scrjob', 'scr_check_node.py')]
         if self.firstrun:
             argv.append('--free')
         argv.extend(cntldir_flag)

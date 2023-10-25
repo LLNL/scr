@@ -34,7 +34,7 @@ def scr_scavenge(nodes_job=None,
             'scr_scavenge: ERROR: nodeset, id, cntldir, or prefix not specified'
         )
 
-    bindir = scr_const.X_BINDIR
+    libexecdir = scr_const.X_LIBEXECDIR
 
     # TODO: need to be able to set these defaults via config settings somehow
     # for now just hardcode the values
@@ -74,7 +74,7 @@ def scr_scavenge(nodes_job=None,
         print('scr_scavenge: ' + str(int(time())))
 
     # have the launcher class gather files via pdsh or clustershell
-    consoleout = scr_env.launcher.scavenge_files(prog=bindir + '/scr_copy',
+    consoleout = scr_env.launcher.scavenge_files(prog = os.path.joion(libexecdir, 'scr_copy'),
                                                  nodes_up=nodes_up,
                                                  nodes_down=nodes_down,
                                                  cntldir=cntldir,

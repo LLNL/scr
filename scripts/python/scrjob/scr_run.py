@@ -16,10 +16,10 @@ from datetime import datetime
 from time import time, sleep
 
 from scrjob import scr_const, scr_common
-from scrjob.scr_list_down_nodes import list_down_nodes
+from scrjob.list_down_nodes import list_down_nodes
 from scrjob.scr_common import tracefunction, runproc, scr_prefix
-from scrjob.scr_prerun import scr_prerun
-from scrjob.scr_postrun import scr_postrun
+from scrjob.prerun import prerun
+from scrjob.postrun import postrun
 from scrjob.scr_watchdog import SCR_Watchdog
 from scrjob.scr_environment import SCR_Env
 from scrjob.launchers import AutoJobLauncher
@@ -151,7 +151,7 @@ def scr_run(launcher='',
         resmgr.use_watchdog(True)
         watchdog = SCR_Watchdog(prefix, scr_env)
 
-    # TODO: define resmgr.prerun() and launcher.prerun() hooks, call from scr_prerun?
+    # TODO: define resmgr.prerun() and launcher.prerun() hooks, call from prerun?
     # run a NOP with srun, other launchers could do any preamble work here
     launcher.prepare_prerun()
 
@@ -161,7 +161,7 @@ def scr_run(launcher='',
 
     # test runtime, ensure filepath exists
     try:
-        scr_prerun(scr_env=scr_env, verbose=verbose)
+        prerun(scr_env=scr_env, verbose=verbose)
     except Exception as e:
         print(prog + ': ERROR: Command failed: scr_prerun -p ' + prefix)
         print(e)
@@ -333,10 +333,10 @@ def scr_run(launcher='',
 
     # scavenge files from cache to parallel file system
     try:
-        scr_postrun(prefix_dir=prefix,
-                    scr_env=scr_env,
-                    verbose=verbose,
-                    log=log)
+        postrun(prefix_dir=prefix,
+                scr_env=scr_env,
+                verbose=verbose,
+                log=log)
     except Exception as e:
         print(prog + ': ERROR: Command failed: scr_postrun -p ' + prefix)
         print(e)

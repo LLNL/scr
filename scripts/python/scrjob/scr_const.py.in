@@ -8,6 +8,7 @@ SCR_CONFIG_FILE = '@SCR_CONFIG_FILE@'
 CMAKE_BINARY_DIR = '@CMAKE_BINARY_DIR@'
 X_DATADIR = '@X_DATADIR@'
 X_BINDIR = '@X_BINDIR@'
+X_LIBEXECDIR = '@X_LIBEXECDIR@'
 X_LIBDIR = '@X_LIBDIR@'
 PDSH_EXE = '@PDSH_EXE@'
 SCR_RESOURCE_MANAGER = '@SCR_RESOURCE_MANAGER@'
@@ -45,6 +46,7 @@ if __name__ == '__main__':
     print('SCR_CONFIG_FILE = \"' + SCR_CONFIG_FILE + '\"')
     print('CMAKE_BINARY_DIR = \"' + CMAKE_BINARY_DIR + '\"')
     print('X_BINDIR = \"' + X_BINDIR + '\"')
+    print('X_LIBEXECDIR = \"' + X_LIBEXECDIR + '\"')
     print('X_LIBDIR = \"' + X_LIBDIR + '\"')
     print('PDSH_EXE = \"' + PDSH_EXE + '\"')
     print('SCR_RESOURCE_MANAGER = \"' + SCR_RESOURCE_MANAGER + '\"')

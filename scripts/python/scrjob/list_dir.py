@@ -7,8 +7,7 @@ def list_dir(user=None,
              jobid=None,
              base=False,
              runcmd=None,
-             scr_env=None,
-             bindir=''):
+             scr_env=None):
     """This method returns info on the SCR control/cache/prefix directories for
     the current user and jobid.
 
@@ -31,9 +30,6 @@ def list_dir(user=None,
     # check that user specified "control" or "cache"
     if runcmd != 'control' and runcmd != 'cache':
         raise RuntimeError('list_dir: INVALID: \'control\' or \'cache\' must be specified.')
-
-    # TODO: read cache directory from config file
-    bindir = scr_const.X_BINDIR
 
     # ensure scr_env is set
     if scr_env is None or scr_env.resmgr is None or scr_env.param is None:

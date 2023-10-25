@@ -17,8 +17,7 @@ class SCR_Env:
     launcher   - class, a reference to Joblauncher
     resmgr     - class, a reference to ResourceManager
     prefix     - string, initialized upon init or through scr_prefix()
-    bindir     - string, path to the scr bin directory, scr_const.X_BINDIR
-    nodes_file - string, path to bindir/scr_nodes_file     ### Unused ?
+    nodes_file - string, path to scr_nodes_file
     """
 
     def __init__(self, prefix=None):
@@ -33,8 +32,7 @@ class SCR_Env:
         self.prefix = prefix
 
         # initialize paths
-        bindir = scr_const.X_BINDIR
-        self.nodes_file = os.path.join(bindir, 'scr_nodes_file')
+        self.nodes_file = os.path.join(scr_const.X_LIBEXECDIR, 'scr_nodes_file')
 
     def get_user(self):
         """Return the username from the environment."""
