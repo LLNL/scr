@@ -1,16 +1,11 @@
 #! /usr/bin/env python3
 
-# scr_hostlist.py
-
 # This package processes slurm-style hostlist strings.
 #
-# expand($hostlist)
+# expand(hostlist)
 #   returns a list of individual hostnames given a hostlist string
-# compress(@hostlist)
+# compress(hostlist)
 #   returns an ordered hostlist string given a list of hostnames
-#
-# Author:  Adam Moody (moody20@llnl.gov)
-# modified by Christopher Holguin <christopher.a.holguin@intel.com>
 
 import argparse, re, sys
 
@@ -58,15 +53,18 @@ def numbersfromrange(numstring):
                 buildnum *= 10
             digits += 1
             buildnum += int(c)
+
     if havestart == True:
         for num in range(startrange, buildnum + 1):
             numbers.append(num)
     else:
         numbers.append(buildnum)
+
     ret = []
     if leadzero == True:
         if digits > maxdigits:
             maxdigits = digits
+
         for num in numbers:
             strval = str(num)
             if len(strval) < maxdigits:
@@ -75,6 +73,7 @@ def numbersfromrange(numstring):
     else:
         for num in numbers:
             ret.append(str(num))
+
     return ret
 
 
@@ -95,11 +94,14 @@ def numfromhost(host=''):
 def splithosts(hosts=''):
     if type(hosts) is not str:
         return hosts
+
     # split the host string on commas
     hosts = hosts.split(',')
+
     # we could have a host set of the form: host[1,3-5]
     # we shouldn't have split on commas if they are within brackets
     parts = []
+
     # track whether we are continuing the same part
     samehost = False
     i = -1
@@ -113,6 +115,7 @@ def splithosts(hosts=''):
             i += 1
             if '[' in host and ']' not in host:
                 samehost = True
+
     return parts
 
 
@@ -120,8 +123,10 @@ def splithosts(hosts=''):
 def sorthoststring(hosts=''):
     if type(hosts) is list:
         hosts = ','.join(hosts)
+
     if hosts is None or hosts == '' or ',' not in hosts:
         return hosts if hosts is not None else ''
+
     parts = splithosts(hosts)
     hosts = [parts[0]]
     leftnum = numfromhost(parts[0])
@@ -141,6 +146,7 @@ def sorthoststring(hosts=''):
         else:
             hosts.append(parts[righti])
             leftnum = number
+
     return ','.join(hosts)
 
 
@@ -151,8 +157,10 @@ def sorthoststring(hosts=''):
 def rangefromnumbers(numstring):
     if len(numstring) == 0:
         return ''
+
     if ',' not in numstring:
         return numstring
+
     ret = ''
     firstval = 0
     checknext = False
@@ -190,6 +198,7 @@ def rangefromnumbers(numstring):
                     ret += str(firstval) + '-' + str(nextval - 1) + ','
                 firstval = buildval
             buildval = 0
+
     if haverange == True:
         ret += str(firstval) + '-' + str(buildval)
     elif buildval > nextval:
@@ -199,6 +208,7 @@ def rangefromnumbers(numstring):
             ret += str(firstval) + '-' + str(nextval - 1) + ',' + str(buildval)
     else:
         ret += str(firstval) + '-' + str(buildval)
+
     return ret
 
 
@@ -213,29 +223,37 @@ def rangefromnumbers(numstring):
 def expand(nodelist):
     if nodelist is None:
         return []
+
     nodelist = sorthoststring(nodelist)
     if nodelist == '':
         return []
+
     # list of gathered nodes (string list)
     prefixes = []
+
     # list of numstrings
     numstrings = []
+
     # corresponding list of suffixes
     suffixes = []
+
     # building strings
     prefix = ''
     numstring = ''
     suffix = ''
+
     # split the input on commas
     chunks = nodelist.split(',')
+
     # iterate over each chunk, can be one of the forms:
     # 'rhea2' 'rhea[2' 'rhea[2-3' '3' '5-7' '8]' '8].llnl' 'rhea[2-3].llnl' 'rhea2.llnl'
     for chunk in chunks:
         # this chunk has a prefix and at least one number
         if '[' in chunk:
             pieces = chunk.split('[')
-            # if we have the closing bracket this chunk is complete
+
             if ']' in pieces[1]:
+                # if we have the closing bracket this chunk is complete
                 prefixes.append(pieces[0])
                 prefix = ''
                 pieces = pieces[1].split(']')
@@ -244,30 +262,36 @@ def expand(nodelist):
                     suffixes.append(pieces[1])
                 else:
                     suffixes.append('')
-            # otherwise there is only the prefix and some number/range
             else:
+                # otherwise there is only the prefix and some number/range
                 prefix = pieces[0]
                 numstring = pieces[1]
-        # a bracket is closed
+
         elif ']' in chunk:
+            # a bracket is closed
             pieces = chunk.split(']')
             if len(numstring) > 0:
                 numstring += ','
+
             numstring += pieces[0]
             if len(pieces) > 1:
                 suffix = pieces[1]
             else:
                 suffix = ''
+
             if prefix != '':
                 prefixes.append(prefix)
                 prefix = ''
+
             numstrings.append(numstring)
             numstring = ''
             suffixes.append(suffix)
             suffix = ''
-        # this chunk is a single machine and has no bracket
+
         elif prefix == '':
+            # this chunk is a single machine and has no bracket
             pieces = re.split(r'(\D+)', chunk)
+
             # a correctly formed machine name will create the list:
             # ['', 'rhea', '42', '.llnl', '']
             # or
@@ -276,25 +300,30 @@ def expand(nodelist):
                 suffix = pieces[3]
             else:
                 suffix = ''
+
             if len(pieces) > 1:
                 prefix = pieces[1]
             else:
                 prefix = ''
+
             if len(pieces) > 2:
                 numstring = pieces[2]
+
             prefixes.append(prefix)
             numstrings.append(numstring)
             suffixes.append(suffix)
             prefix = ''
             numstring = ''
             suffix = ''
-        # otherwise we must be in a number section (or malformed / mismatched brackets)
         else:
+            # otherwise we must be in a number section (or malformed / mismatched brackets)
             numstring += ',' + chunk
+
     if prefix != '':
         prefixes.append(prefix)
         numstrings.append(numstring)
         suffixes.append(suffix)
+
     # the lists are ready
     ret = []
     for i in range(len(prefixes)):
@@ -306,6 +335,7 @@ def expand(nodelist):
             nums = numbersfromrange(numstrings[i])
         for num in nums:
             ret.append(prefixes[i] + num + suffixes[i])
+
     return ret
 
 
@@ -314,10 +344,12 @@ def expand(nodelist):
 def compress_range(nodelist):
     if nodelist is None:
         return ''
+
     nodelist = sorthoststring(nodelist)
     nodelist = splithosts(nodelist)
     if len(nodelist) == 0:
         return ''
+
     # dictionary keyed on prefix+'0'+suffix
     # holds a number string
     nodedict = {}
@@ -325,6 +357,7 @@ def compress_range(nodelist):
         node = node.strip()
         if len(node) == 0:
             continue
+
         # a correctly formed machine name will create the list:
         # ['', 'rhea', '42', '.llnl', '']
         # or
@@ -333,10 +366,12 @@ def compress_range(nodelist):
         key = pieces[1]
         if len(pieces) > 3:
             key += '#' + pieces[3]
+
         if key in nodedict:
             nodedict[key] += ',' + pieces[2]
         else:
             nodedict[key] = pieces[2]
+
     ret = ''
     for key in nodedict:
         prefix = key
@@ -345,15 +380,19 @@ def compress_range(nodelist):
             pieces = key.split('#')
             prefix = pieces[0]
             suffix = pieces[1]
+
         rangenums = rangefromnumbers(nodedict[key])
         if ret != '':
             ret += ','
+
         ret += prefix
         if ',' in rangenums or '-' in rangenums:
             ret += '[' + rangenums + ']'
         else:
             ret += rangenums
+
         ret += suffix
+
     return ret
 
 
@@ -363,13 +402,17 @@ def compress_range(nodelist):
 def compress(hostlist):
     if hostlist is None:
         return ''
+
     if type(hostlist) is str:
         # turn any commas (plus space) into just a space
         hostlist = re.sub('\s*,\s*', ' ', hostlist)
+
         # collapse all whitespace to single space, then remove any leading/trailing space
         hostlist = re.sub('\s+', ' ', hostlist).strip()
+
         # put commas into the spaces
         hostlist = re.sub('\s', ',', hostlist)
+
     hostlist = sorthoststring(hostlist)
     return hostlist
 
@@ -378,21 +421,28 @@ def compress(hostlist):
 def diff(set1, set2):
     if type(set1) is str:
         set1 = set1.split(',')
+
     if type(set2) is str:
         set2 = set2.split(',')
+
     # we should have two list references
     if set1 is None:
         return []
+
     if set2 is None:
         return set1
+
     if len(set1) == 0:
         return []
+
     if len(set2) == 0:
         return set1
+
     ret = set1.copy()
     for node in set2:
         if node in ret:
             ret.remove(node)
+
     listvals = compress(ret)
     ret = expand(listvals)
     return ret
@@ -401,16 +451,21 @@ def diff(set1, set2):
 def intersect(set1, set2):
     if type(set1) is str:
         set1 = set1.split(',')
+
     if type(set2) is str:
         set2 = set2.split(',')
+
     if set1 is None or set2 is None:
         return []
+
     if len(set1) == 0 or len(set2) == 0:
         return []
+
     ret = []
     for node in set1:
         if node in set2:
             ret.append(node)
+
     listvals = compress(ret)
     ret = expand(listvals)
     return ret
@@ -418,14 +473,8 @@ def intersect(set1, set2):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        add_help=False,
-        argument_default=argparse.SUPPRESS,
-        prog='scr_hostlist',
         epilog='(use a colon to separate sets when using diff or intersect)')
-    parser.add_argument('-h',
-                        '--help',
-                        action='store_true',
-                        help='Show this help message and exit.')
+
     parser.add_argument(
         '--numbersfromrange',
         metavar='<numberlist>',
@@ -458,33 +507,38 @@ if __name__ == '__main__':
                         metavar='<set1:set2>',
                         type=str,
                         help='Returns elements of set1 that are in set2.')
-    args = vars(parser.parse_args())
-    if 'help' in args:
-        parser.print_help()
-        sys.exit(0)
-    if 'numbersfromrange' in args:
-        print('numbersfromrange(' + args['numbersfromrange'] + ')')
-        print('  -> ' + str(numbersfromrange(args['numbersfromrange'])))
-    if 'rangefromnumbers' in args:
-        print('rangefromnumbers(' + args['rangefromnumbers'] + ')')
-        print('  -> ' + str(rangefromnumbers(args['rangefromnumbers'])))
-    if 'expand' in args:
-        print('expand(' + args['expand'] + ')')
-        print('  -> ' + str(expand(args['expand'])))
-    if 'compress_range' in args:
-        print('compress_range(' + str(args['compress_range']) + ')')
-        print('  -> ' + str(compress_range(args['compress_range'])))
-    if 'compress' in args:
-        print('compress(' + str(args['compress']) + ')')
-        print('  -> ' + str(compress(args['compress'])))
-    if 'diff' in args and ':' in args['diff']:
-        parts = args['diff'].split(':')
+
+    args = parser.parse_args()
+
+    if args.numbersfromrange:
+        print('numbersfromrange(' + args.numbersfromrange + ')')
+        print('  -> ' + str(numbersfromrange(args.numbersfromrange)))
+
+    if args.rangefromnumbers:
+        print('rangefromnumbers(' + args.rangefromnumbers + ')')
+        print('  -> ' + str(rangefromnumbers(args.rangefromnumbers)))
+
+    if args.expand:
+        print('expand(' + args.expand + ')')
+        print('  -> ' + str(expand(args.expand)))
+
+    if args.compress_range:
+        print('compress_range(' + str(args.compress_range) + ')')
+        print('  -> ' + str(compress_range(args.compress_range)))
+
+    if args.compress:
+        print('compress(' + str(args.compress) + ')')
+        print('  -> ' + str(compress(args.compress)))
+
+    if args.diff and ':' in args.diff:
+        parts = args.diff.split(':')
         parts[0] = parts[0].split(',')
         parts[1] = parts[1].split(',')
         print('diff(' + str(parts[0]) + ':' + str(parts[1]) + ')')
         print('  -> ' + str(diff(parts[0], parts[1])))
-    if 'intersect' in args and ':' in args['intersect']:
-        parts = args['intersect'].split(':')
+
+    if args.intersect and ':' in args.intersect:
+        parts = args.intersect.split(':')
         parts[0] = parts[0].split(',')
         parts[1] = parts[1].split(',')
         print('intersect(' + str(parts[0]) + ':' + str(parts[1]) + ')')

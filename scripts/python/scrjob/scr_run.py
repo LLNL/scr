@@ -16,7 +16,6 @@ from datetime import datetime
 from time import time, sleep
 
 from scrjob import scr_const, scr_common
-from scrjob.list_dir import list_dir
 from scrjob.scr_list_down_nodes import list_down_nodes
 from scrjob.scr_common import tracefunction, runproc, scr_prefix
 from scrjob.scr_prerun import scr_prerun

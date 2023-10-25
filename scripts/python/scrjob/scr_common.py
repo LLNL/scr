@@ -1,6 +1,4 @@
 #! /usr/bin/env python3
-
-# scr_common.py
 """Defines for common methods shared across scripts."""
 
 import os, sys
@@ -50,6 +48,7 @@ def interpolate_variables(varstr):
     """
     if varstr is None or len(varstr) == 0:
         return ''
+
     # replace ~ and . symbols from front of path
     if varstr[0] == '~':
         varstr = '$HOME' + varstr[1:]
@@ -62,8 +61,10 @@ def interpolate_variables(varstr):
         varstr = topdir + '/' + varstr
     elif varstr[0] == '.':
         varstr = os.getcwd() + varstr[1:]
+
     if varstr[-1] == '/' and len(varstr) > 1:
         varstr = varstr[:-1]
+
     return os.path.expandvars(varstr)
 
 
@@ -78,6 +79,7 @@ def scr_prefix():
     prefix = os.environ.get('SCR_PREFIX')
     if prefix is None:
         return os.getcwd()
+
     # tack on current working dir if needed
     # don't resolve symlinks
     # don't worry about missing parts, the calling script calling might create it
@@ -131,9 +133,11 @@ def runproc(argv,
     if shell:
         if type(argv) is list:
             argv = ' '.join(argv)
+
         # following the security recommendation from subprocess.Popen:
         # turn the command into a shlex quoted string
         argv = 'bash -c ' + shlex.quote(argv)
+
     # allow caller to pass command as a string, as in:
     #   "ls -lt" rather than ["ls", "-lt"]
     elif type(argv) is str:
@@ -141,6 +145,7 @@ def runproc(argv,
 
     if len(argv) < 1:
         return None, None
+
     try:
         # if verbose, print the command we will run to stdout
         if verbose:
@@ -156,27 +161,37 @@ def runproc(argv,
                         stderr=PIPE,
                         shell=shell,
                         universal_newlines=True)
+
         if wait == False:
             return runproc, runproc
+
         if getstdout == True and getstderr == True:
             output = runproc.communicate()
             return output, runproc.returncode
+
         if getstdout == True:
             output = runproc.communicate()[0]
             return output, runproc.returncode
+
         if getstderr == True:
             output = runproc.communicate()[1]
             return output, runproc.returncode
+
         runproc.communicate()
         return None, runproc.returncode
+
     except Exception as e:
         print('runproc: ERROR: ' + str(e))
+
         if getstdout == True and getstderr == True:
             return ['', str(e)], None
+
         if getstdout == True:
             return '', None
+
         if getstderr == True:
             return str(e), None
+
         return None, None
 
 
@@ -197,8 +212,10 @@ def pipeproc(argvs, wait=True, getstdout=False, getstderr=False):
     """
     if len(argvs) < 1:
         return None, None
+
     if len(argvs) == 1:
         return runproc(argvs[0], wait, getstdout, getstderr)
+
     try:
         # split command into list if given as string
         cmd = argvs[0]
@@ -226,26 +243,36 @@ def pipeproc(argvs, wait=True, getstdout=False, getstderr=False):
                              universal_newlines=True)
             nextprog.stdout.close()
             nextprog = pipeprog
+
         if wait == False:
             return nextprog, nextprog.pid
+
         if getstdout == True and getstderr == True:
             output = nextprog.communicate()
             return output, nextprog.returncode
+
         if getstdout == True:
             output = nextprog.communicate()[0]
             return output, nextprog.returncode
+
         if getstderr == True:
             output = nextprog.communicate()[1]
             return output, nextprog.returncode
+
         return None, nextprog.returncode
+
     except Exception as e:
         print('pipeproc: ERROR: ' + str(e))
+
         if getstdout == True and getstderr == True:
             return ['', str(e)], 1
+
         if getstdout == True:
             return '', 1
+
         if getstderr == True:
             return str(e), 1
+
         return None, 1
 
 
@@ -262,6 +289,7 @@ def choose_bindir():
     # Needed to find binaries in build dir when testing
     parent_of_this_module = '/'.join(
         os.path.realpath(__file__).split('/')[:-1])
+
     if scr_const.X_BINDIR in parent_of_this_module:
         bindir = scr_const.X_BINDIR  # path to install bin directory
     else:
@@ -300,27 +328,39 @@ def log(bindir=None,
     if prefix is None:
         prefix = scr_prefix()
         #print('log: prefix is required')
+
     if bindir is None:
         bindir = scr_const.X_BINDIR
+
     argv = [bindir + '/scr_log_event', '-p', prefix]
+
     if username is not None:
         argv.extend(['-u', username])
+
     if jobname is not None:
         argv.extend(['-j', jobname])
+
     if jobid is not None:
         argv.extend(['-i', jobid])
+
     if start is not None:
         argv.extend(['-s', start])
+
     if event_type is not None:
         argv.extend(['-T', event_type])
+
     if event_dset is not None:
         argv.extend(['-D', event_dset])
+
     if event_name is not None:
         argv.extend(['-n', event_name])
+
     if event_start is not None:
         argv.extend(['-S', event_start])
+
     if event_secs is not None:
         argv.extend(['-L', event_secs])
+
     if type(event_note) is dict:
         argv.extend(['-N', ''])
         lastarg = len(argv) - 1
@@ -339,13 +379,7 @@ if __name__ == '__main__':
     This is meant for testing purposes, to directly call scr_common
     methods.
     """
-    parser = argparse.ArgumentParser(add_help=False,
-                                     argument_default=argparse.SUPPRESS,
-                                     prog='scr_common')
-    parser.add_argument('-h',
-                        '--help',
-                        action='store_true',
-                        help='Show this help message and exit.')
+    parser = argparse.ArgumentParser()
     parser.add_argument('--interpolate',
                         metavar='<variable>',
                         type=str,
@@ -369,19 +403,20 @@ if __name__ == '__main__':
         help=
         'Create a log entry, available options: bindir, prefix, username, jobname, jobid, start, event_type, event_note, event_dset, event_name, event_start, event_secs'
     )
-    args = vars(parser.parse_args())
-    if 'help' in args:
-        parser.print_help()
-        sys.exit(1)
-    if 'interpolate' in args:
-        print('interpolate_variables(' + args['interpolate'] + ')')
-        print('  -> ' + str(interpolate_variables(args['interpolate'])))
-    if 'prefix' in args:
+
+    args = parser.parse_args()
+
+    if args.interpolate:
+        print('interpolate_variables(' + args.interpolate + ')')
+        print('  -> ' + str(interpolate_variables(args.interpolate)))
+
+    if args.prefix:
         print('scr_prefix()')
         print('  -> ' + str(scr_prefix()))
-    if 'runproc' in args:
-        print('runproc(' + ' '.join(args['runproc']) + ')')
-        out, returncode = runproc(argv=args['runproc'],
+
+    if args.runproc:
+        print('runproc(' + ' '.join(args.runproc) + ')')
+        out, returncode = runproc(argv=args.runproc,
                                   getstdout=True,
                                   getstderr=True)
         print('  process returned with code ' + str(returncode))
@@ -389,12 +424,13 @@ if __name__ == '__main__':
         print(out[0])
         print('  stderr:')
         print(out[1])
-    if 'pipeproc' in args:
+
+    if args.pipeproc:
         printstr = 'pipeproc( '
         argvs = []
         argvs.append([])
         i = 0
-        for arg in args['pipeproc']:
+        for arg in args.pipeproc:
             if arg == ':':
                 i += 1
                 argvs.append([])
@@ -410,12 +446,12 @@ if __name__ == '__main__':
             print(out[0])
             print('  stderr:')
             print(out[1])
-    if 'log' in args:
+    if args.log:
         bindir, prefix, username, jobname = None, None, None, None
         jobid, start, event_type, event_note = None, None, None, None
         event_dset, event_name, event_start, event_secs = None, None, None, None
         printstr = 'log('
-        for keyvalpair in args['log']:
+        for keyvalpair in args.log:
             if '=' not in keyvalpair:
                 continue
             vals = keyvalpair.split('=')

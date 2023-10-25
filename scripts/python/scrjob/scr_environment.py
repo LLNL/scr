@@ -1,7 +1,3 @@
-#! /usr/bin/env python3
-
-# scr_environment.py
-
 import os
 from scrjob import scr_const
 from scrjob.scr_common import scr_prefix, runproc
