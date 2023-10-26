@@ -13,16 +13,16 @@ ENDFOREACH(pyscript IN ITEMS ${PYFE})
 INSTALL(FILES ${PYFE} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 
 SET(PYFE_BIN
-  scr_halt.py
-  scr_list_down_nodes.py
-  scr_prerun.py
-  scr_postrun.py
-  scr_run.py
-  scr_should_exit.py
-#  scr_srun.py
-#  scr_jsrun.py
-#  scr_lrun.py
-#  scr_mpirun.py
+  scr_halt
+  scr_list_down_nodes
+  scr_prerun
+  scr_postrun
+  scr_run
+  scr_should_exit
+#  scr_srun
+#  scr_jsrun
+#  scr_lrun
+#  scr_mpirun
 )
 
 SET(PYFE_EXEC
@@ -47,13 +47,17 @@ SET(PYFE_EXEC
   scr_watchdog.py
 )
 
+FOREACH(pyscript IN ITEMS ${PYFE_BIN})
+	CONFIGURE_FILE(${pyscript}.py ${pyscript} @ONLY)
+        SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/${pyscript} PROPERTIES GENERATED TRUE)
+        INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/${pyscript}
+        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+                DESTINATION ${CMAKE_INSTALL_BINDIR})
+ENDFOREACH(pyscript IN ITEMS ${PYFE_BIN})
+
 FOREACH(pyscript IN ITEMS ${PYFE_EXEC})
 	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
 ENDFOREACH(pyscript IN ITEMS ${PYFE_EXEC})
-
-INSTALL(FILES ${PYFE_BIN}
-PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-        DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 INSTALL(FILES ${PYFE_EXEC}
 PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ

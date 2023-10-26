@@ -3,6 +3,10 @@
 # Run this script after the final run in a job allocation
 # to scavenge files from cache to parallel file system.
 
+# add path holding scrjob to PYTHONPATH
+import sys
+sys.path.insert(0, '@X_LIBEXECDIR@/python')
+
 import argparse
 
 from scrjob.postrun import postrun

@@ -1,13 +1,14 @@
 #! /usr/bin/env python3
 
-# scr_run.py
-
 # the general launcher for the scripts
 # if called directly the launcher to use (srun/jsrun/mpirun) should be specified as an argument
 # scr_{srun,jsrun,mpirun} scripts call this script with the launcher specified
 
-import os
+# add path holding scrjob to PYTHONPATH
 import sys
+sys.path.insert(0, '@X_LIBEXECDIR@/python')
+
+import os
 from datetime import datetime
 from time import time, sleep
 

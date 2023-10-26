@@ -7,8 +7,11 @@
 #   - there are sufficient healthy nodes in the allocation
 # Exits with 0 if job should exit, 1 otherwise
 
-import os
+# add path holding scrjob to PYTHONPATH
 import sys
+sys.path.insert(0, '@X_LIBEXECDIR@/python')
+
+import os
 import argparse
 
 from scrjob.environment import SCR_Env
