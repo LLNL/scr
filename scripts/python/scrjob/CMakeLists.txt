@@ -3,7 +3,7 @@ SET(PYFE
   list_dir.py
   parsetime.py
   environment.py
-  scr_hostlist.py
+  hostlist.py
 )
 
 FOREACH(pyscript IN ITEMS ${PYFE})
@@ -50,4 +50,3 @@ PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_
 ADD_SUBDIRECTORY(cli)
 ADD_SUBDIRECTORY(resmgrs)
 ADD_SUBDIRECTORY(launchers)
-ADD_SUBDIRECTORY(commands)

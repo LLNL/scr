@@ -32,8 +32,8 @@ class LSF(ResourceManager):
                     raise RuntimeError('LSF: ERROR: $LSB_DJOB_HOSTFILE empty')
 
                 # get a set of unique hostnames
-                hostlist = list(set(lines[1:]))
-                return hostlist
+                hosts = list(set(lines[1:]))
+                return hosts
             except Exception as e:
                 # failed to read file
                 print('LSF: ERROR: failed to process $LSB_DJOB_HOSTFILE')

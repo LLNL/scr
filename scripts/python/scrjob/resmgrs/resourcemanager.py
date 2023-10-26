@@ -1,5 +1,6 @@
 import os
-from scrjob import scr_const, scr_hostlist
+
+from scrjob import scr_const, hostlist
 from scrjob.scr_common import scr_prefix
 from scrjob.resmgrs import Nodetests
 
@@ -175,7 +176,7 @@ class ResourceManager(object):
             # the type is a ClusterShell NodeSet, convert to a string
             return str(nodeset)
 
-        return scr_hostlist.compress(hostnames)
+        return hostlist.compress(hostnames)
 
     def compress_hosts(self, hostnames=[]):
         """Return hostlist string, where the hostlist is in a compressed form.
@@ -199,7 +200,7 @@ class ResourceManager(object):
             # the type is a ClusterShell NodeSet, convert to a string
             return str(nodeset)
 
-        return scr_hostlist.compress_range(hostnames)
+        return hostlist.compress_range(hostnames)
 
     def expand_hosts(self, hostnames):
         """Return list of hosts, where each element is a single host.
@@ -225,7 +226,7 @@ class ResourceManager(object):
 
             return nodeset
 
-        return scr_hostlist.expand(hostnames)
+        return hostlist.expand(hostnames)
 
     def diff_hosts(self, set1=[], set2=[]):
         """Return the set difference from 2 host lists.
@@ -260,7 +261,7 @@ class ResourceManager(object):
 
             return set1
 
-        return scr_hostlist.diff(set1=set1, set2=set2)
+        return hostlist.diff(set1=set1, set2=set2)
 
     def intersect_hosts(self, set1=[], set2=[]):
         """Return the set intersection of 2 host lists.
@@ -292,7 +293,7 @@ class ResourceManager(object):
 
             return set1
 
-        return scr_hostlist.intersect(set1, set2)
+        return hostlist.intersect(set1, set2)
 
     # return a hash to define all unavailable (down or excluded) nodes and reason
     def list_down_nodes_with_reason(self, nodes=[], jobenv=None):
