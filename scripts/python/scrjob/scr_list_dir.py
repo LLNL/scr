@@ -3,7 +3,7 @@
 import sys
 import argparse
 
-from scrjob.environment import SCR_Env
+from scrjob.environment import JobEnv
 from scrjob.list_dir import list_dir
 
 if __name__ == '__main__':
@@ -51,12 +51,12 @@ if __name__ == '__main__':
         print('Control or cache must be specified.')
         sys.exit(1)
 
-    # ensure scr_env is set
-    scr_env = SCR_Env(prefix=args['prefix'])
+    # ensure jobenv is set
+    jobenv = JobEnv(prefix=args['prefix'])
 
     dirs = list_dir(user=args['user'],
                     jobid=args['jobid'],
                     base=args['base'],
                     runcmd=args['control/cache'],
-                    scr_env=scr_env)
+                    jobenv=jobenv)
     print(' '.join(dirs))

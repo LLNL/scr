@@ -295,13 +295,13 @@ class ResourceManager(object):
         return scr_hostlist.intersect(set1, set2)
 
     # return a hash to define all unavailable (down or excluded) nodes and reason
-    def list_down_nodes_with_reason(self, nodes=[], scr_env=None):
+    def list_down_nodes_with_reason(self, nodes=[], jobenv=None):
         """Return down nodes with the reason they are down.
 
         Parameters
         ----------
         nodes     a list or a comma separated string
-        scr_env   the SCR_Environment object
+        jobenv    the JobEnv object
 
         The Nodetests object from resmgr/nodetests.py contains all tests.
         The tests which will be performed should be set either:
@@ -316,7 +316,7 @@ class ResourceManager(object):
         dict
             dictionary of reported down nodes, keyed by node with reasons as values
         """
-        unavailable = self.nodetests(nodes=nodes, scr_env=scr_env)
+        unavailable = self.nodetests(nodes=nodes, jobenv=jobenv)
         return unavailable
 
     # each scavenge operation needs upnodes and downnodes_spaced

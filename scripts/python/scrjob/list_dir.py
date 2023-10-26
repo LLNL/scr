@@ -3,15 +3,15 @@ import os
 from scrjob import scr_const
 
 
-def list_dir(user=None, jobid=None, base=False, runcmd=None, scr_env=None):
+def list_dir(user=None, jobid=None, base=False, runcmd=None, jobenv=None):
     """This method returns info on the SCR control/cache/prefix directories for
     the current user and jobid.
 
     Required Parameters
     ----------
     runcmd     string, 'control' or 'cache'
-    scr_env    class, an instance of SCR_Env with valid references to
-               scr_env.resmgr and scr_env.param
+    jobenv     class, an instance of JobEnv with valid references to
+               jobenv.resmgr and jobenv.param
 
     Returns
     -------
@@ -28,15 +28,15 @@ def list_dir(user=None, jobid=None, base=False, runcmd=None, scr_env=None):
         raise RuntimeError(
             'list_dir: INVALID: \'control\' or \'cache\' must be specified.')
 
-    # ensure scr_env is set
-    if scr_env is None or scr_env.resmgr is None or scr_env.param is None:
+    # ensure jobenv is set
+    if jobenv is None or jobenv.resmgr is None or jobenv.param is None:
         raise RuntimeError('list_dir: INVALID: Unknown environment.')
 
     # get the base directory
     bases = []
     if runcmd == 'cache':
         # lookup cache base
-        cachedesc = scr_env.param.get_hash('CACHE')
+        cachedesc = jobenv.param.get_hash('CACHE')
         if type(cachedesc) is dict:
             bases = list(cachedesc.keys())
         elif cachedesc is not None:
@@ -46,7 +46,7 @@ def list_dir(user=None, jobid=None, base=False, runcmd=None, scr_env=None):
                 'list_dir: INVALID: Unable to get parameter CACHE.')
     else:
         # lookup cntl base
-        bases = scr_env.param.get('SCR_CNTL_BASE')
+        bases = jobenv.param.get('SCR_CNTL_BASE')
         if type(bases) is dict:
             bases = list(bases.keys())
         elif type(bases) is not None:
@@ -63,11 +63,11 @@ def list_dir(user=None, jobid=None, base=False, runcmd=None, scr_env=None):
     if base == False:
         # if not specified, read username from environment
         if user is None:
-            user = scr_env.user()
+            user = jobenv.user()
 
         # if not specified, read jobid from environment
         if jobid is None:
-            jobid = scr_env.resmgr.job_id()
+            jobid = jobenv.resmgr.job_id()
 
         # check that the required environment variables are set
         if user is None or jobid is None:

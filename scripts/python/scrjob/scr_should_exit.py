@@ -13,7 +13,7 @@ sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
-from scrjob.environment import SCR_Env
+from scrjob.environment import JobEnv
 from scrjob.should_exit import should_exit
 
 
@@ -38,11 +38,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    scr_env = SCR_Env(prefix=args.prefix)
+    jobenv = JobEnv(prefix=args.prefix)
 
     down_nodes = []
     if args.down:
-        down_nodes = scr_env.resmgr.expand_hosts(args.down)
+        down_nodes = jobenv.resmgr.expand_hosts(args.down)
 
-    if not should_exit(scr_env, keep_down=down_nodes, verbose=args.verbose):
+    if not should_exit(jobenv, keep_down=down_nodes, verbose=args.verbose):
         sys.exit(1)

@@ -32,15 +32,15 @@ class Nodetests:
         else:
             self.tests = []
 
-    def __call__(self, nodes=[], scr_env=None):
+    def __call__(self, nodes=[], jobenv=None):
         if type(nodes) is str:
             nodes = nodes.split(',')
         # This method returns a dictionary of unavailable nodes
         #   keyed on node with the reason as the value
         unavailable = {}
         # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
-        nodelist = scr_env.resmgr.expand_hosts(
-            scr_env.param.get('SCR_EXCLUDE_NODES'))
+        nodelist = jobenv.resmgr.expand_hosts(
+            jobenv.param.get('SCR_EXCLUDE_NODES'))
         for node in nodelist:
             if node == '':
                 continue
@@ -48,7 +48,7 @@ class Nodetests:
                 nodes.remove(node)
             unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
         # mark the set of nodes the resource manager thinks is down
-        nodelist = scr_env.resmgr.down_nodes()
+        nodelist = jobenv.resmgr.down_nodes()
         for node in nodelist:
             if node == '':
                 continue
@@ -63,7 +63,7 @@ class Nodetests:
             try:
                 testmethod = getattr(self, test)
                 if callable(testmethod):
-                    nextunavailable = testmethod(nodes=nodes, scr_env=scr_env)
+                    nextunavailable = testmethod(nodes=nodes, jobenv=jobenv)
                     unavailable.update(nextunavailable)
                 else:
                     print('Nodetests: ERROR: ' + test +
@@ -80,7 +80,7 @@ class Nodetests:
         return unavailable
 
     # mark any nodes that fail to respond to (up to 2) ping(s)
-    def ping(self, nodes=[], scr_env=None):
+    def ping(self, nodes=[], jobenv=None):
         unavailable = {}
         # `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
         argv = [self.pingexe, '-c', '1', '-w', '1', '']
@@ -97,12 +97,12 @@ class Nodetests:
         return unavailable
 
     # mark any nodes that don't respond to pdsh echo up
-    def pdsh_echo(self, nodes=[], scr_env=None):
+    def pdsh_echo(self, nodes=[], jobenv=None):
         unavailable = {}
         pdsh_assumed_down = nodes.copy()
         # only run this against set of nodes known to be responding
         # run an "echo UP" on each node to check whether it works
-        output = scr_env.launcher.parallel_exec(argv=['echo', 'UP'],
+        output = jobenv.launcher.parallel_exec(argv=['echo', 'UP'],
                                                 runnodes=','.join(nodes))[0][0]
         for line in output.split('\n'):
             if len(line) == 0:
@@ -123,11 +123,11 @@ class Nodetests:
             self,
             nodes=[],
             #free=False, ###free is only true during the _first_ run
-            scr_env=None):
-        cntldir_string = list_dir(base=True, runcmd='control', scr_env=scr_env)
-        cachedir_string = list_dir(base=True, runcmd='cache', scr_env=scr_env)
+            jobenv=None):
+        cntldir_string = list_dir(base=True, runcmd='control', jobenv=jobenv)
+        cachedir_string = list_dir(base=True, runcmd='cache', jobenv=jobenv)
         unavailable = {}
-        param = scr_env.param
+        param = jobenv.param
         # specify whether to check total or free capacity in directories
         #if free: free_flag = '--free'
 
@@ -185,7 +185,7 @@ class Nodetests:
             cachedir_flag = ['--cache', ','.join(cachedir_vals)]
 
         # only run this against set of nodes known to be responding
-        upnodes = scr_env.resmgr.compress_hosts(nodes)
+        upnodes = jobenv.resmgr.compress_hosts(nodes)
 
         # run scr_check_node on each node specifying control and cache directories to check
         argv = [
@@ -196,7 +196,7 @@ class Nodetests:
             argv.append('--free')
         argv.extend(cntldir_flag)
         argv.extend(cachedir_flag)
-        output = scr_env.launcher.parallel_exec(argv=argv,
+        output = jobenv.launcher.parallel_exec(argv=argv,
                                                 runnodes=upnodes)[0][0]
         action = 0  # tracking action to use range iterator and follow original line <- shift flow
         nodeset = ''

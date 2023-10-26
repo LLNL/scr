@@ -8,8 +8,8 @@ from scrjob.launchers import AutoJobLauncher
 from scrjob.cli.scr_nodes_file import SCRNodesFile
 
 
-class SCR_Env:
-    """The SCR_Env class tracks information relating to the environment.
+class JobEnv:
+    """The JobEnv class tracks information relating to the SCR job environment.
 
     This class retrieves information from the environment.
     This class contains pointers to the active Joblauncher, ResourceManager, and SCR_Param.
@@ -18,10 +18,10 @@ class SCR_Env:
 
     Attributes
     ----------
-    param      - class, a reference to SCR_Param
-    launcher   - class, a reference to Joblauncher
-    resmgr     - class, a reference to ResourceManager
-    prefix     - string, initialized upon init or through scr_prefix()
+    prefix     - string, SCR_PREFIX value, initialized upon init or through scr_prefix()
+    param      - class, a reference to SCR_Param to read SCR param values
+    resmgr     - class, a reference to ResourceManager to query resource manager
+    launcher   - class, a reference to Joblauncher for MPI job launcher
     """
 
     def __init__(self, prefix=None, param=None, resmgr=None, launcher=None):

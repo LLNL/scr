@@ -7,7 +7,7 @@ sys.path.insert(0, '@X_LIBEXECDIR@/python')
 import argparse
 
 from scrjob.prerun import prerun
-from scrjob.environment import SCR_Env
+from scrjob.environment import JobEnv
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -25,6 +25,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    scr_env = SCR_Env(prefix=args.prefix)
+    jobenv = JobEnv(prefix=args.prefix)
 
-    prerun(scr_env=scr_env, verbose=args.verbose)
+    prerun(jobenv=jobenv, verbose=args.verbose)

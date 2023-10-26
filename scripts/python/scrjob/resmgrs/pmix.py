@@ -57,18 +57,18 @@ class PMIX(ResourceManager):
     return 1
 
   # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
+  def list_down_nodes_with_reason(self,nodes=[], jobenv=None, free=False, cntldir_string=None, cachedir_string=None):
     unavailable = {}
     ### is theres way to get a list of down nodes in pmix?
     #unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes, resmgr_nodes=self.expand_hosts(self.down_nodes()))
     nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
     unavailable.update(nextunavail)
-    if scr_env is not None and scr_env.param is not None:
-      exclude_nodes = self.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
+    if jobenv is not None and jobenv.param is not None:
+      exclude_nodes = self.expand_hosts(jobenv.param.get('SCR_EXCLUDE_NODES'))
       nextunavail = nodetests.list_param_excluded_nodes(nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
       unavailable.update(nextunavail)
-      # assert scr_env.resmgr == self
-      nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, cntldir_string=cntldir_string, cachedir_string=cachedir_string)
+      # assert jobenv.resmgr == self
+      nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, jobenv=jobenv, cntldir_string=cntldir_string, cachedir_string=cachedir_string)
       unavailable.update(nextunavail)
     return unavailable
 

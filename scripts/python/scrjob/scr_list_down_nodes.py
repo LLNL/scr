@@ -8,7 +8,7 @@ sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
-from scrjob.environment import SCR_Env
+from scrjob.environment import JobEnv
 from scrjob.cli import SCRLog
 from scrjob.list_down_nodes import list_down_nodes
 
@@ -57,25 +57,25 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    scr_env = SCR_Env(launcher=args.joblauncher)
+    jobenv = JobEnv(launcher=args.joblauncher)
 
     # create log object if asked to log down nodes
     log = None
     if args.log:
-        prefix = scr_env.dir_prefix()
-        jobid = scr_env.resmgr.job_id()
-        user = scr_env.user()
+        prefix = jobenv.dir_prefix()
+        jobid = jobenv.resmgr.job_id()
+        user = jobenv.user()
         log = SCRLog(prefix, jobid, user=user)
 
-    node_list = scr_env.resmgr.expand_hosts(args.nodeset)
-    down_list = scr_env.resmgr.expand_hosts(args.down)
+    node_list = jobenv.resmgr.expand_hosts(args.nodeset)
+    down_list = jobenv.resmgr.expand_hosts(args.down)
 
     down = list_down_nodes(reason=args.reason,
                            free=args.free,
                            nodes_down=down_list,
                            runtime_secs=args.secs,
                            nodes=node_list,
-                           scr_env=scr_env,
+                           jobenv=jobenv,
                            log=log)
 
     if args.reason:
@@ -85,5 +85,5 @@ if __name__ == '__main__':
     else:
         # simply print the list of down node in range syntax
         # cast unavailable to a list to get only the keys of the dictionary
-        down_range = scr_env.resmgr.compress_hosts(down)
+        down_range = jobenv.resmgr.compress_hosts(down)
         print(down_range)

@@ -16,7 +16,7 @@ def scavenge_rebuild(nodes_job,
                      d,
                      cntldir,
                      pardir,
-                     scr_env,
+                     jobenv,
                      log,
                      verbose=False):
 
@@ -29,7 +29,7 @@ def scavenge_rebuild(nodes_job,
         raise RuntimeError('scr_postrun: Failed to read name of dataset ' + d)
 
     # create dataset directory within prefix directory
-    datadir = scr_env.dir_dset(d)
+    datadir = jobenv.dir_dset(d)
     os.makedirs(datadir, exist_ok=True)
 
     # Scavenge files from cache to parallel file system
@@ -41,7 +41,7 @@ def scavenge_rebuild(nodes_job,
                  cntldir=cntldir,
                  prefixdir=pardir,
                  verbose=verbose,
-                 scr_env=scr_env,
+                 jobenv=jobenv,
                  log=log)
 
     # check that scavenged set of files is complete,
@@ -55,7 +55,7 @@ def scavenge_rebuild(nodes_job,
         print('scr_postrun: Scavenged dataset ' + dsetname)
 
 
-def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
+def postrun(prefix_dir=None, jobenv=None, verbose=False, log=None):
     """This method is called after all runs has completed, before scr_run.py
     exits.
 
@@ -74,14 +74,14 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
     if verbose:
         print('scr_postrun: Started: ' + str(datetime.now()))
 
-    if scr_env is None or scr_env.resmgr is None:
+    if jobenv is None or jobenv.resmgr is None:
         raise RuntimeError(
             'scr_postrun: ERROR: environment and/or resource manager not set')
 
     # check that we have the SCR_PREFIX directory
     pardir = prefix_dir
     if not pardir:
-        pardir = scr_env.dir_prefix()
+        pardir = jobenv.dir_prefix()
     if not pardir:
         raise RuntimeError(
             'scr_postrun: ERROR: SCR_PREFIX directory not specified')
@@ -90,19 +90,19 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
     scr_flush_file = SCRFlushFile(pardir)
 
     # get our nodeset for this job
-    scr_nodelist = scr_env.node_list()
+    scr_nodelist = jobenv.node_list()
     if not scr_nodelist:
-        scr_nodelist = scr_env.resmgr.job_nodes()
+        scr_nodelist = jobenv.resmgr.job_nodes()
         if not scr_nodelist:
             raise RuntimeError(
                 'scr_postrun: ERROR: Could not identify nodeset')
 
         # TODO: explain why we do this
-        os.environ['SCR_NODELIST'] = scr_env.resmgr.join_hosts(scr_nodelist)
+        os.environ['SCR_NODELIST'] = jobenv.resmgr.join_hosts(scr_nodelist)
 
     # identify list of down nodes
     jobnodes = scr_nodelist
-    downnodes = list_down_nodes(nodes=jobnodes, scr_env=scr_env)
+    downnodes = list_down_nodes(nodes=jobnodes, jobenv=jobenv)
 
     # identify what nodes are still up
     upnodes = [n for n in jobnodes if n not in downnodes]
@@ -121,7 +121,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
         raise RuntimeError('scr_postrun: ERROR: No remaining upnodes')
 
     # get list of control directories
-    cntldirs = list_dir(runcmd='control', scr_env=scr_env)
+    cntldirs = list_dir(runcmd='control', jobenv=jobenv)
     cntldir = cntldirs[0]
 
     # TODODSET: avoid scavenging things unless it's in this list
@@ -161,7 +161,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
         try:
             attempted.append(d)
             scavenge_rebuild(scr_nodelist, upnodes, d, cntldir, pardir,
-                             scr_env, log, verbose)
+                             jobenv, log, verbose)
             succeeded.append(d)
         except Exception as e:
             if verbose:
@@ -219,7 +219,7 @@ def postrun(prefix_dir=None, scr_env=None, verbose=False, log=None):
         # attempt to scavenge this checkpoint
         try:
             scavenge_rebuild(scr_nodelist, upnodes, d, cntldir, pardir,
-                             scr_env, log, verbose)
+                             jobenv, log, verbose)
         except Exception as e:
             # failed to scavenge and/or rebuild, attempt the next checkpoint
             if verbose:
