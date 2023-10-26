@@ -309,7 +309,8 @@ def scr_run(launcher='',
             break
 
         # is there a halt condition instructing us to stop?
-        if should_halt(bindir, prefix):
+        halt_cond = should_halt(bindir, prefix):
+        if halt_cond:
             print(prog + ': Halt condition detected, ending run.')
             break
 
@@ -318,7 +319,8 @@ def scr_run(launcher='',
         sleep(60)
 
         # check for halt condition again after sleep
-        if should_halt(bindir, prefix):
+        halt_cond = should_halt(bindir, prefix):
+        if halt_cond:
             print(prog + ': Halt condition detected, ending run.')
             break
 

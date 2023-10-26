@@ -32,6 +32,10 @@ def list_down_nodes(reason=False,
     unavailable = scr_env.resmgr.list_down_nodes_with_reason(nodes=nodes,
                                                              scr_env=scr_env)
 
+    # account for nodes we were told to exclude
+    for node in nodes_down:
+        unavailable[node] = 'Excluded by command line'
+
     # TODO: read exclude list from a file, as well?
 
     # log each newly failed node, along with the reason

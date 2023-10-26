@@ -18,16 +18,18 @@ SET(PYFE_BIN
   scr_prerun.py
   scr_postrun.py
   scr_run.py
-  scr_srun.py
-  scr_jsrun.py
-  scr_lrun.py
-  scr_mpirun.py
+  scr_should_exit.py
+#  scr_srun.py
+#  scr_jsrun.py
+#  scr_lrun.py
+#  scr_mpirun.py
 )
 
 SET(PYFE_EXEC
   list_down_nodes.py
   prerun.py
   postrun.py
+  should_exit.py
   scrlog.py
   scr_ckpt_interval.py
   scr_check_node.py
