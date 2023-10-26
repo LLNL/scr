@@ -1,23 +1,17 @@
 #! /usr/bin/env python3
-
 """This script can use the 'scancel' or equivalent command to kill a jobstep
 with the jobstep id supplied via the command line.
 
 This requires specifying both the joblauncher and a jobstep id.
 """
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
+import sys
 import argparse
 
 from scrjob import scr_const
 from scrjob.scr_common import runproc
 from scrjob.launchers import AutoJobLauncher
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -1,18 +1,14 @@
 #! /usr/bin/env python3
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
+import sys
 import argparse
+
 from scrjob import scr_const
 from scrjob.list_dir import list_dir
-from scrjob.scr_environment import SCR_Env
+from scrjob.environment import SCR_Env
 from scrjob.scr_param import SCR_Param
 from scrjob.resmgrs import AutoResourceManager
-
 
 if __name__ == '__main__':
     """This is an external driver for the internal list_dir method.
@@ -59,9 +55,6 @@ if __name__ == '__main__':
         print('Control or cache must be specified.')
         sys.exit(1)
 
-    # TODO: read cache directory from config file
-    bindir = scr_const.X_BINDIR
-
     # ensure scr_env is set
     scr_env = SCR_Env(prefix=args['prefix'])
     scr_env.resmgr = AutoResourceManager()
@@ -71,6 +64,5 @@ if __name__ == '__main__':
                     jobid=args['jobid'],
                     base=args['base'],
                     runcmd=args['control/cache'],
-                    scr_env=scr_env,
-                    bindir=bindir)
+                    scr_env=scr_env)
     print(' '.join(dirs))

@@ -1,10 +1,7 @@
 #! /usr/bin/env python3
 
-import os, sys
-
-sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-import scrjob
-
+import os
+import sys
 from time import sleep
 
 from scrjob import scr_const

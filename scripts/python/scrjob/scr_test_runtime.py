@@ -1,12 +1,7 @@
 #! /usr/bin/env python3
 
-# scr_test_runtime.py
-
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
+import os
+import sys
 
 from scrjob import scr_const
 from scrjob.scr_common import runproc

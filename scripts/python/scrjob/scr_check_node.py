@@ -28,11 +28,10 @@
 #   run GPU tests to verify functionality
 #   run GPU/CPU performance tests to verify performance
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
+# add path holding scrjob to PYTHONPATH
+import os
+import sys
+sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
 
 import argparse
 

@@ -21,11 +21,10 @@ print('Otherwise the endtime should be in the future, and it')
 print('should correspond to the allocation end time.')
 print('--------------------------------------------------------')
 
-import os, sys
+import os
+import sys
 import time
 
-sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-import scrjob
 from scrjob.resmgrs import AutoResourceManager
 
 time.sleep(2)

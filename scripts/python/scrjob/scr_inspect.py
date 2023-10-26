@@ -1,14 +1,11 @@
 #! /usr/bin/env python3
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
+import sys
 import argparse, re, subprocess
+
 from scrjob import scr_const, scr_hostlist
-from scrjob.scr_environment import SCR_Env
+from scrjob.environment import SCR_Env
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher
 
@@ -23,7 +20,7 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
 
     On error this method returns the integer 1
     """
-    bindir = scr_const.X_BINDIR
+    libexecdir = scr_const.X_LIBEXECDIR
     pdsh = scr_const.PDSH_EXE
 
     if scr_env is None:
@@ -34,12 +31,12 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
         scr_env.launcher = AutoJobLauncher()
 
     # tag output files with jobid
-    jobid = scr_env.get_job_id()
+    jobid = scr_env.job_id()
     if jobid is None:
         raise RuntimeError('Could not determine jobid.')
 
     # read node set of job
-    jobset = scr_env.get_scr_nodelist()
+    jobset = scr_env.node_list()
     if jobset is None:
         jobset = scr_env.resmgr.job_nodes()
         if jobset is None:
@@ -77,7 +74,10 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
     errfile = os.path.join(scr_dir, 'scr_inspect.pdsh.e.' + jobid)
 
     # run scr_inspect_cache via pdsh / clustershell
-    argv = [os.path.join(bindir, 'scr_inspect_cache'), os.path.join(cntldir, 'filemap.scrinfo')]
+    argv = [
+        os.path.join(libexecdir, 'scr_inspect_cache'),
+        os.path.join(cntldir, 'filemap.scrinfo')
+    ]
     out = scr_env.launcher.parallel_exec(argv=argv, runnodes=upnodes)[0]
     try:
         with open(outfile, 'w') as f:
@@ -132,7 +132,8 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
 
     except Exception as e:
         print(e)
-        raise RuntimeError('Reading and processing output file \"' + output + '\"')
+        raise RuntimeError('Reading and processing output file \"' + output +
+                           '\"')
 
     # starting with the most recent dataset, check whether we have (or may be able to recover) all files
     possible_dsets = []
@@ -180,7 +181,9 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        epilog='The jobid and job node set must be able to be obtained from the environment.')
+        epilog=
+        'The jobid and job node set must be able to be obtained from the environment.'
+    )
     parser.add_argument('-j',
                         '--jobset',
                         default=None,
@@ -212,9 +215,9 @@ if __name__ == '__main__':
 
     try:
         dsets = scr_inspect(jobnodes=args.jobset,
-                          up=args.up,
-                          down=args.down,
-                          cntldir=args['from'])
+                            up=args.up,
+                            down=args.down,
+                            cntldir=args['from'])
         print(' '.join(dsets))
     except Exception as e:
         print('scr_inspect: ERROR: ' + str(e))

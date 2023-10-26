@@ -1,12 +1,9 @@
 #! /usr/bin/env python3
 
 import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import sys
 import argparse
+
 from scrjob import scr_hostlist
 
 

@@ -3,14 +3,11 @@
 # this is a standalone script which queries the class SCR_Env
 # SCR_Env contains general values from the environment
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
+import sys
 import argparse
-from scrjob.scr_environment import SCR_Env
+
+from scrjob.environment import SCR_Env
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.scr_param import SCR_Param
 from scrjob.launchers import AutoJobLauncher
@@ -59,7 +56,7 @@ if __name__ == '__main__':
     scr_env.param = SCR_Param()
 
     if args.user:
-        print(str(scr_env.get_user()), end='')
+        print(str(scr_env.user()), end='')
 
     if args.jobid:
         print(str(scr_env.resmgr.job_id()), end='')
@@ -68,7 +65,7 @@ if __name__ == '__main__':
         print(str(scr_env.resmgr.end_time()), end='')
 
     if args.nodes:
-        nodelist = scr_env.get_scr_nodelist()
+        nodelist = scr_env.node_list()
         if not nodelist:
             nodelist = scr_env.resmgr.job_nodes()
         nodestr = scr_env.resmgr.join_hosts(nodelist)
@@ -80,4 +77,4 @@ if __name__ == '__main__':
         print(nodestr, end='')
 
     if args.runnodes:
-        print(str(scr_env.get_runnode_count()), end='')
+        print(str(scr_env.runnode_count()), end='')

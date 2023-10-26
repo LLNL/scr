@@ -1,6 +1,7 @@
 import os
 from scrjob import scr_const
-from scrjob.scr_common import scr_prefix, runproc
+from scrjob.scr_common import scr_prefix
+from scrjob.cli.scr_nodes_file import SCRNodesFile
 
 
 class SCR_Env:
@@ -17,8 +18,6 @@ class SCR_Env:
     launcher   - class, a reference to Joblauncher
     resmgr     - class, a reference to ResourceManager
     prefix     - string, initialized upon init or through scr_prefix()
-    bindir     - string, path to the scr bin directory, scr_const.X_BINDIR
-    nodes_file - string, path to bindir/scr_nodes_file     ### Unused ?
     """
 
     def __init__(self, prefix=None):
@@ -32,20 +31,16 @@ class SCR_Env:
             prefix = scr_prefix()
         self.prefix = prefix
 
-        # initialize paths
-        bindir = scr_const.X_BINDIR
-        self.nodes_file = os.path.join(bindir, 'scr_nodes_file')
-
-    def get_user(self):
+    def user(self):
         """Return the username from the environment."""
         return os.environ.get('USER')
 
-    def get_scr_nodelist(self):
+    def node_list(self):
         """Return the SCR_NODELIST, if set, or None."""
         nodelist = os.environ.get('SCR_NODELIST')
         return self.resmgr.expand_hosts(nodelist)
 
-    def get_prefix(self):
+    def dir_prefix(self):
         """Return the scr prefix."""
         return self.prefix
 
@@ -58,10 +53,8 @@ class SCR_Env:
         prefix/.scr/scr.dataset.<id>"""
         return os.path.join(self.dir_scr(), 'scr.dataset.' + str(d))
 
-    def get_runnode_count(self):
+    def runnode_count(self):
         """Return the number of nodes used in the last run, if known."""
-        argv = [self.nodes_file, '--dir', self.prefix]
-        out, returncode = runproc(argv=argv, getstdout=True)
-        if returncode == 0:
-            return int(out)
-        return 0
+        nodes_file = SCRNodesFile(prefix=self.prefix)
+        num_nodes = nodes_file.last_num_nodes()
+        return num_nodes if num_nodes is not None else 0

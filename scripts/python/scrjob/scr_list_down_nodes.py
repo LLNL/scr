@@ -2,70 +2,19 @@
 
 # this is a launcher script for list_down_nodes.py
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
+# add path holding scrjob to PYTHONPATH
+import sys
+sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
 from scrjob import scr_const
-from scrjob.scr_environment import SCR_Env
+from scrjob.list_down_nodes import list_down_nodes
+from scrjob.environment import SCR_Env
 from scrjob.scr_param import SCR_Param
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher
 from scrjob.cli import SCRLog
-
-
-# The main scr_list_down_nodes method.
-# this method takes an scr_env, the contained resource manager will determine which methods above to use
-def list_down_nodes(reason=False,
-                    free=False,
-                    nodes_down=[],
-                    runtime_secs=None,
-                    nodes=None,
-                    scr_env=None,
-                    log=None):
-
-    if scr_env is None or scr_env.resmgr is None or scr_env.param is None:
-        raise RuntimeError(
-            'scr_list_down_nodes: ERROR: environment, resmgr, or param not set'
-        )
-
-    # check that we have a list of nodes before going any further
-    if not nodes:
-        nodes = scr_env.get_scr_nodelist()
-    if not nodes:
-        nodes = scr_env.resmgr.job_nodes()
-    if not nodes:
-        raise RuntimeError(
-            'scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.'
-        )
-
-    # drop any nodes that we are told are down
-    for node in nodes_down:
-        if node in nodes:
-            nodes.remove(node)
-
-    # get a dictionary of all unavailable (down or excluded) nodes and reason
-    # keys are nodes and the values are the reasons
-    unavailable = scr_env.resmgr.list_down_nodes_with_reason(nodes=nodes,
-                                                             scr_env=scr_env)
-
-    # TODO: read exclude list from a file, as well?
-
-    # log each newly failed node, along with the reason
-    if log:
-        for node, reason in unavailable.items():
-            note = node + ": " + reason
-            log.event('NODE_FAIL', note=note, secs=runtime_secs)
-
-    if not reason:
-        return sorted(list(unavailable.keys()))
-
-    return unavailable
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -120,9 +69,9 @@ if __name__ == '__main__':
     # create log object if asked to log down nodes
     log = None
     if args.log:
-        prefix = scr_env.get_prefix()
+        prefix = scr_env.dir_prefix()
         jobid = scr_env.resmgr.job_id()
-        user = scr_env.get_user()
+        user = scr_env.user()
         log = SCRLog(prefix, jobid, user=user)
 
     node_list = scr_env.resmgr.expand_hosts(args.nodeset)

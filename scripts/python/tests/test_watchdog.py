@@ -11,12 +11,11 @@
 # If the processes were killed then the time elapsed should be greater
 # than some threshhold since the last file output
 
-import os, sys
+import os
+import sys
 import time
 from subprocess import TimeoutExpired
 
-sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-import scrjob
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher
 from scrjob.scr_param import SCR_Param

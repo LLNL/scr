@@ -1,32 +1,29 @@
 #! /usr/bin/env python3
 
-# scr_run.py
-
 # the general launcher for the scripts
 # if called directly the launcher to use (srun/jsrun/mpirun) should be specified as an argument
 # scr_{srun,jsrun,mpirun} scripts call this script with the launcher specified
 
-import os, sys
+# add path holding scrjob to PYTHONPATH
+import sys
+sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
 from datetime import datetime
 from time import time, sleep
 
 from scrjob import scr_const, scr_common
-from scrjob.scr_list_down_nodes import list_down_nodes
+from scrjob.list_down_nodes import list_down_nodes
 from scrjob.scr_common import tracefunction, runproc, scr_prefix
-from scrjob.scr_prerun import scr_prerun
-from scrjob.scr_postrun import scr_postrun
+from scrjob.prerun import prerun
+from scrjob.postrun import postrun
 from scrjob.scr_watchdog import SCR_Watchdog
-from scrjob.scr_environment import SCR_Env
+from scrjob.environment import SCR_Env
 from scrjob.launchers import AutoJobLauncher
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.scr_param import SCR_Param
 from scrjob.scr_glob_hosts import scr_glob_hosts
-from scrjob.cli import SCRLog
+from scrjob.cli import SCRLog, SCRRetriesHalt
 
 
 # print the reason for any down nodes
@@ -41,7 +38,7 @@ def nodes_needed(scr_env, nodelist):
     num_needed = os.environ.get('SCR_MIN_NODES')
     if num_needed is None or int(num_needed) <= 0:
         # otherwise, use value in nodes file if one exists
-        num_needed = scr_env.get_runnode_count()
+        num_needed = scr_env.runnode_count()
         if num_needed <= 0:
             # otherwise, assume we need all nodes in the allocation
             num_needed = len(nodelist)
@@ -65,9 +62,8 @@ def nodes_remaining(nodelist, down_nodes):
 
 # is there a halt condition instructing us to stop?
 def should_halt(bindir, prefix):
-    argv = [os.path.join(bindir, 'scr_retries_halt'), '--dir', prefix]
-    returncode = runproc(argv=argv)[1]
-    return (returncode == 0)
+    retries_halt = SCRRetriesHalt(prefix)
+    return retries_halt.check()
 
 
 def scr_run(launcher='',
@@ -126,7 +122,7 @@ def scr_run(launcher='',
 
     # jobid will come from resource manager.
     jobid = resmgr.job_id()
-    user = scr_env.get_user()
+    user = scr_env.user()
 
     # We need the jobid for logging, and need to be running within an allocation
     # for operations such as scavenge.  This test serves both purposes.
@@ -138,7 +134,7 @@ def scr_run(launcher='',
     log = SCRLog(prefix, jobid, user=user, jobstart=start_secs)
 
     # get the nodeset of this job
-    nodelist = scr_env.get_scr_nodelist()
+    nodelist = scr_env.node_list()
     if not nodelist:
         nodelist = resmgr.job_nodes()
     if not nodelist:
@@ -151,7 +147,7 @@ def scr_run(launcher='',
         resmgr.use_watchdog(True)
         watchdog = SCR_Watchdog(prefix, scr_env)
 
-    # TODO: define resmgr.prerun() and launcher.prerun() hooks, call from scr_prerun?
+    # TODO: define resmgr.prerun() and launcher.prerun() hooks, call from prerun?
     # run a NOP with srun, other launchers could do any preamble work here
     launcher.prepare_prerun()
 
@@ -161,7 +157,7 @@ def scr_run(launcher='',
 
     # test runtime, ensure filepath exists
     try:
-        scr_prerun(scr_env=scr_env, verbose=verbose)
+        prerun(scr_env=scr_env, verbose=verbose)
     except Exception as e:
         print(prog + ': ERROR: Command failed: scr_prerun -p ' + prefix)
         print(e)
@@ -314,7 +310,8 @@ def scr_run(launcher='',
             break
 
         # is there a halt condition instructing us to stop?
-        if should_halt(bindir, prefix):
+        halt_cond = should_halt(bindir, prefix):
+        if halt_cond:
             print(prog + ': Halt condition detected, ending run.')
             break
 
@@ -323,7 +320,8 @@ def scr_run(launcher='',
         sleep(60)
 
         # check for halt condition again after sleep
-        if should_halt(bindir, prefix):
+        halt_cond = should_halt(bindir, prefix):
+        if halt_cond:
             print(prog + ': Halt condition detected, ending run.')
             break
 
@@ -333,10 +331,7 @@ def scr_run(launcher='',
 
     # scavenge files from cache to parallel file system
     try:
-        scr_postrun(prefix_dir=prefix,
-                    scr_env=scr_env,
-                    verbose=verbose,
-                    log=log)
+        postrun(prefix_dir=prefix, scr_env=scr_env, verbose=verbose, log=log)
     except Exception as e:
         print(prog + ': ERROR: Command failed: scr_postrun -p ' + prefix)
         print(e)

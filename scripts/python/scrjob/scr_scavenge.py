@@ -2,17 +2,14 @@
 
 # scavenge checkpoint files from cache to PFS
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
+import sys
 import argparse
 from time import time
+
 from scrjob import scr_const
 from scrjob.scr_param import SCR_Param
-from scrjob.scr_environment import SCR_Env
+from scrjob.environment import SCR_Env
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher
 
@@ -34,7 +31,7 @@ def scr_scavenge(nodes_job=None,
             'scr_scavenge: ERROR: nodeset, id, cntldir, or prefix not specified'
         )
 
-    bindir = scr_const.X_BINDIR
+    libexecdir = scr_const.X_LIBEXECDIR
 
     # TODO: need to be able to set these defaults via config settings somehow
     # for now just hardcode the values
@@ -74,7 +71,8 @@ def scr_scavenge(nodes_job=None,
         print('scr_scavenge: ' + str(int(time())))
 
     # have the launcher class gather files via pdsh or clustershell
-    consoleout = scr_env.launcher.scavenge_files(prog=bindir + '/scr_copy',
+    copy_exe = os.path.join(libexecdir, 'scr_copy')
+    consoleout = scr_env.launcher.scavenge_files(prog=copy_exe,
                                                  nodes_up=nodes_up,
                                                  nodes_down=nodes_down,
                                                  cntldir=cntldir,

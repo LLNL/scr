@@ -1,14 +1,24 @@
 #! /usr/bin/env python3
 
+# Determine whether the job script should exit or launch another run.
+# Checks that:
+#   - a halt condition has not been set
+#   - there is sufficient time remaining in the allocation
+#   - there are sufficient healthy nodes in the allocation
+# Exits with 0 if job should exit, 1 otherwise
+
 # add path holding scrjob to PYTHONPATH
 import sys
 sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
+import os
 import argparse
 
-from scrjob.prerun import prerun
 from scrjob.environment import SCR_Env
+from scrjob.scr_param import SCR_Param
 from scrjob.resmgrs import AutoResourceManager
+from scrjob.should_exit import should_exit
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -18,6 +28,11 @@ if __name__ == '__main__':
                         type=str,
                         default=None,
                         help='Specify the prefix directory.')
+    parser.add_argument('--down',
+                        metavar='<nodelist>',
+                        type=str,
+                        default=None,
+                        help='Specify list of down nodes.')
     parser.add_argument('-v',
                         '--verbose',
                         action='store_true',
@@ -27,6 +42,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     scr_env = SCR_Env(prefix=args.prefix)
+    scr_env.param = SCR_Param()
     scr_env.resmgr = AutoResourceManager()
 
-    prerun(scr_env=scr_env, verbose=args.verbose)
+    down_nodes = []
+    if args.down:
+        down_nodes = scr_env.resmgr.expand_hosts(args.down)
+
+    if not should_exit(scr_env, keep_down=down_nodes, verbose=args.verbose):
+        sys.exit(1)

@@ -3,10 +3,8 @@
 # The flux launcher args:
 # --nodes=2 --ntasks=2 --cores-per-task=1
 
-import os, sys
-
-sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-import scrjob
+import os
+import sys
 
 from scrjob import scr_const
 from scrjob.postrun import postrun

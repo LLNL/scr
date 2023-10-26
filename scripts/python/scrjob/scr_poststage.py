@@ -1,8 +1,5 @@
 #! /usr/bin/env python3
 
-# scr_poststage.py
-
-#
 # SCR allows you to spawn off dataset transfers "in the background"
 # that will finish some time after a job completes.  This saves you from
 # using your compute time to transfer datasets.  You can do this by
@@ -21,12 +18,8 @@
 # e.g., python3 scr_poststage.py /tmp
 # or scr_poststage('/tmp')
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-    import scrjob
-
+import os
+import sys
 import argparse
 from datetime import datetime
 
