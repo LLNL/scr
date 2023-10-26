@@ -52,11 +52,11 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # ensure jobenv is set
-    jobenv = JobEnv(prefix=args['prefix'])
+    jobenv = JobEnv(prefix=args.prefix)
 
-    dirs = list_dir(user=args['user'],
-                    jobid=args['jobid'],
-                    base=args['base'],
+    dirs = list_dir(user=args.user,
+                    jobid=args.jobid,
+                    base=args.base,
                     runcmd=args['control/cache'],
                     jobenv=jobenv)
     print(' '.join(dirs))
