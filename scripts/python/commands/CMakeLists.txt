@@ -3,11 +3,13 @@ SET(PYFE_BIN
   scr_list_down_nodes
   scr_prerun
   scr_postrun
-  scr_run
   scr_should_exit
+
+  scr_run
 #  scr_srun
 #  scr_jsrun
 #  scr_lrun
+#  scr_flux
 #  scr_mpirun
 )
 

@@ -160,8 +160,8 @@ def postrun(prefix_dir=None, jobenv=None, verbose=False, log=None):
 
         try:
             attempted.append(d)
-            scavenge_rebuild(scr_nodelist, upnodes, d, cntldir, pardir,
-                             jobenv, log, verbose)
+            scavenge_rebuild(scr_nodelist, upnodes, d, cntldir, pardir, jobenv,
+                             log, verbose)
             succeeded.append(d)
         except Exception as e:
             if verbose:
@@ -218,8 +218,8 @@ def postrun(prefix_dir=None, jobenv=None, verbose=False, log=None):
 
         # attempt to scavenge this checkpoint
         try:
-            scavenge_rebuild(scr_nodelist, upnodes, d, cntldir, pardir,
-                             jobenv, log, verbose)
+            scavenge_rebuild(scr_nodelist, upnodes, d, cntldir, pardir, jobenv,
+                             log, verbose)
         except Exception as e:
             # failed to scavenge and/or rebuild, attempt the next checkpoint
             if verbose:

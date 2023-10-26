@@ -103,7 +103,7 @@ class Nodetests:
         # only run this against set of nodes known to be responding
         # run an "echo UP" on each node to check whether it works
         output = jobenv.launcher.parallel_exec(argv=['echo', 'UP'],
-                                                runnodes=','.join(nodes))[0][0]
+                                               runnodes=','.join(nodes))[0][0]
         for line in output.split('\n'):
             if len(line) == 0:
                 continue
@@ -197,7 +197,7 @@ class Nodetests:
         argv.extend(cntldir_flag)
         argv.extend(cachedir_flag)
         output = jobenv.launcher.parallel_exec(argv=argv,
-                                                runnodes=upnodes)[0][0]
+                                               runnodes=upnodes)[0][0]
         action = 0  # tracking action to use range iterator and follow original line <- shift flow
         nodeset = ''
         for line in output.split('\n'):

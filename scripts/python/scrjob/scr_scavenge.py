@@ -70,13 +70,13 @@ def scr_scavenge(nodes_job=None,
     # have the launcher class gather files via pdsh or clustershell
     copy_exe = os.path.join(libexecdir, 'scr_copy')
     consoleout = jobenv.launcher.scavenge_files(prog=copy_exe,
-                                                 nodes_up=nodes_up,
-                                                 nodes_down=nodes_down,
-                                                 cntldir=cntldir,
-                                                 dataset_id=dataset_id,
-                                                 prefixdir=prefixdir,
-                                                 buf_size=buf_size,
-                                                 crc_flag=crc_flag)
+                                                nodes_up=nodes_up,
+                                                nodes_down=nodes_down,
+                                                cntldir=cntldir,
+                                                dataset_id=dataset_id,
+                                                prefixdir=prefixdir,
+                                                buf_size=buf_size,
+                                                crc_flag=crc_flag)
 
     # print output to screen
     try:
