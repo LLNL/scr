@@ -8,8 +8,7 @@
 
 import os
 
-from scrjob.list_down_nodes import list_down_nodes
-from scrjob.cli import SCRLog, SCRRetriesHalt
+from scrjob.cli import SCRRetriesHalt
 
 
 # determine how many nodes are needed
@@ -28,30 +27,19 @@ def nodes_needed(scr_env, nodelist):
     return int(num_needed)
 
 # return number of nodes left in allocation after excluding down nodes
-def nodes_subtract(nodes, nodes_remove):
-    temp = [n for n in nodes if n not in nodes_remove]
-    return temp
-
-# return number of nodes left in allocation after excluding down nodes
 def nodes_remaining(nodelist, down_nodes):
-    temp = nodes_subtract(nodelist, down_nodes)
+    temp = [n for n in nodelist if n not in down_nodes]
     return len(temp)
 
-def should_exit(scr_env, keep_down=[], first_run=False, verbose=False):
+def should_exit(scr_env, down_nodes=[], verbose=False):
     prefix = scr_env.dir_prefix()
-
-    # We need the jobid for logging, and need to be running within an allocation
-    # for operations such as scavenge.  This test serves both purposes.
-    jobid = scr_env.resmgr.job_id()
-    if jobid is None:
-        raise RuntimeError('No valid job ID or not in an allocation.')
 
     # get the nodeset of this job
     nodelist = scr_env.node_list()
     if not nodelist:
         nodelist = scr_env.resmgr.job_nodes()
     if not nodelist:
-        raise RuntimeError(f'Could not identify nodeset for job {jobid}')
+        raise RuntimeError(f'Could not identify nodeset for job')
 
     # TODO: read SCR_HALT_SECONDS and current time
     # This should be handled indirectly by the library,
@@ -66,26 +54,6 @@ def should_exit(scr_env, keep_down=[], first_run=False, verbose=False):
         if verbose:
             print(f'Halt condition detected: {halt_cond}')
         return True
-
-    # create object to write log messages
-    user = scr_env.user()
-    start_secs = 0
-    log = SCRLog(prefix, jobid, user=user, jobstart=start_secs)
-
-    # check for any down nodes
-    reasons = list_down_nodes(reason=True,
-                              free=first_run,
-                              nodes_down=keep_down,
-                              runtime_secs='0',
-                              scr_env=scr_env,
-                              log=log)
-
-    down_nodes = sorted(list(reasons.keys()))
-
-    # print list of failed nodes and reasons
-    if verbose:
-        for node in down_nodes:
-            print("FAILED: " + node + ': ' + reasons[node])
 
     # bail out if we don't have enough nodes to continue
     if down_nodes:
