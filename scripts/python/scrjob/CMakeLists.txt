@@ -18,6 +18,8 @@ SET(PYFE_EXEC
   postrun.py
   should_exit.py
   scrlog.py
+  test_runtime.py
+
   scr_ckpt_interval.py
   scr_check_node.py
   scr_common.py
@@ -29,7 +31,6 @@ SET(PYFE_EXEC
   scr_param.py
   scr_poststage.py
   scr_scavenge.py
-  scr_test_runtime.py
   scr_watchdog.py
 )
 

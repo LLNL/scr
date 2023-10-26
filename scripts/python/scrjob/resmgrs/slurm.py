@@ -17,7 +17,7 @@ class SLURM(ResourceManager):
         if 'dir_capacity' not in self.nodetests.tests:
             self.nodetests.tests.append('dir_capacity')
 
-    # get a list of tests, methods that exist in the class SCR_Test_Runtime
+    # get a list of tests, methods that exist in the class TestRuntime
     # these tests will be ran during scr_prerun
     def prerun_tests(self):
         return ['check_clustershell', 'check_pdsh']
