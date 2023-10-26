@@ -26,10 +26,12 @@ def nodes_needed(jobenv, nodelist):
                 return 0
     return int(num_needed)
 
+
 # return number of nodes left in allocation after excluding down nodes
 def nodes_remaining(nodelist, down_nodes):
     temp = [n for n in nodelist if n not in down_nodes]
     return len(temp)
+
 
 def should_exit(jobenv, down_nodes=[], verbose=False):
     prefix = jobenv.dir_prefix()
@@ -49,7 +51,7 @@ def should_exit(jobenv, down_nodes=[], verbose=False):
 
     # is there a halt condition instructing us to stop?
     halt = SCRRetriesHalt(prefix)
-    halt_cond = halt.check():
+    halt_cond = halt.check()
     if halt_cond:
         if verbose:
             print(f'Halt condition detected: {halt_cond}')
@@ -68,7 +70,8 @@ def should_exit(jobenv, down_nodes=[], verbose=False):
         # check that we have enough nodes after excluding down nodes
         if num_left < num_needed:
             if verbose:
-                print(f'nodes_remaining={num_left} < nodes_needed={num_needed}')
+                print(
+                    f'nodes_remaining={num_left} < nodes_needed={num_needed}')
             return True
 
     # everything checks out, the job can keep going
