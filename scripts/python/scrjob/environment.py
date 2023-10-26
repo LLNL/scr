@@ -1,11 +1,15 @@
 import os
+
 from scrjob import scr_const
 from scrjob.scr_common import scr_prefix
+from scrjob.resmgrs import AutoResourceManager
+from scrjob.scr_param import SCR_Param
+from scrjob.launchers import AutoJobLauncher
 from scrjob.cli.scr_nodes_file import SCRNodesFile
 
 
-class SCR_Env:
-    """The SCR_Env class tracks information relating to the environment.
+class JobEnv:
+    """The JobEnv class tracks information relating to the SCR job environment.
 
     This class retrieves information from the environment.
     This class contains pointers to the active Joblauncher, ResourceManager, and SCR_Param.
@@ -14,22 +18,34 @@ class SCR_Env:
 
     Attributes
     ----------
-    param      - class, a reference to SCR_Param
-    launcher   - class, a reference to Joblauncher
-    resmgr     - class, a reference to ResourceManager
-    prefix     - string, initialized upon init or through scr_prefix()
+    prefix     - string, SCR_PREFIX value, initialized upon init or through scr_prefix()
+    param      - class, a reference to SCR_Param to read SCR param values
+    resmgr     - class, a reference to ResourceManager to query resource manager
+    launcher   - class, a reference to Joblauncher for MPI job launcher
     """
 
-    def __init__(self, prefix=None):
-        # we can keep a reference to the other objects
-        self.param = None
-        self.launcher = None
-        self.resmgr = None
-
+    def __init__(self, prefix=None, param=None, resmgr=None, launcher=None):
         # record SCR_PREFIX directory, default to scr_prefix if not provided
-        if prefix is None:
-            prefix = scr_prefix()
         self.prefix = prefix
+        if prefix is None:
+            self.prefix = scr_prefix()
+
+        # used to read SCR parameter values,
+        # which may be from environment or config files
+        self.param = param
+        if param is None:
+            self.param = SCR_Param()
+
+        # resource manager to query job id and node list
+        self.resmgr = resmgr
+        if resmgr is None:
+            self.resmgr = AutoResourceManager()
+
+        # job launcher for MPI jobs
+        if launcher is None:
+            self.launcher = AutoJobLauncher()
+        else:
+            self.launcher = AutoJobLauncher(launcher)
 
     def user(self):
         """Return the username from the environment."""

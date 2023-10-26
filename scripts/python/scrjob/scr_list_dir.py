@@ -1,14 +1,10 @@
 #! /usr/bin/env python3
 
-import os
 import sys
 import argparse
 
-from scrjob import scr_const
+from scrjob.environment import JobEnv
 from scrjob.list_dir import list_dir
-from scrjob.environment import SCR_Env
-from scrjob.scr_param import SCR_Param
-from scrjob.resmgrs import AutoResourceManager
 
 if __name__ == '__main__':
     """This is an external driver for the internal list_dir method.
@@ -55,14 +51,12 @@ if __name__ == '__main__':
         print('Control or cache must be specified.')
         sys.exit(1)
 
-    # ensure scr_env is set
-    scr_env = SCR_Env(prefix=args['prefix'])
-    scr_env.resmgr = AutoResourceManager()
-    scr_env.param = SCR_Param()
+    # ensure jobenv is set
+    jobenv = JobEnv(prefix=args.prefix)
 
-    dirs = list_dir(user=args['user'],
-                    jobid=args['jobid'],
-                    base=args['base'],
+    dirs = list_dir(user=args.user,
+                    jobid=args.jobid,
+                    base=args.base,
                     runcmd=args['control/cache'],
-                    scr_env=scr_env)
+                    jobenv=jobenv)
     print(' '.join(dirs))

@@ -3,10 +3,12 @@
 # calls scr_run specifying to use launcher 'jsrun'
 # the launcher object could be created here.
 
-import os
+# add path holding scrjob to PYTHONPATH
 import sys
+sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 from scrjob.scr_run import *
+
 
 if __name__ == '__main__':
     # just printing help, print the help and exit

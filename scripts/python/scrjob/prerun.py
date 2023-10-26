@@ -2,13 +2,13 @@ import os
 from datetime import datetime
 from time import time
 
-from scrjob.scr_test_runtime import SCR_Test_Runtime
+from scrjob.test_runtime import TestRuntime
 
 
-def prerun(scr_env=None, verbose=False):
+def prerun(jobenv=None, verbose=False):
     """This is called to set up an SCR run.
 
-    Calls SCR_Test_Runtime with a list of tests provided by the resmgr.
+    Instantiates TestRuntime with a list of tests provided by the resmgr.
     Ensures the .scr directory exists.
     Removes existing flush or nodes files.
 
@@ -27,15 +27,18 @@ def prerun(scr_env=None, verbose=False):
     if verbose:
         print('scr_prerun: Started: ' + str(start_time))
 
-    if scr_env is None or scr_env.resmgr is None:
+    if jobenv is None or jobenv.resmgr is None:
         raise RuntimeError('scr_prerun: ERROR: Unknown environment')
 
     # check that we have all the runtime dependences we need
-    if SCR_Test_Runtime(scr_env.resmgr.prerun_tests()) != 0:
-        raise RuntimeError('scr_prerun: ERROR: runtime test failed')
+    try:
+        testnames = jobenv.resmgr.prerun_tests()
+        TestRuntime(testnames)
+    except Exception as e:
+        raise RuntimeError(f'scr_prerun: ERROR: {str(e)}')
 
     # create the .scr subdirectory in the prefix directory
-    dir_scr = scr_env.dir_scr()
+    dir_scr = jobenv.dir_scr()
     os.makedirs(dir_scr, exist_ok=True)
 
     # TODO: It would be nice to clear the cache and control directories

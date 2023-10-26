@@ -4,7 +4,7 @@ import os, sys
 import sys
 import argparse
 
-from scrjob import scr_hostlist
+from scrjob import hostlist
 
 
 def scr_glob_hosts(count=False,
@@ -17,13 +17,13 @@ def scr_glob_hosts(count=False,
     hostset = []
 
     # resmgr can use ClusterShell.NodeSet, if available
-    # otherwise fallback to scr_hostlist
+    # otherwise fallback to hostlist
 
     if hosts is not None:
         if resmgr is not None:
             hostset = resmgr.expand_hosts(hostnames=hosts)
         else:
-            hostset = scr_hostlist.expand(hosts)
+            hostset = hostlist.expand(hosts)
 
     elif minus is not None and ':' in minus:
         # subtract nodes in set2 from set1
@@ -33,9 +33,9 @@ def scr_glob_hosts(count=False,
             set2 = resmgr.expand_hosts(pieces[1])
             hostset = resmgr.diff_hosts(set1, set2)
         else:
-            set1 = scr_hostlist.expand(pieces[0])
-            set2 = scr_hostlist.expand(pieces[1])
-            hostset = scr_hostlist.diff(set1, set2)
+            set1 = hostlist.expand(pieces[0])
+            set2 = hostlist.expand(pieces[1])
+            hostset = hostlist.diff(set1, set2)
 
     elif intersection is not None and ':' in intersection:
         # take the intersection of two nodesets
@@ -45,16 +45,16 @@ def scr_glob_hosts(count=False,
             set2 = resmgr.expand_hosts(pieces[1])
             hostset = resmgr.intersect_hosts(set1, set2)
         else:
-            set1 = scr_hostlist.expand(pieces[0])
-            set2 = scr_hostlist.expand(pieces[1])
-            hostset = scr_hostlist.intersect(set1, set2)
+            set1 = hostlist.expand(pieces[0])
+            set2 = hostlist.expand(pieces[1])
+            hostset = hostlist.intersect(set1, set2)
 
     elif compress is not None:
         if resmgr is not None:
             hostset = resmgr.compress_hosts(compress)
         else:
             hostset = compress.split(',')
-            return scr_hostlist.compress_range(hostset)
+            return hostlist.compress_range(hostset)
 
     else:
         raise RuntimeError("scr_glob_hosts: Unknown set operation")
@@ -80,7 +80,7 @@ def scr_glob_hosts(count=False,
         hostset = resmgr.expand_hosts(hostset)
         return ','.join(hostset)
     else:
-        return scr_hostlist.compress(hostset)
+        return hostlist.compress(hostset)
 
 
 if __name__ == '__main__':

@@ -2,15 +2,14 @@
 
 import os
 import sys
-import argparse, re, subprocess
+import argparse
+import re
 
-from scrjob import scr_const, scr_hostlist
-from scrjob.environment import SCR_Env
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.launchers import AutoJobLauncher
+from scrjob import scr_const, hostlist
+from scrjob.environment import JobEnv
 
 
-def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
+def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, jobenv=None):
     """This method runs scr_inspect_cache on each node using
     Joblauncher.parallel_exec.
 
@@ -23,22 +22,18 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
     libexecdir = scr_const.X_LIBEXECDIR
     pdsh = scr_const.PDSH_EXE
 
-    if scr_env is None:
-        scr_env = SCR_Env()
-    if scr_env.resmgr is None:
-        scr_env.resmgr = AutoResourceManager()
-    if scr_env.launcher is None:
-        scr_env.launcher = AutoJobLauncher()
+    if jobenv is None:
+        jobenv = JobEnv()
 
     # tag output files with jobid
-    jobid = scr_env.job_id()
+    jobid = jobenv.job_id()
     if jobid is None:
         raise RuntimeError('Could not determine jobid.')
 
     # read node set of job
-    jobset = scr_env.node_list()
+    jobset = jobenv.node_list()
     if jobset is None:
-        jobset = scr_env.resmgr.job_nodes()
+        jobset = jobenv.resmgr.job_nodes()
         if jobset is None:
             raise RuntimeError('Could not determine nodeset.')
 
@@ -50,16 +45,16 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
     if jobnodes is None:
         raise RuntimeError('Job nodes must be specified.')
 
-    jobnodes = scr_hostlist.expand(jobnodes)
+    jobnodes = hostlist.expand(jobnodes)
 
     upnodes = []
     downnodes = []
     if down is not None:
-        downnodes = scr_hostlist.expand(down)
-        upnodes = scr_hostlist.diff(jobnodes, downnodes)
+        downnodes = hostlist.expand(down)
+        upnodes = hostlist.diff(jobnodes, downnodes)
     elif up is not None:
-        upnodes = scr_hostlist.expand(up)
-        downnodes = scr_hostlist.diff(jobnodes, upnodes)
+        upnodes = hostlist.expand(up)
+        downnodes = hostlist.diff(jobnodes, upnodes)
     else:
         upnodes = jobnodes
 
@@ -78,7 +73,7 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
         os.path.join(libexecdir, 'scr_inspect_cache'),
         os.path.join(cntldir, 'filemap.scrinfo')
     ]
-    out = scr_env.launcher.parallel_exec(argv=argv, runnodes=upnodes)[0]
+    out = jobenv.launcher.parallel_exec(argv=argv, runnodes=upnodes)[0]
     try:
         with open(outfile, 'w') as f:
             f.write(out[0])

@@ -37,7 +37,7 @@ class JobLauncher(object):
     Attributes
     ----------
     launcher          - string representation of the launcher
-    hostfile          - string location of a writable hostfile, set in scr_run.py: scr_env.dir_scr() + '/hostfile'
+    hostfile          - string location of a writable hostfile, set in scr_run.py: jobenv.dir_scr() + '/hostfile'
                         this is a file a launcher may use, provided for use in parallel_exec()
     clustershell_task - Either False or a pointer to the module ClusterShell.Task, if this value is not False
                         a launcher can use clustershell_exec() rather than parallel_exec().

@@ -18,10 +18,7 @@ from scrjob.scr_common import tracefunction, runproc, scr_prefix
 from scrjob.prerun import prerun
 from scrjob.postrun import postrun
 from scrjob.scr_watchdog import SCR_Watchdog
-from scrjob.environment import SCR_Env
-from scrjob.launchers import AutoJobLauncher
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.scr_param import SCR_Param
+from scrjob.environment import JobEnv
 from scrjob.scr_glob_hosts import scr_glob_hosts
 from scrjob.cli import SCRLog, SCRRetriesHalt
 
@@ -33,12 +30,12 @@ def print_failed(reasons):
 
 
 # determine how many nodes are needed
-def nodes_needed(scr_env, nodelist):
+def nodes_needed(jobenv, nodelist):
     # if SCR_MIN_NODES is set, use that
     num_needed = os.environ.get('SCR_MIN_NODES')
     if num_needed is None or int(num_needed) <= 0:
         # otherwise, use value in nodes file if one exists
-        num_needed = scr_env.runnode_count()
+        num_needed = jobenv.runnode_count()
         if num_needed <= 0:
             # otherwise, assume we need all nodes in the allocation
             num_needed = len(nodelist)
@@ -101,28 +98,15 @@ def scr_run(launcher='',
     # get prefix directory
     prefix = scr_prefix()
 
-    param = SCR_Param()
-
-    # resource manager (SLURM/LSF/ ...) set by argument or compile constant
-    resmgr = AutoResourceManager()
-
-    # launcher contains attributes unique to launcher (srun/jsrun/ ...)
-    launcher = AutoJobLauncher(launcher)
-
     # env contains general environment infos independent of resmgr/launcher
-    scr_env = SCR_Env(prefix=prefix)
-
-    # give scr_env a pointer to the objects for calling other methods
-    scr_env.param = param
-    scr_env.resmgr = resmgr
-    scr_env.launcher = launcher
+    jobenv = JobEnv(prefix=prefix, launcher=launcher)
 
     # this may be used by a launcher to store a list of hosts
-    launcher.hostfile = os.path.join(scr_env.dir_scr(), 'hostfile')
+    jobenv.launcher.hostfile = os.path.join(jobenv.dir_scr(), 'hostfile')
 
     # jobid will come from resource manager.
-    jobid = resmgr.job_id()
-    user = scr_env.user()
+    jobid = jobenv.resmgr.job_id()
+    user = jobenv.user()
 
     # We need the jobid for logging, and need to be running within an allocation
     # for operations such as scavenge.  This test serves both purposes.
@@ -134,9 +118,9 @@ def scr_run(launcher='',
     log = SCRLog(prefix, jobid, user=user, jobstart=start_secs)
 
     # get the nodeset of this job
-    nodelist = scr_env.node_list()
+    nodelist = jobenv.node_list()
     if not nodelist:
-        nodelist = resmgr.job_nodes()
+        nodelist = jobenv.resmgr.job_nodes()
     if not nodelist:
         print(prog + f': ERROR: Could not identify nodeset for job {jobid}')
         sys.exit(1)
@@ -144,10 +128,10 @@ def scr_run(launcher='',
     watchdog = None
     val = os.environ.get('SCR_WATCHDOG')
     if val == '1':
-        resmgr.use_watchdog(True)
-        watchdog = SCR_Watchdog(prefix, scr_env)
+        jobenv.resmgr.use_watchdog(True)
+        watchdog = SCR_Watchdog(prefix, jobenv)
 
-    # TODO: define resmgr.prerun() and launcher.prerun() hooks, call from prerun?
+    # TODO: define jobenv.resmgr.prerun() and launcher.prerun() hooks, call from prerun?
     # run a NOP with srun, other launchers could do any preamble work here
     launcher.prepare_prerun()
 
@@ -157,14 +141,14 @@ def scr_run(launcher='',
 
     # test runtime, ensure filepath exists
     try:
-        prerun(scr_env=scr_env, verbose=verbose)
+        prerun(jobenv=jobenv, verbose=verbose)
     except Exception as e:
         print(prog + ': ERROR: Command failed: scr_prerun -p ' + prefix)
         print(e)
         sys.exit(1)
 
     # look up allocation end time, record in SCR_END_TIME
-    endtime = resmgr.end_time()
+    endtime = jobenv.resmgr.end_time()
     if endtime == 0:
         if verbose == True:
             print(prog + ': WARNING: Unable to get end time.')
@@ -209,7 +193,7 @@ def scr_run(launcher='',
                                   free=first_run,
                                   nodes_down=keep_down,
                                   runtime_secs='0',
-                                  scr_env=scr_env,
+                                  jobenv=jobenv,
                                   log=log)
         print_failed(reasons)
 
@@ -226,7 +210,7 @@ def scr_run(launcher='',
                       ' NNODES=-1 RUNTIME=0 FAILED=' + down_str)
 
             # determine how many nodes are needed
-            num_needed = nodes_needed(scr_env, nodelist)
+            num_needed = nodes_needed(jobenv, nodelist)
             if num_needed <= 0:
                 print(prog +
                       ': ERROR: Unable to determine number of nodes needed')
@@ -299,7 +283,7 @@ def scr_run(launcher='',
         reasons = list_down_nodes(reason=True,
                                   nodes_down=keep_down,
                                   runtime_secs=str(run_secs),
-                                  scr_env=scr_env,
+                                  jobenv=jobenv,
                                   log=log)
         print_failed(reasons)
 
@@ -331,7 +315,7 @@ def scr_run(launcher='',
 
     # scavenge files from cache to parallel file system
     try:
-        postrun(prefix_dir=prefix, scr_env=scr_env, verbose=verbose, log=log)
+        postrun(prefix_dir=prefix, jobenv=jobenv, verbose=verbose, log=log)
     except Exception as e:
         print(prog + ': ERROR: Command failed: scr_postrun -p ' + prefix)
         print(e)

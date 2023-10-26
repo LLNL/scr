@@ -1,22 +1,22 @@
-# this method takes an scr_env, the contained resource manager will determine which methods above to use
+# this method takes an jobenv, the contained resource manager will determine which methods above to use
 def list_down_nodes(reason=False,
                     free=False,
                     nodes_down=[],
                     runtime_secs=None,
                     nodes=None,
-                    scr_env=None,
+                    jobenv=None,
                     log=None):
 
-    if scr_env is None or scr_env.resmgr is None or scr_env.param is None:
+    if jobenv is None or jobenv.resmgr is None or jobenv.param is None:
         raise RuntimeError(
             'scr_list_down_nodes: ERROR: environment, resmgr, or param not set'
         )
 
     # check that we have a list of nodes before going any further
     if not nodes:
-        nodes = scr_env.node_list()
+        nodes = jobenv.node_list()
     if not nodes:
-        nodes = scr_env.resmgr.job_nodes()
+        nodes = jobenv.resmgr.job_nodes()
     if not nodes:
         raise RuntimeError(
             'scr_list_down_nodes: ERROR: Nodeset must be specified or script must be run from within a job allocation.'
@@ -29,8 +29,8 @@ def list_down_nodes(reason=False,
 
     # get a dictionary of all unavailable (down or excluded) nodes and reason
     # keys are nodes and the values are the reasons
-    unavailable = scr_env.resmgr.list_down_nodes_with_reason(nodes=nodes,
-                                                             scr_env=scr_env)
+    unavailable = jobenv.resmgr.list_down_nodes_with_reason(nodes=nodes,
+                                                            jobenv=jobenv)
 
     # account for nodes we were told to exclude
     for node in nodes_down:

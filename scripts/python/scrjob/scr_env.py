@@ -1,16 +1,13 @@
 #! /usr/bin/env python3
 
-# this is a standalone script which queries the class SCR_Env
-# SCR_Env contains general values from the environment
+# this is a standalone script which queries the class JobEnv
+# JobEnv contains general values from the environment
 
 import os
 import sys
 import argparse
 
-from scrjob.environment import SCR_Env
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.scr_param import SCR_Param
-from scrjob.launchers import AutoJobLauncher
+from scrjob.environment import JobEnv
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -50,31 +47,28 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    scr_env = SCR_Env(prefix=args.prefix)
-    scr_env.resmgr = AutoResourceManager()
-    scr_env.launcher = AutoJobLauncher()
-    scr_env.param = SCR_Param()
+    jobenv = JobEnv(prefix=args.prefix)
 
     if args.user:
-        print(str(scr_env.user()), end='')
+        print(str(jobenv.user()), end='')
 
     if args.jobid:
-        print(str(scr_env.resmgr.job_id()), end='')
+        print(str(jobenv.resmgr.job_id()), end='')
 
     if args.endtime:
-        print(str(scr_env.resmgr.end_time()), end='')
+        print(str(jobenv.resmgr.end_time()), end='')
 
     if args.nodes:
-        nodelist = scr_env.node_list()
+        nodelist = jobenv.node_list()
         if not nodelist:
-            nodelist = scr_env.resmgr.job_nodes()
-        nodestr = scr_env.resmgr.join_hosts(nodelist)
+            nodelist = jobenv.resmgr.job_nodes()
+        nodestr = jobenv.resmgr.join_hosts(nodelist)
         print(nodestr, end='')
 
     if args.down:
-        nodelist = scr_env.resmgr.down_nodes()
-        nodestr = scr_env.resmgr.join_hosts(sorted(nodelist.keys()))
+        nodelist = jobenv.resmgr.down_nodes()
+        nodestr = jobenv.resmgr.join_hosts(sorted(nodelist.keys()))
         print(nodestr, end='')
 
     if args.runnodes:
-        print(str(scr_env.runnode_count()), end='')
+        print(str(jobenv.runnode_count()), end='')

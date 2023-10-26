@@ -8,10 +8,7 @@ import argparse
 from time import time
 
 from scrjob import scr_const
-from scrjob.scr_param import SCR_Param
-from scrjob.environment import SCR_Env
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.launchers import AutoJobLauncher
+from scrjob.environment import JobEnv
 
 # check for pdsh / (clustershell) errors in case any nodes should be retried
 
@@ -23,7 +20,7 @@ def scr_scavenge(nodes_job=None,
                  cntldir=None,
                  prefixdir=None,
                  verbose=False,
-                 scr_env=None,
+                 jobenv=None,
                  log=None):
     # check that we have a nodeset for the job and directories to read from / write to
     if nodes_job is None or dataset_id is None or cntldir is None or prefixdir is None:
@@ -37,7 +34,7 @@ def scr_scavenge(nodes_job=None,
     # for now just hardcode the values
 
     # lookup buffer size and crc flag via scr_param
-    param = scr_env.param
+    param = jobenv.param
 
     buf_size = os.environ.get('SCR_FILE_BUF_SIZE')
     if buf_size is None:
@@ -52,12 +49,12 @@ def scr_scavenge(nodes_job=None,
     start_time = int(time())
 
     # tag output files with jobid
-    jobid = scr_env.resmgr.job_id()
+    jobid = jobenv.resmgr.job_id()
     if jobid is None:
         raise RuntimeError('scr_scavenge: ERROR: Could not determine jobid.')
 
     # build the output filenames
-    dset_dir = scr_env.dir_dset(dataset_id)
+    dset_dir = jobenv.dir_dset(dataset_id)
     out_file = os.path.join(dset_dir, 'scr_scavenge.pdsh.o' + jobid)
     err_file = os.path.join(dset_dir, 'scr_scavenge.pdsh.e' + jobid)
 
@@ -72,14 +69,14 @@ def scr_scavenge(nodes_job=None,
 
     # have the launcher class gather files via pdsh or clustershell
     copy_exe = os.path.join(libexecdir, 'scr_copy')
-    consoleout = scr_env.launcher.scavenge_files(prog=copy_exe,
-                                                 nodes_up=nodes_up,
-                                                 nodes_down=nodes_down,
-                                                 cntldir=cntldir,
-                                                 dataset_id=dataset_id,
-                                                 prefixdir=prefixdir,
-                                                 buf_size=buf_size,
-                                                 crc_flag=crc_flag)
+    consoleout = jobenv.launcher.scavenge_files(prog=copy_exe,
+                                                nodes_up=nodes_up,
+                                                nodes_down=nodes_down,
+                                                cntldir=cntldir,
+                                                dataset_id=dataset_id,
+                                                prefixdir=prefixdir,
+                                                buf_size=buf_size,
+                                                crc_flag=crc_flag)
 
     # print output to screen
     try:
@@ -169,14 +166,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    scr_env = SCR_Env(prefix=None)
-    scr_env.param = SCR_Param()
-    scr_env.resmgr = AutoResourceManager()
-    scr_env.launcher = AutoJobLauncher()
+    jobenv = JobEnv(prefix=None)
 
-    nodes_job = scr_env.resmgr.expand_hosts(args.jobset)
-    nodes_up = scr_env.resmgr.expand_hosts(args.up)
-    nodes_down = scr_env.resmgr.expand_hosts(args.down)
+    nodes_job = jobenv.resmgr.expand_hosts(args.jobset)
+    nodes_up = jobenv.resmgr.expand_hosts(args.up)
+    nodes_down = jobenv.resmgr.expand_hosts(args.down)
 
     scr_scavenge(nodes_job=nodes_job,
                  nodes_up=nodes_up,
@@ -185,4 +179,4 @@ if __name__ == '__main__':
                  cntldir=args['from'],
                  prefixdir=args.to,
                  verbose=args.verbose,
-                 scr_env=None)
+                 jobenv=None)

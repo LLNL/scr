@@ -1,17 +1,24 @@
 #! /usr/bin/env python3
 
+# Run this script after the final run in a job allocation
+# to scavenge files from cache to parallel file system.
+
 # add path holding scrjob to PYTHONPATH
 import sys
 sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
-from scrjob.prerun import prerun
-from scrjob.environment import SCR_Env
-from scrjob.resmgrs import AutoResourceManager
+from scrjob.environment import JobEnv
+from scrjob.postrun import postrun
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('-j',
+                        '--joblauncher',
+                        type=str,
+                        required=True,
+                        help='Specify the job launcher.')
     parser.add_argument('-p',
                         '--prefix',
                         metavar='<dir>',
@@ -26,7 +33,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    scr_env = SCR_Env(prefix=args.prefix)
-    scr_env.resmgr = AutoResourceManager()
+    jobenv = JobEnv(prefix=args.prefix, launcher=args.joblauncher)
 
-    prerun(scr_env=scr_env, verbose=args.verbose)
+    postrun(prefix_dir=args.prefix, jobenv=jobenv, verbose=args.verbose)

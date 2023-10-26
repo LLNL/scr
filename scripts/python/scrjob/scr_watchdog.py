@@ -29,21 +29,21 @@ class SCR_Watchdog:
     If progress has been made, we will ask the Joblauncher to again wait with a timeout.
     """
 
-    def __init__(self, prefix, scr_env):
+    def __init__(self, prefix, jobenv):
         """The SCR_Watchdog class is instantiated once, before any jobstep is
         ever launched, if SCR_Watchdog is enabled.
 
         Set timeout values from the environment. Copy the reference to
-        the Joblauncher from the SCR_Env class. Instantiate an instance
+        the Joblauncher from the JobEnv class. Instantiate an instance
         of SCRFlushFile using the provided prefix for later checking.
         """
-        self.timeout = scr_env.param.get('SCR_WATCHDOG_TIMEOUT')
-        self.timeout_pfs = scr_env.param.get('SCR_WATCHDOG_TIMEOUT_PFS')
+        self.timeout = jobenv.param.get('SCR_WATCHDOG_TIMEOUT')
+        self.timeout_pfs = jobenv.param.get('SCR_WATCHDOG_TIMEOUT_PFS')
 
         if self.timeout is not None and self.timeout_pfs is not None:
             self.timeout = int(self.timeout)
             self.timeout_pfs = int(self.timeout_pfs)
-            self.launcher = scr_env.launcher
+            self.launcher = jobenv.launcher
             self.scr_flush_file = SCRFlushFile(prefix)
 
     def watchfiles(self, proc, jobstep):

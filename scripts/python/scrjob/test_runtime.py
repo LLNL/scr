@@ -7,18 +7,15 @@ from scrjob import scr_const
 from scrjob.scr_common import runproc
 from scrjob.resmgrs import AutoResourceManager
 
-### TODO: Configuration of which test methods to use
 
-
-class SCR_Test_Runtime:
-    """SCR_Test_Runtime class contains methods to determine whether we should
-    launch with SCR.
+class TestRuntime:
+    """Contains methods to determine whether we should launch with SCR.
 
     This class contains methods to test the environment, to ensure SCR will be able to function.
     These tests are called in scr_prerun.py, immediately after checking if scr is enabled.
     Not all methods are appropriate to test in every environment.
     Additional test methods may be added to this class to integrate into the pre-run tests.
-    Test methods should run without arguments and return an integer representing PASS / FAIL.
+    Test methods should run without arguments and return None on success or raise an exception on error.
 
     We could receive a list of applicable tests through:
       A configuration file.
@@ -26,7 +23,7 @@ class SCR_Test_Runtime:
       Environment variables.
       Querying the ResourceManager and/or Joblauncher classes.
 
-    Currently the ResourceManager is queried, which aligns with the original bash/perl scripts.
+    Currently the ResourceManager is queried.
 
     Each test in the list, that is a callable method in this class, will be called during scr_prerun.
     If any indicated test fails then scr_prerun will fail.
@@ -34,50 +31,22 @@ class SCR_Test_Runtime:
     This class is currently a 'static' class, not intended to be instantiated.
     The __new__ method is used to launch the tests, this method returns the success value.
     Methods other than `__new__` should be decorated with `@staticmethod`.
-
-    Test Return Values
-    ------------------
-    Each test should return an integer:
-    0 - PASS
-    1 - FAIL
     """
 
     def __new__(cls, tests=[]):
-        """This method collects the return codes of all static methods declared
-        in SCR_Test_Runtime.
+        """This method collects the return codes of all static methods.
 
         This method receives a list.
-          Each element is a string and is the name of a method of the SCR_Test_Runtime class
+          Each element is a string and is the name of a method of the TestRuntime class
 
         Returns
         -------
-          This method returns an integer.
+          This method returns None on success and raises an Exception on error.
           This method does not return an instance of a class.
-
-          This method returns 0 if all tests succeed,
-          Otherwise this method returns the 1, indicating a test has failed.
         """
-        #tests = [
-        #    attr for attr in dir(SCR_Test_Runtime) if not attr.startswith('__')
-        #    and callable(getattr(SCR_Test_Runtime, attr))
-        #]
-        rc = []
         for test in tests:
-            try:
-                testmethod = getattr(SCR_Test_Runtime, test)
-                if callable(testmethod):
-                    rc.append(testmethod())
-                else:
-                    print('SCR_Test_Runtime: ERROR: ' + test +
-                          ' is defined but is not a test method.')
-            except AttributeError as e:
-                print('SCR_Test_Runtime: ERROR: ' + test + ' is not defined.')
-                print('dir(SCR_Test_Runtime)=' + str(dir(SCR_Test_Runtime)))
-            except Exception as e:
-                # Could set an error code . . .
-                print('scr_test_runtime: ERROR: Exception in test ' + test)
-                print(e)
-        return 1 if 1 in rc else 0
+            testmethod = getattr(TestRuntime, test)
+            testmethod()
 
     @staticmethod
     def check_clustershell():
@@ -90,11 +59,9 @@ class SCR_Test_Runtime:
             try:
                 import ClusterShell
             except:
-                print(
-                    'scr_test_runtime: ERROR: Unable to import Clustershell as indicated by scr_const.py'
+                raise RuntimeError(
+                    'Failed to import Clustershell as indicated by scr_const.py'
                 )
-                return 1
-        return 0
 
     @staticmethod
     def check_pdsh():
@@ -111,8 +78,8 @@ class SCR_Test_Runtime:
         If ClusterShell is enabled, this test does not apply.
         """
         if scr_const.USE_CLUSTERSHELL == '1':
-            return 0
-        pdsh = scr_const.PDSH_EXE
+            return
+
         ### TODO: Validate pdsh command through some other means for some resmgrs?
         ### there was an issue reported with this.
         # I added a parameter to runproc, shell=False (default False)
@@ -128,15 +95,11 @@ class SCR_Test_Runtime:
         # Otherwise, the return value should be the return value of the process.
         # This should typically be 0 for success, and nonzero for failure
         ### This test may not work everywhere
+        pdsh = scr_const.PDSH_EXE
         argv = ['which', pdsh]
-        returncode = runproc(argv=argv, shell=True)[1]
-        if returncode != 0:
-            print('scr_test_runtime: ERROR: \'which ' + pdsh + '\' failed')
-            print(
-                'scr_test_runtime: ERROR: Problem using pdsh, see README for help'
-            )
-            return 1
-        return 0
+        rc = runproc(argv=argv, shell=True)[1]
+        if rc != 0:
+            raise RuntimeError(f'Failed to find pdsh {pdsh}')
 
 
 if __name__ == '__main__':
@@ -147,5 +110,7 @@ if __name__ == '__main__':
     """
     resmgr = AutoResourceManager()
     tests = resmgr.get_prerun_tests()
-    ret = SCR_Test_Runtime(tests)
-    sys.exit(ret)
+    try:
+        TestRuntime(tests)
+    except:
+        sys.exit(1)

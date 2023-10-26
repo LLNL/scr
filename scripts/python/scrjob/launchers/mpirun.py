@@ -1,5 +1,6 @@
 import os
-from scrjob import scr_hostlist, scr_const
+
+from scrjob import scr_const
 from scrjob.launchers import JobLauncher
 from scrjob.scr_common import runproc, pipeproc
 
