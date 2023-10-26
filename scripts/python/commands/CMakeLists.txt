@@ -5,7 +5,7 @@ SET(PYFE_BIN
   scr_postrun
   scr_should_exit
 
-  scr_run
+#  scr_run
 #  scr_srun
 #  scr_jsrun
 #  scr_lrun

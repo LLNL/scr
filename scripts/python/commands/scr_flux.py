@@ -2,12 +2,12 @@
 
 # calls scr_run specifying to use launcher 'flux'
 
-import os, sys
-
-if 'scrjob' not in sys.path:
-    sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
+# add path holding scrjob to PYTHONPATH
+import sys
+sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 from scrjob.scr_run import scr_run, parseargs, print_usage
+
 
 if __name__ == '__main__':
     # just printing help, print the help and exit

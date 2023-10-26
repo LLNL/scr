@@ -44,5 +44,5 @@ if __name__ == '__main__':
     if args.down:
         down_nodes = jobenv.resmgr.expand_hosts(args.down)
 
-    if not should_exit(jobenv, keep_down=down_nodes, verbose=args.verbose):
+    if not should_exit(jobenv, down_nodes=down_nodes, verbose=args.verbose):
         sys.exit(1)

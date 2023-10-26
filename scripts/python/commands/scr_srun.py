@@ -1,10 +1,11 @@
 #! /usr/bin/env python3
 
-# scr_srun.py
-
+# add path holding scrjob to PYTHONPATH
 import sys
+sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 from scrjob.scr_run import *
+
 
 if __name__ == '__main__':
     """scr_srun.py calls scr_run.py with the launcher 'srun'.
