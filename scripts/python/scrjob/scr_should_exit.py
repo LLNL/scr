@@ -11,12 +11,9 @@
 import sys
 sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
-import os
 import argparse
 
 from scrjob.environment import SCR_Env
-from scrjob.scr_param import SCR_Param
-from scrjob.resmgrs import AutoResourceManager
 from scrjob.should_exit import should_exit
 
 
@@ -42,8 +39,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     scr_env = SCR_Env(prefix=args.prefix)
-    scr_env.param = SCR_Param()
-    scr_env.resmgr = AutoResourceManager()
 
     down_nodes = []
     if args.down:

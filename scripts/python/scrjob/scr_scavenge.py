@@ -8,10 +8,7 @@ import argparse
 from time import time
 
 from scrjob import scr_const
-from scrjob.scr_param import SCR_Param
 from scrjob.environment import SCR_Env
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.launchers import AutoJobLauncher
 
 # check for pdsh / (clustershell) errors in case any nodes should be retried
 
@@ -170,9 +167,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     scr_env = SCR_Env(prefix=None)
-    scr_env.param = SCR_Param()
-    scr_env.resmgr = AutoResourceManager()
-    scr_env.launcher = AutoJobLauncher()
 
     nodes_job = scr_env.resmgr.expand_hosts(args.jobset)
     nodes_up = scr_env.resmgr.expand_hosts(args.up)

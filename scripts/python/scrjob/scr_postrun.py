@@ -9,11 +9,8 @@ sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
-from scrjob.postrun import postrun
 from scrjob.environment import SCR_Env
-from scrjob.scr_param import SCR_Param
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.launchers import AutoJobLauncher
+from scrjob.postrun import postrun
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -36,9 +33,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    scr_env = SCR_Env(prefix=args.prefix)
-    scr_env.param = SCR_Param()
-    scr_env.resmgr = AutoResourceManager()
-    scr_env.launcher = AutoJobLauncher(args.joblauncher)
+    scr_env = SCR_Env(prefix=args.prefix, launcher=args.joblauncher)
 
     postrun(prefix_dir=args.prefix, scr_env=scr_env, verbose=args.verbose)

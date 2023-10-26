@@ -19,9 +19,6 @@ from scrjob.prerun import prerun
 from scrjob.postrun import postrun
 from scrjob.scr_watchdog import SCR_Watchdog
 from scrjob.environment import SCR_Env
-from scrjob.launchers import AutoJobLauncher
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.scr_param import SCR_Param
 from scrjob.scr_glob_hosts import scr_glob_hosts
 from scrjob.cli import SCRLog, SCRRetriesHalt
 
@@ -101,27 +98,17 @@ def scr_run(launcher='',
     # get prefix directory
     prefix = scr_prefix()
 
-    param = SCR_Param()
-
-    # resource manager (SLURM/LSF/ ...) set by argument or compile constant
-    resmgr = AutoResourceManager()
-
-    # launcher contains attributes unique to launcher (srun/jsrun/ ...)
-    launcher = AutoJobLauncher(launcher)
-
     # env contains general environment infos independent of resmgr/launcher
-    scr_env = SCR_Env(prefix=prefix)
+    scr_env = SCR_Env(prefix=prefix, launcher=launcher)
 
     # give scr_env a pointer to the objects for calling other methods
-    scr_env.param = param
-    scr_env.resmgr = resmgr
     scr_env.launcher = launcher
 
     # this may be used by a launcher to store a list of hosts
     launcher.hostfile = os.path.join(scr_env.dir_scr(), 'hostfile')
 
     # jobid will come from resource manager.
-    jobid = resmgr.job_id()
+    jobid = scr_env.resmgr.job_id()
     user = scr_env.user()
 
     # We need the jobid for logging, and need to be running within an allocation
@@ -136,7 +123,7 @@ def scr_run(launcher='',
     # get the nodeset of this job
     nodelist = scr_env.node_list()
     if not nodelist:
-        nodelist = resmgr.job_nodes()
+        nodelist = scr_env.resmgr.job_nodes()
     if not nodelist:
         print(prog + f': ERROR: Could not identify nodeset for job {jobid}')
         sys.exit(1)
@@ -144,10 +131,10 @@ def scr_run(launcher='',
     watchdog = None
     val = os.environ.get('SCR_WATCHDOG')
     if val == '1':
-        resmgr.use_watchdog(True)
+        scr_env.resmgr.use_watchdog(True)
         watchdog = SCR_Watchdog(prefix, scr_env)
 
-    # TODO: define resmgr.prerun() and launcher.prerun() hooks, call from prerun?
+    # TODO: define scr_env.resmgr.prerun() and launcher.prerun() hooks, call from prerun?
     # run a NOP with srun, other launchers could do any preamble work here
     launcher.prepare_prerun()
 
@@ -164,7 +151,7 @@ def scr_run(launcher='',
         sys.exit(1)
 
     # look up allocation end time, record in SCR_END_TIME
-    endtime = resmgr.end_time()
+    endtime = scr_env.resmgr.end_time()
     if endtime == 0:
         if verbose == True:
             print(prog + ': WARNING: Unable to get end time.')

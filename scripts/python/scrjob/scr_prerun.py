@@ -8,7 +8,6 @@ import argparse
 
 from scrjob.prerun import prerun
 from scrjob.environment import SCR_Env
-from scrjob.resmgrs import AutoResourceManager
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -27,6 +26,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     scr_env = SCR_Env(prefix=args.prefix)
-    scr_env.resmgr = AutoResourceManager()
 
     prerun(scr_env=scr_env, verbose=args.verbose)

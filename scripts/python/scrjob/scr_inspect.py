@@ -2,12 +2,11 @@
 
 import os
 import sys
-import argparse, re, subprocess
+import argparse
+import re
 
 from scrjob import scr_const, scr_hostlist
 from scrjob.environment import SCR_Env
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.launchers import AutoJobLauncher
 
 
 def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
@@ -25,10 +24,6 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, scr_env=None):
 
     if scr_env is None:
         scr_env = SCR_Env()
-    if scr_env.resmgr is None:
-        scr_env.resmgr = AutoResourceManager()
-    if scr_env.launcher is None:
-        scr_env.launcher = AutoJobLauncher()
 
     # tag output files with jobid
     jobid = scr_env.job_id()

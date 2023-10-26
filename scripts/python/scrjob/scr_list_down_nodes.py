@@ -8,13 +8,9 @@ sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
-from scrjob import scr_const
-from scrjob.list_down_nodes import list_down_nodes
 from scrjob.environment import SCR_Env
-from scrjob.scr_param import SCR_Param
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.launchers import AutoJobLauncher
 from scrjob.cli import SCRLog
+from scrjob.list_down_nodes import list_down_nodes
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -61,10 +57,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    scr_env = SCR_Env()
-    scr_env.resmgr = AutoResourceManager()
-    scr_env.param = SCR_Param()
-    scr_env.launcher = AutoJobLauncher(args.joblauncher)
+    scr_env = SCR_Env(launcher=args.joblauncher)
 
     # create log object if asked to log down nodes
     log = None

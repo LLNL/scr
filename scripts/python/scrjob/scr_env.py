@@ -8,9 +8,6 @@ import sys
 import argparse
 
 from scrjob.environment import SCR_Env
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.scr_param import SCR_Param
-from scrjob.launchers import AutoJobLauncher
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -51,9 +48,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     scr_env = SCR_Env(prefix=args.prefix)
-    scr_env.resmgr = AutoResourceManager()
-    scr_env.launcher = AutoJobLauncher()
-    scr_env.param = SCR_Param()
 
     if args.user:
         print(str(scr_env.user()), end='')
