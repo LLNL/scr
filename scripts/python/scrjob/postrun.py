@@ -6,7 +6,7 @@ from time import time
 
 from scrjob import scr_const
 from scrjob.list_dir import list_dir
-from scrjob.scr_scavenge import scr_scavenge
+from scrjob.scavenge import scavenge
 from scrjob.list_down_nodes import list_down_nodes
 from scrjob.cli import SCRIndex, SCRFlushFile
 
@@ -35,14 +35,14 @@ def scavenge_rebuild(nodes_job,
     # Scavenge files from cache to parallel file system
     if verbose:
         print('scr_postrun: Scavenging ' + dsetname + ' to ' + datadir)
-    scr_scavenge(nodes_job=nodes_up,
-                 nodes_up=nodes_up,
-                 dataset_id=d,
-                 cntldir=cntldir,
-                 prefixdir=pardir,
-                 verbose=verbose,
-                 jobenv=jobenv,
-                 log=log)
+    scavenge(nodes_job=nodes_up,
+             nodes_up=nodes_up,
+             dataset_id=d,
+             cntldir=cntldir,
+             prefixdir=pardir,
+             verbose=verbose,
+             jobenv=jobenv,
+             log=log)
 
     # check that scavenged set of files is complete,
     # rebuilding missing files if possible

@@ -190,7 +190,7 @@ class JobLauncher(object):
             return self.clustershell_exec(argv=argv, runnodes=runnodes)
         return [['', ''], 0]
 
-    # generate the argv to perform the scavenge files operation for scr_scavenge
+    # generate the argv to perform the scavenge files operation
     # command format depends on resource manager in use
     # returns a list -> [ 'stdout', 'stderr' ]
     def scavenge_files(self,

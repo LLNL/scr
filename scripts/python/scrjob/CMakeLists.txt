@@ -16,8 +16,9 @@ SET(PYFE_EXEC
   list_down_nodes.py
   prerun.py
   postrun.py
-  should_exit.py
+  scavenge.py
   scrlog.py
+  should_exit.py
   test_runtime.py
 
   scr_ckpt_interval.py

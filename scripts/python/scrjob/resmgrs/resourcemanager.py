@@ -34,7 +34,7 @@ class ResourceManager(object):
       returns a dictionary of nodes reported down according to tests in self.nodetests
 
     scavenge_nodelists()
-      returns upnodes and downnodes formatted for scr_scavenge
+      returns upnodes and downnodes formatted for scavenge operation
 
     Other Methods
     -------------
