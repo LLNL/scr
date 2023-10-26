@@ -61,7 +61,6 @@ Scripts which may be run outside of scr_run.py
 |  
 | **Utility scripts**  
 | *parsetime.py*        - Print the value returned given a time string  
-| *scr_glob_hosts.py*   - Print result of node set operations with use of scr_hostlist.py  
 | *scr_hostlist.py*     - Directly reference hostlist methods and view output  
 |  
 | **Other**  

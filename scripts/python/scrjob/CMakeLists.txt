@@ -25,7 +25,6 @@ SET(PYFE_EXEC
   scr_check_node.py
   scr_common.py
   scr_env.py
-  scr_glob_hosts.py
   scr_inspect.py
   scr_kill_jobstep.py
   scr_list_dir.py

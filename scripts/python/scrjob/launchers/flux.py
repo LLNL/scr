@@ -3,7 +3,6 @@ from time import sleep, time
 
 from scrjob.scr_common import scr_prefix, runproc
 from scrjob.launchers import JobLauncher
-from scrjob.scr_glob_hosts import scr_glob_hosts
 
 # flux imports
 try:
@@ -78,8 +77,6 @@ class FLUX(JobLauncher):
 
         ### Need to determine number of nodes to set nnodes and nntasks to N
         ### without specifying it is set above to just launch 1 task on 1 cpu on 1 node
-        ### glob_hosts defaults to hostlist.expand(hosts)
-        ###  passing in the resmgr would allow use of ClusterShell.NodeSet
         ### The size is the number of ranks flux start was launched with
         resp = RPC(self.flux, 'resource.status').get()
         rset = ResourceSet(resp['R'])
