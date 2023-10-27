@@ -30,13 +30,13 @@ The scripts in ``commands`` are installed to ``/bin`` of an SCR installation.
 These are described in the user documentation,
 and they are executed directly by the user.
 Commands copied to ``/bin`` hardcode the path to the ``scrjob`` package at install time.
-See [commands/README.md](commands/README.md) for more information.
+See the [README](commands/README.md) for more information.
 
 # Testing
 
 The ``tests`` directory implements tests for the ``scrjob`` package.
 These are copied to ``libexec/python/tests`` of an SCR installation.
-See [tests/README.md](tests/README.md) for more information.
+See the [README](tests/README.md) for more information.
 
 To execute the tests, first acquire a two-node allocation.
 
@@ -60,15 +60,18 @@ The ``scrjob`` package can use the ClusterShell module if available.
 This can be disabled by setting ``USE_CLUSTERSHELL='0'`` in ``scrjob/config.py``.
 ClusterShell is not used if it is not found or if it is disabled.
 
-ClusterShell is useful for:
-- as an ``scr_hostlist`` replacement for manipulating host lists
-- as a ``pdsh`` replacement for running commands on a set of compute nodes
+ClusterShell is useful as:
+- an ``scr_hostlist`` replacement for manipulating host lists
+- a ``pdsh`` replacement for running commands on a set of compute nodes
 
 To install:
-``pip install ClusterShell``
+
+```
+pip install ClusterShell
+```
 
 To configure ClusterShell, see:
-- [config.html](https://clustershell.readthedocs.io/en/latest/config.html)
+- [ClusterShell config docs](https://clustershell.readthedocs.io/en/latest/config.html)
 - ``man clush.conf``
 
 ## TODO
