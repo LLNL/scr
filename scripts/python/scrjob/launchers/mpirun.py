@@ -1,6 +1,6 @@
 import os
 
-from scrjob import scr_const
+from scrjob import config
 from scrjob.launchers import JobLauncher
 from scrjob.scr_common import runproc, pipeproc
 
@@ -46,7 +46,7 @@ class MPIRUN(JobLauncher):
             return self.clustershell_exec(argv=argv, runnodes=runnodes)
         runnodes = ",".join(runnodes)
         pdshcmd = [
-            scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes
+            config.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes
         ]
         pdshcmd.extend(argv)
         return runproc(argv=pdshcmd, getstdout=True, getstderr=True)

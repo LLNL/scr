@@ -2,7 +2,7 @@
 
 import os
 
-from scrjob import scr_const
+from scrjob import config
 
 
 def scavenge(nodes_job=None,
@@ -20,7 +20,7 @@ def scavenge(nodes_job=None,
         raise RuntimeError(
             'scavenge: ERROR: nodeset, id, cntldir, or prefix not specified')
 
-    libexecdir = scr_const.X_LIBEXECDIR
+    libexecdir = config.X_LIBEXECDIR
 
     # TODO: need to be able to set these defaults via config settings somehow
     # for now just hardcode the values

@@ -12,7 +12,7 @@ import os
 from datetime import datetime
 from time import time, sleep
 
-from scrjob import scr_const, scr_common
+from scrjob import config, scr_common
 from scrjob.list_down_nodes import list_down_nodes
 from scrjob.scr_common import tracefunction, runproc, scr_prefix
 from scrjob.prerun import prerun
@@ -69,7 +69,7 @@ def scr_run(launcher='',
             restart_args=[]):
     prog = 'scr_' + launcher
 
-    bindir = scr_const.X_BINDIR
+    bindir = config.X_BINDIR
 
     val = os.environ.get('SCR_ENABLE')
     if val == '0':
@@ -85,7 +85,7 @@ def scr_run(launcher='',
         verbose = True
 
     # turn on python function tracing
-    if scr_const.PYFE_TRACE_FUNC == '1' or os.environ.get(
+    if config.PYFE_TRACE_FUNC == '1' or os.environ.get(
             'PYFE_TRACE_FUNC') == '1':
         sys.settrace(tracefunction)
 

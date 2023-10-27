@@ -21,7 +21,7 @@ Scripts which may be run outside of scr_run.py
 |  
 | *scr_check_node.py*   - Check whether the control/cache directory is available, optionally checking capacity  
 | *scr_common.py*       - Provides a testing interface for methods implemented within  
-| *scr_const.py*        - Displays defined constant values  
+| *config.py*           - Displays defined constant values  
 | *scr_env.py*          - Print obtainable values from an allocation's environment  
 | *scr_halt.py*         - View/edit/remove conditions in the halt file  
 | *scr_inspect.py*      - Print a space separated list of cached datasets to try to flush/rebuild (*deprecated?*)  

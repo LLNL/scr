@@ -1,7 +1,7 @@
-import os, re
+import os
+import re
 import datetime
 
-from scrjob import scr_const
 from scrjob.scr_common import runproc, pipeproc
 from scrjob.resmgrs import ResourceManager
 

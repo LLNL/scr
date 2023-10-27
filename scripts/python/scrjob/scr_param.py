@@ -4,14 +4,14 @@ import os
 import sys
 import re
 
-from scrjob import scr_const
+from scrjob import config
 from scrjob.scr_common import interpolate_variables, scr_prefix
 
 
 class SCR_Param():
 
     def __init__(self):
-        sysconf = scr_const.SCR_CONFIG_FILE
+        sysconf = config.SCR_CONFIG_FILE
         # get current working dir
         # use value in $SCR_PREFIX if set
         prefix = scr_prefix()
@@ -38,15 +38,15 @@ class SCR_Param():
         self.compile = {}
         # set our compile time constants
         self.compile['CNTLDIR'] = {}
-        self.compile['CNTLDIR'][scr_const.SCR_CNTL_BASE] = {}
+        self.compile['CNTLDIR'][config.SCR_CNTL_BASE] = {}
         self.compile['CACHEDIR'] = {}
-        self.compile['CACHEDIR'][scr_const.SCR_CACHE_BASE] = {}
+        self.compile['CACHEDIR'][config.SCR_CACHE_BASE] = {}
         self.compile['SCR_CNTL_BASE'] = {}
-        self.compile['SCR_CNTL_BASE'][scr_const.SCR_CNTL_BASE] = {}
+        self.compile['SCR_CNTL_BASE'][config.SCR_CNTL_BASE] = {}
         self.compile['SCR_CACHE_BASE'] = {}
-        self.compile['SCR_CACHE_BASE'][scr_const.SCR_CACHE_BASE] = {}
+        self.compile['SCR_CACHE_BASE'][config.SCR_CACHE_BASE] = {}
         self.compile['SCR_CACHE_SIZE'] = {}
-        self.compile['SCR_CACHE_SIZE'][scr_const.SCR_CACHE_SIZE] = {}
+        self.compile['SCR_CACHE_SIZE'][config.SCR_CACHE_SIZE] = {}
 
         # set our restricted parameters,
         # these can't be set via env vars or user conf file

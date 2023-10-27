@@ -4,7 +4,7 @@ import os
 import sys
 from time import sleep
 
-from scrjob import scr_const
+from scrjob import config
 from scrjob.postrun import postrun
 from scrjob.list_down_nodes import list_down_nodes
 from scrjob.scr_common import scr_prefix
@@ -45,7 +45,7 @@ def nodes_needed(jobenv, nodelist):
 def getpdshout(launcher, launch_cmd):
     verbose = True
 
-    bindir = scr_const.X_BINDIR
+    bindir = config.X_BINDIR
 
     prefix = scr_prefix()
 

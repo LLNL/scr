@@ -7,7 +7,7 @@ import argparse, inspect
 from subprocess import Popen, PIPE
 import shlex
 
-from scrjob import scr_const
+from scrjob import config
 
 
 def tracefunction(frame, event, arg):
@@ -287,10 +287,10 @@ def choose_bindir():
     parent_of_this_module = '/'.join(
         os.path.realpath(__file__).split('/')[:-1])
 
-    if scr_const.X_LIBEXECDIR in parent_of_this_module:
-        bindir = scr_const.X_LIBEXECDIR  # path to install bin directory
+    if config.X_LIBEXECDIR in parent_of_this_module:
+        bindir = config.X_LIBEXECDIR  # path to install bin directory
     else:
-        bindir = os.path.join(scr_const.CMAKE_BINARY_DIR + "/src/")
+        bindir = os.path.join(config.CMAKE_BINARY_DIR + "/src/")
 
     return bindir
 
@@ -327,7 +327,7 @@ def log(bindir=None,
         #print('log: prefix is required')
 
     if bindir is None:
-        bindir = scr_const.X_LIBEXECDIR
+        bindir = config.X_LIBEXECDIR
 
     argv = [bindir + '/scr_log_event', '-p', prefix]
 

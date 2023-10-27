@@ -1,6 +1,6 @@
 import os
 
-from scrjob import scr_const, hostlist
+from scrjob import config, hostlist
 from scrjob.scr_common import scr_prefix
 from scrjob.resmgrs import Nodetests
 
@@ -51,7 +51,7 @@ class ResourceManager(object):
 
     def __init__(self, resmgr='unknown'):
         self.clustershell_nodeset = False
-        if scr_const.USE_CLUSTERSHELL != '0':
+        if config.USE_CLUSTERSHELL != '0':
             try:
                 import ClusterShell.NodeSet as MyCSNodeSet
                 self.clustershell_nodeset = MyCSNodeSet
@@ -307,8 +307,8 @@ class ResourceManager(object):
         The Nodetests object from resmgr/nodetests.py contains all tests.
         The tests which will be performed should be set either:
           When self.nodetests is instantiated (in init of Nodetests):
-            by constant list in scr_const.py
-            by file input, where the filename is specified in scr_const.py
+            by constant list in config.py
+            by file input, where the filename is specified in config.py
           Or manually by adding test names to the self.nodetests.nodetests list
           in your resource manager's init after super().__init__
 

@@ -9,7 +9,6 @@ import os
 import sys
 import argparse
 
-from scrjob import scr_const
 from scrjob.scr_common import runproc
 from scrjob.launchers import AutoJobLauncher
 

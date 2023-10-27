@@ -3,11 +3,11 @@ Along with other binaries, these scripts are copied to the /bin directory of an 
 These are user commands that are typically invoked interactively or from a batch job script.
 Detailed usage for the scripts in this directory is provided in the SCR user documentation.
 
-*scr_prerun.py*          - Execute before the first SCR job in an allocation
-*scr_postrun.py*         - Execute after the final SCR job in an allocation; scaveneges any cached datasets
-*scr_list_down_nodes.py* - Reports list of currently failed nodes in an allocation, if any
-*scr_should_exit.py*     - Indicates whether one should stop launching SCR runs within an allocation; checks for active halt condition, insufficient nodes, or in sufficient time
-*scr_halt.py*            - View/edit/remove conditions in the halt file  
+- *scr_prerun.py*          - Execute before the first SCR job in an allocation
+- *scr_postrun.py*         - Execute after the final SCR job in an allocation; scaveneges any cached datasets
+- *scr_list_down_nodes.py* - Reports list of currently failed nodes in an allocation, if any
+- *scr_should_exit.py*     - Indicates whether one should stop launching SCR runs within an allocation; checks for active halt condition, insufficient nodes, or in sufficient time
+- *scr_halt.py*            - View/edit/remove conditions in the halt file  
 
 ## scr_run.py  
 

@@ -1,7 +1,5 @@
 import os
 
-from scrjob import scr_const
-
 
 def list_dir(user=None, jobid=None, base=False, runcmd=None, jobenv=None):
     """This method returns info on the SCR control/cache/prefix directories for

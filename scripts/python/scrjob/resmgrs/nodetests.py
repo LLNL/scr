@@ -1,5 +1,5 @@
 import os
-from scrjob import scr_const
+from scrjob import config
 from scrjob.scr_common import runproc
 from scrjob.list_dir import list_dir
 
@@ -16,19 +16,19 @@ class Nodetests:
         self.tests = os.environ.get('SCR_NODE_TESTS')
         if self.tests is not None:
             self.tests = self.tests.split(',')
-        elif scr_const.SCR_NODE_TESTS != '':
-            self.tests = scr_const.SCR_NODE_TESTS.split(',')
-        elif scr_const.SCR_NODE_TESTS_FILE != '':
+        elif config.SCR_NODE_TESTS != '':
+            self.tests = config.SCR_NODE_TESTS.split(',')
+        elif config.SCR_NODE_TESTS_FILE != '':
             try:
                 self.tests = []
-                with open(scr_const.SCR_NODE_TESTS_FILE, 'r') as infile:
+                with open(config.SCR_NODE_TESTS_FILE, 'r') as infile:
                     for line in infile.readlines():
                         line = line.strip()
                         if line != '':
                             self.tests.extend(line.split(','))
             except:
                 print('nodetests.py: ERROR: Unable to open file ' +
-                      scr_const.SCR_NODE_TESTS_FILE)
+                      config.SCR_NODE_TESTS_FILE)
         else:
             self.tests = []
 
@@ -189,7 +189,7 @@ class Nodetests:
 
         # run scr_check_node on each node specifying control and cache directories to check
         argv = [
-            os.path.join(scr_const.X_LIBEXECDIR, 'python', 'scrjob',
+            os.path.join(config.X_LIBEXECDIR, 'python', 'scrjob',
                          'scr_check_node.py')
         ]
         if self.firstrun:
