@@ -5,6 +5,7 @@
 
 # add path holding scrjob to PYTHONPATH
 import sys
+
 sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse

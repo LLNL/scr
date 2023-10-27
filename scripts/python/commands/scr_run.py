@@ -17,9 +17,8 @@ from scrjob.list_down_nodes import list_down_nodes
 from scrjob.scr_common import tracefunction, runproc, scr_prefix
 from scrjob.prerun import prerun
 from scrjob.postrun import postrun
-from scrjob.scr_watchdog import SCR_Watchdog
+from scrjob.watchdog import Watchdog
 from scrjob.environment import JobEnv
-from scrjob.scr_glob_hosts import scr_glob_hosts
 from scrjob.cli import SCRLog, SCRRetriesHalt
 
 
@@ -129,7 +128,7 @@ def scr_run(launcher='',
     val = os.environ.get('SCR_WATCHDOG')
     if val == '1':
         jobenv.resmgr.use_watchdog(True)
-        watchdog = SCR_Watchdog(prefix, jobenv)
+        watchdog = Watchdog(prefix, jobenv)
 
     # TODO: define jobenv.resmgr.prerun() and launcher.prerun() hooks, call from prerun?
     # run a NOP with srun, other launchers could do any preamble work here

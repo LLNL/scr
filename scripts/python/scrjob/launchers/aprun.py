@@ -56,7 +56,7 @@ class APRUN(JobLauncher):
         pdshcmd.extend(argv)
         return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
 
-    # perform the scavenge files operation for scr_scavenge
+    # perform the scavenge files operation
     # uses either pdsh or clustershell
     # returns a list -> [ 'stdout', 'stderr' ]
     def scavenge_files(self,

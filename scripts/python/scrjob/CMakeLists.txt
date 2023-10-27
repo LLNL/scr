@@ -16,22 +16,22 @@ SET(PYFE_EXEC
   list_down_nodes.py
   prerun.py
   postrun.py
-  should_exit.py
+  scavenge.py
   scrlog.py
+  should_exit.py
   test_runtime.py
+  watchdog.py
 
   scr_ckpt_interval.py
   scr_check_node.py
   scr_common.py
   scr_env.py
-  scr_glob_hosts.py
   scr_inspect.py
   scr_kill_jobstep.py
   scr_list_dir.py
   scr_param.py
   scr_poststage.py
   scr_scavenge.py
-  scr_watchdog.py
 )
 
 FOREACH(pyscript IN ITEMS ${PYFE_EXEC})

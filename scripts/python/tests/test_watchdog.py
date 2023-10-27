@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-# Test the scr_watchdog
+# Test the Watchdog
 # This script emulates the same instructions as scr_run/watchdog
 # REQUIRED: sleeper.c to be compiled with an MPI C compiler
 # REQUIRED: arguments: <launcher> <launcher_args>
@@ -16,11 +16,8 @@ import sys
 import time
 from subprocess import TimeoutExpired
 
-from scrjob.resmgrs import AutoResourceManager
-from scrjob.launchers import AutoJobLauncher
-from scrjob.scr_param import SCR_Param
-from scrjob.scr_environment import SCR_Env
-from scrjob.scr_watchdog import SCR_Watchdog
+from scrjob.environment import JobEnv
+from scrjob.watchdog import Watchdog
 
 
 def checkfiletimes():
@@ -53,18 +50,16 @@ def checkfiletimes():
 
 def testwatchdog(launcher, launcher_args):
     timeout = 15
-    os.environ['SCR_WATCHDOG_TIMEOUT'] = '15'
-    os.environ['SCR_WATCHDOG_TIMEOUT_PFS'] = '15'
-    scr_env = SCR_Env()
-    param = SCR_Param()
-    resmgr = AutoResourceManager()
-    launcher = AutoJobLauncher(launcher)
-    prefix = scr_env.get_prefix()
-    scr_env.param = param
-    scr_env.launcher = launcher
-    nodelist = resmgr.job_nodes()
-    down_nodes = resmgr.down_nodes()
-    watchdog = SCR_Watchdog(prefix, scr_env)
+    os.environ['SCR_WATCHDOG_TIMEOUT'] = str(timeout)
+    os.environ['SCR_WATCHDOG_TIMEOUT_PFS'] = str(timeout)
+
+    jobenv = JobEnv(launcher=launcher)
+
+    prefix = jobenv.get_prefix()
+    nodelist = jobenv.resmgr.job_nodes()
+    down_nodes = jobenv.resmgr.down_nodes()
+
+    watchdog = Watchdog(prefix, jobenv)
 
     if down_nodes is None:
         down_nodes = {}
@@ -74,7 +69,7 @@ def testwatchdog(launcher, launcher_args):
     down_nodes = list(down_nodes.keys())
 
     print('Launching command ' + ' '.join(launcher_args))
-    proc, jobstep = launcher.launch_run_cmd(up_nodes=nodelist,
+    proc, jobstep = jobenv.launcher.launch_run_cmd(up_nodes=nodelist,
                                             down_nodes=down_nodes,
                                             launcher_args=launcher_args)
 
@@ -92,13 +87,13 @@ def testwatchdog(launcher, launcher_args):
     if watchdog.watchproc(proc, jobstep) != 0:
         print('The watchdog failed to start')
         print('Waiting for the original process for 15 seconds')
-        (finished, success) = launcher.waitonprocess(proc=proc,
+        (finished, success) = jobenv.launcher.waitonprocess(proc=proc,
                                                      timeout=timeout)
         if finished == True:
             print(
                 'The process is still running, asking the launcher to kill it . . .'
             )
-            launcher.kill_jobstep(jobstep=jobstep)
+            jobenv.launcher.kill_jobstep(jobstep=jobstep)
 
     print('The process has now been terminated')
     print('Sleeping for 45 seconds before checking the output files . . .')

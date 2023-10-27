@@ -86,7 +86,7 @@ class PMIX(ResourceManager):
       return pipeproc(argvs=argv,getstdout=True,getstderr=True)
     return runproc(argv=pdshcmd,getstdout=True,getstderr=True)
 
-  # perform the scavenge files operation for scr_scavenge
+  # perform the scavenge files operation
   # uses either pdsh or clustershell
   # returns a list -> [ 'stdout', 'stderr' ]
   def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):

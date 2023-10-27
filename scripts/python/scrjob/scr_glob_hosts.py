@@ -1,87 +1,8 @@
 #! /usr/bin/env python3
 
-import os, sys
-import sys
 import argparse
 
-from scrjob import hostlist
-
-
-def scr_glob_hosts(count=False,
-                   nth=None,
-                   hosts=None,
-                   minus=None,
-                   intersection=None,
-                   compress=None,
-                   resmgr=None):
-    hostset = []
-
-    # resmgr can use ClusterShell.NodeSet, if available
-    # otherwise fallback to hostlist
-
-    if hosts is not None:
-        if resmgr is not None:
-            hostset = resmgr.expand_hosts(hostnames=hosts)
-        else:
-            hostset = hostlist.expand(hosts)
-
-    elif minus is not None and ':' in minus:
-        # subtract nodes in set2 from set1
-        pieces = minus.split(':')
-        if resmgr is not None:
-            set1 = resmgr.expand_hosts(pieces[0])
-            set2 = resmgr.expand_hosts(pieces[1])
-            hostset = resmgr.diff_hosts(set1, set2)
-        else:
-            set1 = hostlist.expand(pieces[0])
-            set2 = hostlist.expand(pieces[1])
-            hostset = hostlist.diff(set1, set2)
-
-    elif intersection is not None and ':' in intersection:
-        # take the intersection of two nodesets
-        pieces = intersection.split(':')
-        if resmgr is not None:
-            set1 = resmgr.expand_hosts(pieces[0])
-            set2 = resmgr.expand_hosts(pieces[1])
-            hostset = resmgr.intersect_hosts(set1, set2)
-        else:
-            set1 = hostlist.expand(pieces[0])
-            set2 = hostlist.expand(pieces[1])
-            hostset = hostlist.intersect(set1, set2)
-
-    elif compress is not None:
-        if resmgr is not None:
-            hostset = resmgr.compress_hosts(compress)
-        else:
-            hostset = compress.split(',')
-            return hostlist.compress_range(hostset)
-
-    else:
-        raise RuntimeError("scr_glob_hosts: Unknown set operation")
-
-    # ok, got our resulting nodeset, now print stuff to the screen
-    if nth is not None:
-        # return the nth node of the nodelist
-        n = int(nth)
-        if n > len(hostset) or n < -len(hostset):
-            raise RuntimeError(
-                'scr_glob_hosts: ERROR: Host index (' + str(n) +
-                ') is out of range for the specified host list.')
-        if n > 0:  # an initial n=0 or n=1 both return the same thing
-            n -= 1
-        return hostset[n]
-
-    # return the number of nodes (length) in the nodelist
-    if count:
-        return len(hostset)
-
-    # return a csv string representation of the nodelist
-    if resmgr is not None:
-        hostset = resmgr.expand_hosts(hostset)
-        return ','.join(hostset)
-    else:
-        return hostlist.compress(hostset)
-
+import scrjob.glob_hosts as glob_hosts
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -90,7 +11,6 @@ if __name__ == '__main__':
     parser.add_argument('-c',
                         '--count',
                         action='store_true',
-                        default=False,
                         help='Print the number of hosts.')
     parser.add_argument('-n',
                         '--nth',
@@ -126,17 +46,26 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if ((args.hosts is None and args.minus is None
-         and args.intersection is None and args.compress is None)
-            or (args.minus is not None and ':' not in argso.minus) or
-        (args.intersection is not None and ':' not in args.intersection)):
-        parser.print_help()
-        quit()
+    hosts = []
 
-    result = scr_glob_hosts(count=args.count,
-                            nth=args.nth,
-                            hosts=args.hosts,
-                            minus=args.minus,
-                            intersection=args.intersection,
-                            compress=args.compress)
+    if args.hosts:
+        hosts = glob_hosts.expand(args.hosts)
+    elif args.minus:
+        hosts = glob_hosts.minus(args.minus)
+    elif args.intersection:
+        hosts = glob_hosts.intersection(args.intersection)
+    elif args.compress:
+        hosts = glob_hosts.expand(args.compress)
+    else:
+        raise RuntimeError('Hostlist not specified')
+
+    hoststr = ','.join(hosts)
+
+    if args.nth:
+        print(str(glob_hosts.nth(hoststr, args.nth)))
+    elif args.count:
+        print(str(glob_hosts.count(hoststr)))
+    elif args.compress:
+        print(str(glob_hosts.compress(hoststr)))
+
     print(str(result))

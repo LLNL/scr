@@ -66,7 +66,7 @@ class JobLauncher(object):
         Override this implementation in any base class whose launch_run_cmd returns a different value,
         or if there is a different method used to wait on a process (blocking or with a timeout).
         The timeout will be none (wait until process terminates) or a numeric value indicating seconds.
-        A timeout value will exist when using SCR_Watchdog.
+        A timeout value will exist when using Watchdog.
 
         Returns
         -------
@@ -190,7 +190,7 @@ class JobLauncher(object):
             return self.clustershell_exec(argv=argv, runnodes=runnodes)
         return [['', ''], 0]
 
-    # generate the argv to perform the scavenge files operation for scr_scavenge
+    # generate the argv to perform the scavenge files operation
     # command format depends on resource manager in use
     # returns a list -> [ 'stdout', 'stderr' ]
     def scavenge_files(self,

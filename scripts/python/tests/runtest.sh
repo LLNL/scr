@@ -131,7 +131,7 @@ jobid=$(scr_env.py --jobid)
 echo "jobid = ${jobid}"
 nodelist=$(scr_env.py --nodes)
 echo "nodelist = ${nodelist}"
-downnode=$(scr_glob_hosts.py -n 1 -h "${nodelist}")
+downnode=$(/usr/bin/hostlist -n 1 "${nodelist}")
 echo "first node = ${downnode}"
 sleep 2
 
