@@ -1,6 +1,7 @@
 # scavenge checkpoint files from cache to PFS
 
 import os
+from time import time
 
 from scrjob import config
 
