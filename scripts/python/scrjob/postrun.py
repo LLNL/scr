@@ -4,7 +4,6 @@ import os
 from datetime import datetime
 from time import time
 
-from scrjob import scr_const
 from scrjob.list_dir import list_dir
 from scrjob.scavenge import scavenge
 from scrjob.list_down_nodes import list_down_nodes

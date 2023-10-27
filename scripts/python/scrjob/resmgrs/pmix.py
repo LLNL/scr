@@ -1,8 +1,8 @@
 """# pmix.py # PMIX is a subclass if ResourceManager
 
 import os
-from scrjob import scr_const
-from scrjob.scr_common import runproc, pipeproc
+from scrjob import config
+from scrjob.common import runproc, pipeproc
 from scrjob.resmgrs import nodetests, ResourceManager
 
 class PMIX(ResourceManager):
@@ -79,10 +79,10 @@ class PMIX(ResourceManager):
       return [ [ '', '' ], 0 ]
     if self.clustershell is not None:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
-    pdshcmd = [scr_const.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
+    pdshcmd = [config.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
     if use_dshbak:
-      argv = [ pdshcmd, [scr_const.DSHBAK_EXE, '-c'] ]
+      argv = [ pdshcmd, [config.DSHBAK_EXE, '-c'] ]
       return pipeproc(argvs=argv,getstdout=True,getstderr=True)
     return runproc(argv=pdshcmd,getstdout=True,getstderr=True)
 
@@ -91,7 +91,7 @@ class PMIX(ResourceManager):
   # returns a list -> [ 'stdout', 'stderr' ]
   def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
     argv = []
-    cppr_lib = scr_const.CPPR_LDFLAGS
+    cppr_lib = config.CPPR_LDFLAGS
     if cppr_lib.startswith('-L'):
       cppr_lib = cppr_lib[2:]
       ldpath = os.environ.get('LD_LIBRARY_PATH')

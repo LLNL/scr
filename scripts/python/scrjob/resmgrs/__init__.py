@@ -2,7 +2,7 @@
 use.
 
 The resource manager is determined by:
-* The compile time constant, located in ../scr_const.py
+* The compile time constant, located in ../config.py
 
 This file describes the classes which will be imported.
 

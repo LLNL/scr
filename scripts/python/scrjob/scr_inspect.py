@@ -5,7 +5,7 @@ import sys
 import argparse
 import re
 
-from scrjob import scr_const, hostlist
+from scrjob import config, hostlist
 from scrjob.environment import JobEnv
 
 
@@ -19,8 +19,8 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, jobenv=None):
 
     On error this method returns the integer 1
     """
-    libexecdir = scr_const.X_LIBEXECDIR
-    pdsh = scr_const.PDSH_EXE
+    libexecdir = config.X_LIBEXECDIR
+    pdsh = config.PDSH_EXE
 
     if jobenv is None:
         jobenv = JobEnv()

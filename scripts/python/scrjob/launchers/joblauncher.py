@@ -1,7 +1,7 @@
 import os
 from subprocess import TimeoutExpired
-from scrjob import scr_const
-from scrjob.scr_common import interpolate_variables
+
+from scrjob import config
 
 
 class JobLauncher(object):
@@ -51,7 +51,7 @@ class JobLauncher(object):
         self.launcher = launcher
         self.hostfile = ''
         self.clustershell_task = False
-        if scr_const.USE_CLUSTERSHELL != '0':
+        if config.USE_CLUSTERSHELL != '0':
             try:
                 import ClusterShell.Task as MyCSTask
                 self.clustershell_task = MyCSTask
@@ -179,11 +179,11 @@ class JobLauncher(object):
         argv is a list of arguments representing the command.
         runnodes is a comma separated string of nodes which will execute the command.
 
-        `which pdsh` is defined in scr_const.PDSH_EXE.
+        `which pdsh` is defined in config.PDSH_EXE.
         If self.clustershell_task is not False:
           return self.clustershell_exec(argv, runnodes).
         Otherwise:
-          Format pdshcmd as a list using scr_const.PDSH_EXE, the argv, and runnodes.
+          Format pdshcmd as a list using config.PDSH_EXE, the argv, and runnodes.
           return runproc(argv=pdshcmd, getstdout=True, getstderr=True).
         """
         if self.clustershell_task is not False:
@@ -212,7 +212,7 @@ class JobLauncher(object):
         prog               string, the location of the scr_copy program.
         nodes_up           list(string), list of up nodes.
         nodes_down         list(string), list of down nodes.
-        cntldir            string, the control directory path, obtained from SCR_Param.
+        cntldir            string, the control directory path, obtained from Param.
         dataset_id         string, the dataset id.
         prefixdir          string, the prefix directory path.
         buf_size           string, set by $SCR_FILE_BUF_SIZE.

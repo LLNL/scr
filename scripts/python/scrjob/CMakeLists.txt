@@ -13,7 +13,9 @@ ENDFOREACH(pyscript IN ITEMS ${PYFE})
 INSTALL(FILES ${PYFE} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 
 SET(PYFE_EXEC
+  common.py
   list_down_nodes.py
+  param.py
   prerun.py
   postrun.py
   scavenge.py
@@ -24,12 +26,10 @@ SET(PYFE_EXEC
 
   scr_ckpt_interval.py
   scr_check_node.py
-  scr_common.py
   scr_env.py
   scr_inspect.py
   scr_kill_jobstep.py
   scr_list_dir.py
-  scr_param.py
   scr_poststage.py
   scr_scavenge.py
 )
@@ -42,9 +42,9 @@ INSTALL(FILES ${PYFE_EXEC}
 PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
         DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 
-CONFIGURE_FILE(scr_const.py.in scr_const.py @ONLY)
-SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/scr_const.py PROPERTIES GENERATED TRUE)
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/scr_const.py
+CONFIGURE_FILE(config.py.in config.py @ONLY)
+SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/config.py PROPERTIES GENERATED TRUE)
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/config.py
 PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
         DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 

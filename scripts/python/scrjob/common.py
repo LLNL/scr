@@ -3,17 +3,18 @@
 
 import os
 import sys
-import argparse, inspect
+import argparse
+import inspect
 from subprocess import Popen, PIPE
 import shlex
 
-from scrjob import scr_const
+from scrjob import config
 
 
 def tracefunction(frame, event, arg):
     """This method provides a hook for tracing python calls.
 
-    Usage:  sys.settrace(scr_common.tracefunction)
+    Usage:  sys.settrace(common.tracefunction)
     Prints: filename:function:linenum -> event
 
     The method below will be called on events as scripts execute.
@@ -287,10 +288,10 @@ def choose_bindir():
     parent_of_this_module = '/'.join(
         os.path.realpath(__file__).split('/')[:-1])
 
-    if scr_const.X_LIBEXECDIR in parent_of_this_module:
-        bindir = scr_const.X_LIBEXECDIR  # path to install bin directory
+    if config.X_LIBEXECDIR in parent_of_this_module:
+        bindir = config.X_LIBEXECDIR  # path to install bin directory
     else:
-        bindir = os.path.join(scr_const.CMAKE_BINARY_DIR + "/src/")
+        bindir = os.path.join(config.CMAKE_BINARY_DIR + "/src/")
 
     return bindir
 
@@ -327,7 +328,7 @@ def log(bindir=None,
         #print('log: prefix is required')
 
     if bindir is None:
-        bindir = scr_const.X_LIBEXECDIR
+        bindir = config.X_LIBEXECDIR
 
     argv = [bindir + '/scr_log_event', '-p', prefix]
 
@@ -373,8 +374,7 @@ def log(bindir=None,
 if __name__ == '__main__':
     """This script allows being called as a standalone script.
 
-    This is meant for testing purposes, to directly call scr_common
-    methods.
+    This is meant for testing purposes, to directly call methods.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--interpolate',

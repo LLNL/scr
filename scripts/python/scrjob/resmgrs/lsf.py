@@ -1,8 +1,7 @@
 import os, re
 from time import time
 
-from scrjob import scr_const
-from scrjob.scr_common import runproc, pipeproc
+from scrjob.common import runproc
 from scrjob.resmgrs import nodetests, ResourceManager
 
 

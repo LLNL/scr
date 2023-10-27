@@ -1,8 +1,8 @@
 from time import sleep
 
-from scrjob import scr_const
+from scrjob import config
 from scrjob.launchers import JobLauncher
-from scrjob.scr_common import runproc, pipeproc
+from scrjob.common import runproc
 
 
 class JSRUN(JobLauncher):
@@ -23,7 +23,7 @@ class JSRUN(JobLauncher):
         argv.extend(launcher_args)
 
         # it looks like the Popen.terminate is working with jsrun
-        if scr_const.USE_JOBLAUNCHER_KILL != '1':
+        if config.USE_JOBLAUNCHER_KILL != '1':
             return runproc(argv=argv, wait=False)
         proc = runproc(argv=argv, wait=False)[0]
         jobstepid = self.jobstep_id()
@@ -40,7 +40,7 @@ class JSRUN(JobLauncher):
         if self.clustershell_task != False:
             return self.clustershell_exec(argv=argv, runnodes=runnodes)
         runnodes = ",".join(runnodes)
-        pdshcmd = [scr_const.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
+        pdshcmd = [config.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
         pdshcmd.extend(argv)
         return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
 

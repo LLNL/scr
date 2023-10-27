@@ -3,8 +3,8 @@
 import os
 import sys
 
-from scrjob import scr_const
-from scrjob.scr_common import runproc
+from scrjob import config
+from scrjob.common import runproc
 from scrjob.resmgrs import AutoResourceManager
 
 
@@ -19,7 +19,7 @@ class TestRuntime:
 
     We could receive a list of applicable tests through:
       A configuration file.
-      A compile constant (scr_const.py).
+      A compile constant (config.py).
       Environment variables.
       Querying the ResourceManager and/or Joblauncher classes.
 
@@ -55,29 +55,28 @@ class TestRuntime:
         This test will return failure if the option USE_CLUSTERSHELL
         enables ClusterShell and the module is not available.
         """
-        if scr_const.USE_CLUSTERSHELL == '1':
+        if config.USE_CLUSTERSHELL == '1':
             try:
                 import ClusterShell
             except:
                 raise RuntimeError(
-                    'Failed to import Clustershell as indicated by scr_const.py'
-                )
+                    'Failed to import Clustershell as indicated by config.py')
 
     @staticmethod
     def check_pdsh():
         """This method tests the validity of the pdsh command.
 
         The pdsh executable, whose path is determined by
-        scr_const.PDSH_EXE, is used in the Joblauncher.parallel_exec
-        method to execute a command in parallel on multiple nodes and
-        retrieve each node's output and return code.
+        config.PDSH_EXE, is used in the Joblauncher.parallel_exec method
+        to execute a command in parallel on multiple nodes and retrieve
+        each node's output and return code.
 
         This test will return failure if we are unable to confirm
         PDSH_EXE is valid.
 
         If ClusterShell is enabled, this test does not apply.
         """
-        if scr_const.USE_CLUSTERSHELL == '1':
+        if config.USE_CLUSTERSHELL == '1':
             return
 
         ### TODO: Validate pdsh command through some other means for some resmgrs?
@@ -95,7 +94,7 @@ class TestRuntime:
         # Otherwise, the return value should be the return value of the process.
         # This should typically be 0 for success, and nonzero for failure
         ### This test may not work everywhere
-        pdsh = scr_const.PDSH_EXE
+        pdsh = config.PDSH_EXE
         argv = ['which', pdsh]
         rc = runproc(argv=argv, shell=True)[1]
         if rc != 0:

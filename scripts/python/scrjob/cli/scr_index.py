@@ -1,7 +1,7 @@
 import os
 
-from scrjob import scr_const
-from scrjob.scr_common import runproc
+from scrjob import config
+from scrjob.common import runproc
 
 
 class SCRIndex:
@@ -10,7 +10,7 @@ class SCRIndex:
         self.prefix = prefix
         self.verbose = verbose
 
-        bindir = scr_const.X_BINDIR
+        bindir = config.X_BINDIR
         self.exe = os.path.join(bindir,
                                 "scr_index") + " --prefix " + str(prefix)
 
