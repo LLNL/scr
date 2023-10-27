@@ -2,19 +2,20 @@
 
 The ``test*.py`` scripts can run independently.
 Most scripts can run without arguments.
-The following scripts accept the following arguments:
 
-``test_watchdog.py <launcher> <launcher args> <program> <program args>``
-ex: ``test_watchdog.py srun -N 2 -n 2 sleeper``
+The following scripts accept the following arguments::
 
-``test_launch.py <launcher> <launcher args> <program> <program args>``
-ex: ``test_launch.py srun -N 2 -n 2 test_api``
+    test_watchdog.py <launcher> <launcher args> <program> <program args>
+    # ex: test_watchdog.py srun -N 2 -n 2 sleeper
 
-``test_pdsh.py <launcher> <program> <program args>``
-ex: ``test_pdsh.py srun printer``
+    test_launch.py <launcher> <launcher args> <program> <program args>
+    # ex: test_launch.py srun -N 2 -n 2 test_api
 
-``test_flush_file.py <scr prefix directory>``
-specify the prefix directory, otherwise scrpy/tests is used
+    test_pdsh.py <launcher> <program> <program args>
+    # ex: test_pdsh.py srun printer
+
+    test_flush_file.py <scr prefix directory>
+    # specify the prefix directory, otherwise /libexec/python/tests is used
 
 The file ``runtest.sh`` iterates through all ``test*.py`` scripts.
 It can be run in one of three ways:
@@ -25,7 +26,7 @@ It can be run in one of three ways:
 
 # Usage instructions for ``runtest.sh`` for all use cases
 
-These variables at the top of runtest.sh must be set:
+These variables at the top of ``runtest.sh`` must be set:
 
     launcher="srun"  # options:{srun,jsrun,flux,aprun,mpirun,lrun}
                      # verify format of launcher args near the top of runtest.sh
@@ -59,10 +60,12 @@ These variables at the top of runtest.sh must be set:
 ## SLURM + flux
 
 Prepare the environment::
+
     cd install/libexec/python/tests
     source fluxenv.sh
 
 Setup your submission script::
+
     >>: cat submit.sh
     #!/usr/bin/bash
     #SBATCH -N, -J, -t, -p, -A, -o ...
@@ -71,9 +74,11 @@ Setup your submission script::
     srun -N 2 -n 2 flux start ./runtest.sh
 
 With these steps completed, submit the script::
+
     sbatch submit.sh
 
 ## SLURM + srun
 
 Same as above except with this execution command::
+
     ./runtest.sh
