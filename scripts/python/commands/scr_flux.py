@@ -4,10 +4,10 @@
 
 # add path holding scrjob to PYTHONPATH
 import sys
+
 sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 from scrjob.scr_run import scr_run, parseargs, print_usage
-
 
 if __name__ == '__main__':
     # just printing help, print the help and exit

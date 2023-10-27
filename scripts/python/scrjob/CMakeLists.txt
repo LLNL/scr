@@ -20,6 +20,7 @@ SET(PYFE_EXEC
   scrlog.py
   should_exit.py
   test_runtime.py
+  watchdog.py
 
   scr_ckpt_interval.py
   scr_check_node.py
@@ -31,7 +32,6 @@ SET(PYFE_EXEC
   scr_param.py
   scr_poststage.py
   scr_scavenge.py
-  scr_watchdog.py
 )
 
 FOREACH(pyscript IN ITEMS ${PYFE_EXEC})

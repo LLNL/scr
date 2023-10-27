@@ -81,9 +81,9 @@ class ResourceManager(object):
     def use_watchdog(self, watchdog=None):
         """Set or get the watchdog attribute.
 
-        When not using the SCR_Watchdog, a jobstep is launched and waited on.
+        When not using the Watchdog, a jobstep is launched and waited on.
 
-        When using the SCR_Watchdog, a jobstep is launched and waited on until a timeout.
+        When using the Watchdog, a jobstep is launched and waited on until a timeout.
         At each timeout, if the process is still running, a check is conducted for
         the existence of output files. If no new output files exist, it will be assumed
         that the launched process is hanging and it will be terminated.

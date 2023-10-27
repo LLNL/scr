@@ -4,7 +4,6 @@ import argparse
 
 import scrjob.glob_hosts as glob_hosts
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 

@@ -66,7 +66,7 @@ class JobLauncher(object):
         Override this implementation in any base class whose launch_run_cmd returns a different value,
         or if there is a different method used to wait on a process (blocking or with a timeout).
         The timeout will be none (wait until process terminates) or a numeric value indicating seconds.
-        A timeout value will exist when using SCR_Watchdog.
+        A timeout value will exist when using Watchdog.
 
         Returns
         -------

@@ -18,8 +18,7 @@ def scavenge(nodes_job=None,
     # check that we have a nodeset for the job and directories to read from / write to
     if nodes_job is None or dataset_id is None or cntldir is None or prefixdir is None:
         raise RuntimeError(
-            'scavenge: ERROR: nodeset, id, cntldir, or prefix not specified'
-        )
+            'scavenge: ERROR: nodeset, id, cntldir, or prefix not specified')
 
     libexecdir = scr_const.X_LIBEXECDIR
 
