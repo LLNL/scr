@@ -55,7 +55,7 @@ def testwatchdog(launcher, launcher_args):
 
     jobenv = JobEnv(launcher=launcher)
 
-    prefix = jobenv.get_prefix()
+    prefix = jobenv.dir_prefix()
     nodelist = jobenv.resmgr.job_nodes()
     down_nodes = jobenv.resmgr.down_nodes()
 
@@ -70,8 +70,8 @@ def testwatchdog(launcher, launcher_args):
 
     print('Launching command ' + ' '.join(launcher_args))
     proc, jobstep = jobenv.launcher.launch_run_cmd(up_nodes=nodelist,
-                                            down_nodes=down_nodes,
-                                            launcher_args=launcher_args)
+                                                   down_nodes=down_nodes,
+                                                   launcher_args=launcher_args)
 
     if proc is None or jobstep is None:
         print('Error launching the sleeper process!')
@@ -88,7 +88,7 @@ def testwatchdog(launcher, launcher_args):
         print('The watchdog failed to start')
         print('Waiting for the original process for 15 seconds')
         (finished, success) = jobenv.launcher.waitonprocess(proc=proc,
-                                                     timeout=timeout)
+                                                            timeout=timeout)
         if finished == True:
             print(
                 'The process is still running, asking the launcher to kill it . . .'

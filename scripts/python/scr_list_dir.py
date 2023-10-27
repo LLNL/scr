@@ -38,7 +38,7 @@ if __name__ == '__main__':
                         metavar='<id>',
                         type=str,
                         help='Specify the prefix directory.')
-    parser.add_argument('control/cache',
+    parser.add_argument('dirtype',
                         choices=['control', 'cache'],
                         metavar='<control | cache>',
                         nargs='?',
@@ -47,8 +47,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args['control/cache'] is None:
-        print('Control or cache must be specified.')
+    if args.dirtype is None:
+        print('One of [control, cache] must be specified.')
         sys.exit(1)
 
     # ensure jobenv is set
@@ -57,6 +57,6 @@ if __name__ == '__main__':
     dirs = list_dir(user=args.user,
                     jobid=args.jobid,
                     base=args.base,
-                    runcmd=args['control/cache'],
+                    runcmd=args.dirtype,
                     jobenv=jobenv)
     print(' '.join(dirs))
