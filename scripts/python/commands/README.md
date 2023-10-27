@@ -1,8 +1,10 @@
 # SCR user commands
-Along with other binaries, these scripts are copied to the /bin directory of an SCR installation.
+Along with other binaries, these scripts are copied to the ``/bin`` directory of an SCR installation.
 The scripts are installed with their executable bit set, and the ``.py`` suffix is dropped.
 These are user commands that are typically invoked interactively or from a batch job script.
 Detailed usage for the scripts in this directory is provided in the SCR user documentation.
+
+## SCR commands
 
 - ``scr_prerun``          - Execute before the first SCR job in an allocation
 - ``scr_postrun``         - Execute after the final SCR job in an allocation; scavenges any cached datasets
