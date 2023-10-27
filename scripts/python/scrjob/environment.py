@@ -2,7 +2,7 @@ import os
 
 from scrjob.common import scr_prefix
 from scrjob.resmgrs import AutoResourceManager
-from scrjob.scr_param import SCR_Param
+from scrjob.param import Param
 from scrjob.launchers import AutoJobLauncher
 from scrjob.cli.scr_nodes_file import SCRNodesFile
 
@@ -11,14 +11,14 @@ class JobEnv:
     """The JobEnv class tracks information relating to the SCR job environment.
 
     This class retrieves information from the environment.
-    This class contains pointers to the active Joblauncher, ResourceManager, and SCR_Param.
+    This class contains pointers to the active Joblauncher, ResourceManager, and Param.
 
     References to these other classes should be assigned following instantiation of this class.
 
     Attributes
     ----------
     prefix     - string, SCR_PREFIX value, initialized upon init or through scr_prefix()
-    param      - class, a reference to SCR_Param to read SCR param values
+    param      - class, a reference to Param to read SCR parameter values
     resmgr     - class, a reference to ResourceManager to query resource manager
     launcher   - class, a reference to Joblauncher for MPI job launcher
     """
@@ -33,7 +33,7 @@ class JobEnv:
         # which may be from environment or config files
         self.param = param
         if param is None:
-            self.param = SCR_Param()
+            self.param = Param()
 
         # resource manager to query job id and node list
         self.resmgr = resmgr

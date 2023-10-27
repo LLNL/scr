@@ -15,6 +15,7 @@ INSTALL(FILES ${PYFE} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 SET(PYFE_EXEC
   common.py
   list_down_nodes.py
+  param.py
   prerun.py
   postrun.py
   scavenge.py
@@ -29,7 +30,6 @@ SET(PYFE_EXEC
   scr_inspect.py
   scr_kill_jobstep.py
   scr_list_dir.py
-  scr_param.py
   scr_poststage.py
   scr_scavenge.py
 )

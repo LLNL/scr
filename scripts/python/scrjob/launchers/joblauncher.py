@@ -212,7 +212,7 @@ class JobLauncher(object):
         prog               string, the location of the scr_copy program.
         nodes_up           list(string), list of up nodes.
         nodes_down         list(string), list of down nodes.
-        cntldir            string, the control directory path, obtained from SCR_Param.
+        cntldir            string, the control directory path, obtained from Param.
         dataset_id         string, the dataset id.
         prefixdir          string, the prefix directory path.
         buf_size           string, set by $SCR_FILE_BUF_SIZE.

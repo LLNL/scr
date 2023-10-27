@@ -1,28 +1,30 @@
 #! /usr/bin/env python3
 
 import os
-import sys
 import re
 
 from scrjob import config
 from scrjob.common import interpolate_variables, scr_prefix
 
 
-class SCR_Param():
+class Param():
 
     def __init__(self):
         sysconf = config.SCR_CONFIG_FILE
+
         # get current working dir
         # use value in $SCR_PREFIX if set
         prefix = scr_prefix()
+
         # define user config file
         # use SCR_CONF_FILE if set
-        usrfile = os.environ.get('SCR_CONF_FILE')
         # if not set look in the prefix directory
+        usrfile = os.environ.get('SCR_CONF_FILE')
         if usrfile is None:
-            usrfile = prefix + '/.scrconf'
+            usrfile = os.path.join(prefix, '.scrconf')
+
         # read in the app configuration file, if specified
-        appfile = prefix + '/.scr/app.conf'
+        appfile = os.path.join(prefix, '.scr', 'app.conf')
 
         #if os.path.isfile(appfile) and os.access(appfile,'R_OK'):
         # better to just try than to check for permission
@@ -205,7 +207,7 @@ class SCR_Param():
 
 
 if __name__ == '__main__':
-    scr_param = SCR_Param()
+    scr_param = Param()
     for key in scr_param.compile:
         print('scr_param.compile[' + key + '] = ' +
               str(scr_param.compile[key]))
