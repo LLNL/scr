@@ -9,7 +9,7 @@ SET(PYFE_BIN
 #  scr_srun
 #  scr_jsrun
 #  scr_lrun
-#  scr_flux
+#  scr_fluxrun
 #  scr_mpirun
 )
 
