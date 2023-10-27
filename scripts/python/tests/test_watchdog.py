@@ -55,7 +55,7 @@ def testwatchdog(launcher, launcher_args):
 
     jobenv = JobEnv(launcher=launcher)
 
-    prefix = jobenv.get_prefix()
+    prefix = jobenv.dir_prefix()
     nodelist = jobenv.resmgr.job_nodes()
     down_nodes = jobenv.resmgr.down_nodes()
 

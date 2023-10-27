@@ -11,14 +11,14 @@ from scrjob.common import scr_prefix
 from scrjob.prerun import prerun
 from scrjob.watchdog import Watchdog
 from scrjob.environment import JobEnv
-from scrjob.scr_glob_hosts import scr_glob_hosts
+from scrjob.glob_hosts import glob_hosts
 
 
 # return number of nodes left in allocation after excluding down nodes
 def nodes_remaining(resmgr, nodelist, down_nodes):
-    num_left = scr_glob_hosts(count=True,
-                              minus=nodelist + ':' + down_nodes,
-                              resmgr=resmgr)
+    num_left = glob_hosts(count=True,
+                          minus=nodelist + ':' + down_nodes,
+                          resmgr=resmgr)
     if num_left is None:
         return 0
     return int(num_left)
@@ -33,9 +33,9 @@ def nodes_needed(jobenv, nodelist):
         num_needed = jobenv.get_runnode_count()
         if num_needed <= 0:
             # otherwise, assume we need all nodes in the allocation
-            num_needed = scr_glob_hosts(count=True,
-                                        hosts=nodelist,
-                                        resmgr=jobenv.resmgr)
+            num_needed = glob_hosts(count=True,
+                                    hosts=nodelist,
+                                    resmgr=jobenv.resmgr)
             if num_needed is None:
                 # failed all methods to estimate the minimum number of nodes
                 return 0

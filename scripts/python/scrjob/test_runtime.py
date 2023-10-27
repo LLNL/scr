@@ -108,7 +108,7 @@ if __name__ == '__main__':
     scr_prerun.
     """
     resmgr = AutoResourceManager()
-    tests = resmgr.get_prerun_tests()
+    tests = resmgr.prerun_tests()
     try:
         TestRuntime(tests)
     except:
