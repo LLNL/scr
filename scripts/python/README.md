@@ -1,16 +1,17 @@
 # Python scripts for managing an SCR job
 
-These scripts define an ``scrjob`` package that can be used to manage an SCR job.
-After installing SCR, the package is installed to ``/libexec/python/scrjob``.
+These scripts define and use an ``scrjob`` package which are used to manage an SCR job.
+Most files in this directory are installed to ``/libexec/python`` of an SCR installation.
 
 NOTE: Though a ``setup.py`` exists, it is not currently functional.
 
-# Commands installed to ``/libexec``
+- [commands](commands/README.md) - installed to ``/bin`` of an SCR installation
+- [scrjob](scrjob/README.md) - ``scrjob`` package files
+- [tests](tests/README.md) - tests for the ``scrjob`` package
 
-The files in this directory are installed to ``/libexec/python`` of an SCR installation.
-They are usually called by other SCR commands.
-These are not typically invoked by a user,
-though they may be helpful for debugging and testing.
+The following scripts are not typically invoked by a user,
+and they are not considered to be part of the user interface to SCR.
+However, these scripts are helpful for debugging and testing.
 
 - ``scr_check_node.py``    - Executed on each compute node to check its health
 - ``scr_ckpt_interval.py`` - Given an SCR log, compute estimate for optimal interval between checkpoints
@@ -21,38 +22,6 @@ though they may be helpful for debugging and testing.
 - ``scr_list_dir.py``      - Prints the current SCR control or cache directories
 - ``scr_poststage.py``     - Intended to be called to initiate a poststage operation where supported (non-functional)
 - ``scr_scavenge.py``      - Execute a scavenge operation to copy files from cache to the prefix directory
-
-Commands copied to ``/libexec/python`` refer to the ``scrjob`` package via relative path.
-
-# Commands installed to ``/bin``
-
-The scripts in ``commands`` are installed to ``/bin`` of an SCR installation.
-These are described in the user documentation,
-and they are executed directly by the user.
-Commands copied to ``/bin`` hardcode the path to the ``scrjob`` package at install time.
-See the [README](commands/README.md) for more information.
-
-# Testing
-
-The ``tests`` directory implements tests for the ``scrjob`` package.
-These are copied to ``libexec/python/tests`` of an SCR installation.
-See the [README](tests/README.md) for more information.
-
-To execute the tests, first acquire a two-node allocation.
-
-Then, ensure these variables at the top of ``runtest.sh`` are appropriate values:
-- ``launcher``
-- ``numnodes``
-- ``MPICC``
-
-There is a ``sleep`` in ``scr_run.py`` which can be reduced for testing.
-
-From an allocation, run the test script::
-
-    cd libexec/python/tests
-    ./runtest.sh
-
-To add additional test scripts, place a file whose name matches ``test*.py``.
 
 # ClusterShell (optional)
 
@@ -73,8 +42,6 @@ pip install ClusterShell
 To configure ClusterShell, see:
 - [ClusterShell config docs](https://clustershell.readthedocs.io/en/latest/config.html)
 - ``man clush.conf``
-
-## TODO
 
 Node groups can be bound together by differing lists.
 

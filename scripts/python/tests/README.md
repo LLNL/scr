@@ -24,6 +24,8 @@ It can be run in one of three ways:
 2. ``./runtest.sh scripts`` - only do the ``test*.py`` scripts, following 1 run of the ``test_api``
 3. ``./runtest.sh <word>`` - use some other word to only do the bottom of ``runtest.sh``
 
+To add additional test scripts, add a file whose name matches ``test*.py``.
+
 # Usage instructions for ``runtest.sh`` for all use cases
 
 These variables at the top of ``runtest.sh`` must be set:
