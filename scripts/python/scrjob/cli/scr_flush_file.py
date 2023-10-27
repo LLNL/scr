@@ -1,7 +1,6 @@
 import os
 
-from scrjob.scr_common import runproc
-from scrjob.scr_common import choose_bindir
+from scrjob.common import runproc, choose_bindir
 
 
 class SCRFlushFile:

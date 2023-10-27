@@ -13,6 +13,7 @@ ENDFOREACH(pyscript IN ITEMS ${PYFE})
 INSTALL(FILES ${PYFE} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 
 SET(PYFE_EXEC
+  common.py
   list_down_nodes.py
   prerun.py
   postrun.py
@@ -24,7 +25,6 @@ SET(PYFE_EXEC
 
   scr_ckpt_interval.py
   scr_check_node.py
-  scr_common.py
   scr_env.py
   scr_inspect.py
   scr_kill_jobstep.py

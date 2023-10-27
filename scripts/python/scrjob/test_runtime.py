@@ -4,7 +4,7 @@ import os
 import sys
 
 from scrjob import config
-from scrjob.scr_common import runproc
+from scrjob.common import runproc
 from scrjob.resmgrs import AutoResourceManager
 
 

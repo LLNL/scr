@@ -2,7 +2,7 @@
 
 import os
 from scrjob import config
-from scrjob.scr_common import runproc, pipeproc
+from scrjob.common import runproc, pipeproc
 from scrjob.resmgrs import nodetests, ResourceManager
 
 class PMIX(ResourceManager):

@@ -1,7 +1,7 @@
 import os
 from subprocess import TimeoutExpired
+
 from scrjob import config
-from scrjob.scr_common import interpolate_variables
 
 
 class JobLauncher(object):

@@ -12,9 +12,9 @@ import os
 from datetime import datetime
 from time import time, sleep
 
-from scrjob import config, scr_common
+from scrjob import config
 from scrjob.list_down_nodes import list_down_nodes
-from scrjob.scr_common import tracefunction, runproc, scr_prefix
+from scrjob.common import tracefunction, runproc, scr_prefix
 from scrjob.prerun import prerun
 from scrjob.postrun import postrun
 from scrjob.watchdog import Watchdog

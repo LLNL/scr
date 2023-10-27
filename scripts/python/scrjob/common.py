@@ -3,7 +3,8 @@
 
 import os
 import sys
-import argparse, inspect
+import argparse
+import inspect
 from subprocess import Popen, PIPE
 import shlex
 
@@ -13,7 +14,7 @@ from scrjob import config
 def tracefunction(frame, event, arg):
     """This method provides a hook for tracing python calls.
 
-    Usage:  sys.settrace(scr_common.tracefunction)
+    Usage:  sys.settrace(common.tracefunction)
     Prints: filename:function:linenum -> event
 
     The method below will be called on events as scripts execute.
@@ -373,8 +374,7 @@ def log(bindir=None,
 if __name__ == '__main__':
     """This script allows being called as a standalone script.
 
-    This is meant for testing purposes, to directly call scr_common
-    methods.
+    This is meant for testing purposes, to directly call methods.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--interpolate',

@@ -1,6 +1,6 @@
 import os
 
-from scrjob.scr_common import runproc, pipeproc
+from scrjob.common import runproc, pipeproc
 from scrjob.resmgrs import nodetests, ResourceManager
 
 

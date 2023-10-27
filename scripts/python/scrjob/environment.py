@@ -1,6 +1,6 @@
 import os
 
-from scrjob.scr_common import scr_prefix
+from scrjob.common import scr_prefix
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.scr_param import SCR_Param
 from scrjob.launchers import AutoJobLauncher

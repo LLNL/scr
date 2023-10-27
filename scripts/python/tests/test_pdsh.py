@@ -7,8 +7,8 @@ from time import sleep
 from scrjob import config
 from scrjob.postrun import postrun
 from scrjob.list_down_nodes import list_down_nodes
-from scrjob.scr_common import scr_prefix
-from scrjob.scr_prerun import scr_prerun
+from scrjob.common import scr_prefix
+from scrjob.prerun import prerun
 from scrjob.watchdog import Watchdog
 from scrjob.environment import JobEnv
 from scrjob.scr_glob_hosts import scr_glob_hosts
@@ -72,8 +72,8 @@ def getpdshout(launcher, launch_cmd):
         print('calling prepare_prerun . . .')
         jobenv.launcher.prepare_prerun()
         print('returned from prepare_prerun')
-    if scr_prerun(jobenv=jobenv) != 0:
-        print('testing: ERROR: Command failed: scr_prerun -p ' + prefix)
+    if prerun(jobenv=jobenv) != 0:
+        print('testing: ERROR: Command failed: prerun -p ' + prefix)
         print('This would terminate run')
     else:
         print('prerun returned success')

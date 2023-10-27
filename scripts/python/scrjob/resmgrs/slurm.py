@@ -2,7 +2,7 @@ import os
 import re
 import datetime
 
-from scrjob.scr_common import runproc, pipeproc
+from scrjob.common import runproc
 from scrjob.resmgrs import ResourceManager
 
 

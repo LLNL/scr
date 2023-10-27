@@ -1,7 +1,7 @@
 import os
 
 from scrjob import config, hostlist
-from scrjob.scr_common import scr_prefix
+from scrjob.common import scr_prefix
 from scrjob.resmgrs import Nodetests
 
 

@@ -2,7 +2,7 @@ from time import sleep
 
 from scrjob import config
 from scrjob.launchers import JobLauncher
-from scrjob.scr_common import runproc, pipeproc
+from scrjob.common import runproc
 
 
 class JSRUN(JobLauncher):

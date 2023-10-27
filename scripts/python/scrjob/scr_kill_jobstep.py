@@ -5,11 +5,8 @@ with the jobstep id supplied via the command line.
 This requires specifying both the joblauncher and a jobstep id.
 """
 
-import os
-import sys
 import argparse
 
-from scrjob.scr_common import runproc
 from scrjob.launchers import AutoJobLauncher
 
 if __name__ == '__main__':
@@ -35,9 +32,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     launcher = AutoJobLauncher(args.launcher)
-
     print('Joblauncher:')
     print(str(type(launcher)))
+
     print('Jobstep id: ' + args.jobStepId)
+
     print('Calling launcher.kill_jobstep . . .')
     launcher.kill_jobstep(jobstep=args.jobStepId)

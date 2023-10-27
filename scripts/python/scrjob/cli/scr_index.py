@@ -1,7 +1,7 @@
 import os
 
 from scrjob import config
-from scrjob.scr_common import runproc
+from scrjob.common import runproc
 
 
 class SCRIndex:

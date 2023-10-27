@@ -5,7 +5,7 @@ import sys
 import re
 
 from scrjob import config
-from scrjob.scr_common import interpolate_variables, scr_prefix
+from scrjob.common import interpolate_variables, scr_prefix
 
 
 class SCR_Param():

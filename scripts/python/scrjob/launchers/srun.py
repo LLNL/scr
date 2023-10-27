@@ -2,7 +2,7 @@ import os
 from time import sleep
 
 from scrjob import config
-from scrjob.scr_common import runproc, pipeproc
+from scrjob.common import runproc
 from scrjob.launchers import JobLauncher
 
 

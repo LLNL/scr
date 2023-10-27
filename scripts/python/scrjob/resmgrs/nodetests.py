@@ -1,6 +1,6 @@
 import os
 from scrjob import config
-from scrjob.scr_common import runproc
+from scrjob.common import runproc
 from scrjob.list_dir import list_dir
 
 

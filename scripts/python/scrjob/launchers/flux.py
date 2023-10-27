@@ -1,7 +1,7 @@
 import io, os, re
 from time import sleep, time
 
-from scrjob.scr_common import scr_prefix, runproc
+from scrjob.common import scr_prefix, runproc
 from scrjob.launchers import JobLauncher
 
 # flux imports
