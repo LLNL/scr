@@ -1,13 +1,11 @@
 #! /usr/bin/env python3
 
-# calls scr_run specifying to use launcher 'flux'
-
 # add path holding scrjob to PYTHONPATH
 import sys
 
 sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
-from scrjob.scr_run import scr_run, parseargs, print_usage
+from scrjob.run import run, parseargs, print_usage
 
 if __name__ == '__main__':
     # just printing help, print the help and exit
@@ -17,8 +15,8 @@ if __name__ == '__main__':
             arg.startswith('-rc') or arg.startswith('--run-cmd')
             or arg.startswith('-rs') or arg.startswith('--restart-cmd')
             for arg in sys.argv):
-        # then we were called with: scr_flux [launcher args]
-        scr_run(launcher='flux', launcher_args=sys.argv[1:])
+        # then we were called with: scr_fluxrun [launcher args]
+        run(launcher='flux', launcher_args=sys.argv[1:])
     else:
         # remove prepended flux args which have no use for us
         argv = sys.argv[1:]
@@ -28,8 +26,8 @@ if __name__ == '__main__':
             argv = argv[1:]
         launcher, launcher_args, run_cmd, restart_cmd, restart_args = parseargs(
             argv, launcher='flux')
-        scr_run(launcher='flux',
-                launcher_args=launcher_args,
-                run_cmd=run_cmd,
-                restart_cmd=restart_cmd,
-                restart_args=restart_args)
+        run(launcher='flux',
+            launcher_args=launcher_args,
+            run_cmd=run_cmd,
+            restart_cmd=restart_cmd,
+            restart_args=restart_args)

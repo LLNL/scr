@@ -1,29 +1,29 @@
-SET(PYFE
+SET(SCRJOB
   __init__.py
-  list_dir.py
-  parsetime.py
+  common.py
   environment.py
   hostlist.py
-)
-
-FOREACH(pyscript IN ITEMS ${PYFE})
-	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
-ENDFOREACH(pyscript IN ITEMS ${PYFE})
-
-INSTALL(FILES ${PYFE} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
-
-SET(PYFE_EXEC
-  common.py
+  list_dir.py
   list_down_nodes.py
   param.py
+  parsetime.py
   prerun.py
   postrun.py
+  run.py
   scavenge.py
   scrlog.py
   should_exit.py
   test_runtime.py
   watchdog.py
+)
 
+FOREACH(pyscript IN ITEMS ${SCRJOB})
+	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
+ENDFOREACH(pyscript IN ITEMS ${SCRJOB})
+
+INSTALL(FILES ${SCRJOB} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
+
+SET(SCRJOB_EXEC
   scr_ckpt_interval.py
   scr_check_node.py
   scr_env.py
@@ -34,18 +34,16 @@ SET(PYFE_EXEC
   scr_scavenge.py
 )
 
-FOREACH(pyscript IN ITEMS ${PYFE_EXEC})
+FOREACH(pyscript IN ITEMS ${SCRJOB_EXEC})
 	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
-ENDFOREACH(pyscript IN ITEMS ${PYFE_EXEC})
+ENDFOREACH(pyscript IN ITEMS ${SCRJOB_EXEC})
 
-INSTALL(FILES ${PYFE_EXEC}
-PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+INSTALL(FILES ${SCRJOB_EXEC}
         DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 
 CONFIGURE_FILE(config.py.in config.py @ONLY)
 SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/config.py PROPERTIES GENERATED TRUE)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/config.py
-PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
         DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 
 ADD_SUBDIRECTORY(cli)

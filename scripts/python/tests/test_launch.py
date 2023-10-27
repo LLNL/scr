@@ -115,8 +115,8 @@ def dolaunch(launcher, launch_cmd):
 
     print('testing: Launching ' + str(launch_cmd))
     proc, jobstep = jobenv.launcher.launch_run_cmd(up_nodes=nodelist,
-                                            down_nodes=down_nodes,
-                                            launcher_args=launch_cmd)
+                                                   down_nodes=down_nodes,
+                                                   launcher_args=launch_cmd)
     print('type(proc) = ' + str(type(proc)) + ', type(jobstep) = ' +
           str(type(jobstep)))
     print('proc = ' + str(proc))
