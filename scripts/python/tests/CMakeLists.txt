@@ -1,5 +1,5 @@
 SET(SCRJOB_TESTS_TXT
-  README.rst
+  README.md
   sleeper.c
   printer.c
 )

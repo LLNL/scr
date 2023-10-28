@@ -1,4 +1,5 @@
 SET(RESOURCEMANAGERS
+  README.md
   __init__.py
   auto.py
   flux.py

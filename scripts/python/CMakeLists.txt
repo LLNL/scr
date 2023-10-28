@@ -1,5 +1,5 @@
 SET(PYFE_TOP
-  README.rst
+  README.md
   LICENSE
   MANIFEST.in
   setup.py
