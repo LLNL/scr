@@ -1,4 +1,5 @@
 SET(JOBLAUNCHERS
+  README.md
   __init__.py
   aprun.py
   auto.py

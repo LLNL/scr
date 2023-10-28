@@ -1,4 +1,5 @@
 SET(SCRJOB
+  README.md
   __init__.py
   common.py
   environment.py

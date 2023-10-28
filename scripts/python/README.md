@@ -5,9 +5,9 @@ Most files in this directory are installed to ``/libexec/python`` of an SCR inst
 
 NOTE: Though a ``setup.py`` exists, it is not currently functional.
 
-- [commands](commands/README.md) - installed to ``/bin`` of an SCR installation
-- [scrjob](scrjob/README.md) - ``scrjob`` package files
-- [tests](tests/README.md) - tests for the ``scrjob`` package
+- ``/commands`` - scripts installed to ``/bin`` of an SCR installation
+- ``/scrjob`` - ``scrjob`` package files
+- ``/tests`` - tests for the ``scrjob`` package
 
 The following scripts are not typically invoked by a user,
 and they are not considered to be part of the user interface to SCR.

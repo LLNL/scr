@@ -1,4 +1,5 @@
 SET(SCRCLI
+  README.md
   __init__.py
   scr_flush_file.py
   scr_halt_cntl.py
