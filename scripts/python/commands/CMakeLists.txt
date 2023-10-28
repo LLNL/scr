@@ -24,6 +24,8 @@ ENDFOREACH(pyscript IN ITEMS ${SCRJOB_BIN})
 SET(SCRRUN_SH
   scr_srun_once.sh
   scr_srun_loop.sh
+  scr_jsrun_once.sh
+  scr_jsrun_loop.sh
 )
 
 FOREACH(script IN ITEMS ${SCRRUN_SH})
