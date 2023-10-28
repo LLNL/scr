@@ -18,56 +18,18 @@ from scrjob.list_down_nodes import list_down_nodes
 from scrjob.common import tracefunction, runproc, scr_prefix
 from scrjob.prerun import prerun
 from scrjob.postrun import postrun
+from scrjob.should_exit import should_exit
 from scrjob.watchdog import Watchdog
 from scrjob.environment import JobEnv
 from scrjob.cli import SCRLog, SCRRetriesHalt
-
-
-# print the reason for any down nodes
-def print_failed(reasons):
-    for node in sorted(reasons.keys()):
-        print("FAILED: " + node + ': ' + reasons[node])
-
-
-# determine how many nodes are needed
-def nodes_needed(jobenv, nodelist):
-    # if SCR_MIN_NODES is set, use that
-    num_needed = os.environ.get('SCR_MIN_NODES')
-    if num_needed is None or int(num_needed) <= 0:
-        # otherwise, use value in nodes file if one exists
-        num_needed = jobenv.runnode_count()
-        if num_needed <= 0:
-            # otherwise, assume we need all nodes in the allocation
-            num_needed = len(nodelist)
-            if num_needed == 0:
-                # failed all methods to estimate the minimum number of nodes
-                return 0
-    return int(num_needed)
-
-
-# return number of nodes left in allocation after excluding down nodes
-def nodes_subtract(nodes, nodes_remove):
-    temp = [n for n in nodes if n not in nodes_remove]
-    return temp
-
-
-# return number of nodes left in allocation after excluding down nodes
-def nodes_remaining(nodelist, down_nodes):
-    temp = nodes_subtract(nodelist, down_nodes)
-    return len(temp)
-
-
-# is there a halt condition instructing us to stop?
-def should_halt(bindir, prefix):
-    retries_halt = SCRRetriesHalt(prefix)
-    return retries_halt.check()
 
 
 def run(launcher='',
         launcher_args=[],
         run_cmd='',
         restart_cmd='',
-        restart_args=[]):
+        restart_args=[],
+        verbose=False):
     prog = 'scr_' + launcher
 
     bindir = config.X_BINDIR
@@ -80,7 +42,6 @@ def run(launcher='',
         sys.exit(returncode)
 
     # turn on verbosity
-    verbose = False
     val = os.environ.get('SCR_DEBUG')
     if val is not None and int(val) > 0:
         verbose = True
@@ -93,7 +54,8 @@ def run(launcher='',
     # make a record of start time
     timestamp = datetime.now()
     start_secs = int(time())
-    print(prog + ': Started: ' + str(timestamp))
+    if verbose:
+        print(prog + ': Started: ' + str(timestamp))
 
     # get prefix directory
     prefix = scr_prefix()
@@ -111,8 +73,7 @@ def run(launcher='',
     # We need the jobid for logging, and need to be running within an allocation
     # for operations such as scavenge.  This test serves both purposes.
     if jobid is None:
-        print(prog + f': ERROR: No valid job ID or not in an allocation.')
-        sys.exit(1)
+        raise RuntimeError(f'No valid job ID or not in an allocation.')
 
     # create object to write log messages
     log = SCRLog(prefix, jobid, user=user, jobstart=start_secs)
@@ -122,8 +83,7 @@ def run(launcher='',
     if not nodelist:
         nodelist = jobenv.resmgr.job_nodes()
     if not nodelist:
-        print(prog + f': ERROR: Could not identify nodeset for job {jobid}')
-        sys.exit(1)
+        raise RuntimeError(f'Could not identify nodeset for job {jobid}')
 
     watchdog = None
     val = os.environ.get('SCR_WATCHDOG')
@@ -137,20 +97,16 @@ def run(launcher='',
 
     # make a record of time prerun is started
     timestamp = datetime.now()
-    print(prog + ': prerun: ' + str(timestamp))
+    if verbose:
+        print(prog + ': prerun: ' + str(timestamp))
 
     # test runtime, ensure filepath exists
-    try:
-        prerun(jobenv=jobenv, verbose=verbose)
-    except Exception as e:
-        print(prog + ': ERROR: Command failed: scr_prerun -p ' + prefix)
-        print(e)
-        sys.exit(1)
+    prerun(jobenv=jobenv, verbose=verbose)
 
     # look up allocation end time, record in SCR_END_TIME
     endtime = jobenv.resmgr.end_time()
     if endtime == 0:
-        if verbose == True:
+        if verbose:
             print(prog + ': WARNING: Unable to get end time.')
     os.environ['SCR_END_TIME'] = str(endtime)
 
@@ -179,11 +135,11 @@ def run(launcher='',
     down_nodes = []
     attempts = 0
     while True:
-        # once we mark a node as bad, leave it as bad (even if it comes back healthy)
-        # TODO: This hacks around the problem of accidentally deleting a checkpoint set during distribute
-        #       when a relaunch lands on previously down nodes, which are healthy again.
-        #       A better way would be to remember the last set used, or to provide a utility to run on *all*
-        #       nodes to distribute files (also useful for defragging the machine) -- for now this works.
+        # Once we mark a node as bad, leave it as bad (even if it comes back healthy).
+        # This hacks around the problem of accidentally deleting a checkpoint set during distribute
+        # when a relaunch lands on previously down nodes, which are healthy again.
+        # A better way would be to remember the last set used, or to provide a utility to run on *all*
+        # nodes to distribute files (also useful for defragging the machine) -- for now this works.
         keep_down = down_nodes
 
         # set "first run" flag, let individual tests decide how to handle that
@@ -196,36 +152,25 @@ def run(launcher='',
                                   runtime_secs='0',
                                   jobenv=jobenv,
                                   log=log)
-        print_failed(reasons)
+        if verbose:
+            for node in sorted(list(reasons.keys())):
+                print(prog + ": FAILED: " + node + ': ' + reasons[node])
 
-        down_nodes = sorted(reasons.keys())
+        down_nodes = sorted(list(reasons.keys()))
         down_str = ','.join(down_nodes)
 
-        # bail out if we don't have enough nodes to continue
-        if down_nodes:
-            # if this is the first run, we hit down nodes right off the bat, make a record of them
-            if first_run:
-                start_secs = int(time())
-                print('SCR: Failed node detected: JOBID=' + jobid +
-                      ' ATTEMPT=0 TIME=' + str(start_secs) +
-                      ' NNODES=-1 RUNTIME=0 FAILED=' + down_str)
+        # if this is the first run, we hit down nodes right off the bat, make a record of them
+        if down_nodes and first_run and verbose:
+            start_secs = int(time())
+            print('SCR: Failed node detected: JOBID=' + jobid +
+                  ' ATTEMPT=0 TIME=' + str(start_secs) +
+                  ' NNODES=-1 RUNTIME=0 FAILED=' + down_str)
 
-            # determine how many nodes are needed
-            num_needed = nodes_needed(jobenv, nodelist)
-            if num_needed <= 0:
-                print(prog +
-                      ': ERROR: Unable to determine number of nodes needed')
-                break
-
-            # determine number of nodes remaining in allocation
-            num_left = nodes_remaining(nodelist, down_nodes)
-
-            # check that we have enough nodes after excluding down nodes
-            if num_left < num_needed:
-                print(prog + ': (Nodes remaining=' + str(num_left) +
-                      ') < (Nodes needed=' + str(num_needed) +
-                      '), ending run.')
-                break
+        # check that we have enough nodes
+        if should_exit(jobenv, down_nodes, verbose=verbose):
+            if verbose:
+                print(prog + ': Halt condition detected, ending run.')
+            break
 
         launch_cmd = launcher_args.copy()
         if run_cmd != '':
@@ -252,85 +197,71 @@ def run(launcher='',
         timestamp = datetime.now()
         start_secs = int(time())
         log.event('RUN_START', note='run=' + str(attempts))
-        print(prog + ': RUN ' + str(attempts) + ': ' + str(timestamp))
+        if verbose:
+            print(prog + ': RUN ' + str(attempts) + ': ' + str(timestamp))
 
         # launch the job, make sure we include the script node and exclude down nodes
-        print(prog + ': Launching ' + str(launch_cmd))
+        if verbose:
+            print(prog + ': Launching ' + str(launch_cmd))
         proc, jobstep = jobenv.launcher.launch_run_cmd(
             up_nodes=nodelist, down_nodes=down_str, launcher_args=launch_cmd)
+
         if watchdog is None:
             finished, success = jobenv.launcher.waitonprocess(proc)
         else:
-            print(prog + ': Entering watchdog method')
+            if verbose:
+                print(prog + ': Entering watchdog method')
             # watchdog returned error or a watcher process was launched
             if watchdog.watchproc(proc, jobstep) != 0:
-                print(prog + ': Error launching watchdog')
+                if verbose:
+                    print(prog + ': Error launching watchdog')
                 finished, success = jobenv.launcher.waitonprocess(proc)
             # else the watchdog returned because the process has finished/been killed
             else:
                 #TODO: verify this really works for case where watchproc() returns 0 / succeeds
                 finished, success = jobenv.launcher.waitonprocess(proc)
 
-        #print('Process has finished or has been terminated.')
-
+        # log stats on the latest run attempt
         end_secs = int(time())
         run_secs = end_secs - start_secs
-
-        # log stats on the latest run attempt
         log.event('RUN_END', note='run=' + str(attempts), secs=str(run_secs))
 
-        # check for and log any down nodes
-        reasons = list_down_nodes(reason=True,
-                                  nodes_down=keep_down,
-                                  runtime_secs=str(run_secs),
-                                  jobenv=jobenv,
-                                  log=log)
-        print_failed(reasons)
+        # run ended, check whether we should exit right away
+        if should_exit(jobenv, down_nodes, verbose=verbose):
+            if verbose:
+                print(prog + ': Halt condition detected, ending run.')
+            break
 
+        # TODO: move the SCR_RUNS logic into should_exit
         # decrement retry counter
         runs -= 1
         if runs == 0:
-            print(prog + ': ' + totalruns + ' launches exhausted, ending run.')
-            break
-
-        # is there a halt condition instructing us to stop?
-        halt_cond = should_halt(bindir, prefix)
-        if halt_cond:
-            print(prog + ': Halt condition detected, ending run.')
+            if verbose:
+                print(prog + ': ' + totalruns +
+                      ' launches exhausted, ending run.')
             break
 
         ##### Reduce this sleep time when testing scripts #####
         # give nodes a chance to clean up
-        sleep(60)
-
-        # check for halt condition again after sleep
-        halt_cond = should_halt(bindir, prefix)
-        if halt_cond:
-            print(prog + ': Halt condition detected, ending run.')
-            break
+        sleep_secs = 60
+        if verbose:
+            print(
+                f'{prog} : Sleeping {sleep_secs} secs before relaunch to let system settle.'
+            )
+        sleep(sleep_secs)
 
     # make a record of time postrun is started
     timestamp = datetime.now()
-    print(prog + ': postrun: ' + str(timestamp))
+    if verbose:
+        print(prog + ': postrun: ' + str(timestamp))
 
     # scavenge files from cache to parallel file system
-    try:
-        postrun(prefix_dir=prefix, jobenv=jobenv, verbose=verbose, log=log)
-    except Exception as e:
-        print(prog + ': ERROR: Command failed: scr_postrun -p ' + prefix)
-        print(e)
-        success = False
+    postrun(prefix_dir=prefix, jobenv=jobenv, verbose=verbose, log=log)
 
     # make a record of end time
     timestamp = datetime.now()
-    print(prog + ': Ended: ' + str(timestamp))
-
-    if finished == True and success == True:
-        returncode = 0
-    else:
-        returncode = 1
-
-    sys.exit(returncode)
+    if verbose:
+        print(prog + ': Ended: ' + str(timestamp))
 
 
 def print_usage(launcher=''):
