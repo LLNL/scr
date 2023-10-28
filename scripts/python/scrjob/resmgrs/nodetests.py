@@ -1,13 +1,12 @@
 import os
+
 from scrjob import config
 from scrjob.common import runproc
-from scrjob.list_dir import list_dir
 
 
 class Nodetests:
 
     def __init__(self):
-        # The list_dir() method uses a free flag iff it is the first run
         # other tests could perform alternate behavior during first/subsequent runs
         self.firstrun = True
         # the ping executable
@@ -119,87 +118,49 @@ class Nodetests:
         return unavailable
 
     # mark nodes that fail the capacity check
-    def dir_capacity(
-            self,
-            nodes=[],
-            #free=False, ###free is only true during the _first_ run
-            jobenv=None):
-        cntldir_string = list_dir(base=True, runcmd='control', jobenv=jobenv)
-        cachedir_string = list_dir(base=True, runcmd='cache', jobenv=jobenv)
-        unavailable = {}
-        param = jobenv.param
-        # specify whether to check total or free capacity in directories
-        #if free: free_flag = '--free'
+    def dir_capacity(self, nodes=[], jobenv=None):
+        # prepare values to check control directory
+        cntl_vals = []
+        cntl_dirs = jobenv.dir_control(base=True)
+        cntl_sizes = jobenv.param.get_hash('CNTLDIR')
+        if cntl_sizes is not None:
+            for val in cntl_dirs:
+                if val in cntl_sizes and 'BYTES' in cntl_sizes[val]:
+                    size = list(cntl_sizes[base]['BYTES'].keys())[0]
+                    size = jobenv.param.abtoull(size)
+                    val += ':' + str(size)
+                cntl_vals.append(val)
 
-        # check that control and cache directories on each node work and are of proper size
-        # get the control directory the job will use
-        cntldir_vals = []
-        # cntldir_string = `$bindir/scr_list_dir --base control`;
-        if type(cntldir_string) is str and len(cntldir_string) != 0:
-            dirs = cntldir_string.split(' ')
-            cntldirs = param.get_hash('CNTLDIR')
-            for base in dirs:
-                if len(base) < 1:
-                    continue
-                val = base
-                if cntldirs is not None and base in cntldirs and 'BYTES' in cntldirs[
-                        base]:
-                    if len(cntldirs[base]['BYTES'].keys()) > 0:
-                        size = list(cntldirs[base]['BYTES'].keys())[
-                            0]  #(keys %{$$cntldirs{$base}{"BYTES"}})[0];
-                        #if (defined $size) {
-                        size = param.abtoull(size)
-                        #  $size = $param->abtoull($size);
-                        val += ':' + str(size)
-                        #  $val = "$base:$size";
-                cntldir_vals.append(val)
+        # prepare values to check cache directories
+        cache_vals = []
+        cache_dirs = jobenv.dir_cache(base=True)
+        cache_sizes = jobenv.param.get_hash('CACHEDIR')
+        if cache_sizes is not None:
+            for val in cache_dirs:
+                if val in cache_sizes and 'BYTES' in cache_sizes[val]:
+                    size = list(cache_sizes[base]['BYTES'].keys())[0]
+                    size = jobenv.param.abtoull(size)
+                    val += ':' + str(size)
+                cache_vals.append(val)
 
-        cntldir_flag = []
-        if len(cntldir_vals) > 0:
-            cntldir_flag = ['--cntl', ','.join(cntldir_vals)]
-
-        # get the cache directory the job will use
-        cachedir_vals = []
-        #`$bindir/scr_list_dir --base cache`;
-        if type(cachedir_string) is str and len(cachedir_string) != 0:
-            dirs = cachedir_string.split(' ')
-            cachedirs = param.get_hash('CACHEDIR')
-            for base in dirs:
-                if len(base) < 1:
-                    continue
-                val = base
-                if cachedirs is not None and base in cachedirs and 'BYTES' in cachedirs[
-                        base]:
-                    if len(cachedirs[base]['BYTES'].keys()) > 0:
-                        size = list(cachedirs[base]['BYTES'].keys())[0]
-                        #my $size = (keys %{$$cachedirs{$base}{"BYTES"}})[0];
-                        #if (defined $size) {
-                        size = param.abtoull(size)
-                        #  $size = $param->abtoull($size);
-                        val += ':' + str(size)
-                        #  $val = "$base:$size";
-                cachedir_vals.append(val)
-
-        cachedir_flag = []
-        if len(cachedir_vals) > 0:
-            cachedir_flag = ['--cache', ','.join(cachedir_vals)]
+        # run scr_check_node on each node specifying control and cache directories to check
+        check_exe = os.path.join(config.X_LIBEXECDIR, 'python',
+                                 'scr_check_node.py')
+        argv = [check_exe]
+        if self.firstrun:
+            argv.append('--free')
+        if cntl_vals:
+            argv.extend(['--cntl', ','.join(cntl_vals)])
+        if cache_vals:
+            argv.extend(['--cache', ','.join(cache_vals)])
 
         # only run this against set of nodes known to be responding
         upnodes = jobenv.resmgr.compress_hosts(nodes)
-
-        # run scr_check_node on each node specifying control and cache directories to check
-        argv = [
-            os.path.join(config.X_LIBEXECDIR, 'python', 'scrjob',
-                         'scr_check_node.py')
-        ]
-        if self.firstrun:
-            argv.append('--free')
-        argv.extend(cntldir_flag)
-        argv.extend(cachedir_flag)
         output = jobenv.launcher.parallel_exec(argv=argv,
                                                runnodes=upnodes)[0][0]
-        action = 0  # tracking action to use range iterator and follow original line <- shift flow
-        nodeset = ''
+
+        # drop any nodes that report FAIL
+        unavailable = {}
         for line in output.split('\n'):
             if line == '':
                 continue

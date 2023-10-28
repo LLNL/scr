@@ -4,29 +4,11 @@ import sys
 import argparse
 
 from scrjob.environment import JobEnv
-from scrjob.list_dir import list_dir
 
 if __name__ == '__main__':
-    """This is an external driver for the internal list_dir method.
+    """This is an external driver to determine control and cache directories."""
 
-    This script is for stand-alone purposes and is not used within other
-    scripts
-
-    This script can be used to test the list_dir method of list_dir.py
-    """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-u',
-                        '--user',
-                        default=None,
-                        metavar='<user>',
-                        type=str,
-                        help='Specify username.')
-    parser.add_argument('-j',
-                        '--jobid',
-                        default=None,
-                        metavar='<id>',
-                        type=str,
-                        help='Specify jobid.')
     parser.add_argument('-b',
                         '--base',
                         action='store_true',
@@ -47,16 +29,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.dirtype is None:
+    jobenv = JobEnv(prefix=args.prefix)
+
+    if args.dirtype == 'cache':
+        dirs = jobenv.dir_cache(base=args.base)
+    elif args.dirtype == 'control':
+        dirs = jobenv.dir_control(base=args.base)
+    else:
         print('One of [control, cache] must be specified.')
         sys.exit(1)
 
-    # ensure jobenv is set
-    jobenv = JobEnv(prefix=args.prefix)
-
-    dirs = list_dir(user=args.user,
-                    jobid=args.jobid,
-                    base=args.base,
-                    runcmd=args.dirtype,
-                    jobenv=jobenv)
     print(' '.join(dirs))

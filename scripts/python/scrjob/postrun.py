@@ -4,7 +4,6 @@ import os
 from datetime import datetime
 from time import time
 
-from scrjob.list_dir import list_dir
 from scrjob.scavenge import scavenge
 from scrjob.list_down_nodes import list_down_nodes
 from scrjob.cli import SCRIndex, SCRFlushFile
@@ -120,7 +119,7 @@ def postrun(prefix_dir=None, jobenv=None, verbose=False, log=None):
         raise RuntimeError('scr_postrun: ERROR: No remaining upnodes')
 
     # get list of control directories
-    cntldirs = list_dir(runcmd='control', jobenv=jobenv)
+    cntldirs = jobenv.dir_control()
     cntldir = cntldirs[0]
 
     # TODODSET: avoid scavenging things unless it's in this list

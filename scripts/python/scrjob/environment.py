@@ -68,6 +68,39 @@ class JobEnv:
         prefix/.scr/scr.dataset.<id>"""
         return os.path.join(self.dir_scr(), 'scr.dataset.' + str(d))
 
+    def _append_userjob(self, dirs):
+        user = self.user()
+        jobid = self.resmgr.job_id()
+        return [os.path.join(d, user, 'scr.' + jobid) for d in dirs]
+
+    def dir_cache(self, base=False):
+        # lookup cache base directories
+        desc = self.param.get_hash('CACHE')
+        if type(desc) is dict:
+            dirs = list(desc.keys())
+        elif desc is not None:
+            dirs = [desc]
+        else:
+            raise RuntimeError('Unable to get parameter CACHE.')
+
+        if not base:
+            dirs = self._append_userjob(dirs)
+        return dirs
+
+    def dir_control(self, base=False):
+        # lookup cntl base directories
+        desc = self.param.get('SCR_CNTL_BASE')
+        if type(desc) is dict:
+            dirs = list(desc.keys())
+        elif type(desc) is not None:
+            dirs = [desc]
+        else:
+            raise RuntimeError('Unable to get parameter SCR_CNTL_BASE.')
+
+        if not base:
+            dirs = self._append_userjob(dirs)
+        return dirs
+
     def runnode_count(self):
         """Return the number of nodes used in the last run, if known."""
         nodes_file = SCRNodesFile(prefix=self.prefix)
