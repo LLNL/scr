@@ -23,14 +23,14 @@
 #
 # One should call scr_postrun to scavenge any datasets from cache.
 
-# TODO: set this to the SCR_PREFIX directory
+# path to SCR install /bin directory
+scrbin="@X_BINDIR@"
+
+# NOTE: set this to your SCR_PREFIX directory
 scr_prefix=`pwd`
 
-# path to SCR install /bin directory
-bindir="@X_BINDIR@"
-
 # prepare allocation for SCR
-$bindir/scr_prerun -p $scr_prefix
+${scrbin}/scr_prerun -p $scr_prefix
 if [ $? -ne 0 ] ; then
   echo "ERROR: scr_prerun -p $scr_prefix"
   exit 1
@@ -61,7 +61,7 @@ while [ 1 ] ; do
   fi
 
   # check whether we should stop running
-  $bindir/scr_should_exit -p $scr_prefix
+  ${scrbin}/scr_should_exit -p $scr_prefix
   if [ $? == 0 ] ; then
     echo "Halt condition detected, ending run."
     break
@@ -76,14 +76,14 @@ while [ 1 ] ; do
   if [ "$down_nodes" != "" ] ; then
     keep_down="--down $down_nodes"
   fi
-  down_nodes=`$bindir/scr_list_down_nodes $keep_down`
+  down_nodes=`${scrbin}/scr_list_down_nodes $keep_down`
 
   # in case of new down nodes, check whether we should stop again
   keep_down=""
   if [ "$down_nodes" != "" ] ; then
     keep_down="--down $down_nodes"
   fi
-  $bindir/scr_should_exit -p $scr_prefix $keep_down
+  ${scrbin}/scr_should_exit -p $scr_prefix $keep_down
   if [ $? == 0 ] ; then
     echo "Halt condition detected, ending run."
     break
@@ -91,4 +91,4 @@ while [ 1 ] ; do
 done
 
 # scavenge files from cache to prefix directory
-$bindir/scr_postrun -p $scr_prefix -j jsrun
+${scrbin}/scr_postrun -p $scr_prefix -j jsrun
