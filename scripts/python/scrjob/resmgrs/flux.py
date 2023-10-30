@@ -1,6 +1,6 @@
 import os
 
-from scrjob.resmgrs import nodetests, ResourceManager
+from scrjob.resmgrs import ResourceManager
 
 # flux imports
 try:

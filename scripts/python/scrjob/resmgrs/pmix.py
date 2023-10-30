@@ -3,7 +3,7 @@
 import os
 from scrjob import config
 from scrjob.common import runproc, pipeproc
-from scrjob.resmgrs import nodetests, ResourceManager
+from scrjob.resmgrs import ResourceManager
 
 class PMIX(ResourceManager):
   # init initializes vars from the environment
@@ -55,22 +55,6 @@ class PMIX(ResourceManager):
   def kill_jobstep(self,jobid=-1):
     print('pmix does not support this')
     return 1
-
-  # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,nodes=[], jobenv=None, free=False, cntldir_string=None, cachedir_string=None):
-    unavailable = {}
-    ### is theres way to get a list of down nodes in pmix?
-    #unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes, resmgr_nodes=self.expand_hosts(self.down_nodes()))
-    nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
-    unavailable.update(nextunavail)
-    if jobenv is not None and jobenv.param is not None:
-      exclude_nodes = self.expand_hosts(jobenv.param.get('SCR_EXCLUDE_NODES'))
-      nextunavail = nodetests.list_param_excluded_nodes(nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
-      unavailable.update(nextunavail)
-      # assert jobenv.resmgr == self
-      nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, jobenv=jobenv, cntldir_string=cntldir_string, cachedir_string=cachedir_string)
-      unavailable.update(nextunavail)
-    return unavailable
 
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]

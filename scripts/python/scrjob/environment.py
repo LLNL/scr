@@ -1,9 +1,10 @@
 import os
 
 from scrjob.common import scr_prefix
-from scrjob.resmgrs import AutoResourceManager
 from scrjob.param import Param
+from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher
+from scrjob.nodetests import NodeTests
 from scrjob.cli.scr_nodes_file import SCRNodesFile
 
 
@@ -45,6 +46,8 @@ class JobEnv:
             self.launcher = AutoJobLauncher()
         else:
             self.launcher = AutoJobLauncher(launcher)
+
+        self.nodetests = NodeTests()
 
     def user(self):
         """Return the username from the environment."""

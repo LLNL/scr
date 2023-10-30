@@ -11,8 +11,6 @@ The auto class, AutoResourceManager, should remain located at the bottom of this
 New resource manager classes must be inserted in the middle section.
 """
 
-from .nodetests import Nodetests
-
 from .resourcemanager import ResourceManager
 
 from .slurm import SLURM
