@@ -14,9 +14,9 @@ Detailed usage for the scripts in this directory is provided in the SCR user doc
 
 ## scr\_run
 
-The ``scr_run`` script and its variants provide a high-level wrapper around the above scipts.
-They can automatically relaunch a job and avoid down nodes after detecting a failure,
-and they scavenge any cached datasets before exiting the allocation.
+The ``scr_run`` script provides a high-level wrapper around the above scipts.
+It can automatically relaunch a job and avoid down nodes after detecting a failure,
+and it scavenges any cached datasets before exiting the allocation.
   
 Usage:
  
@@ -34,16 +34,3 @@ If not restarting or ``scr_have_restart`` returns ``None``:
 If restarting and the most recent checkpoint name is identified,  
 instances of `SCR_CKPT_NAME` will be replaced with the checkpoint name in the restart command:  
 ``<launcher> <launcher args> <restart command>``  
- 
-## scr\_run variants
-
-The ``scr_*run`` scripts use the same semantics as ``scr_run``.
- 
-The other scripts provide a shorthand to launch ``scr_run``, for example these are equivalent:  
-``scr_run srun -N 1 test_api`` <==> ``scr_srun -N 1 test_api``  
-
-- ``scr_srun`` - launcher = ``srun``
-- ``scr_jsrun`` - launcher = ``jsrun``
-- ``scr_fluxrun`` - launcher = ``flux``
-- ``scr_lrun``  - launcher = ``lrun``
-- ``scr_mpirun`` - launcher = ``mpirun``
