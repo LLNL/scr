@@ -44,21 +44,6 @@ class SRUN(JobLauncher):
         else:
             return proc, proc
 
-    # perform a generic pdsh / clustershell command
-    # returns [ [ stdout, stderr ] , returncode ]
-    def parallel_exec(self, argv=[], runnodes=[]):
-        if len(argv) == 0:
-            return [['', ''], 0]
-        if self.clustershell_task != False:
-            return self.clustershell_exec(argv=argv, runnodes=runnodes)
-        runnodes = ",".join(runnodes)
-        pdshcmd = [
-            config.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes,
-            'srun', '-n', '1', '-N', '1', '-w', '%h'
-        ]
-        pdshcmd.extend(argv)
-        return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
-
     # query SLURM for the most recent jobstep in current allocation
     def jobstep_id(self, pid):
         ### TODO: If we allow this to be toggled, we have to get the user and allocid!

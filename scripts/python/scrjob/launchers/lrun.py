@@ -20,15 +20,3 @@ class LRUN(JobLauncher):
             argv.append('--exclude_hosts=' + down_nodes)
         argv.extend(launcher_args)
         return runproc(argv=argv, wait=False)
-
-    # perform a generic pdsh / clustershell command
-    # returns [ [ stdout, stderr ] , returncode ]
-    def parallel_exec(self, argv=[], runnodes=[]):
-        if len(argv) == 0:
-            return [['', ''], 0]
-        if self.clustershell_task != False:
-            return self.clustershell_exec(argv=argv, runnodes=runnodes)
-        runnodes = ",".join(runnodes)
-        pdshcmd = [config.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
-        pdshcmd.extend(argv)
-        return runproc(argv=pdshcmd, getstdout=True, getstderr=True)

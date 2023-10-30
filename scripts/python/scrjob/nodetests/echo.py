@@ -14,7 +14,7 @@ class Echo(NodeTest):
 
         # run an "echo UP" on each node to check whether it works
         argv = ['echo', 'UP']
-        output = self.parexec(argv, nodes, jobenv)[0][0]
+        output = jobenv.rexec.rexec(argv, nodes, jobenv)[0][0]
 
         # drop nodes from assumed down list if they responded with 'UP' message
         for line in output.split('\n'):

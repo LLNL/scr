@@ -46,7 +46,7 @@ class DirCapacity(NodeTest):
         if cache_vals:
             argv.extend(['--cache', ','.join(cache_vals)])
 
-        output, rc = self.parexec(argv, nodes, jobenv)
+        output, rc = jobenv.rexec.rexec(argv, nodes, jobenv)
 
         failed = {}
 
