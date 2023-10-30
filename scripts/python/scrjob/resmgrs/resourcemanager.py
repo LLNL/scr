@@ -2,7 +2,7 @@ import os
 
 from scrjob import config, hostlist
 from scrjob.common import scr_prefix
-from scrjob.resmgrs import Nodetests
+from scrjob.nodetests import Nodetests
 
 
 class ResourceManager(object):
@@ -304,7 +304,7 @@ class ResourceManager(object):
         nodes     a list or a comma separated string
         jobenv    the JobEnv object
 
-        The Nodetests object from resmgr/nodetests.py contains all tests.
+        The Nodetests object from nodetests.py contains all tests.
         The tests which will be performed should be set either:
           When self.nodetests is instantiated (in init of Nodetests):
             by constant list in config.py

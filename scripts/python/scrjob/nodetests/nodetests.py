@@ -7,10 +7,12 @@ from scrjob.common import runproc
 class Nodetests:
 
     def __init__(self):
-        # other tests could perform alternate behavior during first/subsequent runs
+        # tests may perform different behavior during first vs subsequent runs
         self.firstrun = True
-        # the ping executable
+
+        # path to the ping executable
         self.pingexe = 'ping'
+
         # First try to read the environment variable
         self.tests = os.environ.get('SCR_NODE_TESTS')
         if self.tests is not None:
@@ -20,8 +22,8 @@ class Nodetests:
         elif config.SCR_NODE_TESTS_FILE != '':
             try:
                 self.tests = []
-                with open(config.SCR_NODE_TESTS_FILE, 'r') as infile:
-                    for line in infile.readlines():
+                with open(config.SCR_NODE_TESTS_FILE, 'r') as f:
+                    for line in f.readlines():
                         line = line.strip()
                         if line != '':
                             self.tests.extend(line.split(','))
@@ -31,39 +33,39 @@ class Nodetests:
         else:
             self.tests = []
 
+    def _drop_failed(self, failed, nodes):
+        # drop any failed nodes from the list
+        # we do this to avoid running further tests on nodes already marked as down
+        for node in failed.keys():
+            if node in nodes:
+                nodes.remove(node)
+
     def __call__(self, nodes=[], jobenv=None):
         if type(nodes) is str:
             nodes = nodes.split(',')
+
         # This method returns a dictionary of unavailable nodes
         #   keyed on node with the reason as the value
         unavailable = {}
+
         # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
-        nodelist = jobenv.resmgr.expand_hosts(
-            jobenv.param.get('SCR_EXCLUDE_NODES'))
-        for node in nodelist:
-            if node == '':
-                continue
-            if node in nodes:
-                nodes.remove(node)
-            unavailable[node] = 'User excluded via SCR_EXCLUDE_NODES'
+        failed = self.user_excluded(nodes, jobenv)
+        self._drop_failed(failed, nodes)
+        unavailable.update(failed)
+
         # mark the set of nodes the resource manager thinks is down
-        nodelist = jobenv.resmgr.down_nodes()
-        for node in nodelist:
-            if node == '':
-                continue
-            if node in nodes:
-                nodes.remove(node)
-            unavailable[node] = nodelist[node]
+        failed = self.resmgr_down(nodes, jobenv)
+        self._drop_failed(failed, nodes)
+        unavailable.update(failed)
+
         # iterate through user selected tests
         for test in self.tests:
-            # if all of the nodes have failed discontinue the tests
-            if nodes == []:
-                break
             try:
                 testmethod = getattr(self, test)
                 if callable(testmethod):
-                    nextunavailable = testmethod(nodes=nodes, jobenv=jobenv)
-                    unavailable.update(nextunavailable)
+                    failed = testmethod(nodes=nodes, jobenv=jobenv)
+                    self._drop_failed(failed, nodes)
+                    unavailable.update(failed)
                 else:
                     print('Nodetests: ERROR: ' + test +
                           ' is defined but is not a test method.')
@@ -74,48 +76,71 @@ class Nodetests:
                 print('Nodetests: ERROR: Unable to perform the ' + test +
                       ' test.')
                 print(e)
+
         # allow alternate behavior on subsequent runs
         self.firstrun = False
+
         return unavailable
+
+    def user_excluded(self, nodes=[], jobenv=None):
+        # mark any nodes to explicitly exclude via SCR_EXCLUDE_NODES
+        failed = {}
+        exclude_nodes = jobenv.param.get('SCR_EXCLUDE_NODES')
+        nodelist = jobenv.resmgr.expand_hosts(exclude_nodes)
+        for node in nodelist:
+            failed[node] = 'User excluded via SCR_EXCLUDE_NODES'
+        return failed
+
+    def resmgr_down(self, nodes=[], jobenv=None):
+        # mark the set of nodes the resource manager thinks is down
+        failed = {}
+        nodelist = jobenv.resmgr.down_nodes()
+        for node in nodelist:
+            failed[node] = nodelist[node]
+        return failed
 
     # mark any nodes that fail to respond to (up to 2) ping(s)
     def ping(self, nodes=[], jobenv=None):
-        unavailable = {}
-        # `$ping -c 1 -w 1 $node 2>&1 || $ping -c 1 -w 1 $node 2>&1`;
-        argv = [self.pingexe, '-c', '1', '-w', '1', '']
+        """Attempt to ping each node."""
+        failed = {}
         for node in nodes:
-            argv[5] = node
+            # ping -c 1 -w 1 <host>
+            argv = [self.pingexe, '-c', '1', '-w', '1', node]
             returncode = runproc(argv=argv)[1]
             if returncode != 0:
+                # ping failed, try one more time just to be sure
                 returncode = runproc(argv=argv)[1]
                 if returncode != 0:
-                    unavailable[node] = 'Failed to ping'
-        for node in unavailable:
-            if node in nodes:
-                nodes.remove(node)
-        return unavailable
+                    # ping failed twice, consider it down
+                    failed[node] = 'Failed to ping'
+        return failed
 
     # mark any nodes that don't respond to pdsh echo up
     def pdsh_echo(self, nodes=[], jobenv=None):
-        unavailable = {}
+        # assume all nodes are down
         pdsh_assumed_down = nodes.copy()
-        # only run this against set of nodes known to be responding
+
         # run an "echo UP" on each node to check whether it works
+        upnodes = jobenv.resmgr.compress_hosts(nodes)
         output = jobenv.launcher.parallel_exec(argv=['echo', 'UP'],
-                                               runnodes=','.join(nodes))[0][0]
+                                               runnodes=upnodes)[0][0]
+
+        # drop nodes from assumed down list if they responded with 'UP' message
         for line in output.split('\n'):
             if len(line) == 0:
                 continue
+
             if 'UP' in line:
                 uphost = line.split(':')[0]
                 if uphost in pdsh_assumed_down:
                     pdsh_assumed_down.remove(uphost)
 
-        # if we still have any nodes assumed down, update our available/unavailable lists
+        # check for any nodes still assumed down
+        # this will be the set that failed to print an 'UP' messagee
+        failed = {}
         for node in pdsh_assumed_down:
-            nodes.remove(node)
-            unavailable[node] = 'Failed to pdsh echo UP'
-        return unavailable
+            failed[node] = 'Failed to pdsh echo UP'
+        return failed
 
     # mark nodes that fail the capacity check
     def dir_capacity(self, nodes=[], jobenv=None):
@@ -160,14 +185,14 @@ class Nodetests:
                                                runnodes=upnodes)[0][0]
 
         # drop any nodes that report FAIL
-        unavailable = {}
+        failed = {}
         for line in output.split('\n'):
             if line == '':
                 continue
+
             if 'FAIL' in line:
                 parts = line.split(':')
                 node = parts[0]
-                if node in nodes:
-                    nodes.remove(node)
-                    unavailable[node] = parts[1][1:]
-        return unavailable
+                failed[node] = parts[1][1:]
+
+        return failed

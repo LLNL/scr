@@ -4,7 +4,6 @@ SET(RESOURCEMANAGERS
   auto.py
   flux.py
   lsf.py
-  nodetests.py
   pbsalps.py
   pmix.py
   resourcemanager.py

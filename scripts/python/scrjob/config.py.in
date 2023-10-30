@@ -14,8 +14,8 @@ PDSH_EXE = '@PDSH_EXE@'
 SCR_RESOURCE_MANAGER = '@SCR_RESOURCE_MANAGER@'
 """
 Nodetests to run during list_down_nodes
-Tests must be methods of class Nodetests in resmgr/nodetests.py
-ping: remove remove nodes that don't respond to a ping from the root node
+Tests must be methods of class Nodetests in nodetests/nodetests.py
+ping: remove nodes that don't respond to a ping from the root node
 pdsh_echo: remove nodes that don't respond to pdsh echo UP
 dir_capacity: remove nodes that fail scr_check_node.py
 """
