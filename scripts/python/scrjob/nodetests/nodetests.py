@@ -3,6 +3,8 @@ import os
 from scrjob import config
 
 from scrjob.nodetests import (
+    SCRExcludeNodes,
+    ResMgrDown,
     Ping,
     Echo,
     DirCapacity,
@@ -11,9 +13,8 @@ from scrjob.nodetests import (
 
 class NodeTests(object):
 
-    def __init__(self, jobenv):
+    def __init__(self):
         self.firstrun = True
-        self.jobenv = jobenv
 
         # The tests which will be performed should be set either:
         # When self.nodetests is instantiated (in init of Nodetests):
@@ -38,17 +39,24 @@ class NodeTests(object):
                     if line != '':
                         tests.extend(line.split(','))
         else:
-            tests = []
+            tests = ['ping', 'echo', 'dir_capacity']
 
         # build list of tests to be executed according to list
         self.tests = []
+
+        # nodes listed in SCR_EXCLUDE_NODES
+        self.tests.append(SCRExcludeNodes())
+
+        # nodes listed by resource manager to be down
+        self.tests.append(ResMgrDown())
+
         for name in tests:
             if name == 'ping':
-                self.tests.append(Ping(jobenv))
+                self.tests.append(Ping())
             elif name == 'echo':
-                self.tests.append(Echo(jobenv))
+                self.tests.append(Echo())
             elif name == 'dir_capacity':
-                self.tests.append(DirCapacity(jobenv))
+                self.tests.append(DirCapacity())
 
     def _drop_failed(self, failed, nodes):
         # drop any failed nodes from the list
@@ -57,26 +65,20 @@ class NodeTests(object):
             if node in nodes:
                 nodes.remove(node)
 
-    def execute(self, nodes):
-        """Return a dictionary of down nodes"""
+    def execute(self, nodes, jobenv):
+        """Return a dictionary of down nodes."""
 
         # This method returns a dictionary of unavailable nodes
         # keyed by node name with the reason as the value
         unavailable = {}
 
-        # nodes listed in SCR_EXCLUDE_NODES
-        failed = self.user_excluded(nodes)
-        self._drop_failed(failed, nodes)
-        unavailable.update(failed)
-
-        # nodes the resource manager thinks to be down
-        failed = self.resmgr_down(nodes)
-        self._drop_failed(failed, nodes)
-        unavailable.update(failed)
+        # the tests modify the node to avoid re-testing nodes
+        # that are identified to be down by earlier tests
+        nodes = nodes.copy()
 
         # run tests against remaining nodes
         for t in self.tests:
-            failed = t.execute(nodes)
+            failed = t.execute(nodes, jobenv)
             self._drop_failed(failed, nodes)
             unavailable.update(failed)
 
@@ -84,20 +86,3 @@ class NodeTests(object):
         self.firstrun = False
 
         return unavailable
-
-    def user_excluded(self, nodes):
-        # nodes excluded via SCR_EXCLUDE_NODES
-        failed = {}
-        exclude_nodes = self.jobenv.param.get('SCR_EXCLUDE_NODES')
-        nodelist = self.jobenv.resmgr.expand_hosts(exclude_nodes)
-        for node in nodelist:
-            failed[node] = 'User excluded via SCR_EXCLUDE_NODES'
-        return failed
-
-    def resmgr_down(self, nodes):
-        # nodes the resource manager thinks is down
-        failed = {}
-        nodelist = self.jobenv.resmgr.down_nodes()
-        for node in nodelist:
-            failed[node] = nodelist[node]
-        return failed

@@ -2,7 +2,6 @@ import os
 
 from scrjob import config, hostlist
 from scrjob.common import scr_prefix
-from scrjob.nodetests import Nodetests
 
 
 class ResourceManager(object):
@@ -43,7 +42,6 @@ class ResourceManager(object):
     prefix               - String returned from scr_prefix()
     resmgr               - String representation of the resource manager
     watchdog             - A boolean indicating whether to use the watchdog method
-    nodetests            - An instance of the Nodetests class
     """
 
     def __init__(self, resmgr='unknown'):
@@ -57,7 +55,6 @@ class ResourceManager(object):
         self.prefix = scr_prefix()
         self.resmgr = resmgr
         self.watchdog = False
-        self.nodetests = Nodetests()
 
     def prerun_tests(self):
         """This method returns a list of tests to perform during scr_prerun.

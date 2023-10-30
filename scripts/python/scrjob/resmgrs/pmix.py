@@ -3,7 +3,7 @@
 import os
 from scrjob import config
 from scrjob.common import runproc, pipeproc
-from scrjob.resmgrs import nodetests, ResourceManager
+from scrjob.resmgrs import ResourceManager
 
 class PMIX(ResourceManager):
   # init initializes vars from the environment

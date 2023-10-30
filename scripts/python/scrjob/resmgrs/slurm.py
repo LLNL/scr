@@ -11,12 +11,6 @@ class SLURM(ResourceManager):
     def __init__(self):
         super(SLURM, self).__init__(resmgr='SLURM')
 
-        ### need default configs.
-        if 'ping' not in self.nodetests.tests:
-            self.nodetests.tests.append('ping')
-        if 'dir_capacity' not in self.nodetests.tests:
-            self.nodetests.tests.append('dir_capacity')
-
     # get a list of tests, methods that exist in the class TestRuntime
     # these tests will be ran during scr_prerun
     def prerun_tests(self):

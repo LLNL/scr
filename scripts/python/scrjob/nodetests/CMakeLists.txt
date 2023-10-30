@@ -2,7 +2,10 @@ SET(NODETESTS
   README.md
   __init__.py
   nodetests.py
+  nodetest.py
 
+  scr_exclude_nodes.py
+  resmgr.py
   ping.py
   echo.py
   dir_capacity.py

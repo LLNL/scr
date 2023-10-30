@@ -2,15 +2,13 @@ import os, re
 from time import time
 
 from scrjob.common import runproc
-from scrjob.resmgrs import nodetests, ResourceManager
+from scrjob.resmgrs import ResourceManager
 
 
 class LSF(ResourceManager):
     # init initializes vars from the environment
     def __init__(self):
         super(LSF, self).__init__(resmgr='LSF')
-        if 'pdsh_echo' not in self.nodetests.tests:
-            self.nodetests.tests.append('pdsh_echo')
 
     # get LSF jobid
     def job_id(self):

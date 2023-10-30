@@ -1,17 +1,13 @@
 import os
 
 from scrjob.common import runproc, pipeproc
-from scrjob.resmgrs import nodetests, ResourceManager
+from scrjob.resmgrs import ResourceManager
 
 
 class PBSALPS(ResourceManager):
     # init initializes vars from the environment
     def __init__(self, env=None):
         super(PBSALPS, self).__init__(resmgr='PBSALPS')
-        if 'ping' not in self.nodetests.tests:
-            self.nodetests.tests.append('ping')
-        if 'dir_capacity' not in self.nodetests.tests:
-            self.nodetests.tests.append('dir_capacity')
 
     # get job id, setting environment flag here
     def job_id(self):

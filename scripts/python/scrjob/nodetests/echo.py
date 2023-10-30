@@ -4,17 +4,17 @@ from scrjob.nodetests import NodeTest
 class Echo(NodeTest):
     """Attempt to echo "UP" from each node."""
 
-    def __init__(self, jobenv):
-        super(Echo, self).__init__(jobenv)
+    def __init__(self):
+        pass
 
     # mark any nodes that fail to respond to (up to 2) ping(s)
-    def execute(self, nodes):
+    def execute(self, nodes, jobenv):
         # assume all nodes are down
         assume_down = nodes.copy()
 
         # run an "echo UP" on each node to check whether it works
         argv = ['echo', 'UP']
-        output = self.parexec(argv, nodes)[0][0]
+        output = self.parexec(argv, nodes, jobenv)[0][0]
 
         # drop nodes from assumed down list if they responded with 'UP' message
         for line in output.split('\n'):

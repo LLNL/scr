@@ -47,7 +47,7 @@ class JobEnv:
         else:
             self.launcher = AutoJobLauncher(launcher)
 
-        self.nodetests = NodeTests(self)
+        self.nodetests = NodeTests()
 
     def user(self):
         """Return the username from the environment."""
