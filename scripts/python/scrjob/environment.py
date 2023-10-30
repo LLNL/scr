@@ -1,10 +1,12 @@
 import os
 
+from scrjob import config
 from scrjob.common import scr_prefix
 from scrjob.param import Param
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher
 from scrjob.nodetests import NodeTests
+from scrjob.remoteexec import Pdsh, ClusterShell
 from scrjob.cli.scr_nodes_file import SCRNodesFile
 
 
@@ -48,6 +50,11 @@ class JobEnv:
             self.launcher = AutoJobLauncher(launcher)
 
         self.nodetests = NodeTests()
+
+        if config.USE_CLUSTERSHELL == '1':
+            self.rexec = ClusterShell()
+        else:
+            self.rexec = Pdsh(launcher=launcher)
 
     def user(self):
         """Return the username from the environment."""

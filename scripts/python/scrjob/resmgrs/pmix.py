@@ -55,38 +55,4 @@ class PMIX(ResourceManager):
   def kill_jobstep(self,jobid=-1):
     print('pmix does not support this')
     return 1
-
-  # perform a generic pdsh / clustershell command
-  # returns [ [ stdout, stderr ] , returncode ]
-  def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
-    if len(argv)==0:
-      return [ [ '', '' ], 0 ]
-    if self.clustershell is not None:
-      return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
-    pdshcmd = [config.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
-    pdshcmd.extend(argv)
-    if use_dshbak:
-      argv = [ pdshcmd, [config.DSHBAK_EXE, '-c'] ]
-      return pipeproc(argvs=argv,getstdout=True,getstderr=True)
-    return runproc(argv=pdshcmd,getstdout=True,getstderr=True)
-
-  # perform the scavenge files operation
-  # uses either pdsh or clustershell
-  # returns a list -> [ 'stdout', 'stderr' ]
-  def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
-    argv = []
-    cppr_lib = config.CPPR_LDFLAGS
-    if cppr_lib.startswith('-L'):
-      cppr_lib = cppr_lib[2:]
-      ldpath = os.environ.get('LD_LIBRARY_PATH')
-      if ldpath is None:
-        ldpath=''
-      argv.append('LD_LIBRARY_PATH='+cpprlib+':'+ldpath)
-    cppr_prefix = os.environ.get('CPPR_PREFIX')
-    if cppr_prefix is not None:
-      argv.append('CPPR_PREFIX='+cppr_prefix)
-    argv.extend([prog, '--cntldir', cntldir, '--id', dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag])
-    argv.append(downnodes_spaced)
-    output = self.parallel_exec(argv=argv,runnodes=self.job_nodes(),use_dshbak=False)[0]
-    return output
 """

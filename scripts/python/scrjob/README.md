@@ -9,7 +9,10 @@ Users with python-based job scripts may find value in directly using the ``scrjo
 
 - ``/cli``               - Wrappers for certain SCR executables
 - ``/launchers``         - MPI job launcher classes
+- ``/nodetests``         - Node health check classes
+- ``/remoteexec``        - Remote command execution classes
 - ``/resmgrs``           - Resource manager classes
+
 - ``common.py``          - Functions for running subprocess commands
 - ``config.py.in``       - Captures values selected during configuration
 - ``environment.py``     - JobEnv: provides access to SCR parameters, resource manager, and job launcher
@@ -28,5 +31,7 @@ Users with python-based job scripts may find value in directly using the ``scrjo
 - ``watchdog.py``        - Watchdog: launches a command, monitors its progress, and kills if a timeout expires
 
 SCR supports a few common resource managers (SLURM, LSF, and Flux) and MPI job launchers (``srun``, ``jsrun``, ``flux run``).
+
 To add a new resource manager, see [resmgrs/README](resmgrs/README.md).
+
 To add a new MPI job launcher, see [launchers/README](launchers/README.md).

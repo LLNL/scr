@@ -43,39 +43,6 @@ class APRUN(JobLauncher):
         else:
             return proc, proc
 
-    # perform a generic pdsh / clustershell command
-    # returns [ [ stdout, stderr ] , returncode ]
-    def parallel_exec(self, argv=[], runnodes=''):
-        if len(argv) == 0:
-            return [['', ''], 0]
-        if self.clustershell_task != False:
-            return self.clustershell_exec(argv=argv, runnodes=runnodes)
-        pdshcmd = [
-            config.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes
-        ]
-        pdshcmd.extend(argv)
-        return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
-
-    # perform the scavenge files operation
-    # uses either pdsh or clustershell
-    # returns a list -> [ 'stdout', 'stderr' ]
-    def scavenge_files(self,
-                       prog='',
-                       upnodes='',
-                       downnodes_spaced='',
-                       cntldir='',
-                       dataset_id='',
-                       prefixdir='',
-                       buf_size='',
-                       crc_flag=''):
-        argv = [
-            'aprun', '-n', '1', 'L', '%h', prog, '--cntldir', cntldir, '--id',
-            dataset_id, '--prefix', prefixdir, '--buf', buf_size, crc_flag
-        ]
-        argv.append(downnodes_spaced)
-        output = self.parallel_exec(argv=argv, runnodes=upnodes)[0]
-        return output
-
     def jobstep_id(self, pid=-1):
         # allow launched job to show in apstat
         sleep(10)

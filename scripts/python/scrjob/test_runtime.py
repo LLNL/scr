@@ -67,9 +67,9 @@ class TestRuntime:
         """This method tests the validity of the pdsh command.
 
         The pdsh executable, whose path is determined by
-        config.PDSH_EXE, is used in the Joblauncher.parallel_exec method
-        to execute a command in parallel on multiple nodes and retrieve
-        each node's output and return code.
+        config.PDSH_EXE, is used as a RemoteExec method to execute a
+        command on multiple nodes and retrieve each node's output and
+        return code.
 
         This test will return failure if we are unable to confirm
         PDSH_EXE is valid.

@@ -15,13 +15,22 @@ def scavenge(nodes_job=None,
              verbose=False,
              jobenv=None,
              log=None):
+    """Scavenge files for a dataset id from cache to the prefix directory.
+
+    Arguments
+    ---------
+    nodes_job          list of nodes in the allocation.
+    nodes_up           list of up nodes.
+    nodes_down         list of down nodes.
+    dataset_id         string, the dataset id.
+    cntldir            string, the control directory path, obtained from Param.
+    prefixdir          string, the prefix directory path.
+    """
 
     # check that we have a nodeset for the job and directories to read from / write to
     if nodes_job is None or dataset_id is None or cntldir is None or prefixdir is None:
         raise RuntimeError(
             'scavenge: ERROR: nodeset, id, cntldir, or prefix not specified')
-
-    libexecdir = config.X_LIBEXECDIR
 
     # TODO: need to be able to set these defaults via config settings somehow
     # for now just hardcode the values
@@ -33,11 +42,11 @@ def scavenge(nodes_job=None,
     if buf_size is None:
         buf_size = str(1024 * 1024)
 
-    crc_flag = os.environ.get('SCR_CRC_ON_FLUSH')
-    if crc_flag is None:
-        crc_flag = '--crc'
-    elif crc_flag == '0':
-        crc_flag = ''
+    # enable CRC on flush by default
+    crc_flag = '--crc'
+    crc_val = os.environ.get('SCR_CRC_ON_FLUSH')
+    if crc_val == '0':
+        crc_flag = None
 
     start_time = int(time())
 
@@ -61,15 +70,24 @@ def scavenge(nodes_job=None,
         print('scavenge: ' + str(int(time())))
 
     # have the launcher class gather files via pdsh or clustershell
-    copy_exe = os.path.join(libexecdir, 'scr_copy')
-    consoleout = jobenv.launcher.scavenge_files(prog=copy_exe,
-                                                nodes_up=nodes_up,
-                                                nodes_down=nodes_down,
-                                                cntldir=cntldir,
-                                                dataset_id=dataset_id,
-                                                prefixdir=prefixdir,
-                                                buf_size=buf_size,
-                                                crc_flag=crc_flag)
+    copy_exe = os.path.join(config.X_LIBEXECDIR, 'scr_copy')
+    argv = [
+        copy_exe,
+        '--id',
+        str(dataset_id),
+        '--cntldir',
+        cntldir,
+        '--prefix',
+        prefixdir,
+        '--buf',
+        buf_size,
+    ]
+    if crc_flag:
+        argv.append(crc_flag)
+    if nodes_down:
+        downstr = ' '.join(nodes_down)
+        argv.append(downstr)
+    consoleout = jobenv.rexec.rexec(argv, nodes_up, jobenv)[0]
 
     # print output to screen
     try:

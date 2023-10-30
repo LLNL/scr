@@ -29,9 +29,6 @@ class ResourceManager(object):
     intersect_hosts()
       returns the intersection of 2 node lists
 
-    scavenge_nodelists()
-      returns upnodes and downnodes formatted for scavenge operation
-
     Other Methods
     -------------
     Other methods should be implemented in derived classes as appropriate.
@@ -288,35 +285,3 @@ class ResourceManager(object):
             return set1
 
         return hostlist.intersect(set1, set2)
-
-    # each scavenge operation needs upnodes and downnodes_spaced
-    def scavenge_nodelists(self, upnodes=[], downnodes=[]):
-        """Return formatted upnodes and downnodes for joblaunchers' scavenge
-        operation.
-
-        Input parameters upnodes and downnodes are comma separated strings or lists.
-
-        Returns
-        -------
-        upnodes     string, a comma separated list of up nodes
-        downnodes   string, a space separated list of down nodes
-        """
-
-        # get nodes in job
-        jobnodes = self.job_nodes()
-        if not jobnodes:
-            raise RuntimeError(
-                'scr_scavenge: ERROR: Could not determine nodeset.')
-
-        if downnodes:
-            upnodes = self.diff_hosts(jobnodes, downnodes)
-        elif upnodes:
-            downnodes = self.diff_hosts(jobnodes, upnodes)
-        else:
-            upnodes = jobnodes
-            downnodes = []
-
-        # format up and down node sets for scavenge command
-        upnodes = self.join_hosts(upnodes)
-        downnodes = ' '.join(downnodes)
-        return upnodes, downnodes

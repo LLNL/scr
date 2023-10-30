@@ -110,7 +110,7 @@ def getpdshout(launcher, launch_cmd):
     print('num_left = ' + str(num_left))
 
     print('testing: Getting output from: ' + str(launch_cmd))
-    output = jobenv.launcher.parallel_exec(argv=launch_cmd, runnodes=nodelist)
+    output = jobenv.rexec.rexec(argv=launch_cmd, nodes=nodelist, jobenv)
     print('###\n# stdout:')
     print(output[0][0])
     print('###\n# stderr:')

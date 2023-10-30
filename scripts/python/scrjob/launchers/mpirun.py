@@ -36,17 +36,3 @@ class MPIRUN(JobLauncher):
             )
             print('launcher file: \"' + self.hostfile + '\"')
             return None, None
-
-    # perform a generic pdsh / clustershell command
-    # returns [ [ stdout, stderr ] , returncode ]
-    def parallel_exec(self, argv=[], runnodes=[]):
-        if len(argv) == 0:
-            return [['', ''], 0]
-        if self.clustershell_task != False:
-            return self.clustershell_exec(argv=argv, runnodes=runnodes)
-        runnodes = ",".join(runnodes)
-        pdshcmd = [
-            config.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes
-        ]
-        pdshcmd.extend(argv)
-        return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
