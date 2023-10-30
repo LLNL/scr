@@ -2,6 +2,10 @@ SET(NODETESTS
   README.md
   __init__.py
   nodetests.py
+
+  ping.py
+  echo.py
+  dir_capacity.py
 )
 
 FOREACH(pyscript IN ITEMS ${NODETESTS})

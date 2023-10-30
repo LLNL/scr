@@ -30,9 +30,6 @@ class ResourceManager(object):
     intersect_hosts()
       returns the intersection of 2 node lists
 
-    list_down_nodes_with_reason()
-      returns a dictionary of nodes reported down according to tests in self.nodetests
-
     scavenge_nodelists()
       returns upnodes and downnodes formatted for scavenge operation
 
@@ -294,31 +291,6 @@ class ResourceManager(object):
             return set1
 
         return hostlist.intersect(set1, set2)
-
-    # return a hash to define all unavailable (down or excluded) nodes and reason
-    def list_down_nodes_with_reason(self, nodes=[], jobenv=None):
-        """Return down nodes with the reason they are down.
-
-        Parameters
-        ----------
-        nodes     a list or a comma separated string
-        jobenv    the JobEnv object
-
-        The Nodetests object from nodetests.py contains all tests.
-        The tests which will be performed should be set either:
-          When self.nodetests is instantiated (in init of Nodetests):
-            by constant list in config.py
-            by file input, where the filename is specified in config.py
-          Or manually by adding test names to the self.nodetests.nodetests list
-          in your resource manager's init after super().__init__
-
-        Returns
-        -------
-        dict
-            dictionary of reported down nodes, keyed by node with reasons as values
-        """
-        unavailable = self.nodetests(nodes=nodes, jobenv=jobenv)
-        return unavailable
 
     # each scavenge operation needs upnodes and downnodes_spaced
     def scavenge_nodelists(self, upnodes=[], downnodes=[]):

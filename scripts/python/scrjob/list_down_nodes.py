@@ -29,8 +29,7 @@ def list_down_nodes(reason=False,
 
     # get a dictionary of all unavailable (down or excluded) nodes and reason
     # keys are nodes and the values are the reasons
-    unavailable = jobenv.resmgr.list_down_nodes_with_reason(nodes=nodes,
-                                                            jobenv=jobenv)
+    unavailable = jobenv.nodetests.execute(nodes)
 
     # account for nodes we were told to exclude
     for node in nodes_down:
