@@ -138,6 +138,11 @@ ENDIF(ENABLE_FORTRAN)
 # Individual binaries generated from a single .c file
 #    scr_inspect_cache
 LIST(APPEND cliscr_c_bins
+    scr_index
+    scr_print
+)
+
+LIST(APPEND cliscr_c_libexec
     scr_crc32
     scr_flush_file
     scr_halt_cntl
@@ -146,11 +151,9 @@ LIST(APPEND cliscr_c_bins
     scr_nodes_file
     scr_retries_halt
     scr_copy
-    scr_index
     scr_rebuild_xor
     scr_rebuild_partner
     scr_rebuild_rs
-    scr_print
 )
 
 # CLI binaries that require full SCR library
@@ -163,6 +166,12 @@ FOREACH(bin IN ITEMS ${cliscr_c_bins})
     ADD_EXECUTABLE(${bin} ${bin}.c)
     TARGET_LINK_LIBRARIES(${bin} scr_base)
     INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
+ENDFOREACH(bin IN ITEMS ${cliscr_c_bins})
+
+FOREACH(bin IN ITEMS ${cliscr_c_libexec})
+    ADD_EXECUTABLE(${bin} ${bin}.c)
+    TARGET_LINK_LIBRARIES(${bin} scr_base)
+    INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
 ENDFOREACH(bin IN ITEMS ${cliscr_c_bins})
 
 # Build and install CLI binaries that link full SCR library

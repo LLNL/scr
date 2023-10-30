@@ -1,6 +1,6 @@
-from scrjob import scr_const
+from scrjob import config
 from scrjob.launchers import JobLauncher
-from scrjob.scr_common import runproc, pipeproc
+from scrjob.common import runproc
 
 
 class LRUN(JobLauncher):
@@ -29,6 +29,6 @@ class LRUN(JobLauncher):
         if self.clustershell_task != False:
             return self.clustershell_exec(argv=argv, runnodes=runnodes)
         runnodes = ",".join(runnodes)
-        pdshcmd = [scr_const.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
+        pdshcmd = [config.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
         pdshcmd.extend(argv)
         return runproc(argv=pdshcmd, getstdout=True, getstderr=True)

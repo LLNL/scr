@@ -1,7 +1,7 @@
 import os
-from scrjob import scr_const, scr_hostlist
-from scrjob.scr_common import scr_prefix
-from scrjob.resmgrs import Nodetests
+
+from scrjob import config, hostlist
+from scrjob.common import scr_prefix
 
 
 class ResourceManager(object):
@@ -29,11 +29,8 @@ class ResourceManager(object):
     intersect_hosts()
       returns the intersection of 2 node lists
 
-    list_down_nodes_with_reason()
-      returns a dictionary of nodes reported down according to tests in self.nodetests
-
     scavenge_nodelists()
-      returns upnodes and downnodes formatted for scr_scavenge
+      returns upnodes and downnodes formatted for scavenge operation
 
     Other Methods
     -------------
@@ -45,12 +42,11 @@ class ResourceManager(object):
     prefix               - String returned from scr_prefix()
     resmgr               - String representation of the resource manager
     watchdog             - A boolean indicating whether to use the watchdog method
-    nodetests            - An instance of the Nodetests class
     """
 
     def __init__(self, resmgr='unknown'):
         self.clustershell_nodeset = False
-        if scr_const.USE_CLUSTERSHELL != '0':
+        if config.USE_CLUSTERSHELL != '0':
             try:
                 import ClusterShell.NodeSet as MyCSNodeSet
                 self.clustershell_nodeset = MyCSNodeSet
@@ -59,19 +55,18 @@ class ResourceManager(object):
         self.prefix = scr_prefix()
         self.resmgr = resmgr
         self.watchdog = False
-        self.nodetests = Nodetests()
 
     def prerun_tests(self):
         """This method returns a list of tests to perform during scr_prerun.
 
-        Test methods must be defined in the SCR_Test_Runtime class in scr_test_runtime.py.
+        Test methods must be defined in the TestRuntime class in scr_test_runtime.py.
         Tests ensure the environment will function with SCR and may vary between environments.
         See scr_test_runtime.py for more information on tests available and to add additional tests.
 
         Returns
         -------
         list
-            A list of strings, where each string is a static method in the SCR_Test_Runtime class
+            A list of strings, where each string is a static method in the TestRuntime class
         """
         # The check_clustershell method only returns failure when ClusterShell is enabled yet
         # we are unable to import the ClusterShell module, this is a safe test for all managers
@@ -80,9 +75,9 @@ class ResourceManager(object):
     def use_watchdog(self, watchdog=None):
         """Set or get the watchdog attribute.
 
-        When not using the SCR_Watchdog, a jobstep is launched and waited on.
+        When not using the Watchdog, a jobstep is launched and waited on.
 
-        When using the SCR_Watchdog, a jobstep is launched and waited on until a timeout.
+        When using the Watchdog, a jobstep is launched and waited on until a timeout.
         At each timeout, if the process is still running, a check is conducted for
         the existence of output files. If no new output files exist, it will be assumed
         that the launched process is hanging and it will be terminated.
@@ -175,7 +170,7 @@ class ResourceManager(object):
             # the type is a ClusterShell NodeSet, convert to a string
             return str(nodeset)
 
-        return scr_hostlist.compress(hostnames)
+        return hostlist.compress(hostnames)
 
     def compress_hosts(self, hostnames=[]):
         """Return hostlist string, where the hostlist is in a compressed form.
@@ -199,7 +194,7 @@ class ResourceManager(object):
             # the type is a ClusterShell NodeSet, convert to a string
             return str(nodeset)
 
-        return scr_hostlist.compress_range(hostnames)
+        return hostlist.compress_range(hostnames)
 
     def expand_hosts(self, hostnames):
         """Return list of hosts, where each element is a single host.
@@ -225,7 +220,7 @@ class ResourceManager(object):
 
             return nodeset
 
-        return scr_hostlist.expand(hostnames)
+        return hostlist.expand(hostnames)
 
     def diff_hosts(self, set1=[], set2=[]):
         """Return the set difference from 2 host lists.
@@ -260,7 +255,7 @@ class ResourceManager(object):
 
             return set1
 
-        return scr_hostlist.diff(set1=set1, set2=set2)
+        return hostlist.diff(set1=set1, set2=set2)
 
     def intersect_hosts(self, set1=[], set2=[]):
         """Return the set intersection of 2 host lists.
@@ -292,32 +287,7 @@ class ResourceManager(object):
 
             return set1
 
-        return scr_hostlist.intersect(set1, set2)
-
-    # return a hash to define all unavailable (down or excluded) nodes and reason
-    def list_down_nodes_with_reason(self, nodes=[], scr_env=None):
-        """Return down nodes with the reason they are down.
-
-        Parameters
-        ----------
-        nodes     a list or a comma separated string
-        scr_env   the SCR_Environment object
-
-        The Nodetests object from resmgr/nodetests.py contains all tests.
-        The tests which will be performed should be set either:
-          When self.nodetests is instantiated (in init of Nodetests):
-            by constant list in scr_const.py
-            by file input, where the filename is specified in scr_const.py
-          Or manually by adding test names to the self.nodetests.nodetests list
-          in your resource manager's init after super().__init__
-
-        Returns
-        -------
-        dict
-            dictionary of reported down nodes, keyed by node with reasons as values
-        """
-        unavailable = self.nodetests(nodes=nodes, scr_env=scr_env)
-        return unavailable
+        return hostlist.intersect(set1, set2)
 
     # each scavenge operation needs upnodes and downnodes_spaced
     def scavenge_nodelists(self, upnodes=[], downnodes=[]):

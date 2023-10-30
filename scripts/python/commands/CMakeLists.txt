@@ -1,0 +1,16 @@
+SET(SCRJOB_BIN
+  scr_halt
+  scr_list_down_nodes
+  scr_prerun
+  scr_postrun
+  scr_run
+  scr_should_exit
+)
+
+FOREACH(pyscript IN ITEMS ${SCRJOB_BIN})
+	CONFIGURE_FILE(${pyscript}.py ${pyscript} @ONLY)
+        SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/${pyscript} PROPERTIES GENERATED TRUE)
+        INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/${pyscript}
+        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+                DESTINATION ${CMAKE_INSTALL_BINDIR})
+ENDFOREACH(pyscript IN ITEMS ${SCRJOB_BIN})

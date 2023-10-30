@@ -57,9 +57,9 @@
 #define SCR_IO_KEY_UNKNOWN ("UNKNOWN")
 
 #define SCR_SUMMARY_FILENAME "summary.scr"
-#define BUILD_PARTNER_CMD (X_BINDIR"/scr_rebuild_partner")
-#define BUILD_XOR_CMD     (X_BINDIR"/scr_rebuild_xor")
-#define BUILD_RS_CMD      (X_BINDIR"/scr_rebuild_rs")
+#define BUILD_PARTNER_CMD (X_LIBEXECDIR"/scr_rebuild_partner")
+#define BUILD_XOR_CMD     (X_LIBEXECDIR"/scr_rebuild_xor")
+#define BUILD_RS_CMD      (X_LIBEXECDIR"/scr_rebuild_rs")
 
 #define SCR_SCAN_KEY_MAP "MAP"
 

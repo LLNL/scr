@@ -1,9 +1,9 @@
 """# pmix.py # PMIX is a subclass if ResourceManager
 
 import os
-from scrjob import scr_const
-from scrjob.scr_common import runproc, pipeproc
-from scrjob.resmgrs import nodetests, ResourceManager
+from scrjob import config
+from scrjob.common import runproc, pipeproc
+from scrjob.resmgrs import ResourceManager
 
 class PMIX(ResourceManager):
   # init initializes vars from the environment
@@ -56,22 +56,6 @@ class PMIX(ResourceManager):
     print('pmix does not support this')
     return 1
 
-  # return a hash to define all unavailable (down or excluded) nodes and reason
-  def list_down_nodes_with_reason(self,nodes=[], scr_env=None, free=False, cntldir_string=None, cachedir_string=None):
-    unavailable = {}
-    ### is theres way to get a list of down nodes in pmix?
-    #unavailable = nodetests.list_resmgr_down_nodes(nodes=nodes, resmgr_nodes=self.expand_hosts(self.down_nodes()))
-    nextunavail = nodetests.list_nodes_failed_ping(nodes=nodes)
-    unavailable.update(nextunavail)
-    if scr_env is not None and scr_env.param is not None:
-      exclude_nodes = self.expand_hosts(scr_env.param.get('SCR_EXCLUDE_NODES'))
-      nextunavail = nodetests.list_param_excluded_nodes(nodes=self.expand_hosts(nodes), exclude_nodes=exclude_nodes)
-      unavailable.update(nextunavail)
-      # assert scr_env.resmgr == self
-      nextunavail = nodetests.check_dir_capacity(nodes=nodes, free=free, scr_env=scr_env, cntldir_string=cntldir_string, cachedir_string=cachedir_string)
-      unavailable.update(nextunavail)
-    return unavailable
-
   # perform a generic pdsh / clustershell command
   # returns [ [ stdout, stderr ] , returncode ]
   def parallel_exec(self, argv=[], runnodes='', use_dshbak=True):
@@ -79,19 +63,19 @@ class PMIX(ResourceManager):
       return [ [ '', '' ], 0 ]
     if self.clustershell is not None:
       return self.clustershell_exec(argv=argv, runnodes=runnodes, use_dshbak=use_dshbak)
-    pdshcmd = [scr_const.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
+    pdshcmd = [config.PDSH_EXE, '-f', '256', '-S', '-w', runnodes]
     pdshcmd.extend(argv)
     if use_dshbak:
-      argv = [ pdshcmd, [scr_const.DSHBAK_EXE, '-c'] ]
+      argv = [ pdshcmd, [config.DSHBAK_EXE, '-c'] ]
       return pipeproc(argvs=argv,getstdout=True,getstderr=True)
     return runproc(argv=pdshcmd,getstdout=True,getstderr=True)
 
-  # perform the scavenge files operation for scr_scavenge
+  # perform the scavenge files operation
   # uses either pdsh or clustershell
   # returns a list -> [ 'stdout', 'stderr' ]
   def scavenge_files(self, prog='', upnodes='', downnodes='', cntldir='', dataset_id='', prefixdir='', buf_size='', crc_flag=''):
     argv = []
-    cppr_lib = scr_const.CPPR_LDFLAGS
+    cppr_lib = config.CPPR_LDFLAGS
     if cppr_lib.startswith('-L'):
       cppr_lib = cppr_lib[2:]
       ldpath = os.environ.get('LD_LIBRARY_PATH')

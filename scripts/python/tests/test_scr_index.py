@@ -24,10 +24,10 @@ print('False')
 print('True')
 print('--------------------------------------------------------')
 
-import os, sys, time
+import os
+import sys
+import time
 
-sys.path.insert(0, '/'.join(os.path.realpath(__file__).split('/')[:-2]))
-import scrjob
 from scrjob.cli import SCRIndex
 
 time.sleep(2)

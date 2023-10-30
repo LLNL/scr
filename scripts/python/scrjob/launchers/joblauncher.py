@@ -1,7 +1,7 @@
 import os
 from subprocess import TimeoutExpired
-from scrjob import scr_const
-from scrjob.scr_common import interpolate_variables
+
+from scrjob import config
 
 
 class JobLauncher(object):
@@ -37,7 +37,7 @@ class JobLauncher(object):
     Attributes
     ----------
     launcher          - string representation of the launcher
-    hostfile          - string location of a writable hostfile, set in scr_run.py: scr_env.dir_scr() + '/hostfile'
+    hostfile          - string location of a writable hostfile, set in scr_run.py: jobenv.dir_scr() + '/hostfile'
                         this is a file a launcher may use, provided for use in parallel_exec()
     clustershell_task - Either False or a pointer to the module ClusterShell.Task, if this value is not False
                         a launcher can use clustershell_exec() rather than parallel_exec().
@@ -51,7 +51,7 @@ class JobLauncher(object):
         self.launcher = launcher
         self.hostfile = ''
         self.clustershell_task = False
-        if scr_const.USE_CLUSTERSHELL != '0':
+        if config.USE_CLUSTERSHELL != '0':
             try:
                 import ClusterShell.Task as MyCSTask
                 self.clustershell_task = MyCSTask
@@ -66,7 +66,7 @@ class JobLauncher(object):
         Override this implementation in any base class whose launch_run_cmd returns a different value,
         or if there is a different method used to wait on a process (blocking or with a timeout).
         The timeout will be none (wait until process terminates) or a numeric value indicating seconds.
-        A timeout value will exist when using SCR_Watchdog.
+        A timeout value will exist when using Watchdog.
 
         Returns
         -------
@@ -179,18 +179,18 @@ class JobLauncher(object):
         argv is a list of arguments representing the command.
         runnodes is a comma separated string of nodes which will execute the command.
 
-        `which pdsh` is defined in scr_const.PDSH_EXE.
+        `which pdsh` is defined in config.PDSH_EXE.
         If self.clustershell_task is not False:
           return self.clustershell_exec(argv, runnodes).
         Otherwise:
-          Format pdshcmd as a list using scr_const.PDSH_EXE, the argv, and runnodes.
+          Format pdshcmd as a list using config.PDSH_EXE, the argv, and runnodes.
           return runproc(argv=pdshcmd, getstdout=True, getstderr=True).
         """
         if self.clustershell_task is not False:
             return self.clustershell_exec(argv=argv, runnodes=runnodes)
         return [['', ''], 0]
 
-    # generate the argv to perform the scavenge files operation for scr_scavenge
+    # generate the argv to perform the scavenge files operation
     # command format depends on resource manager in use
     # returns a list -> [ 'stdout', 'stderr' ]
     def scavenge_files(self,
@@ -212,7 +212,7 @@ class JobLauncher(object):
         prog               string, the location of the scr_copy program.
         nodes_up           list(string), list of up nodes.
         nodes_down         list(string), list of down nodes.
-        cntldir            string, the control directory path, obtained from SCR_Param.
+        cntldir            string, the control directory path, obtained from Param.
         dataset_id         string, the dataset id.
         prefixdir          string, the prefix directory path.
         buf_size           string, set by $SCR_FILE_BUF_SIZE.

@@ -3,10 +3,9 @@
 
 ### Set these variables ###
 launcher="srun"
-# Set number of nodes in allocation
-numnodes="2"
-# Set mpi C compiler for the sleeper/watchdog test
-MPICC="mpicc"
+numnodes="2"  # Number of nodes in allocation
+MPICC="mpicc" # MPI compiler for sleeper/watchdog test
+### Set these variables ###
 
 if [ $launcher == "srun" ]; then
   launcherargs="-n${numnodes} -N${numnodes}"
@@ -18,7 +17,7 @@ elif [ $launcher == "jsrun" ]; then
   launcherargs="-n ${numnodes} -c 1"
   singleargs="-n 1 -c 1"
 elif [ $launcher == "aprun" ]; then
-  nodelist=$(scr_env.py --nodes)
+  nodelist=$(python3 scr_env --nodes)
   launcherargs="-L ${nodelist}"
   singleargs="-L ${nodelist}"
 elif [ $launcher == "flux" ]; then
@@ -31,13 +30,19 @@ else
 fi
 
 export TESTDIR=$(pwd)
-cd ..
-export PATH=$(pwd)/scrjob:${PATH}
+#cd ..
+#export PATH=$(pwd)/scrjob:${PATH}
 cd ../../../
 export SCR_PKG=$(pwd)
 export SCR_BUILD=${SCR_PKG}/build
 export SCR_INSTALL=${SCR_PKG}/install
 export LD_LIBRARY_PATH=${SCR_INSTALL}/lib:${LD_LIBRARY_PATH}
+
+scrbin=${SCR_INSTALL}/bin
+scrlibexec=${SCR_INSTALL}/libexec/python
+scriptdir=${scrlibexec}/scrjob
+
+#export PATH=${scrbin}:${PATH}
 
 export SCR_FETCH=1
 export SCR_DEBUG=1
@@ -76,7 +81,7 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
   echo ""
   echo "----------------------"
   echo ""
-  scr_${launcher}.py ${singleargs} test_api --output 4
+  ${scrbin}/scr_${launcher} ${singleargs} test_api --output 4
   sleep 1
   # Run any scripts in scrpy/tests/test*.py
   for testscript in ${TESTDIR}/test*.py; do
@@ -86,15 +91,15 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
     echo "${testscript##*/}"
     sleep 1
     if [ "${testscript##*/}" == "test_watchdog.py" ]; then
-      ${testscript} ${launcher} ${launcherargs} $(pwd)/sleeper
+      PYTHONPATH=${scrlibexec} ${testscript} ${launcher} ${launcherargs} $(pwd)/sleeper
     elif [ "${testscript##*/}" == "test_launch.py" ]; then
-      ${testscript} ${launcher} ${launcherargs} $(pwd)/printer
+      PYTHONPATH=${scrlibexec} ${testscript} ${launcher} ${launcherargs} $(pwd)/printer
     elif [ "${testscript##*/}" == "test_pdsh.py" ]; then
-      ${testscript} ${launcher} $(pwd)/printer
+      PYTHONPATH=${scrlibexec} ${testscript} ${launcher} $(pwd)/printer
     elif [ "${testscript##*/}" == "test_flush_file.py" ]; then
-      ${testscript} ${SCR_PREFIX}
+      PYTHONPATH=${scrlibexec} ${testscript} ${SCR_PREFIX}
     else
-      ${testscript}
+      PYTHONPATH=${scrlibexec} ${testscript}
     fi
     echo ""
     echo "----------------------"
@@ -115,7 +120,7 @@ if [ $launcher != "flux" ] && [ -x "sleeper" ]; then
   export SCR_WATCHDOG_TIMEOUT_PFS=1
   echo ""
   echo "Launching sleeper . . ."
-  scr_${launcher}.py ${launcherargs} $(pwd)/sleeper
+  ${scrbin}/scr_${launcher} ${launcherargs} $(pwd)/sleeper
   unset SCR_WATCHDOG
   unset SCR_WATCHDOG_TIMEOUT
   unset SCR_WATCHDOG_TIMEOUT_PFS
@@ -126,65 +131,64 @@ fi
 rm -rf ${delfiles}
 
 # vars for testing
-scrbin=${SCR_INSTALL}/bin
-jobid=$(scr_env.py --jobid)
+jobid=$(python3 ${scrlibexec}/scr_env.py --jobid)
 echo "jobid = ${jobid}"
-nodelist=$(scr_env.py --nodes)
+nodelist=$(python3 ${scrlibexec}/scr_env.py --nodes)
 echo "nodelist = ${nodelist}"
-downnode=$(scr_glob_hosts.py -n 1 -h "${nodelist}")
+downnode=$(/usr/bin/hostlist -n 1 "${nodelist}")
 echo "first node = ${downnode}"
 sleep 2
 
 echo ""
-echo "scr_const.py"
-scr_const.py
+echo "config.py"
+python3 ${scriptdir}/config.py
 sleep 2
 
 echo ""
-echo "scr_common.py"
-scr_common.py --interpolate .
-scr_common.py --interpolate ../some_neighbor_directory
-scr_common.py --interpolate "SCR_JOB_NAME = \$SCR_JOB_NAME"
-scr_common.py --runproc echo -e 'this\nis a\ntest'
-scr_common.py --pipeproc echo -e 'this\nis a\ntest' : grep t : grep e
+echo "common.py"
+PYTHONPATH=${scrlibexec} python3 ${scriptdir}/common.py --interpolate .
+PYTHONPATH=${scrlibexec} python3 ${scriptdir}/common.py --interpolate ../some_neighbor_directory
+PYTHONPATH=${scrlibexec} python3 ${scriptdir}/common.py --interpolate "SCR_JOB_NAME = \$SCR_JOB_NAME"
+PYTHONPATH=${scrlibexec} python3 ${scriptdir}/common.py --runproc echo -e 'this\nis a\ntest'
+PYTHONPATH=${scrlibexec} python3 ${scriptdir}/common.py --pipeproc echo -e 'this\nis a\ntest' : grep t : grep e
 
 sleep 2
 
 echo ""
 echo "scr_env.py"
-echo "The user: $(scr_env.py -u)"
-echo "The jobid: $(scr_env.py -j)"
-echo "The nodes: $(scr_env.py -n)"
-echo "The downnodes: $(scr_env.py -d)"
-echo "Runnode count (last run): $(scr_env.py -r)"
+echo "The user: $(python3 ${scrlibexec}/scr_env.py -u)"
+echo "The jobid: $(python3 ${scrlibexec}/scr_env.py -j)"
+echo "The nodes: $(python3 ${scrlibexec}/scr_env.py -n)"
+echo "The downnodes: $(python3 ${scrlibexec}/scr_env.py -d)"
+echo "Runnode count (last run): $(python3 ${scrlibexec}/scr_env.py -r)"
 sleep 2
 
 echo ""
 echo "scr_list_dir.py"
-scr_list_dir.py --prefix ${SCR_PREFIX} control
-scr_list_dir.py --prefix ${SCR_PREFIX} --base control
-scr_list_dir.py --prefix ${SCR_PREFIX} cache
-scr_list_dir.py --prefix ${SCR_PREFIX} --base cache
+python3 ${scrlibexec}/scr_list_dir.py --prefix ${SCR_PREFIX} control
+python3 ${scrlibexec}/scr_list_dir.py --prefix ${SCR_PREFIX} --base control
+python3 ${scrlibexec}/scr_list_dir.py --prefix ${SCR_PREFIX} cache
+python3 ${scrlibexec}/scr_list_dir.py --prefix ${SCR_PREFIX} --base cache
 sleep 2
 
 echo ""
 echo "scr_list_down_nodes.py"
-scr_list_down_nodes.py --joblauncher ${launcher} -r ${nodelist}
+python3 ${scrbin}/scr_list_down_nodes --joblauncher ${launcher} -r ${nodelist}
 sleep 1
 
 echo ""
-echo "scr_param.py"
-scr_param.py
+echo "param.py"
+PYTHONPATH=${scrlibexec} python3 ${scriptdir}/param.py
 sleep 2
 
 echo ""
 echo "scr_prerun.py"
-scr_prerun.py && echo "prerun passed" || echo "prerun failed"
+python3 ${scrbin}/scr_prerun && echo "prerun passed" || echo "prerun failed"
 sleep 2
 
 echo ""
-echo "scr_test_runtime.py"
-scr_test_runtime.py
+echo "test_runtime.py"
+PYTHONPATH=${scrlibexec} python3 ${scriptdir}/test_runtime.py
 sleep 1
 
 echo "scr_run test_api . . ."
@@ -198,24 +202,24 @@ rm -rf ${delfiles}
 echo ""
 echo "check that a run works"
 sleep 1
-scr_${launcher}.py ${launcherargs} ./test_api
+${scrbin}/scr_${launcher} ${launcherargs} ./test_api
 
 echo ""
 echo "run again, check that checkpoints continue where last run left off"
 sleep 2
-scr_${launcher}.py ${launcherargs} ./test_api
+${scrbin}/scr_${launcher} ${launcherargs} ./test_api
 
 echo ""
 echo "delete all files from /ssd on rank 0, run again, check that rebuild works"
 sleep 2
 rm -rf ${delfiles}
-scr_${launcher}.py ${launcherargs} ./test_api
+${scrbin}/scr_${launcher} ${launcherargs} ./test_api
 
 echo ""
 echo "delete all files from all nodes, run again, check that run starts over"
 sleep 2
 rm -rf ${delfiles}
-scr_${launcher}.py ${launcherargs} ./test_api
+${scrbin}/scr_${launcher} ${launcherargs} ./test_api
 
 echo ""
 echo "clear the cache and control directory"
@@ -225,22 +229,22 @@ rm -rf ${delfiles}
 echo ""
 echo "check that scr_list_dir.py returns good values"
 sleep 2
-scr_list_dir.py --prefix ${SCR_PREFIX} control
-scr_list_dir.py --prefix ${SCR_PREFIX} --base control
-scr_list_dir.py --prefix ${SCR_PREFIX} cache
-scr_list_dir.py --prefix ${SCR_PREFIX} --base cache
+python3 ${scrlibexec}/scr_list_dir.py --prefix ${SCR_PREFIX} control
+python3 ${scrlibexec}/scr_list_dir.py --prefix ${SCR_PREFIX} --base control
+python3 ${scrlibexec}/scr_list_dir.py --prefix ${SCR_PREFIX} cache
+python3 ${scrlibexec}/scr_list_dir.py --prefix ${SCR_PREFIX} --base cache
 sleep 2
 
 if [ $launcher != "flux" ]; then
   echo ""
   echo "check that scr_list_down_nodes.py returns good values"
   sleep 1
-  scr_list_down_nodes.py --joblauncher ${launcher}
-  scr_list_down_nodes.py --joblauncher ${launcher} --down ${downnode}
-  scr_list_down_nodes.py --joblauncher ${launcher} --reason --down ${downnode}
+  ${scrbin}/scr_list_down_nodes --joblauncher ${launcher}
+  ${scrbin}/scr_list_down_nodes --joblauncher ${launcher} --down ${downnode}
+  ${scrbin}/scr_list_down_nodes --joblauncher ${launcher} --reason --down ${downnode}
   export SCR_EXCLUDE_NODES=${downnode}
-  scr_list_down_nodes.py --joblauncher ${launcher}
-  scr_list_down_nodes.py --joblauncher ${launcher} --reason
+  ${scrbin}/scr_list_down_nodes --joblauncher ${launcher}
+  ${scrbin}/scr_list_down_nodes --joblauncher ${launcher} --reason
   unset SCR_EXCLUDE_NODES
   sleep 2
 fi
@@ -248,35 +252,35 @@ fi
 echo ""
 echo "check that scr_halt.py seems to work"
 sleep 2
-scr_halt.py --list $(pwd)
-scr_halt.py --before '3pm today' $(pwd)
-scr_halt.py --after '4pm today' $(pwd)
-scr_halt.py --seconds 1200 $(pwd)
+${scrbin}/scr_halt --list $(pwd)
+${scrbin}/scr_halt --before '3pm today' $(pwd)
+${scrbin}/scr_halt --after '4pm today' $(pwd)
+${scrbin}/scr_halt --seconds 1200 $(pwd)
 sleep 1
-scr_halt.py --unset-before $(pwd)
-scr_halt.py --unset-after $(pwd)
-scr_halt.py --unset-seconds $(pwd)
-scr_halt.py $(pwd)
+${scrbin}/scr_halt --unset-before $(pwd)
+${scrbin}/scr_halt --unset-after $(pwd)
+${scrbin}/scr_halt --unset-seconds $(pwd)
+${scrbin}/scr_halt $(pwd)
 sleep 1
-scr_halt.py --checkpoints 3 $(pwd)
-scr_halt.py --unset-checkpoints $(pwd)
-scr_halt.py --unset-reason $(pwd)
-scr_halt.py --remove $(pwd)
+${scrbin}/scr_halt --checkpoints 3 $(pwd)
+${scrbin}/scr_halt --unset-checkpoints $(pwd)
+${scrbin}/scr_halt --unset-reason $(pwd)
+${scrbin}/scr_halt --remove $(pwd)
 sleep 2
 
 echo ""
 echo "check that scr_postrun works (w/ empty cache)"
 sleep 1
-scr_postrun.py --prefix ${SCR_PREFIX} --joblauncher ${launcher}
+${scrbin}/scr_postrun --prefix ${SCR_PREFIX} --joblauncher ${launcher}
 
 echo ""
 echo "clear the cache, make a new run"
 sleep 2
 rm -rf ${delfiles}
-scr_${launcher}.py ${launcherargs} ./test_api
+${scrbin}/scr_${launcher} ${launcherargs} ./test_api
 sleep 1
 echo "check that scr_postrun scavenges successfully (no rebuild)"
-scr_postrun.py --prefix ${SCR_PREFIX} --joblauncher ${launcher}
+${scrbin}/scr_postrun --prefix ${SCR_PREFIX} --joblauncher ${launcher}
 sleep 2
 echo "scr_index"
 ${scrbin}/scr_index --list
@@ -287,11 +291,11 @@ if [ $launcher != "flux" ]; then
   echo "fake a down node via EXCLUDE_NODES and redo above test (check that rebuild during scavenge works)"
   sleep 1
   export SCR_EXCLUDE_NODES=${downnode}
-  scr_${launcher}.py ${launcherargs} ./test_api
+  ${scrbin}/scr_${launcher} ${launcherargs} ./test_api
   sleep 3
   echo ""
-  echo "scr_postrun.py"
-  scr_postrun.py --prefix ${SCR_PREFIX} --joblauncher ${launcher}
+  echo "scr_postrun"
+  ${scrbin}/scr_postrun --prefix ${SCR_PREFIX} --joblauncher ${launcher}
   sleep 1
   unset SCR_EXCLUDE_NODES
   ${scrbin}/scr_index --list
@@ -302,7 +306,7 @@ echo ""
 echo "delete all files, run again, check that fetch succeeds"
 sleep 1
 rm -rf ${delfiles}
-scr_${launcher}.py ${launcherargs} ./test_api
+${scrbin}/scr_${launcher} ${launcherargs} ./test_api
 sleep 2
 echo "scr_index --list"
 ${scrbin}/scr_index --list
@@ -319,7 +323,7 @@ echo "        ${launcher}"
 echo "----------------------"
 echo "running scr_${launcher}.py ${launcherargs} ./test_api"
 sleep 1
-scr_${launcher}.py ${launcherargs} ./test_api
+${scrbin}/scr_${launcher} ${launcherargs} ./test_api
 sleep 2
 echo ""
 echo "running ${scrbin}/scr_index --list"
@@ -329,10 +333,10 @@ sleep 2
 echo ""
 echo "running scr${launcher}.py ${launcherargs} ./test_ckpt"
 sleep 1
-scr_${launcher}.py ${launcherargs} ./test_ckpt
+${scrbin}/scr_${launcher} ${launcherargs} ./test_ckpt
 sleep 2
 echo ""
 echo "running scr_${launcher}.py ${launcherargs} ./test_config"
 sleep 1
-scr_${launcher}.py ${launcherargs} ./test_config
+${scrbin}/scr_${launcher} ${launcherargs} ./test_config
 rm -rf ${delfiles}

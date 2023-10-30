@@ -1,8 +1,8 @@
 import os
 from time import sleep
 
-from scrjob import scr_const
-from scrjob.scr_common import runproc, pipeproc
+from scrjob import config
+from scrjob.common import runproc
 from scrjob.launchers import JobLauncher
 
 
@@ -33,7 +33,7 @@ class SRUN(JobLauncher):
         argv.extend(launcher_args)
 
         # The Popen.terminate() seems to work for srun
-        if scr_const.USE_JOBLAUNCHER_KILL != '1':
+        if config.USE_JOBLAUNCHER_KILL != '1':
             return runproc(argv=argv, wait=False)
         proc = runproc(argv=argv, wait=False)[0]
 
@@ -53,7 +53,7 @@ class SRUN(JobLauncher):
             return self.clustershell_exec(argv=argv, runnodes=runnodes)
         runnodes = ",".join(runnodes)
         pdshcmd = [
-            scr_const.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes,
+            config.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes,
             'srun', '-n', '1', '-N', '1', '-w', '%h'
         ]
         pdshcmd.extend(argv)

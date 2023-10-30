@@ -1,8 +1,6 @@
 import os
 
-from scrjob import scr_const
-from scrjob.scr_common import runproc
-from scrjob.scr_common import choose_bindir
+from scrjob.common import runproc, choose_bindir
 
 
 class SCRHaltFile:
@@ -83,8 +81,7 @@ class SCRHaltFile:
             if output is not None:
                 print(output[0].strip())
             raise RuntimeError(
-                'scr_halt: ERROR: Failed to update halt file: ' +
-                self.fname)
+                'scr_halt: ERROR: Failed to update halt file: ' + self.fname)
 
         # return stdout from command
         if output is not None:

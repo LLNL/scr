@@ -1,56 +1,34 @@
-SET(PYFE
+SET(SCRJOB
+  README.md
   __init__.py
-  list_dir.py
+  common.py
+  environment.py
+  hostlist.py
+  list_down_nodes.py
+  param.py
   parsetime.py
-  scr_environment.py
-  scr_hostlist.py
+  prerun.py
+  postrun.py
+  run.py
+  scavenge.py
+  scrlog.py
+  should_exit.py
+  test_runtime.py
+  watchdog.py
 )
 
-FOREACH(pyscript IN ITEMS ${PYFE})
+FOREACH(pyscript IN ITEMS ${SCRJOB})
 	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
-ENDFOREACH(pyscript IN ITEMS ${PYFE})
+ENDFOREACH(pyscript IN ITEMS ${SCRJOB})
 
-INSTALL(FILES ${PYFE} DESTINATION ${CMAKE_INSTALL_BINDIR}/scrpy/scrjob)
+INSTALL(FILES ${SCRJOB} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 
-SET(PYFE_EXEC
-  scr_check_node.py
-  scr_common.py
-  scr_env.py
-  scr_flux.py
-  scr_glob_hosts.py
-  scr_halt.py
-  scr_inspect.py
-  scr_jsrun.py
-  scr_kill_jobstep.py
-  scr_list_dir.py
-  scr_list_down_nodes.py
-  scr_lrun.py
-  scr_mpirun.py
-  scr_param.py
-  scr_postrun.py
-  scr_poststage.py
-  scr_prerun.py
-  scr_run.py
-  scr_scavenge.py
-  scr_srun.py
-  scr_test_runtime.py
-  scr_watchdog.py
-)
-
-FOREACH(pyscript IN ITEMS ${PYFE_EXEC})
-	CONFIGURE_FILE(${pyscript} ${pyscript} COPYONLY)
-ENDFOREACH(pyscript IN ITEMS ${PYFE_EXEC})
-
-INSTALL(FILES ${PYFE_EXEC}
-PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-        DESTINATION ${CMAKE_INSTALL_BINDIR}/scrpy/scrjob)
-
-CONFIGURE_FILE(scr_const.py.in scr_const.py @ONLY)
-SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/scr_const.py PROPERTIES GENERATED TRUE)
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/scr_const.py
-PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-        DESTINATION ${CMAKE_INSTALL_BINDIR}/scrpy/scrjob)
+CONFIGURE_FILE(config.py.in config.py @ONLY)
+SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/config.py PROPERTIES GENERATED TRUE)
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/config.py
+        DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 
 ADD_SUBDIRECTORY(cli)
 ADD_SUBDIRECTORY(resmgrs)
 ADD_SUBDIRECTORY(launchers)
+ADD_SUBDIRECTORY(nodetests)

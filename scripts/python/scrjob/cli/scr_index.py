@@ -1,17 +1,17 @@
 import os
 
-from scrjob import scr_const
-from scrjob.scr_common import runproc
-from scrjob.scr_common import choose_bindir
+from scrjob import config
+from scrjob.common import runproc
 
 
 class SCRIndex:
 
     def __init__(self, prefix, verbose=False):
-        self.bindir = choose_bindir()
-        self.prefix = prefix  # path to SCR_PREFIX
+        self.prefix = prefix
         self.verbose = verbose
-        self.exe = os.path.join(self.bindir,
+
+        bindir = config.X_BINDIR
+        self.exe = os.path.join(bindir,
                                 "scr_index") + " --prefix " + str(prefix)
 
     # capture and return verbatim output from the --list command

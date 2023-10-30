@@ -1,9 +1,6 @@
-import os, re
-import datetime
-from time import time
+import os
 
-from scrjob import scr_const
-from scrjob.resmgrs import nodetests, ResourceManager
+from scrjob.resmgrs import ResourceManager
 
 # flux imports
 try:

@@ -7,10 +7,10 @@ To add a new resource manager:
 * Insert the new class name at the end of scrjob.resmgrs import statement
 * Insert the condition and return statement for your new resource manager within __new__
 
-The resmgr string normally comes from the value of scr_const.SCR_RESOURCE_MANAGER
+The resmgr string normally comes from the value of config.SCR_RESOURCE_MANAGER
 """
 
-from scrjob import scr_const
+from scrjob import config
 
 from scrjob.resmgrs import (
     ResourceManager,
@@ -32,8 +32,10 @@ class AutoResourceManager:
         # not in a flux instance, just continue
         except:
             pass
+
         if resmgr is None:
-            resmgr = scr_const.SCR_RESOURCE_MANAGER
+            resmgr = config.SCR_RESOURCE_MANAGER
+
         if resmgr == 'SLURM':
             return SLURM()
         if resmgr == 'LSF':
@@ -42,6 +44,7 @@ class AutoResourceManager:
             return APRUN()
         #if resmgr=='PMIX':
         #  return PMIX()
+
         return ResourceManager()
 
 

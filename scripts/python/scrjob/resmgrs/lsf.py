@@ -1,17 +1,14 @@
 import os, re
 from time import time
 
-from scrjob import scr_const
-from scrjob.scr_common import runproc, pipeproc
-from scrjob.resmgrs import nodetests, ResourceManager
+from scrjob.common import runproc
+from scrjob.resmgrs import ResourceManager
 
 
 class LSF(ResourceManager):
     # init initializes vars from the environment
     def __init__(self):
         super(LSF, self).__init__(resmgr='LSF')
-        if 'pdsh_echo' not in self.nodetests.tests:
-            self.nodetests.tests.append('pdsh_echo')
 
     # get LSF jobid
     def job_id(self):
@@ -32,8 +29,8 @@ class LSF(ResourceManager):
                     raise RuntimeError('LSF: ERROR: $LSB_DJOB_HOSTFILE empty')
 
                 # get a set of unique hostnames
-                hostlist = list(set(lines[1:]))
-                return hostlist
+                hosts = list(set(lines[1:]))
+                return hosts
             except Exception as e:
                 # failed to read file
                 print('LSF: ERROR: failed to process $LSB_DJOB_HOSTFILE')
