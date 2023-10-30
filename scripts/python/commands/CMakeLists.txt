@@ -3,14 +3,8 @@ SET(SCRJOB_BIN
   scr_list_down_nodes
   scr_prerun
   scr_postrun
-  scr_should_exit
-
   scr_run
-  scr_srun
-  scr_jsrun
-  scr_lrun
-  scr_fluxrun
-  scr_mpirun
+  scr_should_exit
 )
 
 FOREACH(pyscript IN ITEMS ${SCRJOB_BIN})

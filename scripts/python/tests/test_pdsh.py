@@ -7,7 +7,6 @@ from time import sleep
 from scrjob import config
 from scrjob.postrun import postrun
 from scrjob.list_down_nodes import list_down_nodes
-from scrjob.common import scr_prefix
 from scrjob.prerun import prerun
 from scrjob.watchdog import Watchdog
 from scrjob.environment import JobEnv
@@ -47,9 +46,8 @@ def getpdshout(launcher, launch_cmd):
 
     bindir = config.X_BINDIR
 
-    prefix = scr_prefix()
-
-    jobenv = SCR_Env(prefix=prefix, launcher=launcher)
+    jobenv = SCR_Env(launcher=launcher)
+    prefix = jobenv.dir_prefix()
 
     jobid = jobenv.resmgr.job_id()
     user = jobenv.get_user()

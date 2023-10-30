@@ -15,7 +15,7 @@ from time import time, sleep
 
 from scrjob import config
 from scrjob.list_down_nodes import list_down_nodes
-from scrjob.common import tracefunction, runproc, scr_prefix
+from scrjob.common import tracefunction, runproc
 from scrjob.prerun import prerun
 from scrjob.postrun import postrun
 from scrjob.should_exit import should_exit
@@ -57,14 +57,14 @@ def run(launcher='',
     if verbose:
         print(prog + ': Started: ' + str(timestamp))
 
-    # get prefix directory
-    prefix = scr_prefix()
-
     # env contains general environment infos independent of resmgr/launcher
-    jobenv = JobEnv(prefix=prefix, launcher=launcher)
+    jobenv = JobEnv(launcher=launcher)
 
     # this may be used by a launcher to store a list of hosts
     jobenv.launcher.hostfile = os.path.join(jobenv.dir_scr(), 'hostfile')
+
+    # get prefix directory
+    prefix = jobenv.dir_prefix()
 
     # jobid will come from resource manager.
     jobid = jobenv.resmgr.job_id()

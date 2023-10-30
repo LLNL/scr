@@ -4,7 +4,6 @@ SET(SCRJOB
   common.py
   environment.py
   hostlist.py
-  list_dir.py
   list_down_nodes.py
   param.py
   parsetime.py

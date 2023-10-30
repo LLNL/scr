@@ -9,7 +9,6 @@ import sys
 from scrjob import config
 from scrjob.postrun import postrun
 from scrjob.list_down_nodes import list_down_nodes
-from scrjob.common import scr_prefix
 from scrjob.prerun import prerun
 from scrjob.watchdog import Watchdog
 from scrjob.environment import JobEnv
@@ -49,9 +48,8 @@ def dolaunch(launcher, launch_cmd):
 
     bindir = config.X_BINDIR
 
-    prefix = scr_prefix()
-
-    jobenv = JobEnv(prefix=prefix, launcher=launcher)
+    jobenv = JobEnv(launcher=launcher)
+    prefix = jobenv.dir_prefix()
 
     jobid = jobenv.resmgr.job_id()
     user = jobenv.get_user()

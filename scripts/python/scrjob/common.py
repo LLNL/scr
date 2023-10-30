@@ -296,81 +296,6 @@ def choose_bindir():
     return bindir
 
 
-def log(bindir=None,
-        prefix=None,
-        username=None,
-        jobname=None,
-        jobid=None,
-        start=None,
-        event_type=None,
-        event_note=None,
-        event_dset=None,
-        event_name=None,
-        event_start=None,
-        event_secs=None):
-    """This method is a wrapper for commong logging operations.
-
-    Logging operations call the scr_log_event program with formatted arguments.
-
-    This method formats an argv, then calls the scr_log_event method.
-
-    Parameters
-    ----------
-    All input parameters are optional, with each just extending the log entry
-    Input parameters should (with one exception) be string values
-
-    event_note   may be a string or a dictionary, if a dictionary is passed then
-                 the remaining arguments are duplicated
-                 This allows several runproc calls without rebuilding argv each time
-    """
-    if prefix is None:
-        prefix = scr_prefix()
-        #print('log: prefix is required')
-
-    if bindir is None:
-        bindir = config.X_LIBEXECDIR
-
-    argv = [bindir + '/scr_log_event', '-p', prefix]
-
-    if username is not None:
-        argv.extend(['-u', username])
-
-    if jobname is not None:
-        argv.extend(['-j', jobname])
-
-    if jobid is not None:
-        argv.extend(['-i', jobid])
-
-    if start is not None:
-        argv.extend(['-s', start])
-
-    if event_type is not None:
-        argv.extend(['-T', event_type])
-
-    if event_dset is not None:
-        argv.extend(['-D', event_dset])
-
-    if event_name is not None:
-        argv.extend(['-n', event_name])
-
-    if event_start is not None:
-        argv.extend(['-S', event_start])
-
-    if event_secs is not None:
-        argv.extend(['-L', event_secs])
-
-    if type(event_note) is dict:
-        argv.extend(['-N', ''])
-        lastarg = len(argv) - 1
-        for key in event_note:
-            argv[lastarg] = key + ':' + event_note[key]
-            runproc(argv=argv)
-    else:
-        if event_note is not None:
-            argv.extend(['-N', event_note])
-        runproc(argv=argv)
-
-
 if __name__ == '__main__':
     """This script allows being called as a standalone script.
 
@@ -392,13 +317,6 @@ if __name__ == '__main__':
         nargs=argparse.REMAINDER,
         help=
         'Launch processes and pipe output to other processes. (separate processes with a colon)'
-    )
-    parser.add_argument(
-        '--log',
-        nargs='+',
-        metavar='<option=value>',
-        help=
-        'Create a log entry, available options: bindir, prefix, username, jobname, jobid, start, event_type, event_note, event_dset, event_name, event_start, event_secs'
     )
 
     args = parser.parse_args()
@@ -443,55 +361,3 @@ if __name__ == '__main__':
             print(out[0])
             print('  stderr:')
             print(out[1])
-    if args.log:
-        bindir, prefix, username, jobname = None, None, None, None
-        jobid, start, event_type, event_note = None, None, None, None
-        event_dset, event_name, event_start, event_secs = None, None, None, None
-        printstr = 'log('
-        for keyvalpair in args.log:
-            if '=' not in keyvalpair:
-                continue
-            vals = keyvalpair.split('=')
-            if vals[0] == 'bindir':
-                bindir = vals[1]
-            elif vals[0] == 'prefix':
-                prefix = vals[1]
-            elif vals[0] == 'username':
-                username = vals[1]
-            elif vals[0] == 'jobname':
-                jobname = vals[1]
-            elif vals[0] == 'jobid':
-                jobid = vals[1]
-            elif vals[0] == 'start':
-                start = vals[1]
-            elif vals[0] == 'event_type':
-                event_type = vals[1]
-            elif vals[0] == 'event_note':
-                event_note = vals[1]
-            elif vals[0] == 'event_dset':
-                event_dset = vals[1]
-            elif vals[0] == 'event_name':
-                event_name = vals[1]
-            elif vals[0] == 'event_start':
-                event_start = vals[1]
-            elif vals[0] == 'event_secs':
-                event_secs = vals[1]
-            else:
-                continue
-            printstr += keyvalpair + ', '
-        if printstr[-1] == '(':
-            print('Nothing to log, see \'--help\' for available value pairs.')
-            sys.exit(1)
-        print(printstr[:-2] + ')')
-        log(bindir=bindir,
-            prefix=prefix,
-            username=username,
-            jobname=jobname,
-            jobid=jobid,
-            start=start,
-            event_type=event_type,
-            event_note=event_note,
-            event_dset=event_dset,
-            event_name=event_name,
-            event_start=event_start,
-            event_secs=event_secs)
