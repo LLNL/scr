@@ -25,6 +25,10 @@ class FLUX(RemoteExec):
                 'Error importing flux, ensure that the flux daemon is running.'
             )
 
+        # when using flux labeled output, a rank and colon are prepended to each line
+        # 23: hello, world
+        self.re_labeled = re.compile('^(\d+): (.*)$')
+
     def rexec(self, argv, nodes, jobenv):
         result = RemoteExecResult(argv, nodes)
 
@@ -57,10 +61,8 @@ class FLUX(RemoteExec):
         # time will return posix timestamp like -> '1628179160.1724932'
         # some unique filename to send stdout/stderr to
         ### the script prepends the rank to stdout, not stderr.
-        outfile = 'out' + timestamp
-        errfile = 'err' + timestamp
-        outfile = os.path.join(prefix, outfile)
-        errfile = os.path.join(prefix, errfile)
+        outfile = os.path.join(prefix, 'out' + timestamp)
+        errfile = os.path.join(prefix, 'err' + timestamp)
 
         # all tasks will write their stdout to this file
         compute_jobreq.stdout = outfile
@@ -72,18 +74,19 @@ class FLUX(RemoteExec):
         future = flux.job.wait_async(self.flux, job)
         status = future.get_status()
 
+        # TODO: can we set result.set_rc(node, rc) for each process?
+
         # don't fail if can't open a file, just leave output blank
         try:
             with open(outfile, 'r') as f:
                 lines = f.readlines()
                 for line in lines:
-                    try:
-                        rank = re.search('\d', line)
-                        host = nodelist[int(rank[0])]
-                        line = host + line[line.find(':'):]
-                        result.append_stdout(host, line)
-                    except:
-                        continue
+                    m = self.re_labeled.match(line)
+                    if m:
+                        rank = int(m.groups(0)[0])
+                        node = nodelist[rank]
+                        val = m.groups(0)[1]
+                        result.append_stdout(node, val)
         except:
             pass
 
@@ -91,13 +94,12 @@ class FLUX(RemoteExec):
             with open(errfile, 'r') as f:
                 lines = f.readlines()
                 for line in lines:
-                    try:
-                        rank = re.search('\d', line)
-                        host = nodelist[int(rank[0])]
-                        line = host + line[line.find(':'):]
-                        result.append_stderr(host, line)
-                    except:
-                        continue
+                    m = self.re_labeled.match(line)
+                    if m:
+                        rank = int(m.groups(0)[0])
+                        node = nodelist[rank]
+                        val = m.groups(0)[1]
+                        result.append_stderr(node, val)
         except:
             pass
 
