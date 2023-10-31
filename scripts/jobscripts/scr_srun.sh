@@ -4,7 +4,7 @@
 # This demonstrates how to integrate SCR into a batch job script.
 #
 # One should inform sbatch to not kill the allocation on node failure.
-# 
+#
 # One needs to inform the SCR commands about the SCR_PREFIX directory.
 # The commands look in that directory for files written by the SCR library.
 #

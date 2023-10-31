@@ -1,6 +1,6 @@
 #!/bin/bash
 #BSUB -env "all, LSB_DJOB_COMMFAIL_ACTION=KILL_TASKS"
-  
+
 # This demonstrates how to integrate SCR into a batch job script.
 #
 # One should inform LSF to not kill the allocation on node failure.
@@ -9,7 +9,7 @@
 # The commands look in that directory for files written by the SCR library.
 #
 # One must call scr_prerun to prepare the allocation for SCR.
-# 
+#
 # The script potentially runs multiple times in the allocation.
 # Between runs, it uses scr_list_down_nodes to detect down nodes,
 # and it excludes those nodes when launching using srun --exclude.
@@ -53,17 +53,17 @@ while [ 1 ] ; do
   # launch the job, excluding any down nodes
   jsrun $exclude "$@"
 
-  # any retry attempts left?
-  runs=$(($runs - 1))
-  if [ $runs -le 0 ] ; then
-    echo "Runs exhausted, ending run."
-    break
-  fi
-
   # check whether we should stop running
   ${scrbin}/scr_should_exit -p $scr_prefix
   if [ $? == 0 ] ; then
     echo "Halt condition detected, ending run."
+    break
+  fi
+
+  # any retry attempts left?
+  runs=$(($runs - 1))
+  if [ $runs -le 0 ] ; then
+    echo "Runs exhausted, ending run."
     break
   fi
 
