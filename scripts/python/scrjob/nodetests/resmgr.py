@@ -11,5 +11,6 @@ class ResMgrDown(NodeTest):
         failed = {}
         nodelist = jobenv.resmgr.down_nodes()
         for node in nodelist:
-            failed[node] = nodelist[node]
+            if node in nodes:
+                failed[node] = nodelist[node]
         return failed

@@ -20,11 +20,11 @@ class ClusterShell(RemoteExec):
     def rexec(self, argv, nodes, jobenv):
         result = RemoteExecResult(argv, nodes)
 
-        argv = ' '.join(argv)
-        nodes = ','.join(nodes)
+        task = self.Task.task_self()
 
         # launch the task
-        task = self.Task.task_self()
+        argv = ' '.join(argv)
+        nodes = ','.join(nodes)
         task.run(argv, nodes=nodes)
 
         # ensure all of the tasks have completed

@@ -2,7 +2,7 @@ from scrjob.nodetests import NodeTest
 
 
 class Echo(NodeTest):
-    """Attempt to echo "UP" from each node."""
+    """Attempt to "echo UP" on each node."""
 
     def __init__(self):
         pass
@@ -13,8 +13,7 @@ class Echo(NodeTest):
         argv = ['echo', 'UP']
         result = jobenv.rexec.rexec(argv, nodes, jobenv)
 
-        # check for any nodes still in the assumed down list
-        # this is the set that failed to print an 'UP' message
+        # verify that we find UP in stdout from each node
         failed = {}
         for node in nodes:
             if 'UP' not in result.stdout(node):

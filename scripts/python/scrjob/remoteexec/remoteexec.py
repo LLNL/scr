@@ -19,12 +19,7 @@ class RemoteExec(object):
         argv is a list of arguments representing the command.
         nodes is a list of node names on which to execute the command.
 
-        Returns
-        -------
-        list
-          The return value is: [output, returncode],
-          where output is a list: [stdout, stderr],
-          so the full return value is then: [[stdout, stderr], returncode].
+        Returns RemoteExecResult with stdout, stderr, and rc for each node.
         """
         pass
 
