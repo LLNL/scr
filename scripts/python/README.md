@@ -1,6 +1,6 @@
 # Python scripts for managing an SCR job
 
-These scripts define and use an ``scrubby`` package to manage an SCR job.
+These scripts define and use an ``scrjob`` package to manage an SCR job.
 Most files in this directory are installed to ``/libexec/python`` of an SCR installation.
 
 NOTE: Though a ``setup.py`` exists, it is not currently functional.
