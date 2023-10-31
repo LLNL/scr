@@ -16,7 +16,7 @@ import sys
 import time
 from subprocess import TimeoutExpired
 
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 from scrjob.watchdog import Watchdog
 
 

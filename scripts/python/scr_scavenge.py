@@ -5,7 +5,7 @@
 import os
 import argparse
 
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 from scrjob.scavenge import scavenge
 
 if __name__ == '__main__':

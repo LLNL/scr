@@ -15,9 +15,9 @@ Users with python-based job scripts may find value in directly using the ``scrjo
 
 - ``common.py``          - Functions for running subprocess commands
 - ``config.py.in``       - Captures values selected during configuration
-- ``environment.py``     - JobEnv: provides access to SCR parameters, resource manager, and job launcher
 - ``glob_hosts.py``      - Functions for manipulating a hostlist string
 - ``hostlist.py``        - Functions for manipulating a list of nodes
+- ``jobenv.py``          - JobEnv: provides access to SCR parameters, resource manager, and job launcher
 - ``list_down_nodes.py`` - Function to detect and report down nodes in an allocation
 - ``param.py``           - Param: provides access to SCR parameters set in the environment or SCR config files
 - ``parsetime.py``       - Functions to parse time strings used in ``scr_halt`` commands

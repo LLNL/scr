@@ -7,7 +7,7 @@ import os
 import sys
 import argparse
 
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

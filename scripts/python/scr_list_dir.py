@@ -3,7 +3,7 @@
 import sys
 import argparse
 
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 
 if __name__ == '__main__':
     """This is an external driver to determine control and cache directories."""

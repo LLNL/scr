@@ -14,7 +14,7 @@ sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 from scrjob.should_exit import should_exit
 
 if __name__ == '__main__':

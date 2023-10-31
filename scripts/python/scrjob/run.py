@@ -20,7 +20,7 @@ from scrjob.prerun import prerun
 from scrjob.postrun import postrun
 from scrjob.should_exit import should_exit
 from scrjob.watchdog import Watchdog
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 from scrjob.cli import SCRLog, SCRRetriesHalt
 
 

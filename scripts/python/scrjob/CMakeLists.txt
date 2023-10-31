@@ -2,8 +2,8 @@ SET(SCRJOB
   README.md
   __init__.py
   common.py
-  environment.py
   hostlist.py
+  jobenv.py
   list_down_nodes.py
   param.py
   parsetime.py

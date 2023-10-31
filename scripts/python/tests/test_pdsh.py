@@ -9,7 +9,7 @@ from scrjob.postrun import postrun
 from scrjob.list_down_nodes import list_down_nodes
 from scrjob.prerun import prerun
 from scrjob.watchdog import Watchdog
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 from scrjob.glob_hosts import glob_hosts
 
 

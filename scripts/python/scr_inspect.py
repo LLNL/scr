@@ -6,7 +6,7 @@ import argparse
 import re
 
 from scrjob import config, hostlist
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 
 
 def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, jobenv=None):

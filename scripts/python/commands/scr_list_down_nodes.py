@@ -9,7 +9,7 @@ sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 from scrjob.cli import SCRLog
 from scrjob.list_down_nodes import list_down_nodes
 
