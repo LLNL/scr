@@ -55,7 +55,7 @@ class TestRuntime:
         This test will return failure if the option USE_CLUSTERSHELL
         enables ClusterShell and the module is not available.
         """
-        if config.USE_CLUSTERSHELL == '1':
+        if config.USE_CLUSTERSHELL:
             try:
                 import ClusterShell
             except:
@@ -76,7 +76,7 @@ class TestRuntime:
 
         If ClusterShell is enabled, this test does not apply.
         """
-        if config.USE_CLUSTERSHELL == '1':
+        if config.USE_CLUSTERSHELL:
             return
 
         ### TODO: Validate pdsh command through some other means for some resmgrs?

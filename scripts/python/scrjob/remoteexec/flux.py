@@ -11,7 +11,7 @@ try:
 except:
     pass
 
-from scrjob.remoteexec import RemoteExec
+from scrjob.remoteexec import RemoteExec, RemoteExecResult
 
 
 class FLUX(RemoteExec):
@@ -26,6 +26,8 @@ class FLUX(RemoteExec):
             )
 
     def rexec(self, argv, nodes, jobenv):
+        result = RemoteExecResult(argv, nodes)
+
         nnodes, ntasks, ncores, argv = self.parsefluxargs(argv)
 
         ### Need to determine number of nodes to set nnodes and nntasks to N
@@ -55,60 +57,58 @@ class FLUX(RemoteExec):
         # time will return posix timestamp like -> '1628179160.1724932'
         # some unique filename to send stdout/stderr to
         ### the script prepends the rank to stdout, not stderr.
-        outfilename = 'out' + timestamp
-        errfilename = 'err' + timestamp
-        outfilename = os.path.join(prefix, outfilename)
-        errfilename = os.path.join(prefix, errfilename)
+        outfile = 'out' + timestamp
+        errfile = 'err' + timestamp
+        outfile = os.path.join(prefix, outfile)
+        errfile = os.path.join(prefix, errfile)
 
         # all tasks will write their stdout to this file
-        compute_jobreq.stdout = outfilename
-        compute_jobreq.stderr = errfilename
+        compute_jobreq.stdout = outfile
+        compute_jobreq.stderr = errfile
         job = flux.job.submit(self.flux, compute_jobreq, waitable=True)
 
         # get the hostlist to swap ranks for hosts
         nodelist = rset.nodelist
         future = flux.job.wait_async(self.flux, job)
         status = future.get_status()
-        ret = [['', ''], 0]
 
         # don't fail if can't open a file, just leave output blank
         try:
-            with open(outfilename, 'r') as f:
+            with open(outfile, 'r') as f:
                 lines = f.readlines()
                 for line in lines:
                     try:
                         rank = re.search('\d', line)
                         host = nodelist[int(rank[0])]
                         line = host + line[line.find(':'):]
+                        result.append_stdout(host, line)
                     except:
-                        pass
-                    ret[0][0] += line
-            os.remove(outfilename)
+                        continue
         except:
             pass
 
         try:
-            with open(errfilename, 'r') as f:
+            with open(errfile, 'r') as f:
                 lines = f.readlines()
                 for line in lines:
                     try:
                         rank = re.search('\d', line)
                         host = nodelist[int(rank[0])]
                         line = host + line[line.find(':'):]
+                        result.append_stderr(host, line)
                     except:
-                        pass
-                    ret[0][1] += line
-        except:
-            try:
-                ret[0][1] = status.errstr.decode('UTF-8')
-            except:
-                pass
-
-        # stderr set in a nested try, remove the errfile here
-        try:
-            os.remove(errfilename)
+                        continue
         except:
             pass
 
-        ret[1] = 0 if status.success == True else 1
-        return ret
+        try:
+            os.remove(outfile)
+        except:
+            pass
+
+        try:
+            os.remove(errfile)
+        except:
+            pass
+
+        return result

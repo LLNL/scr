@@ -12,7 +12,7 @@ class ResourceManager(object):
     use_watchdog()
       allows setting of self.watchdog and getting its value
 
-    If the constant, USE_CLUSTERSHELL, is not '0' and the module ClusterShell is available
+    If the constant, USE_CLUSTERSHELL is True and the module ClusterShell is available
     then ClusterShell.NodeSet will be used for these operations.
 
     Node set methods are provided by this class:
@@ -43,7 +43,7 @@ class ResourceManager(object):
 
     def __init__(self, resmgr='unknown'):
         self.clustershell_nodeset = False
-        if config.USE_CLUSTERSHELL != '0':
+        if config.USE_CLUSTERSHELL:
             try:
                 import ClusterShell.NodeSet as MyCSNodeSet
                 self.clustershell_nodeset = MyCSNodeSet
