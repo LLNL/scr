@@ -1,5 +1,5 @@
 from scrjob import config
-from scrjob.remoteexec import RemoteExec
+from scrjob.remoteexec import RemoteExec, RemoteExecResult
 
 
 class ClusterShell(RemoteExec):
@@ -18,8 +18,10 @@ class ClusterShell(RemoteExec):
     # the sub-resource manager is responsible for ensuring clustershell is available
     ### TODO: different ssh programs may need different parameters added to remove the 'tput: ' from the output
     def rexec(self, argv, nodes, jobenv):
+        result = RemoteExecResult(argv, nodes)
+
         argv = ' '.join(argv)
-        nodes = self.join_hosts(nodes)
+        nodes = ','.join(nodes)
 
         # launch the task
         task = self.Task.task_self()
@@ -31,19 +33,16 @@ class ClusterShell(RemoteExec):
         # iterate through the task.iter_retcodes() to get (return code, [nodes])
         # to get msg objects, output must be retrieved by individual node using task.node_buffer or .key_error
         # retrieved outputs are bytes, convert with .decode('utf-8')
-        ret = [['', ''], 0]
         for rc, keys in task.iter_retcodes():
-            if rc != 0:
-                ret[1] = 1
-
             for host in keys:
-                output = task.node_buffer(host).decode('utf-8')
-                for line in output.split('\n'):
-                    if line != '' and line != 'tput: No value for $TERM and no -T specified':
-                        ret[0][0] += host + ': ' + line + '\n'
+                result.set_rc(host, rc)
 
-                output = task.key_error(host).decode('utf-8')
-                for line in output.split('\n'):
-                    if line != '' and line != 'tput: No value for $TERM and no -T specified':
-                        ret[0][1] += host + ': ' + line + '\n'
-        return ret
+                output = task.key_buffer(host)
+                if output:
+                    result.append_stdout(host, output.decode('utf-8'))
+
+                output = task.key_error(host)
+                if output:
+                    result.append_stderr(host, output.decode('utf-8'))
+
+        return result

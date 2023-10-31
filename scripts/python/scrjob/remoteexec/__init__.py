@@ -1,4 +1,4 @@
-from .remoteexec import RemoteExec
+from .remoteexec import RemoteExec, RemoteExecResult
 
 from .pdsh import Pdsh
 from .clustershell import ClusterShell
