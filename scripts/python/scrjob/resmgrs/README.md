@@ -3,17 +3,16 @@ SCR interacts with the resource manager for various tasks,
 like acquiring the allocation id, the list of compute nodes,
 and the expected end time of the allocation.
 
-There are three steps to add a new resource manager.
+The steps to add a new resource manager are described below.
 
 ## Define a new resource manager class
 One can add support for a new resource manager by extending
 the `ResourceManager` class and implementing the required interface.
-
 See the `ResourceManager` class in `resourcemanager.py`
 for the interface definitions that one must implement, e.g.:
 
     >>: cat newrm.py
-    from pyfe.resmgr import ResourceManager
+    from scrjob.resmgrs import ResourceManager
 
     class NewRM(ResourceManager):
       def job_id():
@@ -29,16 +28,19 @@ for the interface definitions that one must implement, e.g.:
         pass
 
 ## Import the new class in `__init__.py`
-Add the new import after the ResourceManager and before the AutoResourceManager imports
+Add a line to import the new class in the `__init__.py` file
+after the ``ResourceManager`` and before the ``AutoResourceManager`` imports
 
-Add a line to import the new class in the `__init__.py` file:
-
+    from .resourcemanager import ResourceManager
+    ...
     from .newrm import NewRM
+    ...
+    from .auto import AutoResourceManager
 
 ## Create a class object in `auto.py`
-Users often create new resource manager objects through the `AutoResourceManager` function.
+Users often create a new resource manager object through the `AutoResourceManager` function.
 
-The ResourceManager type, when not provided on instantiation, is determined by a constant in scr\_const.py
+The ``ResourceManager`` type, when not provided on instantiation, is determined by a constant in ``scrjob/config.py``:
 
     rm = new AutoResourceManager(resmgr='NewRM')
 

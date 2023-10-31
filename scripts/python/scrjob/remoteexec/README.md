@@ -8,9 +8,8 @@ This directory contains various implementations for remote command execution.
 The steps below describe how to add a new remote execution class.
 
 ## Define a new remote execution class
-One can add support for a new remote execution by extending
+One can add support for a new remote execution class by extending
 the `RemoteExec` class and implementing the required interface.
-
 See the `RemoteExec` class in `remoteexec.py`
 for the interface definitions that one must implement, e.g.:
 
@@ -22,10 +21,11 @@ for the interface definitions that one must implement, e.g.:
         pass
 
 ## Import the new class in `__init__.py`
-Add the new import after the RemoteExec import
+Add a line to import the new class in the `__init__.py` file
+after the ``RemoteExec`` import:
 
-Add a line to import the new class in the `__init__.py` file:
-
+    from .remoteexec import RemoteExec
+    ...
     from .newrexec import NewRexec
 
 ## Add class file to `CMakeLists.txt`

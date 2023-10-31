@@ -1,7 +1,7 @@
 # Example SCR batch job scripts
 The scripts in this directory demonstrate how to integrate SCR in a batch job script.
+One may use them as a drop in substitute for the corresponding job launcher.
 They serve as examples for users to copy and customize for their own needs.
-However, they are complete, and one may use them as a drop in substitute for the corresponding job launcher.
 The scripts are installed to ``share/scr/jobscripts`` in an SCR installation.
 
 In particular, the scripts show how to use the SCR scavenge and scalable restart features.

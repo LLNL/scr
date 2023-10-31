@@ -1,26 +1,26 @@
 # Python scripts for managing an SCR job
 
-These scripts define and use an ``scrjob`` package which are used to manage an SCR job.
+These scripts define and use an ``scrubby`` package to manage an SCR job.
 Most files in this directory are installed to ``/libexec/python`` of an SCR installation.
 
 NOTE: Though a ``setup.py`` exists, it is not currently functional.
 
-- ``/commands`` - scripts installed to ``/bin`` of an SCR installation
+- ``/commands`` - scripts that use ``scrjob``, installed to ``/bin`` of an SCR installation
 - ``/scrjob`` - ``scrjob`` package files
 - ``/tests`` - tests for the ``scrjob`` package
 
 The following scripts are not typically invoked by a user,
-and they are not considered to be part of the user interface to SCR.
+and they are not considered to be part of the SCR user interface.
 However, these scripts are helpful for debugging and testing.
 
-- ``scr_check_node.py``    - Executed on each compute node to check its health
-- ``scr_ckpt_interval.py`` - Given an SCR log, compute estimate for optimal interval between checkpoints
+- ``scr_check_node.py``    - Execute on each compute node to check access to cache and control directories
+- ``scr_ckpt_interval.py`` - Given an SCR log file, compute estimate for optimal interval between checkpoints
 - ``scr_env.py``           - Print various values from an allocation environment
 - ``scr_glob_hosts.py``    - Manipulate a hostlist string, to expand, compress, and subtract nodes
-- ``scr_inspect.py``       - Executed on each compute node to determine whether a dataset can be scavenged
-- ``scr_kill_jobstep.py``  - Given the specified launcher and jobstepid, call ``Joblauncher.kill_jobstep(jobstepid)``
-- ``scr_list_dir.py``      - Prints the current SCR control or cache directories
-- ``scr_poststage.py``     - Intended to be called to initiate a poststage operation where supported (non-functional)
+- ``scr_inspect.py``       - Execute on each compute node to determine whether a dataset can be scavenged
+- ``scr_kill_jobstep.py``  - Given the specified launcher and jobstepid, call ``JobLauncher.kill_jobstep(jobstepid)``
+- ``scr_list_dir.py``      - Print the SCR control or cache directories
+- ``scr_poststage.py``     - Initiate a poststage operation where supported (non-functional)
 - ``scr_scavenge.py``      - Execute a scavenge operation to copy files from cache to the prefix directory
 
 # ClusterShell (optional)
