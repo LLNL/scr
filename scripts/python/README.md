@@ -26,7 +26,7 @@ However, these scripts are helpful for debugging and testing.
 # ClusterShell (optional)
 
 The ``scrjob`` package can use the ClusterShell module if available.
-This can be disabled by setting ``USE_CLUSTERSHELL='0'`` in ``scrjob/config.py``.
+This can be enabled by setting ``USE_CLUSTERSHELL = True`` in ``scrjob/config.py``.
 ClusterShell is not used if it is not found or if it is disabled.
 
 ClusterShell is useful as:

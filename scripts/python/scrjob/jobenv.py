@@ -51,7 +51,7 @@ class JobEnv:
 
         self.nodetests = NodeTests()
 
-        if config.USE_CLUSTERSHELL == '1':
+        if config.USE_CLUSTERSHELL:
             self.rexec = ClusterShell()
         else:
             self.rexec = Pdsh(launcher=launcher)

@@ -46,10 +46,9 @@ def run(launcher='',
     if val is not None and int(val) > 0:
         verbose = True
 
-    # turn on python function tracing
-    if config.PYFE_TRACE_FUNC == '1' or os.environ.get(
-            'PYFE_TRACE_FUNC') == '1':
-        sys.settrace(tracefunction)
+        # turn on python function tracing
+        if config.TRACE_FUNC:
+            sys.settrace(tracefunction)
 
     # make a record of start time
     timestamp = datetime.now()
