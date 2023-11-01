@@ -14,6 +14,7 @@ sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
+from scrjob import hostlist
 from scrjob.jobenv import JobEnv
 from scrjob.should_exit import should_exit
 
@@ -42,7 +43,7 @@ if __name__ == '__main__':
 
     down_nodes = []
     if args.down:
-        down_nodes = jobenv.resmgr.expand_hosts(args.down)
+        down_nodes = hostlist.expand_hosts(args.down)
 
     if not should_exit(jobenv, down_nodes=down_nodes, verbose=args.verbose):
         sys.exit(1)

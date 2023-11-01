@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from time import time
 
+from scrjob import hostlist
 from scrjob.scavenge import scavenge
 from scrjob.list_down_nodes import list_down_nodes
 from scrjob.cli import SCRIndex, SCRFlushFile
@@ -58,7 +59,7 @@ def postrun(jobenv, verbose=False, log=None):
                 'scr_postrun: ERROR: Could not identify nodeset')
 
         # TODO: explain why we do this
-        os.environ['SCR_NODELIST'] = jobenv.resmgr.join_hosts(scr_nodelist)
+        os.environ['SCR_NODELIST'] = hostlist.join_hosts(scr_nodelist)
 
     # identify list of down nodes
     jobnodes = scr_nodelist

@@ -1,5 +1,6 @@
 import os
 
+from scrjob import hostlist
 from scrjob.resmgrs import ResourceManager
 
 # flux imports
@@ -54,8 +55,8 @@ class FLUX(ResourceManager):
         rset = ResourceSet(resp["R"])
         offline = str(resp['offline'])
         exclude = str(resp['exclude'])
-        offline = self.expand_hosts(offline)
-        exclude = self.expand_hosts(offline)
+        offline = hostlist.expand_hosts(offline)
+        exclude = hostlist.expand_hosts(offline)
         for node in offline:
             if node != '' and node not in downnodes:
                 downnodes[node] = 'Reported down by resource manager'

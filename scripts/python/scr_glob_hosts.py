@@ -2,7 +2,7 @@
 
 import argparse
 
-import scrjob.glob_hosts as glob_hosts
+from scrjob import hostlist
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -49,23 +49,21 @@ if __name__ == '__main__':
     hosts = []
 
     if args.hosts:
-        hosts = glob_hosts.expand(args.hosts)
+        hoststr = args.hosts
     elif args.minus:
-        hosts = glob_hosts.minus(args.minus)
+        hoststr = hostlist.glob_minus(args.minus)
     elif args.intersection:
-        hosts = glob_hosts.intersection(args.intersection)
+        hoststr = hostlist.glob_intersection(args.intersection)
     elif args.compress:
-        hosts = glob_hosts.expand(args.compress)
+        hoststr = args.compress
     else:
         raise RuntimeError('Hostlist not specified')
 
-    hoststr = ','.join(hosts)
-
     if args.nth:
-        print(str(glob_hosts.nth(hoststr, args.nth)))
+        print(hostlist.glob_nth(hoststr, args.nth))
     elif args.count:
-        print(str(glob_hosts.count(hoststr)))
+        print(hostlist.glob_count(hoststr))
     elif args.compress:
-        print(str(glob_hosts.compress(hoststr)))
+        print(hostlist.glob_compress(hoststr))
 
-    print(str(result))
+    print(hoststr)

@@ -55,12 +55,10 @@ def getpdshout(launcher, launch_cmd):
     print('user = ' + str(user))
 
     # get the nodeset of this job
-    nodelist = jobenv.get_scr_nodelist()
+    nodelist = jobenv.node_list()
     if nodelist is None:
         nodelist = jobenv.resmgr.job_nodes()
-        if nodelist is None:
-            nodelist = ''
-    nodelist = ','.join(jobenv.resmgr.expand_hosts(nodelist))
+    nodelist = ','.join(nodelist)
     print('nodelist = ' + str(nodelist))
 
     jobenv.resmgr.usewatchdog(True)
