@@ -11,11 +11,6 @@ class SLURM(ResourceManager):
     def __init__(self):
         super(SLURM, self).__init__(resmgr='SLURM')
 
-    # get a list of tests, methods that exist in the class TestRuntime
-    # these tests will be ran during scr_prerun
-    def prerun_tests(self):
-        return ['check_clustershell', 'check_pdsh']
-
     # get SLURM jobid of current allocation
     def job_id(self):
         return os.environ.get('SLURM_JOBID')

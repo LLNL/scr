@@ -53,22 +53,6 @@ class ResourceManager(object):
         self.resmgr = resmgr
         self.watchdog = False
 
-    def prerun_tests(self):
-        """This method returns a list of tests to perform during scr_prerun.
-
-        Test methods must be defined in the TestRuntime class in scr_test_runtime.py.
-        Tests ensure the environment will function with SCR and may vary between environments.
-        See scr_test_runtime.py for more information on tests available and to add additional tests.
-
-        Returns
-        -------
-        list
-            A list of strings, where each string is a static method in the TestRuntime class
-        """
-        # The check_clustershell method only returns failure when ClusterShell is enabled yet
-        # we are unable to import the ClusterShell module, this is a safe test for all managers
-        return ['check_clustershell']
-
     def use_watchdog(self, watchdog=None):
         """Set or get the watchdog attribute.
 
