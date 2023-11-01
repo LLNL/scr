@@ -36,4 +36,4 @@ if __name__ == '__main__':
 
     jobenv = JobEnv(prefix=args.prefix, launcher=args.joblauncher)
 
-    postrun(prefix_dir=args.prefix, jobenv=jobenv, verbose=args.verbose)
+    postrun(jobenv=jobenv, verbose=args.verbose)

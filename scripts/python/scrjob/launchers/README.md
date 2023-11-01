@@ -3,6 +3,20 @@ SCR interacts with the MPI job launch commands in various ways
 like constructing the command to launch a run while excluding
 known down nodes and killing a hanging run.
 
+Base class: 
+- ``joblauncher.py`` - Defines the ``JobLauncher`` base class that each job launcher implements
+- ``auto.py`` - Defines the ``AutoJobLauncher`` class that instantiates a job launcher depending on the system environment
+
+Existing job launcher classes:
+- ``aprun.py`` - Cray ALPS ``aprun``
+- ``flux.py`` - Flux ``flux run``
+- ``jsrun.py`` - IBM LSF ``jsrun``
+- ``lrun.py`` - LLNL ``lrun``
+- ``mpirun.py`` - generic ``mpirun`` (not functional)
+- ``srun.py`` - SLURM ``srun``
+
+# Adding a new job launcher
+
 The steps to add a new job launcher are described below.
 
 ## Define a new job launcher class

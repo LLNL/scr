@@ -32,8 +32,7 @@ def prerun(jobenv=None, verbose=False):
 
     # check that we have all the runtime dependences we need
     try:
-        testnames = jobenv.resmgr.prerun_tests()
-        TestRuntime(testnames)
+        TestRuntime()
     except Exception as e:
         raise RuntimeError(f'scr_prerun: ERROR: {str(e)}')
 

@@ -10,6 +10,19 @@ On a system with GPUs, one may want to run test kernels on each GPU to exclude n
 One may wish to add CPU or GPU performance tests to avoid nodes with slow hardware.
 The set of checks that are actually executed depends on configuration as specified by the user.
 
+Node test base class and test execution driver:
+- ``nodetest.py`` - Defines the ``NodeTest`` base class that each test implements
+- ``nodetests.py`` - Defines the ``NodeTests`` class that executes a series of tests
+
+Existing tests:
+- ``scr_exclude_nodes.py`` - Nodes listed in ``SCR_EXCLUDE_NODES``
+- ``resmgr.py`` - Nodes listed as failed by the resource manager, calls ``ResourceManager.down_nodes()``
+- ``ping.py`` - Nodes that fail to ``ping`` from the node running the batch job script
+- ``echo.py`` - Nodes that fail to execute an ``echo UP`` command
+- ``dir_capacity.py`` - Nodes that fail the ``scr_check_node.py`` test, which verifies that cache and control directories are writable and optionally have a minimum capacity
+
+## Adding new node health tests
+
 The steps to add a new node test are described below.
 
 ## Define a new node test class

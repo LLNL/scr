@@ -9,56 +9,28 @@ from scrjob.list_down_nodes import list_down_nodes
 from scrjob.cli import SCRIndex, SCRFlushFile
 
 
-def scavenge_rebuild(nodes_job,
-                     nodes_up,
-                     d,
-                     cntldir,
-                     pardir,
-                     jobenv,
-                     log,
-                     verbose=False):
+def postrun(jobenv, verbose=False, log=None):
+    """Called after all runs have completed in an allocation.
 
-    scr_index = SCRIndex(pardir)
-    scr_flush_file = SCRFlushFile(pardir)
+    This determines whether there are any datasets in cache that
+    neeed to be copied to the prefix directory.
+    It identifies any down nodes, and executes scavenge operations as needed.
 
-    # get dataset name
-    dsetname = scr_flush_file.name(d)
-    if not dsetname:
-        raise RuntimeError('scr_postrun: Failed to read name of dataset ' + d)
+    This iterates over all output datasets from oldest to newest,
+    fetching each one if needed.
+    If it fails to copy an output dataset, it notes that dataset id
+    and stops.
 
-    # create dataset directory within prefix directory
-    datadir = jobenv.dir_dset(d)
-    os.makedirs(datadir, exist_ok=True)
+    It then iterates over checkpoints from newest to oldest,
+    excluding any checkpoint that comes after the first output
+    dataset that it failed to copy, if any.
+    It stops after it has ensured the most recent checkpoint
+    is copied, given the above constraint.
 
-    # Scavenge files from cache to parallel file system
-    if verbose:
-        print('scr_postrun: Scavenging ' + dsetname + ' to ' + datadir)
-    scavenge(nodes_job=nodes_up,
-             nodes_up=nodes_up,
-             dataset_id=d,
-             cntldir=cntldir,
-             prefixdir=pardir,
-             verbose=verbose,
-             jobenv=jobenv,
-             log=log)
-
-    # check that scavenged set of files is complete,
-    # rebuilding missing files if possible
-    if verbose:
-        print('scr_postrun: Checking files for dataset ' + dsetname)
-    if not scr_index.build(d):
-        raise RuntimeError('scr_postrun: ERROR: failed to rebuild dataset ' +
-                           d)
-    if verbose:
-        print('scr_postrun: Scavenged dataset ' + dsetname)
-
-
-def postrun(prefix_dir=None, jobenv=None, verbose=False, log=None):
-    """This method is called after all runs has completed, before scr_run.py
-    exits.
-
-    Determine whether there are datasets to scavenge, and perform
-    scavenge operations
+    The point here is that if we fail to copy an output dataset,
+    we ensure the job restarts from its most recent checkpoint
+    before that output dataset so that the job will regenerate
+    the missing output dataset when it runs again in the future.
     """
 
     # if SCR is disabled, immediately exit
@@ -72,20 +44,10 @@ def postrun(prefix_dir=None, jobenv=None, verbose=False, log=None):
     if verbose:
         print('scr_postrun: Started: ' + str(datetime.now()))
 
-    if jobenv is None or jobenv.resmgr is None:
-        raise RuntimeError(
-            'scr_postrun: ERROR: environment and/or resource manager not set')
-
-    # check that we have the SCR_PREFIX directory
-    pardir = prefix_dir
-    if not pardir:
-        pardir = jobenv.dir_prefix()
-    if not pardir:
-        raise RuntimeError(
-            'scr_postrun: ERROR: SCR_PREFIX directory not specified')
-
-    scr_index = SCRIndex(pardir)
-    scr_flush_file = SCRFlushFile(pardir)
+    # get access to the index and flush files
+    prefix = jobenv.dir_prefix()
+    scr_index_file = SCRIndex(prefix)
+    scr_flush_file = SCRFlushFile(prefix)
 
     # get our nodeset for this job
     scr_nodelist = jobenv.node_list()
@@ -158,8 +120,7 @@ def postrun(prefix_dir=None, jobenv=None, verbose=False, log=None):
 
         try:
             attempted.append(d)
-            scavenge_rebuild(scr_nodelist, upnodes, d, cntldir, pardir, jobenv,
-                             log, verbose)
+            scavenge(jobenv, upnodes, d, cntldir, log, verbose)
             succeeded.append(d)
         except Exception as e:
             if verbose:
@@ -194,7 +155,7 @@ def postrun(prefix_dir=None, jobenv=None, verbose=False, log=None):
                         print(
                             'scr_postrun: Updating current marker in index to '
                             + dsetname)
-                    scr_index.current(dsetname)
+                    scr_index_file.current(dsetname)
                     found_ckpt = True
                     break
             else:
@@ -216,8 +177,7 @@ def postrun(prefix_dir=None, jobenv=None, verbose=False, log=None):
 
         # attempt to scavenge this checkpoint
         try:
-            scavenge_rebuild(scr_nodelist, upnodes, d, cntldir, pardir, jobenv,
-                             log, verbose)
+            scavenge(jobenv, upnodes, d, cntldir, log, verbose)
         except Exception as e:
             # failed to scavenge and/or rebuild, attempt the next checkpoint
             if verbose:
@@ -232,7 +192,7 @@ def postrun(prefix_dir=None, jobenv=None, verbose=False, log=None):
             if verbose:
                 print('scr_postrun: Updating current marker in index to ' +
                       dsetname)
-            scr_index.current(dsetname)
+            scr_index_file.current(dsetname)
 
         # completed scavenging this checkpoint, so quit
         found_ckpt = True
