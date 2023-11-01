@@ -85,14 +85,6 @@ def postrun(jobenv, verbose=False, log=None):
     cntldirs = jobenv.dir_control()
     cntldir = cntldirs[0]
 
-    # TODODSET: avoid scavenging things unless it's in this list
-    # get list of possible datasets
-    #  dataset_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
-    #  if [ $? -eq 0 ] ; then
-    #  else
-    #    echo "$prog: Failed to inspect cache or cannot scavenge any datasets"
-    #  fi
-
     # get list of all output sets in ascending order
     if verbose:
         print('scr_postrun: Looking for output sets')
