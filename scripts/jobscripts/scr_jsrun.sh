@@ -20,8 +20,8 @@ scr_prefix=`pwd`
 # prepare allocation for SCR
 ${scrbin}/scr_prerun -p $scr_prefix
 if [ $? -ne 0 ] ; then
-  echo "ERROR: scr_prerun -p $scr_prefix"
-  exit 1
+    echo "ERROR: scr_prerun -p $scr_prefix"
+    exit 1
 fi
 
 # launch the job

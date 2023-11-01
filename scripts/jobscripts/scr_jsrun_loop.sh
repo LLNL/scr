@@ -32,8 +32,8 @@ scr_prefix=`pwd`
 # prepare allocation for SCR
 ${scrbin}/scr_prerun -p $scr_prefix
 if [ $? -ne 0 ] ; then
-  echo "ERROR: scr_prerun -p $scr_prefix"
-  exit 1
+    echo "ERROR: scr_prerun -p $scr_prefix"
+    exit 1
 fi
 
 # stores list of nodes detected to be down
@@ -44,50 +44,51 @@ runs=5
 
 # enter the run loop
 while [ 1 ] ; do
-  # flag to tell jsrun to exclude_hosts any down nodes when launching
-  exclude=""
-  if [ "$down_nodes" != "" ] ; then
-    exclude="--exclude_hosts $down_nodes"
-  fi
+    # flag to tell jsrun to exclude_hosts any down nodes when launching
+    exclude=""
+    if [ "$down_nodes" != "" ] ; then
+        exclude="--exclude_hosts $down_nodes"
+    fi
 
-  # launch the job, excluding any down nodes
-  jsrun $exclude "$@"
+    # launch the job, excluding any down nodes
+    jsrun $exclude "$@"
 
-  # check whether we should stop running
-  ${scrbin}/scr_should_exit -p $scr_prefix
-  if [ $? == 0 ] ; then
-    echo "Halt condition detected, ending run."
-    break
-  fi
+    # check whether we should stop running
+    ${scrbin}/scr_should_exit -p $scr_prefix
+    if [ $? == 0 ] ; then
+        echo "Halt condition detected, ending run."
+        break
+    fi
 
-  # any retry attempts left?
-  runs=$(($runs - 1))
-  if [ $runs -le 0 ] ; then
-    echo "Runs exhausted, ending run."
-    break
-  fi
+    # any retry attempts left?
+    runs=$(($runs - 1))
+    if [ $runs -le 0 ] ; then
+        echo "Runs exhausted, ending run."
+        break
+    fi
 
-  # give nodes a chance to clean up
-  sleep 60
+    # give nodes a chance to clean up
+    # NOTE: need to sleep longer than an internal timeout in jsrun
+    sleep 120
 
-  # check for down nodes
-  # once a node is marked as down, we leave it as down
-  keep_down=""
-  if [ "$down_nodes" != "" ] ; then
-    keep_down="--down $down_nodes"
-  fi
-  down_nodes=`${scrbin}/scr_list_down_nodes $keep_down`
+    # check for down nodes
+    # once a node is marked as down, we leave it as down
+    keep_down=""
+    if [ "$down_nodes" != "" ] ; then
+        keep_down="--down $down_nodes"
+    fi
+    down_nodes=`${scrbin}/scr_list_down_nodes $keep_down`
 
-  # in case of new down nodes, check whether we should stop again
-  keep_down=""
-  if [ "$down_nodes" != "" ] ; then
-    keep_down="--down $down_nodes"
-  fi
-  ${scrbin}/scr_should_exit -p $scr_prefix $keep_down
-  if [ $? == 0 ] ; then
-    echo "Halt condition detected, ending run."
-    break
-  fi
+    # in case of new down nodes, check whether we should stop again
+    keep_down=""
+    if [ "$down_nodes" != "" ] ; then
+        keep_down="--down $down_nodes"
+    fi
+    ${scrbin}/scr_should_exit -p $scr_prefix $keep_down
+    if [ $? == 0 ] ; then
+        echo "Halt condition detected, ending run."
+        break
+    fi
 done
 
 # scavenge files from cache to prefix directory
