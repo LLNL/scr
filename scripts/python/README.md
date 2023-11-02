@@ -16,7 +16,7 @@ However, these scripts are helpful for debugging and testing.
 - ``scr_check_node.py``    - Execute on each compute node to check access to cache and control directories
 - ``scr_ckpt_interval.py`` - Given an SCR log file, compute estimate for optimal interval between checkpoints
 - ``scr_env.py``           - Print various values from an allocation environment
-- ``scr_glob_hosts.py``    - Manipulate a hostlist string, to expand, compress, and subtract nodes
+- ``scr_hostlist.py``      - Manipulate a hostlist string, to expand, compress, and subtract nodes
 - ``scr_inspect.py``       - Execute on each compute node to determine whether a dataset can be scavenged (not used)
 - ``scr_kill_jobstep.py``  - Given the specified launcher and jobstepid, call ``JobLauncher.kill_jobstep(jobstepid)``
 - ``scr_list_dir.py``      - Print the SCR control or cache directories
