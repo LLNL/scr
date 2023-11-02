@@ -37,10 +37,12 @@ class TestRuntime:
           This method does not return an instance of a class.
         """
 
-        tests = [
-            'check_clustershell',
-            'check_pdsh',
-        ]
+        tests = []
+
+        if config.USE_CLUSTERSHELL:
+            tests.append('check_clustershell')
+        else:
+            tests.append('check_pdsh')
 
         for test in tests:
             testmethod = getattr(TestRuntime, test)
@@ -53,12 +55,11 @@ class TestRuntime:
         This test will return failure if the option USE_CLUSTERSHELL
         enables ClusterShell and the module is not available.
         """
-        if config.USE_CLUSTERSHELL:
-            try:
-                import ClusterShell
-            except:
-                raise RuntimeError(
-                    'Failed to import Clustershell as indicated by config.py')
+        try:
+            import ClusterShell
+        except:
+            raise RuntimeError(
+                'Failed to import Clustershell as indicated by config.py')
 
     @staticmethod
     def check_pdsh():
