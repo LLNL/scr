@@ -12,6 +12,7 @@ if config.USE_CLUSTERSHELL:
     import ClusterShell.NodeSet as MyCSNodeSet
     _cs_nodeset = MyCSNodeSet
 
+
 # numbersfromrange is a helper function, allows leading zeroes
 # returns a list of string representations of numbers
 # '2-4,6' -> '2','3','4','6'
@@ -648,10 +649,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.numbersfromrange:
-        print(f'numbersfromrange({args.numbersfromrange}) -> {numbersfromrange(args.numbersfromrange)}')
+        print(
+            f'numbersfromrange({args.numbersfromrange}) -> {numbersfromrange(args.numbersfromrange)}'
+        )
 
     if args.rangefromnumbers:
-        print(f'rangefromnumbers({args.rangefromnumbers}) -> {rangefromnumbers(args.rangefromnumbers)}')
+        print(
+            f'rangefromnumbers({args.rangefromnumbers}) -> {rangefromnumbers(args.rangefromnumbers)}'
+        )
 
     if args.expand:
         print(f'expand_hosts({args.expand}) -> {expand_hosts(args.expand)}')
@@ -668,4 +673,6 @@ if __name__ == '__main__':
         print(f'glob_minus({args.minus}) -> {glob_minus(args.minus)}')
 
     if args.intersect:
-        print(f'glob_intersect({args.intersect}) -> {glob_intersect(args.intersect)}')
+        print(
+            f'glob_intersect({args.intersect}) -> {glob_intersect(args.intersect)}'
+        )

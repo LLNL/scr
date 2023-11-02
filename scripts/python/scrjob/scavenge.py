@@ -17,7 +17,8 @@ def scavenge_files(jobenv,
                    nodes_down=None,
                    log=None,
                    verbose=False):
-    """Copies user and redundancy files for a dataset id from cache to the prefix directory."""
+    """Copies user and redundancy files for a dataset id from cache to the
+    prefix directory."""
 
     start_time = int(time())
 
@@ -114,13 +115,9 @@ def scavenge_files(jobenv,
         log.event('SCAVENGE_END', dset=dataset_id, secs=diff_time)
 
 
-def scavenge(jobenv,
-             nodes,
-             dataset_id,
-             cntldir,
-             log=None,
-             verbose=False):
-    """Copies dataset files from cache to prefix directory and attempts to rebuild."""
+def scavenge(jobenv, nodes, dataset_id, cntldir, log=None, verbose=False):
+    """Copies dataset files from cache to prefix directory and attempts to
+    rebuild."""
 
     # get access to the index and flush files for the job
     prefix = jobenv.dir_prefix()
@@ -137,7 +134,8 @@ def scavenge(jobenv,
     os.makedirs(datadir, exist_ok=True)
 
     if verbose:
-        print('scavenge: Scavenging files for dataset ' + dsetname + ' to ' + datadir)
+        print('scavenge: Scavenging files for dataset ' + dsetname + ' to ' +
+              datadir)
 
     # Scavenge files from cache to parallel file system
     scavenge_files(jobenv,

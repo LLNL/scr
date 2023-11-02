@@ -11,25 +11,23 @@ from scrjob.cli import SCRIndex, SCRFlushFile
 def postrun(jobenv, verbose=False, log=None):
     """Called after all runs have completed in an allocation.
 
-    This determines whether there are any datasets in cache that
-    neeed to be copied to the prefix directory.
-    It identifies any down nodes, and executes scavenge operations as needed.
+    This determines whether there are any datasets in cache that neeed
+    to be copied to the prefix directory. It identifies any down nodes,
+    and executes scavenge operations as needed.
 
     This iterates over all output datasets from oldest to newest,
-    fetching each one if needed.
-    If it fails to copy an output dataset, it notes that dataset id
-    and stops.
+    fetching each one if needed. If it fails to copy an output dataset,
+    it notes that dataset id and stops.
 
-    It then iterates over checkpoints from newest to oldest,
-    excluding any checkpoint that comes after the first output
-    dataset that it failed to copy, if any.
-    It stops after it has ensured the most recent checkpoint
-    is copied, given the above constraint.
+    It then iterates over checkpoints from newest to oldest, excluding
+    any checkpoint that comes after the first output dataset that it
+    failed to copy, if any. It stops after it has ensured the most
+    recent checkpoint is copied, given the above constraint.
 
-    The point here is that if we fail to copy an output dataset,
-    we ensure the job restarts from its most recent checkpoint
-    before that output dataset so that the job will regenerate
-    the missing output dataset when it runs again in the future.
+    The point here is that if we fail to copy an output dataset, we
+    ensure the job restarts from its most recent checkpoint before that
+    output dataset so that the job will regenerate the missing output
+    dataset when it runs again in the future.
     """
 
     # if SCR is disabled, immediately exit

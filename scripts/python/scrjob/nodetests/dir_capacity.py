@@ -7,8 +7,8 @@ from scrjob.nodetests import NodeTest
 class DirCapacity(NodeTest):
     """Run scr_check_node.py on each node.
 
-    Checks that cache and control dirs are writable
-    and optionally have a given minimum capacity.
+    Checks that cache and control dirs are writable and optionally have
+    a given minimum capacity.
     """
 
     def __init__(self):

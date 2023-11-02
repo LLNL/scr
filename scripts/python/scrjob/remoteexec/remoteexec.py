@@ -16,10 +16,11 @@ class RemoteExec(object):
     def rexec(self, argv, nodes, jobenv):
         """Executes command in argv on nodes.
 
-        argv is a list of arguments representing the command.
-        nodes is a list of node names on which to execute the command.
+        argv is a list of arguments representing the command. nodes is a
+        list of node names on which to execute the command.
 
-        Returns RemoteExecResult with stdout, stderr, and rc for each node.
+        Returns RemoteExecResult with stdout, stderr, and rc for each
+        node.
         """
         pass
 
