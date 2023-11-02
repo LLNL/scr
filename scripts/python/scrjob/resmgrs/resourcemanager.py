@@ -1,46 +1,8 @@
 class ResourceManager(object):
-    """ResourceManager is the super class for the resource manager family.
-
-    Provided Default Methods
-    ------------------------
-    use_watchdog()
-      allows setting of self.watchdog and getting its value
-
-    Other Methods
-    -------------
-    Other methods should be implemented in derived classes as appropriate.
-
-    Attributes
-    ----------
-    resmgr               - String representation of the resource manager
-    watchdog             - A boolean indicating whether to use the watchdog method
-    """
+    """ResourceManager is the super class for the resource manager family."""
 
     def __init__(self, resmgr='unknown'):
         self.resmgr = resmgr
-        self.watchdog = False
-
-    def use_watchdog(self, watchdog=None):
-        """Set or get the watchdog attribute.
-
-        When not using the Watchdog, a jobstep is launched and waited on.
-
-        When using the Watchdog, a jobstep is launched and waited on until a timeout.
-        At each timeout, if the process is still running, a check is conducted for
-        the existence of output files. If no new output files exist, it will be assumed
-        that the launched process is hanging and it will be terminated.
-
-        Given a boolean parameter, this method will set the watchdog attribute.
-        Called without a parameter, the value will be returned.
-
-        Returns
-        -------
-        bool
-            indicates whether watchdog is active
-        """
-        if watchdog is None:
-            return self.watchdog
-        self.watchdog = watchdog
 
     def job_id(self):
         """Return current job allocation id.

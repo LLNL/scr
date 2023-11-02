@@ -85,7 +85,6 @@ def run(launcher='',
     watchdog = None
     val = os.environ.get('SCR_WATCHDOG')
     if val == '1':
-        jobenv.resmgr.use_watchdog(True)
         watchdog = Watchdog(prefix, jobenv)
 
     # TODO: define jobenv.resmgr.prerun() and launcher.prerun() hooks, call from prerun?
