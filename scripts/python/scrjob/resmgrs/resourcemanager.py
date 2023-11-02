@@ -1,9 +1,3 @@
-import os
-
-from scrjob import config, hostlist
-from scrjob.common import scr_prefix
-
-
 class ResourceManager(object):
     """ResourceManager is the super class for the resource manager family.
 
@@ -18,14 +12,11 @@ class ResourceManager(object):
 
     Attributes
     ----------
-    clustershell_nodeset - Either False or a pointer to the module ClusterShell.NodeSet
-    prefix               - String returned from scr_prefix()
     resmgr               - String representation of the resource manager
     watchdog             - A boolean indicating whether to use the watchdog method
     """
 
     def __init__(self, resmgr='unknown'):
-        self.prefix = scr_prefix()
         self.resmgr = resmgr
         self.watchdog = False
 
