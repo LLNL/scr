@@ -41,15 +41,6 @@ class JobLauncher(object):
         self.name = launcher
         self.hostfile = ''
 
-    def prepare_prerun(self):
-        """This method is called (without arguments) before scr_prerun.py.
-
-        Any necessary preamble work can be inserted into this method.
-        This method does nothing by default and may be overridden as
-        needed.
-        """
-        pass
-
     def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
         """This method is called to launch a jobstep.
 

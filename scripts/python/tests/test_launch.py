@@ -34,10 +34,6 @@ def dolaunch(launcher, launch_cmd):
 
     watchdog = Watchdog(prefix, jobenv)
 
-    print('calling prepare_prerun . . .')
-    jobenv.launcher.prepare_prerun()
-    print('returned from prepare_prerun')
-
     try:
         prerun(jobenv=jobenv)
         print('prerun returned success')

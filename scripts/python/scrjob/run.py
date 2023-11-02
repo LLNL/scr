@@ -87,10 +87,6 @@ def run(launcher='',
     if val == '1':
         watchdog = Watchdog(prefix, jobenv)
 
-    # TODO: define jobenv.resmgr.prerun() and launcher.prerun() hooks, call from prerun?
-    # run a NOP with srun, other launchers could do any preamble work here
-    jobenv.launcher.prepare_prerun()
-
     # make a record of time prerun is started
     timestamp = datetime.now()
     if verbose:

@@ -11,15 +11,6 @@ class SRUN(JobLauncher):
     def __init__(self, launcher='srun'):
         super(SRUN, self).__init__(launcher=launcher)
 
-    # a command to run immediately before prerun is ran
-    # NOP srun to force every node to run prolog to delete files from cache
-    # TODO: remove this if admins find a better place to clear cache
-    def prepare_prerun(self):
-        # NOP srun to force every node to run prolog to delete files from cache
-        # TODO: remove this if admins find a better place to clear cache
-        argv = ['srun', '/bin/hostname']  # ,'>','/dev/null']
-        runproc(argv=argv)
-
     # returns the process and PID of the launched process
     # as returned by runproc(argv=argv, wait=False)
     def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):

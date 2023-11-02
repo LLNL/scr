@@ -4,6 +4,15 @@ class ResourceManager(object):
     def __init__(self, resmgr='UNKNOWN'):
         self.name = resmgr
 
+    def prerun(self):
+        """This method is called during prerun.py.
+
+        Any necessary preamble work can be inserted into this method.
+        This method does nothing by default and may be overridden as
+        needed.
+        """
+        pass
+
     def job_id(self):
         """Return current job allocation id.
 

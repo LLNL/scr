@@ -12,6 +12,12 @@ class SLURM(ResourceManager):
     def __init__(self):
         super(SLURM, self).__init__(resmgr='SLURM')
 
+    def prerun(self):
+        # HACK: NOP srun to force every node to run SLURM prolog to delete files from cache
+        # remove this if admins find a better place to clear cache
+        argv = ['srun', '/bin/hostname']  # ,'>','/dev/null']
+        runproc(argv=argv)
+
     # get SLURM jobid of current allocation
     def job_id(self):
         return os.environ.get('SLURM_JOBID')

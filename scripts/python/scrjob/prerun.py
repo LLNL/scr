@@ -40,6 +40,11 @@ def prerun(jobenv=None, verbose=False):
     dir_scr = jobenv.dir_scr()
     os.makedirs(dir_scr, exist_ok=True)
 
+    # hook for resource manager to prepare allocation
+    # for example, on SLURM, one needs to run srun to run prolog
+    # which may delete files from /dev/shm before we later test for free space
+    jobenv.resmgr.prerun()
+
     # TODO: It would be nice to clear the cache and control directories
     # here in preparation for the run.  However, a simple rm -rf is too
     # dangerous, since it's too easy to accidentally specify the wrong

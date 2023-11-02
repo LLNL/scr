@@ -30,10 +30,6 @@ def getpdshout(launcher, launch_cmd):
     print('nodelist = ' + str(nodelist))
 
     watchdog = Watchdog(prefix, jobenv)
-    if launcher == 'srun':
-        print('calling prepare_prerun . . .')
-        jobenv.launcher.prepare_prerun()
-        print('returned from prepare_prerun')
 
     try:
         prerun(jobenv=jobenv)
