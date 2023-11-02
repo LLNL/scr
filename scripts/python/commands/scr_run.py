@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
-from scrjob import run, parseargs
+from scrjob.run import run, parseargs, validate_launcher
 
 # argparse doesn't handle parsing of mixed positionals
 # there is a parse_intermixed_args which requires python 3.7 which may work

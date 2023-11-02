@@ -10,35 +10,6 @@ from scrjob.list_down_nodes import list_down_nodes
 from scrjob.prerun import prerun
 from scrjob.watchdog import Watchdog
 from scrjob.jobenv import JobEnv
-from scrjob.glob_hosts import glob_hosts
-
-
-# return number of nodes left in allocation after excluding down nodes
-def nodes_remaining(resmgr, nodelist, down_nodes):
-    num_left = glob_hosts(count=True,
-                          minus=nodelist + ':' + down_nodes,
-                          resmgr=resmgr)
-    if num_left is None:
-        return 0
-    return int(num_left)
-
-
-# determine how many nodes are needed
-def nodes_needed(jobenv, nodelist):
-    # if SCR_MIN_NODES is set, use that
-    num_needed = os.environ.get('SCR_MIN_NODES')
-    if num_needed is None or int(num_needed) <= 0:
-        # otherwise, use value in nodes file if one exists
-        num_needed = jobenv.get_runnode_count()
-        if num_needed <= 0:
-            # otherwise, assume we need all nodes in the allocation
-            num_needed = glob_hosts(count=True,
-                                    hosts=nodelist,
-                                    resmgr=jobenv.resmgr)
-            if num_needed is None:
-                # failed all methods to estimate the minimum number of nodes
-                return 0
-    return int(num_needed)
 
 
 def dolaunch(launcher, launch_cmd):
@@ -50,16 +21,15 @@ def dolaunch(launcher, launch_cmd):
     prefix = jobenv.dir_prefix()
 
     jobid = jobenv.resmgr.job_id()
-    user = jobenv.get_user()
-    launcher.hostfile = os.path.join(jobenv.dir_scr(), 'hostfile')
+    user = jobenv.user()
+    jobenv.launcher.hostfile = os.path.join(jobenv.dir_scr(), 'hostfile')
     print('jobid = ' + str(jobid))
     print('user = ' + str(user))
 
     # get the nodeset of this job
-    nodelist = jobenv.get_scr_nodelist()
+    nodelist = jobenv.node_list()
     if not nodelist:
         nodelist = jobenv.resmgr.job_nodes()
-    nodelist = ','.join(nodelist)
     print('nodelist = ' + str(nodelist))
 
     watchdog = Watchdog(prefix, jobenv)
@@ -68,11 +38,12 @@ def dolaunch(launcher, launch_cmd):
     jobenv.launcher.prepare_prerun()
     print('returned from prepare_prerun')
 
-    if prerun(jobenv=jobenv) != 0:
+    try:
+        prerun(jobenv=jobenv)
+        print('prerun returned success')
+    except:
         print('testing: ERROR: Command failed: prerun -p ' + prefix)
         print('This would terminate run')
-    else:
-        print('prerun returned success')
 
     endtime = jobenv.resmgr.end_time()
     print('endtime = ' + str(endtime))
@@ -84,28 +55,22 @@ def dolaunch(launcher, launch_cmd):
     else:
         print('testing : end_time returned ' + str(endtime))
 
-    down_nodes = list_down_nodes(free=True, nodeset_down='', jobenv=jobenv)
-    if type(down_nodes) is int:
+    down_nodes = list_down_nodes(nodes=nodelist, free=True, jobenv=jobenv)
+    if not down_nodes:
         print('there were no downnodes from list_down_nodes')
-        down_nodes = ''
     else:
         print('there were downnodes returned from list_down_nodes')
         print('down_nodes = ' + str(down_nodes))
         # print the reason for the down nodes, and log them
         # when reason == True a string formatted for printing will be returned
-        printstring = list_down_nodes(reason=True,
+        printstring = list_down_nodes(nodes=nodelist,
+                                      reason=True,
                                       free=True,
-                                      nodeset_down=down_nodes,
+                                      nodes_down=down_nodes,
                                       runtime_secs='0',
                                       jobenv=jobenv,
                                       log=None)
         print(printstring)
-
-    num_needed = nodes_needed(jobenv, nodelist)
-    print('num_needed = ' + str(num_needed))
-
-    num_left = nodes_remaining(jobenv.resmgr, nodelist, down_nodes)
-    print('num_left = ' + str(num_left))
 
     print('testing: Launching ' + str(launch_cmd))
     proc, jobstep = jobenv.launcher.launch_run_cmd(up_nodes=nodelist,
