@@ -85,7 +85,6 @@ def run(launcher='',
     watchdog = None
     val = os.environ.get('SCR_WATCHDOG')
     if val == '1':
-        jobenv.resmgr.use_watchdog(True)
         watchdog = Watchdog(prefix, jobenv)
 
     # TODO: define jobenv.resmgr.prerun() and launcher.prerun() hooks, call from prerun?
@@ -229,7 +228,6 @@ def run(launcher='',
                 print(prog + ': Halt condition detected, ending run.')
             break
 
-        # TODO: move the SCR_RUNS logic into should_exit
         # decrement retry counter
         runs -= 1
         if runs == 0:
@@ -253,7 +251,7 @@ def run(launcher='',
         print(prog + ': postrun: ' + str(timestamp))
 
     # scavenge files from cache to parallel file system
-    postrun(prefix_dir=prefix, jobenv=jobenv, verbose=verbose, log=log)
+    postrun(jobenv=jobenv, verbose=verbose, log=log)
 
     # make a record of end time
     timestamp = datetime.now()

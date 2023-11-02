@@ -81,7 +81,7 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
   echo ""
   echo "----------------------"
   echo ""
-  ${scrbin}/scr_${launcher} ${singleargs} test_api --output 4
+  ${launcher} ${singleargs} test_api --output 4
   sleep 1
   # Run any scripts in scrpy/tests/test*.py
   for testscript in ${TESTDIR}/test*.py; do
@@ -91,15 +91,15 @@ if [ "$1" == "scripts" ] || [ "$1" == "" ]; then
     echo "${testscript##*/}"
     sleep 1
     if [ "${testscript##*/}" == "test_watchdog.py" ]; then
-      PYTHONPATH=${scrlibexec} ${testscript} ${launcher} ${launcherargs} $(pwd)/sleeper
+      PYTHONPATH=${scrlibexec} python3 ${testscript} ${launcher} ${launcherargs} $(pwd)/sleeper
     elif [ "${testscript##*/}" == "test_launch.py" ]; then
-      PYTHONPATH=${scrlibexec} ${testscript} ${launcher} ${launcherargs} $(pwd)/printer
+      PYTHONPATH=${scrlibexec} python3 ${testscript} ${launcher} ${launcherargs} $(pwd)/printer
     elif [ "${testscript##*/}" == "test_pdsh.py" ]; then
-      PYTHONPATH=${scrlibexec} ${testscript} ${launcher} $(pwd)/printer
+      PYTHONPATH=${scrlibexec} python3 ${testscript} ${launcher} $(pwd)/printer
     elif [ "${testscript##*/}" == "test_flush_file.py" ]; then
-      PYTHONPATH=${scrlibexec} ${testscript} ${SCR_PREFIX}
+      PYTHONPATH=${scrlibexec} python3 ${testscript} ${SCR_PREFIX}
     else
-      PYTHONPATH=${scrlibexec} ${testscript}
+      PYTHONPATH=${scrlibexec} python3 ${testscript}
     fi
     echo ""
     echo "----------------------"
@@ -120,7 +120,7 @@ if [ $launcher != "flux" ] && [ -x "sleeper" ]; then
   export SCR_WATCHDOG_TIMEOUT_PFS=1
   echo ""
   echo "Launching sleeper . . ."
-  ${scrbin}/scr_${launcher} ${launcherargs} $(pwd)/sleeper
+  ${scrbin}/scr_run ${launcher} ${launcherargs} $(pwd)/sleeper
   unset SCR_WATCHDOG
   unset SCR_WATCHDOG_TIMEOUT
   unset SCR_WATCHDOG_TIMEOUT_PFS
@@ -202,24 +202,24 @@ rm -rf ${delfiles}
 echo ""
 echo "check that a run works"
 sleep 1
-${scrbin}/scr_${launcher} ${launcherargs} ./test_api
+${launcher} ${launcherargs} ./test_api
 
 echo ""
 echo "run again, check that checkpoints continue where last run left off"
 sleep 2
-${scrbin}/scr_${launcher} ${launcherargs} ./test_api
+${launcher} ${launcherargs} ./test_api
 
 echo ""
 echo "delete all files from /ssd on rank 0, run again, check that rebuild works"
 sleep 2
 rm -rf ${delfiles}
-${scrbin}/scr_${launcher} ${launcherargs} ./test_api
+${launcher} ${launcherargs} ./test_api
 
 echo ""
 echo "delete all files from all nodes, run again, check that run starts over"
 sleep 2
 rm -rf ${delfiles}
-${scrbin}/scr_${launcher} ${launcherargs} ./test_api
+${launcher} ${launcherargs} ./test_api
 
 echo ""
 echo "clear the cache and control directory"
@@ -277,7 +277,7 @@ echo ""
 echo "clear the cache, make a new run"
 sleep 2
 rm -rf ${delfiles}
-${scrbin}/scr_${launcher} ${launcherargs} ./test_api
+${launcher} ${launcherargs} ./test_api
 sleep 1
 echo "check that scr_postrun scavenges successfully (no rebuild)"
 ${scrbin}/scr_postrun --prefix ${SCR_PREFIX} --joblauncher ${launcher}
@@ -291,7 +291,7 @@ if [ $launcher != "flux" ]; then
   echo "fake a down node via EXCLUDE_NODES and redo above test (check that rebuild during scavenge works)"
   sleep 1
   export SCR_EXCLUDE_NODES=${downnode}
-  ${scrbin}/scr_${launcher} ${launcherargs} ./test_api
+  ${launcher} ${launcherargs} ./test_api
   sleep 3
   echo ""
   echo "scr_postrun"
@@ -306,7 +306,7 @@ echo ""
 echo "delete all files, run again, check that fetch succeeds"
 sleep 1
 rm -rf ${delfiles}
-${scrbin}/scr_${launcher} ${launcherargs} ./test_api
+${launcher} ${launcherargs} ./test_api
 sleep 2
 echo "scr_index --list"
 ${scrbin}/scr_index --list
