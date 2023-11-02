@@ -28,18 +28,44 @@ class JobLauncher(object):
 
     Attributes
     ----------
-    launcher          - string representation of the launcher
+    name              - string representation of the launcher
     hostfile          - string location of a writable hostfile, set in scr_run.py: jobenv.dir_scr() + '/hostfile'
                         this is a file a launcher may use
     """
 
-    def __init__(self, launcher=''):
+    def __init__(self, launcher='UNKNOWN'):
         """Base class initialization.
 
         Call super().__init__() in derived launchers.
         """
-        self.launcher = launcher
+        self.name = launcher
         self.hostfile = ''
+
+    def prepare_prerun(self):
+        """This method is called (without arguments) before scr_prerun.py.
+
+        Any necessary preamble work can be inserted into this method.
+        This method does nothing by default and may be overridden as
+        needed.
+        """
+        pass
+
+    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
+        """This method is called to launch a jobstep.
+
+        This method must be overridden.
+        Launch a jobstep specified by launcher_args using up_nodes and down_nodes.
+
+        Returns
+        -------
+        tuple (process, id)
+            When using the provided base class methods: waitonprocess() and kill_jobstep(),
+            return scr_common.runproc(argv, wait=False).
+
+            The first return value is used as the argument for waiting on the process in launcher.waitonprocess().
+            The second return value is used as the argument to kill a jobstep in launcher.kill_jobstep().
+        """
+        return None, None
 
     def waitonprocess(self, proc=None, timeout=None):
         """This method is called after a jobstep is launched with the return
@@ -74,32 +100,6 @@ class JobLauncher(object):
                 return (None, None)
 
         return (True, proc.returncode)
-
-    def prepare_prerun(self):
-        """This method is called (without arguments) before scr_prerun.py.
-
-        Any necessary preamble work can be inserted into this method.
-        This method does nothing by default and may be overridden as
-        needed.
-        """
-        pass
-
-    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
-        """This method is called to launch a jobstep.
-
-        This method must be overridden.
-        Launch a jobstep specified by launcher_args using up_nodes and down_nodes.
-
-        Returns
-        -------
-        tuple (process, id)
-            When using the provided base class methods: waitonprocess() and kill_jobstep(),
-            return scr_common.runproc(argv, wait=False).
-
-            The first return value is used as the argument for waiting on the process in launcher.waitonprocess().
-            The second return value is used as the argument to kill a jobstep in launcher.kill_jobstep().
-        """
-        return None, None
 
     def kill_jobstep(self, jobstep=None):
         """Kills task identified by jobstep parameter.

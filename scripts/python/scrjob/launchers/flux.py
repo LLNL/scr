@@ -21,26 +21,6 @@ class FLUX(JobLauncher):
                 'Error importing flux, ensure that the flux daemon is running.'
             )
 
-    def waitonprocess(self, proc, timeout=None):
-        try:
-            future = flux.job.wait_async(self.flux, proc)
-            if timeout is None:
-                (jobid, success, errstr) = future.get_status()
-            else:
-                (jobid, success, errstr) = future.wait_for(int(timeout))
-                # TODO: verify return values of wait_for()
-        except TimeoutError:
-            # The process is still running, the timeout expired
-            return False, None
-        except Exception as e:
-            # it can also throw an exception if there is no job to wait for
-            print(e)
-            return False, None
-
-        if success == False:
-            print(f'flux job {proc} failed: {errstr}')
-        return True, success
-
     def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
         if type(launcher_args) is str:
             launcher_args = launcher_args.split(' ')
@@ -61,6 +41,26 @@ class FLUX(JobLauncher):
         # waitable=True is required by the call to wait_async() in waitonprocess()
         jobid = flux.job.submit(self.flux, compute_jobreq, waitable=True)
         return jobid, jobid
+
+    def waitonprocess(self, proc, timeout=None):
+        try:
+            future = flux.job.wait_async(self.flux, proc)
+            if timeout is None:
+                (jobid, success, errstr) = future.get_status()
+            else:
+                (jobid, success, errstr) = future.wait_for(int(timeout))
+                # TODO: verify return values of wait_for()
+        except TimeoutError:
+            # The process is still running, the timeout expired
+            return False, None
+        except Exception as e:
+            # it can also throw an exception if there is no job to wait for
+            print(e)
+            return False, None
+
+        if success == False:
+            print(f'flux job {proc} failed: {errstr}')
+        return True, success
 
     def kill_jobstep(self, jobstep=None):
         if jobstep is not None:

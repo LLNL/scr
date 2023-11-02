@@ -1,8 +1,8 @@
 class ResourceManager(object):
     """ResourceManager is the super class for the resource manager family."""
 
-    def __init__(self, resmgr='unknown'):
-        self.resmgr = resmgr
+    def __init__(self, resmgr='UNKNOWN'):
+        self.name = resmgr
 
     def job_id(self):
         """Return current job allocation id.
