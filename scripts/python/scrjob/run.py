@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # the general launcher for the scripts
 # if called directly the launcher to use (srun/jsrun/mpirun) should be specified as an argument
 # scr_{srun,jsrun,mpirun} scripts call this script with the launcher specified

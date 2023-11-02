@@ -1,7 +1,8 @@
 """# pmix.py # PMIX is a subclass if ResourceManager
 
 import os
-from scrjob import config
+
+from scrjob import config, hostlist
 from scrjob.common import runproc, pipeproc
 from scrjob.resmgrs import ResourceManager
 
@@ -36,12 +37,8 @@ class PMIX(ResourceManager):
 
   # get node list
   def job_nodes(self):
-    val = os.environ.get('PMIX_NODELIST')
-    if val is not None:
-      node_list = val.split(',')
-      nodeset = self.compress_hosts(node_list)
-      return nodeset
-    return None
+    nodelist = os.environ.get('PMIX_NODELIST')
+    return hostlist.expand_hosts(nodelist)
 
   def down_nodes(self):
     # if the resource manager knows any nodes to be down out of the job's

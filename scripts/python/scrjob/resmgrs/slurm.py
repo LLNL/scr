@@ -2,6 +2,7 @@ import os
 import re
 import datetime
 
+from scrjob import hostlist
 from scrjob.common import runproc
 from scrjob.resmgrs import ResourceManager
 
@@ -18,14 +19,14 @@ class SLURM(ResourceManager):
     # get node list
     def job_nodes(self):
         nodelist = os.environ.get('SLURM_NODELIST')
-        return self.expand_hosts(nodelist)
+        return hostlist.expand_hosts(nodelist)
 
     # use sinfo to query SLURM for the list of nodes it thinks to be down
     def down_nodes(self):
         downnodes = {}
         nodelist = self.job_nodes()
         if nodelist:
-            nodestr = self.join_hosts(nodelist)
+            nodestr = hostlist.join_hosts(nodelist)
             down, returncode = runproc("sinfo -ho %N -t down -n " + nodestr,
                                        getstdout=True)
             if returncode == 0:

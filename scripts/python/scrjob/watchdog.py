@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 from scrjob.cli import SCRFlushFile
 
 

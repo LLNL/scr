@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 import os
 import sys
 import argparse
@@ -45,16 +43,16 @@ def scr_inspect(jobnodes=None, up=None, down=None, cntldir=None, jobenv=None):
     if jobnodes is None:
         raise RuntimeError('Job nodes must be specified.')
 
-    jobnodes = hostlist.expand(jobnodes)
+    jobnodes = hostlist.expand_hosts(jobnodes)
 
     upnodes = []
     downnodes = []
     if down is not None:
-        downnodes = hostlist.expand(down)
-        upnodes = hostlist.diff(jobnodes, downnodes)
+        downnodes = hostlist.expand_hosts(down)
+        upnodes = hostlist.diff_hosts(jobnodes, downnodes)
     elif up is not None:
-        upnodes = hostlist.expand(up)
-        downnodes = hostlist.diff(jobnodes, upnodes)
+        upnodes = hostlist.expand_hosts(up)
+        downnodes = hostlist.diff_hosts(jobnodes, upnodes)
     else:
         upnodes = jobnodes
 

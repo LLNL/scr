@@ -1,13 +1,16 @@
-#! /usr/bin/env python3
-
 # This package processes slurm-style hostlist strings.
-#
-# expand(hostlist)
-#   returns a list of individual hostnames given a hostlist string
-# compress(hostlist)
-#   returns an ordered hostlist string given a list of hostnames
 
-import argparse, re, sys
+import sys
+import re
+import argparse
+
+from scrjob import config
+
+# use ClusterShell Nodeset if enabled
+_cs_nodeset = None
+if config.USE_CLUSTERSHELL:
+    import ClusterShell.NodeSet as MyCSNodeSet
+    _cs_nodeset = MyCSNodeSet
 
 
 # numbersfromrange is a helper function, allows leading zeroes
@@ -220,7 +223,7 @@ def rangefromnumbers(numstring):
 #   machine[1-3,5],machine[7-8],machine10
 # left fills with 0 if a host starts with 0:
 #   machine[08-10] --> machine08,machine09,machine10
-def expand(nodelist):
+def _expand(nodelist):
     if nodelist is None:
         return []
 
@@ -341,7 +344,7 @@ def expand(nodelist):
 
 # Returns a hostlist string given a list of hostnames
 # compress('rhea2','rhea3','rhea4','rhea6') returns "rhea[2-4,6]"
-def compress_range(nodelist):
+def _compress(nodelist):
     if nodelist is None:
         return ''
 
@@ -399,7 +402,7 @@ def compress_range(nodelist):
 # Returns a hostlist string given a list of hostnames
 # ( will also try to ensure a string is a comma separated string )
 # compress(['rhea2','rhea3','rhea4','rhea6']) returns "rhea2,rhea3,rhea4,rhea6"
-def compress(hostlist):
+def _join(hostlist):
     if hostlist is None:
         return ''
 
@@ -418,57 +421,141 @@ def compress(hostlist):
 
 
 # Given references to two lists, subtract elements in list 2 from list 1 and return remainder
-def diff(set1, set2):
-    if type(set1) is str:
-        set1 = set1.split(',')
-
-    if type(set2) is str:
-        set2 = set2.split(',')
-
-    # we should have two list references
-    if set1 is None:
-        return []
-
-    if set2 is None:
-        return set1
-
-    if len(set1) == 0:
-        return []
-
-    if len(set2) == 0:
-        return set1
-
+def _diff(set1, set2):
     ret = set1.copy()
     for node in set2:
         if node in ret:
             ret.remove(node)
-
-    listvals = compress(ret)
-    ret = expand(listvals)
     return ret
 
 
-def intersect(set1, set2):
-    if type(set1) is str:
-        set1 = set1.split(',')
-
-    if type(set2) is str:
-        set2 = set2.split(',')
-
-    if set1 is None or set2 is None:
-        return []
-
-    if len(set1) == 0 or len(set2) == 0:
-        return []
-
+def _intersect(set1, set2):
     ret = []
     for node in set1:
         if node in set2:
             ret.append(node)
-
-    listvals = compress(ret)
-    ret = expand(listvals)
     return ret
+
+
+def expand_hosts(hoststr):
+    """Return list of hosts, where each element is a single host.
+
+    Params
+    ------
+    hoststr - string of hostnames like 'node[1-3]'
+
+    Returns
+    -------
+    list
+        list of expanded hosts, e.g., ['node1','node2','node3']
+    """
+
+    if _cs_nodeset:
+        # the type is a ClusterShell NodeSet, convert to a list
+        nodeset = _cs_nodeset.NodeSet(hoststr)
+        nodeset = [node for node in nodeset]
+        return nodeset
+
+    return _expand(hoststr)
+
+
+def join_hosts(nodes):
+    """Return hostlist string, where the hosts are joined with ','.
+
+    Params
+    ------
+    nodes - list of nodes
+
+    Returns
+    -------
+    str
+        comma separated hostlist, e.g., 'node1,node2,node3,node4,node7'
+    """
+
+    if _cs_nodeset:
+        # the type is a ClusterShell NodeSet, convert to a string
+        nodeset = _cs_nodeset.NodeSet.fromlist(nodes)
+        return str(nodeset)
+
+    return _join(nodes)
+
+
+def compress_hosts(nodes):
+    """Return hostlist string, where the hostlist is in a compressed form.
+
+    Params
+    ------
+    nodes - list of nodes
+
+    Returns
+    -------
+    str
+        comma separated hostlist in compressed form, e.g., 'node[1-4],node7'
+    """
+
+    if _cs_nodeset:
+        # the type is a ClusterShell NodeSet, convert to a string
+        nodeset = _cs_nodeset.NodeSet.fromlist(nodes)
+        return str(nodeset)
+
+    return _compress(nodes)
+
+
+def diff_hosts(set1, set2):
+    """Return the set difference from two host lists.
+
+    Params
+    ------
+    set1 - list of node names
+    set2 - list of node names
+
+    Input parameters, set1 and set2, are lists or comma separated strings.
+
+    Returns
+    -------
+    list
+        elements of set1 that do not appear in set2
+    """
+
+    if _cs_nodeset:
+        set1 = _cs_nodeset.NodeSet.fromlist(set1)
+        set2 = _cs_nodeset.NodeSet.fromlist(set2)
+
+        # this should work like set1 -= set2
+        # if strict true then raises error if something in set2 not in set1
+        set1.difference_update(set2, strict=False)
+
+        # the type is a ClusterShell NodeSet, convert to a list
+        set1 = [node for node in set1]
+        return set1
+
+    return _diff(set1, set2)
+
+
+def intersect_hosts(set1, set2):
+    """Return the set intersection of two host lists.
+
+    Params
+    ------
+    set1 - list of node names
+    set2 - list of node names
+
+    Returns
+    -------
+    list
+        elements of set1 that also appear in set2
+    """
+
+    if _cs_nodeset:
+        set1 = _cs_nodeset.NodeSet.fromlist(set1)
+        set2 = _cs_nodeset.NodeSet.fromlist(set2)
+        set1.intersection_update(set2)
+
+        # the type is a ClusterShell NodeSet, convert to a list
+        set1 = [node for node in set1]
+        return set1
+
+    return _intersect(set1, set2)
 
 
 if __name__ == '__main__':
@@ -490,16 +577,16 @@ if __name__ == '__main__':
                         metavar='<numberlist>',
                         type=str,
                         help='Returns a list from a given hostname string.')
-    parser.add_argument(
-        '--compress_range',
-        metavar='host',
-        nargs='+',
-        help='Returns a compressed string given a list of hostnames')
-    parser.add_argument('--compress',
+    parser.add_argument('--join',
                         metavar='host',
                         nargs='+',
                         help='Returns the hosts as a comma separated string')
-    parser.add_argument('--diff',
+    parser.add_argument(
+        '--compress',
+        metavar='host',
+        nargs='+',
+        help='Returns a compressed string given a list of hostnames')
+    parser.add_argument('--minus',
                         metavar='<set1:set2>',
                         type=str,
                         help='Returns elements of set1 not in set2.')
@@ -511,35 +598,36 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.numbersfromrange:
-        print('numbersfromrange(' + args.numbersfromrange + ')')
-        print('  -> ' + str(numbersfromrange(args.numbersfromrange)))
+        print(
+            f'numbersfromrange({args.numbersfromrange}) -> {numbersfromrange(args.numbersfromrange)}'
+        )
 
     if args.rangefromnumbers:
-        print('rangefromnumbers(' + args.rangefromnumbers + ')')
-        print('  -> ' + str(rangefromnumbers(args.rangefromnumbers)))
+        print(
+            f'rangefromnumbers({args.rangefromnumbers}) -> {rangefromnumbers(args.rangefromnumbers)}'
+        )
 
     if args.expand:
-        print('expand(' + args.expand + ')')
-        print('  -> ' + str(expand(args.expand)))
+        print(f'expand_hosts({args.expand}) -> {expand_hosts(args.expand)}')
 
-    if args.compress_range:
-        print('compress_range(' + str(args.compress_range) + ')')
-        print('  -> ' + str(compress_range(args.compress_range)))
+    if args.join:
+        nodes = expand_hosts(args.join)
+        print(f'join_hosts({args.join}) -> {join_hosts(nodes)}')
 
     if args.compress:
-        print('compress(' + str(args.compress) + ')')
-        print('  -> ' + str(compress(args.compress)))
+        nodes = expand_hosts(args.compress)
+        print(f'compress_hosts({args.compress}) -> {compress_hosts(nodes)}')
 
-    if args.diff and ':' in args.diff:
-        parts = args.diff.split(':')
-        parts[0] = parts[0].split(',')
-        parts[1] = parts[1].split(',')
-        print('diff(' + str(parts[0]) + ':' + str(parts[1]) + ')')
-        print('  -> ' + str(diff(parts[0], parts[1])))
+    if args.minus:
+        parts = args.minus.split(':')
+        set1 = expand_hosts(parts[0])
+        set2 = expand_hosts(parts[1])
+        print(f'diff_hosts({args.minus}) -> {diff_hosts(set1, set2)}')
 
-    if args.intersect and ':' in args.intersect:
+    if args.intersect:
         parts = args.intersect.split(':')
-        parts[0] = parts[0].split(',')
-        parts[1] = parts[1].split(',')
-        print('intersect(' + str(parts[0]) + ':' + str(parts[1]) + ')')
-        print('  -> ' + str(intersect(parts[0], parts[1])))
+        set1 = expand_hosts(parts[0])
+        set2 = expand_hosts(parts[1])
+        print(
+            f'intersect_hosts({args.intersect}) -> {intersect_hosts(set1, set2)}'
+        )

@@ -1,6 +1,6 @@
 import os
 
-from scrjob import config
+from scrjob import config, hostlist
 from scrjob.common import scr_prefix
 from scrjob.param import Param
 from scrjob.resmgrs import AutoResourceManager
@@ -63,7 +63,7 @@ class JobEnv:
     def node_list(self):
         """Return the SCR_NODELIST, if set, or None."""
         nodelist = os.environ.get('SCR_NODELIST')
-        return self.resmgr.expand_hosts(nodelist)
+        return hostlist.expand_hosts(nodelist)
 
     def dir_prefix(self):
         """Return the scr prefix."""

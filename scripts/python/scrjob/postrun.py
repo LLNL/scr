@@ -1,9 +1,8 @@
-#! /usr/bin/env python3
-
 import os
 from datetime import datetime
 from time import time
 
+from scrjob import hostlist
 from scrjob.scavenge import scavenge
 from scrjob.list_down_nodes import list_down_nodes
 from scrjob.cli import SCRIndex, SCRFlushFile
@@ -12,25 +11,23 @@ from scrjob.cli import SCRIndex, SCRFlushFile
 def postrun(jobenv, verbose=False, log=None):
     """Called after all runs have completed in an allocation.
 
-    This determines whether there are any datasets in cache that
-    neeed to be copied to the prefix directory.
-    It identifies any down nodes, and executes scavenge operations as needed.
+    This determines whether there are any datasets in cache that neeed
+    to be copied to the prefix directory. It identifies any down nodes,
+    and executes scavenge operations as needed.
 
     This iterates over all output datasets from oldest to newest,
-    fetching each one if needed.
-    If it fails to copy an output dataset, it notes that dataset id
-    and stops.
+    fetching each one if needed. If it fails to copy an output dataset,
+    it notes that dataset id and stops.
 
-    It then iterates over checkpoints from newest to oldest,
-    excluding any checkpoint that comes after the first output
-    dataset that it failed to copy, if any.
-    It stops after it has ensured the most recent checkpoint
-    is copied, given the above constraint.
+    It then iterates over checkpoints from newest to oldest, excluding
+    any checkpoint that comes after the first output dataset that it
+    failed to copy, if any. It stops after it has ensured the most
+    recent checkpoint is copied, given the above constraint.
 
-    The point here is that if we fail to copy an output dataset,
-    we ensure the job restarts from its most recent checkpoint
-    before that output dataset so that the job will regenerate
-    the missing output dataset when it runs again in the future.
+    The point here is that if we fail to copy an output dataset, we
+    ensure the job restarts from its most recent checkpoint before that
+    output dataset so that the job will regenerate the missing output
+    dataset when it runs again in the future.
     """
 
     # if SCR is disabled, immediately exit
@@ -58,7 +55,7 @@ def postrun(jobenv, verbose=False, log=None):
                 'scr_postrun: ERROR: Could not identify nodeset')
 
         # TODO: explain why we do this
-        os.environ['SCR_NODELIST'] = jobenv.resmgr.join_hosts(scr_nodelist)
+        os.environ['SCR_NODELIST'] = hostlist.join_hosts(scr_nodelist)
 
     # identify list of down nodes
     jobnodes = scr_nodelist
@@ -83,14 +80,6 @@ def postrun(jobenv, verbose=False, log=None):
     # get list of control directories
     cntldirs = jobenv.dir_control()
     cntldir = cntldirs[0]
-
-    # TODODSET: avoid scavenging things unless it's in this list
-    # get list of possible datasets
-    #  dataset_list=`$bindir/scr_inspect --up $UPNODES --from $cntldir`
-    #  if [ $? -eq 0 ] ; then
-    #  else
-    #    echo "$prog: Failed to inspect cache or cannot scavenge any datasets"
-    #  fi
 
     # get list of all output sets in ascending order
     if verbose:

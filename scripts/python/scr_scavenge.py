@@ -1,10 +1,9 @@
-#! /usr/bin/env python3
-
 # scavenge checkpoint files from cache to PFS
 
 import os
 import argparse
 
+from scrjob import hostlist
 from scrjob.jobenv import JobEnv
 from scrjob.scavenge import scavenge
 
@@ -45,25 +44,13 @@ if __name__ == '__main__':
                         default=None,
                         required=True,
                         help='The control directory.')
-    parser.add_argument('-t',
-                        '--to',
+    parser.add_argument('-p',
+                        '--prefix',
                         metavar='<dir>',
                         type=str,
                         default=None,
                         required=True,
                         help='The prefix directory.')
-    parser.add_argument('-u',
-                        '--up',
-                        metavar='<nodeset>',
-                        type=str,
-                        default=None,
-                        help='Specify up nodes.')
-    parser.add_argument('-d',
-                        '--down',
-                        metavar='<nodeset>',
-                        type=str,
-                        default=None,
-                        help='Specify down nodes.')
     parser.add_argument('-v',
                         '--verbose',
                         action='store_true',
@@ -72,17 +59,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    jobenv = JobEnv(prefix=None)
+    jobenv = JobEnv(prefix=args.prefix)
 
-    nodes_job = jobenv.resmgr.expand_hosts(args.jobset)
-    nodes_up = jobenv.resmgr.expand_hosts(args.up)
-    nodes_down = jobenv.resmgr.expand_hosts(args.down)
+    nodes = hostlist.expand_hosts(args.nodes) if args.nodes else []
 
-    scavenge(nodes_job=nodes_job,
-             nodes_up=nodes_up,
-             nodes_down=nodes_down,
+    scavenge(jobenv,
+             nodes,
              dataset_id=args.id,
              cntldir=args['from'],
-             prefixdir=args.to,
-             verbose=args.verbose,
-             jobenv=None)
+             verbose=args.verbose)
