@@ -29,10 +29,13 @@ for the interface definitions that one must implement, e.g.:
     from scrjob.launchers import JobLauncher
 
     class NewLauncher(JobLauncher):
-      def launch_run_cmd():
+      def launch_run():
         pass
 
-      def killrun():
+      def wait_run():
+        pass
+
+      def kill_run():
         pass
 
 ## Import the new class in `__init__.py`

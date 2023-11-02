@@ -12,6 +12,7 @@ class FLUX(JobLauncher):
 
     def __init__(self, launcher='flux'):
         super(FLUX, self).__init__(launcher=launcher)
+        self.flux_exe = 'flux'
 
         # connect to the running Flux instance
         try:
@@ -21,15 +22,11 @@ class FLUX(JobLauncher):
                 'Error importing flux, ensure that the flux daemon is running.'
             )
 
-    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
-        if type(launcher_args) is str:
-            launcher_args = launcher_args.split(' ')
-        if len(launcher_args) == 0:
-            return None, None
-        argv = [self.launcher]
-        argv.extend(launcher_args)
+    def launch_run(self, args, nodes=[], down_nodes=[]):
+        argv = [self.flux_exe]
+        argv.extend(args)
 
-        ### TODO: figure out how to exclude down_nodes
+        # TODO: figure out how to exclude down_nodes
 
         # A jobspec is a yaml description of job and its resource requirements.
         # Building one lets us submit the job and get back the assigned jobid.
@@ -38,11 +35,11 @@ class FLUX(JobLauncher):
         if compute_jobreq == None:
             return None, None
 
-        # waitable=True is required by the call to wait_async() in waitonprocess()
+        # waitable=True is required by the call to wait_async() in wait_run()
         jobid = flux.job.submit(self.flux, compute_jobreq, waitable=True)
         return jobid, jobid
 
-    def waitonprocess(self, proc, timeout=None):
+    def wait_run(self, proc, timeout=None):
         try:
             future = flux.job.wait_async(self.flux, proc)
             if timeout is None:
@@ -62,7 +59,7 @@ class FLUX(JobLauncher):
             print(f'flux job {proc} failed: {errstr}')
         return True, success
 
-    def kill_jobstep(self, jobstep=None):
+    def kill_run(self, jobstep=None):
         if jobstep is not None:
             try:
                 flux.job.cancel(self.flux, jobstep)

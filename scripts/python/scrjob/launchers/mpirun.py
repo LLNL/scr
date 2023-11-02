@@ -9,25 +9,23 @@ class MPIRUN(JobLauncher):
 
     def __init__(self, launcher='mpirun'):
         super(MPIRUN, self).__init__(launcher=launcher)
+        self.mpirun_exe = 'mpirun'
 
     # returns the subprocess.Popen object as left and right elements of a tuple,
     # as returned by runproc(argv=argv, wait=False)
-    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
-        if type(launcher_args) is str:
-            launcher_args = launcher_args.split()
-        if len(launcher_args) == 0:
-            return None, None
-
+    def launch_run(self, args, nodes=[], down_nodes=[]):
         # split the node string into a node per line
-        up_nodes = '/n'.join(up_nodes.split(','))
+        up_nodes = '/n'.join(nodes)
         try:
             # need to first ensure the directory exists
             basepath = '/'.join(self.hostfile.split('/')[:-1])
             os.makedirs(basepath, exist_ok=True)
-            with open(self.hostfile, 'w') as usehostfile:
-                usehostfile.write(up_nodes)
-            argv = [self.launcher, '--hostfile', self.hostfile]
-            argv.extend(launcher_args)
+
+            with open(self.hostfile, 'w') as f:
+                f.write(up_nodes)
+
+            argv = [self.mpirun_exe, '--hostfile', self.hostfile]
+            argv.extend(args)
             return runproc(argv=argv, wait=False)
         except Exception as e:
             print(e)

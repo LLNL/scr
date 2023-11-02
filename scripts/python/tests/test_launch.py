@@ -69,9 +69,9 @@ def dolaunch(launcher, launch_cmd):
         print(printstring)
 
     print('testing: Launching ' + str(launch_cmd))
-    proc, jobstep = jobenv.launcher.launch_run_cmd(up_nodes=nodelist,
-                                                   down_nodes=down_nodes,
-                                                   launcher_args=launch_cmd)
+    proc, jobstep = jobenv.launcher.launch_run(launch_cmd,
+                                               nodes=nodelist,
+                                               down_nodes=down_nodes)
     print('type(proc) = ' + str(type(proc)) + ', type(jobstep) = ' +
           str(type(jobstep)))
     print('proc = ' + str(proc))
@@ -81,8 +81,8 @@ def dolaunch(launcher, launch_cmd):
     success = False
     if watchdog.watchproc(proc, jobstep) != 0:
         print('watchdog.watchproc returned nonzero')
-        print('calling launcher.waitonprocess . . .')
-        (finished, success) = jobenv.launcher.waitonprocess(proc)
+        print('calling launcher.wait_run . . .')
+        (finished, success) = jobenv.launcher.wait_run(proc)
     else:
         print('watchdog returned zero and didn\'t launch another process')
         print('this means the process is terminated')

@@ -149,11 +149,11 @@ def run(launcher='',
                 print(prog + ": FAILED: " + node + ': ' + reasons[node])
 
         down_nodes = sorted(list(reasons.keys()))
-        down_str = ','.join(down_nodes)
 
         # if this is the first run, we hit down nodes right off the bat, make a record of them
         if down_nodes and first_run and verbose:
             start_secs = int(time())
+            down_str = ','.join(down_nodes)
             print('SCR: Failed node detected: JOBID=' + jobid +
                   ' ATTEMPT=0 TIME=' + str(start_secs) +
                   ' NNODES=-1 RUNTIME=0 FAILED=' + down_str)
@@ -195,23 +195,22 @@ def run(launcher='',
         # launch the job, make sure we include the script node and exclude down nodes
         if verbose:
             print(prog + ': Launching ' + str(launch_cmd))
-        proc, jobstep = jobenv.launcher.launch_run_cmd(
-            up_nodes=nodelist, down_nodes=down_str, launcher_args=launch_cmd)
+        proc, jobstep = jobenv.launcher.launch_run(launch_cmd, down_nodes=down_nodes)
 
         if watchdog is None:
-            finished, success = jobenv.launcher.waitonprocess(proc)
+            finished, success = jobenv.launcher.wait_run(proc)
         else:
             if verbose:
                 print(prog + ': Entering watchdog method')
-            # watchdog returned error or a watcher process was launched
             if watchdog.watchproc(proc, jobstep) != 0:
+                # watchdog returned error or a watcher process was launched
                 if verbose:
                     print(prog + ': Error launching watchdog')
-                finished, success = jobenv.launcher.waitonprocess(proc)
-            # else the watchdog returned because the process has finished/been killed
+                finished, success = jobenv.launcher.wait_run(proc)
             else:
+                # watchdog returned because the process has finished/been killed
                 #TODO: verify this really works for case where watchproc() returns 0 / succeeds
-                finished, success = jobenv.launcher.waitonprocess(proc)
+                finished, success = jobenv.launcher.wait_run(proc)
 
         # log stats on the latest run attempt
         end_secs = int(time())

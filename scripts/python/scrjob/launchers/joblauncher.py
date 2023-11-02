@@ -11,18 +11,18 @@ class JobLauncher(object):
     -------
     Methods whose functionality is not provided or compatible must be overridden.
 
-    launch_run_cmd() should be overridden, and should return a tuple of 2 values.
-    The first value will be passed to waitonprocess().
-    The second value will be passed to kill_jobstep().
+    launch_run() should be overridden, and should return a tuple of 2 values.
+    The first value will be passed to wait_run().
+    The second value will be passed to kill_run().
 
-    launch_run_cmd() may return scr_common.runproc(argv, wait=False) and use the
-    provided waitonprocess() and kill_jobstep() methods
+    launch_run() may return scr_common.runproc(argv, wait=False) and use the
+    provided wait_run() and kill_run() methods
 
-    waitonprocess() returns a tuple of 2 boolean values: (completed, success)
+    wait_run() returns a tuple of 2 boolean values: (completed, success)
 
     Default methods
     ---------------
-    waitonprocess(), kill_jobstep()
+    wait_run(), kill_run()
     These may both be used if the overridden launchcmd method returns scr_common.runproc(argv, wait=False).
     These each expect the Popen object returned from scr_common.runproc(wait=False).
 
@@ -41,7 +41,7 @@ class JobLauncher(object):
         self.name = launcher
         self.hostfile = ''
 
-    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
+    def launch_run(self, args, nodes=[], down_nodes=[]):
         """This method is called to launch a jobstep.
 
         This method must be overridden.
@@ -50,20 +50,20 @@ class JobLauncher(object):
         Returns
         -------
         tuple (process, id)
-            When using the provided base class methods: waitonprocess() and kill_jobstep(),
+            When using the provided base class methods: wait_run() and kill_run(),
             return scr_common.runproc(argv, wait=False).
 
-            The first return value is used as the argument for waiting on the process in launcher.waitonprocess().
-            The second return value is used as the argument to kill a jobstep in launcher.kill_jobstep().
+            The first return value is used as the argument for waiting on the process in launcher.wait_run().
+            The second return value is used as the argument to kill a jobstep in launcher.kill_run().
         """
         return None, None
 
-    def waitonprocess(self, proc=None, timeout=None):
+    def wait_run(self, proc=None, timeout=None):
         """This method is called after a jobstep is launched with the return
-        values of launch_run_cmd.
+        values of launch_run.
 
-        The base class method may be used when launch_run_cmd returns runproc(argv=argv,wait=False).
-        Override this implementation in any base class whose launch_run_cmd returns a different value,
+        The base class method may be used when launch_run returns runproc(argv=argv,wait=False).
+        Override this implementation in any base class whose launch_run returns a different value,
         or if there is a different method used to wait on a process (blocking or with a timeout).
         The timeout will be none (wait until process terminates) or a numeric value indicating seconds.
         A timeout value will exist when using Watchdog.
@@ -87,15 +87,15 @@ class JobLauncher(object):
                 return (False, None)
             except e:
                 print(
-                    f'waitonprocess for proc {proc} failed with exception {e}')
+                    f'wait_run for proc {proc} failed with exception {e}')
                 return (None, None)
 
         return (True, proc.returncode)
 
-    def kill_jobstep(self, jobstep=None):
+    def kill_run(self, jobstep=None):
         """Kills task identified by jobstep parameter.
 
-        When launcher.launch_run_cmd() returns scr_common.runproc(argv,
+        When launcher.launch_run() returns scr_common.runproc(argv,
         wait=False), then this method may be used to send the terminate
         signal through the Popen object.
         """
