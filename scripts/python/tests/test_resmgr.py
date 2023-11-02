@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # Allocate a compute node
 #
 #   salloc -N1 -ppdebug -t 20

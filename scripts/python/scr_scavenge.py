@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # scavenge checkpoint files from cache to PFS
 
 import os

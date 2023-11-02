@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # this is a standalone script which queries the class JobEnv
 # JobEnv contains general values from the environment
 

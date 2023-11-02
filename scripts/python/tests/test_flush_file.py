@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # Setup to create a flush file for testing
 #
 #   salloc -N1 -ppdebug

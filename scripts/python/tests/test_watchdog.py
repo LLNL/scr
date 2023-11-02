@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # Test the Watchdog
 # This script emulates the same instructions as scr_run/watchdog
 # REQUIRED: sleeper.c to be compiled with an MPI C compiler

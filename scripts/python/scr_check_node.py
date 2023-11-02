@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # Runs on each compute node to check health of each node.
 # For example, this may verify that local storage is accessible
 # and has sufficient capactiy.
