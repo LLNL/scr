@@ -558,57 +558,6 @@ def intersect_hosts(set1, set2):
     return _intersect(set1, set2)
 
 
-def glob_compress(hoststr):
-    # return compressed range form of hosts
-    # given a string like 'node1,node2,node3,node5'
-    # returns 'node[1-3,5]'
-    hosts = expand_hosts(hoststr)
-    return compress_hosts(hosts)
-
-
-def glob_minus(hoststr):
-    # subtract nodes in second set from nodes in first
-    # given a string like 'node[1-6]:node[3,5]'
-    # returns 'node[1-2,4,6]'
-    pieces = hoststr.split(':')
-    set1 = expand_hosts(pieces[0])
-    set2 = expand_hosts(pieces[1])
-    hosts = diff_hosts(set1, set2)
-    return compress_hosts(hosts)
-
-
-def glob_intersect(hoststr):
-    # take the intersection of two nodesets
-    # given a string like 'node[1-6]:node[3,5,7]'
-    # returns 'node[3,5]'
-    pieces = hoststr.split(':')
-    set1 = expand_hosts(pieces[0])
-    set2 = expand_hosts(pieces[1])
-    hosts = intersect_hosts(set1, set2)
-    return compress_hosts(hosts)
-
-
-def glob_nth(hoststr, n):
-    # return the nth host of the hostlist, 1-based indexing
-    # given 'node[1-3,5-7]' and n=4
-    # return 'node5'
-    hosts = expand_hosts(hoststr)
-    if n > len(hosts) or n < -len(hosts):
-        raise RuntimeError(
-            f'Host index {n} is out of range for the specified host list.')
-    if n > 0:  # an initial n=0 or n=1 both return the same thing
-        n -= 1
-    return hosts[n]
-
-
-def glob_count(hoststr):
-    # returns the number of hosts in a hoststr
-    # given 'node[1-3,5-7,10]'
-    # returns 7
-    hosts = expand_hosts(hoststr)
-    return len(hosts)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         epilog='(use a colon to separate sets when using diff or intersect)')
@@ -670,9 +619,15 @@ if __name__ == '__main__':
         print(f'compress_hosts({args.compress}) -> {compress_hosts(nodes)}')
 
     if args.minus:
-        print(f'glob_minus({args.minus}) -> {glob_minus(args.minus)}')
+        parts = args.minus.split(':')
+        set1 = expand_hosts(parts[0])
+        set2 = expand_hosts(parts[1])
+        print(f'diff_hosts({args.minus}) -> {diff_hosts(set1, set2)}')
 
     if args.intersect:
+        parts = args.intersect.split(':')
+        set1 = expand_hosts(parts[0])
+        set2 = expand_hosts(parts[1])
         print(
-            f'glob_intersect({args.intersect}) -> {glob_intersect(args.intersect)}'
+            f'intersect_hosts({args.intersect}) -> {intersect_hosts(set1, set2)}'
         )

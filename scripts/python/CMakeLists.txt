@@ -11,6 +11,7 @@ SET(SCRJOB_EXEC
   scr_ckpt_interval.py
   scr_check_node.py
   scr_env.py
+  scr_glob_hosts.py
   scr_kill_jobstep.py
   scr_list_dir.py
   scr_poststage.py
