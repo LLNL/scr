@@ -23,6 +23,10 @@
 #
 # One should call scr_postrun to scavenge any datasets from cache.
 
+# for debugging
+set -x
+verbose="-v"
+
 # path to SCR install /bin directory
 scrbin="@X_BINDIR@"
 
@@ -30,7 +34,7 @@ scrbin="@X_BINDIR@"
 scr_prefix=`pwd`
 
 # prepare allocation for SCR
-${scrbin}/scr_prerun -p $scr_prefix
+${scrbin}/scr_prerun -p $scr_prefix $verbose
 if [ $? -ne 0 ] ; then
     echo "ERROR: scr_prerun -p $scr_prefix"
     exit 1
@@ -54,7 +58,7 @@ while [ 1 ] ; do
     srun $exclude "$@"
 
     # check whether we should stop running
-    ${scrbin}/scr_should_exit -p $scr_prefix
+    ${scrbin}/scr_should_exit -p $scr_prefix $verbose
     if [ $? == 0 ] ; then
         echo "Halt condition detected, ending run."
         break
@@ -83,7 +87,7 @@ while [ 1 ] ; do
     if [ "$down_nodes" != "" ] ; then
         keep_down="--down $down_nodes"
     fi
-    ${scrbin}/scr_should_exit -p $scr_prefix $keep_down
+    ${scrbin}/scr_should_exit -p $scr_prefix $keep_down $verbose
     if [ $? == 0 ] ; then
         echo "Halt condition detected, ending run."
         break
@@ -91,4 +95,4 @@ while [ 1 ] ; do
 done
 
 # scavenge files from cache to prefix directory
-${scrbin}/scr_postrun -p $scr_prefix -j srun
+${scrbin}/scr_postrun -p $scr_prefix -j srun $verbose
