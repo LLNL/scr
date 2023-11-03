@@ -49,8 +49,8 @@ class Watchdog:
         lastCheckpointLoc = None
         while True:
             # wait up to 'timeToSleep' to see if the process terminates normally
-            (finished,
-             success) = self.launcher.wait_run(proc, timeout=timeToSleep)
+            (finished, success) = self.launcher.wait_run(proc,
+                                                         timeout=timeToSleep)
 
             # when the wait returns zero the process is no longer running
             if finished:

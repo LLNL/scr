@@ -86,8 +86,7 @@ class JobLauncher(object):
             except TimeoutExpired:
                 return (False, None)
             except e:
-                print(
-                    f'wait_run for proc {proc} failed with exception {e}')
+                print(f'wait_run for proc {proc} failed with exception {e}')
                 return (None, None)
 
         return (True, proc.returncode)

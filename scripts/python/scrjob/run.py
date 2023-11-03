@@ -195,7 +195,8 @@ def run(launcher='',
         # launch the job, make sure we include the script node and exclude down nodes
         if verbose:
             print(prog + ': Launching ' + str(launch_cmd))
-        proc, jobstep = jobenv.launcher.launch_run(launch_cmd, down_nodes=down_nodes)
+        proc, jobstep = jobenv.launcher.launch_run(launch_cmd,
+                                                   down_nodes=down_nodes)
 
         if watchdog is None:
             finished, success = jobenv.launcher.wait_run(proc)
