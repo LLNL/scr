@@ -72,13 +72,13 @@ if __name__ == '__main__':
     node_list = hostlist.expand_hosts(args.nodeset)
     down_list = hostlist.expand_hosts(args.down)
 
-    down = list_down_nodes(reason=args.reason,
-                           free=args.free,
-                           nodes_down=down_list,
-                           runtime_secs=args.secs,
+    down = list_down_nodes(jobenv,
                            nodes=node_list,
-                           jobenv=jobenv,
-                           log=log)
+                           nodes_down=down_list,
+                           free=args.free,
+                           reason=args.reason,
+                           log=log,
+                           secs=args.secs)
 
     if args.reason:
         # list each node and the reason each is down

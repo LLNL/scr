@@ -51,7 +51,7 @@ def dolaunch(launcher, launch_cmd):
     else:
         print('testing : end_time returned ' + str(endtime))
 
-    down_nodes = list_down_nodes(nodes=nodelist, free=True, jobenv=jobenv)
+    down_nodes = list_down_nodes(jobenv, nodes=nodelist, free=True)
     if not down_nodes:
         print('there were no downnodes from list_down_nodes')
     else:
@@ -59,13 +59,12 @@ def dolaunch(launcher, launch_cmd):
         print('down_nodes = ' + str(down_nodes))
         # print the reason for the down nodes, and log them
         # when reason == True a string formatted for printing will be returned
-        printstring = list_down_nodes(nodes=nodelist,
-                                      reason=True,
+        printstring = list_down_nodes(jobenv,
+                                      nodes=nodelist,
                                       free=True,
-                                      nodes_down=down_nodes,
-                                      runtime_secs='0',
-                                      jobenv=jobenv,
-                                      log=None)
+                                      reason=True,
+                                      log=None,
+                                      secs='0')
         print(printstring)
 
     print('testing: Launching ' + str(launch_cmd))

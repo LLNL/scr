@@ -6,7 +6,6 @@ from datetime import datetime
 from time import time
 
 from scrjob import config
-from scrjob.list_down_nodes import list_down_nodes
 from scrjob.cli import SCRIndex, SCRFlushFile
 
 

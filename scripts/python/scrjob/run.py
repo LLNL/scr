@@ -138,12 +138,12 @@ def run(launcher='',
         first_run = (attempts == 0)
 
         # check for any down nodes
-        reasons = list_down_nodes(reason=True,
-                                  free=first_run,
+        reasons = list_down_nodes(jobenv,
                                   nodes_down=keep_down,
-                                  runtime_secs='0',
-                                  jobenv=jobenv,
-                                  log=log)
+                                  free=first_run,
+                                  reason=True,
+                                  log=log,
+                                  secs='0')
         if verbose:
             for node in sorted(list(reasons.keys())):
                 print(prog + ": FAILED: " + node + ': ' + reasons[node])

@@ -47,19 +47,18 @@ def postrun(jobenv, verbose=False, log=None):
     scr_flush_file = SCRFlushFile(prefix)
 
     # get our nodeset for this job
-    scr_nodelist = jobenv.node_list()
-    if not scr_nodelist:
-        scr_nodelist = jobenv.resmgr.job_nodes()
-        if not scr_nodelist:
+    jobnodes = jobenv.node_list()
+    if not jobnodes:
+        jobnodes = jobenv.resmgr.job_nodes()
+        if not jobnodes:
             raise RuntimeError(
                 'scr_postrun: ERROR: Could not identify nodeset')
 
         # TODO: explain why we do this
-        os.environ['SCR_NODELIST'] = hostlist.join_hosts(scr_nodelist)
+        os.environ['SCR_NODELIST'] = hostlist.join_hosts(jobnodes)
 
     # identify list of down nodes
-    jobnodes = scr_nodelist
-    downnodes = list_down_nodes(nodes=jobnodes, jobenv=jobenv)
+    downnodes = list_down_nodes(jobenv, nodes=jobnodes)
 
     # identify what nodes are still up
     upnodes = [n for n in jobnodes if n not in downnodes]

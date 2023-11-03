@@ -65,7 +65,7 @@ class NodeTests(object):
             if node in nodes:
                 nodes.remove(node)
 
-    def execute(self, nodes, jobenv):
+    def execute(self, nodes, jobenv, down=[]):
         """Return a dictionary of down nodes."""
 
         # This method returns a dictionary of unavailable nodes
@@ -75,6 +75,12 @@ class NodeTests(object):
         # the tests modify the node to avoid re-testing nodes
         # that are identified to be down by earlier tests
         nodes = nodes.copy()
+
+        # drop any nodes that we are told are down
+        for node in down:
+            if node in nodes:
+                nodes.remove(node)
+                unavailable[node] = 'Specified as down'
 
         # run tests against remaining nodes
         for t in self.tests:
