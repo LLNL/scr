@@ -77,7 +77,7 @@ while [ 1 ] ; do
     if [ "$down_nodes" != "" ] ; then
         keep_down="--down $down_nodes"
     fi
-    down_nodes=`${scrbin}/scr_list_down_nodes $keep_down`
+    down_nodes=`${scrbin}/scr_list_down_nodes -j jsrun $keep_down`
 
     # in case of new down nodes, check whether we should stop again
     keep_down=""
