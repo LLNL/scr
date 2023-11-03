@@ -64,58 +64,97 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('hosts',
-                       metavar='<hosts | hosts1:hosts2>',
+                       metavar='HOSTS',
                        type=str,
-                       help='Use this hostlist.')
+                       nargs='+',
+                       help='Provide one or more host lists.')
+
+    parser.add_argument('-d',
+                        '--delimiter',
+                        metavar='<c>',
+                        type=str,
+                        default=',',
+                        help='Delimeter character for --expand (default \',\').')
+    parser.add_argument('-s',
+                        '--size',
+                        metavar='<N>',
+                        type=int,
+                        default=None,
+                        help='Output at most N hosts (-N for last N hosts).')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-m',
                        '--minus',
                        action='store_true',
-                       help='Elements of s1 not in s2.')
+                       help='Subtract subsequent HOSTS from first HOSTS.')
     group.add_argument('-i',
                        '--intersection',
                        action='store_true',
-                       help='Intersection of s1 and s2 hosts.')
+                       help='Intersect subsequent HOSTS with first HOSTS.')
 
     group2 = parser.add_mutually_exclusive_group()
     group2.add_argument('-e',
                        '--expand',
                        action='store_true',
-                       help='Expand host list.')
-    group2.add_argument('-C',
-                       '--compress',
-                       action='store_true',
-                       help='Compress the csv hostlist.')
+                       help='Expand host list instead of collapsing.')
     group2.add_argument('-c',
                         '--count',
                         action='store_true',
                         help='Print the number of hosts.')
     group2.add_argument('-n',
                         '--nth',
-                        metavar='<num>',
+                        metavar='<N>',
                         type=int,
                         default=None,
-                        help='Output the Nth host (1=lo, -1=hi).')
+                        help='Output the host at index N (-N to index from end).')
 
     args = parser.parse_args()
 
-    hoststr = args.hosts
-
+    # expand host string into a list of hosts
+    hostvals = args.hosts
     if args.minus:
-        hoststr = glob_minus(hoststr)
+        # from first list, subtract all others
+        hosts = hostlist.expand_hosts(hostvals[0])
+        for h in hostvals[1:]:
+            hosts2 = hostlist.expand_hosts(h)
+            hosts = hostlist.diff_hosts(hosts, hosts2)
     elif args.intersection:
-        hoststr = glob_intersection(hoststr)
+        # intersection of all lists
+        hosts = hostlist.expand_hosts(hostvals[0])
+        for h in hostvals[1:]:
+            hosts2 = hostlist.expand_hosts(h)
+            hosts = hostlist.intersect_hosts(hosts, hosts2)
+    else:
+        hosts = []
+        for h in hostvals:
+            hosts.extend(hostlist.expand_hosts(h))
+
+    # cut list down to size N if requested
+    if args.size is not None:
+        size = args.size
+        if size >= 0:
+            hosts = hosts[:size]
+        else:
+            hosts = hosts[size:]
 
     if args.expand:
-        hosts = hostlist.expand_hosts(hoststr)
-        hoststr = hostlist.join_hosts(hosts)
-        print(hoststr)
-    elif args.compress:
-        print(glob_compress(hoststr))
+        # allow user to specify \n, and \t
+        # TODO: there must be a less hacky way to do this
+        c = args.delimiter
+        if c == "\\n":
+            c = '\n'
+        elif c == "\\t":
+            c = '\t'
+        print(c.join(hosts))
     elif args.nth:
-        print(glob_nth(hoststr, args.nth))
+        n = args.nth
+        if n > len(hosts) or n < -len(hosts):
+            raise RuntimeError(
+                f'Host index {n} is out of range for the specified host list.')
+        if n > 0:  # an initial n=0 or n=1 both return the same thing
+            n -= 1
+        print(hosts[n])
     elif args.count:
-        print(glob_count(hoststr))
+        print(len(hosts))
     else:
-        print(hoststr)
+        print(hostlist.compress_hosts(hosts))
