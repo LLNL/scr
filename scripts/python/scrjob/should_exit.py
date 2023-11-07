@@ -16,14 +16,12 @@ def nodes_needed(jobenv, nodelist):
     # if SCR_MIN_NODES is set, use that
     num_needed = os.environ.get('SCR_MIN_NODES')
     if num_needed is None or int(num_needed) <= 0:
-        # otherwise, use value in nodes file if one exists
+        # otherwise, use value in nodes file if one exists,
+        # records number of nodes used in previous run
         num_needed = jobenv.runnode_count()
         if num_needed <= 0:
             # otherwise, assume we need all nodes in the allocation
             num_needed = len(nodelist)
-            if num_needed == 0:
-                # failed all methods to estimate the minimum number of nodes
-                return 0
     return int(num_needed)
 
 
@@ -33,7 +31,7 @@ def nodes_remaining(nodelist, down_nodes):
     return len(temp)
 
 
-def should_exit(jobenv, down_nodes=[], verbose=False):
+def should_exit(jobenv, down_nodes=[], min_nodes=None, verbose=False):
     prefix = jobenv.dir_prefix()
 
     # get the nodeset of this job
@@ -58,21 +56,21 @@ def should_exit(jobenv, down_nodes=[], verbose=False):
         return True
 
     # bail out if we don't have enough nodes to continue
-    if down_nodes:
-        # determine how many nodes are needed
+    # determine how many nodes are needed
+    num_needed = min_nodes
+    if num_needed is None:
         num_needed = nodes_needed(jobenv, nodelist)
         if num_needed <= 0:
             raise RuntimeError('Unable to determine number of nodes needed')
 
-        # determine number of nodes remaining in allocation
-        num_left = nodes_remaining(nodelist, down_nodes)
+    # determine number of nodes remaining in allocation
+    num_left = nodes_remaining(nodelist, down_nodes)
 
-        # check that we have enough nodes after excluding down nodes
-        if num_left < num_needed:
-            if verbose:
-                print(
-                    f'nodes_remaining={num_left} < nodes_needed={num_needed}')
-            return True
+    # check that we have enough nodes after excluding down nodes
+    if num_left < num_needed:
+        if verbose:
+            print(f'nodes_remaining={num_left} < nodes_needed={num_needed}')
+        return True
 
     # everything checks out, the job can keep going
     return False
