@@ -82,4 +82,4 @@ To reference SCR in a publication, please cite the following paper:
 
 Additional information and research publications can be found here:
 
-[http://computation.llnl.gov/projects/scalable-checkpoint-restart-for-mpi](http://computation.llnl.gov/projects/scalable-checkpoint-restart-for-mpi)
+[https://computation.llnl.gov/projects/scalable-checkpoint-restart-for-mpi](https://computation.llnl.gov/projects/scalable-checkpoint-restart-for-mpi)
