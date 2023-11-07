@@ -57,17 +57,13 @@ while [ 1 ] ; do
     # launch the job, excluding any down nodes
     srun $exclude "$@"
 
+    # reduce number of remaining run attempts
+    runs=$(($runs - 1))
+
     # check whether we should stop running
-    ${scrbin}/scr_should_exit -p $scr_prefix $verbose
+    ${scrbin}/scr_should_exit -p $scr_prefix --runs $runs $verbose
     if [ $? == 0 ] ; then
         echo "Halt condition detected, ending run."
-        break
-    fi
-
-    # any retry attempts left?
-    runs=$(($runs - 1))
-    if [ $runs -le 0 ] ; then
-        echo "Runs exhausted, ending run."
         break
     fi
 

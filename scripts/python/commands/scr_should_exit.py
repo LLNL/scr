@@ -36,6 +36,11 @@ if __name__ == '__main__':
                         type=int,
                         default=None,
                         help='Required number of nodes to run.')
+    parser.add_argument('--runs',
+                        metavar='<N>',
+                        type=int,
+                        default=None,
+                        help='Number of runs remaining.')
     parser.add_argument('-v',
                         '--verbose',
                         action='store_true',
@@ -54,4 +59,16 @@ if __name__ == '__main__':
                        down_nodes=down_nodes,
                        min_nodes=args.min_nodes,
                        verbose=args.verbose):
+        # No need to exit detected yet.
+
+        # TODO: change the SCR library to update a run counter in the halt file
+        # Job should exit if given --runs=0.
+        # This seems a bit trivial, but it does simplify the user's job script.
+        # We check this last, since it's better to report other halt conditions if set.
+        if args.runs == 0:
+            if args.verbose:
+                print(f'runs_remaining=0')
+            sys.exit(0)
+
+        # use exit code 1 to indicate that job does not need to stop
         sys.exit(1)
