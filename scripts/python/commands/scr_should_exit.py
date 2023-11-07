@@ -31,6 +31,11 @@ if __name__ == '__main__':
                         type=str,
                         default=None,
                         help='Specify list of down nodes.')
+    parser.add_argument('--min-nodes',
+                        metavar='<N>',
+                        type=int,
+                        default=None,
+                        help='Required number of nodes to run.')
     parser.add_argument('-v',
                         '--verbose',
                         action='store_true',
@@ -45,5 +50,8 @@ if __name__ == '__main__':
     if args.down:
         down_nodes = hostlist.expand_hosts(args.down)
 
-    if not should_exit(jobenv, down_nodes=down_nodes, verbose=args.verbose):
+    if not should_exit(jobenv,
+                       down_nodes=down_nodes,
+                       min_nodes=args.min_nodes,
+                       verbose=args.verbose):
         sys.exit(1)
