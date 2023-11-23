@@ -1323,7 +1323,7 @@ static int scr_start_output(const char* name, int flags)
   /* if we have a checkpoint, stop clock recording compute time,
    * we count normal output cost as part of compute time for
    * computing optimal checkpoint frequency */
-  double time_start;
+  double time_start = 0.0;
   if (is_ckpt && scr_my_rank_world == 0) {
     /* stop the clock for measuring the compute time */
     scr_time_compute_end = MPI_Wtime();
@@ -1750,7 +1750,7 @@ static int scr_complete_output(int valid)
   /* capture time to mark start of complete output and
    * to note stop timer for measuring app write performance */
   MPI_Barrier(scr_comm_world);
-  double time_start;
+  double time_start = 0.0;
   if (scr_my_rank_world == 0) {
     time_start = MPI_Wtime();
   }

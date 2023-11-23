@@ -348,7 +348,7 @@ int scr_fetch_dset(scr_cache_index* cindex, int dset_id, const char* dset_name, 
 
   /* start timer */
   time_t timestamp_start;
-  double time_start;
+  double time_start = 0.0;
   if (scr_my_rank_world == 0) {
     timestamp_start = scr_log_seconds();
     time_start = MPI_Wtime();
@@ -558,9 +558,8 @@ int scr_fetch_latest(scr_cache_index* cindex, int* fetch_attempted)
   /* we only return success if we successfully fetch a checkpoint */
   int rc = SCR_FAILURE;
 
-  double time_start, time_end, time_diff;
-
   /* start timer */
+  double time_start = 0.0;
   if (scr_my_rank_world == 0) {
     time_start = MPI_Wtime();
   }
@@ -725,8 +724,8 @@ int scr_fetch_latest(scr_cache_index* cindex, int* fetch_attempted)
 
   /* stop timer for fetch */
   if (scr_my_rank_world == 0) {
-    time_end = MPI_Wtime();
-    time_diff = time_end - time_start;
+    double time_end = MPI_Wtime();
+    double time_diff = time_end - time_start;
     scr_dbg(1, "scr_fetch_latest: return code %d, %f secs", rc, time_diff);
   }
 

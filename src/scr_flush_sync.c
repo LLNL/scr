@@ -182,7 +182,7 @@ int scr_flush_sync(scr_cache_index* cindex, int id)
 
   /* start timer */
   time_t timestamp_start;
-  double time_start;
+  double time_start = 0.0;
   if (scr_my_rank_world == 0) {
     timestamp_start = scr_log_seconds();
     time_start = MPI_Wtime();

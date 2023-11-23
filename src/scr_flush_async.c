@@ -222,7 +222,7 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
 
   /* start timer */
   time_t timestamp_start;
-  double time_start;
+  double time_start = 0.0;
   if (scr_my_rank_world == 0) {
     timestamp_start = scr_log_seconds();
     time_start = MPI_Wtime();
@@ -247,10 +247,10 @@ int scr_flush_async_start(scr_cache_index* cindex, int id)
         __FILE__, __LINE__
       );
       if (scr_log_enable) {
-        double time_start;
-        kvtree_util_get_double(dset_hash, ASYNC_KEY_OUT_WTIME, &time_start);
+        double time_start_orig;
+        kvtree_util_get_double(dset_hash, ASYNC_KEY_OUT_WTIME, &time_start_orig);
         double time_end = MPI_Wtime();
-        double time_diff = time_end - time_start;
+        double time_diff = time_end - time_start_orig;
         scr_log_event("ASYNC_FLUSH_FAIL", "Failed to prepare flush",
                       &id, dset_name, NULL, &time_diff);
       }
