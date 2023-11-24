@@ -104,7 +104,7 @@ static int scr_fstr2cstr(const char* fstr, int flen, char* cstr, int clen)
 
   /* copy the Fortran string to the C string */
   if (len > 0) {
-    strncpy(cstr, fstr, len);
+    memcpy(cstr, fstr, len);
   }
 
   /* null-terminate the C string */
@@ -132,7 +132,7 @@ static int scr_cstr2fstr(const char* cstr, char* fstr, int flen)
   if (clen <= flen) {
     /* C string will fit within our Fortran buffer, copy it over */
     if (clen > 0) {
-      strncpy(fstr, cstr, clen);
+      memcpy(fstr, cstr, clen);
     }
 
     /* fill in trailing spaces */
@@ -142,7 +142,7 @@ static int scr_cstr2fstr(const char* cstr, char* fstr, int flen)
     }
   } else {
     /* C string is longer than our Fortran buffer, copy what we can then truncate */
-    strncpy(fstr, cstr, flen);
+    memcpy(fstr, cstr, flen);
     rc = 1;
   }
 
