@@ -163,7 +163,7 @@ static char* scr_expand_value(char* raw_value)
 	scr_err("The environment variable specified by %s is too long, the maximum length is %d\n", raw_value, SCR_MAX_FILENAME);
 	return NULL;
       }
-      strncpy(envvar, env_start, envvar_len);
+      memcpy(envvar, env_start, envvar_len);
       envvar[envvar_len] = '\0';
 
       char* env_value = getenv(envvar);
@@ -176,7 +176,7 @@ static char* scr_expand_value(char* raw_value)
 	scr_err("File path %s is too long when expanded with %s replacing %s. The maximum length is %d\n", raw_value, env_value, envvar);
 	return NULL;
       }
-      strncpy(value + j, env_value, env_value_len);
+      memcpy(value + j, env_value, env_value_len);
       i += envvar_len + 1;
       j += env_value_len;
     }
