@@ -25,6 +25,7 @@ class FLUX(ResourceManager):
                 'Error importing flux, ensure that the flux daemon is running.'
             )
         super(FLUX, self).__init__(resmgr='FLUX')
+        self.jobid = None  # set it so that self.job_id() doesn't error out
         self.jobid = self.job_id()
 
     ####
