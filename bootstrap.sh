@@ -55,6 +55,14 @@ done
 ROOT="$(pwd)"
 INSTALL_DIR=$ROOT/install
 
+processors() {
+  if [ "$( uname -s )" = "Darwin" ]; then
+    sysctl -n hw.logicalcpu
+  else
+    nproc
+  fi
+}
+
 if [ $build_clean -eq 1 ] ; then
   rm -rf deps
   rm -rf install
@@ -163,7 +171,7 @@ pushd KVTree
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DMPI=ON \
       .. && \
-    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} -j $( processors ) && \
     make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install kvtree"
@@ -185,7 +193,7 @@ pushd AXL
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DMPI=ON \
       .. && \
-    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} -j $( processors ) && \
     make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install axl"
@@ -207,7 +215,7 @@ pushd spath
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       -DMPI=ON \
       .. && \
-    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} -j $( processors ) && \
     make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install spath"
@@ -228,7 +236,7 @@ pushd rankstr
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       .. && \
-    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} -j $( processors ) && \
     make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install rankstr"
@@ -249,7 +257,7 @@ pushd redset
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       .. && \
-    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} -j $( processors ) && \
     make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install redset"
@@ -270,7 +278,7 @@ pushd shuffile
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       .. && \
-    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} -j $( processors ) && \
     make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install shuffile"
@@ -291,7 +299,7 @@ pushd er
       -DCMAKE_BUILD_TYPE=$buildtype \
       -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
       .. && \
-    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} -j $( processors ) && \
     make ${make_verbose} install
     if [ $? -ne 0 ]; then
       echo "failed to configure, build, or install er"
