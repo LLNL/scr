@@ -59,15 +59,14 @@ Halt before or after a specified time
 It is possible to instruct an SCR job to halt *after* a specified time using
 the :code:`--after` option.
 The job will halt on its first successful checkpoint after the specified time.
-For example, you can instruct a job to halt after "12:00pm today" via::
+The time must be specified in ISO format, for example::
 
-  scr_halt --after '12:00pm today'
+  scr_halt --after '2023-07-04T21:00:00'
 
 It is also possible to instruct a job to halt *before* a specified time
-using the :code:`--before` option.
-For example, you can instruct a job to halt before "8:30am tomorrow" via::
+using the :code:`--before` option, for example::
 
-  scr_halt --before '8:30am tomorrow'
+  scr_halt --before '2023-07-04T21:00:00'
 
 For the "halt before" condition to be effective,
 one must also set the :code:`SCR_HALT_SECONDS` parameter.
@@ -177,15 +176,15 @@ Combine, list, change, and unset halt conditions
 
 It is possible to specify multiple halt conditions.
 To do so, simply list each condition in the same :code:`scr_halt` command or issue several commands.
-For example, to instruct a job to halt after 10 checkpoints or before "8:30am tomorrow",
+For example, to instruct a job to halt after 10 checkpoints or before a certain time,
 which ever comes earlier, you could issue the following command::
 
-  scr_halt --checkpoints 10 --before '8:30am tomorrow'
+  scr_halt --checkpoints 10 --before '2023-07-04T21:00:00'
 
 The following sequence also works::
 
   scr_halt --checkpoints 10
-  scr_halt --before '8:30am tomorrow'
+  scr_halt --before '2023-07-04T21:00:00'
 
 You may list the current settings in the halt file with the :code:`--list` option, e.g.,::
 

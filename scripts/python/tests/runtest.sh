@@ -253,8 +253,8 @@ echo ""
 echo "check that scr_halt.py seems to work"
 sleep 2
 ${scrbin}/scr_halt --list $(pwd)
-${scrbin}/scr_halt --before '3pm today' $(pwd)
-${scrbin}/scr_halt --after '4pm today' $(pwd)
+${scrbin}/scr_halt --before '2100-07-04T21:00:00' $(pwd)
+${scrbin}/scr_halt --after '2100-07-04T21:00:00' $(pwd)
 ${scrbin}/scr_halt --seconds 1200 $(pwd)
 sleep 1
 ${scrbin}/scr_halt --unset-before $(pwd)
