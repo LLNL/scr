@@ -55,6 +55,12 @@ done
 ROOT="$(pwd)"
 INSTALL_DIR=$ROOT/install
 
+# whether to build optimized or "-g -O0" debug
+buildtype="Release"
+if [ $build_debug -eq 1 ] ; then
+  buildtype="Debug"
+fi
+
 if [ $build_clean -eq 1 ] ; then
   rm -rf deps
   rm -rf install
@@ -64,6 +70,51 @@ mkdir -p deps
 mkdir -p install
 
 cd deps
+
+pushd er
+  if [ $build_dev -eq 0 ] ; then
+    git checkout v0.2.0
+  fi
+  rm -rf build
+  mkdir -p build
+  pushd build
+    cmake \
+      ${shared_flags} \
+      -DCMAKE_BUILD_TYPE=$buildtype \
+      -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+      .. && \
+    make ${make_verbose} -j `nproc` && \
+    make ${make_verbose} install
+    if [ $? -ne 0 ]; then
+      echo "failed to configure, build, or install er"
+      exit 1
+    fi
+  popd
+popd
+exit 0
+
+#pushd redset
+##  if [ $build_dev -eq 0 ] ; then
+##    git checkout v0.2.0
+##  fi
+#  rm -rf build
+#  mkdir -p build
+#  pushd build
+#    cmake \
+#      ${shared_flags} \
+#      -DCMAKE_BUILD_TYPE=$buildtype \
+#      -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+#      -DENABLE_PTHREADS=OFF \
+#      .. && \
+#    make ${make_verbose} -j `nproc` && \
+#    make ${make_verbose} install
+#    if [ $? -ne 0 ]; then
+#      echo "failed to configure, build, or install redset"
+#      exit 1
+#    fi
+#  popd
+#popd
+#exit 0
 
 lwgrp=lwgrp-1.0.5
 dtcmp=dtcmp-1.1.4
@@ -104,12 +155,6 @@ for i in "${repos[@]}" ; do
     git clone $i
   fi
 done
-
-# whether to build optimized or "-g -O0" debug
-buildtype="Release"
-if [ $build_debug -eq 1 ] ; then
-  buildtype="Debug"
-fi
 
 rm -rf ${lwgrp}
 tar -zxf ${lwgrp}.tar.gz

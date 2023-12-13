@@ -79,27 +79,28 @@ The SCR wrapper scripts
 The easiest way to integrate SCR into a batch script is to set some environment variables
 and to replace the job run command with an SCR wrapper script.
 
-Example bash job scripts are located in the :code:`share/examples` directory of an SCR installation.::
+Example bash job scripts are located in the :code:`share/examples` directory of an SCR installation::
 
   SLURM:  scr_srun.sh [srun_options]  <prog> [prog_args ...]
   SLURM:  scr_srun_loop.sh [srun_options]  <prog> [prog_args ...]
   LSF:    scr_jsrun.sh [jsrun_options] <prog> [prog_args ...]
   LSF:    scr_jsrun_loop.sh [jsrun_options] <prog> [prog_args ...]
 
-The scripts are customized for different resource managers.
-They include the resource manager flag one needs to set to tolerate node failures.
+These scripts are customized for different resource managers.
+They include the resource manager flag that one needs to set to tolerate node failures.
 They call :code:`scr_prerun` to prepare an allocation before starting a run,
+they launch a run with :code:`srun` or :code:`jsrun`,
 and they call :code:`scr_postrun` to scavange any cached datasets after the run completes.
 
 The scripts whose name ends with :code:`_loop` additionally include logic to relaunch
 a failed job up to some fixed number of times within the allocation.
-Between launches, the scripts call :code:`scr_list_down_nodes` to detect and avoid failed nodes.
+Between launches, the scripts call :code:`scr_list_down_nodes` to detect and avoid failed nodes for the relaunch.
 One may allocate spare nodes when using these scripts.
 
 These job scripts serve as templates that one can modify as needed.
 However, they can often be used as drop in replacements for the launch command in an existing job script.
 
-In addition to the example bash job scripts, an :code:`scr_run` command is in the :code:`/bin' directory of an SCR installation.
+In addition to the example bash job scripts, an :code:`scr_run` command is in the :code:`/bin` directory of an SCR installation.
 This is a python script that, like the bash scripts, executes :code:`scr_prerun`, :code:`scr_postrun`,
 and it optionally relaunches a run after detecting and excluding any failed nodes.
 When using :code:`scr_run`, one must specify the job launcher as the first argument::
@@ -107,13 +108,15 @@ When using :code:`scr_run`, one must specify the job launcher as the first argum
   SLURM: scr_run srun [srun_options]  <prog> [prog_args ...]
   LSF:   scr_run jsrun [jsrun_options]  <prog> [prog_args ...]
 
+Using the SCR wrapper scripts
+-----------------------------
 All wrapper scripts must run from within a job allocation.
 The commands must know the SCR prefix directory.
 By default, this is assumed to be the current working directory.
 For the :code:`scr_run` script,
 one may specify a different prefix directory by setting the :code:`SCR_PREFIX` parameter.
 
-It is recommended to set the :code:`SCR_HALT_SECONDS`
+When using any of these scripts, it is recommended to set the :code:`SCR_HALT_SECONDS`
 parameter so that the job allocation does not expire before
 datasets can be flushed (Section :ref:`sec-halt`).
 
@@ -131,6 +134,8 @@ If this file cannot be read, the command assumes the application requires all no
 Alternatively, one may override these heuristics and precisely specify the number of nodes needed
 by setting the :code:`SCR_MIN_NODES` environment variable to the number of required nodes.
 
+See Section :ref:`sec-config` for additional common SCR configuration settings.
+
 For applications that cannot invoke the SCR wrapper scripts as described here,
 one should examine the logic contained within the script and duplicate the necessary parts
 in the job batch script.
@@ -145,12 +150,6 @@ An example SLURM batch script with :code:`scr_srun.sh` is shown below
 
   #!/bin/bash
   #SBATCH --no-kill
-
-  # specify where datasets should be written
-  export SCR_PREFIX=/parallel/file/system/username/run1
-
-  # instruct SCR to flush to the file system every 20 checkpoints
-  export SCR_FLUSH=20
 
   # halt if there is less than an hour remaining (3600 seconds)
   export SCR_HALT_SECONDS=3600
@@ -168,16 +167,10 @@ An example SLURM batch script with :code:`scr_srun_loop.sh` is shown below
   #!/bin/bash
   #SBATCH --no-kill
 
-  # specify where datasets should be written
-  export SCR_PREFIX=/parallel/file/system/username/run1
-
-  # instruct SCR to flush to the file system every 20 checkpoints
-  export SCR_FLUSH=20
-
   # halt if there is less than an hour remaining (3600 seconds)
   export SCR_HALT_SECONDS=3600
 
-  # run the job with scr_srun
+  # run the job with scr_srun, will run up to 5 times
   scr_run_loop.sh -n512 -N64 ./my_job
 
 Example SLURM batch script with :code:`scr_run` using scavenge and restart
