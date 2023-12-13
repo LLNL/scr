@@ -144,8 +144,8 @@ unset SCR_EXCLUDE_NODES
 
 # check that scr_halt seems to work
 ${scrbin}/scr_halt --list `pwd`; sleep 5
-${scrbin}/scr_halt --before '3pm today' `pwd`; sleep 5
-${scrbin}/scr_halt --after '4pm today' `pwd`; sleep 5
+${scrbin}/scr_halt --before '2100-07-04T21:00:00' `pwd`; sleep 5
+${scrbin}/scr_halt --after '2100-07-04T21:00:00' `pwd`; sleep 5
 ${scrbin}/scr_halt --seconds 1200 `pwd`; sleep 5
 ${scrbin}/scr_halt --unset-before `pwd`; sleep 5
 ${scrbin}/scr_halt --unset-after `pwd`; sleep 5
