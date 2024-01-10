@@ -1,16 +1,15 @@
+"""Defines the Flux ResourceManager subclass."""
+
 import os
 
-from scrjob import hostlist
 from scrjob.resmgrs import ResourceManager
 
 # flux imports
 try:
     import flux
-    from flux.hostlist import Hostlist
-    from flux.resource import ResourceSet
-    from flux.rpc import RPC
-    from flux.job import JobID, JobInfo, JobList
-except:
+    import flux.resource
+    from flux.job import JobID, JobList
+except ImportError:
     pass
 
 
@@ -24,10 +23,10 @@ class FLUX(ResourceManager):
         """
         try:
             self.flux = flux.Flux()
-        except:
+        except NameError as exc:
             raise ImportError(
                 'Error importing flux, ensure that the flux daemon is running.'
-            )
+            ) from exc
         super().__init__(resmgr='FLUX')
         self.jobid = None  # set it so that self.job_id() doesn't error out
         self.jobid = self.job_id()
@@ -50,26 +49,11 @@ class FLUX(ResourceManager):
 
     def job_nodes(self):
         """Get node list."""
-        resp = RPC(self.flux, "resource.status").get()
-        rset = ResourceSet(resp["R"])
-        return list(rset.nodelist)
+        return list(flux.resource.resource_list(self.flux).get().all.nodelist)
 
     def down_nodes(self):
         """Return list of down nodes."""
-        downnodes = {}
-        resp = RPC(self.flux, "resource.status").get()
-        rset = ResourceSet(resp["R"])
-        offline = str(resp['offline'])
-        exclude = str(resp['exclude'])
-        offline = hostlist.expand_hosts(offline)
-        exclude = hostlist.expand_hosts(offline)
-        for node in offline:
-            if node != '' and node not in downnodes:
-                downnodes[node] = 'Reported down by resource manager'
-        for node in exclude:
-            if node != '' and node not in downnodes:
-                downnodes[node] = 'Excluded by resource manager'
-        return downnodes
+        return list(flux.resource.resource_list(self.flux).get().down.nodelist)
 
     def end_time(self):
         """Get the end time of the current allocation."""
