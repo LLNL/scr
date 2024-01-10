@@ -15,25 +15,29 @@ except:
 
 
 class FLUX(ResourceManager):
-    # init initializes vars from the environment
+    """Represents the Flux resource manager."""
+
     def __init__(self):
-        # the super.init() calls resmgr.job_nodes, we must set self.flux first
+        """Initializes vars from the environment.
+
+        The super.init() calls resmgr.job_nodes, we must set self.flux first.
+        """
         try:
             self.flux = flux.Flux()
         except:
             raise ImportError(
                 'Error importing flux, ensure that the flux daemon is running.'
             )
-        super(FLUX, self).__init__(resmgr='FLUX')
+        super().__init__(resmgr='FLUX')
         self.jobid = None  # set it so that self.job_id() doesn't error out
         self.jobid = self.job_id()
 
-    ####
-    # the job id of the allocation is needed in postrun/list_dir
-    # the job id is a component of the path.
-    # We can either copy methods from existing resource managers . . .
-    # or we can use the POSIX timestamp and set the value at __init__
     def job_id(self):
+        """Fetch the job ID.
+
+        The job id of the allocation is needed in postrun/list_dir
+        the job id is a component of the path.
+        """
         if self.jobid is not None:
             return self.jobid
 
@@ -44,13 +48,14 @@ class FLUX(ResourceManager):
             jobid = self.flux.job.JobID.id_parse(jobid_str)
         return str(jobid)
 
-    # get node list
     def job_nodes(self):
+        """Get node list."""
         resp = RPC(self.flux, "resource.status").get()
         rset = ResourceSet(resp["R"])
         return list(rset.nodelist)
 
     def down_nodes(self):
+        """Return list of down nodes."""
         downnodes = {}
         resp = RPC(self.flux, "resource.status").get()
         rset = ResourceSet(resp["R"])
@@ -67,6 +72,7 @@ class FLUX(ResourceManager):
         return downnodes
 
     def end_time(self):
+        """Get the end time of the current allocation."""
         jobid_str = os.environ.get('FLUX_JOB_ID')
         if jobid_str is None:
             parent = flux.Flux(self.flux.attr_get("parent-uri"))
