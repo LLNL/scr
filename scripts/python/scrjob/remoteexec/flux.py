@@ -8,7 +8,7 @@ try:
     from flux.job import JobspecV1
     from flux.resource import ResourceSet
     from flux.rpc import RPC
-except:
+except ImportError:
     pass
 
 from scrjob.remoteexec import RemoteExec, RemoteExecResult
@@ -20,10 +20,10 @@ class FLUX(RemoteExec):
         # connect to the running Flux instance
         try:
             self.flux = flux.Flux()
-        except:
+        except NameError as exc:
             raise ImportError(
                 'Error importing flux, ensure that the flux daemon is running.'
-            )
+            ) from exc
 
         # when using flux labeled output, a rank and colon are prepended to each line
         # 23: hello, world

@@ -1,7 +1,7 @@
 # flux imports
 try:
     import flux
-except:
+except ImportError:
     pass
 
 from scrjob.common import runproc
@@ -17,10 +17,10 @@ class FLUX(JobLauncher):
         # connect to the running Flux instance
         try:
             self.flux = flux.Flux()
-        except:
+        except NameError as exc:
             raise ImportError(
                 'Error importing flux, ensure that the flux daemon is running.'
-            )
+            ) from exc
 
     def launch_run(self, args, nodes=[], down_nodes=[]):
         argv = [self.flux_exe]
