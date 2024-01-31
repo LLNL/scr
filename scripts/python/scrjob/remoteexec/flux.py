@@ -1,3 +1,5 @@
+"""Defines the Flux RemoteExec subclass."""
+
 import os
 import re
 from time import time
@@ -8,7 +10,7 @@ try:
     from flux.job import JobspecV1
     from flux.resource import ResourceSet
     from flux.rpc import RPC
-except:
+except ImportError:
     pass
 
 from scrjob.remoteexec import RemoteExec, RemoteExecResult
@@ -20,10 +22,10 @@ class FLUX(RemoteExec):
         # connect to the running Flux instance
         try:
             self.flux = flux.Flux()
-        except:
+        except NameError as exc:
             raise ImportError(
                 'Error importing flux, ensure that the flux daemon is running.'
-            )
+            ) from exc
 
         # when using flux labeled output, a rank and colon are prepended to each line
         # 23: hello, world
@@ -69,48 +71,29 @@ class FLUX(RemoteExec):
         compute_jobreq.stderr = errfile
         job = flux.job.submit(self.flux, compute_jobreq, waitable=True)
 
-        # get the hostlist to swap ranks for hosts
-        nodelist = rset.nodelist
-        future = flux.job.wait_async(self.flux, job)
-        status = future.get_status()
+        flux.job.wait_async(self.flux, job).get_status()
 
         # TODO: can we set result.set_rc(node, rc) for each process?
 
         # don't fail if can't open a file, just leave output blank
         try:
-            with open(outfile, 'r') as f:
-                lines = f.readlines()
-                for line in lines:
-                    m = self.re_labeled.match(line)
-                    if m:
-                        rank = int(m.groups(0)[0])
-                        node = nodelist[rank]
-                        val = m.groups(0)[1]
-                        result.append_stdout(node, val)
-        except:
+            self._read_file(outfile, rset.nodelist, result.append_stdout)
+        except Exception:
             pass
-
         try:
-            with open(errfile, 'r') as f:
-                lines = f.readlines()
-                for line in lines:
-                    m = self.re_labeled.match(line)
-                    if m:
-                        rank = int(m.groups(0)[0])
-                        node = nodelist[rank]
-                        val = m.groups(0)[1]
-                        result.append_stderr(node, val)
-        except:
-            pass
-
-        try:
-            os.remove(outfile)
-        except:
-            pass
-
-        try:
-            os.remove(errfile)
-        except:
+            self._read_file(errfile, rset.nodelist, result.append_stderr)
+        except Exception:
             pass
 
         return result
+
+    def _read_file(self, path, nodelist, func):
+        with open(path, 'r', encoding="utf8") as f:
+            for line in f:
+                match = self.re_labeled.match(line)
+                if match:
+                    rank = int(match.groups(0)[0])
+                    node = nodelist[rank]
+                    val = match.groups(0)[1]
+                    func(node, val)
+        os.remove(path)
