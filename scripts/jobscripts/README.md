@@ -34,3 +34,4 @@ Before the script exits, it runs ``scr_postrun`` to scavenge any cached dataset.
 
 - ``scr_srun_loop.sh`` - Launch with ``srun`` in a SLURM allocation
 - ``scr_jsrun_loop.sh`` - Launch with ``jsrun`` in an LSF allocation
+- ``scr_flux_run_loop.sh`` - Launch with ``flux run`` in an Flux allocation
