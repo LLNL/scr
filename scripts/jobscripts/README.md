@@ -13,6 +13,7 @@ These scripts launch the run once and then run ``scr_postrun`` to scavenge any c
 
 - ``scr_srun.sh``  - Launch with ``srun`` in a SLURM allocation
 - ``scr_jsrun.sh`` - Launch with ``jsrun`` in an LSF allocation
+- ``scr_flux_run.sh`` - Launch with ``flux run`` in a Flux allocation
 
 ## Multiple launch with scalable restart and scavenge
 The scripts that end in ``_loop`` relaunch a run multiple times within an allocation.
@@ -33,3 +34,4 @@ Before the script exits, it runs ``scr_postrun`` to scavenge any cached dataset.
 
 - ``scr_srun_loop.sh`` - Launch with ``srun`` in a SLURM allocation
 - ``scr_jsrun_loop.sh`` - Launch with ``jsrun`` in an LSF allocation
+- ``scr_flux_run_loop.sh`` - Launch with ``flux run`` in an Flux allocation
