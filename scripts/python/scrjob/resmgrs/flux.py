@@ -53,7 +53,10 @@ class FLUX(ResourceManager):
 
     def down_nodes(self):
         """Return list of down nodes."""
-        return list(flux.resource.resource_list(self.flux).get().down.nodelist)
+        return {
+            nodename: "Reported down by resource manager"
+            for nodename in flux.resource.resource_list(self.flux).get().down.nodelist
+        }
 
     def end_time(self):
         """Get the end time of the current allocation."""

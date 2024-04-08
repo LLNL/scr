@@ -5,6 +5,8 @@ SET(SCRRUN_SH
   scr_srun_loop.sh
   scr_jsrun.sh
   scr_jsrun_loop.sh
+  scr_flux_run.sh
+  scr_flux_run_loop.sh
 )
 
 FOREACH(script IN ITEMS ${SCRRUN_SH})
