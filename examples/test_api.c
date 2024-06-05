@@ -119,35 +119,35 @@ int test_abtoull(char* str, unsigned long long* val)
   unsigned long long units = 1;
   if (*next != '\0') {
     switch(*next) {
-      case 'k':
-      case 'K':
-        units = kilo;
-        break;
-      case 'm':
-      case 'M':
-        units = mega;
-        break;
-      case 'g':
-      case 'G':
-        units = giga;
-        break;
-      case 't':
-      case 'T':
-        units = tera;
-        break;
-      case 'p':
-      case 'P':
-        units = peta;
-        break;
-      case 'e':
-      case 'E':
-        units = exa;
-        break;
-      default:
+    case 'k':
+    case 'K':
+      units = kilo;
+      break;
+    case 'm':
+    case 'M':
+      units = mega;
+      break;
+    case 'g':
+    case 'G':
+      units = giga;
+      break;
+    case 't':
+    case 'T':
+      units = tera;
+      break;
+    case 'p':
+    case 'P':
+      units = peta;
+      break;
+    case 'e':
+    case 'E':
+      units = exa;
+      break;
+    default:
       printf("test_abtoull: Unexpected byte string %s @ %s:%d",
              str, __FILE__, __LINE__
       );
-        return SCR_FAILURE;
+      return SCR_FAILURE;
     }
 
     next++;
@@ -461,12 +461,12 @@ double getbw(char* name, char* buf, int times)
         /* not using SCR, writing to file system instead,
          * need to create our directory */
         if (rank == 0) {
-          rc = mkdir(outpath, S_IRUSR | S_IWUSR | S_IXUSR);
-          if (rc != 0 && errno != EEXIST) {
+           rc = mkdir(outpath, S_IRUSR | S_IWUSR | S_IXUSR);
+           if (rc != 0 && errno != EEXIST) {
              printf("%d: mkdir failed: %s %d %s @%s:%d\n",
                     rank, outpath, errno, strerror(errno), __FILE__, __LINE__
              );
-          }
+           }
         }
         MPI_Barrier(MPI_COMM_WORLD);
       }
@@ -512,7 +512,7 @@ double getbw(char* name, char* buf, int times)
         }
         else {
             printf("%d: Failed to seek to 0x%08lx in %s : %s\n", rank, my_file_offset, file, strerror(errno));
-          valid = 0;
+            valid = 0;
         }
 
         /* make sure the close is without error */
@@ -573,6 +573,10 @@ double getbw(char* name, char* buf, int times)
           case 3: {
             work_allreduce_iters(timestep, reduce);
             break;
+          }
+          default: {
+            printf("Invalid Kernel Type %d\n", kernel);
+            return 1;
           }
         }
       }
@@ -740,7 +744,7 @@ void print_usage()
   printf("    -t, --times=<COUNT>  Number of iterations (default %d)\n", times);
   printf("    -z, --seconds=<SECS> Sleep for SECS seconds between iterations (default %d)\n", seconds);
   printf("    -w, --reduce=<COUNT> Allreduce iterations to execute between iterations (default %d)\n", reduce);
-  printf("-k, --kernel=<KERNEL_INDEX> Selected Kernel 0-CPU, 1-MEMORY, 2-ALL REDUCE, 3 -ALL REDUCE AVERAGE(default % d)\n ", kernel);
+  printf("    -k, --kernel=<KERNEL_INDEX> Selected Kernel 0-CPU, 1-MEMORY, 2-ALL REDUCE, 3 -ALL REDUCE AVERAGE(default %d)\n", kernel);
   printf("    -p, --path=<DIR>     Directory to create and write files to\n");
   printf("    -f, --flush=<COUNT>  Mark every Nth write as checkpoint+output (default %d)\n", ckptout);
   printf("    -o, --output=<COUNT> Mark every Nth write as pure output (default %d)\n", output);
@@ -764,18 +768,18 @@ int main (int argc, char* argv[])
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &ranks);
 
-  static const char *opt_string = "s:t:z:w:p:f:o:a:c:h:k:";
+  static const char *opt_string = "s:t:z:w:p:f:o:a:c:k:h";
   static struct option long_options[] = {
     {"size",    required_argument, NULL, 's'},
     {"times",   required_argument, NULL, 't'},
-      {"seconds", required_argument, NULL, 'z'},
+    {"seconds", required_argument, NULL, 'z'},
     {"reduce",  required_argument, NULL, 'w'},
     {"path",    required_argument, NULL, 'p'},
     {"flush",   required_argument, NULL, 'f'},
     {"output",  required_argument, NULL, 'o'},
-      {"config-api", required_argument, NULL, 'a'},
+    {"config-api", required_argument, NULL, 'a'},
     {"conf-file",  required_argument, NULL, 'c'},
-      {"current", required_argument, NULL, 'C'},
+    {"current", required_argument, NULL, 'C'},
     {"nofsync", no_argument,       NULL, 'S'},
     {"noscr",   no_argument,       NULL, 'x'},
     {"noscrrestart", no_argument,  NULL, 'X'},
