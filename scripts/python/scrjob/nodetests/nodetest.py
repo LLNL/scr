@@ -3,9 +3,6 @@ class NodeTest(object):
     def __init__(self):
         pass
 
-    def parexec(self, argv, nodes, jobenv):
-        return jobenv.launcher.parallel_exec(argv=argv, runnodes=nodes)
-
     def execute(self, nodes, jobenv):
         """Returns a dictionary of failed nodes.
 

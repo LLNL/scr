@@ -1,10 +1,12 @@
 import os
 
+from scrjob import config, hostlist
 from scrjob.common import scr_prefix
 from scrjob.param import Param
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.launchers import AutoJobLauncher
 from scrjob.nodetests import NodeTests
+from scrjob.remoteexec import Pdsh, ClusterShell
 from scrjob.cli.scr_nodes_file import SCRNodesFile
 
 
@@ -49,6 +51,11 @@ class JobEnv:
 
         self.nodetests = NodeTests()
 
+        if config.USE_CLUSTERSHELL:
+            self.rexec = ClusterShell()
+        else:
+            self.rexec = Pdsh(launcher=launcher)
+
     def user(self):
         """Return the username from the environment."""
         return os.environ.get('USER')
@@ -56,7 +63,7 @@ class JobEnv:
     def node_list(self):
         """Return the SCR_NODELIST, if set, or None."""
         nodelist = os.environ.get('SCR_NODELIST')
-        return self.resmgr.expand_hosts(nodelist)
+        return hostlist.expand_hosts(nodelist)
 
     def dir_prefix(self):
         """Return the scr prefix."""

@@ -14,23 +14,20 @@ from scrjob.nodetests import (
 class NodeTests(object):
 
     def __init__(self):
-        self.firstrun = True
-
-        # The tests which will be performed should be set either:
-        # When self.nodetests is instantiated (in init of Nodetests):
-        #   by constant list in config.py
-        #   by file input, where the filename is specified in config.py
-        # Or manually by adding test names to the self.nodetests.nodetests list
-        # in your resource manager's init after super().__init__
-
         # TODO: add tests based on config
-        # First try to read the environment variable
-        tests = os.environ.get('SCR_NODE_TESTS')
-        if tests is not None:
-            tests = tests.split(',')
+
+        # Get the list of test names to perform.
+        scr_node_tests = os.environ.get('SCR_NODE_TESTS')
+        if scr_node_tests is not None:
+            # get the list of tests from $SCR_NODE_TESTS
+            tests = scr_node_tests.split(',')
         elif config.SCR_NODE_TESTS != '':
+            # otherwise get the list of tests from config.SCR_NODE_TESTS
             tests = config.SCR_NODE_TESTS.split(',')
         elif config.SCR_NODE_TESTS_FILE != '':
+            # Otherwise read the list of tests from the file given in SCR_NODE_TESTS_FILE.
+            # Tests can be listed on multiple lines or a single line separated by commas.
+            # Empty lines are skipped.
             tests = []
             fname = config.SCR_NODE_TESTS_FILE
             with open(fname, 'r') as f:
@@ -39,6 +36,7 @@ class NodeTests(object):
                     if line != '':
                         tests.extend(line.split(','))
         else:
+            # Default set of tests if nothing is given.
             tests = ['ping', 'echo', 'dir_capacity']
 
         # build list of tests to be executed according to list
@@ -65,7 +63,7 @@ class NodeTests(object):
             if node in nodes:
                 nodes.remove(node)
 
-    def execute(self, nodes, jobenv):
+    def execute(self, nodes, jobenv, down=[]):
         """Return a dictionary of down nodes."""
 
         # This method returns a dictionary of unavailable nodes
@@ -76,13 +74,16 @@ class NodeTests(object):
         # that are identified to be down by earlier tests
         nodes = nodes.copy()
 
+        # drop any nodes that we are told are down
+        for node in down:
+            if node in nodes:
+                nodes.remove(node)
+                unavailable[node] = 'Specified as down'
+
         # run tests against remaining nodes
         for t in self.tests:
             failed = t.execute(nodes, jobenv)
             self._drop_failed(failed, nodes)
             unavailable.update(failed)
-
-        # allow alternate behavior on subsequent runs
-        self.firstrun = False
 
         return unavailable

@@ -1,17 +1,17 @@
-SET(PYFE_TOP
+SET(SCRJOB_TOP
   README.md
   LICENSE
-  MANIFEST.in
-  setup.py
+#  MANIFEST.in
+#  setup.py
 )
 
-INSTALL(FILES ${PYFE_TOP} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python)
+INSTALL(FILES ${SCRJOB_TOP} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python)
 
 SET(SCRJOB_EXEC
   scr_ckpt_interval.py
   scr_check_node.py
   scr_env.py
-  scr_inspect.py
+  scr_hostlist.py
   scr_kill_jobstep.py
   scr_list_dir.py
   scr_poststage.py

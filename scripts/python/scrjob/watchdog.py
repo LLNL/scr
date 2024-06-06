@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 from scrjob.cli import SCRFlushFile
 
 
@@ -51,10 +49,11 @@ class Watchdog:
         lastCheckpointLoc = None
         while True:
             # wait up to 'timeToSleep' to see if the process terminates normally
-            (finished,
-             success) = self.launcher.waitonprocess(proc, timeout=timeToSleep)
-            if finished == True:
-                # when the wait returns zero the process is no longer running
+            (finished, success) = self.launcher.wait_run(proc,
+                                                         timeout=timeToSleep)
+
+            # when the wait returns zero the process is no longer running
+            if finished:
                 return 0
 
             # the process is still running, read flush file to get latest
@@ -82,11 +81,11 @@ class Watchdog:
                 timeToSleep = self.timeout
         # forward progress not observed in an expected timeframe
         # kill the watched process and return
-        self.launcher.kill_jobstep(jobstep)
+        self.launcher.kill_run(jobstep)
         return 0
 
     def watchproc(self, watched_process=None, jobstep=None):
-        """Watchproc is the method called after launcher.launch_run_cmd()
+        """Watchproc is the method called after launcher.launch_run()
 
         Parameters
         ----------

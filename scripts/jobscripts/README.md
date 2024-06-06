@@ -1,7 +1,7 @@
 # Example SCR batch job scripts
 The scripts in this directory demonstrate how to integrate SCR in a batch job script.
+One may use them as a drop in substitute for the corresponding job launcher.
 They serve as examples for users to copy and customize for their own needs.
-However, they are complete, and one may use them as a drop in substitute for the corresponding job launcher.
 The scripts are installed to ``share/scr/jobscripts`` in an SCR installation.
 
 In particular, the scripts show how to use the SCR scavenge and scalable restart features.
@@ -13,6 +13,7 @@ These scripts launch the run once and then run ``scr_postrun`` to scavenge any c
 
 - ``scr_srun.sh``  - Launch with ``srun`` in a SLURM allocation
 - ``scr_jsrun.sh`` - Launch with ``jsrun`` in an LSF allocation
+- ``scr_flux_run.sh`` - Launch with ``flux run`` in a Flux allocation
 
 ## Multiple launch with scalable restart and scavenge
 The scripts that end in ``_loop`` relaunch a run multiple times within an allocation.
@@ -33,3 +34,4 @@ Before the script exits, it runs ``scr_postrun`` to scavenge any cached dataset.
 
 - ``scr_srun_loop.sh`` - Launch with ``srun`` in a SLURM allocation
 - ``scr_jsrun_loop.sh`` - Launch with ``jsrun`` in an LSF allocation
+- ``scr_flux_run_loop.sh`` - Launch with ``flux run`` in an Flux allocation

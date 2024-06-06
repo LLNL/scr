@@ -11,8 +11,6 @@ class PBSALPS(ResourceManager):
 
     # get job id, setting environment flag here
     def job_id(self):
-        if self.jobid is not None:
-            return self.jobid
         # val may be None
         return os.environ.get('PBS_JOBID')
 

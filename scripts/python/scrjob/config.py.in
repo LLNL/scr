@@ -1,9 +1,8 @@
-#! /usr/bin/env python3
 """Records configure-time setttings."""
 
 SCR_CNTL_BASE = '@SCR_CNTL_BASE@'
 SCR_CACHE_BASE = '@SCR_CACHE_BASE@'
-SCR_CACHE_SIZE = '1'  # '@SCR_CACHE_SIZE@'
+SCR_CACHE_SIZE = 1  # @SCR_CACHE_SIZE@
 SCR_CONFIG_FILE = '@SCR_CONFIG_FILE@'
 CMAKE_BINARY_DIR = '@CMAKE_BINARY_DIR@'
 X_DATADIR = '@X_DATADIR@'
@@ -12,6 +11,7 @@ X_LIBEXECDIR = '@X_LIBEXECDIR@'
 X_LIBDIR = '@X_LIBDIR@'
 PDSH_EXE = '@PDSH_EXE@'
 SCR_RESOURCE_MANAGER = '@SCR_RESOURCE_MANAGER@'
+
 """
 Nodetests to run during list_down_nodes
 Tests must be methods of class Nodetests in nodetests/nodetests.py
@@ -27,31 +27,34 @@ SCR_NODE_TESTS = '@SCR_NODE_TESTS@'
 
 # A file with each line a comma separated list of tests
 SCR_NODE_TESTS_FILE = '@SCR_NODE_TESTS_FILE@'
+
 """ClusterShell."""
-# Enable use of the ClusterShell module, set to '1'
-USE_CLUSTERSHELL = '@USE_CLUSTERSHELL@'
+# Enable use of the ClusterShell module, set to True
+USE_CLUSTERSHELL = False
+
 """Python tracing."""
-# Very verbose, set to '1'
-PYFE_TRACE_FUNC = '@PYFE_TRACE_FUNC@'
+# Very verbose, set to True
+TRACE_FUNC = False
+
 """Joblauncher scr_kill_jobstep strategy."""
-# Prefer to use job launcher's method to kill a jobstep, e.g., scancel, set to '1'
-USE_JOBLAUNCHER_KILL = '@USE_JOBLAUNCHER_KILL@'
+# Prefer to use job launcher's method to kill a jobstep, e.g., scancel, set to True
+USE_JOBLAUNCHER_KILL = False
 
 if __name__ == '__main__':
     """Running this script will print compiled values."""
 
-    print('SCR_CNTL_BASE = \"' + SCR_CNTL_BASE + '\"')
-    print('SCR_CACHE_BASE = \"' + SCR_CACHE_BASE + '\"')
-    print('SCR_CACHE_SIZE = \"' + SCR_CACHE_SIZE + '\"')
-    print('SCR_CONFIG_FILE = \"' + SCR_CONFIG_FILE + '\"')
-    print('CMAKE_BINARY_DIR = \"' + CMAKE_BINARY_DIR + '\"')
-    print('X_BINDIR = \"' + X_BINDIR + '\"')
-    print('X_LIBEXECDIR = \"' + X_LIBEXECDIR + '\"')
-    print('X_LIBDIR = \"' + X_LIBDIR + '\"')
-    print('PDSH_EXE = \"' + PDSH_EXE + '\"')
-    print('SCR_RESOURCE_MANAGER = \"' + SCR_RESOURCE_MANAGER + '\"')
-    print('SCR_NODE_TESTS = \"' + SCR_NODE_TESTS + '\"')
-    print('SCR_NODE_TESTS_FILE = \"' + SCR_NODE_TESTS_FILE + '\"')
-    print('USE_CLUSTERSHELL = \"' + USE_CLUSTERSHELL + '\"')
-    print('PYFE_TRACE_FUNC = \"' + PYFE_TRACE_FUNC + '\"')
-    print('USE_JOBLAUNCHER_KILL = \"' + USE_JOBLAUNCHER_KILL + '\"')
+    print(f'SCR_CNTL_BASE = {SCR_CNTL_BASE}')
+    print(f'SCR_CACHE_BASE = {SCR_CACHE_BASE}')
+    print(f'SCR_CACHE_SIZE = {SCR_CACHE_SIZE}')
+    print(f'SCR_CONFIG_FILE = {SCR_CONFIG_FILE}')
+    print(f'CMAKE_BINARY_DIR = {CMAKE_BINARY_DIR}')
+    print(f'X_BINDIR = {X_BINDIR}')
+    print(f'X_LIBEXECDIR = {X_LIBEXECDIR}')
+    print(f'X_LIBDIR = {X_LIBDIR}')
+    print(f'PDSH_EXE = {PDSH_EXE}')
+    print(f'SCR_RESOURCE_MANAGER = {SCR_RESOURCE_MANAGER}')
+    print(f'SCR_NODE_TESTS = {SCR_NODE_TESTS}')
+    print(f'SCR_NODE_TESTS_FILE = {SCR_NODE_TESTS_FILE}')
+    print(f'USE_CLUSTERSHELL = {USE_CLUSTERSHELL}')
+    print(f'TRACE_FUNC = {TRACE_FUNC}')
+    print(f'USE_JOBLAUNCHER_KILL = {USE_JOBLAUNCHER_KILL}')

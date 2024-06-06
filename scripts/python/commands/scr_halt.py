@@ -6,15 +6,43 @@ import sys
 sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import os
+import re
+import datetime
 import argparse
 
-from scrjob.parsetime import parsetime
 from scrjob.cli.scr_halt_cntl import SCRHaltFile
+
+
+def parsetime(timestr):
+    re_ts_full = re.compile(r'(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)$')
+    m = re_ts_full.match(timestr)
+    if m:
+        year  = int(m.groups(0)[0])
+        month = int(m.groups(0)[1])
+        day   = int(m.groups(0)[2])
+        hours = int(m.groups(0)[3])
+        mins  = int(m.groups(0)[4])
+        secs  = int(m.groups(0)[5])
+        dt = datetime.datetime(year=year, month=month, day=day, hour=hours, minute=mins, second=secs)
+        return int(dt.timestamp())
+
+    #re_ts_24hr = re.compile(r'^(\d\d):(\d\d):(\d\d)$')
+    #m = re_ts_24hr.match(timestr)
+    #if m:
+    #    hours = int(m.groups(0)[0])
+    #    mins  = int(m.groups(0)[1])
+    #    secs  = int(m.groups(0)[2])
+    #    dt = datetime.datetime.now()
+    #    dt = dt.replace(hour=hours, minute=mins, second=secs)
+    #    return int(dt.timestamp())
+
+    raise RuntimeError(f"Unsupported time format: '{timestr}'")
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         epilog=
-        'TIME arguments are parsed using parsetime.py,\nand t may be specified in one of many formats.\nExamples include \'12pm\', \'yesterday noon\', \'12/25 15:30:33\', and so on.\nIf no directory is specified, the current working directory is used.'
+        'TIME arguments must be ISO format YYYY-MM-DDTHH:MM:SS in the current time zone.\nIf no directory is specified, the current working directory is used.'
     )
 
     # when prefixes are unambiguous then also adding shortcodes isn't necessary

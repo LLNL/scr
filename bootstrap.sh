@@ -16,6 +16,9 @@
 #   --noshelldbg run script without "-x"
 #
 
+echo "CC is ${CC}"
+echo "CXX is ${CXX}"
+
 # optional builds
 clone_ssh=0     # whether to clone with https (0) or ssh (1)
 build_debug=0   # whether to build optimized (0) or debug "-g -O0" (1)
@@ -59,13 +62,19 @@ fi
 run_cmd() {
     echo $1
     if ! eval $1 ; then
-        echo "FAIL: See ${log_file} for details"
+        echo "FAIL"
         exit 1
     fi
 }
 
 ROOT="$(pwd)"
 INSTALL_DIR=$ROOT/install
+
+# whether to build optimized or "-g -O0" debug
+buildtype="Release"
+if [ $build_debug -eq 1 ] ; then
+  buildtype="Debug"
+fi
 
 if [ $build_clean -eq 1 ] ; then
   run_cmd "rm -rf deps"
@@ -117,12 +126,6 @@ for i in "${repos[@]}" ; do
   fi
 done
 
-# whether to build optimized or "-g -O0" debug
-buildtype="Release"
-if [ $build_debug -eq 1 ] ; then
-  buildtype="Debug"
-fi
-
 make_cmd=""
 if [ ${make_verbose} = 1 ]; then
     make_cmd="make VERBOSE=1 install"
@@ -133,19 +136,19 @@ fi
 run_cmd "rm -rf ${lwgrp}"
 run_cmd "tar -zxf ${lwgrp}.tar.gz"
 run_cmd "pushd ${lwgrp}"
-  run_cmd "./configure --prefix=${INSTALL_DIR} && ${make_cmd}"
+run_cmd "./configure --prefix=${INSTALL_DIR} && ${make_cmd}"
 run_cmd "popd"
 
 run_cmd "rm -rf ${dtcmp}"
 run_cmd "tar -zxf ${dtcmp}.tar.gz"
 run_cmd "pushd ${dtcmp}"
-  run_cmd "./configure --prefix=${INSTALL_DIR} --with-lwgrp=${INSTALL_DIR} && ${make_cmd}"
+run_cmd "./configure --prefix=${INSTALL_DIR} --with-lwgrp=${INSTALL_DIR} && ${make_cmd}"
 run_cmd "popd"
 
 run_cmd "rm -rf ${pdsh}"
 run_cmd "tar -zxf ${pdsh}.tar.gz"
 run_cmd "pushd ${pdsh}"
-  run_cmd "./configure --prefix=$INSTALL_DIR && ${make_cmd}"
+run_cmd "./configure --prefix=$INSTALL_DIR && ${make_cmd}"
 run_cmd "popd"
 
 run_cmd "pushd KVTree"
@@ -155,18 +158,18 @@ run_cmd "pushd KVTree"
   run_cmd "rm -rf build"
   run_cmd "mkdir -p build"
   run_cmd "pushd build"
-    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON .. && ${make_cmd}"
+  run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON .. && ${make_cmd}"
   run_cmd "popd"
 run_cmd "popd"
 
-pushd AXL
+run_cmd "pushd AXL"
   if [ $build_dev -eq 0 ] ; then
     run_cmd "git checkout v0.6.0"
   fi
   run_cmd "rm -rf build"
   run_cmd "mkdir -p build"
   run_cmd "pushd build"
-    run_cmd "CMAKE_PREFIX_PATH='/usr/global/tools/nnfdm_x86_64/current' cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON .. && ${make_cmd}"
+  run_cmd "CMAKE_PREFIX_PATH='/usr/global/tools/nnfdm_x86_64/current' cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON .. && ${make_cmd}"
   run_cmd "popd"
 run_cmd "popd"
 
@@ -177,7 +180,7 @@ run_cmd "pushd spath"
   run_cmd "rm -rf build"
   run_cmd "mkdir -p build"
   run_cmd "pushd build"
-    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON .. && ${make_cmd}"
+  run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DMPI=ON .. && ${make_cmd}"
   run_cmd "popd"
 run_cmd "popd"
 
@@ -188,7 +191,7 @@ run_cmd "pushd rankstr"
   run_cmd "rm -rf build"
   run_cmd "mkdir -p build"
   run_cmd "pushd build"
-    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
+  run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
   run_cmd "popd"
 run_cmd "popd"
 
@@ -199,7 +202,7 @@ run_cmd "pushd redset"
   run_cmd "rm -rf build"
   run_cmd "mkdir -p build"
   run_cmd "pushd build"
-    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
+  run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
   run_cmd "popd"
 run_cmd "popd"
 
@@ -210,7 +213,7 @@ run_cmd "pushd shuffile"
   run_cmd "rm -rf build"
   run_cmd "mkdir -p build"
   run_cmd "pushd build"
-    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
+  run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
   run_cmd "popd"
 run_cmd "popd"
 
@@ -221,7 +224,7 @@ run_cmd "pushd er"
   run_cmd "rm -rf build"
   run_cmd "mkdir -p build"
   run_cmd "pushd build"
-    run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
+  run_cmd "cmake ${shared_flags} -DCMAKE_BUILD_TYPE=$buildtype -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. && ${make_cmd}"
   run_cmd "popd"
 run_cmd "popd"
 

@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # the general launcher for the scripts
 # if called directly the launcher to use (srun/jsrun/mpirun) should be specified as an argument
 # scr_{srun,jsrun,mpirun} scripts call this script with the launcher specified
@@ -20,7 +18,7 @@ from scrjob.prerun import prerun
 from scrjob.postrun import postrun
 from scrjob.should_exit import should_exit
 from scrjob.watchdog import Watchdog
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 from scrjob.cli import SCRLog, SCRRetriesHalt
 
 
@@ -46,10 +44,9 @@ def run(launcher='',
     if val is not None and int(val) > 0:
         verbose = True
 
-    # turn on python function tracing
-    if config.PYFE_TRACE_FUNC == '1' or os.environ.get(
-            'PYFE_TRACE_FUNC') == '1':
-        sys.settrace(tracefunction)
+        # turn on python function tracing
+        if config.TRACE_FUNC:
+            sys.settrace(tracefunction)
 
     # make a record of start time
     timestamp = datetime.now()
@@ -88,12 +85,7 @@ def run(launcher='',
     watchdog = None
     val = os.environ.get('SCR_WATCHDOG')
     if val == '1':
-        jobenv.resmgr.use_watchdog(True)
         watchdog = Watchdog(prefix, jobenv)
-
-    # TODO: define jobenv.resmgr.prerun() and launcher.prerun() hooks, call from prerun?
-    # run a NOP with srun, other launchers could do any preamble work here
-    jobenv.launcher.prepare_prerun()
 
     # make a record of time prerun is started
     timestamp = datetime.now()
@@ -146,22 +138,22 @@ def run(launcher='',
         first_run = (attempts == 0)
 
         # check for any down nodes
-        reasons = list_down_nodes(reason=True,
-                                  free=first_run,
+        reasons = list_down_nodes(jobenv,
                                   nodes_down=keep_down,
-                                  runtime_secs='0',
-                                  jobenv=jobenv,
-                                  log=log)
+                                  free=first_run,
+                                  reason=True,
+                                  log=log,
+                                  secs='0')
         if verbose:
             for node in sorted(list(reasons.keys())):
                 print(prog + ": FAILED: " + node + ': ' + reasons[node])
 
         down_nodes = sorted(list(reasons.keys()))
-        down_str = ','.join(down_nodes)
 
         # if this is the first run, we hit down nodes right off the bat, make a record of them
         if down_nodes and first_run and verbose:
             start_secs = int(time())
+            down_str = ','.join(down_nodes)
             print('SCR: Failed node detected: JOBID=' + jobid +
                   ' ATTEMPT=0 TIME=' + str(start_secs) +
                   ' NNODES=-1 RUNTIME=0 FAILED=' + down_str)
@@ -203,23 +195,23 @@ def run(launcher='',
         # launch the job, make sure we include the script node and exclude down nodes
         if verbose:
             print(prog + ': Launching ' + str(launch_cmd))
-        proc, jobstep = jobenv.launcher.launch_run_cmd(
-            up_nodes=nodelist, down_nodes=down_str, launcher_args=launch_cmd)
+        proc, jobstep = jobenv.launcher.launch_run(launch_cmd,
+                                                   down_nodes=down_nodes)
 
         if watchdog is None:
-            finished, success = jobenv.launcher.waitonprocess(proc)
+            finished, success = jobenv.launcher.wait_run(proc)
         else:
             if verbose:
                 print(prog + ': Entering watchdog method')
-            # watchdog returned error or a watcher process was launched
             if watchdog.watchproc(proc, jobstep) != 0:
+                # watchdog returned error or a watcher process was launched
                 if verbose:
                     print(prog + ': Error launching watchdog')
-                finished, success = jobenv.launcher.waitonprocess(proc)
-            # else the watchdog returned because the process has finished/been killed
+                finished, success = jobenv.launcher.wait_run(proc)
             else:
+                # watchdog returned because the process has finished/been killed
                 #TODO: verify this really works for case where watchproc() returns 0 / succeeds
-                finished, success = jobenv.launcher.waitonprocess(proc)
+                finished, success = jobenv.launcher.wait_run(proc)
 
         # log stats on the latest run attempt
         end_secs = int(time())
@@ -232,7 +224,6 @@ def run(launcher='',
                 print(prog + ': Halt condition detected, ending run.')
             break
 
-        # TODO: move the SCR_RUNS logic into should_exit
         # decrement retry counter
         runs -= 1
         if runs == 0:
@@ -256,7 +247,7 @@ def run(launcher='',
         print(prog + ': postrun: ' + str(timestamp))
 
     # scavenge files from cache to parallel file system
-    postrun(prefix_dir=prefix, jobenv=jobenv, verbose=verbose, log=log)
+    postrun(jobenv=jobenv, verbose=verbose, log=log)
 
     # make a record of end time
     timestamp = datetime.now()

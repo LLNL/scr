@@ -10,7 +10,7 @@ sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 from scrjob.postrun import postrun
 
 if __name__ == '__main__':
@@ -36,4 +36,4 @@ if __name__ == '__main__':
 
     jobenv = JobEnv(prefix=args.prefix, launcher=args.joblauncher)
 
-    postrun(prefix_dir=args.prefix, jobenv=jobenv, verbose=args.verbose)
+    postrun(jobenv=jobenv, verbose=args.verbose)

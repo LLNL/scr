@@ -48,6 +48,7 @@ INCLUDE(GNUInstallDirs)
 ## Use X_ variable names for CLI scripts
 ## could use CMAKE_INSTALL_FULL_ names instead
 SET(X_BINDIR ${CMAKE_INSTALL_FULL_BINDIR} CACHE INTERNAL "bin")
+SET(X_LIBEXECDIR ${CMAKE_INSTALL_FULL_LIBEXECDIR} CACHE INTERNAL "libexec")
 SET(X_DATADIR ${CMAKE_INSTALL_FULL_DATADIR} CACHE INTERNAL "share")
 SET(X_INCLUDEDIR ${CMAKE_INSTALL_FULL_INCLUDEDIR} CACHE INTERNAL "include")
 SET(X_LIBDIR ${CMAKE_INSTALL_FULL_LIBDIR} CACHE INTERNAL "lib")
@@ -283,6 +284,11 @@ TARGET_LINK_LIBRARIES(scr_base ${SCR_EXTERNAL_SERIAL_LIBS})
 # Individual binaries generated from a single .c file
 #    scr_inspect_cache
 LIST(APPEND cliscr_c_bins
+    scr_index
+    scr_print
+)
+
+LIST(APPEND cliscr_c_libexec
     scr_crc32
     scr_flush_file
     scr_halt_cntl
@@ -291,11 +297,9 @@ LIST(APPEND cliscr_c_bins
     scr_nodes_file
     scr_retries_halt
     scr_copy
-    scr_index
     scr_rebuild_xor
     scr_rebuild_partner
     scr_rebuild_rs
-    scr_print
 )
 
 # CLI binaries that require full SCR library
@@ -309,6 +313,12 @@ FOREACH(bin IN ITEMS ${cliscr_c_bins})
     TARGET_LINK_LIBRARIES(${bin} scr_base ${SCR_EXTERNAL_SERIAL_LIBS})
     INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
 ENDFOREACH(bin IN ITEMS ${cliscr_c_bins})
+
+FOREACH(bin IN ITEMS ${cliscr_c_libexec})
+    ADD_EXECUTABLE(${bin} scr/src/${bin}.c)
+    TARGET_LINK_LIBRARIES(${bin} scr_base)
+    INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
+ENDFOREACH(bin IN ITEMS ${cliscr_c_libexec})
 
 # Build and install CLI binaries that link full SCR library
 FOREACH(bin IN ITEMS ${cliscr_scr_bins})

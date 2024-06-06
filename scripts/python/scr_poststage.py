@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # SCR allows you to spawn off dataset transfers "in the background"
 # that will finish some time after a job completes.  This saves you from
 # using your compute time to transfer datasets.  You can do this by

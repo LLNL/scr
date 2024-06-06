@@ -20,7 +20,7 @@ if [ "$1" != "" ]; then
     shift
 fi
 
-scr_run="../scripts/python/scrjob/scr_run.py"
+scr_run="../scripts/python/commands/scr_run"
 export PYTHON_PATH=$PYTHON_PATH:$(realpath $(dirname $scr_run) )
 
 if [ -z ${@+x} ]; then QUOTED_ARGS=""; else QUOTED_ARGS=\"$@\"; fi

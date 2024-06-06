@@ -9,7 +9,8 @@ sys.path.insert(0, '@X_LIBEXECDIR@/python')
 
 import argparse
 
-from scrjob.environment import JobEnv
+from scrjob import hostlist
+from scrjob.jobenv import JobEnv
 from scrjob.cli import SCRLog
 from scrjob.list_down_nodes import list_down_nodes
 
@@ -68,23 +69,22 @@ if __name__ == '__main__':
         user = jobenv.user()
         log = SCRLog(prefix, jobid, user=user)
 
-    node_list = jobenv.resmgr.expand_hosts(args.nodeset)
-    down_list = jobenv.resmgr.expand_hosts(args.down)
+    node_list = hostlist.expand_hosts(args.nodeset)
+    down_list = hostlist.expand_hosts(args.down)
 
-    down = list_down_nodes(reason=args.reason,
-                           free=args.free,
-                           nodes_down=down_list,
-                           runtime_secs=args.secs,
+    down = list_down_nodes(jobenv,
                            nodes=node_list,
-                           jobenv=jobenv,
-                           log=log)
+                           nodes_down=down_list,
+                           free=args.free,
+                           reason=args.reason,
+                           log=log,
+                           secs=args.secs)
 
     if args.reason:
         # list each node and the reason each is down
         for node in sorted(down.keys()):
             print(node + ': ' + down[node])
     else:
-        # simply print the list of down node in range syntax
-        # cast unavailable to a list to get only the keys of the dictionary
-        down_range = jobenv.resmgr.compress_hosts(down)
-        print(down_range)
+        # simply print the list of down nodes
+        downstr = hostlist.compress_hosts(down)
+        print(downstr)

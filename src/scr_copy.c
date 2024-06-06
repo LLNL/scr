@@ -576,7 +576,7 @@ int main (int argc, char *argv[])
       /* get pointer to name of entry */
       const char* entryname = de->d_name;
 
-      int rank;
+      int rank = -1;
       char* value = NULL;
       size_t nmatch = 5;
       regmatch_t pmatch[5];

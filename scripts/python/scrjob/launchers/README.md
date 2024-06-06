@@ -3,34 +3,53 @@ SCR interacts with the MPI job launch commands in various ways
 like constructing the command to launch a run while excluding
 known down nodes and killing a hanging run.
 
-There are three steps to add a new job launcher.
+Base class: 
+- ``joblauncher.py`` - Defines the ``JobLauncher`` base class that each job launcher implements
+- ``auto.py`` - Defines the ``AutoJobLauncher`` class that instantiates a job launcher depending on the system environment
+
+Existing job launcher classes:
+- ``aprun.py`` - Cray ALPS ``aprun``
+- ``flux.py`` - Flux ``flux run``
+- ``jsrun.py`` - IBM LSF ``jsrun``
+- ``lrun.py`` - LLNL ``lrun``
+- ``mpirun.py`` - generic ``mpirun`` (not functional)
+- ``srun.py`` - SLURM ``srun``
+
+# Adding a new job launcher
+
+The steps to add a new job launcher are described below.
 
 ## Define a new job launcher class
 One can add support for a new job launcher by extending
-the `JobLauncher` class and implementing the required interface.
-
+the `JobLauncher` class.
 See the `JobLauncher` class in `joblauncher.py`
 for the interface definitions that one must implement, e.g.:
 
     >>: cat newlauncher.py
-    from pyfe.joblauncher import JobLauncher
+    from scrjob.launchers import JobLauncher
 
     class NewLauncher(JobLauncher):
-      def launch_run_cmd():
+      def launch_run():
         pass
 
-      def killrun():
+      def wait_run():
+        pass
+
+      def kill_run():
         pass
 
 ## Import the new class in `__init__.py`
-Add the new import after the JobLauncher and before the AutoJobLauncher imports
+Add a line to import the new class in the `__init__.py` file
+after the ``JobLauncher`` and before the ``AutoJobLauncher`` imports.
 
-Add a line to import the new class in the `__init__.py` file:
-
+    from .joblauncher import JobLauncher
+    ...
     from .newlauncher import NewLauncher
+    ...
+    from .auto import AutoJobLauncher
 
 ## Create a class object in `auto.py`
-Users often create new job launcher objects through the `AutoJobLauncher` function.
+Users often create a new job launcher object through the `AutoJobLauncher` function.
 
     launcher = new AutoJobLauncher(joblauncher='NewLauncher')
 
@@ -50,15 +69,6 @@ And create an object of that class in the `__new__` method of `AutoJobLauncher`:
           return NewLauncher()
 
 Usage for your new job launcher will be: `scr_run.py NewLauncher <launcher args> <cmd> <cmd args>`
-
-You may also provide a named script to shorten the usage:
-
-    cp pyfe/scr_srun.py pyfe/scr_newlauncher.py
-    sed -i 's/srun/NewLauncher/g' scr_newlauncher.py
-
-This will allow your launcher to be ran as: `scr_newlauncher.py <launcher args> <cmd> <cmd args>`
-
-_If a new named script is created ensure to add it to pyfe/CMakeLists.txt as well_
 
 ## Add class file to `CMakeLists.txt`
 Include the new job launcher in the list of files to be installed by CMake in `CMakeLists.txt`:

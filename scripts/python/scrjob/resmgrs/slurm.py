@@ -2,6 +2,7 @@ import os
 import re
 import datetime
 
+from scrjob import hostlist
 from scrjob.common import runproc
 from scrjob.resmgrs import ResourceManager
 
@@ -11,10 +12,11 @@ class SLURM(ResourceManager):
     def __init__(self):
         super(SLURM, self).__init__(resmgr='SLURM')
 
-    # get a list of tests, methods that exist in the class TestRuntime
-    # these tests will be ran during scr_prerun
-    def prerun_tests(self):
-        return ['check_clustershell', 'check_pdsh']
+    def prerun(self):
+        # HACK: NOP srun to force every node to run SLURM prolog to delete files from cache
+        # remove this if admins find a better place to clear cache
+        argv = ['srun', '/bin/hostname']  # ,'>','/dev/null']
+        runproc(argv=argv)
 
     # get SLURM jobid of current allocation
     def job_id(self):
@@ -23,14 +25,14 @@ class SLURM(ResourceManager):
     # get node list
     def job_nodes(self):
         nodelist = os.environ.get('SLURM_NODELIST')
-        return self.expand_hosts(nodelist)
+        return hostlist.expand_hosts(nodelist)
 
     # use sinfo to query SLURM for the list of nodes it thinks to be down
     def down_nodes(self):
         downnodes = {}
         nodelist = self.job_nodes()
         if nodelist:
-            nodestr = self.join_hosts(nodelist)
+            nodestr = hostlist.join_hosts(nodelist)
             down, returncode = runproc("sinfo -ho %N -t down -n " + nodestr,
                                        getstdout=True)
             if returncode == 0:

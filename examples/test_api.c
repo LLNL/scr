@@ -299,7 +299,7 @@ double getbw(char* name, char* buf, int times)
       int rc;
       int valid = 0;
 
-      double time_start_output;
+      double time_start_output = 0.0;
       if (rank == 0) {
         time_start_output = MPI_Wtime();
       }

@@ -169,7 +169,7 @@ int scr_cache_rebuild(scr_cache_index* cindex)
 
   /* start timer */
   time_t time_t_start;
-  double time_start;
+  double time_start = 0.0;
   if (scr_my_rank_world == 0) {
     time_t_start = scr_log_seconds();
     time_start = MPI_Wtime();

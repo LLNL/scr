@@ -2,8 +2,8 @@ SET(SCRJOB
   README.md
   __init__.py
   common.py
-  environment.py
   hostlist.py
+  jobenv.py
   list_down_nodes.py
   param.py
   parsetime.py
@@ -29,6 +29,7 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/config.py
         DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/python/scrjob)
 
 ADD_SUBDIRECTORY(cli)
-ADD_SUBDIRECTORY(resmgrs)
 ADD_SUBDIRECTORY(launchers)
 ADD_SUBDIRECTORY(nodetests)
+ADD_SUBDIRECTORY(remoteexec)
+ADD_SUBDIRECTORY(resmgrs)

@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # Test the Watchdog
 # This script emulates the same instructions as scr_run/watchdog
 # REQUIRED: sleeper.c to be compiled with an MPI C compiler
@@ -16,7 +14,7 @@ import sys
 import time
 from subprocess import TimeoutExpired
 
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 from scrjob.watchdog import Watchdog
 
 
@@ -69,9 +67,9 @@ def testwatchdog(launcher, launcher_args):
     down_nodes = list(down_nodes.keys())
 
     print('Launching command ' + ' '.join(launcher_args))
-    proc, jobstep = jobenv.launcher.launch_run_cmd(up_nodes=nodelist,
-                                                   down_nodes=down_nodes,
-                                                   launcher_args=launcher_args)
+    proc, jobstep = jobenv.launcher.launch_run(launcher_args,
+                                               nodes=nodelist,
+                                               down_nodes=down_nodes)
 
     if proc is None or jobstep is None:
         print('Error launching the sleeper process!')
@@ -87,13 +85,13 @@ def testwatchdog(launcher, launcher_args):
     if watchdog.watchproc(proc, jobstep) != 0:
         print('The watchdog failed to start')
         print('Waiting for the original process for 15 seconds')
-        (finished, success) = jobenv.launcher.waitonprocess(proc=proc,
-                                                            timeout=timeout)
+        (finished, success) = jobenv.launcher.wait_run(proc=proc,
+                                                       timeout=timeout)
         if finished == True:
             print(
                 'The process is still running, asking the launcher to kill it . . .'
             )
-            jobenv.launcher.kill_jobstep(jobstep=jobstep)
+            jobenv.launcher.kill_run(jobstep=jobstep)
 
     print('The process has now been terminated')
     print('Sleeping for 45 seconds before checking the output files . . .')

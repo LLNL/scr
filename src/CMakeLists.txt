@@ -172,7 +172,7 @@ FOREACH(bin IN ITEMS ${cliscr_c_libexec})
     ADD_EXECUTABLE(${bin} ${bin}.c)
     TARGET_LINK_LIBRARIES(${bin} scr_base)
     INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
-ENDFOREACH(bin IN ITEMS ${cliscr_c_bins})
+ENDFOREACH(bin IN ITEMS ${cliscr_c_libexec})
 
 # Build and install CLI binaries that link full SCR library
 FOREACH(bin IN ITEMS ${cliscr_scr_bins})

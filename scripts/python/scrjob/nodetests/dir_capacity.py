@@ -5,7 +5,11 @@ from scrjob.nodetests import NodeTest
 
 
 class DirCapacity(NodeTest):
-    """Run scr_check_node.py on each node."""
+    """Run scr_check_node.py on each node.
+
+    Checks that cache and control dirs are writable and optionally have
+    a given minimum capacity.
+    """
 
     def __init__(self):
         pass
@@ -46,29 +50,11 @@ class DirCapacity(NodeTest):
         if cache_vals:
             argv.extend(['--cache', ','.join(cache_vals)])
 
-        output, rc = self.parexec(argv, nodes, jobenv)
+        result = jobenv.rexec.rexec(argv, nodes, jobenv)
 
+        # drop any nodes that do not report PASS
         failed = {}
-
-        # drop any nodes that report FAIL
-        for line in output[0].split('\n'):
-            if line == '':
-                continue
-
-            if 'FAIL' in line:
-                parts = line.split(':')
-                node = parts[0]
-                if node in nodes and node not in failed:
-                    failed[node] = ':'.join(parts[1:])
-
-        # drop any nodes reporting anything on stderr
-        for line in output[1].split('\n'):
-            if line == '':
-                continue
-
-            parts = line.split(':')
-            node = parts[0]
-            if node in nodes and node not in failed:
-                failed[node] = ':'.join(parts[1:])
-
+        for node in nodes:
+            if 'PASS' not in result.stdout(node):
+                failed[node] = result.stdout(node)
         return failed

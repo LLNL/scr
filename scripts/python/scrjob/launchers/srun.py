@@ -10,54 +10,29 @@ class SRUN(JobLauncher):
 
     def __init__(self, launcher='srun'):
         super(SRUN, self).__init__(launcher=launcher)
-
-    # a command to run immediately before prerun is ran
-    # NOP srun to force every node to run prolog to delete files from cache
-    # TODO: remove this if admins find a better place to clear cache
-    def prepare_prerun(self):
-        # NOP srun to force every node to run prolog to delete files from cache
-        # TODO: remove this if admins find a better place to clear cache
-        argv = ['srun', '/bin/hostname']  # ,'>','/dev/null']
-        runproc(argv=argv)
+        self.srun_exe = 'srun'
 
     # returns the process and PID of the launched process
     # as returned by runproc(argv=argv, wait=False)
-    def launch_run_cmd(self, up_nodes='', down_nodes='', launcher_args=[]):
-        if type(launcher_args) is str:
-            launcher_args = launcher_args.split()
-        if len(launcher_args) == 0:
-            return None, None
-        argv = [self.launcher]
-        if len(down_nodes) > 0:
-            argv.extend(['--exclude', down_nodes])
-        argv.extend(launcher_args)
+    def launch_run(self, args, nodes=[], down_nodes=[]):
+        argv = [self.srun_exe]
+        if down_nodes:
+            down_str = ','.join(down_nodes)
+            argv.extend(['--exclude', down_str])
+        argv.extend(args)
 
         # The Popen.terminate() seems to work for srun
         if config.USE_JOBLAUNCHER_KILL != '1':
             return runproc(argv=argv, wait=False)
+
         proc = runproc(argv=argv, wait=False)[0]
 
-        ### TODO: If we allow this to be toggled, we have to get the user and allocid below!
+        # TODO: If we allow this to be toggled, we have to get the user and allocid below!
         jobstepid = self.jobstep_id(pid=proc.pid)
         if jobstepid is not None:
             return proc, jobstepid
         else:
             return proc, proc
-
-    # perform a generic pdsh / clustershell command
-    # returns [ [ stdout, stderr ] , returncode ]
-    def parallel_exec(self, argv=[], runnodes=[]):
-        if len(argv) == 0:
-            return [['', ''], 0]
-        if self.clustershell_task != False:
-            return self.clustershell_exec(argv=argv, runnodes=runnodes)
-        runnodes = ",".join(runnodes)
-        pdshcmd = [
-            config.PDSH_EXE, '-Rexec', '-f', '256', '-S', '-w', runnodes,
-            'srun', '-n', '1', '-N', '1', '-w', '%h'
-        ]
-        pdshcmd.extend(argv)
-        return runproc(argv=pdshcmd, getstdout=True, getstderr=True)
 
     # query SLURM for the most recent jobstep in current allocation
     def jobstep_id(self, pid):
@@ -86,9 +61,9 @@ class SRUN(JobLauncher):
             return None
 
     # Only use scancel to kill the jobstep if desired and jobstep_id was successful
-    def kill_jobstep(self, jobstep=None):
+    def kill_run(self, jobstep=None):
         # it looks like the Popen.terminate is working with srun
         if type(jobstep) is str:
             runproc(argv=['scancel', jobstep])
         else:
-            super().kill_jobstep(jobstep)
+            super().kill_run(jobstep)

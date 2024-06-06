@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # this is a standalone script which queries the class JobEnv
 # JobEnv contains general values from the environment
 
@@ -7,7 +5,8 @@ import os
 import sys
 import argparse
 
-from scrjob.environment import JobEnv
+from scrjob import hostlist
+from scrjob.jobenv import JobEnv
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -62,12 +61,12 @@ if __name__ == '__main__':
         nodelist = jobenv.node_list()
         if not nodelist:
             nodelist = jobenv.resmgr.job_nodes()
-        nodestr = jobenv.resmgr.join_hosts(nodelist)
+        nodestr = hostlist.join_hosts(nodelist)
         print(nodestr, end='')
 
     if args.down:
         nodelist = jobenv.resmgr.down_nodes()
-        nodestr = jobenv.resmgr.join_hosts(sorted(nodelist.keys()))
+        nodestr = hostlist.join_hosts(sorted(nodelist.keys()))
         print(nodestr, end='')
 
     if args.runnodes:

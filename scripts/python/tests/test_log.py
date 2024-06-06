@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 # Setup to create a flush file for testing:
 #
 #   salloc -N1 -ppdebug
@@ -27,7 +25,7 @@ import sys
 from datetime import datetime
 import time
 
-from scrjob.environment import JobEnv
+from scrjob.jobenv import JobEnv
 from scrjob.resmgrs import AutoResourceManager
 from scrjob.cli import SCRLog
 

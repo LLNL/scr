@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Defines for common methods shared across scripts."""
 
 import os

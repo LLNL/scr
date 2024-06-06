@@ -69,11 +69,9 @@ static int test_env(const char *cfg, const char *expected, int line) {
   /* must use a unique string for the env var name since scr caches them in the
    * env hash, thankfully anything that is not a '=' or a '\0' is an allowed
    * name for an env name */
-  int ierr = setenv(cfg, cfg, 0);
-  assert(!ierr);
+  setenv(cfg, cfg, 0);
   const char *val = scr_param_get(cfg);
-  ierr = unsetenv(cfg);
-  assert(!ierr);
+  unsetenv(cfg);
   int rc = ((val == NULL && expected == NULL) ||
             (val != NULL && expected != NULL && 0 == strcmp(val, expected)));
 
@@ -183,17 +181,13 @@ int main (int argc, char* argv[])
   tests_passed &= test_cfg("SCR_DB_NAME=dbname1", NULL, __LINE__);
 
   /* test that non-settable parameters can be read from ENV vars */
-  int ierr = setenv("SCR_DB_NAME", "dbname2", 1);
-  assert(!ierr);
+  setenv("SCR_DB_NAME", "dbname2", 1);
   tests_passed &= test_cfg("SCR_DB_NAME", "dbname2", __LINE__);
 
   /* test expansion of env variables */
-  ierr = setenv("VAR_A", "value a", 1);
-  assert(!ierr);
-  ierr = setenv("VAR_B", "value b", 1);
-  assert(!ierr);
-  ierr = unsetenv("VAR_C");
-  assert(!ierr);
+  setenv("VAR_A", "value a", 1);
+  setenv("VAR_B", "value b", 1);
+  unsetenv("VAR_C");
   tests_passed &= test_env("$VAR_A", "value a", __LINE__);
   tests_passed &= test_env("${VAR_A}", "value a", __LINE__);
   tests_passed &= test_env("${VAR_A", "${VAR_A", __LINE__);

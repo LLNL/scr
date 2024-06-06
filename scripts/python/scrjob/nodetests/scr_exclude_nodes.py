@@ -1,3 +1,4 @@
+from scrjob import hostlist
 from scrjob.nodetests import NodeTest
 
 
@@ -10,7 +11,8 @@ class SCRExcludeNodes(NodeTest):
     def execute(self, nodes, jobenv):
         failed = {}
         exclude_nodes = jobenv.param.get('SCR_EXCLUDE_NODES')
-        nodelist = jobenv.resmgr.expand_hosts(exclude_nodes)
+        nodelist = hostlist.expand_hosts(exclude_nodes)
         for node in nodelist:
-            failed[node] = 'User excluded via SCR_EXCLUDE_NODES'
+            if node in nodes:
+                failed[node] = 'User excluded via SCR_EXCLUDE_NODES'
         return failed

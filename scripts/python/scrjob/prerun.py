@@ -32,14 +32,18 @@ def prerun(jobenv=None, verbose=False):
 
     # check that we have all the runtime dependences we need
     try:
-        testnames = jobenv.resmgr.prerun_tests()
-        TestRuntime(testnames)
+        TestRuntime()
     except Exception as e:
         raise RuntimeError(f'scr_prerun: ERROR: {str(e)}')
 
     # create the .scr subdirectory in the prefix directory
     dir_scr = jobenv.dir_scr()
     os.makedirs(dir_scr, exist_ok=True)
+
+    # hook for resource manager to prepare allocation
+    # for example, on SLURM, one needs to run srun to run prolog
+    # which may delete files from /dev/shm before we later test for free space
+    jobenv.resmgr.prerun()
 
     # TODO: It would be nice to clear the cache and control directories
     # here in preparation for the run.  However, a simple rm -rf is too
