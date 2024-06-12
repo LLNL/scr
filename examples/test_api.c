@@ -31,6 +31,8 @@ off_t my_file_offset = 0;
 
 int times = 5;
 int seconds = 0;
+int reduce = 0;
+int kernel = 0;
 int ckptout = 0;
 int output = 0;
 int use_config_api = 0;
@@ -283,6 +285,123 @@ int read_file(const char* file, off_t expected_size, off_t offset, char* buf, si
   return success;
 }
 
+void work_cpu(int timestep, int iters)
+{
+  double inval = (double) rank;
+
+  double start = MPI_Wtime();
+
+  int i;
+  for (i = 0; i < iters; i++) {
+    double outval = inval * (double)i;
+    (void)outval;
+  }
+
+  double end = MPI_Wtime();
+
+  if (rank == 0) {
+    double secs = end - start;
+    double cost = secs / (double) iters;
+    printf("CPU cost %d:  %d iters, %f secs, %f secs/iter\n",
+      timestep, iters, secs, cost
+    );
+  }
+
+  return;
+}
+
+void work_allreduce(int timestep, int iters)
+{
+  double inval = (double) rank;
+  double outval;
+
+  double start = MPI_Wtime();
+
+  int i;
+  for (i = 0; i < iters; i++) {
+    MPI_Allreduce(&inval, &outval, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  }
+
+  double end = MPI_Wtime();
+
+  if (rank == 0) {
+    double secs = end - start;
+    double cost = secs / (double) iters;
+    printf("Allreduce cost %d:  %d iters, %f secs, %f secs/iter\n",
+      timestep, iters, secs, cost
+    );
+  }
+
+  return;
+}
+
+void work_allreduce_iters(int timestep, int iters)
+{
+  double* times = (double*) malloc(iters * sizeof(double));
+
+  double inval = (double) rank;
+  double outval;
+
+  int i;
+  double start;
+  for (i = 0; i < iters; i++) {
+    if (rank == 0) {
+      start = MPI_Wtime();
+    }
+
+    MPI_Allreduce(&inval, &outval, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+      double end = MPI_Wtime();
+      times[i] = end - start;
+    }
+  }
+
+  if (rank == 0) {
+    printf("Allreduce iteration times start (secs):\n");
+    for (i = 0; i < iters; i++) {
+      printf("%0.10f\n", times[i]);
+    }
+    printf("Allreduce iteration times end\n");
+  }
+
+  free(times);
+
+  return;
+}
+
+void work_memcpy(int timestep, int iters, size_t bufsize)
+{
+  double start = MPI_Wtime();
+
+  void* buf_src = malloc(bufsize);
+  void* buf_dst = malloc(bufsize);
+
+  int i;
+  for (i = 0; i < iters; i++) {
+    memcpy(buf_dst, buf_src, bufsize);
+  }
+
+  free(buf_dst);
+  buf_dst = NULL;
+
+  free(buf_src);
+  buf_src = NULL;
+
+  double end = MPI_Wtime();
+
+  if (rank == 0) {
+    double secs = end - start;
+    double cost = secs / (double) iters;
+    double bw = (double)(bufsize * iters) / secs;
+    printf("memcpy cost:  %d iters, %llu bytes, %d iters, %f secs, %f secs/iter, %f bytes/sec\n",
+      timestep, (unsigned long long)bufsize, iters, secs, cost, bw
+    );
+  }
+
+  return;
+}
+
 double getbw(char* name, char* buf, int times)
 {
   char file[SCR_MAX_FILENAME];
@@ -432,6 +551,34 @@ double getbw(char* name, char* buf, int times)
       if (seconds > 0) {
         if (rank == 0) { printf("Sleeping for %d seconds... \n", seconds); fflush(stdout); }
         sleep(seconds);
+      }
+
+      /* Optionally execute a tight loop of allreduce calls.
+       * Timing how long this takes can be used to estimate
+       * interference from a background flush. */
+      if (reduce > 0) {
+        switch (kernel) {
+          case 0: {
+            work_cpu(timestep, reduce);
+            break;
+          }
+          case 1: {
+            work_memcpy(timestep, reduce, 1024L * 1024L * 1024L);
+            break;
+          }
+          case 2: {
+            work_allreduce(timestep, reduce);
+            break;
+          }
+          case 3: {
+            work_allreduce_iters(timestep, reduce);
+            break;
+          }
+          default: {
+            printf("Invalid Kernel Type %d\n", kernel);
+            return 1;
+          }
+        }
       }
     }
 
@@ -596,6 +743,8 @@ void print_usage()
   printf("    -s, --size=<SIZE>    Rank checkpoint size in bytes, e.g., 1MB (default %lu)\n", (unsigned long) my_filesize);
   printf("    -t, --times=<COUNT>  Number of iterations (default %d)\n", times);
   printf("    -z, --seconds=<SECS> Sleep for SECS seconds between iterations (default %d)\n", seconds);
+  printf("    -w, --reduce=<COUNT> Allreduce iterations to execute between iterations (default %d)\n", reduce);
+  printf("    -k, --kernel=<KERNEL_INDEX> Selected Kernel 0-CPU, 1-MEMORY, 2-ALL REDUCE, 3 -ALL REDUCE AVERAGE(default %d)\n", kernel);
   printf("    -p, --path=<DIR>     Directory to create and write files to\n");
   printf("    -f, --flush=<COUNT>  Mark every Nth write as checkpoint+output (default %d)\n", ckptout);
   printf("    -o, --output=<COUNT> Mark every Nth write as pure output (default %d)\n", output);
@@ -619,11 +768,12 @@ int main (int argc, char* argv[])
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &ranks);
 
-  static const char *opt_string = "s:t:z:p:f:o:a:c:h";
+  static const char *opt_string = "s:t:z:w:p:f:o:a:c:k:h";
   static struct option long_options[] = {
     {"size",    required_argument, NULL, 's'},
     {"times",   required_argument, NULL, 't'},
     {"seconds", required_argument, NULL, 'z'},
+    {"reduce",  required_argument, NULL, 'w'},
     {"path",    required_argument, NULL, 'p'},
     {"flush",   required_argument, NULL, 'f'},
     {"output",  required_argument, NULL, 'o'},
@@ -636,6 +786,7 @@ int main (int argc, char* argv[])
     {"shared-file", no_argument,   NULL, 'y'},
     {"global-store", required_argument,  NULL, 'Y'},
     {"help",    no_argument,       NULL, 'h'},
+    {"kernel", required_argument, NULL, 'k'},
     {NULL,      no_argument,       NULL,   0}
   };
 
@@ -660,6 +811,9 @@ int main (int argc, char* argv[])
       case 'z':
         seconds = atoi(optarg);
         break;
+      case 'w':
+        reduce = atoi(optarg);
+        break;
       case 'p':
         path = strdup(optarg);
         break;
@@ -677,6 +831,9 @@ int main (int argc, char* argv[])
         break;
       case 'C':
         current = strdup(optarg);
+        break;
+      case 'k':
+        kernel = atoi(optarg);
         break;
       case 'S':
         use_fsync = 0;
