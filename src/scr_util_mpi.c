@@ -368,7 +368,7 @@ int scr_axl(
         id, __FILE__, __LINE__
       );
     }
-    rc = SCR_FAILURE;
+    return SCR_FAILURE;
   }
 
   /* wait for transfer to complete */
@@ -380,7 +380,7 @@ int scr_axl(
         id, __FILE__, __LINE__
       );
     }
-    rc = SCR_FAILURE;
+    return SCR_FAILURE;
   }
 
   /* release the handle */
