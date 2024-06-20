@@ -3141,6 +3141,12 @@ int SCR_Need_checkpoint(int* flag)
   /* rank 0 broadcasts the decision */
   MPI_Bcast(flag, 1, MPI_INT, 0, scr_comm_world);
 
+  /* if we have an async flush ongoing, take this chance to check whether it's completed */
+  if (scr_flush_async_in_progress()) {
+    /* got an outstanding async flush, let's check it */
+    scr_flush_async_progall(scr_cindex);
+  }
+
   return SCR_SUCCESS;
 }
 
@@ -3772,6 +3778,12 @@ int SCR_Should_exit(int* flag)
   /* check whether a halt condition is active */
   if (scr_bool_check_halt_and_decrement(SCR_TEST_BUT_DONT_HALT, 0)) {
     *flag = 1;
+  }
+
+  /* if we have an async flush ongoing, take this chance to check whether it's completed */
+  if (scr_flush_async_in_progress()) {
+    /* got an outstanding async flush, let's check it */
+    scr_flush_async_progall(scr_cindex);
   }
 
   return SCR_SUCCESS;
