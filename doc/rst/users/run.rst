@@ -199,3 +199,111 @@ Example SLURM batch script with :code:`scr_run` using scavenge and restart
 
   # run the job with scr_srun
   scr_run srun -n512 -N64 ./my_job
+
+
+Managing SCR jobs with Python scripts
+--------------------------------------
+
+These scripts define and use an ``scrjob`` package to manage an SCR job.
+Most files in this directory are installed to ``/libexec/python`` of an SCR installation.
+
+NOTE: Though a ``setup.py`` exists, it is not currently functional.
+
+- ``/commands`` - scripts that use ``scrjob``, installed to ``/bin`` of an SCR installation
+- ``/scrjob`` - ``scrjob`` package files
+- ``/tests`` - tests for the ``scrjob`` package
+
+The following scripts are not typically invoked by a user,
+and they are not considered to be part of the SCR user interface.
+However, these scripts are helpful for debugging and testing.
+
+- ``scr_check_node.py``    - Execute on each compute node to check access to cache and control directories
+- ``scr_ckpt_interval.py`` - Given an SCR log file, compute estimate for optimal interval between checkpoints
+- ``scr_env.py``           - Print various values from an allocation environment
+- ``scr_hostlist.py``      - Manipulate a hostlist string, to expand, compress, and subtract nodes
+- ``scr_inspect.py``       - Execute on each compute node to determine whether a dataset can be scavenged (not used)
+- ``scr_kill_jobstep.py``  - Given the specified launcher and jobstepid, call ``JobLauncher.kill_jobstep(jobstepid)``
+- ``scr_list_dir.py``      - Print the SCR control or cache directories
+- ``scr_poststage.py``     - Initiate a poststage operation where supported (non-functional)
+- ``scr_scavenge.py``      - Execute a scavenge operation to copy files from cache to the prefix directory
+
+ClusterShell (optional)
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``scrjob`` package can use the ClusterShell module if available.
+This can be enabled by setting ``USE_CLUSTERSHELL = True`` in ``scrjob/config.py``.
+ClusterShell is not used if it is not found or if it is disabled.
+
+ClusterShell is useful as:
+
+- an ``scr_hostlist`` replacement for manipulating host lists
+- a ``pdsh`` replacement for running commands on a set of compute nodes
+
+**Installation**
+
+.. code-block:: bash
+
+  pip install ClusterShell
+
+
+To configure ClusterShell, see:
+
+- `ClusterShell config docs`_
+- ``man clush.conf``
+
+Node groups can be bound together by differing lists. 
+Library defaults may need to be overridden for identifying nodes
+(see bottom of the config.html link) 
+The ClusterShell ``NodeSet`` class supports more operations than ``scr_hostlist``.
+See the NodeSet class: ``ClusterShell.NodeSet.NodeSet`` (`ClusterShell Usage`_
+).
+
+.. _`ClusterShell config docs`: https://clustershell.readthedocs.io/en/latest/config.html
+.. _`ClusterShell Usage`: https://clustershell.readthedocs.io/en/latest/guide/taskmgnt.html
+
+
+SCR User Commands
+^^^^^^^^^^^^^^^^^
+
+Along with other binaries, these scripts are copied to the ``/bin`` directory of an SCR installation.
+The scripts are installed with their executable bit set, and the ``.py`` suffix is dropped.
+These are user commands that are typically invoked interactively or from a batch job script.
+Detailed usage for the scripts in this directory is provided in the SCR user documentation.
+
+**SCR commands**
+
+- ``scr_prerun``          - Execute before the first SCR job in an allocation
+- ``scr_postrun``         - Execute after the final SCR job in an allocation; scavenges any cached datasets
+- ``scr_list_down_nodes`` - Reports list of currently failed nodes in an allocation, if any
+- ``scr_should_exit``     - Indicates whether one should stop launching SCR runs within an allocation; checks for active halt condition, insufficient nodes, or in sufficient time
+- ``scr_halt``            - View/edit/remove conditions in the halt file  
+
+**scr\_run**
+
+The ``scr_run`` script provides a high-level wrapper around the above scipts.
+It can automatically relaunch a job and avoid down nodes after detecting a failure,
+and it scavenges any cached datasets before exiting the allocation.
+  
+**Usage:**
+ 
+Typical:
+
+.. code-block:: bash
+  
+  scr_run <launcher> <launcher args> <program> <program args>
+
+ 
+Extended options:
+
+.. code-block:: bash
+  
+  scr_run <launcher> [-rc|--run-cmd]=<run command> [-rs|--restart-cmd]=<restart command> <launcher args>
+
+Using extended options the commands will be modified as follows:  
+
+If not restarting or ``scr_have_restart`` returns ``None``: 
+``<launcher> <launcher args> <run command>``  
+
+If restarting and the most recent checkpoint name is identified,  
+instances of `SCR_CKPT_NAME` will be replaced with the checkpoint name in the restart command:  
+``<launcher> <launcher args> <restart command>``  

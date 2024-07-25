@@ -46,8 +46,9 @@ Unless otherwise noted, all functions return :code:`SCR_SUCCESS` if successful.
 For Python applications, an :code:`scr.py` Python module wraps the functions of the C interface.
 This module is located in the :code:`share/scr/python` directory of an SCR installation.
 A :code:`README.md` file and an :code:`scr_example.py` program in the same directory
-illustrate how one uses the :code:`scr.py` module.
-Python users should also be familiar with the API documentation in this section.
+illustrate how one uses the :code:`scr.py` module. 
+Python users should also be familiar with the API documentation in this section. 
+For more details on Python APIs see :doc:`python_api`. 
 
 Startup and Shutdown API
 ------------------------
