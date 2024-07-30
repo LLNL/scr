@@ -23,7 +23,7 @@ please see Section :ref:`sec-library`.
 CMake
 ^^^^^
 
-SCR requires CMake version 2.8 or higher.
+SCR requires CMake version 3.14.5 or higher.
 The SCR build uses the CMake FindMPI module to link with MPI.
 This module looks for the standard :code:`mpicc` compiler wrapper,
 which must be in your :code:`PATH`.
@@ -32,9 +32,9 @@ To download and build SCR with CMake:
 
 .. code-block:: bash
 
-  wget https://github.com/LLNL/scr/releases/download/v3.0/scr-v3.0.tgz
-  tar -zxf scr-v3.0.tgz
-  cd scr-v3.0
+  wget https://github.com/LLNL/scr/releases/download/v3.1.0/scr-v3.1.0.tgz
+  tar -zxf scr-v3.1.0.tgz
+  cd scr-v3.1.0
 
   mkdir build install
   cd build
@@ -61,7 +61,7 @@ SCR can then be installed for SLURM systems with:
 
 .. code-block:: bash
 
-  spack install scr@3.0
+  spack install scr@3.1.0
 
 This downloads, builds, and installs SCR and its dependencies.
 

@@ -71,15 +71,15 @@ mkdir -p install
 
 cd deps
 
-lwgrp=lwgrp-1.0.5
-dtcmp=dtcmp-1.1.4
-pdsh=pdsh-2.34
+lwgrp=lwgrp-1.0.6
+dtcmp=dtcmp-1.1.5
+pdsh=pdsh-2.35
 
 if [ ! -f ${lwgrp}.tar.gz ] ; then
-  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.5/${lwgrp}.tar.gz
+  wget https://github.com/LLNL/lwgrp/releases/download/v1.0.6/${lwgrp}.tar.gz
 fi
 if [ ! -f ${dtcmp}.tar.gz ] ; then
-  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.4/${dtcmp}.tar.gz
+  wget https://github.com/LLNL/dtcmp/releases/download/v1.1.5/${dtcmp}.tar.gz
 fi
 if [ ! -f ${pdsh}.tar.gz ] ; then
   wget https://github.com/chaos/pdsh/releases/download/${pdsh}/${pdsh}.tar.gz
@@ -152,7 +152,7 @@ popd
 
 pushd KVTree
   if [ $build_dev -eq 0 ] ; then
-    git checkout v1.3.0
+    git checkout v1.5.0
   fi
   rm -rf build
   mkdir -p build
@@ -174,7 +174,7 @@ popd
 
 pushd AXL
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.6.0
+    git checkout v0.9.0
   fi
   rm -rf build
   mkdir -p build
@@ -196,7 +196,7 @@ popd
 
 pushd spath
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    git checkout v0.4.0
   fi
   rm -rf build
   mkdir -p build
@@ -218,7 +218,7 @@ popd
 
 pushd rankstr
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    git checkout v0.4.0
   fi
   rm -rf build
   mkdir -p build
@@ -239,7 +239,7 @@ popd
 
 pushd redset
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    git checkout v0.4.0
   fi
   rm -rf build
   mkdir -p build
@@ -260,7 +260,7 @@ popd
 
 pushd shuffile
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    git checkout v0.4.0
   fi
   rm -rf build
   mkdir -p build
@@ -281,7 +281,7 @@ popd
 
 pushd er
   if [ $build_dev -eq 0 ] ; then
-    git checkout v0.2.0
+    git checkout v0.5.0
   fi
   rm -rf build
   mkdir -p build

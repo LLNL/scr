@@ -7,7 +7,7 @@ longtext = """Python module for the SCR library (libscr.so). For usage: ``python
 
 setup(
     name='scr',
-    version='3.0',
+    version='3.1.0',
     author='LLNL',
     author_email='moody20@llnl.gov',
     url='https://github.com/llnl/scr',
