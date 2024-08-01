@@ -102,6 +102,7 @@ Contents
    users/overview.rst
    users/build.rst
    users/api.rst
+   users/python_api.rst
    users/integration.rst
    users/config.rst
    users/run.rst
