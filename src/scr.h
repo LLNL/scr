@@ -16,9 +16,9 @@ extern "C" {
 
 /* Version information */
 #define SCR_MAJOR_VERSION "3"
-#define SCR_MINOR_VERSION "0"
+#define SCR_MINOR_VERSION "1"
 #define SCR_PATCH_VERSION "0"
-#define SCR_VERSION "v3.0.0"
+#define SCR_VERSION "v3.1.0"
 
 /* constants returned from SCR functions for success and failure */
 #define SCR_SUCCESS (0)

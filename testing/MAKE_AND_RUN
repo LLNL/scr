@@ -14,7 +14,7 @@ if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="${SCR_BUILD}/install"; fi
 #if [ -z "$SCR_INSTALL" ]; then export SCR_INSTALL="/usr/projects/SCR/TR-installs/scr_dw_with_source/install"; fi
 if [ -z "$SCR_LAUNCH_DIR" ]; then export SCR_LAUNCH_DIR="/lustre/ttscratch1/becker33"; fi
 
-export scrversion="scr-1.1.8"
+export scrversion="scr-3.1.0"
 
 cd ${SCR_BUILD}/${scrversion}
 make clean

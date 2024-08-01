@@ -46,9 +46,9 @@ To build SCR from a release tarball:
 
 .. code-block:: bash
 
-  wget https://github.com/LLNL/scr/releases/download/v3.0/scr-v3.0.tgz
-  tar -zxf scr-v3.0.tgz
-  cd scr-v3.0
+  wget https://github.com/LLNL/scr/releases/download/v3.1.0/scr-v3.1.0.tgz
+  tar -zxf scr-v3.1.0.tgz
+  cd scr-v3.1.0
 
   mkdir build
   cd build
