@@ -23,13 +23,13 @@ if [ "$1" == "develop" ] ; then
         "lwgrp"    "llnl"       "main"
         "dtcmp"    "llnl"       "main"
         "kvtree"   "ecp-veloc"  "main"
-        "axl"      "ecp-veloc"  "main"
+        "axl"      "ecp-veloc"  "mcfadden8/add-dm-client"
         "spath"    "ecp-veloc"  "main"
         "shuffile" "ecp-veloc"  "main"
         "redset"   "ecp-veloc"  "main"
         "er"       "ecp-veloc"  "main"
         "rankstr"  "ecp-veloc"  "main"
-        "scr"      "llnl"       "develop"
+        "scr"      "llnl"       "mcfadden8/add-dm-client"
     )
 #elif [ "$1" == "v3.0rc1" ] ; then
 #    # to build the scr-v3.0rc1 release
@@ -82,6 +82,11 @@ fi
 
 set -x
 
+function replace_slashes
+{
+    sed -e 's/\//_/g' <<< ${1}
+}
+
 # we assume everything is hosted at github
 REPOHOST=https://github.com
 
@@ -106,6 +111,7 @@ for (( i=0; i<${len}; i=$(($i + 3)) )); do
     # repo tag to checkout
     j=$(($i + 2))
     TAG=${ORGS[$j]}
+    TAG_NO_SLASH="$( replace_slashes ${TAG} )"
 
     # clone the repo
     git clone --depth 1 --branch $TAG $repo
@@ -113,12 +119,12 @@ for (( i=0; i<${len}; i=$(($i + 3)) )); do
     # git archive the source files into a tarfile
     cd $component
         #TAG=`git describe --tags $(git rev-list --tags --max-count=1)`
-        git archive --format=tar --prefix=$component/ $TAG | gzip > $component-$TAG.tar.gz 2> /dev/null
+        git archive --format=tar --prefix=$component/ $TAG | gzip > $component-$TAG_NO_SLASH.tar.gz 2> /dev/null
     cd ..
 
     # unpack source files for this component in a directory with other components
     cd $ARCH_DIR
-        tar -zxf ../$component/$component-$TAG.tar.gz
+        tar -zxf ../$component/$component-$TAG_NO_SLASH.tar.gz
 
         # hack out include of autotools config.h (not used anyway)
         if [ "$component" == "lwgrp" ] ; then
@@ -136,16 +142,16 @@ done
 
 # NOTE: last TAG is from SCR
 # rename archive directory to scr-TAG
-mv $ARCH_DIR scr-$TAG
+mv $ARCH_DIR scr-$TAG_NO_SLASH
 
 # copy in top-level CMake files
-cp -r ../CMakeLists.txt ../NOTICE ../cmake scr-$TAG
+cp -r ../CMakeLists.txt ../NOTICE ../cmake scr-$TAG_NO_SLASH
 
 # copy in README file
-cp -r ../README.dist scr-$TAG/README
+cp -r ../README.dist scr-$TAG_NO_SLASH/README
 
 # zip up release tarball
-tar -czf ../scr-${TAG}.tgz scr-$TAG
+tar -czf ../scr-${TAG_NO_SLASH}.tgz scr-$TAG_NO_SLASH
 
 # delete prep directory
 cd ..
