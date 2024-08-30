@@ -231,8 +231,7 @@ run_cmd "popd"
 if [ ${build_with_shell_dbg} = 1 ]; then
   set +x
 fi
-run_cmd "cd "$ROOT""
-run_cmd "mkdir -p build"
+
 echo "*************************************************************************"
 echo "Dependencies are all built.  You can now build SCR with:"
 echo ""
