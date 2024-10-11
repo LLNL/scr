@@ -1,4 +1,5 @@
 """Module defining JobLauncher base class."""
+import sys
 
 from subprocess import TimeoutExpired
 
@@ -81,12 +82,17 @@ class JobLauncher:
         """
         if proc is not None:
             try:
-                proc.communicate(timeout=timeout)
+                out, err = proc.communicate(timeout=timeout)
             except TimeoutExpired:
                 return (False, None)
             except Exception as exc:
                 print(f'wait_run for proc {proc} failed with exception {exc}')
                 return (None, None)
+            else:
+                if out:
+                    print(out)
+                if err:
+                    print(err, file=sys.stderr)
         return (True, proc.returncode)
 
     def kill_run(self, jobstep=None):
