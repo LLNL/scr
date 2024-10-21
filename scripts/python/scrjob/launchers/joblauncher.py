@@ -1,10 +1,10 @@
-import os
+"""Module defining JobLauncher base class."""
+import sys
+
 from subprocess import TimeoutExpired
 
-from scrjob import config
 
-
-class JobLauncher(object):
+class JobLauncher:
     """JobLauncher is the super class for the job launcher family.
 
     Methods
@@ -41,7 +41,7 @@ class JobLauncher(object):
         self.name = launcher
         self.hostfile = ''
 
-    def launch_run(self, args, nodes=[], down_nodes=[]):
+    def launch_run(self, args, nodes=None, down_nodes=None):
         """This method is called to launch a jobstep.
 
         This method must be overridden.
@@ -82,13 +82,17 @@ class JobLauncher(object):
         """
         if proc is not None:
             try:
-                proc.communicate(timeout=timeout)
+                out, err = proc.communicate(timeout=timeout)
             except TimeoutExpired:
                 return (False, None)
-            except e:
-                print(f'wait_run for proc {proc} failed with exception {e}')
+            except Exception as exc:
+                print(f'wait_run for proc {proc} failed with exception {exc}')
                 return (None, None)
-
+            else:
+                if out:
+                    print(out)
+                if err:
+                    print(err, file=sys.stderr)
         return (True, proc.returncode)
 
     def kill_run(self, jobstep=None):
@@ -106,5 +110,5 @@ class JobLauncher(object):
 
                 # ensure complete
                 jobstep.communicate()
-            except:
+            except Exception:
                 pass
