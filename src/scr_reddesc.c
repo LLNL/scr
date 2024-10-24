@@ -213,6 +213,16 @@ int scr_reddesc_create_from_hash(
     rc = SCR_FAILURE;
   }
 
+  /* read the group name */
+  char* groupname = scr_group;
+  const scr_groupdesc* groupdesc;
+  kvtree_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &groupname);
+  /* get group descriptor */
+  if (!(groupdesc = scr_groupdescs_from_name(groupname))){
+    scr_err("Could not get group '%s' listed in config", groupname);
+    rc = SCR_FAILURE;
+  }
+
   /* check that everyone made it this far */
   if (! scr_alltrue(rc == SCR_SUCCESS, scr_comm_world)) {
     if (d != NULL) {
@@ -316,8 +326,8 @@ int scr_reddesc_create_from_hash(
   /* CONVENIENCE: if all ranks are on the same node, change
    * type to SINGLE, we do this so single-node jobs can run without
    * requiring the user to change the copy type */
-  const scr_groupdesc* groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
-  if (groupdesc != NULL && groupdesc->ranks == scr_ranks_world) {
+  const scr_groupdesc* node_groupdesc = scr_groupdescs_from_name(SCR_GROUP_NODE);
+  if (node_groupdesc != NULL && node_groupdesc->ranks == scr_ranks_world) {
     if (scr_my_rank_world == 0) {
       if (d->copy_type != SCR_COPY_SINGLE) {
         /* print a warning if we changed things on the user */
@@ -355,13 +365,6 @@ int scr_reddesc_create_from_hash(
     }
     d->copy_type = SCR_COPY_XOR;
   }
-
-  /* read the group name */
-  char* groupname = scr_group;
-  kvtree_util_get_str(hash, SCR_CONFIG_KEY_GROUP, &groupname);
-
-  /* get group descriptor */
-  groupdesc = scr_groupdescs_from_name(groupname);
 
   /* define a string for our failure group, use global rank
    * for leader of group communicator */
