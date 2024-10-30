@@ -599,10 +599,10 @@ int atob(const char *s)
 {
   if (strcmp(s, "yes") == 0 || strcmp(s, "true") == 0 || strcmp(s, "y") == 0 ||
       strcmp(s, "1") == 0) {
-    return 0;
+    return 1;
   } else if (strcmp(s, "no") == 0 || strcmp(s, "false") == 0 || strcmp(s, "n") == 0 ||
              strcmp(s, "0") == 0) {
-    return 1;
+    return 0;
   } else {
     return -1;
   }
@@ -825,9 +825,13 @@ int main (int argc, char* argv[])
         break;
       case 'a':
         use_config_api = atob(optarg);
+        if (use_config_api < 0)
+          usage = 1;
         break;
       case 'c':
         use_conf_file = atob(optarg);
+        if (use_conf_file < 0)
+          usage = 1;
         break;
       case 'C':
         current = strdup(optarg);
