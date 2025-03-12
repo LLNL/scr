@@ -170,7 +170,7 @@ LIST(APPEND scr_serial_srcs
     scr_rebuild_rs.c
 )
 
-LIST(APPEND scr_serial_objects
+LIST(APPEND serial_objects
     $<TARGET_OBJECTS:axl_serial_o>
     $<TARGET_OBJECTS:kvtree_serial_o>
     $<TARGET_OBJECTS:redset_serial_o>
@@ -205,5 +205,51 @@ ENDIF(ENABLE_FORTRAN)
 ###########
 
 # Non-MPI library for CLI
-ADD_LIBRARY(scr_serial STATIC ${scr_serial_srcs} ${scr_serial_objects})
-TARGET_LINK_LIBRARIES(scr_serial PUBLIC ${SCR_EXTERNAL_SERIAL_LIBS})
+ADD_LIBRARY(scr_serial STATIC ${scr_serial_srcs} ${serial_objects} )
+TARGET_LINK_LIBRARIES(scr_serial ${SCR_EXTERNAL_SERIAL_LIBS})
+
+# Individual binaries generated from a single .c file
+#    scr_inspect_cache
+LIST(APPEND serial_scr_c_bins scr_index scr_print)
+
+LIST(APPEND serial_scr_c_libexec
+    scr_crc32
+    scr_flush_file
+    scr_halt_cntl
+    scr_log_event
+    scr_log_transfer
+    scr_nodes_file
+    scr_retries_halt
+    scr_copy
+    scr_rebuild_xor
+    scr_rebuild_partner
+    scr_rebuild_rs
+)
+
+# CLI binaries that require full SCR library
+# LIST(APPEND serial_scr_scr_bins scr_have_restart)
+
+# Build and install C binaries
+FOREACH(bin IN ITEMS ${serial_scr_c_bins})
+    ADD_EXECUTABLE(${bin} ${bin}.c)
+    TARGET_LINK_LIBRARIES(${bin} scr_serial)
+    INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
+ENDFOREACH(bin IN ITEMS ${serial_scr_c_bins})
+
+FOREACH(bin IN ITEMS ${serial_scr_c_libexec})
+    ADD_EXECUTABLE(${bin} ${bin}.c)
+    TARGET_LINK_LIBRARIES(${bin} scr_serial)
+    INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
+ENDFOREACH(bin IN ITEMS ${serial_scr_c_libexec})
+
+# Build and install CLI binaries that link full SCR library
+FOREACH(bin IN ITEMS ${serial_scr_scr_bins})
+    ADD_EXECUTABLE(${bin} ${bin}.c)
+    IF(SCR_LINK_STATIC)
+      TARGET_LINK_LIBRARIES(${bin} scr-static)
+    ELSE(SCR_LINK_STATIC)
+      TARGET_LINK_LIBRARIES(${bin} scr)
+    ENDIF(SCR_LINK_STATIC)
+    INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
+ENDFOREACH(bin IN ITEMS ${serial_scr_scr_bins})
+
