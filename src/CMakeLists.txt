@@ -49,63 +49,21 @@ LIST(APPEND libscr_srcs
     scr_util_mpi.c
 )
 
-#
-# TODO: Add proper {lwgrp,dtcmp}/CMakeLists.txt file so that the following
-# lists of source may be replaced with add_subdirectory
-#
-LIST(APPEND lwgrp_srcs
-    lwgrp/lwgrp.c
-    lwgrp/lwgrp_util.c
-    lwgrp/lwgrp_chain_ops.c
-    lwgrp/lwgrp_ring_ops.c
-    lwgrp/lwgrp_logchain_ops.c
-    lwgrp/lwgrp_logring_ops.c
-    lwgrp/lwgrp_comm.c
-    lwgrp/lwgrp_comm_split.c
-)
+ADD_SUBDIRECTORY(axl)
+ADD_SUBDIRECTORY(dtcmp)
+ADD_SUBDIRECTORY(er)
+ADD_SUBDIRECTORY(kvtree)
+ADD_SUBDIRECTORY(lwgrp)
+ADD_SUBDIRECTORY(rankstr)
+ADD_SUBDIRECTORY(redset)
+ADD_SUBDIRECTORY(shuffile)
+ADD_SUBDIRECTORY(spath)
 
-LIST(APPEND dtcmp_srcs
-    dtcmp/dtcmp.c
-    dtcmp/dtcmp_util.c
-    dtcmp/dtcmp_ops.c
-    dtcmp/dtcmp_uniqify.c
-    dtcmp/dtcmp_search_binary.c
-    dtcmp/dtcmp_partitionz.c
-    dtcmp/dtcmp_partitionz_list.c
-    dtcmp/dtcmp_partition_local.c
-    dtcmp/dtcmp_merge_2way.c
-    dtcmp/dtcmp_merge_kway_heap.c
-    dtcmp/dtcmp_select_local_ends.c
-    dtcmp/dtcmp_select_local_randpartition.c
-    dtcmp/dtcmp_selectv_rand.c
-    dtcmp/dtcmp_selectv_medianofmedians.c
-    dtcmp/dtcmp_is_sorted.c
-    dtcmp/dtcmp_sort_local_insertionsort.c
-    dtcmp/dtcmp_sort_local_randquicksort.c
-    dtcmp/dtcmp_sort_local_mergesort.c
-    dtcmp/dtcmp_sort_local_qsort.c
-    dtcmp/dtcmp_sort_allgather.c
-    dtcmp/dtcmp_sort_bitonic.c
-    dtcmp/dtcmp_sort_samplesort.c
-    dtcmp/dtcmp_sortv_allgather.c
-    dtcmp/dtcmp_sortv_sortgather_scatter.c
-    dtcmp/dtcmp_sortv_cheng.c
-    dtcmp/dtcmp_sortz_samplesort.c
-    dtcmp/dtcmp_rankv_sort.c
-    dtcmp/dtcmp_seg_exscan.c
-)
-
-ADD_SUBDIRECTORY(axl EXCLUDE_FROM_ALL)
-ADD_SUBDIRECTORY(er EXCLUDE_FROM_ALL)
-ADD_SUBDIRECTORY(kvtree EXCLUDE_FROM_ALL)
-ADD_SUBDIRECTORY(rankstr EXCLUDE_FROM_ALL)
-ADD_SUBDIRECTORY(redset EXCLUDE_FROM_ALL)
-ADD_SUBDIRECTORY(shuffile EXCLUDE_FROM_ALL)
-ADD_SUBDIRECTORY(spath EXCLUDE_FROM_ALL)
-
-ADD_LIBRARY(scr_o OBJECT ${lwgrp_srcs} ${dtcmp_srcs} ${libscr_srcs})
+ADD_LIBRARY(scr_o OBJECT ${libscr_srcs})
 
 LIST(APPEND scr_tpl_objects
+    $<TARGET_OBJECTS:lwgrp_o>
+    $<TARGET_OBJECTS:dtcmp_o>
     $<TARGET_OBJECTS:axl_o>
     $<TARGET_OBJECTS:er_o>
     $<TARGET_OBJECTS:kvtree_o>
