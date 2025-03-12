@@ -16,7 +16,7 @@ Building SCR
 
 SCR has a number of dependencies.
 To simplify the install process,
-one can use a release tarball with CMake or use Spack.
+one can use CMake or Spack.
 For full details on building SCR,
 please see Section :ref:`sec-library`.
 

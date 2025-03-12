@@ -6,36 +6,13 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
 ###########
 
 # Install header files
-LIST(APPEND libscr_install_headers
-    scr.h
-)
+LIST(APPEND libscr_install_headers scr.h)
+
 IF(ENABLE_FORTRAN)
     LIST(APPEND libscr_install_headers scrf.h)
 ENDIF(ENABLE_FORTRAN)
-INSTALL(FILES ${libscr_install_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-## CLI should build without MPI dependence
-LIST(APPEND cliscr_noMPI_srcs
-    scr_cache_index.c
-    scr_cache_index_serial.c
-    scr_config.c
-    scr_config_serial.c
-    scr_dataset.c
-    scr_env.c
-    scr_err_serial.c
-    scr_filemap.c
-    scr_flush_nompi.c
-    scr_halt.c
-    scr_index_api.c
-    scr_io.c
-    scr_log.c
-    scr_meta.c
-    scr_param.c
-    scr_util.c
-    scr_rebuild_xor.c
-    scr_rebuild_partner.c
-    scr_rebuild_rs.c
-)
+INSTALL(FILES ${libscr_install_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 LIST(APPEND libscr_srcs
     scr.c
@@ -72,41 +49,133 @@ LIST(APPEND libscr_srcs
     scr_util_mpi.c
 )
 
+#
+# TODO: Add proper {lwgrp,dtcmp}/CMakeLists.txt file so that the following
+# lists of source may be replaced with add_subdirectory
+#
+LIST(APPEND lwgrp_srcs
+    lwgrp/lwgrp.c
+    lwgrp/lwgrp_util.c
+    lwgrp/lwgrp_chain_ops.c
+    lwgrp/lwgrp_ring_ops.c
+    lwgrp/lwgrp_logchain_ops.c
+    lwgrp/lwgrp_logring_ops.c
+    lwgrp/lwgrp_comm.c
+    lwgrp/lwgrp_comm_split.c
+)
+
+LIST(APPEND dtcmp_srcs
+    dtcmp/dtcmp.c
+    dtcmp/dtcmp_util.c
+    dtcmp/dtcmp_ops.c
+    dtcmp/dtcmp_uniqify.c
+    dtcmp/dtcmp_search_binary.c
+    dtcmp/dtcmp_partitionz.c
+    dtcmp/dtcmp_partitionz_list.c
+    dtcmp/dtcmp_partition_local.c
+    dtcmp/dtcmp_merge_2way.c
+    dtcmp/dtcmp_merge_kway_heap.c
+    dtcmp/dtcmp_select_local_ends.c
+    dtcmp/dtcmp_select_local_randpartition.c
+    dtcmp/dtcmp_selectv_rand.c
+    dtcmp/dtcmp_selectv_medianofmedians.c
+    dtcmp/dtcmp_is_sorted.c
+    dtcmp/dtcmp_sort_local_insertionsort.c
+    dtcmp/dtcmp_sort_local_randquicksort.c
+    dtcmp/dtcmp_sort_local_mergesort.c
+    dtcmp/dtcmp_sort_local_qsort.c
+    dtcmp/dtcmp_sort_allgather.c
+    dtcmp/dtcmp_sort_bitonic.c
+    dtcmp/dtcmp_sort_samplesort.c
+    dtcmp/dtcmp_sortv_allgather.c
+    dtcmp/dtcmp_sortv_sortgather_scatter.c
+    dtcmp/dtcmp_sortv_cheng.c
+    dtcmp/dtcmp_sortz_samplesort.c
+    dtcmp/dtcmp_rankv_sort.c
+    dtcmp/dtcmp_seg_exscan.c
+)
+
+ADD_SUBDIRECTORY(axl EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(er EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(kvtree EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(rankstr EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(redset EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(shuffile EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(spath EXCLUDE_FROM_ALL)
+
+ADD_LIBRARY(scr_o OBJECT ${lwgrp_srcs} ${dtcmp_srcs} ${libscr_srcs})
+
+LIST(APPEND scr_tpl_objects
+    $<TARGET_OBJECTS:axl_o>
+    $<TARGET_OBJECTS:er_o>
+    $<TARGET_OBJECTS:kvtree_o>
+    $<TARGET_OBJECTS:rankstr_o>
+    $<TARGET_OBJECTS:redset_o>
+    $<TARGET_OBJECTS:shuffile_o>
+    $<TARGET_OBJECTS:spath_o>
+)
+
+#
+# Produce shared libary
+#
 IF(BUILD_SHARED_LIBS)
-   # SCR Library
-   ADD_LIBRARY(scr_o OBJECT ${libscr_srcs})
-   TARGET_LINK_LIBRARIES(scr_o PRIVATE ${SCR_EXTERNAL_LIBS})
+  SET_PROPERTY(TARGET scr_o PROPERTY POSITION_INDEPENDENT_CODE 1)
+  ADD_LIBRARY(scr SHARED $<TARGET_OBJECTS:scr_o> ${scr_tpl_objects})
+  ADD_LIBRARY(scr::scr ALIAS scr)
+  TARGET_LINK_LIBRARIES(scr PUBLIC ${SCR_EXTERNAL_LIBS})
+  TARGET_INCLUDE_DIRECTORIES( scr PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
+  SET_TARGET_PROPERTIES(scr PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 1)
+  INSTALL(TARGETS scr EXPORT scrTargets LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+ENDIF(BUILD_SHARED_LIBS)
 
-   ADD_LIBRARY(scr SHARED $<TARGET_OBJECTS:scr_o>)
-   ADD_LIBRARY(scr::scr ALIAS scr)
-   TARGET_LINK_LIBRARIES(scr PUBLIC ${SCR_EXTERNAL_LIBS})
-   TARGET_INCLUDE_DIRECTORIES(scr PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
-   SET_TARGET_PROPERTIES(scr PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 1)
-   INSTALL(TARGETS scr EXPORT scrTargets LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-ENDIF()
-
-# SCR Library
-ADD_LIBRARY(scr_static_o OBJECT ${libscr_srcs})
-TARGET_LINK_LIBRARIES(scr_static_o PRIVATE ${SCR_EXTERNAL_STATIC_LIBS})
-
-ADD_LIBRARY(scr-static STATIC $<TARGET_OBJECTS:scr_static_o>)
+#
+# Produce static library
+#
+ADD_LIBRARY(scr-static STATIC $<TARGET_OBJECTS:scr_o> ${scr_tpl_objects})
 ADD_LIBRARY(scr::scr-static ALIAS scr-static)
+TARGET_LINK_LIBRARIES(scr-static PRIVATE ${SCR_EXTERNAL_STATIC_LIBS})
+TARGET_INCLUDE_DIRECTORIES( scr-static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
 IF(SCR_LINK_STATIC)
     SET_TARGET_PROPERTIES(scr-static PROPERTIES LINK_SEARCH_START_STATIC 1)
     SET_TARGET_PROPERTIES(scr-static PROPERTIES LINK_SEARCH_END_STATIC 1)
 ENDIF(SCR_LINK_STATIC)
-TARGET_LINK_LIBRARIES(scr-static PUBLIC ${SCR_EXTERNAL_STATIC_LIBS})
-TARGET_INCLUDE_DIRECTORIES(scr-static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
 SET_TARGET_PROPERTIES(scr-static PROPERTIES OUTPUT_NAME scr CLEAN_DIRECT_OUTPUT 1)
 INSTALL(TARGETS scr-static EXPORT scrTargets LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-# Non-MPI library for CLI
-ADD_LIBRARY(scr_base_o OBJECT ${cliscr_noMPI_srcs})
-TARGET_LINK_LIBRARIES(scr_base_o PRIVATE ${SCR_EXTERNAL_SERIAL_STATIC_LIBS})
 
-ADD_LIBRARY(scr_base STATIC $<TARGET_OBJECTS:scr_base_o>)
-ADD_LIBRARY(scr::scr_base ALIAS scr_base)
-TARGET_LINK_LIBRARIES(scr_base PUBLIC ${SCR_EXTERNAL_SERIAL_STATIC_LIBS})
+#
+# Non-MPI library for CLI
+#
+
+## CLI should build without MPI dependence
+LIST(APPEND cliscr_noMPI_srcs
+    scr_cache_index.c
+    scr_cache_index_serial.c
+    scr_config.c
+    scr_config_serial.c
+    scr_dataset.c
+    scr_env.c
+    scr_err_serial.c
+    scr_filemap.c
+    scr_flush_nompi.c
+    scr_halt.c
+    scr_index_api.c
+    scr_io.c
+    scr_log.c
+    scr_meta.c
+    scr_param.c
+    scr_util.c
+    scr_rebuild_xor.c
+    scr_rebuild_partner.c
+    scr_rebuild_rs.c
+)
+
+LIST(APPEND scr_tpl_noMPI_objects
+    $<TARGET_OBJECTS:axl_noMPI_o>
+    $<TARGET_OBJECTS:kvtree_noMPI_o>
+    $<TARGET_OBJECTS:redset_noMPI_o>
+    $<TARGET_OBJECTS:spath_base_o>
+)
 
 # Fortran
 IF(ENABLE_FORTRAN)
@@ -119,7 +188,7 @@ IF(ENABLE_FORTRAN)
            INSTALL(TARGETS scrf EXPORT scrTargets LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
         ENDIF()
 
-        ADD_LIBRARY(scrf-static STATIC scrf.c $<TARGET_OBJECTS:scr_static_o>)
+        ADD_LIBRARY(scrf-static STATIC scrf.c $<TARGET_OBJECTS:scr_o>)
         ADD_LIBRARY(scr::scrf-static ALIAS scrf-static)
         IF(SCR_LINK_STATIC)
             SET_TARGET_PROPERTIES(scrf-static PROPERTIES LINK_SEARCH_START_STATIC 1)
@@ -135,52 +204,9 @@ ENDIF(ENABLE_FORTRAN)
 # CLI SCR #
 ###########
 
-# Individual binaries generated from a single .c file
-#    scr_inspect_cache
-LIST(APPEND cliscr_c_bins
-    scr_index
-    scr_print
+# Non-MPI library for CLI
+ADD_LIBRARY(scr_cli STATIC
+    ${cliscr_noMPI_srcs}
+    ${scr_tpl_noMPI_objects}
 )
-
-LIST(APPEND cliscr_c_libexec
-    scr_crc32
-    scr_flush_file
-    scr_halt_cntl
-    scr_log_event
-    scr_log_transfer
-    scr_nodes_file
-    scr_retries_halt
-    scr_copy
-    scr_rebuild_xor
-    scr_rebuild_partner
-    scr_rebuild_rs
-)
-
-# CLI binaries that require full SCR library
-#LIST(APPEND cliscr_scr_bins
-#    scr_have_restart
-#)
-
-# Build and install C binaries
-FOREACH(bin IN ITEMS ${cliscr_c_bins})
-    ADD_EXECUTABLE(${bin} ${bin}.c)
-    TARGET_LINK_LIBRARIES(${bin} scr_base)
-    INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
-ENDFOREACH(bin IN ITEMS ${cliscr_c_bins})
-
-FOREACH(bin IN ITEMS ${cliscr_c_libexec})
-    ADD_EXECUTABLE(${bin} ${bin}.c)
-    TARGET_LINK_LIBRARIES(${bin} scr_base)
-    INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
-ENDFOREACH(bin IN ITEMS ${cliscr_c_libexec})
-
-# Build and install CLI binaries that link full SCR library
-FOREACH(bin IN ITEMS ${cliscr_scr_bins})
-    ADD_EXECUTABLE(${bin} ${bin}.c)
-    IF(SCR_LINK_STATIC)
-        TARGET_LINK_LIBRARIES(${bin} scr-static)
-    ELSE(SCR_LINK_STATIC)
-        TARGET_LINK_LIBRARIES(${bin} scr)
-    ENDIF(SCR_LINK_STATIC)
-    INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
-ENDFOREACH(bin IN ITEMS ${cliscr_scr_bins})
+TARGET_LINK_LIBRARIES(scr_cli PUBLIC ${SCR_EXTERNAL_SERIAL_LIBS})
