@@ -148,7 +148,7 @@ INSTALL(TARGETS scr-static EXPORT scrTargets LIBRARY DESTINATION ${CMAKE_INSTALL
 #
 
 ## CLI should build without MPI dependence
-LIST(APPEND cliscr_noMPI_srcs
+LIST(APPEND scr_serial_srcs
     scr_cache_index.c
     scr_cache_index_serial.c
     scr_config.c
@@ -170,11 +170,11 @@ LIST(APPEND cliscr_noMPI_srcs
     scr_rebuild_rs.c
 )
 
-LIST(APPEND scr_tpl_noMPI_objects
-    $<TARGET_OBJECTS:axl_noMPI_o>
-    $<TARGET_OBJECTS:kvtree_noMPI_o>
-    $<TARGET_OBJECTS:redset_noMPI_o>
-    $<TARGET_OBJECTS:spath_base_o>
+LIST(APPEND scr_serial_objects
+    $<TARGET_OBJECTS:axl_serial_o>
+    $<TARGET_OBJECTS:kvtree_serial_o>
+    $<TARGET_OBJECTS:redset_serial_o>
+    $<TARGET_OBJECTS:spath_serial_o>
 )
 
 # Fortran
@@ -205,8 +205,5 @@ ENDIF(ENABLE_FORTRAN)
 ###########
 
 # Non-MPI library for CLI
-ADD_LIBRARY(scr_cli STATIC
-    ${cliscr_noMPI_srcs}
-    ${scr_tpl_noMPI_objects}
-)
-TARGET_LINK_LIBRARIES(scr_cli PUBLIC ${SCR_EXTERNAL_SERIAL_LIBS})
+ADD_LIBRARY(scr_serial STATIC ${scr_serial_srcs} ${scr_serial_objects})
+TARGET_LINK_LIBRARIES(scr_serial PUBLIC ${SCR_EXTERNAL_SERIAL_LIBS})

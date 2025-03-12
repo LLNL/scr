@@ -1,4 +1,4 @@
-LIST(APPEND redset_noMPI_srcs
+LIST(APPEND redset_serial_srcs
     redset_err_serial.c
     redset_util.c
     redset_io.c
@@ -38,11 +38,11 @@ IF(ENABLE_CUDA)
 ENDIF(ENABLE_CUDA)
 
 ADD_LIBRARY(redset_o OBJECT ${libredset_srcs})
-ADD_LIBRARY(redset_noMPI_o OBJECT ${redset_noMPI_srcs})
+ADD_LIBRARY(redset_serial_o OBJECT ${redset_serial_srcs})
 
 IF(BUILD_SHARED_LIBS)
   SET_PROPERTY(TARGET redset_o PROPERTY POSITION_INDEPENDENT_CODE 1)
-  SET_PROPERTY(TARGET redset_noMPI_o PROPERTY POSITION_INDEPENDENT_CODE 1)
+  SET_PROPERTY(TARGET redset_serial_o PROPERTY POSITION_INDEPENDENT_CODE 1)
 ENDIF()
 
 TARGET_COMPILE_DEFINITIONS(redset_o PRIVATE REDSET_ENABLE_MPI)
