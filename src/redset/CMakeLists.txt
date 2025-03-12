@@ -37,8 +37,8 @@ IF(ENABLE_CUDA)
     )
 ENDIF(ENABLE_CUDA)
 
-ADD_LIBRARY(redset_o OBJECT ${libredset_srcs})
-ADD_LIBRARY(redset_serial_o OBJECT ${redset_serial_srcs})
+ADD_LIBRARY(redset_o OBJECT $<TARGET_OBJECTS:kvtree_o> $<TARGET_OBJECTS:rankstr_o> ${libredset_srcs})
+ADD_LIBRARY(redset_serial_o OBJECT $<TARGET_OBJECTS:kvtree_serial_o> $<TARGET_OBJECTS:rankstr_o> ${redset_serial_srcs})
 
 IF(BUILD_SHARED_LIBS)
   SET_PROPERTY(TARGET redset_o PROPERTY POSITION_INDEPENDENT_CODE 1)
