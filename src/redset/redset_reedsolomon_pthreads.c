@@ -66,6 +66,7 @@ typedef struct {
   thread_rs_queue_t* q;
 } threadset_t;
 
+#if 0
 /* The actual pthread function */
 static void* reduce_rs_pthread_fn2(void* arg)
 {
@@ -98,6 +99,7 @@ static void* reduce_rs_pthread_fn2(void* arg)
   }
   pthread_exit(NULL);
 }
+#endif /* 0 */
 
 static thread_rs_queue_t* queue_alloc(void)
 {
@@ -223,6 +225,7 @@ static void* reduce_rs_pthread_fn3(void* arg)
   pthread_exit(NULL);
 }
 
+#if 0
 /* spawn a set of threads and fill in threadset structure to track them */
 static int reduce_rs_pthread_setup(threadset_t* tset)
 {
@@ -341,7 +344,9 @@ static int reduce_rs_pthread_execute(
 
   return ret;
 }
+#endif /* 0 */
 
+#if 0
 /* signal threads to shutdown, wait for them to exit, and free resources in thread set */
 static int reduce_rs_pthread_teardown(threadset_t* tset)
 {
@@ -383,6 +388,7 @@ static int reduce_rs_pthread_teardown(threadset_t* tset)
 
   return ret;
 }
+#endif /* 0 */
 
 /* spawn a set of threads and fill in threadset structure to track them */
 static int reduce_rs_pthread_setup3(threadset_t* tset)
@@ -589,8 +595,11 @@ int redset_reedsolomon_encode_pthreads(
   unsigned char* send_buf = send_bufs[0];
 
   threadset_t threads;
-  //reduce_rs_pthread_setup(&threads);
+#if 0
+  reduce_rs_pthread_setup(&threads);
+#else
   reduce_rs_pthread_setup3(&threads);
+#endif /* 0 */
 
   /* we'll issue a send/recv for each encoding block in each step */
   MPI_Request* request = (MPI_Request*) REDSET_MALLOC(state->encoding * 2 * sizeof(MPI_Request));
@@ -662,8 +671,11 @@ int redset_reedsolomon_encode_pthreads(
          * coefficient and accumulate to our reductino buffer */
         int row = i + d->ranks;
         unsigned int coeff = state->mat[row * d->ranks + received_rank];
-        //reduce_rs_pthread_execute(&threads, state, count, data_bufs[i], coeff, recv_bufs[i]);
+#if 0
+        reduce_rs_pthread_execute(&threads, state, count, data_bufs[i], coeff, recv_bufs[i]);
+#else
         reduce_rs_pthread_launch3(&threads, state, count, data_bufs[i], coeff, recv_bufs[i]);
+#endif /* 0 */
       }
 
       /* wait for threads to finish */
@@ -692,8 +704,11 @@ int redset_reedsolomon_encode_pthreads(
   redset_buffers_free(state->encoding, &recv_bufs);
   redset_buffers_free(1,               &send_bufs);
 
-  //reduce_rs_pthread_teardown(&threads);
+#if 0
+  reduce_rs_pthread_teardown(&threads);
+#else
   reduce_rs_pthread_teardown3(&threads);
+#endif /* 0 */
 
   return rc;
 }
