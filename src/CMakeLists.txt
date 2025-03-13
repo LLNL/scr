@@ -61,7 +61,7 @@ ADD_SUBDIRECTORY(spath)
 
 ADD_LIBRARY(scr_o OBJECT ${libscr_srcs})
 
-LIST(APPEND scr_tpl_objects
+LIST(APPEND scr_component_objects
     $<TARGET_OBJECTS:lwgrp_o>
     $<TARGET_OBJECTS:dtcmp_o>
     $<TARGET_OBJECTS:axl_o>
@@ -78,7 +78,7 @@ LIST(APPEND scr_tpl_objects
 #
 IF(BUILD_SHARED_LIBS)
   SET_PROPERTY(TARGET scr_o PROPERTY POSITION_INDEPENDENT_CODE 1)
-  ADD_LIBRARY(scr SHARED $<TARGET_OBJECTS:scr_o> ${scr_tpl_objects})
+  ADD_LIBRARY(scr SHARED $<TARGET_OBJECTS:scr_o> ${scr_component_objects})
   ADD_LIBRARY(scr::scr ALIAS scr)
   TARGET_LINK_LIBRARIES(scr PUBLIC ${SCR_EXTERNAL_LIBS})
   TARGET_INCLUDE_DIRECTORIES( scr PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
@@ -89,7 +89,7 @@ ENDIF(BUILD_SHARED_LIBS)
 #
 # Produce static library
 #
-ADD_LIBRARY(scr-static STATIC $<TARGET_OBJECTS:scr_o> ${scr_tpl_objects})
+ADD_LIBRARY(scr-static STATIC $<TARGET_OBJECTS:scr_o> ${scr_component_objects})
 ADD_LIBRARY(scr::scr-static ALIAS scr-static)
 TARGET_LINK_LIBRARIES(scr-static PRIVATE ${SCR_EXTERNAL_STATIC_LIBS})
 TARGET_INCLUDE_DIRECTORIES( scr-static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
@@ -138,7 +138,7 @@ LIST(APPEND serial_objects
 # Fortran
 IF(ENABLE_FORTRAN)
         IF(BUILD_SHARED_LIBS)
-           ADD_LIBRARY(scrf SHARED scrf.c $<TARGET_OBJECTS:scr_o>)
+           ADD_LIBRARY(scrf SHARED scrf.c $<TARGET_OBJECTS:scr_o> ${scr_component_objects})
            ADD_LIBRARY(scr::scrf ALIAS scrf)
            TARGET_LINK_LIBRARIES(scrf PUBLIC ${SCR_EXTERNAL_LIBS})
            TARGET_INCLUDE_DIRECTORIES(scrf PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
@@ -146,7 +146,7 @@ IF(ENABLE_FORTRAN)
            INSTALL(TARGETS scrf EXPORT scrTargets LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
         ENDIF()
 
-        ADD_LIBRARY(scrf-static STATIC scrf.c $<TARGET_OBJECTS:scr_o>)
+        ADD_LIBRARY(scrf-static STATIC scrf.c $<TARGET_OBJECTS:scr_o> ${scr_component_objects})
         ADD_LIBRARY(scr::scrf-static ALIAS scrf-static)
         IF(SCR_LINK_STATIC)
             SET_TARGET_PROPERTIES(scrf-static PROPERTIES LINK_SEARCH_START_STATIC 1)

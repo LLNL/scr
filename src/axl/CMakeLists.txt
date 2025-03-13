@@ -28,9 +28,9 @@ LIST(APPEND libaxl_serial_srcs
     ${axl_optional_srcs}
 )
 
-IF(MPI AND MPI_FOUND)
+IF(MPI_C_FOUND)
   LIST(APPEND libaxl_srcs axl_mpi.c)
-ENDIF(MPI AND MPI_FOUND)
+ENDIF(MPI_C_FOUND)
 
 ADD_LIBRARY(axl_o OBJECT $<TARGET_OBJECTS:kvtree_o> ${libaxl_srcs})
 ADD_LIBRARY(axl_serial_o OBJECT $<TARGET_OBJECTS:kvtree_serial_o> ${libaxl_serial_srcs})
