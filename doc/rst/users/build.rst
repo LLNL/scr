@@ -24,7 +24,7 @@ Optional:
 * MySQL (for logging SCR activities)
 
 To simplify the install process,
-one can use CMake to build a release tarball or use Spack.
+one can use CMake or use Spack.
 
 The CMake and Spack sections below assume that one is installing SCR on a system with
 existing compilers, a resource manager (like SLURM or LSF), and an MPI environment.

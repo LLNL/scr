@@ -577,7 +577,7 @@ int scr_reddesc_apply(
 
   /* add up total number of files, bytes, and valid flags */
   unsigned long total_counts[3];
-  MPI_Allreduce(&my_counts, &total_counts, 3, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
+  MPI_Allreduce(&my_counts[0], &total_counts[0], 3, MPI_UNSIGNED_LONG, MPI_SUM, scr_comm_world);
   int files       = (int)    total_counts[0];
   double bytes    = (double) total_counts[1];
   int total_valid = (int)    total_counts[2];
