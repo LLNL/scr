@@ -30,6 +30,9 @@
 /* xfer methods */
 #include "axl_sync.h"
 
+/* (Optional) service functions */
+#include "axl_socket.h"
+
 #ifdef HAVE_PTHREADS
 #include "axl_pthread.h"
 #endif /* HAVE_PTHREAD */
@@ -75,17 +78,18 @@ int axl_copy_metadata;
 /* global rank of calling process, used for BBAPI */
 int axl_rank = -1;
 
+/*
+ * If we are NOT running as a server, use axl_client_xfer_list to contain
+ * our list of transfer items fro AXL Create.  Otherwise, the server will
+ * change the axl_xfer_list pointer for each connection it is servicing.
+ */
+static struct axl_transfer_array axl_client_xfer_list = {
+    .axl_kvtrees = NULL, .axl_kvtrees_count = 0
+};
+struct axl_transfer_array* axl_xfer_list = &axl_client_xfer_list;
+
 /* reference count for number of times AXL_Init has been called */
 static unsigned int axl_init_count = 0;
-
-/* Array for all the AXL_Create'd kvtree pointers.  It's indexed by the AXL id.
- *
- * Note: We only expand this array, we never shrink it.  This is fine since
- * the user is only going to be calling AXL_Create() a handful of times.  It
- * also simplifies the code if we never shrink it, and the extra memory usage
- * is negligible, if any at all. */
-kvtree** axl_kvtrees;
-static unsigned int axl_kvtrees_count = 0;
 
 #ifdef HAVE_BBAPI
 static int bbapi_is_loaded = 0;
@@ -110,11 +114,11 @@ static int axl_alloc_id(const char* state_file)
         kvtree_util_set_str(new, AXL_KEY_STATE_FILE, state_file);
     }
 
-    int id = axl_kvtrees_count;
-    axl_kvtrees_count++;
+    int id = axl_xfer_list->axl_kvtrees_count;
+    axl_xfer_list->axl_kvtrees_count++;
 
-    axl_kvtrees = realloc(axl_kvtrees, sizeof(struct kvtree*) * axl_kvtrees_count);
-    axl_kvtrees[id] = new;
+    axl_xfer_list->axl_kvtrees = realloc(axl_xfer_list->axl_kvtrees, sizeof(struct kvtree*) * axl_xfer_list->axl_kvtrees_count);
+    axl_xfer_list->axl_kvtrees[id] = new;
 
     return id;
 }
@@ -122,7 +126,7 @@ static int axl_alloc_id(const char* state_file)
 /* Remove the state file for an id, if one exists */
 static void axl_remove_state_file(int id)
 {
-    kvtree* file_list = axl_kvtrees[id];
+    kvtree* file_list = axl_xfer_list->axl_kvtrees[id];
     char* state_file = NULL;
     if (kvtree_util_get_str(file_list, AXL_KEY_STATE_FILE,
         &state_file) == KVTREE_SUCCESS)
@@ -136,15 +140,15 @@ static void axl_free_id(int id)
 {
     axl_remove_state_file(id);
 
-    /* kvtree_delete() will set axl_kvtrees[id] = NULL */
-    kvtree_delete(&axl_kvtrees[id]);
+    /* kvtree_delete() will set axl_xfer_list->axl_kvtrees[id] = NULL */
+    kvtree_delete(&axl_xfer_list->axl_kvtrees[id]);
 }
 
 /* If the user specified a state_file then write our kvtree to it. If not, then
  * do nothing. */
 void axl_write_state_file(int id)
 {
-    kvtree* file_list = axl_kvtrees[id];
+    kvtree* file_list = axl_xfer_list->axl_kvtrees[id];
     char* state_file = NULL;
     if (kvtree_util_get_str(file_list, AXL_KEY_STATE_FILE,
         &state_file) == KVTREE_SUCCESS)
@@ -163,7 +167,7 @@ static int axl_get_info(int id, kvtree** list, axl_xfer_t* type, axl_xfer_state_
     *state = AXL_XFER_STATE_NULL;
 
     /* lookup transfer info for the given id */
-    kvtree* file_list = axl_kvtrees[id];
+    kvtree* file_list = axl_xfer_list->axl_kvtrees[id];
     if (file_list == NULL) {
         AXL_ERR("Could not find fileset for UID %d", id);
         return AXL_FAILURE;
@@ -260,6 +264,13 @@ int AXL_Init (void)
         axl_make_directories = atoi(val);
     }
 
+    /* If the user has set both the AXL_SERVICE_HOST and AXL_SERVICE_PORT
+     * environment variables, then they are expecting to use the AXL Service
+     * rather than the library included with the SCR library.
+     */
+    char* axl_service_host = NULL;
+    int axl_service_port = -1;
+
     /* initialize our flag on whether to first copy files to temporary names with extension */
     axl_use_extension = 0;
     val = getenv("AXL_USE_EXTENSION");
@@ -275,7 +286,26 @@ int AXL_Init (void)
     }
 
     /* keep a reference count to free memory on last AXL_Finalize */
-    axl_init_count++;
+    if (axl_init_count++ == 0) {
+        /*
+         * If we are not running as the AXL Server, check to see if we are
+         * expected to run as a client and then connect if so.
+         */
+        if (axl_service_mode != AXL_SOCKET_SERVER) {
+            if ( (val = getenv("AXL_SERVICE_HOST")) != NULL) {
+                axl_service_host = strdup(val);
+
+                if ( (val = getenv("AXL_SERVICE_PORT")) != NULL) {
+                    axl_service_port = atoi(val);
+
+                    if (axl_socket_client_init(axl_service_host, (unsigned short)axl_service_port)) {
+                        axl_service_mode = AXL_SOCKET_CLIENT;
+                    }
+                }
+                free(axl_service_host);
+            }
+        }
+    }
 
     return rc;
 }
@@ -297,8 +327,13 @@ int AXL_Finalize (void)
     axl_init_count--;
     if (axl_init_count == 0) {
         /* TODO: are there cases where we also need to delete trees? */
-        axl_free(&axl_kvtrees);
-        axl_kvtrees_count = 0;
+        axl_free(&axl_xfer_list->axl_kvtrees);
+        axl_xfer_list->axl_kvtrees_count = 0;
+
+        if (axl_service_mode == AXL_SOCKET_CLIENT) {
+            axl_socket_client_AXL_Finalize();
+        }
+
     }
 
     return rc;
@@ -360,7 +395,7 @@ static kvtree* AXL_Config_Set(const kvtree* config)
             char* endptr;
             long id = strtol(key, &endptr, 10);
             if ((*key == '\0' || *endptr != '\0') ||
-                (id < 0 || id >= axl_kvtrees_count))
+                (id < 0 || id >= axl_xfer_list->axl_kvtrees_count))
             {
                 retval = NULL;
                 break;
@@ -372,7 +407,7 @@ static kvtree* AXL_Config_Set(const kvtree* config)
                 break;
             }
 
-            kvtree* file_list = axl_kvtrees[id];
+            kvtree* file_list = axl_xfer_list->axl_kvtrees[id];
 
             const char** opt;
             for (opt = known_transfer_options; *opt != NULL; opt++) {
@@ -462,6 +497,10 @@ static kvtree* AXL_Config_Set(const kvtree* config)
         }
     }
 
+    if (axl_service_mode == AXL_SOCKET_CLIENT) {
+        axl_socket_client_AXL_Config_Set(config);
+    }
+
     return retval;
 }
 
@@ -502,8 +541,8 @@ static kvtree* AXL_Config_Get()
 
     /* per transfer options */
     int id;
-    for (id = 0; id < axl_kvtrees_count; id++) {
-        kvtree* file_list = axl_kvtrees[id];
+    for (id = 0; id < axl_xfer_list->axl_kvtrees_count; id++) {
+        kvtree* file_list = axl_xfer_list->axl_kvtrees[id];
         if (file_list == NULL) {
             /* TODO: check if it would be better to return an empty hash instead */
             continue;
@@ -613,7 +652,7 @@ int AXL_Create(axl_xfer_t xtype, const char* name, const char* state_file)
         return -1;
     }
 
-    kvtree* file_list = axl_kvtrees[id];
+    kvtree* file_list = axl_xfer_list->axl_kvtrees[id];
     kvtree_util_set_int(file_list, AXL_KEY_XFER_TYPE, xtype);
     kvtree_util_set_str(file_list, AXL_KEY_UNAME, name);
     if (!reload_from_state_file) {
@@ -1521,8 +1560,8 @@ int AXL_Stop ()
 
     /* cancel each active id */
     int id;
-    for (id = 0; id < axl_kvtrees_count; id++) {
-        if (!axl_kvtrees[id]) {
+    for (id = 0; id < axl_xfer_list->axl_kvtrees_count; id++) {
+        if (!axl_xfer_list->axl_kvtrees[id]) {
             continue;
         }
 
@@ -1532,8 +1571,8 @@ int AXL_Stop ()
     }
 
     /* wait */
-    for (id = 0; id < axl_kvtrees_count; id++) {
-        if (!axl_kvtrees[id]) {
+    for (id = 0; id < axl_xfer_list->axl_kvtrees_count; id++) {
+        if (!axl_xfer_list->axl_kvtrees[id]) {
             continue;
         }
 
@@ -1543,8 +1582,8 @@ int AXL_Stop ()
     }
 
     /* and free it */
-    for (id = 0; id < axl_kvtrees_count; id++) {
-        if (!axl_kvtrees[id]) {
+    for (id = 0; id < axl_xfer_list->axl_kvtrees_count; id++) {
+        if (!axl_xfer_list->axl_kvtrees[id]) {
             continue;
         }
 

@@ -110,7 +110,7 @@ kvtree_elem* axl_get_next_path(int id, kvtree_elem* elem, char** src, char** dst
 {
     if (! elem) {
         /* lookup transfer info for the given id */
-        kvtree* file_list = axl_kvtrees[id];
+        kvtree* file_list = axl_xfer_list->axl_kvtrees[id];
         if (! file_list) {
             return NULL;
         }

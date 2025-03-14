@@ -81,9 +81,11 @@ int AXL_Finalize_comm (
     return rc;
 }
 
+#include <stdio.h>
+
 int AXL_Create_comm (
     axl_xfer_t type,  /**< [IN]  - AXL transfer type (AXL_XFER_SYNC, AXL_XFER_PTHREAD, etc) */
-    const char* name, 
+    const char* name,
     const char* file,
     MPI_Comm comm)    /**< [IN]  - communicator used for coordination and flow control */
 {
@@ -144,59 +146,6 @@ int AXL_Dispatch_comm (
     int id,        /**< [IN]  - transfer hander ID returned from AXL_Create */
     MPI_Comm comm) /**< [IN]  - communicator used for coordination and flow control */
 {
-#if 0
-    /* lookup transfer info for the given id */
-    kvtree* file_list = NULL;
-    axl_xfer_t xtype = AXL_XFER_NULL;
-    axl_xfer_state_t xstate = AXL_XFER_STATE_NULL;
-    if (axl_get_info(id, &file_list, &xtype, &xstate) != AXL_SUCCESS) {
-        AXL_ERR("Could not find transfer info for UID %d", id);
-        return AXL_FAILURE;
-    }
-
-    /* check that handle is in correct state to dispatch */
-    if (xstate != AXL_XFER_STATE_CREATED) {
-        AXL_ERR("Invalid state to dispatch UID %d", id);
-        return AXL_FAILURE;
-    }
-    kvtree_util_set_int(file_list, AXL_KEY_STATE, (int)AXL_XFER_STATE_DISPATCHED);
-#endif
-
-#if 0
-    /* create destination directories for each file */
-    if (axl_make_directories) {
-        /* count number of files we have */
-        kvtree* file_list = kvtree_get_kv_int(axl_file_lists, AXL_KEY_HANDLE_UID, id);
-        kvtree* files_hash = kvtree_get(file_list, AXL_KEY_FILES);
-        int num_files = kvtree_size(files_hash);
-
-        /* allocate pointer for each one */
-        const char** files = (const char**) AXL_MALLOC(num_files * sizeof(char*));
-
-        /* set pointer to each file */
-        int i;
-        char* dest;
-        kvtree_elem* elem;
-        while ((elem = axl_get_next_path(id, elem, NULL, &dest))) {
-            files[i] = dest;
-            i++;
-        }
-
-        /* create directories */
-        axl_create_dirs(num_files, files, comm);
-
-        /* free list of files */
-        axl_free2(&files);
-    }
-
-    /* TODO: this is hacky */
-    /* delegate remaining work to regular dispatch,
-     * but disable mkdir since we already did that */
-    int make_dir = axl_make_directories;
-    axl_make_directories = 0;
-    int rc = AXL_Dispatch(id);
-    axl_make_directories = make_dir;
-#endif
     /* delegate remaining work to regular dispatch */
     int rc = AXL_Dispatch(id);
 

@@ -12,7 +12,7 @@ int __axl_sync_start (int id, int resume)
     int rc = AXL_SUCCESS;
 
     /* get pointer to file list for this dataset */
-    kvtree* file_list = axl_kvtrees[id];
+    kvtree* file_list = axl_xfer_list->axl_kvtrees[id];
 
     /* mark dataset as in progress */
     kvtree_util_set_int(file_list, AXL_KEY_STATUS, AXL_STATUS_INPROG);
@@ -39,7 +39,7 @@ int __axl_sync_start (int id, int resume)
         }
 
         /* TODO: check bytecount conversion success, do not use global
-         * axl_kvtrees to get file_list */
+         * axl_xfer_list->axl_kvtrees to get file_list */
         unsigned long file_buf_size;
         int success = kvtree_util_get_bytecount(file_list,
             AXL_KEY_CONFIG_FILE_BUF_SIZE, &file_buf_size);
@@ -91,7 +91,7 @@ int axl_sync_test (int id)
 int axl_sync_wait (int id)
 {
     /* get pointer to file list for this dataset */
-    kvtree* file_list = axl_kvtrees[id];
+    kvtree* file_list = axl_xfer_list->axl_kvtrees[id];
 
     /* determine whether transfer was successful */
     int status;
