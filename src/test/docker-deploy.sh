@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+#  Tag docker images
+
+log() { echo "docker-deploy: $@" >&2; }
+die() { log "$@"; exit 1; }
+
+if test "$GITHUB_REPOSITORY" != "LLNL/scr"; then
+    log "not in LLNL/scr repo, exiting..."
+    exit 0
+fi
+
+test -n "$DOCKER_REPO" ||     die "DOCKER_REPO not set"
+test -n "$DOCKER_PASSWORD" || die "DOCKER_PASSWORD not set"
+test -n "$DOCKER_USERNAME" || die "DOCKER_USERNAME not set"
+test -n "$DOCKER_TAG" ||      die "DOCKER_TAG not set"
+
+echo $DOCKER_PASSWORD | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+log "docker push ${DOCKER_TAG}"
+docker push ${DOCKER_TAG}
