@@ -8,7 +8,6 @@
 #
 # option Defaults:
 PROJECT=scr
-BASE_DOCKER_REPO=libscr/scr
 
 WORKDIR=/usr/src
 IMAGE=el9
@@ -104,26 +103,20 @@ CMAKE_ARGS="-DSCR_RESOURCE_MANAGER=NONE -DCMAKE_INSTALL_PREFIX=../install -DCMAK
 . ${TOP}/src/test/checks-lib.sh
 
 BUILD_IMAGE=${PROJECT}-checks-builder:${IMAGE}
-if test "$PROJECT" = "scr"; then
-    DOCKERFILE=$TOP/src/test/docker/checks
-else
-    DOCKERFILE=$TOP/src/test/docker/$IMAGE
-fi
+DOCKERFILE=$TOP/src/test/docker/$IMAGE
 
 checks_group "Building image $IMAGE for user $USER $(id -u) group=$(id -g)" \
   ${DOCKER_BUILD} \
     ${PLATFORM} \
     ${NO_CACHE} \
     ${QUIET} \
-    --build-arg BASE_IMAGE=$IMAGE \
-    --build-arg IMAGESRC="$BASE_DOCKER_REPO:$IMAGE" \
     --build-arg USER=$USER \
     --build-arg UID=$(id -u) \
     --build-arg GID=$(id -g) \
     ${BUILD_ARG:- } \
     -t ${BUILD_IMAGE} \
-    ${DOCKERFILE} \
-    || die "docker build failed"
+    -f ${DOCKERFILE}/Dockerfile \
+    . || die "docker build failed"
 
 if [[ -n "$MOUNT_HOME_ARGS" ]]; then
     echo "mounting $HOME as $HOME"

@@ -2,6 +2,10 @@ FROM debian:bookworm
 
 LABEL maintainer="James Corbett <corbett8@llnl.gov>"
 
+ARG USER=scr
+ARG UID=1000
+ARG GID=1000
+
 # Update pkg caches, install latest pkg utils and basics:
 RUN apt-get update \
  && apt-get -qq install -y --no-install-recommends \
@@ -39,5 +43,12 @@ RUN apt-get update \
 
 RUN locale-gen en_US.UTF-8
 
-
 ENV LANG=C.UTF-8
+
+# copy scripts into image
+COPY src/test/docker/add_docker_user.sh /etc/add_docker_user.sh
+# Add configured user to image with sudo access:
+RUN /etc/add_docker_user.sh
+
+USER $USER
+WORKDIR /home/$USER
