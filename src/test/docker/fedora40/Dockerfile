@@ -2,6 +2,10 @@ FROM fedora:40
 
 LABEL maintainer="James Corbett <corbett8@llnl.gov>"
 
+ARG USER=scr
+ARG UID=1000
+ARG GID=1000
+
 #  Enable PowerTools for development packages
 #  Utilities
 RUN dnf -y groupinstall "Development Tools" \
@@ -43,3 +47,11 @@ RUN dnf -y groupinstall "Development Tools" \
 
 ENV LANG=C.UTF-8
 RUN printf "LANG=C.UTF-8" > /etc/locale.conf
+
+# copy scripts into image
+COPY src/test/docker/add_docker_user.sh /etc/add_docker_user.sh
+# Add configured user to image with sudo access:
+RUN /etc/add_docker_user.sh
+
+USER $USER
+WORKDIR /home/$USER
