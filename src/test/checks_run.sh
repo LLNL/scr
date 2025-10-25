@@ -39,6 +39,12 @@ ulimit -c unlimited
 source /etc/profile.d/modules.sh
 module load mpi
 
+if mpirun -V | grep "Open MPI"; then
+  # without this flag, in GitHub Action Runners, mpirun will complain that there
+  # aren't enough resources
+  ARGS="-DMPIRUN_FLAGS='--map-by :OVERSUBSCRIBE' ${ARGS}"
+fi
+
 
 POSTCHECKCMDS=":"
 # Enable coverage for $CC-coverage build
