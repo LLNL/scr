@@ -1,7 +1,7 @@
 FUNCTION(SCR_LAUNCHER_PARMS procs)
     IF(${SCR_RESOURCE_MANAGER} STREQUAL "NONE")
         SET(test_launcher "mpirun" PARENT_SCOPE)
-        SET(test_param "-np ${procs}" PARENT_SCOPE)
+        SET(test_param "-np ${procs} ${MPIRUN_FLAGS}" PARENT_SCOPE)
     ELSEIF(${SCR_RESOURCE_MANAGER} STREQUAL "SLURM")
         SET(test_launcher "srun" PARENT_SCOPE)
         SET(test_param "-t 5 -N ${procs} -n ${procs}" PARENT_SCOPE)
