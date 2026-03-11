@@ -24,3 +24,5 @@
 * HB Chen
 * Olaf Faaland
 * Marty McFadden
+* Hariharan Devarajan
+* James Corbett
