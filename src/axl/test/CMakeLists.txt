@@ -3,15 +3,13 @@
 ###############
 INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR})
 
-LIST(APPEND axl_test_srcs
-    axl_cp.c
-)
-
 ADD_EXECUTABLE(axl_cp axl_cp.c)
 ADD_EXECUTABLE(axl_test_config test_config.c)
+ADD_EXECUTABLE(test_client_server test_client_server.c)
 
 TARGET_LINK_LIBRARIES(axl_cp axl_o kvtree_o ${SCR_EXTERNAL_LIBS})
 TARGET_LINK_LIBRARIES(axl_test_config axl_o kvtree_o ${SCR_EXTERNAL_LIBS})
+TARGET_LINK_LIBRARIES(test_client_server axl_o kvtree_o ${SCR_EXTERNAL_LIBS})
 
 ################
 # Add tests to ctest
@@ -19,6 +17,7 @@ TARGET_LINK_LIBRARIES(axl_test_config axl_o kvtree_o ${SCR_EXTERNAL_LIBS})
 
 CONFIGURE_FILE(test_axl.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 CONFIGURE_FILE(test_axl_metadata.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+CONFIGURE_FILE(test_driver_client_server.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
 ADD_TEST(axl_sync_test test_axl.sh sync)
 
@@ -58,6 +57,8 @@ IF(BBAPI_FOUND)
 ENDIF(BBAPI_FOUND)
 
 ADD_TEST(axl_test_config axl_test_config)
+
+ADD_TEST(axl_test_client_server test_driver_client_server.py)
 
 ####################
 # make a verbose "test" target named "axl_check"

@@ -17,10 +17,18 @@
 /* unless otherwise indicated all global variables defined in this file must
  * only be accessed by the main thread */
 
-/*
- * A list of pointers to kvtrees, indexed by AXL ID.
- */
-extern kvtree** axl_kvtrees;
+struct axl_transfer_array {
+    /* Array for all the AXL_Create'd kvtree pointers.  It's indexed by the AXL id.
+     *
+     * Note: We only expand this array, we never shrink it.  This is fine since
+     * the user is only going to be calling AXL_Create() a handful of times.  It
+     * also simplifies the code if we never shrink it, and the extra memory usage
+     * is negligible, if any at all. */
+    kvtree** axl_kvtrees;
+    unsigned int axl_kvtrees_count;
+};
+
+extern struct axl_transfer_array* axl_xfer_list;
 
 /* current debug level for AXL library,
  * set in AXL_Init and AXL_Config used in axl_dbg.
@@ -63,6 +71,7 @@ extern int axl_rank;
 
 /* attaches function name, file name, and line number to error messages
  * https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html */
+#define AXL_ABORT(exitcode, format, ...) axl_abort(exitcode, format " @ %s %s:%d", ##__VA_ARGS__, __func__, __FILE__, __LINE__)
 #define AXL_ERR(format, ...) axl_err(format " @ %s %s:%d", ##__VA_ARGS__, __func__, __FILE__, __LINE__)
 #define AXL_DBG(level, format, ...) axl_dbg(level, format " @ %s %s:%d", ##__VA_ARGS__, __func__, __FILE__, __LINE__)
 

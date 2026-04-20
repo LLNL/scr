@@ -1,5 +1,6 @@
+# TODO: Separate PTHREADS from SOCKETS
 IF(ENABLE_PTHREADS)
-  LIST(APPEND axl_optional_srcs axl_pthread.c)
+  LIST(APPEND axl_optional_srcs axl_pthread.c axl_socket.c)
 ENDIF(ENABLE_PTHREADS)
 
 IF(BBAPI_FOUND)
@@ -10,23 +11,9 @@ IF(HAVE_DATAWARP)
     LIST(APPEND axl_optional_srcs axl_async_datawarp.c)
 ENDIF(HAVE_DATAWARP)
 
-LIST(APPEND libaxl_srcs
-    axl.c
-    axl_sync.c
-    axl_err.c
-    axl_io.c
-    axl_util.c
-    ${axl_optional_srcs}
-)
+LIST(APPEND libaxl_srcs axl.c axl_sync.c axl_err.c axl_io.c axl_util.c ${axl_optional_srcs})
 
-LIST(APPEND libaxl_serial_srcs
-    axl.c
-    axl_sync.c
-    axl_err.c
-    axl_io.c
-    axl_util.c
-    ${axl_optional_srcs}
-)
+LIST(APPEND libaxl_serial_srcs axl.c axl_sync.c axl_err.c axl_io.c axl_util.c ${axl_optional_srcs})
 
 IF(MPI_C_FOUND)
   LIST(APPEND libaxl_srcs axl_mpi.c)
@@ -39,6 +26,14 @@ IF(BUILD_SHARED_LIBS)
   SET_PROPERTY(TARGET axl_o PROPERTY POSITION_INDEPENDENT_CODE 1)
   SET_PROPERTY(TARGET axl_serial_o PROPERTY POSITION_INDEPENDENT_CODE 1)
 ENDIF()
+
+# TODO: Separate PTHREADS from SOCKETS
+IF(HAVE_PTHREADS)
+    ADD_EXECUTABLE(axl_socket_daemon axl_socket_daemon.c)
+    TARGET_LINK_LIBRARIES(axl_socket_daemon axl_o kvtree_o ${SCR_EXTERNAL_LIBS})
+    INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/axl_socket_daemon DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
+ENDIF(HAVE_PTHREADS)
+
 
 IF(ENABLE_TESTS)
   ADD_SUBDIRECTORY(test)

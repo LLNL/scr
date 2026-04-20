@@ -38,7 +38,7 @@ struct axl_pthread_data
     /* AXL ID associated with this data */
     int id;
 
-    /* AXL transfer options from axl_kvtrees */
+    /* AXL transfer options from axl_xfer_list->axl_kvtrees */
     kvtree* file_list;
 
     /* If resume = 1, try to resume old transfers */
@@ -135,7 +135,7 @@ struct axl_pthread_data* axl_pthread_data_lookup(int id)
 void axl_pthread_data_add(int id, struct axl_pthread_data* pdata)
 {
     pdata->id = id;
-    pdata->file_list = axl_kvtrees[id];
+    pdata->file_list = axl_xfer_list->axl_kvtrees[id];
 
     pthread_mutex_lock(&axl_all_pthread_data.lock);
 
@@ -332,7 +332,7 @@ static int __axl_pthread_start (int id, int resume)
     int rc = AXL_SUCCESS;
 
     /* get pointer to file list for this dataset */
-    kvtree* file_list = axl_kvtrees[id];
+    kvtree* file_list = axl_xfer_list->axl_kvtrees[id];
 
     /* mark dataset as in progress */
     kvtree_util_set_int(file_list, AXL_KEY_STATUS, AXL_STATUS_INPROG);
