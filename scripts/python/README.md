@@ -48,6 +48,6 @@ Node groups can be bound together by differing lists.
 Library defaults may need to be overridden for identifying nodes
 (see bottom of the config.html link)
 
-The ClusterShell``NodeSet`` class supports more operations than ``scr_hostlist``.
+The ClusterShell ``NodeSet`` class supports more operations than ``scr_hostlist``.
 See the NodeSet class: ``ClusterShell.NodeSet.NodeSet``.
-Using package: clustershell.readthedocs.io/en/latest/guide/taskmgnt.html
+Using package: https://clustershell.readthedocs.io/en/latest/guide/taskmgnt.html
