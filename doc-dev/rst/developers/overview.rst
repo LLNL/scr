@@ -56,7 +56,7 @@ following:
 
      /* build file name of checkpoint file for this rank */
      char checkpoint_file[256];
-     sprintf(checkpoint_file, "%s/rank_%d".ckpt",
+     sprintf(checkpoint_file, "%s/rank_%d.ckpt",
        checkpoint_dir, rank
      );
 
@@ -118,7 +118,7 @@ Each change is numbered for further discussion below.
 
      /* build file name of checkpoint file for this rank */
      char checkpoint_file[256];
-     sprintf(checkpoint_file, "%s/rank_%d".ckpt",
+     sprintf(checkpoint_file, "%s/rank_%d.ckpt",
        checkpoint_dir, rank
      );
 

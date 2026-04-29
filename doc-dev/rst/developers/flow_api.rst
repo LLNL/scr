@@ -442,7 +442,7 @@ LOOP ROUNDS
 #. If we need to send files to our self, just move (rename) each file,
    update the filemap, and loop to the next round.
 
-#. Otherwise, if we have files for this round but the the owner rank
+#. Otherwise, if we have files for this round but the owner rank
    does not need them, delete them.
 
 #. If we do not need to send or receive any files this round, loop to
