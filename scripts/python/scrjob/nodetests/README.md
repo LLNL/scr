@@ -21,7 +21,7 @@ Existing tests:
 - ``echo.py`` - Nodes that fail to execute an ``echo UP`` command
 - ``dir_capacity.py`` - Nodes that fail the ``scr_check_node.py`` test, which verifies that cache and control directories are writable and optionally have a minimum capacity
 
-## Adding new node health tests
+# Adding new node health tests
 
 The steps to add a new node test are described below.
 
