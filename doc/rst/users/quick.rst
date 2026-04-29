@@ -79,7 +79,7 @@ within the CMake :code:`build` directory:
 
   cd examples
 
-If you still have this direcotry,
+If you still have this directory,
 then skip ahead to the next section to run :code:`test_api.c`.
 
 Alternatively, you will find source files for example programs

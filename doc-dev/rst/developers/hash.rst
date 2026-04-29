@@ -365,7 +365,7 @@ one could do the following:
 
      int64_t current_timestep = -1;
      if (scr_hash_util_get_int64(hash, "TIMESTEP", &current_timestep) == SCR_SUCCESS) {
-       /* TIMESTEP was set, and it's value is now in current_timestep */
+       /* TIMESTEP was set, and its value is now in current_timestep */
      } else {
        /* TIMESTEP was not set, and current_timestep is still -1 */
      }
