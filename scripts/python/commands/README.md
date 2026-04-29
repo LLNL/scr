@@ -9,12 +9,12 @@ Detailed usage for the scripts in this directory is provided in the SCR user doc
 - ``scr_prerun``          - Execute before the first SCR job in an allocation
 - ``scr_postrun``         - Execute after the final SCR job in an allocation; scavenges any cached datasets
 - ``scr_list_down_nodes`` - Reports list of currently failed nodes in an allocation, if any
-- ``scr_should_exit``     - Indicates whether one should stop launching SCR runs within an allocation; checks for active halt condition, insufficient nodes, or in sufficient time
+- ``scr_should_exit``     - Indicates whether one should stop launching SCR runs within an allocation; checks for active halt condition, insufficient nodes, or insufficient time
 - ``scr_halt``            - View/edit/remove conditions in the halt file  
 
 ## scr\_run
 
-The ``scr_run`` script provides a high-level wrapper around the above scipts.
+The ``scr_run`` script provides a high-level wrapper around the above scripts.
 It can automatically relaunch a job and avoid down nodes after detecting a failure,
 and it scavenges any cached datasets before exiting the allocation.
   

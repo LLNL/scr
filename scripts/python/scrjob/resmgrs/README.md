@@ -4,15 +4,15 @@ like acquiring the allocation id, the list of compute nodes,
 and the expected end time of the allocation.
 
 Base class:
-- ``resource manager.py`` - Defines the ``ResourceManager`` base class that each resource manager implements
-- ``auto.py``- Defines the ``AutoResourceManager`` class that instantiates a resource manager depending on the system environment
+- ``resourcemanager.py`` - Defines the ``ResourceManager`` base class that each resource manager implements
+- ``auto.py`` - Defines the ``AutoResourceManager`` class that instantiates a resource manager depending on the system environment
 
 Existing resource manager classes:
-- ``flux.py``- Flux
-- ``lsf.py``- IBM LSF
-- ``pbsalps.py``- Cray Torque PBS with ALPS launcher
-- ``pmix.py``- PMIX (not functional)
-- ``slurm.py``- SLURM
+- ``flux.py`` - Flux
+- ``lsf.py`` - IBM LSF
+- ``pbsalps.py`` - Cray Torque PBS with ALPS launcher
+- ``pmix.py`` - PMIX (not functional)
+- ``slurm.py`` - SLURM
 
 # Adding a new resource manager
 

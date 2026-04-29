@@ -7,7 +7,7 @@ of SCR.
 Docker is used under CI to speed up deployment of an
 environment with correct build dependencies and to keep a docker
 image deployed at `libscr/scr` DockerHub with latest master build
-(`libscr/scr:latest`) and tagged builds (`scr/SCR:v<tag>`),
+(`libscr/scr:latest`) and tagged builds (`libscr/scr:v<tag>`),
 which can be used by other projects to build against the latest
 or a tagged version of SCR.
 
